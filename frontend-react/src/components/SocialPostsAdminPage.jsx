@@ -76,6 +76,9 @@ const CostBar = ({ cost }) => {
   );
 };
 
+const needsMaterials = (post) =>
+  Boolean(post?.gen_meta?.needs_materials || post?.gen_meta?.visual_materials?.needs_materials);
+
 // ── Image-only card (default view) ──────────────────────────────
 const ImageCard = ({ post, onOpen }) => (
   <button
@@ -94,17 +97,179 @@ const ImageCard = ({ post, onOpen }) => (
         no image
       </div>
     )}
-    <span className="absolute top-2 left-2">
+    <span className="absolute top-2 left-2 flex flex-col gap-1">
       <StatusBadge status={post.status} />
+      {needsMaterials(post) && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[9px] tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/30">
+          NEEDS ASSETS
+        </span>
+      )}
     </span>
   </button>
 );
 
+// ── Materials panel: AI asks admin for missing logos/faces ──────
+const MaterialsPanel = ({ postId, onUpdated }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await api.get(`/api/v1/admin/social-posts/${postId}/materials`);
+      setData(res.data);
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Failed to load materials");
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const upload = async (item, file) => {
+    if (!file) return;
+    setBusy(item.name);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("name", item.name);
+      fd.append("kind", item.kind || "logo");
+      fd.append("file", file);
+      await api.post(`/api/v1/admin/social-posts/${postId}/materials`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await load();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Upload failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const reRender = async () => {
+    setBusy("__render__");
+    setErr(null);
+    try {
+      const res = await api.post(`/api/v1/admin/social-posts/${postId}/re-render`);
+      await load();
+      if (onUpdated && res.data?.post) onUpdated(res.data.post);
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Re-render failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-[11px] font-mono text-text-muted">Detecting materials…</p>;
+  }
+  if (!data) return null;
+
+  const inv = data.inventory || [];
+  const requests = data.requests || [];
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/35 p-3 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-gold-primary/90">
+          AI visual materials
+        </p>
+        {data.needs_materials ? (
+          <span className="text-[9px] font-mono text-amber-300">
+            {data.missing_count} missing — upload below
+          </span>
+        ) : (
+          <span className="text-[9px] font-mono text-green-400">all resolved</span>
+        )}
+      </div>
+
+      {requests.length > 0 && (
+        <div className="rounded-md bg-amber-500/10 border border-amber-400/25 px-2.5 py-2 space-y-1">
+          <p className="text-[10px] font-semibold text-amber-200">AI is asking you for:</p>
+          {requests.map((r, i) => (
+            <p key={i} className="text-[11px] text-amber-100/90 leading-snug">
+              • {r.message || `Need ${r.kind} for ${r.name}`}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {inv.map((item) => (
+          <div
+            key={`${item.type}-${item.name}`}
+            className="flex items-center gap-2 rounded-md border border-white/[0.07] bg-white/[0.02] px-2 py-1.5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] text-white truncate">
+                {item.name}
+                <span className="text-text-muted font-mono text-[10px] ml-1.5">
+                  {item.kind} · {item.type}
+                </span>
+              </p>
+              {item.role && (
+                <p className="text-[10px] text-text-muted truncate">{item.role}</p>
+              )}
+              {item.request && item.status === "missing" && (
+                <p className="text-[10px] text-amber-200/80 mt-0.5 leading-snug">{item.request}</p>
+              )}
+            </div>
+            <span
+              className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                item.status === "resolved"
+                  ? "bg-green-500/15 text-green-400"
+                  : "bg-amber-500/15 text-amber-300"
+              }`}
+            >
+              {item.status}
+            </span>
+            {item.status === "missing" && (
+              <label className="shrink-0 cursor-pointer px-2 py-1 rounded text-[10px] font-medium bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25">
+                {busy === item.name ? "…" : "Upload"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={!!busy}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) upload(item, f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        ))}
+        {inv.length === 0 && (
+          <p className="text-[11px] text-text-muted">No entities detected for this story.</p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        disabled={!!busy}
+        onClick={reRender}
+        className="w-full mt-1 px-3 py-2 rounded-lg text-[11px] font-semibold bg-white/[0.06] text-white border border-white/12 hover:bg-white/[0.1] disabled:opacity-40"
+      >
+        {busy === "__render__" ? "Re-rendering image…" : "Re-render image with materials"}
+      </button>
+      {err && <p className="text-[11px] text-red-400">{err}</p>}
+    </div>
+  );
+};
+
 // ── Instagram-style detail modal ────────────────────────────────
-const PostModal = ({ post, onClose, onStatus, onDelete, busy }) => {
+const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   if (!post) return null;
-  const isXai = post.image_mode === "ai_xai";
+  const isXai = (post.image_mode || "").startsWith("ai_");
 
   return (
     <div
@@ -202,6 +367,14 @@ const PostModal = ({ post, onClose, onStatus, onDelete, busy }) => {
                 cost ≈ {money(post.gen_meta.total_usd)} · {((post.gen_meta.prompt_tokens || 0) + (post.gen_meta.completion_tokens || 0)).toLocaleString()} tok · {post.gen_meta.image_count || 0} img{post.gen_meta.search_count ? ` · ${post.gen_meta.search_count} search` : ""}
               </div>
             )}
+
+            {/* AI asks for missing logos / faces — admin upload + re-render */}
+            <MaterialsPanel
+              postId={post.id}
+              onUpdated={(p) => {
+                if (onPostUpdated) onPostUpdated(p);
+              }}
+            />
           </div>
 
           {/* actions */}
@@ -226,7 +399,8 @@ const PostModal = ({ post, onClose, onStatus, onDelete, busy }) => {
             <div className="ml-auto flex items-center gap-2">
               {post.status !== "approved" && (
                 <button
-                  disabled={busy}
+                  disabled={busy || needsMaterials(post)}
+                  title={needsMaterials(post) ? "Upload missing materials first" : undefined}
                   onClick={() => onStatus(post.id, "approved")}
                   className="px-4 py-1.5 rounded text-[12px] font-medium bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 disabled:opacity-40 transition-colors"
                 >
@@ -427,6 +601,13 @@ const SocialPostsAdminPage = () => {
         onStatus={handleStatus}
         onDelete={handleDelete}
         busy={busyId === selected?.id}
+        onPostUpdated={(p) => {
+          const busted = p.image_url
+            ? { ...p, image_url: `${p.image_url}${p.image_url.includes("?") ? "&" : "?"}t=${Date.now()}` }
+            : p;
+          setSelected((prev) => (prev && prev.id === busted.id ? { ...prev, ...busted } : prev));
+          setPosts((list) => list.map((x) => (x.id === busted.id ? { ...x, ...busted } : x)));
+        }}
       />
     </div>
   );

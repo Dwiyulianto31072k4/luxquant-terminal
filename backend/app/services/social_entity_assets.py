@@ -324,11 +324,17 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
         "logos": [{"name", "role", "path"}],
         "people": [{"name", "role", "path"}],
         "featured_face_path": Optional[str],
+        "inventory": [ {name, type, role, domain, kind, status, path, request} ],
+        "needs_materials": bool,
+        "missing_count": int,
+        "qc_flags": [str],
       }
     """
     logos: list[dict] = []
     people: list[dict] = []
+    inventory: list[dict] = []
     featured_face_path = None
+    qc_flags: list[str] = []
 
     # Ensure featured person is in the list
     ents = list(entities or [])
@@ -344,21 +350,119 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
         name = e.get("name") or ""
         role = e.get("role") or ""
         typ = e.get("type") or "org"
+        domain = e.get("domain")
         if typ == "person":
             path = resolve_person_face(name)
+            kind = "face"
             if path:
                 people.append({"name": name, "role": role, "path": path})
                 if featured_person and name.lower().split(",")[0].strip() in featured_person.lower():
                     featured_face_path = path
                 elif not featured_face_path:
                     featured_face_path = path
+                status = "resolved"
+                request = None
+            else:
+                status = "missing"
+                request = (
+                    f"Upload a clear portrait photo of {name}"
+                    + (f" ({role})" if role else "")
+                    + " — face front, high-res, no crowd."
+                )
+                qc_flags.append(f"FACE_MISSING:{name}")
         else:
-            path = resolve_logo(name, domain=e.get("domain"))
+            path = resolve_logo(name, domain=domain)
+            kind = "logo"
             if path:
                 logos.append({"name": name, "role": role, "path": path})
+                status = "resolved"
+                request = None
+            else:
+                status = "missing"
+                request = (
+                    f"Upload official logo for {name}"
+                    + (f" ({role})" if role else "")
+                    + (f" — prefer transparent PNG from {domain}" if domain else " — prefer transparent PNG / square mark")
+                )
+                qc_flags.append(f"ORG_LOGO_MISSING:{name}")
+
+        inventory.append({
+            "name": name,
+            "type": typ,
+            "role": role,
+            "domain": domain,
+            "kind": kind,
+            "status": status,
+            "path": path,
+            "request": request,
+            "slug": _slug(name),
+        })
+
+    missing = [i for i in inventory if i["status"] == "missing"]
+    org_count = sum(1 for i in inventory if i["type"] == "org")
+    # Multi-org stories without any resolved logo are a soft QC fail
+    if org_count >= 2 and not logos:
+        qc_flags.append("MULTI_ORG_NO_LOGOS")
 
     return {
         "logos": logos[:4],
         "people": people[:3],
         "featured_face_path": featured_face_path,
+        "inventory": inventory,
+        "needs_materials": len(missing) > 0,
+        "missing_count": len(missing),
+        "qc_flags": qc_flags,
     }
+
+
+def save_admin_upload(
+    *,
+    name: str,
+    kind: str,
+    file_bytes: bytes,
+    content_type: str = "image/png",
+) -> str:
+    """Persist an admin-provided logo/face into the asset library. Returns path."""
+    kind = (kind or "logo").lower()
+    if kind not in ("logo", "face"):
+        raise ValueError("kind must be logo or face")
+    slug = _slug(name)
+    if not slug:
+        raise ValueError("invalid name")
+    base_dir = LOGO_DIR if kind == "logo" else FACE_DIR
+    base_dir.mkdir(parents=True, exist_ok=True)
+    # Clear miss markers so future resolves hit the new file
+    miss = base_dir / f"{slug}.miss"
+    if miss.exists():
+        try:
+            miss.unlink()
+        except Exception:
+            pass
+    dest_base = base_dir / slug
+    saved = _save_image_bytes(file_bytes, content_type or "image/png", dest_base)
+    if not saved:
+        # force write as png
+        dest = dest_base.with_suffix(".png")
+        dest.write_bytes(file_bytes)
+        saved = str(dest)
+    return saved
+
+
+def seed_high_value_logos() -> list[str]:
+    """Best-effort seed of common org logos. Returns list of saved paths."""
+    targets = [
+        ("SEC", "sec.gov"),
+        ("Hyperliquid", "hyperliquid.xyz"),
+        ("Binance", "binance.com"),
+        ("Coinbase", "coinbase.com"),
+        ("Federal Reserve", "federalreserve.gov"),
+        ("BlackRock", "blackrock.com"),
+        ("Ethereum", "ethereum.org"),
+        ("CFTC", "cftc.gov"),
+    ]
+    saved = []
+    for name, domain in targets:
+        path = resolve_logo(name, domain=domain)
+        if path:
+            saved.append(path)
+    return saved

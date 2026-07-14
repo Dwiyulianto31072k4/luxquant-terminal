@@ -35,6 +35,8 @@ class GeneratedSocialImage:
     reference_image_url: Optional[str] = None
     reference_image_path: Optional[str] = None
     error_message: Optional[str] = None
+    # Visual materials inventory (entities, missing uploads, qc flags)
+    visual_materials: Optional[dict] = None
 
 
 def _safe_slug(value: str, fallback: str = "social") -> str:
@@ -646,12 +648,21 @@ def generate_ai_social_image(
     # Resolve real logos + face references for named entities (Hyperliquid, SEC, founders…).
     entity_logos: list = []
     entity_face = None
+    visual_materials: Optional[dict] = None
     try:
         from app.services.social_entity_assets import resolve_entity_assets
 
         assets = resolve_entity_assets(entities or [], featured_person=featured_person)
         entity_logos = assets.get("logos") or []
         entity_face = assets.get("featured_face_path")
+        visual_materials = {
+            "inventory": assets.get("inventory") or [],
+            "needs_materials": bool(assets.get("needs_materials")),
+            "missing_count": int(assets.get("missing_count") or 0),
+            "qc_flags": assets.get("qc_flags") or [],
+            "logos_resolved": len(entity_logos),
+            "faces_resolved": len(assets.get("people") or []),
+        }
     except Exception as exc:
         logger = __import__("logging").getLogger(__name__)
         logger.warning("entity asset resolve failed: %s", exc)
@@ -663,6 +674,22 @@ def generate_ai_social_image(
         if not face_path and featured_person and FACE_AUTOFETCH:
             # Not cached yet — try to fetch and store the portrait for this and future posts.
             face_path = fetch_face_reference(featured_person)
+            # Re-resolve inventory so face shows as resolved if fetch worked
+            if face_path and visual_materials is not None:
+                try:
+                    from app.services.social_entity_assets import resolve_entity_assets
+                    assets = resolve_entity_assets(entities or [], featured_person=featured_person)
+                    entity_logos = assets.get("logos") or []
+                    visual_materials = {
+                        "inventory": assets.get("inventory") or [],
+                        "needs_materials": bool(assets.get("needs_materials")),
+                        "missing_count": int(assets.get("missing_count") or 0),
+                        "qc_flags": assets.get("qc_flags") or [],
+                        "logos_resolved": len(entity_logos),
+                        "faces_resolved": len(assets.get("people") or []),
+                    }
+                except Exception:
+                    pass
         gen_prompt = prompt
         mode = "ai_xai"
         try:
@@ -688,12 +715,15 @@ def generate_ai_social_image(
             )
             if entity_logos:
                 mode = f"{mode}_logos"
+            if visual_materials and visual_materials.get("needs_materials"):
+                mode = f"{mode}_needs_assets"
             return GeneratedSocialImage(
                 image_path=str(out_path),
                 image_mode=mode,
                 image_prompt=gen_prompt,
                 reference_image_url=reference_image_url,
                 reference_image_path=face_path,
+                visual_materials=visual_materials,
             )
         except Exception as exc:
             return GeneratedSocialImage(
@@ -702,6 +732,7 @@ def generate_ai_social_image(
                 image_prompt=gen_prompt,
                 reference_image_url=reference_image_url,
                 error_message=f"xai image failed: {type(exc).__name__}: {exc}",
+                visual_materials=visual_materials,
             )
 
     reference_path = download_reference_image(reference_image_url, news_id=news_id)

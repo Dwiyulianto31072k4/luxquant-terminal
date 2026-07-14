@@ -3,13 +3,19 @@ Admin Social Posts
 
 Draft/approval API for social media post automation. Generation creates draft
 artifacts only; publishing remains a separate explicit step.
+
+Materials workflow:
+  1. AI extracts entities (orgs/people) → gen_meta.visual_materials
+  2. Missing logos/faces are listed as needs_materials for admin upload
+  3. Admin uploads file → asset library → re-render image
 """
 
+import json
 import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -60,6 +66,13 @@ def _row_to_dict(row) -> dict:
                 data["image_url"] = f"/api/v1/social-post-images/{rel}"
         except ValueError:
             data["image_url"] = image_path
+    # Normalize gen_meta JSON
+    meta = data.get("gen_meta")
+    if isinstance(meta, str):
+        try:
+            data["gen_meta"] = json.loads(meta)
+        except Exception:
+            pass
     return data
 
 
@@ -199,3 +212,161 @@ async def update_social_post_status(
     })
     db.commit()
     return {"ok": True}
+
+
+def _get_post_row(db: Session, post_id: int):
+    row = db.execute(text("""
+        SELECT id, news_id, platform, status, angle, headline, caption, hashtags,
+               image_path, image_mode, image_prompt, source_domain, source_url,
+               sources_json, gen_meta, reference_image_url, reference_image_path
+        FROM social_posts WHERE id = :id
+    """), {"id": post_id}).mappings().first()
+    if not row:
+        raise HTTPException(404, "social post not found")
+    return dict(row)
+
+
+@router.get("/{post_id}/materials")
+async def get_post_materials(
+    post_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """List AI-detected entities and which materials are still missing for admin upload."""
+    from app.services.social_entity_assets import resolve_entity_assets
+
+    row = _get_post_row(db, post_id)
+    meta = row.get("gen_meta") or {}
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            meta = {}
+    entities = meta.get("entities") or []
+    featured = meta.get("featured_person")
+    assets = resolve_entity_assets(entities, featured_person=featured)
+    return {
+        "post_id": post_id,
+        "headline": row.get("headline"),
+        "entities": entities,
+        "featured_person": featured,
+        "inventory": assets.get("inventory") or [],
+        "needs_materials": bool(assets.get("needs_materials")),
+        "missing_count": int(assets.get("missing_count") or 0),
+        "qc_flags": assets.get("qc_flags") or [],
+        "requests": [
+            {
+                "name": i["name"],
+                "kind": i["kind"],
+                "type": i["type"],
+                "role": i.get("role"),
+                "message": i.get("request"),
+                "status": i["status"],
+            }
+            for i in (assets.get("inventory") or [])
+            if i.get("status") == "missing"
+        ],
+    }
+
+
+@router.post("/{post_id}/materials")
+async def upload_post_material(
+    post_id: int,
+    name: str = Form(...),
+    kind: str = Form("logo"),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Admin supplies a missing logo/face. Saves into the asset library."""
+    from app.services.social_entity_assets import save_admin_upload
+
+    _get_post_row(db, post_id)
+    kind = (kind or "logo").lower().strip()
+    if kind not in ("logo", "face"):
+        raise HTTPException(400, "kind must be logo or face")
+    data = await file.read()
+    if not data or len(data) < 500:
+        raise HTTPException(400, "file too small")
+    if len(data) > 8_000_000:
+        raise HTTPException(400, "file too large (max 8MB)")
+    ctype = file.content_type or "image/png"
+    if not ctype.startswith("image/"):
+        raise HTTPException(400, "file must be an image")
+    try:
+        path = save_admin_upload(name=name, kind=kind, file_bytes=data, content_type=ctype)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, "name": name, "kind": kind, "path": path}
+
+
+@router.post("/{post_id}/re-render")
+async def re_render_post_image(
+    post_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Re-generate the image using current entity assets (after admin uploads)."""
+    from app.services.social_image_generator import generate_ai_social_image
+
+    row = _get_post_row(db, post_id)
+    meta = row.get("gen_meta") or {}
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            meta = {}
+    entities = meta.get("entities") or []
+    featured = meta.get("featured_person")
+    article_summary = row.get("caption") or row.get("headline") or ""
+
+    result = generate_ai_social_image(
+        news_id=int(row["news_id"] or post_id),
+        headline=row.get("headline") or "News",
+        article_summary=article_summary,
+        source_domain=row.get("source_domain"),
+        angle=row.get("angle"),
+        reference_image_url=row.get("reference_image_url"),
+        override_prompt=row.get("image_prompt"),
+        featured_person=featured,
+        entities=entities,
+    )
+    if not result.image_path:
+        raise HTTPException(500, result.error_message or "re-render failed")
+
+    # Merge visual materials into gen_meta
+    if result.visual_materials:
+        meta["visual_materials"] = result.visual_materials
+        meta["needs_materials"] = bool(result.visual_materials.get("needs_materials"))
+        meta["qc_flags"] = result.visual_materials.get("qc_flags") or []
+
+    db.execute(text("""
+        UPDATE social_posts
+        SET image_path = :image_path,
+            image_mode = :image_mode,
+            image_prompt = COALESCE(:image_prompt, image_prompt),
+            reference_image_path = :reference_image_path,
+            gen_meta = CAST(:gen_meta AS jsonb),
+            updated_at = now()
+        WHERE id = :id
+    """), {
+        "id": post_id,
+        "image_path": result.image_path,
+        "image_mode": result.image_mode,
+        "image_prompt": result.image_prompt,
+        "reference_image_path": result.reference_image_path,
+        "gen_meta": json.dumps(meta),
+    })
+    db.commit()
+    out = _row_to_dict(_get_post_row(db, post_id))
+    return {"ok": True, "post": out, "visual_materials": result.visual_materials}
+
+
+@router.post("/seed-logos")
+async def seed_logos(
+    admin: User = Depends(get_admin_user),
+):
+    """Best-effort seed of high-value brand logos into the asset library."""
+    from app.services.social_entity_assets import seed_high_value_logos
+    saved = seed_high_value_logos()
+    return {"ok": True, "saved": saved, "count": len(saved)}

@@ -461,6 +461,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         source_domain=item.domain,
         image_prompt=ai_image_prompt,
     )
+    visual_materials = None
     if render_image:
         ai_image = generate_ai_social_image(
             news_id=item.id,
@@ -478,6 +479,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         draft.reference_image_url = ai_image.reference_image_url
         draft.reference_image_path = ai_image.reference_image_path
         draft.image_path = ai_image.image_path
+        visual_materials = getattr(ai_image, "visual_materials", None)
         if not draft.image_path:
             draft.image_path = render_card(draft, item)
 
@@ -485,7 +487,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
     try:
         from app.services.social_cost import estimate_cost
         usage = (ai_pack or {}).get("_usage") or {}
-        image_count = 1 if draft.image_mode in ("ai_xai", "ai_generated", "ai_reference") else 0
+        image_count = 1 if draft.image_mode and str(draft.image_mode).startswith("ai_") else 0
         draft.gen_meta = estimate_cost(
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
@@ -495,7 +497,17 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
             image_model=os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality") if image_count else "",
         )
     except Exception:
-        draft.gen_meta = None
+        draft.gen_meta = {}
+
+    if draft.gen_meta is None:
+        draft.gen_meta = {}
+    # Persist entity inventory so admin UI can show "AI needs this material"
+    draft.gen_meta["entities"] = (ai_pack or {}).get("entities") or []
+    draft.gen_meta["featured_person"] = (ai_pack or {}).get("featured_person")
+    if visual_materials:
+        draft.gen_meta["visual_materials"] = visual_materials
+        draft.gen_meta["needs_materials"] = bool(visual_materials.get("needs_materials"))
+        draft.gen_meta["qc_flags"] = visual_materials.get("qc_flags") or []
 
     return draft
 
