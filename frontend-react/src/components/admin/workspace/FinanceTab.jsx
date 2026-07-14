@@ -18,6 +18,7 @@ import { FinanceFilterBar } from './finance/FinanceFilterBar';
 import { PaymentsTable } from './finance/PaymentsTable';
 import { FinancePagination } from './finance/FinancePagination';
 import { formatUSDT } from './finance/helpers';
+import PaymentAuditPanel from './PaymentAuditPanel';
 
 import {
   AlertTriangleIcon,
@@ -418,6 +419,10 @@ export const FinanceTab = ({ onRefreshStats }) => {
         onFilterToggle={handleFilterToggle}
         loading={statsLoading}
       />
+
+      {/* ERP: payment-gap queue belongs to Finance (money ops), not Users directory.
+          Collapsed by default — expand only when working the backlog. */}
+      <PaymentAuditPanel defaultOpen={false} id="payment-audit" />
 
       <FinanceFilterBar
         search={search}

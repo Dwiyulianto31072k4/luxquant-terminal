@@ -156,6 +156,10 @@ const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
   if (servicesSummary?.down > 0) chips.push({ label: 'service down', value: servicesSummary.down, accent: palette.red[400], Icon: ServerIcon, pulse: true, onClick: () => onJumpTo('system') });
   if (stats?.followups_overdue > 0) chips.push({ label: 'overdue', value: stats.followups_overdue, accent: palette.red[400], Icon: AlertTriangleIcon, pulse: true, onClick: () => onJumpTo('followups') });
   if (financeStats?.stale_count > 0) chips.push({ label: 'stale pay', value: financeStats.stale_count, accent: palette.red[400], Icon: AlertCircleIcon, pulse: true, onClick: () => onJumpTo('finance') });
+  if (financeStats?.payment_gap_pending > 0) chips.push({ label: 'pay gap', value: financeStats.payment_gap_pending, accent: palette.amber[400], Icon: DollarIcon, pulse: true, onClick: () => {
+    try { sessionStorage.setItem('luxquant.openPaymentAudit', '1'); } catch { /* ignore */ }
+    onJumpTo('finance');
+  }});
   if (stats?.todos_urgent > 0) chips.push({ label: 'urgent todos', value: stats.todos_urgent, accent: palette.orange[400], Icon: ZapIcon, onClick: () => onJumpTo('todos') });
   if (stats?.followups_today > 0) chips.push({ label: 'due today', value: stats.followups_today, accent: palette.amber[400], Icon: ClockIcon, onClick: () => onJumpTo('followups') });
   if (financeStats?.revenue_today > 0) chips.push({ label: 'today', value: `$${Number(financeStats.revenue_today).toLocaleString('en-US', { maximumFractionDigits: 0 })}`, accent: palette.green[400], Icon: TrendingUpIcon, onClick: () => onJumpTo('finance') });
@@ -271,7 +275,16 @@ const AdminWorkspacePage = () => {
     try { setStats(await workspaceApi.getStats()); } catch (e) { console.error('Failed to load workspace stats:', e); }
   }, []);
   const fetchFinanceStats = useCallback(async () => {
-    try { setFinanceStats(await financeApi.getStats()); } catch (e) { console.error('Failed to load finance stats:', e); }
+    try {
+      const [fin, audit] = await Promise.all([
+        financeApi.getStats(),
+        workspaceApi.getPaymentAudit().catch(() => null),
+      ]);
+      const gap = audit?.summary?.pending ?? audit?.users?.length ?? 0;
+      setFinanceStats({ ...fin, payment_gap_pending: gap });
+    } catch (e) {
+      console.error('Failed to load finance stats:', e);
+    }
   }, []);
   const fetchServicesSummary = useCallback(async () => {
     try { const r = await workspaceApi.getServices(); setServicesSummary(r?.summary || null); }
@@ -299,7 +312,8 @@ const AdminWorkspacePage = () => {
     users: null,
     followups: stats?.followups_overdue || null,
     marketing: null,
-    finance: financeStats?.stale_count || null,
+    // Prefer stale payments; fall back to payment-gap backlog
+    finance: financeStats?.stale_count || financeStats?.payment_gap_pending || null,
     growth: null,
     todos: stats?.todos_urgent || null,
     activity: null,

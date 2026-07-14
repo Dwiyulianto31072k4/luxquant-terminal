@@ -1,10 +1,12 @@
 // src/components/admin/users/ContactReachPanel.jsx
 //
-// Channel reach breakdown. Each tile is click-to-filter the user table.
+// Channel reach breakdown. Collapsed by default (ERP progressive disclosure).
+// Each tile is click-to-filter the user table.
 //
 
+import { useState } from 'react';
 import { Surface } from '../primitives';
-import { palette } from '../designSystem';
+import { palette, tint } from '../designSystem';
 import {
   TelegramIcon,
   DiscordIcon,
@@ -12,10 +14,17 @@ import {
   SparklesIcon,
   AlertTriangleIcon,
   BroadcastIcon,
+  ChevronDownIcon,
 } from '../Icons';
 import { IntentTile } from '../primitives';
 
-export const ContactReachPanel = ({ contactStats, filterReach, onFilterReach }) => {
+export const ContactReachPanel = ({
+  contactStats,
+  filterReach,
+  onFilterReach,
+  defaultOpen = false,
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
   if (!contactStats) return null;
 
   const reachPct = Math.round(
@@ -61,38 +70,64 @@ export const ContactReachPanel = ({ contactStats, filterReach, onFilterReach }) 
   ];
 
   return (
-    <Surface variant="premium" hover={false} padding="p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h3 className="text-xs font-bold text-white flex items-center gap-2 tracking-tight">
+    <Surface variant="premium" hover={false} padding="p-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
           <BroadcastIcon size={14} style={{ color: palette.gold[300] }} />
-          Contact Reach
-        </h3>
-        <p
-          className="text-[10px] tabular-nums"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
-        >
-          <span style={{ color: palette.gold[300] }}>{reachPct}%</span>
-          {' of '}
-          <span className="text-white">{contactStats.total}</span>
-          {' reachable'}
-        </p>
-      </div>
+          <h3 className="text-xs font-bold text-white tracking-tight">Contact Reach</h3>
+          <span
+            className="text-[10px] tabular-nums px-1.5 py-0.5 rounded-full"
+            style={{
+              background: tint(palette.gold[300], 0.12),
+              color: palette.gold[300],
+              border: `1px solid ${tint(palette.gold[300], 0.25)}`,
+            }}
+          >
+            {reachPct}% reachable
+          </span>
+          {filterReach && (
+            <span
+              className="text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+              style={{
+                background: tint(palette.blue[400], 0.12),
+                color: palette.blue[400],
+              }}
+            >
+              filter on
+            </span>
+          )}
+        </div>
+        <ChevronDownIcon
+          size={15}
+          style={{
+            color: 'rgba(255,255,255,0.4)',
+            transform: open ? 'rotate(180deg)' : 'none',
+            transition: 'transform .2s',
+          }}
+        />
+      </button>
 
-      {/* Tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        {items.map((it) => (
-          <IntentTile
-            key={it.key}
-            Icon={it.Icon}
-            label={it.label}
-            value={it.value}
-            color={it.color}
-            active={filterReach === it.key}
-            onClick={() => onFilterReach(filterReach === it.key ? null : it.key)}
-          />
-        ))}
-      </div>
+      {open && (
+        <div className="px-4 pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {items.map((it) => (
+              <IntentTile
+                key={it.key}
+                Icon={it.Icon}
+                label={it.label}
+                value={it.value}
+                color={it.color}
+                active={filterReach === it.key}
+                onClick={() => onFilterReach(filterReach === it.key ? null : it.key)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </Surface>
   );
 };

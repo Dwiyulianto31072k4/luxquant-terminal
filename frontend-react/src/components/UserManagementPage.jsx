@@ -21,12 +21,11 @@ import { UsersPagination } from './admin/users/UsersPagination';
 import { GrantModal } from './admin/users/GrantModal';
 import { SendMessageModal } from './admin/users/SendMessageModal';
 import { ConfirmModal } from './admin/users/ConfirmModal';
+import { OpsQueueBar } from './admin/users/OpsQueueBar';
 
 // Shared admin pieces
-import PaymentAuditPanel from './admin/workspace/PaymentAuditPanel';
 import { FilterPanel } from './admin/FilterPanel';
 import { SegmentStrip } from './admin/users/SegmentStrip';
-import { CrmChips } from './admin/users/CrmChips';
 import { BulkActionBar, exportUsersToCsv } from './admin/BulkActionBar';
 import { UserDetailDrawer } from './admin/UserDetailDrawer';
 
@@ -60,79 +59,6 @@ const DEFAULT_FILTERS = {
   exSubscriber: null,   // ← past subscribers, now free/expired
   sortBy: 'created_at',
   sortOrder: 'desc',
-};
-
-// ════════════════════════════════════════════════════════════════════
-// Anomaly quick-filter chips — one-click drift detection
-// ════════════════════════════════════════════════════════════════════
-
-const ANOMALY_CHIPS = [
-  {
-    key: 'paid_outside',
-    statKey: 'anomaly_paid_outside',
-    label: 'Paid, outside group',
-    hint: 'Active access + linked Telegram, but not in VIP group → send invite',
-    color: palette.gold[300],
-  },
-  {
-    key: 'paid_no_tg',
-    statKey: 'anomaly_paid_no_tg',
-    label: 'Paid, no Telegram',
-    hint: 'Active access but no Telegram linked → ask them to connect TG',
-    color: '#5aa9e6',
-  },
-  {
-    key: 'expired_inside',
-    statKey: 'anomaly_expired_inside',
-    label: 'Expired, still in group',
-    hint: 'Subscription expired but still inside VIP group → should be kicked',
-    color: palette.red[400],
-  },
-];
-
-const AnomalyChips = ({ stats, active, onToggle }) => {
-  if (!stats) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span
-        className="text-[10px] uppercase tracking-[0.15em] font-semibold mr-1"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
-      >
-        Anomalies
-      </span>
-      {ANOMALY_CHIPS.map((chip) => {
-        const count = stats[chip.statKey] ?? 0;
-        const isActive = active === chip.key;
-        const isEmpty = count === 0;
-        return (
-          <button
-            key={chip.key}
-            onClick={() => onToggle(isActive ? null : chip.key)}
-            disabled={isEmpty}
-            title={chip.hint}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{
-              background: isActive ? tint(chip.color, 0.18) : tint(chip.color, 0.06),
-              color: chip.color,
-              border: `1px solid ${tint(chip.color, isActive ? 0.5 : 0.2)}`,
-              opacity: isEmpty ? 0.4 : 1,
-              cursor: isEmpty ? 'default' : 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <AlertTriangleIcon size={12} />
-            <span>{chip.label}</span>
-            <span
-              className="tabular-nums font-bold px-1.5 py-0.5 rounded-full text-[10px]"
-              style={{ background: tint(chip.color, 0.2) }}
-            >
-              {count}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -519,8 +445,12 @@ const UserManagementPage = () => {
   if (currentUser?.role !== 'admin') return <AccessGuard />;
 
   // ── Render ──
+  // ERP layout zones:
+  //   1. Command header + KPI (drill-down)
+  //   2. Ops queues (cross-domain link + anomalies/CRM + expiring)
+  //   3. Directory workspace (segment → search/filter → table)
   return (
-    <div className="w-full px-4 lg:px-8 space-y-6 pb-24">
+    <div className="w-full px-4 lg:px-8 space-y-4 pb-24">
       {toast && (
         <Toast
           message={toast.message}
@@ -529,23 +459,27 @@ const UserManagementPage = () => {
         />
       )}
 
+      {/* ── Zone 1: Command ── */}
       <PageHeader stats={stats} onCleanup={handleCleanup} />
 
-      <UsersStatGrid stats={stats} />
-
-      <PaymentAuditPanel />
-
-      <SegmentStrip
-        filters={filters}
+      <UsersStatGrid
         stats={stats}
+        filters={filters}
         defaults={DEFAULT_FILTERS}
-        onSelect={setFilters}
+        onFilter={setFilters}
       />
 
-      <ContactReachPanel
-        contactStats={contactStats}
-        filterReach={filters.reach}
-        onFilterReach={(reach) => setFilters({ ...filters, reach })}
+      {/* ── Zone 2: Ops queues (progressive disclosure) ── */}
+      <OpsQueueBar
+        stats={stats}
+        anomaly={filters.anomaly}
+        crm={filters.crm}
+        onAnomalyToggle={(key) =>
+          setFilters({ ...DEFAULT_FILTERS, anomaly: key })
+        }
+        onCrmToggle={(key) =>
+          setFilters({ ...DEFAULT_FILTERS, crm: key })
+        }
       />
 
       <ExpiringSoonPanel
@@ -554,56 +488,71 @@ const UserManagementPage = () => {
         onDm={(u) => setSendMsgUser(u)}
       />
 
-      <AnomalyChips
-        stats={stats}
-        active={filters.anomaly}
-        onToggle={(key) => setFilters({ ...DEFAULT_FILTERS, anomaly: key })}
-      />
-      <CrmChips
-        active={filters.crm}
-        onToggle={(key) => setFilters({ ...DEFAULT_FILTERS, crm: key })}
+      <ContactReachPanel
+        contactStats={contactStats}
+        filterReach={filters.reach}
+        onFilterReach={(reach) => setFilters({ ...filters, reach })}
+        defaultOpen={false}
       />
 
-      <UsersSearchBar
-        search={search}
-        onSearchChange={setSearch}
-        total={total}
-        selectedCount={selectedIds.size}
-      />
+      {/* ── Zone 3: Directory workspace ── */}
+      <div className="space-y-3 pt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p
+            className="text-[9.5px] uppercase tracking-[0.16em] font-semibold"
+            style={{ color: 'rgba(255,255,255,0.35)' }}
+          >
+            Member directory
+          </p>
+          <SegmentStrip
+            filters={filters}
+            stats={stats}
+            defaults={DEFAULT_FILTERS}
+            onSelect={setFilters}
+          />
+        </div>
 
-      <FilterPanel
-        filters={filters}
-        onChange={setFilters}
-        onReset={() => setFilters(DEFAULT_FILTERS)}
-        stats={contactStats}
-      />
-
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          background: 'rgba(255,255,255,0.012)',
-          border: '1px solid rgba(255,255,255,0.05)',
-        }}
-      >
-        <UsersTable
-          users={users}
-          loading={loading}
-          selectedIds={selectedIds}
-          toggleSelect={toggleSelect}
-          toggleSelectAll={toggleSelectAll}
-          onView={(id) => setDrawerUserId(id)}
-          onGrant={(u) => setGrantModal(u)}
-          onRevoke={handleRevoke}
-          onToggleActive={handleToggleActive}
-          onSendMessage={(u) => setSendMsgUser(u)}
-          onResetFilters={() => setFilters(DEFAULT_FILTERS)}
-        />
-        <UsersPagination
-          page={page}
-          totalPages={totalPages}
+        <UsersSearchBar
+          search={search}
+          onSearchChange={setSearch}
           total={total}
-          onChange={setPage}
+          selectedCount={selectedIds.size}
         />
+
+        <FilterPanel
+          filters={filters}
+          onChange={setFilters}
+          onReset={() => setFilters(DEFAULT_FILTERS)}
+          stats={contactStats}
+        />
+
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{
+            background: 'rgba(255,255,255,0.012)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <UsersTable
+            users={users}
+            loading={loading}
+            selectedIds={selectedIds}
+            toggleSelect={toggleSelect}
+            toggleSelectAll={toggleSelectAll}
+            onView={(id) => setDrawerUserId(id)}
+            onGrant={(u) => setGrantModal(u)}
+            onRevoke={handleRevoke}
+            onToggleActive={handleToggleActive}
+            onSendMessage={(u) => setSendMsgUser(u)}
+            onResetFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+          <UsersPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onChange={setPage}
+          />
+        </div>
       </div>
 
       {/* Floating bulk action bar */}
