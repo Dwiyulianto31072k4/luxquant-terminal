@@ -161,7 +161,19 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
       const check = await checkBinanceKeys();
       setResult(check);
       if (!check.valid) {
-        throw new Error("Saved keys, but Binance validation failed.");
+        const hints = Array.isArray(check.hints) ? check.hints.filter(Boolean) : [];
+        const serverIp = check.server_ip || AUTOTRADE_SERVER_IP;
+        const detail =
+          check.message ||
+          hints.join(" ") ||
+          "Saved keys, but Binance validation failed.";
+        throw new Error(
+          `${detail}${
+            detail.toLowerCase().includes("ip")
+              ? ""
+              : ` Whitelist server IP ${serverIp} if the key is IP-restricted.`
+          }`,
+        );
       }
       onSuccess?.();
       setTimeout(() => onClose(), 900);

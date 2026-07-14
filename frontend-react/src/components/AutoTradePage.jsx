@@ -247,6 +247,7 @@ function AutoTradeControlCenter({
 
   const active = Boolean(config?.is_active);
   const globalLive = Boolean(health.live_orders_enabled);
+  const isDryRun = config?.dry_run !== false;
   const accountValid = exchangeAccounts.some(
     (account) =>
       account.exchange === "binance" && account.key_status === "valid",
@@ -266,7 +267,16 @@ function AutoTradeControlCenter({
     tone: "warn",
     panel: "border-gold-primary/25 bg-gold-primary/[0.035]",
   };
-  if (active && globalLive) {
+  if (active && isDryRun) {
+    state = {
+      eyebrow: "DRY RUN",
+      title: "Simulation mode — no real Binance orders",
+      description:
+        "The bot will follow signals and log activity, but will not place live orders. Turn off Dry run in Settings for live trading.",
+      tone: "info",
+      panel: "border-[#5B8DEF]/35 bg-[#5B8DEF]/[0.06]",
+    };
+  } else if (active && globalLive && !isDryRun) {
     state = {
       eyebrow: "LIVE TRADING",
       title: "AutoTrade can place real Binance orders",
@@ -275,7 +285,7 @@ function AutoTradeControlCenter({
       tone: "good",
       panel: "border-[#0ECB81]/35 bg-[#0ECB81]/[0.045]",
     };
-  } else if (!globalLive) {
+  } else if (active && !globalLive && !isDryRun) {
     state = {
       eyebrow: "LIVE ENGINE LOCKED",
       title: "AutoTrade cannot start live trading yet",
@@ -286,62 +296,19 @@ function AutoTradeControlCenter({
     };
   }
 
-  const liveConfigPayload = {
-    spot_enabled: Boolean(config.spot_enabled),
-    futures_enabled: Boolean(config.futures_enabled),
-    is_active: false,
-    dry_run: false,
-    sizing_method: config.sizing?.method || "fixed",
-    sizing_value: Number(config.sizing?.value || 0),
-    tp_source: config.tp?.source || "signal_level",
-    tp_level: Number(config.tp?.level || 1),
-    tp_custom_pct: config.tp?.custom_pct ?? null,
-    sl_source: config.sl?.source || "signal_level",
-    sl_level: Number(config.sl?.level || 1),
-    sl_custom_pct: config.sl?.custom_pct ?? null,
-    exit_mode: config.exit?.mode || "fixed_sl",
-    trailing_callback_rate: config.exit?.trailing_callback_rate ?? null,
-    leverage: config.futures_enabled
-      ? Number(config.futures?.leverage || 1)
-      : null,
-    margin_mode: config.futures_enabled
-      ? config.futures?.margin_mode || "isolated"
-      : null,
-    allowed_risk_levels: config.allowed_risk_levels?.length
-      ? config.allowed_risk_levels
-      : null,
-    one_open_position_per_symbol:
-      config.risk_limits?.one_open_position_per_symbol ?? true,
-    max_open_positions: Number(config.risk_limits?.max_open_positions ?? 3),
-    max_daily_trades: Number(config.risk_limits?.max_daily_trades ?? 5),
-    max_trade_notional_usdt: Number(
-      config.risk_limits?.max_trade_notional_usdt ?? 50,
-    ),
-    min_available_usdt: Number(config.risk_limits?.min_available_usdt ?? 5),
-    daily_loss_limit_usdt: Number(
-      config.risk_limits?.daily_loss_limit_usdt ?? 50,
-    ),
-    cooldown_after_loss_minutes: Number(
-      config.risk_limits?.cooldown_after_loss_minutes ?? 60,
-    ),
-    cooldown_after_error_minutes: Number(
-      config.risk_limits?.cooldown_after_error_minutes ?? 15,
-    ),
-  };
-
   const toggle = async () => {
     if (!active) {
       const confirmed = window.confirm(
-        "Start LIVE AutoTrade? New matching signals may place real Binance orders.",
+        isDryRun
+          ? "Start DRY-RUN AutoTrade? The bot will process signals but place no real Binance orders."
+          : "Start LIVE AutoTrade? New matching signals may place real Binance orders.",
       );
       if (!confirmed) return;
     }
     setWorking(true);
     setActionError("");
     try {
-      if (!active && config.dry_run !== false) {
-        await updateBinanceStrategyConfig(liveConfigPayload);
-      }
+      // Do not force dry_run:false on start — mode is controlled in Settings.
       await setBinanceStrategyActive(!active);
       await onChanged?.();
     } catch (err) {

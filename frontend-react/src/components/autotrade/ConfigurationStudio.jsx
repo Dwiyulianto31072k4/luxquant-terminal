@@ -75,6 +75,8 @@ function toDraft(config) {
     spot_enabled: Boolean(config?.spot_enabled),
     futures_enabled: config?.futures_enabled ?? true,
     is_active: config?.is_active ?? false,
+    // Default new configs to dry-run until user explicitly enables live.
+    dry_run: config?.dry_run !== false ? true : false,
 
     sizing_method: config?.sizing?.method || "fixed",
     sizing_value: config?.sizing?.value ?? 10,
@@ -115,7 +117,7 @@ function toPayload(draft) {
     spot_enabled: draft.spot_enabled,
     futures_enabled: draft.futures_enabled,
     is_active: draft.is_active,
-    dry_run: false,
+    dry_run: Boolean(draft.dry_run),
     sizing_method: draft.sizing_method,
     sizing_value: Number(draft.sizing_value),
     tp_source: "signal_level",
@@ -269,7 +271,7 @@ export default function ConfigurationStudio({
         <Notice tone="warn">{sizingLimitError}</Notice>
       ) : null}
 
-      {/* ── Markets ── */}
+      {/* ── Markets + execution mode ── */}
       <Card>
         <SectionTitle>Markets</SectionTitle>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -284,6 +286,18 @@ export default function ConfigurationStudio({
             hint="Execute leveraged futures orders."
             checked={draft.futures_enabled}
             onChange={(value) => patch({ futures_enabled: value })}
+          />
+        </div>
+        <div className="mt-4 border-t border-white/[0.06] pt-4">
+          <Toggle
+            label="Dry run (simulation)"
+            hint={
+              draft.dry_run
+                ? "ON — bot follows signals but places no real Binance orders."
+                : "OFF — LIVE mode. Matching signals may place real orders when the engine is started."
+            }
+            checked={Boolean(draft.dry_run)}
+            onChange={(value) => patch({ dry_run: value })}
           />
         </div>
       </Card>
