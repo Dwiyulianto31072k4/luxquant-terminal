@@ -285,7 +285,9 @@ export const StatTile = ({
         >
           {label}
         </span>
-        {Icon && <Icon size={13} style={{ color: accentColor, opacity: 0.7 }} />}
+        {Icon && (
+          <IconBadge Icon={Icon} color={accentColor} size={26} iconSize={13} />
+        )}
       </div>
       <p
         className="text-2xl font-bold tracking-tight tabular-nums leading-none transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left"
@@ -303,6 +305,60 @@ export const StatTile = ({
         </p>
       )}
     </Wrapper>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// IconBadge — solid theme tile (Terminal scan language)
+// SVG inherits currentColor; badge fills solid brand/theme color.
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * @param {object} props
+ * @param {React.ComponentType} props.Icon
+ * @param {string} props.color — solid fill hex
+ * @param {number} [props.size=36]
+ * @param {number} [props.iconSize]
+ * @param {'light'|'dark'|'auto'} [props.ink='auto'] — icon ink on filled bg
+ */
+export const IconBadge = ({
+  Icon,
+  color = palette.gold[300],
+  size = 36,
+  iconSize,
+  ink = 'auto',
+  className = '',
+  style = {},
+}) => {
+  if (!Icon) return null;
+  // Dark ink on gold/amber/cyan-light; white ink on deep brand fills
+  const lightFill =
+    /^(#f0b90b|#fcd535|#f7a600|#d4a853|#fbbf24|#f0d890|#e0bc6a)$/i.test(color) ||
+    color.toLowerCase().includes('f0b9') ||
+    color.toLowerCase().includes('d4a8') ||
+    color.toLowerCase().includes('fcd5') ||
+    color.toLowerCase().includes('f7a6');
+  const iconColor =
+    ink === 'dark' ? '#0a0805' : ink === 'light' ? '#ffffff' : lightFill ? '#0a0805' : '#ffffff';
+  const glyph = iconSize || Math.round(size * 0.48);
+  const r = Math.max(8, Math.round(size * 0.28));
+
+  return (
+    <span
+      className={`inline-flex items-center justify-center shrink-0 ${className}`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: r,
+        background: color,
+        color: iconColor,
+        boxShadow: `0 2px 10px ${color}55`,
+        ...style,
+      }}
+      aria-hidden
+    >
+      <Icon size={glyph} style={{ color: iconColor }} />
+    </span>
   );
 };
 
@@ -337,7 +393,7 @@ export const IntentTile = ({
       onMouseLeave={onClick ? (e) => { if (!active) e.currentTarget.style.borderColor = surface.premium.border; } : undefined}
     >
       <div className="flex items-center gap-1.5 mb-1.5">
-        {Icon && <Icon size={12} colored />}
+        {Icon && <IconBadge Icon={Icon} color={color} size={22} iconSize={11} />}
         <span
           className="text-[9px] uppercase tracking-wider font-semibold"
           style={{ color }}

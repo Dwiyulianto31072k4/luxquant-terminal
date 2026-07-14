@@ -26,6 +26,8 @@ import {
   CheckCircleIcon,
   PlusIcon,
 } from '../Icons';
+import { IconBadge } from '../primitives';
+import { palette } from '../designSystem';
 
 const PAGE_SIZE = 25;
 
@@ -36,23 +38,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap">
       <div className="flex items-start gap-3 min-w-0">
-        <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
-          <div
-            className="absolute inset-0 rounded-xl"
-            style={{ background: 'rgba(52,211,153,0.18)', filter: 'blur(12px)' }}
-          />
-          <div
-            className="relative w-full h-full rounded-xl flex items-center justify-center"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(52,211,153,0.20), rgba(52,211,153,0.04))',
-              border: '1px solid rgba(52,211,153,0.30)',
-              color: '#34d399',
-            }}
-          >
-            <TrendingUpIcon size={18} />
-          </div>
-        </div>
+        <IconBadge Icon={TrendingUpIcon} color={palette.green[400]} size={38} iconSize={18} />
 
         <div className="min-w-0">
           <p

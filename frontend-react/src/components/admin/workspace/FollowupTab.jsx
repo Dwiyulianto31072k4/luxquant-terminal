@@ -20,6 +20,7 @@ import {
   UserIcon,
   CloseIcon,
 } from '../Icons';
+import { IconBadge } from '../primitives';
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 
@@ -94,22 +95,7 @@ const SparkIcon = ({ size = 13 }) => (
 const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
   <div className="flex items-start justify-between gap-3 flex-wrap">
     <div className="flex items-start gap-3 min-w-0">
-      <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
-        <div
-          className="absolute inset-0 rounded-xl"
-          style={{ background: 'rgba(96,165,250,0.18)', filter: 'blur(12px)' }}
-        />
-        <div
-          className="relative w-full h-full rounded-xl flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, rgba(96,165,250,0.20), rgba(96,165,250,0.04))',
-            border: '1px solid rgba(96,165,250,0.30)',
-            color: '#60a5fa',
-          }}
-        >
-          <ClockIcon size={18} />
-        </div>
-      </div>
+      <IconBadge Icon={ClockIcon} color="#60a5fa" size={38} iconSize={18} />
       <div className="min-w-0">
         <p
           className="text-[9.5px] uppercase tracking-[0.18em] font-bold"

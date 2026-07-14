@@ -23,19 +23,28 @@ import { CalendarDotIcon, TimerIcon } from '../CategoryIcons';
  * Keys are normalized lowercase (no spaces/dashes).
  * Logos live in /public/exchanges/ (served as /exchanges/*).
  */
+/**
+ * cardFill = solid bank-card style gradient (Visa-like full-bleed color).
+ * Researched from each product UI / brand kit.
+ */
 export const EXCHANGE_BRANDS = {
   binance: {
     key: 'binance',
     name: 'Binance',
     primary: '#F0B90B',
     accent: '#FCD535',
+    // Shark black + gold wash (Binance app chrome)
+    cardFill: 'linear-gradient(145deg, #0B0E11 0%, #1E2329 55%, #2A2110 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(240,185,11,0.35) 0%, transparent 55%)',
     surface: '#0B0E11',
-    surfaceRaised: '#1E2329',
-    surfaceInset: '#181A20',
-    border: '#2B3139',
+    surfaceRaised: 'rgba(0,0,0,0.35)',
+    surfaceInset: 'rgba(0,0,0,0.28)',
+    border: 'rgba(240,185,11,0.35)',
     borderAccent: '#F0B90B',
     text: '#EAECEF',
-    textMuted: '#848E9C',
+    textMuted: 'rgba(234,236,239,0.65)',
+    chipBg: 'rgba(0,0,0,0.35)',
+    chipBorder: 'rgba(240,185,11,0.35)',
     logoBg: '#0B0E11',
     logoFg: '#F0B90B',
     logoSrc: '/exchanges/binance.png',
@@ -44,16 +53,21 @@ export const EXCHANGE_BRANDS = {
     key: 'indodax',
     name: 'Indodax',
     primary: '#1E9CF0',
-    accent: '#4DB3F5',
-    surface: '#071018',
-    surfaceRaised: '#0D1B2A',
-    surfaceInset: '#0A1622',
-    border: '#1A3348',
-    borderAccent: '#1E9CF0',
-    text: '#E8F4FC',
-    textMuted: '#7BA3BE',
-    logoBg: '#1E9CF0',
-    logoFg: '#FFFFFF',
+    accent: '#7EC8F7',
+    // Official Indodax blue family — solid credit-card style
+    cardFill: 'linear-gradient(135deg, #0A5FA8 0%, #1E9CF0 48%, #0D7BC8 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 50%)',
+    surface: '#0A5FA8',
+    surfaceRaised: 'rgba(0,0,0,0.18)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(255,255,255,0.22)',
+    borderAccent: 'rgba(255,255,255,0.35)',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.18)',
+    chipBorder: 'rgba(255,255,255,0.22)',
+    logoBg: '#FFFFFF',
+    logoFg: '#1E9CF0',
     logoSrc: '/exchanges/indodax.png',
   },
   bybit: {
@@ -61,13 +75,17 @@ export const EXCHANGE_BRANDS = {
     name: 'Bybit',
     primary: '#F7A600',
     accent: '#FFB11A',
-    surface: '#0D0D0D',
-    surfaceRaised: '#1A1A1A',
-    surfaceInset: '#141414',
-    border: '#2A2A2A',
+    cardFill: 'linear-gradient(145deg, #0A0A0A 0%, #1A1408 55%, #2A1A00 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(247,166,0,0.35) 0%, transparent 55%)',
+    surface: '#0A0A0A',
+    surfaceRaised: 'rgba(0,0,0,0.35)',
+    surfaceInset: 'rgba(0,0,0,0.28)',
+    border: 'rgba(247,166,0,0.35)',
     borderAccent: '#F7A600',
     text: '#F5F5F5',
-    textMuted: '#8C8C8C',
+    textMuted: 'rgba(245,245,245,0.65)',
+    chipBg: 'rgba(0,0,0,0.35)',
+    chipBorder: 'rgba(247,166,0,0.35)',
     logoBg: '#0D0D0D',
     logoFg: '#F7A600',
     logoSrc: '/exchanges/bybit.png',
@@ -77,13 +95,17 @@ export const EXCHANGE_BRANDS = {
     name: 'OKX',
     primary: '#FFFFFF',
     accent: '#CCCCCC',
+    cardFill: 'linear-gradient(145deg, #000000 0%, #121212 60%, #1A1A1A 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 50%)',
     surface: '#000000',
-    surfaceRaised: '#121212',
-    surfaceInset: '#0A0A0A',
-    border: '#2A2A2A',
-    borderAccent: '#FFFFFF',
+    surfaceRaised: 'rgba(255,255,255,0.06)',
+    surfaceInset: 'rgba(255,255,255,0.04)',
+    border: 'rgba(255,255,255,0.18)',
+    borderAccent: 'rgba(255,255,255,0.35)',
     text: '#FFFFFF',
-    textMuted: '#8C8C8C',
+    textMuted: 'rgba(255,255,255,0.65)',
+    chipBg: 'rgba(255,255,255,0.08)',
+    chipBorder: 'rgba(255,255,255,0.16)',
     logoBg: '#000000',
     logoFg: '#FFFFFF',
     logoSrc: '/exchanges/okx.png',
@@ -92,15 +114,20 @@ export const EXCHANGE_BRANDS = {
     key: 'mexc',
     name: 'MEXC',
     primary: '#1463FF',
-    accent: '#3D7FFF',
-    surface: '#070B14',
-    surfaceRaised: '#0F1729',
-    surfaceInset: '#0B1220',
-    border: '#1A2744',
-    borderAccent: '#1463FF',
-    text: '#E8EEF9',
-    textMuted: '#7A8BA8',
-    logoBg: '#F4F7FB',
+    accent: '#6B9BFF',
+    // Ocean Blue brand refresh
+    cardFill: 'linear-gradient(135deg, #0A2A7A 0%, #1463FF 50%, #0B4AD4 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.2) 0%, transparent 50%)',
+    surface: '#0A2A7A',
+    surfaceRaised: 'rgba(0,0,0,0.18)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(255,255,255,0.22)',
+    borderAccent: 'rgba(255,255,255,0.35)',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.18)',
+    chipBorder: 'rgba(255,255,255,0.22)',
+    logoBg: '#FFFFFF',
     logoFg: '#1463FF',
     logoSrc: '/exchanges/mexc.png',
   },
@@ -109,13 +136,18 @@ export const EXCHANGE_BRANDS = {
     name: 'Gate.io',
     primary: '#17E6A1',
     accent: '#2354E6',
-    surface: '#0A0F14',
-    surfaceRaised: '#111B22',
-    surfaceInset: '#0D141A',
-    border: '#1C2A33',
+    // Mint + deep teal (Gate rebrand green/blue)
+    cardFill: 'linear-gradient(135deg, #063D32 0%, #0B6B54 40%, #0E8F6E 70%, #1560C4 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(23,230,161,0.35) 0%, transparent 50%)',
+    surface: '#063D32',
+    surfaceRaised: 'rgba(0,0,0,0.2)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(23,230,161,0.35)',
     borderAccent: '#17E6A1',
-    text: '#E8F7F1',
-    textMuted: '#6F8A7E',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.2)',
+    chipBorder: 'rgba(255,255,255,0.2)',
     logoBg: '#FFFFFF',
     logoFg: '#2354E6',
     logoSrc: '/exchanges/gate.png',
@@ -125,13 +157,17 @@ export const EXCHANGE_BRANDS = {
     name: 'Gate.io',
     primary: '#17E6A1',
     accent: '#2354E6',
-    surface: '#0A0F14',
-    surfaceRaised: '#111B22',
-    surfaceInset: '#0D141A',
-    border: '#1C2A33',
+    cardFill: 'linear-gradient(135deg, #063D32 0%, #0B6B54 40%, #0E8F6E 70%, #1560C4 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(23,230,161,0.35) 0%, transparent 50%)',
+    surface: '#063D32',
+    surfaceRaised: 'rgba(0,0,0,0.2)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(23,230,161,0.35)',
     borderAccent: '#17E6A1',
-    text: '#E8F7F1',
-    textMuted: '#6F8A7E',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.2)',
+    chipBorder: 'rgba(255,255,255,0.2)',
     logoBg: '#FFFFFF',
     logoFg: '#2354E6',
     logoSrc: '/exchanges/gate.png',
@@ -141,13 +177,17 @@ export const EXCHANGE_BRANDS = {
     name: 'KuCoin',
     primary: '#23AF91',
     accent: '#2DD4B0',
-    surface: '#0A1210',
-    surfaceRaised: '#12201C',
-    surfaceInset: '#0E1916',
-    border: '#1C332C',
+    cardFill: 'linear-gradient(135deg, #0A3D32 0%, #148F75 55%, #0D6B58 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(45,212,176,0.3) 0%, transparent 50%)',
+    surface: '#0A3D32',
+    surfaceRaised: 'rgba(0,0,0,0.18)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(45,212,176,0.35)',
     borderAccent: '#23AF91',
-    text: '#E6F7F2',
-    textMuted: '#6F8F86',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.18)',
+    chipBorder: 'rgba(255,255,255,0.2)',
     logoBg: '#0A1210',
     logoFg: '#23AF91',
     logoSrc: '/exchanges/kucoin.png',
@@ -157,13 +197,17 @@ export const EXCHANGE_BRANDS = {
     name: 'Bitget',
     primary: '#00F0FF',
     accent: '#00C2CC',
-    surface: '#070C12',
-    surfaceRaised: '#0E1720',
-    surfaceInset: '#0A1218',
-    border: '#1A2A36',
+    cardFill: 'linear-gradient(135deg, #042A33 0%, #065A66 50%, #0A3D4A 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(0,240,255,0.3) 0%, transparent 50%)',
+    surface: '#042A33',
+    surfaceRaised: 'rgba(0,0,0,0.2)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(0,240,255,0.35)',
     borderAccent: '#00F0FF',
-    text: '#E6FBFD',
-    textMuted: '#6A8A90',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.2)',
+    chipBorder: 'rgba(0,240,255,0.3)',
     logoBg: '#070C12',
     logoFg: '#00F0FF',
     logoSrc: '/exchanges/bitget.png',
@@ -173,13 +217,17 @@ export const EXCHANGE_BRANDS = {
     name: 'HTX',
     primary: '#2EBD85',
     accent: '#3DD49A',
-    surface: '#0A1210',
-    surfaceRaised: '#12201A',
-    surfaceInset: '#0E1914',
-    border: '#1C332A',
+    cardFill: 'linear-gradient(135deg, #0A3D2A 0%, #15965E 55%, #0D6B45 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(61,212,154,0.3) 0%, transparent 50%)',
+    surface: '#0A3D2A',
+    surfaceRaised: 'rgba(0,0,0,0.18)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(61,212,154,0.35)',
     borderAccent: '#2EBD85',
-    text: '#E6F7EF',
-    textMuted: '#6F8F80',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.18)',
+    chipBorder: 'rgba(255,255,255,0.2)',
     logoBg: '#0A1210',
     logoFg: '#2EBD85',
     logoSrc: '/exchanges/htx.png',
@@ -189,13 +237,17 @@ export const EXCHANGE_BRANDS = {
     name: 'HTX',
     primary: '#2EBD85',
     accent: '#3DD49A',
-    surface: '#0A1210',
-    surfaceRaised: '#12201A',
-    surfaceInset: '#0E1914',
-    border: '#1C332A',
+    cardFill: 'linear-gradient(135deg, #0A3D2A 0%, #15965E 55%, #0D6B45 100%)',
+    cardOrb: 'radial-gradient(circle at 100% 0%, rgba(61,212,154,0.3) 0%, transparent 50%)',
+    surface: '#0A3D2A',
+    surfaceRaised: 'rgba(0,0,0,0.18)',
+    surfaceInset: 'rgba(0,0,0,0.16)',
+    border: 'rgba(61,212,154,0.35)',
     borderAccent: '#2EBD85',
-    text: '#E6F7EF',
-    textMuted: '#6F8F80',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.78)',
+    chipBg: 'rgba(0,0,0,0.18)',
+    chipBorder: 'rgba(255,255,255,0.2)',
     logoBg: '#0A1210',
     logoFg: '#2EBD85',
     logoSrc: '/exchanges/htx.png',
@@ -207,13 +259,17 @@ const FALLBACK_BRAND = {
   name: 'Wallet',
   primary: '#d4a853',
   accent: '#e0bc6a',
+  cardFill: 'linear-gradient(145deg, #12090d 0%, #1a0d12 55%, #2a1a10 100%)',
+  cardOrb: 'radial-gradient(circle at 100% 0%, rgba(212,168,83,0.3) 0%, transparent 50%)',
   surface: '#12090d',
-  surfaceRaised: '#1a0d12',
-  surfaceInset: '#160a0e',
-  border: '#2d1a20',
+  surfaceRaised: 'rgba(0,0,0,0.25)',
+  surfaceInset: 'rgba(0,0,0,0.2)',
+  border: 'rgba(212,168,83,0.35)',
   borderAccent: '#d4a853',
   text: '#f5f0e8',
-  textMuted: '#8a7a6e',
+  textMuted: 'rgba(245,240,232,0.7)',
+  chipBg: 'rgba(0,0,0,0.25)',
+  chipBorder: 'rgba(212,168,83,0.3)',
   logoBg: '#d4a853',
   logoFg: '#1a0d12',
   logoSrc: null,
@@ -469,9 +525,9 @@ const MetaChip = ({ icon: Icon, label, value, accent, brand }) => (
 );
 
 /**
- * Premium hero card — LuxQuant Terminal surface language
- * (#0a0805 + gold hairline) with soft brand accent only.
- * Avoid harsh full-border brand contrast.
+ * Bank-card style payment hero — full-bleed solid brand gradient
+ * (reference: premium debit/credit card UI). Each exchange paints its own
+ * product color system; logo + amount sit on solid color, not washed glass.
  */
 export const ExchangePaymentHero = ({ payment }) => {
   if (!payment) return null;
@@ -490,64 +546,65 @@ export const ExchangePaymentHero = ({ payment }) => {
         : `${payment.age_hours}h`
       : formatRelative(payment.created_at);
 
-  // Soft brand identity on neutral LuxQuant shell
-  const shell = {
-    bg: '#0a0805',
-    inset: '#0c0a07',
-    raised: '#100c08',
-    border: 'rgba(255,255,255,0.08)',
-    text: '#f5f0e8',
-    muted: 'rgba(255,255,255,0.42)',
-    faint: '#8a7a6e',
-  };
-  const nameColor =
-    brand.primary === '#FFFFFF' ? shell.text : brand.primary;
-
   return (
     <div
       className="relative overflow-hidden rounded-2xl"
       style={{
-        background: shell.bg,
-        border: `1px solid ${shell.border}`,
-        boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+        background: brand.cardFill || brand.surface,
+        border: `1px solid ${brand.border}`,
+        boxShadow: `0 14px 40px rgba(0,0,0,0.45), 0 0 0 1px ${brand.border}`,
+        minHeight: 220,
       }}
     >
-      {/* Terminal signature: gold top hairline */}
+      {/* Soft light orb — bank-card highlight, not glass wash */}
       <div
-        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: brand.cardOrb || 'none' }}
+      />
+      {/* Wave decoration (credit-card language) */}
+      <div
+        className="absolute -right-8 -bottom-16 w-56 h-56 rounded-full pointer-events-none"
         style={{
-          background:
-            'linear-gradient(to right, transparent, rgba(212,168,83,0.45), transparent)',
+          background: `radial-gradient(circle, ${brand.primary}33 0%, transparent 68%)`,
         }}
       />
-      {/* Soft brand rail — identity without harsh frame */}
       <div
-        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
-        style={{ background: brand.primary, opacity: 0.85 }}
+        className="absolute -right-2 top-10 w-40 h-40 rounded-full pointer-events-none"
+        style={{
+          background: `radial-gradient(circle, ${brand.accent || brand.primary}22 0%, transparent 70%)`,
+        }}
       />
 
-      <div className="relative p-4 sm:p-5 space-y-4 pl-4">
-        {/* Top row: logo + brand + status */}
+      <div className="relative p-5 space-y-5">
+        {/* Top: logo + brand · status */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <ExchangeLogo exchange={payment.wallet_to_exchange} size={44} />
+            <div
+              className="rounded-xl p-0.5 shrink-0"
+              style={{
+                background: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+              }}
+            >
+              <ExchangeLogo exchange={payment.wallet_to_exchange} size={42} />
+            </div>
             <div className="min-w-0">
               <p
-                className="text-[10px] uppercase tracking-[0.16em] font-semibold mb-0.5 font-mono"
-                style={{ color: shell.muted }}
+                className="text-[9.5px] uppercase tracking-[0.18em] font-bold font-mono mb-0.5"
+                style={{ color: brand.textMuted }}
               >
                 Received into
               </p>
               <p
-                className="text-[16px] font-semibold tracking-tight truncate leading-none"
-                style={{ color: nameColor }}
+                className="text-[18px] font-bold tracking-tight truncate leading-none"
+                style={{ color: brand.text }}
               >
                 {brand.name}
               </p>
               {payment.wallet_to_label && (
                 <p
-                  className="text-[10.5px] mt-1 truncate font-mono"
-                  style={{ color: shell.faint }}
+                  className="text-[11px] mt-1 truncate font-mono"
+                  style={{ color: brand.textMuted }}
                   title={payment.wallet_to_label}
                 >
                   {payment.wallet_to_label}
@@ -558,18 +615,19 @@ export const ExchangePaymentHero = ({ payment }) => {
 
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span
-              className="text-[9.5px] font-bold uppercase tracking-[0.12em] px-2 py-1 rounded-md font-mono"
+              className="text-[9.5px] font-bold uppercase tracking-[0.12em] px-2.5 py-1 rounded-full font-mono"
               style={{
-                background: shell.inset,
-                color: cfg.color,
-                border: `1px solid ${shell.border}`,
+                background: brand.chipBg,
+                color: brand.text,
+                border: `1px solid ${brand.chipBorder || brand.border}`,
+                backdropFilter: 'blur(0px)',
               }}
             >
               {cfg.label}
             </span>
             {payment.is_stale && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 font-mono"
+                className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono"
                 style={{
                   background: '#7f1d1d',
                   color: '#fecaca',
@@ -582,11 +640,11 @@ export const ExchangePaymentHero = ({ payment }) => {
             )}
             {payment.is_manual && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 font-mono"
+                className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono"
                 style={{
-                  background: shell.inset,
-                  color: '#d4a853',
-                  border: `1px solid ${shell.border}`,
+                  background: brand.chipBg,
+                  color: brand.accent || brand.primary,
+                  border: `1px solid ${brand.chipBorder || brand.border}`,
                 }}
               >
                 <StarIcon size={9} /> Manual
@@ -595,49 +653,50 @@ export const ExchangePaymentHero = ({ payment }) => {
           </div>
         </div>
 
-        {/* Amount block */}
+        {/* Amount — card face focal point */}
         <div>
           <p
-            className="text-[9.5px] uppercase tracking-[0.14em] font-semibold mb-1.5 font-mono"
-            style={{ color: shell.muted }}
+            className="text-[9.5px] uppercase tracking-[0.16em] font-bold font-mono mb-1.5"
+            style={{ color: brand.textMuted }}
           >
             Final amount
           </p>
-          <div className="flex items-end gap-2 flex-wrap">
+          <div className="flex items-end gap-2.5 flex-wrap">
             <p
-              className="text-[36px] sm:text-[40px] font-semibold tabular-nums tracking-tight leading-none"
-              style={{ color: shell.text, letterSpacing: '-0.03em' }}
+              className="text-[40px] sm:text-[44px] font-bold tabular-nums tracking-tight leading-none"
+              style={{ color: brand.text, letterSpacing: '-0.03em', textShadow: '0 2px 12px rgba(0,0,0,0.2)' }}
             >
               {formatUSDT(payment.final_amount)}
             </p>
             <span
-              className="text-[10px] font-bold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded-md font-mono"
+              className="text-[10px] font-bold uppercase tracking-wider mb-1.5 px-2.5 py-1 rounded-md font-mono"
               style={{
-                background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
-                color: '#17110a',
-                border: '1px solid #d4a853',
+                background: brand.primary === '#FFFFFF' ? '#FFFFFF' : brand.primary,
+                color: brand.primary === '#FFFFFF' || brand.primary === '#F0B90B' || brand.primary === '#F7A600' || brand.primary === '#FCD535'
+                  ? '#0a0a0a'
+                  : '#FFFFFF',
               }}
             >
               USDT
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
             <span
-              className="text-[10.5px] font-semibold px-2 py-1 rounded-md font-mono"
+              className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md font-mono"
               style={{
-                background: shell.inset,
-                color: shell.text,
-                border: `1px solid ${shell.border}`,
+                background: brand.chipBg,
+                color: brand.text,
+                border: `1px solid ${brand.chipBorder || brand.border}`,
               }}
             >
               {network}
             </span>
             <span
-              className="text-[10.5px] font-semibold px-2 py-1 rounded-md font-mono"
+              className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md font-mono"
               style={{
-                background: shell.inset,
-                color: shell.faint,
-                border: `1px solid ${shell.border}`,
+                background: brand.chipBg,
+                color: brand.textMuted,
+                border: `1px solid ${brand.chipBorder || brand.border}`,
               }}
             >
               {planLabel}
@@ -645,7 +704,7 @@ export const ExchangePaymentHero = ({ payment }) => {
           </div>
         </div>
 
-        {/* Meta grid — solid terminal chips */}
+        {/* Meta strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {[
             {
@@ -654,39 +713,36 @@ export const ExchangePaymentHero = ({ payment }) => {
               value: payment.verified_at
                 ? formatDateTimeLong(payment.verified_at)
                 : 'Not verified yet',
-              accent: payment.verified_at ? '#d4a853' : shell.muted,
             },
             {
               icon: ClockIcon,
               label: 'Recorded',
               value: formatDateTimeLong(payment.created_at),
-              accent: shell.muted,
             },
             {
               icon: TimerIcon,
               label: payment.status === 'pending' ? 'Age' : 'Relative',
               value: age || '—',
-              accent: payment.is_stale ? '#f87171' : brand.primary,
             },
           ].map((chip) => (
             <div
               key={chip.label}
               className="flex flex-col gap-0.5 min-w-0 rounded-xl px-2.5 py-2"
               style={{
-                background: shell.inset,
-                border: `1px solid ${shell.border}`,
+                background: brand.chipBg || brand.surfaceInset,
+                border: `1px solid ${brand.chipBorder || brand.border}`,
               }}
             >
               <span
-                className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] font-semibold font-mono"
-                style={{ color: chip.accent }}
+                className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] font-bold font-mono"
+                style={{ color: brand.textMuted }}
               >
                 <chip.icon size={10} />
                 {chip.label}
               </span>
               <span
-                className="text-[11px] font-medium tabular-nums truncate"
-                style={{ color: shell.text }}
+                className="text-[11px] font-semibold tabular-nums truncate"
+                style={{ color: brand.text }}
                 title={chip.value}
               >
                 {chip.value}

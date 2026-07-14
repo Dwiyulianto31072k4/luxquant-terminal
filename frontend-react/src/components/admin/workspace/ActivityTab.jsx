@@ -16,7 +16,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { growthApi } from '../../../services/growthApi';
 import { palette, tint, surface, motion, semantic } from '../designSystem';
-import { StatTile, Surface, Avatar, EmptyState, Spinner } from '../primitives';
+import { StatTile, Surface, Avatar, EmptyState, Spinner, IconBadge } from '../primitives';
 import {
   ActivityIcon,
   TrendingUpIcon,
@@ -94,22 +94,7 @@ const relativeTime = (iso) => {
 const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
   <div className="flex items-start justify-between gap-3 flex-wrap">
     <div className="flex items-start gap-3 min-w-0">
-      <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
-        <div
-          className="absolute inset-0 rounded-xl"
-          style={{ background: tint(palette.teal[400], 0.18), filter: 'blur(12px)' }}
-        />
-        <div
-          className="relative w-full h-full rounded-xl flex items-center justify-center"
-          style={{
-            background: `linear-gradient(135deg, ${tint(palette.teal[400], 0.2)}, ${tint(palette.teal[400], 0.04)})`,
-            border: `1px solid ${tint(palette.teal[400], 0.3)}`,
-            color: palette.teal[400],
-          }}
-        >
-          <ActivityIcon size={18} />
-        </div>
-      </div>
+      <IconBadge Icon={ActivityIcon} color={palette.teal[400]} size={38} iconSize={18} />
 
       <div className="min-w-0">
         <p

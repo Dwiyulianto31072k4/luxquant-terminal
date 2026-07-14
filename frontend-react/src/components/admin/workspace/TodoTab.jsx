@@ -20,6 +20,7 @@ import {
   ClockIcon,
   SparklesIcon,
 } from '../Icons';
+import { IconBadge } from '../primitives';
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 
@@ -345,13 +346,7 @@ export const TodoTab = ({ onRefreshStats }) => {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
-            <div className="absolute inset-0 rounded-xl" style={{ background: 'rgba(251,146,60,0.18)', filter: 'blur(12px)' }} />
-            <div className="relative w-full h-full rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.20), rgba(251,146,60,0.04))', border: '1px solid rgba(251,146,60,0.30)', color: '#fb923c' }}>
-              <SparklesIcon size={18} />
-            </div>
-          </div>
+          <IconBadge Icon={SparklesIcon} color="#fb923c" size={38} iconSize={18} />
           <div className="min-w-0">
             <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold" style={{ color: 'rgba(251,146,60,0.7)' }}>
               Internal Work

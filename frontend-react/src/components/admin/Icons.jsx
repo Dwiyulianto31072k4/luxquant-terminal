@@ -36,7 +36,8 @@ const Svg = ({ size = 14, className = '', children, ...props }) => (
 );
 
 // Shared duotone opacity for the filled "body" layer.
-const BODY = 0.18;
+// Higher body fill reads as solid theme-filled (Terminal language), not raw stroke.
+const BODY = 0.28;
 
 // ════════════════════════════════════════════════════════════════════
 // Brand icons (official marks — already solid)
