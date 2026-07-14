@@ -72,6 +72,10 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState({}); // mobile accordion — collapsed by default
+
+  const toggleGroup = (name) =>
+    setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -152,11 +156,11 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                     type="button"
                     onClick={() => handleNav(item.id)}
                     className={[
-                      "shrink-0 rounded-md px-2 py-2 text-[11px] font-medium uppercase",
-                      "tracking-[0.1em] transition-colors 2xl:px-2.5 2xl:text-[12px] 2xl:tracking-[0.12em]",
+                      "shrink-0 rounded-md px-2.5 py-2 text-[12.5px] font-medium",
+                      "tracking-[0.01em] transition-colors 2xl:px-3 2xl:text-[13px]",
                       active
                         ? "bg-white/[0.04] text-gold-primary"
-                        : "text-white/55 hover:bg-white/[0.03] hover:text-white",
+                        : "text-white/60 hover:bg-white/[0.03] hover:text-white",
                     ].join(" ")}
                   >
                     {item.label}
@@ -167,7 +171,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               {/* More → all in-app features (reuses the app's mega-menu).
                   Uppercase ONLY the trigger (direct div>button), so the
                   dropdown item labels keep their normal app casing. */}
-              <div className="ml-0.5 [&>div>button]:text-[11px] [&>div>button]:uppercase [&>div>button]:tracking-[0.1em]">
+              <div className="ml-0.5 [&>div>button]:text-[12.5px] [&>div>button]:tracking-[0.01em]">
                 <MoreMenuDropdown
                   label="More"
                   isActive={() => false}
@@ -245,8 +249,8 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             : "max-h-0 border border-transparent opacity-0",
         ].join(" ")}
       >
-        <div className="max-h-[82vh] space-y-1 overflow-y-auto px-4 py-4">
-          {/* Landing anchors */}
+        <div className="max-h-[82vh] space-y-0.5 overflow-y-auto px-3 py-3">
+          {/* Primary landing sections — always visible */}
           {NAV.map((item) => {
             const active = item.id === activeId;
             return (
@@ -255,8 +259,8 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                 type="button"
                 onClick={() => handleNav(item.id)}
                 className={[
-                  "block w-full rounded-md px-4 py-2.5 text-left text-[13px] font-medium uppercase tracking-[0.1em] transition-colors",
-                  active ? "bg-white/[0.04] text-gold-primary" : "text-white/70 hover:bg-white/[0.03] hover:text-gold-primary",
+                  "block w-full rounded-lg px-4 py-3 text-left text-[15px] font-medium transition-colors",
+                  active ? "bg-white/[0.05] text-gold-primary" : "text-white/85 hover:bg-white/[0.03] hover:text-gold-primary",
                 ].join(" ")}
               >
                 {item.label}
@@ -264,24 +268,44 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             );
           })}
 
-          {/* All app features */}
-          {MOBILE_FEATURES.map((grp) => (
-            <div key={grp.group} className="pt-3">
-              <div className="px-4 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/75">
-                {grp.group}
-              </div>
-              {grp.items.map((it) => (
-                <button
-                  key={it.path}
-                  type="button"
-                  onClick={() => goFeature(it.path)}
-                  className="block w-full rounded-md px-4 py-2 text-left text-[13px] text-white/70 transition-colors hover:bg-white/[0.03] hover:text-white"
-                >
-                  {it.label}
-                </button>
-              ))}
-            </div>
-          ))}
+          {/* App features — collapsible groups, collapsed by default */}
+          <div className="mt-2 space-y-0.5 border-t border-white/[0.06] pt-2">
+            {MOBILE_FEATURES.map((grp) => {
+              const open = !!openGroups[grp.group];
+              return (
+                <div key={grp.group}>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(grp.group)}
+                    aria-expanded={open}
+                    className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-[15px] font-medium text-white/75 transition-colors hover:bg-white/[0.03] hover:text-white"
+                  >
+                    <span>{grp.group}</span>
+                    <svg
+                      className={["h-4 w-4 shrink-0 transition-transform duration-300", open ? "rotate-180 text-gold-primary" : "text-white/40"].join(" ")}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className={["overflow-hidden transition-all duration-300 ease-in-out", open ? "max-h-96 opacity-100" : "max-h-0 opacity-0"].join(" ")}>
+                    <div className="space-y-0.5 pb-1 pl-2">
+                      {grp.items.map((it) => (
+                        <button
+                          key={it.path}
+                          type="button"
+                          onClick={() => goFeature(it.path)}
+                          className="block w-full rounded-lg px-4 py-2.5 text-left text-[14px] text-white/60 transition-colors hover:bg-white/[0.03] hover:text-white"
+                        >
+                          {it.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
           {/* Auth */}
           <div className={`mt-3 grid ${isAuthenticated ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-white/5 pt-4`}>

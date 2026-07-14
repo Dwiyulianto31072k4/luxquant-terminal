@@ -52,27 +52,40 @@ const timeAgo = (iso) => {
   return `${Math.round(mo / 12)}y ago`;
 };
 
-// Flowing English narration (peak is woven into the sentence). No dashes.
+// Short, varied, soft-sell copy. Each card reads differently (deterministic
+// pick per signal so it stays stable), professional and not templated. The
+// numbers are real; the tone gently implies "this is what LuxQuant does".
+// No dash characters anywhere.
 const buildCaption = (w) => {
+  const sym = cleanPair(w.pair);
   const peak = fmtInt(w.gain_pct);
   const realized = fmtInt(w.realized_pct);
   const lev = w.pnl_leverage ? Number(w.pnl_leverage) : null;
-  const levRealized = lev && w.realized_pct != null ? fmtInt(w.realized_pct * lev) : null;
   const levPeak = lev && w.gain_pct != null ? fmtInt(w.gain_pct * lev) : null;
   const date = fmtDate(w.signal_time);
+  const ago = timeAgo(w.signal_time);
 
-  let s = `Called by the LuxQuant algorithm on ${date}.`;
-  if (realized && levRealized) {
-    s += ` It realized +${realized}% on spot, which at ${lev}x turned into +${levRealized}% right on plan.`;
-  } else if (realized) {
-    s += ` It realized +${realized}% on spot.`;
+  const c = [];
+  if (peak) {
+    c.push(`Called ${ago}, $${sym} ran to a +${peak}% peak from entry.`);
+    c.push(`The algorithm flagged $${sym} on ${date}; it topped near +${peak}%.`);
+    c.push(`Entry to peak, +${peak}% on $${sym}. The kind of call we make daily.`);
+    c.push(`$${sym} climbed +${peak}% after the call. Live, not hindsight.`);
+    c.push(`$${sym} pushed +${peak}% above entry. Proof, not promises.`);
   }
-  if (levPeak) {
-    s += ` Had you exited at the +${peak}% peak, ${lev}x would have returned roughly +${levPeak}%.`;
-  } else if (peak) {
-    s += ` It went on to peak at +${peak}% after the call.`;
+  if (peak && realized) {
+    c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high.`);
+    c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak.`);
   }
-  return s;
+  if (peak && levPeak) {
+    c.push(`$${sym} peaked +${peak}%. At ${lev}x, that is roughly +${levPeak}%.`);
+  }
+  if (c.length === 0) return `$${sym}, called ${ago || "recently"}.`;
+
+  let h = 0;
+  const key = String(w.signal_id || sym);
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return c[h % c.length];
 };
 
 const ArrowUpRight = ({ className = "h-3 w-3" }) => (
@@ -215,7 +228,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
   const track = hasWinners ? [...winners, ...winners] : [];
 
   return (
-    <section className="rwm relative z-10 py-20 sm:py-28">
+    <section className="rwm relative z-10 py-12 sm:py-24">
       {/* Warm maroon glow only (additive) — section stays transparent so the
           page canvas flows through with no gradient break. */}
       <div className="rwm-bg" aria-hidden="true" />
@@ -231,7 +244,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       </div>
 
       {/* Rail */}
-      <div className="rwm-window relative z-10 mt-14">
+      <div className="rwm-window relative z-10 mt-8 sm:mt-14">
         <div
           className="rwm-viewport"
           onMouseEnter={() => { pausedRef.current = true; }}
@@ -352,8 +365,13 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           user-select: none;
           -webkit-user-drag: none;
         }
-        @media (max-width: 1023px) { .rwm-card { width: 400px; margin-right: 24px; } }
-        @media (max-width: 640px)  { .rwm-card { width: 320px; margin-right: 18px; } }
+        @media (max-width: 1023px) { .rwm-card { width: 360px; margin-right: 20px; } }
+        @media (max-width: 640px)  {
+          .rwm-card { width: 268px; margin-right: 14px; }
+          .rwm-meta { padding-top: 12px; }
+          .rwm-meta p { font-size: 12px; line-height: 1.6; }
+          .rwm-img-wrap { border-radius: 14px; }
+        }
 
         .rwm-img-wrap {
           position: relative;
