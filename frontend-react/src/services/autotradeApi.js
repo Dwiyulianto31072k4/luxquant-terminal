@@ -48,6 +48,57 @@ function buildUrl(path) {
   return `${API_BASE}${path}`;
 }
 
+/** Structured API error (status + machine code + retry hints). */
+export class AutoTradeApiError extends Error {
+  constructor(message, { status = 0, code = null, detail = null, retryAfterSeconds = null } = {}) {
+    super(message);
+    this.name = "AutoTradeApiError";
+    this.status = status;
+    this.code = code;
+    this.detail = detail;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+
+  get isRateLimited() {
+    return (
+      this.code === "binance_rate_limited" ||
+      this.status === 418 ||
+      this.status === 429 ||
+      this.status === 503
+    );
+  }
+}
+
+function formatErrorDetail(errorBody, status) {
+  const d = errorBody?.detail;
+  if (Array.isArray(d)) {
+    return {
+      message: d.map((item) => item?.msg || item?.message || "Validation error").join(", "),
+      code: null,
+      retryAfterSeconds: null,
+      detail: d,
+    };
+  }
+  if (d && typeof d === "object") {
+    return {
+      message: d.message || d.msg || `Request failed (${status})`,
+      code: d.code || null,
+      retryAfterSeconds:
+        typeof d.retry_after_seconds === "number" ? d.retry_after_seconds : null,
+      detail: d,
+    };
+  }
+  if (typeof d === "string") {
+    return { message: d, code: null, retryAfterSeconds: null, detail: d };
+  }
+  return {
+    message: errorBody?.message || `Request failed (${status})`,
+    code: errorBody?.code || null,
+    retryAfterSeconds: null,
+    detail: errorBody,
+  };
+}
+
 async function request(path, { method = "GET", body, skipAuth = false } = {}) {
   const headers = {};
   const token = skipAuth ? "" : getToken();
@@ -67,23 +118,26 @@ async function request(path, { method = "GET", body, skipAuth = false } = {}) {
   });
 
   if (!response.ok) {
-    let detail = `Request failed (${response.status})`;
+    let parsed = {
+      message: `Request failed (${response.status})`,
+      code: null,
+      retryAfterSeconds: null,
+      detail: null,
+    };
 
     try {
       const errorBody = await response.json();
-
-      if (Array.isArray(errorBody?.detail)) {
-        detail = errorBody.detail
-          .map((item) => item?.msg || item?.message || "Validation error")
-          .join(", ");
-      } else if (typeof errorBody?.detail === "string") {
-        detail = errorBody.detail;
-      }
+      parsed = formatErrorDetail(errorBody, response.status);
     } catch {
-      detail = response.statusText || detail;
+      parsed.message = response.statusText || parsed.message;
     }
 
-    throw new Error(detail);
+    throw new AutoTradeApiError(parsed.message, {
+      status: response.status,
+      code: parsed.code,
+      detail: parsed.detail,
+      retryAfterSeconds: parsed.retryAfterSeconds,
+    });
   }
 
   if (response.status === 204) {

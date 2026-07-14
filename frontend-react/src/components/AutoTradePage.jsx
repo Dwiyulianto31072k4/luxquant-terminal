@@ -19,6 +19,7 @@ import {
   AUTOTRADE_TOKEN_KEY,
   CRYPTOBOT_TOKEN_KEY,
   LUXQUANT_CRYPTOBOT_TOKEN_KEY,
+  AutoTradeApiError,
   clearAutotradeAuth,
   exchangeLuxquantToken,
   getExecutions,
@@ -314,11 +315,11 @@ function AutoTradeControlCenter({
     max_open_positions: Number(config.risk_limits?.max_open_positions ?? 3),
     max_daily_trades: Number(config.risk_limits?.max_daily_trades ?? 5),
     max_trade_notional_usdt: Number(
-      config.risk_limits?.max_trade_notional_usdt ?? 10,
+      config.risk_limits?.max_trade_notional_usdt ?? 50,
     ),
     min_available_usdt: Number(config.risk_limits?.min_available_usdt ?? 5),
     daily_loss_limit_usdt: Number(
-      config.risk_limits?.daily_loss_limit_usdt ?? 10,
+      config.risk_limits?.daily_loss_limit_usdt ?? 50,
     ),
     cooldown_after_loss_minutes: Number(
       config.risk_limits?.cooldown_after_loss_minutes ?? 60,
@@ -602,6 +603,8 @@ export default function AutoTradePage() {
     Boolean(getStoredAutotradeToken()),
   );
   const identityRefreshAttempted = useRef(false);
+  // Pause auto-refresh while Binance REST circuit is open (rate limit / IP ban).
+  const binanceBackOffUntilRef = useRef(0);
 
   const exchangeAccounts = meData?.exchange_accounts || [];
   const hasExchangeAccount = exchangeAccounts.length > 0;
@@ -728,6 +731,8 @@ export default function AutoTradePage() {
         ),
       );
       setLastUpdatedAt(new Date());
+      setError("");
+      binanceBackOffUntilRef.current = 0;
     } catch (err) {
       const unauthorized = /401|unauthorized|forbidden|invalid token/i.test(
         err?.message || "",
@@ -738,7 +743,17 @@ export default function AutoTradePage() {
         resetAutotradeData();
         setError("");
       } else {
-        setError(err.message || "Failed to load AutoTrade data");
+        // Structured rate-limit / circuit-open from Cryptobot P0 API.
+        if (err instanceof AutoTradeApiError && err.isRateLimited) {
+          const wait = err.retryAfterSeconds || 120;
+          binanceCooldownOffUntilRef.current = Date.now() + wait * 1000;
+          setError(
+            err.message ||
+              `Binance rate-limited this server. Pausing AutoTrade refresh ~${wait}s.`,
+          );
+        } else {
+          setError(err.message || "Failed to load AutoTrade data");
+        }
       }
     } finally {
       if (!background) setLoading(false);
@@ -749,12 +764,14 @@ export default function AutoTradePage() {
     load();
   }, [hasAutotradeToken]);
 
+  // Poll portfolio/activity, but back off hard while Binance circuit is open
+  // so we do not extend IP bans with 30s hammering.
   useEffect(() => {
     if (!hasAutotradeToken) return undefined;
     const refresh = () => {
-      if (document.visibilityState === "visible") {
-        load({ background: true });
-      }
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() < binanceBackOffUntilRef.current) return;
+      load({ background: true });
     };
     const interval = window.setInterval(refresh, 30000);
     document.addEventListener("visibilitychange", refresh);

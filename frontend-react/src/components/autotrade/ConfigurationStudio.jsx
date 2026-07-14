@@ -23,7 +23,8 @@ import {
 } from "./AutoTradeUI";
 
 const RISK_LEVELS = ["low", "normal", "high"];
-const MIN_LIVE_ENTRY_USDT = 6;
+// Align with backend MIN_LIVE_ENTRY_NOTIONAL_USDT (futures-realistic floor).
+const MIN_LIVE_ENTRY_USDT = 20;
 const LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: n, label: `TP${n}` }));
 const SL_LEVEL_OPTIONS = [1, 2].map((n) => ({ value: n, label: `SL${n}` }));
 
@@ -93,10 +94,10 @@ function toDraft(config) {
     max_open_positions: config?.risk_limits?.max_open_positions ?? 3,
     max_daily_trades: config?.risk_limits?.max_daily_trades ?? 5,
     max_trade_notional_usdt:
-      config?.risk_limits?.max_trade_notional_usdt ?? 10,
+      config?.risk_limits?.max_trade_notional_usdt ?? 50,
     min_available_usdt: config?.risk_limits?.min_available_usdt ?? 5,
     daily_loss_limit_usdt:
-      config?.risk_limits?.daily_loss_limit_usdt ?? 10,
+      config?.risk_limits?.daily_loss_limit_usdt ?? 50,
     cooldown_after_loss_minutes:
       config?.risk_limits?.cooldown_after_loss_minutes ?? 60,
     cooldown_after_error_minutes:
