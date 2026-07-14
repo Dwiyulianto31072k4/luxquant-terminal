@@ -506,92 +506,95 @@ def _text_width(draw, text_value: str, fnt) -> int:
     return box[2] - box[0]
 
 
-def _wrap_headline(draw, text_value: str, fnt, max_width: int = 960, max_lines: int = 4) -> list:
-    """Wrap headline into bold poster lines (full-width friendly)."""
-    words = re.sub(r"\s+", " ", (text_value or "").replace("—", "-")).strip().upper().split()
-    if not words:
-        return []
+# Crypto assets already drawn as physical coins in the AI scene — never stamp
+# a redundant corner logo sticker (e.g. BTC badge on a giant Bitcoin coin).
+_CRYPTO_TOKEN_LOGO_SKIP = frozenset({
+    "bitcoin", "btc", "ethereum", "eth", "solana", "sol", "xrp", "ripple",
+    "dogecoin", "doge", "bnb", "binance coin", "cardano", "ada", "avalanche",
+    "avax", "tether", "usdt", "ton", "toncoin", "tron", "trx", "chainlink",
+    "link", "polkadot", "dot", "polygon", "matic", "litecoin", "ltc",
+    "shiba inu", "shib", "pepe", "uniswap", "uni", "sui", "aptos", "apt",
+})
+
+
+def _wrap_headline(draw, text_value: str, fnt) -> list:
+    """Classic LuxQuant stepped headline wrap (shorter lines lower down)."""
+    words = (text_value or "").replace("—", "-").split()
+    widths = [820, 760, 690, 590]
     lines: list = []
-    while words and len(lines) < max_lines:
+    for width in widths:
+        if not words:
+            break
         line = words.pop(0)
-        while words and _text_width(draw, f"{line} {words[0]}", fnt) <= max_width:
+        while words and _text_width(draw, f"{line} {words[0]}", fnt) <= width:
             line += " " + words.pop(0)
         lines.append(line)
     if words and lines:
-        lines[-1] = (lines[-1] + " " + " ".join(words)).strip()
-    return lines[:max_lines]
+        lines[-1] += " " + " ".join(words)
+    return lines[:4]
 
 
-def _load_mark_rgba(path: str, size: int) -> Optional["object"]:
-    from PIL import Image
-
-    if not path or not Path(path).exists():
-        return None
-    try:
-        mark = Image.open(path).convert("RGBA")
-        # Prefer full logo (contain) on transparent; fall back to cover-crop
-        mark.thumbnail((size, size), Image.Resampling.LANCZOS)
-        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        ox = (size - mark.width) // 2
-        oy = (size - mark.height) // 2
-        canvas.alpha_composite(mark, (ox, oy))
-        return canvas
-    except Exception:
-        return None
+def _is_crypto_token_logo(name: str) -> bool:
+    n = re.sub(r"[^a-z0-9\s]", "", (name or "").lower()).strip()
+    if not n:
+        return False
+    if n in _CRYPTO_TOKEN_LOGO_SKIP:
+        return True
+    # "Bitcoin ETF" / "Ethereum Foundation" still token-primary
+    first = n.split()[0] if n.split() else n
+    return first in _CRYPTO_TOKEN_LOGO_SKIP
 
 
-def _paste_entity_logos(img, logos: Optional[list], *, width: int, height: int) -> None:
-    """Integrated brand strip — glass bar top-right with large marks (not tiny stickers)."""
+def _filter_logos_for_overlay(logos: Optional[list]) -> list:
+    """Only institutional multi-brand marks — never redundant crypto coin stickers."""
+    if not logos:
+        return []
+    out = []
+    for item in logos:
+        name = item.get("name") if isinstance(item, dict) else ""
+        path = item.get("path") if isinstance(item, dict) else item
+        if not path or not Path(str(path)).exists():
+            continue
+        if _is_crypto_token_logo(str(name or "")):
+            continue
+        out.append(item if isinstance(item, dict) else {"path": path, "name": ""})
+    # Single non-crypto logo alone often looks like a random sticker — require 2+
+    # (e.g. Hyperliquid + SEC). Otherwise leave the cinematic scene clean.
+    return out[:3] if len(out) >= 2 else []
+
+
+def _paste_entity_logos(img, logos: Optional[list], *, width: int) -> None:
+    """Optional multi-org badges top-right (institutions only, never crypto coins)."""
+    logos = _filter_logos_for_overlay(logos)
     if not logos:
         return
-    from PIL import Image, ImageDraw, ImageFilter
+    from PIL import Image, ImageDraw
 
-    marks = []
-    for item in (logos or [])[:3]:
+    size = 64
+    pad = 18
+    gap = 10
+    x_right = width - pad
+    y = pad
+    for item in logos:
         path = item.get("path") if isinstance(item, dict) else item
-        m = _load_mark_rgba(path, 88)
-        if m is not None:
-            marks.append(m)
-    if not marks:
-        return
-
-    size = 88
-    gap = 14
-    pad_x, pad_y = 18, 14
-    bar_w = pad_x * 2 + len(marks) * size + gap * (len(marks) - 1)
-    bar_h = size + pad_y * 2
-    bar = Image.new("RGBA", (bar_w, bar_h), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(bar)
-    # Dark glass plate + gold edge
-    bd.rounded_rectangle((0, 0, bar_w - 1, bar_h - 1), radius=18, fill=(8, 10, 14, 170))
-    bd.rounded_rectangle((1, 1, bar_w - 2, bar_h - 2), radius=17, outline=(218, 176, 85, 110), width=1)
-    x = pad_x
-    for m in marks:
-        # Soft white disc behind mark so any logo reads on dark glass
-        disc = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        dd = ImageDraw.Draw(disc)
-        dd.ellipse((2, 2, size - 3, size - 3), fill=(255, 255, 255, 235))
-        bar.alpha_composite(disc, (x, pad_y))
-        bar.alpha_composite(m, (x, pad_y))
-        x += size + gap
-    bar = bar.filter(ImageFilter.GaussianBlur(0.3))
-    # Soft drop shadow
-    shadow = Image.new("RGBA", (bar_w + 20, bar_h + 20), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(shadow)
-    sd.rounded_rectangle((6, 8, bar_w + 6, bar_h + 10), radius=18, fill=(0, 0, 0, 100))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(8))
-    pos_x = width - bar_w - 36
-    pos_y = 36
-    img.alpha_composite(shadow, (pos_x - 6, pos_y - 4))
-    img.alpha_composite(bar, (pos_x, pos_y))
-
-
-def _draw_text_with_shadow(draw, xy, text, font, fill, shadow=(0, 0, 0, 200)):
-    x, y = xy
-    # Hard shadow stack for poster readability on any background
-    for dx, dy, a in ((0, 3, 160), (0, 6, 90), (2, 2, 100)):
-        draw.text((x + dx, y + dy), text, font=font, fill=(shadow[0], shadow[1], shadow[2], a))
-    draw.text((x, y), text, font=font, fill=fill)
+        if not path or not Path(path).exists():
+            continue
+        try:
+            mark = Image.open(path).convert("RGBA")
+            side = min(mark.width, mark.height)
+            left = (mark.width - side) // 2
+            top = (mark.height - side) // 2
+            mark = mark.crop((left, top, left + side, top + side))
+            mark = mark.resize((size, size), Image.Resampling.LANCZOS)
+            plate = Image.new("RGBA", (size + 10, size + 10), (0, 0, 0, 0))
+            pd = ImageDraw.Draw(plate)
+            pd.rounded_rectangle((0, 0, size + 9, size + 9), radius=12, fill=(0, 0, 0, 90))
+            pd.rounded_rectangle((2, 2, size + 7, size + 7), radius=10, fill=(255, 255, 255, 245))
+            plate.alpha_composite(mark, (5, 5))
+            img.alpha_composite(plate, (x_right - size - 10, y))
+            y += size + gap + 4
+        except Exception:
+            continue
 
 
 def _compose_editorial_card(
@@ -602,95 +605,49 @@ def _compose_editorial_card(
     entity_logos: Optional[list] = None,
     angle: Optional[str] = None,
 ) -> str:
-    """Cinematic LuxQuant poster card (CryptoWave/DRC energy):
-    cover-crop 4:5, deep vignette, bold white multi-line headline with gold accent
-    line, integrated glass brand strip, LuxQuant mark bottom-right.
-    No red subtitle boxes."""
+    """Classic LuxQuant editorial card on a cinematic AI background:
+    cover-crop 4:5, bottom vignette, white headline on stepped LuxQuant-red
+    highlight boxes (lower-left), LuxQuant mark lower-right.
+    No top-left chip. No redundant crypto logo stickers.
+    """
     from PIL import Image, ImageDraw, ImageFilter
 
     width, height = 1080, 1350
     img = _cover_image(Image.open(raw_path).convert("RGB"), (width, height)).convert("RGBA")
-    # Stronger cinematic bottom for poster type
     img = _apply_editorial_shadow(img)
-    # Extra lower-third darken for white type
-    extra = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    ed = ImageDraw.Draw(extra)
-    for y in range(int(height * 0.48), height):
-        t = (y - height * 0.48) / (height * 0.52)
-        a = int(20 + 150 * (t ** 1.35))
-        ed.line([(0, y), (width, y)], fill=(0, 0, 0, min(200, a)))
-    img = Image.alpha_composite(img, extra)
-
-    # Integrated brand strip (not corner stickers)
-    _paste_entity_logos(img, entity_logos, width=width, height=height)
-
     draw = ImageDraw.Draw(img)
-    gold = (218, 176, 85, 255)
-    white = (255, 255, 255, 255)
-    muted = (220, 214, 200, 210)
+    fnt = _font(54, bold=True)
+    lines = _wrap_headline(draw, str(headline).strip(), fnt)
+    y = height - (len(lines) * 68 + max(0, len(lines) - 1) * 14) - 150
+    x0 = 58
 
-    # Small top-left topic chip
-    topic = _visual_topic_label(angle, headline)
-    chip_font = _font(20, True)
-    chip = f"LUXQUANT  ·  {topic}"
-    cw = _text_width(draw, chip, chip_font)
-    draw.rounded_rectangle((48, 48, 48 + cw + 28, 88), radius=6, fill=(0, 0, 0, 150), outline=(218, 176, 85, 100), width=1)
-    draw.text((62, 58), chip, font=chip_font, fill=gold)
-
-    # Bold poster headline — full width, white, last line gold accent when 3+ lines
-    size = 68
-    fnt = _font(size, bold=True)
-    lines = _wrap_headline(draw, str(headline).strip(), fnt, max_width=960, max_lines=4)
-    while len(lines) > 3 and size > 48:
-        size -= 4
-        fnt = _font(size, bold=True)
-        lines = _wrap_headline(draw, str(headline).strip(), fnt, max_width=960, max_lines=4)
-    # Fit font so longest line <= 960
-    while lines and max(_text_width(draw, ln, fnt) for ln in lines) > 970 and size > 42:
-        size -= 2
-        fnt = _font(size, bold=True)
-        lines = _wrap_headline(draw, str(headline).strip(), fnt, max_width=960, max_lines=4)
-
-    line_gap = int(size * 1.18)
-    block_h = len(lines) * line_gap
-    y = height - block_h - 130
-    x0 = 52
-
-    # Gold accent bar left of headline block
-    bar_top = y - 8
-    bar_bot = y + block_h - int(size * 0.25)
-    draw.rectangle((40, bar_top, 46, bar_bot), fill=gold)
-
-    for i, line in enumerate(lines):
-        # Soft dark plate behind each line for max readability
-        tw = _text_width(draw, line, fnt)
-        plate = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        pd = ImageDraw.Draw(plate)
-        pd.rounded_rectangle(
-            (x0 - 8, y - 4, x0 + tw + 18, y + size + 6),
-            radius=4,
-            fill=(0, 0, 0, 70),
-        )
-        img.alpha_composite(plate.filter(ImageFilter.GaussianBlur(6)))
+    for index, line in enumerate(lines):
+        x = x0
+        bbox = draw.textbbox((0, 0), line, font=fnt)
+        tw = bbox[2] - bbox[0]
+        glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        gd = ImageDraw.Draw(glow)
+        gd.rectangle((x - 10, y - 5, x + tw + 32, y + 62), fill=(0, 0, 0, 145))
+        img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(9)))
         draw = ImageDraw.Draw(img)
-        fill = gold if (i == len(lines) - 1 and len(lines) >= 2) else white
-        _draw_text_with_shadow(draw, (x0, y), line, fnt, fill)
-        y += line_gap
+        draw.rectangle((x - 4, y - 2, x + tw + 24, y + 58), fill=LUX_RED)
+        draw.text((x + 10, y + 28), line, font=fnt, fill=(255, 255, 255, 255), anchor="lm")
+        y += 82
 
-    # Brand mark bottom-right
+    # Multi-org institutional badges only (never BTC sticker on a BTC coin scene)
+    _paste_entity_logos(img, entity_logos, width=width)
+
     logo_path = Path(SOCIAL_LOGO_PATH)
     if logo_path.exists():
         logo = Image.open(logo_path).convert("RGBA")
         bbox = logo.getbbox()
         if bbox:
             logo = logo.crop(bbox)
-        target_w = 168
+        target_w = 190
         target_h = int(logo.height * target_w / max(1, logo.width))
         logo = logo.resize((target_w, target_h), Image.Resampling.LANCZOS)
-        logo.putalpha(logo.getchannel("A").point(lambda a: int(a * 0.92)))
-        img.alpha_composite(logo, (width - target_w - 44, height - target_h - 40))
-    else:
-        draw.text((width - 200, height - 56), "LuxQuant", font=_font(22, True), fill=muted)
+        logo.putalpha(logo.getchannel("A").point(lambda a: int(a * 0.9)))
+        img.alpha_composite(logo, (width - target_w - 52, height - target_h - 52))
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
