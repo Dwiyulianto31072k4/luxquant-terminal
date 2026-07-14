@@ -8,8 +8,9 @@
 // as the Global Reach section). Each card opens the exact full proof modal.
 //
 // Data: `gainers` from useLandingData (/signals/top-performers) → carries
-// latest_chart_url + pnl_leverage + realized_pct. PnL card =
-// deriveChartWithCard(latest_chart_url) → the _with_card.png variant.
+// latest_chart_url + pnl_leverage + realized_pct + type (Daily|Weekly).
+// PnL card = deriveChartWithCard(latest_chart_url) → the _with_card.png variant.
+// Order: interleave Weekly then Daily (W,D,W,D…), peak-sorted within each type.
 //
 // Props: gainers (array)
 // ════════════════════════════════════════════════════════════════
@@ -98,13 +99,44 @@ const ArrowUpRight = ({ className = "h-3 w-3" }) => (
 export default function RecentWinnersMarquee({ gainers = [] }) {
   const { t } = useTranslation();
 
+  // Interleave Weekly → Daily → Weekly → Daily (same spirit as Top Gainers).
+  // Within each type, keep peak-sorted order; skip a pair if it already appeared.
   const winners = useMemo(() => {
-    const seen = new Set();
-    return (gainers || [])
+    const eligible = (gainers || [])
       .map((g) => ({ ...g, cardImg: deriveChartWithCard(g.latest_chart_url) }))
-      .filter((g) => g.cardImg && g.signal_id && !seen.has(g.pair) && seen.add(g.pair))
-      .sort((a, b) => (b.gain_pct || 0) - (a.gain_pct || 0))
-      .slice(0, 12);
+      .filter((g) => g.cardImg && g.signal_id);
+
+    const dedupeByPair = (list) => {
+      const seen = new Set();
+      return list
+        .sort((a, b) => (b.gain_pct || 0) - (a.gain_pct || 0))
+        .filter((g) => !seen.has(g.pair) && seen.add(g.pair));
+    };
+
+    const typeOf = (g) => String(g.type || "").toLowerCase();
+    const weekly = dedupeByPair(eligible.filter((g) => typeOf(g) === "weekly"));
+    const daily = dedupeByPair(eligible.filter((g) => typeOf(g) === "daily"));
+    // Fallback if type tag missing (shouldn't happen from useLandingData)
+    const untyped = dedupeByPair(eligible.filter((g) => !typeOf(g)));
+
+    const combined = [];
+    const seenPair = new Set();
+    const MAX = 20;
+    const push = (item) => {
+      if (!item || seenPair.has(item.pair) || combined.length >= MAX) return;
+      seenPair.add(item.pair);
+      combined.push(item);
+    };
+
+    const max = Math.max(weekly.length, daily.length);
+    for (let i = 0; i < max && combined.length < MAX; i++) {
+      push(weekly[i]); // 1st, 3rd, 5th… weekly
+      push(daily[i]);  // 2nd, 4th, 6th… daily
+    }
+    // Top up if one side ran dry / types missing
+    for (const item of untyped) push(item);
+
+    return combined;
   }, [gainers]);
 
   const hasWinners = winners.length > 0;
