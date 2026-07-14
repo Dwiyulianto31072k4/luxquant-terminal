@@ -2,17 +2,14 @@
 // ════════════════════════════════════════════════════════════════
 // RecentWinnersMarquee — "money parade" right below the hero.
 //
-// Storyline role: turn the hero promise into moving, emotional proof.
-// A calm, slow, drag scrollable rail of real PnL cards (entry to peak).
-// Blends into the page (fades to #0a0506, the base bg) so it never
-// looks like a hard band. Each card opens the full proof modal.
+// Slow, drag scrollable rail of real PnL cards (entry to peak) sitting
+// INSIDE a faint gold wireframe globe backdrop, so it reads as one
+// immersive, contained space that blends into the neighbouring sections.
 //
-// Data: `gainers` from useLandingData (/signals/top-performers) which now
-// carries latest_chart_url + pnl_leverage + realized_pct. The PnL card is
+// Data: `gainers` from useLandingData (/signals/top-performers) which
+// carries latest_chart_url + pnl_leverage + realized_pct. PnL card =
 // deriveChartWithCard(latest_chart_url) → the _with_card.png variant.
-//
-// Interaction: auto advances slowly, pauses on hover, and the user can
-// grab and drag (or trackpad / touch scroll) freely. Seamless loop.
+// Full image shown (no crop). Click → the exact full proof modal.
 //
 // Props: gainers (array)
 // ════════════════════════════════════════════════════════════════
@@ -78,11 +75,34 @@ const buildCaption = (w) => {
   return s;
 };
 
-// Diagonal arrow to the top right corner (same idea as the Top Gainer cards).
 const ArrowUpRight = ({ className = "h-3 w-3" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M7 17 17 7" />
     <path d="M8 7h9v9" />
+  </svg>
+);
+
+// Faint wireframe globe backdrop (armillary look) — pure SVG, slow spin.
+const GlobeBackdrop = () => (
+  <svg className="rwm-globe-svg" viewBox="0 0 600 600" aria-hidden="true">
+    <defs>
+      <radialGradient id="rwmGlow" cx="50%" cy="42%" r="60%">
+        <stop offset="0%" stopColor="rgba(212,168,83,0.18)" />
+        <stop offset="45%" stopColor="rgba(139,26,26,0.10)" />
+        <stop offset="100%" stopColor="rgba(10,5,6,0)" />
+      </radialGradient>
+    </defs>
+    <circle cx="300" cy="300" r="270" fill="url(#rwmGlow)" />
+    <g fill="none" stroke="rgba(212,168,83,0.16)" strokeWidth="1">
+      <circle cx="300" cy="300" r="248" />
+      <ellipse cx="300" cy="300" rx="248" ry="86" />
+      <ellipse cx="300" cy="300" rx="248" ry="168" />
+      <g className="rwm-globe-spin" style={{ transformOrigin: "300px 300px" }}>
+        <ellipse cx="300" cy="300" rx="86" ry="248" />
+        <ellipse cx="300" cy="300" rx="168" ry="248" />
+        <line x1="300" y1="52" x2="300" y2="548" />
+      </g>
+    </g>
   </svg>
 );
 
@@ -98,7 +118,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       .slice(0, 12);
   }, [gainers]);
 
-  // ── proof modal (reuse SignalDetailModal, same as TopGainers) ──
+  // ── proof modal (reuse SignalDetailModal — the exact full proof) ──
   const [modalOpen, setModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState(null);
   const [signalDetail, setSignalDetail] = useState(null);
@@ -152,10 +172,49 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
     setSignalDetail(null);
   }, []);
 
-  // ── slow auto scroll + grab/drag + trackpad, seamless loop ──
+  // ── slow auto scroll + grab/drag (window-listener based, so taps still
+  //    fire a real click → the proof modal opens reliably) ──
   const scrollerRef = useRef(null);
-  const pausedRef = useRef(false);      // hover / touch pause
+  const pausedRef = useRef(false);
   const dragRef = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
+
+  const normalizeLoop = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const half = el.scrollWidth / 2;
+    if (half <= 0) return;
+    if (el.scrollLeft >= half) el.scrollLeft -= half;
+    else if (el.scrollLeft < 0) el.scrollLeft += half;
+  }, []);
+
+  const onWinMove = useCallback((e) => {
+    const el = scrollerRef.current;
+    const d = dragRef.current;
+    if (!el || !d.active) return;
+    const dx = e.clientX - d.startX;
+    if (Math.abs(dx) > 5) d.moved = true;
+    el.scrollLeft = d.startLeft - dx;
+    normalizeLoop();
+  }, [normalizeLoop]);
+
+  const onWinUp = useCallback(() => {
+    window.removeEventListener("pointermove", onWinMove);
+    window.removeEventListener("pointerup", onWinUp);
+    setTimeout(() => { dragRef.current.active = false; }, 0);
+  }, [onWinMove]);
+
+  const onPointerDown = (e) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    dragRef.current = { active: true, startX: e.clientX, startLeft: el.scrollLeft, moved: false };
+    window.addEventListener("pointermove", onWinMove);
+    window.addEventListener("pointerup", onWinUp);
+  };
+
+  useEffect(() => () => {
+    window.removeEventListener("pointermove", onWinMove);
+    window.removeEventListener("pointerup", onWinUp);
+  }, [onWinMove, onWinUp]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -165,7 +224,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
 
     let raf;
     let last;
-    const SPEED = 16; // px per second — calm
+    const SPEED = 15; // px per second — calm
     const step = (ts) => {
       if (last == null) last = ts;
       const dt = (ts - last) / 1000;
@@ -182,45 +241,17 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
     return () => cancelAnimationFrame(raf);
   }, [winners.length]);
 
-  // Keep the loop seamless while the user scrolls/drags manually.
-  const normalizeLoop = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const half = el.scrollWidth / 2;
-    if (half <= 0) return;
-    if (el.scrollLeft >= half) el.scrollLeft -= half;
-    else if (el.scrollLeft < 0) el.scrollLeft += half;
-  }, []);
-
-  const onPointerDown = (e) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    dragRef.current = { active: true, startX: e.clientX, startLeft: el.scrollLeft, moved: false };
-    el.setPointerCapture?.(e.pointerId);
-  };
-  const onPointerMove = (e) => {
-    const el = scrollerRef.current;
-    const d = dragRef.current;
-    if (!el || !d.active) return;
-    const dx = e.clientX - d.startX;
-    if (Math.abs(dx) > 4) d.moved = true;
-    el.scrollLeft = d.startLeft - dx;
-    normalizeLoop();
-  };
-  const endDrag = (e) => {
-    const el = scrollerRef.current;
-    if (el) el.releasePointerCapture?.(e.pointerId);
-    // allow a tiny delay so a drag doesn't register as a click
-    setTimeout(() => { dragRef.current.active = false; }, 0);
-  };
-
   if (winners.length === 0) return null;
   const track = [...winners, ...winners];
 
   return (
-    <section className="rwm relative z-10 py-16 sm:py-24">
+    <section className="rwm relative z-10 overflow-hidden py-20 sm:py-28">
+      {/* Immersive globe backdrop + vignette (cards sit "inside" it) */}
+      <div className="rwm-globe" aria-hidden="true"><GlobeBackdrop /></div>
+      <div className="rwm-vignette" aria-hidden="true" />
+
       {/* Eyebrow + heading */}
-      <div className="mx-auto max-w-6xl px-5 text-center">
+      <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
         <div className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.26em] text-gold-primary/80">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-primary/50" />
@@ -237,18 +268,15 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       </div>
 
       {/* Rail */}
-      <div className="rwm-window relative mt-10">
+      <div className="rwm-window relative z-10 mt-12">
         <div
           ref={scrollerRef}
           className="rwm-scroller"
           onMouseEnter={() => { pausedRef.current = true; }}
-          onMouseLeave={() => { pausedRef.current = false; dragRef.current.active = false; }}
+          onMouseLeave={() => { pausedRef.current = false; }}
           onTouchStart={() => { pausedRef.current = true; }}
           onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 1500); }}
           onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
         >
           <div className="rwm-track">
             {track.map((w, i) => {
@@ -279,23 +307,22 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
                   </div>
 
                   <div className="rwm-meta">
-                    <div className="flex items-center gap-2">
-                      <CoinLogo pair={w.pair} size={20} />
-                      <span className="text-white text-[14px] font-semibold tracking-tight">${sym}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CoinLogo pair={w.pair} size={22} />
+                      <span className="text-white text-[15px] font-semibold tracking-tight">${sym}</span>
+                      {(date || ago) && (
+                        <span className="text-[11px] font-mono tabular-nums text-white/40">
+                          {date}{ago ? ` · ${ago}` : ""}
+                        </span>
+                      )}
                       {peak && (
-                        <span className="ml-auto text-[13px] font-mono tabular-nums text-emerald-400 font-medium">
+                        <span className="ml-auto text-[14px] font-mono tabular-nums text-emerald-400 font-medium">
                           peak +{peak}%
                         </span>
                       )}
                     </div>
 
-                    {(date || ago) && (
-                      <div className="mt-1.5 text-[11px] font-mono tabular-nums text-white/40">
-                        {date}{ago ? ` · ${ago}` : ""}
-                      </div>
-                    )}
-
-                    <p className="mt-2.5 text-[12.5px] leading-[1.65] text-white/60">
+                    <p className="mt-2.5 text-[13px] leading-[1.7] text-white/65">
                       {caption}{" "}
                       <span className="rwm-proof">
                         View proof
@@ -309,7 +336,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           </div>
         </div>
 
-        {/* Edge fades → blend into the page base (#0a0506), no hard band */}
+        {/* Side fades → blend into page base (#0a0506) */}
         <div className="rwm-fade rwm-fade-l" aria-hidden="true" />
         <div className="rwm-fade rwm-fade-r" aria-hidden="true" />
       </div>
@@ -329,6 +356,38 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       )}
 
       <style>{`
+        /* Vertical blend so the section melts into its neighbours */
+        .rwm::before, .rwm::after {
+          content: "";
+          position: absolute;
+          left: 0; right: 0;
+          height: 140px;
+          pointer-events: none;
+          z-index: 2;
+        }
+        .rwm::before { top: 0;    background: linear-gradient(to bottom, #0a0506 0%, rgba(10,5,6,0) 100%); }
+        .rwm::after  { bottom: 0; background: linear-gradient(to top,    #0a0506 0%, rgba(10,5,6,0) 100%); }
+
+        .rwm-globe {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: min(1100px, 130vw);
+          aspect-ratio: 1 / 1;
+          transform: translate(-50%, -50%);
+          z-index: 0;
+          pointer-events: none;
+          opacity: 0.55;
+        }
+        .rwm-globe-svg { width: 100%; height: 100%; display: block; }
+        .rwm-globe-spin { animation: rwmGlobeSpin 90s linear infinite; }
+        @keyframes rwmGlobeSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .rwm-vignette {
+          position: absolute; inset: 0; z-index: 1; pointer-events: none;
+          background:
+            radial-gradient(ellipse 60% 55% at 50% 50%, rgba(10,5,6,0) 40%, rgba(10,5,6,0.55) 100%);
+        }
+
         .rwm-scroller {
           overflow-x: auto;
           overflow-y: hidden;
@@ -336,64 +395,61 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           scrollbar-width: none;
           -ms-overflow-style: none;
           -webkit-overflow-scrolling: touch;
-          padding: 8px 0;
+          padding: 10px 0;
+          touch-action: pan-x;
         }
         .rwm-scroller:active { cursor: grabbing; }
         .rwm-scroller::-webkit-scrollbar { display: none; }
         .rwm-track {
           display: flex;
-          gap: 22px;
+          gap: 26px;
           width: max-content;
-          padding: 0 max(20px, calc((100vw - 1180px) / 2));
+          padding: 0 max(24px, calc((100vw - 1440px) / 2));
         }
         .rwm-card {
           flex: 0 0 auto;
-          width: 380px;
+          width: 300px;
           text-align: left;
           user-select: none;
           -webkit-user-drag: none;
         }
-        @media (max-width: 640px) {
-          .rwm-card { width: 300px; }
-        }
+        @media (min-width: 640px)  { .rwm-card { width: 380px; } }
+        @media (min-width: 1024px) { .rwm-card { width: 460px; } }
+
         .rwm-img-wrap {
           position: relative;
-          height: 208px;
           border-radius: 16px;
           overflow: hidden;
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.10), 0 18px 44px -20px rgba(0,0,0,0.75);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.12), 0 20px 48px -20px rgba(0,0,0,0.8);
           transition: box-shadow .3s ease, transform .3s ease;
         }
         .rwm-img {
           width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
+          height: auto;      /* full image, no crop */
           display: block;
-          transition: transform .5s ease;
         }
         .rwm-card:hover .rwm-img-wrap {
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.32), 0 24px 52px -18px rgba(139,26,26,0.5);
-          transform: translateY(-2px);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.36), 0 26px 56px -18px rgba(139,26,26,0.55);
+          transform: translateY(-3px);
         }
-        .rwm-card:hover .rwm-img { transform: scale(1.04); }
-        .rwm-meta { padding: 14px 4px 0; }
+        .rwm-meta { padding: 15px 4px 0; }
         .rwm-proof {
           display: inline-flex;
           align-items: center;
           gap: 3px;
           white-space: nowrap;
-          color: var(--gold-primary, #d4a853);
+          color: #d4a853;
           font-weight: 600;
-          font-size: 11.5px;
-          letter-spacing: 0.01em;
+          font-size: 12px;
         }
         .rwm-card:hover .rwm-proof { color: #f0d890; }
 
-        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 9%; pointer-events: none; z-index: 5; }
-        .rwm-fade-l { left: 0;  background: linear-gradient(to right, #0a0506 0%, rgba(10,5,6,0.6) 40%, transparent 100%); }
-        .rwm-fade-r { right: 0; background: linear-gradient(to left,  #0a0506 0%, rgba(10,5,6,0.6) 40%, transparent 100%); }
+        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 8%; pointer-events: none; z-index: 5; }
+        .rwm-fade-l { left: 0;  background: linear-gradient(to right, #0a0506 0%, rgba(10,5,6,0.55) 45%, transparent 100%); }
+        .rwm-fade-r { right: 0; background: linear-gradient(to left,  #0a0506 0%, rgba(10,5,6,0.55) 45%, transparent 100%); }
         @media (max-width: 640px) { .rwm-fade { width: 6%; } }
+
+        @media (prefers-reduced-motion: reduce) { .rwm-globe-spin { animation: none; } }
       `}</style>
     </section>
   );
