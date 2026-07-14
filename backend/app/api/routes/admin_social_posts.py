@@ -300,6 +300,7 @@ async def get_post_materials(
         "needs_materials": bool(assets.get("needs_materials")),
         "missing_count": int(assets.get("missing_count") or 0),
         "qc_flags": assets.get("qc_flags") or [],
+        "safe_mode": bool(assets.get("safe_mode")),
         "requests": [
             {
                 "name": i["name"],
@@ -310,7 +311,7 @@ async def get_post_materials(
                 "status": i["status"],
             }
             for i in (assets.get("inventory") or [])
-            if i.get("status") == "missing"
+            if i.get("status") in ("missing", "needs_upload")
         ],
     }
 
@@ -339,11 +340,40 @@ async def upload_post_material(
     ctype = file.content_type or "image/png"
     if not ctype.startswith("image/"):
         raise HTTPException(400, "file must be an image")
+    admin_name = getattr(admin, "email", None) or getattr(admin, "username", "") or "admin"
     try:
-        path = save_admin_upload(name=name, kind=kind, file_bytes=data, content_type=ctype)
+        path = save_admin_upload(
+            name=name,
+            kind=kind,
+            file_bytes=data,
+            content_type=ctype,
+            admin=str(admin_name),
+        )
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
-    return {"ok": True, "name": name, "kind": kind, "path": path}
+    return {"ok": True, "name": name, "kind": kind, "path": path, "trusted": True, "source": "admin"}
+
+
+@router.post("/{post_id}/materials/confirm")
+async def confirm_post_material(
+    post_id: int,
+    name: str = Form(...),
+    kind: str = Form("logo"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Confirm an existing library file as accurate (no re-upload). Safe-mode unlock."""
+    from app.services.social_entity_assets import confirm_library_asset
+
+    _get_post_row(db, post_id)
+    kind = (kind or "logo").lower().strip()
+    if kind not in ("logo", "face"):
+        raise HTTPException(400, "kind must be logo or face")
+    admin_name = getattr(admin, "email", None) or getattr(admin, "username", "") or "admin"
+    path = confirm_library_asset(name=name, kind=kind, admin=str(admin_name))
+    if not path:
+        raise HTTPException(404, "No library file found to confirm — please upload instead")
+    return {"ok": True, "name": name, "kind": kind, "path": path, "trusted": True, "source": "confirmed"}
 
 
 @router.post("/{post_id}/re-render")

@@ -351,7 +351,8 @@ def resolve_face_reference(featured_person: Optional[str]) -> Optional[str]:
 # Auto-fetch a portrait from Wikipedia when a figure isn't cached yet. Wikipedia's
 # lead image is identity-reliable (the page for a name shows that person), unlike a
 # generic image search that could return the wrong face.
-FACE_AUTOFETCH = os.environ.get("SOCIAL_FACE_AUTOFETCH", "1").strip().lower() not in ("0", "false", "no", "")
+# Default off: safe materials mode prefers admin-uploaded portraits over wiki scrapes.
+FACE_AUTOFETCH = os.environ.get("SOCIAL_FACE_AUTOFETCH", "0").strip().lower() not in ("0", "false", "no", "")
 WIKI_SUMMARY_API = os.environ.get("SOCIAL_WIKI_API", "https://en.wikipedia.org/api/rest_v1/page/summary/")
 FACE_MISS_TTL = int(os.environ.get("SOCIAL_FACE_MISS_TTL", str(14 * 24 * 3600)))
 
@@ -707,18 +708,14 @@ def generate_ai_social_image(
     try:
         from app.services.social_entity_assets import resolve_entity_assets
 
-        # Face autofetch before gate
-        face_path_pre = resolve_face_reference(featured_person)
-        if not face_path_pre and featured_person and FACE_AUTOFETCH:
-            face_path_pre = fetch_face_reference(featured_person)
-
+        # Safe materials: only admin-trusted assets from resolve (no wiki autofetch gate).
         assets = resolve_entity_assets(
             entities or [],
             featured_person=featured_person,
             headline=headline or "",
             visual_only=True,
         )
-        entity_face = assets.get("featured_face_path") or face_path_pre
+        entity_face = assets.get("featured_face_path")  # trusted only
         pl = assets.get("primary_logo") or {}
         primary_logo_path = pl.get("path") if isinstance(pl, dict) else None
         po = assets.get("primary_org") or {}
@@ -749,24 +746,8 @@ def generate_ai_social_image(
 
     # Preferred backend: xAI/Grok raw image + classic LuxQuant red-box compositor.
     if IMAGE_PROVIDER == "xai":
-        face_path = entity_face or resolve_face_reference(featured_person)
-        if not face_path and featured_person and FACE_AUTOFETCH:
-            face_path = fetch_face_reference(featured_person)
-            if face_path and visual_materials is not None:
-                try:
-                    from app.services.social_entity_assets import resolve_entity_assets
-                    assets = resolve_entity_assets(
-                        entities or [],
-                        featured_person=featured_person,
-                        headline=headline or "",
-                        visual_only=True,
-                    )
-                    entity_face = assets.get("featured_face_path") or face_path
-                    pl = assets.get("primary_logo") or {}
-                    primary_logo_path = pl.get("path") if isinstance(pl, dict) else primary_logo_path
-                    visual_materials = _materials_dict(assets)
-                except Exception:
-                    pass
+        # Only use admin-trusted face (never raw wiki scrape for generation accuracy)
+        face_path = entity_face
 
         brand = primary_org_name or "the primary brand"
         gen_prompt = prompt

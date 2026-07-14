@@ -18,6 +18,7 @@ Assets are cached under SOCIAL_POST_ASSETS_DIR/{logos,faces}.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -38,9 +39,13 @@ WIKI_SEARCH = os.environ.get(
     "SOCIAL_WIKI_SEARCH_API",
     "https://en.wikipedia.org/w/api.php",
 )
-LOGO_AUTOFETCH = os.environ.get("SOCIAL_LOGO_AUTOFETCH", "1").strip().lower() not in ("0", "false", "no")
+LOGO_AUTOFETCH = os.environ.get("SOCIAL_LOGO_AUTOFETCH", "0").strip().lower() not in ("0", "false", "no")
 LOGO_MISS_TTL = int(os.environ.get("SOCIAL_LOGO_MISS_TTL", str(14 * 24 * 3600)))
 USER_AGENT = "LuxQuantBot/1.0 (editorial news illustration; contact admin@luxquant.tw)"
+# Safe mode (default ON): only admin-uploaded (or explicitly confirmed) logos/faces
+# unlock AI image generation. Wiki/clearbit autofetch never auto-approves.
+SAFE_MATERIALS = os.environ.get("SOCIAL_SAFE_MATERIALS", "1").strip().lower() not in ("0", "false", "no")
+TRUSTED_SOURCES = frozenset({"admin", "confirmed", "seed_trusted"})
 
 # Curated aliases → Wikipedia title or clearbit domain for high-value crypto orgs.
 # Prefer Wikipedia lead images (identity-reliable) over AI-hallucinated marks.
@@ -132,6 +137,100 @@ def _save_image_bytes(content: bytes, content_type: str, dest_base: Path) -> Opt
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(content)
     return str(dest)
+
+
+def _trust_path_for(asset_path: str | Path) -> Path:
+    p = Path(asset_path)
+    return p.with_suffix(p.suffix + ".trust.json")
+
+
+def write_asset_trust(asset_path: str, *, source: str = "admin", by: str = "admin") -> dict:
+    """Mark an on-disk logo/face as trusted for safe materials mode."""
+    from datetime import datetime, timezone
+
+    meta = {
+        "source": source,
+        "verified": source in TRUSTED_SOURCES,
+        "by": by,
+        "at": datetime.now(timezone.utc).isoformat(),
+        "path": str(asset_path),
+    }
+    try:
+        tp = _trust_path_for(asset_path)
+        tp.write_text(json.dumps(meta), encoding="utf-8")
+    except Exception:
+        pass
+    return meta
+
+
+def read_asset_trust(asset_path: Optional[str]) -> dict:
+    """Return trust metadata for an asset file."""
+    if not asset_path:
+        return {"source": None, "verified": False, "trusted": False}
+    p = Path(asset_path)
+    if not p.exists():
+        return {"source": None, "verified": False, "trusted": False}
+    try:
+        tp = _trust_path_for(p)
+        if tp.exists():
+            data = json.loads(tp.read_text(encoding="utf-8"))
+            source = str(data.get("source") or "")
+            trusted = bool(data.get("verified")) or source in TRUSTED_SOURCES
+            return {
+                "source": source or "unknown",
+                "verified": trusted,
+                "trusted": trusted,
+                "by": data.get("by"),
+                "at": data.get("at"),
+            }
+    except Exception:
+        pass
+    # No trust file: legacy library file. In safe mode → not trusted (admin must confirm/upload).
+    return {
+        "source": "library_unverified",
+        "verified": False,
+        "trusted": not SAFE_MATERIALS,  # only trusted when safe mode is off
+    }
+
+
+def find_local_logo(name: str, *, domain: Optional[str] = None) -> Optional[str]:
+    """Local disk only — no network autofetch."""
+    raw = (name or "").strip()
+    if not raw:
+        return None
+    key = raw.lower()
+    alias = ORG_ALIASES.get(key) or ORG_ALIASES.get(_slug(key).replace("-", " "))
+    candidates = []
+    if alias and alias.get("wiki"):
+        candidates.append(_slug(alias["wiki"]))
+    candidates.append(_slug(raw))
+    for slug in candidates:
+        if not slug:
+            continue
+        for ext in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
+            path = LOGO_DIR / f"{slug}{ext}"
+            if path.exists() and path.stat().st_size > 500:
+                return str(path)
+    return None
+
+
+def find_local_face(name: str) -> Optional[str]:
+    """Local face library only — no Wikipedia autofetch."""
+    from app.services.social_image_generator import resolve_face_reference
+
+    raw = (name or "").strip()
+    if not raw:
+        return None
+    key = raw.lower()
+    short = re.split(r"[,(]", raw, 1)[0].strip()
+    alias_title = PERSON_ALIASES.get(key) or PERSON_ALIASES.get(short.lower())
+    for candidate in (alias_title, short, raw):
+        if not candidate:
+            continue
+        path = resolve_face_reference(candidate)
+        if path:
+            return path
+    return None
 
 
 def _wiki_summary_image(title: str) -> Optional[str]:
@@ -432,38 +531,54 @@ def resolve_entity_assets(
         role = e.get("role") or ""
         typ = e.get("type") or "org"
         domain = e.get("domain")
+        # Safe mode: local lookup only — never network-autofetch for the gate
         if typ == "person":
-            path = resolve_person_face(name)
+            path = find_local_face(name) if SAFE_MATERIALS else resolve_person_face(name)
             kind = "face"
-            if path:
-                people.append({"name": name, "role": role, "path": path})
-                if featured_person and name.lower().split(",")[0].strip() in featured_person.lower():
+        else:
+            path = find_local_logo(name, domain=domain) if SAFE_MATERIALS else resolve_logo(name, domain=domain)
+            kind = "logo"
+
+        trust = read_asset_trust(path)
+        trusted = bool(path) and bool(trust.get("trusted"))
+
+        if trusted:
+            status = "resolved"
+            request = None
+            if kind == "face":
+                people.append({"name": name, "role": role, "path": path, "source": trust.get("source")})
+                if featured_person and name.lower().split(",")[0].strip() in (featured_person or "").lower():
                     featured_face_path = path
                 elif not featured_face_path:
                     featured_face_path = path
-                status = "resolved"
-                request = None
             else:
-                status = "missing"
+                logos.append({"name": name, "role": role, "path": path, "source": trust.get("source")})
+        elif path and not trusted:
+            # File exists (wiki/legacy) but admin has not confirmed — block generate
+            status = "needs_upload"
+            request = (
+                f"Upload official {kind} for {name} for accuracy"
+                + (f" ({role})" if role else "")
+                + (f" — transparent PNG from {domain}" if domain and kind == "logo" else "")
+                + ("" if kind == "logo" else " — clear front-facing portrait, high-res")
+                + ". Library may have an unverified file; admin upload is required in safe mode."
+            )
+            qc_flags.append(f"{kind.upper()}_UNVERIFIED:{name}")
+        else:
+            status = "missing"
+            if kind == "face":
                 request = (
                     f"Upload a clear portrait photo of {name}"
                     + (f" ({role})" if role else "")
-                    + " — face front, high-res, no crowd."
+                    + " — face front, high-res, no crowd. Required before AI image."
                 )
                 qc_flags.append(f"FACE_MISSING:{name}")
-        else:
-            path = resolve_logo(name, domain=domain)
-            kind = "logo"
-            if path:
-                logos.append({"name": name, "role": role, "path": path})
-                status = "resolved"
-                request = None
             else:
-                status = "missing"
                 request = (
                     f"Upload official logo for {name}"
                     + (f" ({role})" if role else "")
                     + (f" — prefer transparent PNG from {domain}" if domain else " — prefer transparent PNG / square mark")
+                    + ". Required before AI image."
                 )
                 qc_flags.append(f"ORG_LOGO_MISSING:{name}")
 
@@ -474,39 +589,48 @@ def resolve_entity_assets(
             "domain": domain,
             "kind": kind,
             "status": status,
-            "path": path,
+            "path": path if trusted else None,
+            "preview_path": path if path and not trusted else None,
             "request": request,
             "slug": _slug(name),
+            "source": trust.get("source"),
+            "trusted": trusted,
         })
 
-    # Soft inherit: "Hyperliquid Policy Center" can reuse "Hyperliquid" logo when
-    # a longer org name starts with a resolved shorter org name (parent brand).
-    resolved_orgs = [i for i in inventory if i.get("type") == "org" and i.get("status") == "resolved" and i.get("path")]
+    # Soft inherit: child org can reuse TRUSTED parent brand logo
+    trusted_orgs = [
+        i for i in inventory
+        if i.get("type") == "org" and i.get("status") == "resolved" and i.get("path")
+    ]
     for item in inventory:
-        if item.get("status") != "missing" or item.get("kind") != "logo":
+        if item.get("status") not in ("missing", "needs_upload") or item.get("kind") != "logo":
             continue
         name_l = (item.get("name") or "").lower().strip()
         best = None
         best_len = 0
-        for parent in resolved_orgs:
+        for parent in trusted_orgs:
             pn = (parent.get("name") or "").lower().strip()
             if not pn or pn == name_l:
                 continue
-            # Child contains parent brand as a whole word/prefix (min 4 chars)
             if len(pn) >= 4 and (name_l.startswith(pn) or f" {pn} " in f" {name_l} "):
                 if len(pn) > best_len:
                     best = parent
                     best_len = len(pn)
-        if best and best.get("path"):
+        if best and best.get("path") and best.get("trusted"):
             item["status"] = "resolved"
             item["path"] = best["path"]
+            item["preview_path"] = None
             item["request"] = None
             item["inherited_from"] = best.get("name")
+            item["trusted"] = True
+            item["source"] = best.get("source") or "admin"
             logos.append({"name": item["name"], "role": item.get("role") or "", "path": best["path"]})
-            # Drop the QC flag for this name
-            qc_flags = [f for f in qc_flags if not f.endswith(f":{item['name']}")]
+            qc_flags = [
+                f for f in qc_flags
+                if not f.endswith(f":{item['name']}")
+            ]
 
-    # Deduplicate logos by path while preserving order
+    # Deduplicate logos
     seen_paths: set[str] = set()
     unique_logos: list[dict] = []
     for lg in logos:
@@ -516,15 +640,13 @@ def resolve_entity_assets(
             unique_logos.append(lg)
     logos = unique_logos
 
-    missing = [i for i in inventory if i["status"] == "missing"]
-    # Critical materials that should block expensive AI image gen:
-    # - any missing org logo still unresolved after inheritance
-    # - any missing person face (featured or listed)
-    critical = [i for i in missing if i.get("kind") in ("logo", "face")]
-    org_count = sum(1 for i in inventory if i["type"] == "org")
-    # Multi-org stories without any resolved logo are a soft QC fail
-    if org_count >= 2 and not logos:
-        qc_flags.append("MULTI_ORG_NO_LOGOS")
+    # Block generate until every visual item is admin-trusted
+    critical = [
+        i for i in inventory
+        if i.get("kind") in ("logo", "face") and i.get("status") in ("missing", "needs_upload")
+    ]
+    if not logos and any(i.get("type") == "org" for i in inventory):
+        qc_flags.append("PRIMARY_LOGO_REQUIRED")
 
     primary_logo = None
     if primary_org:
@@ -535,6 +657,10 @@ def resolve_entity_assets(
                 break
         if not primary_logo and logos:
             primary_logo = logos[0]
+
+    # Only trusted faces unlock generation
+    if featured_face_path and not read_asset_trust(featured_face_path).get("trusted"):
+        featured_face_path = None
 
     return {
         "logos": logos[:4],
@@ -547,10 +673,16 @@ def resolve_entity_assets(
         "missing_count": len(critical),
         "qc_flags": qc_flags,
         "critical_missing": [
-            {"name": i["name"], "kind": i["kind"], "request": i.get("request")}
+            {
+                "name": i["name"],
+                "kind": i["kind"],
+                "request": i.get("request"),
+                "status": i.get("status"),
+            }
             for i in critical
         ],
         "visual_only": visual_only,
+        "safe_mode": SAFE_MATERIALS,
     }
 
 
@@ -560,17 +692,28 @@ def save_admin_upload(
     kind: str,
     file_bytes: bytes,
     content_type: str = "image/png",
+    admin: str = "admin",
 ) -> str:
-    """Persist an admin-provided logo/face into the asset library. Returns path."""
+    """Persist an admin-provided logo/face and mark it trusted for safe mode."""
     kind = (kind or "logo").lower()
     if kind not in ("logo", "face"):
         raise ValueError("kind must be logo or face")
     slug = _slug(name)
     if not slug:
         raise ValueError("invalid name")
+    # Prefer alias slug for logos so resolve finds the file next time
+    if kind == "logo":
+        key = (name or "").strip().lower()
+        alias = ORG_ALIASES.get(key)
+        if alias and alias.get("wiki"):
+            slug = _slug(alias["wiki"]) or slug
     base_dir = LOGO_DIR if kind == "logo" else FACE_DIR
+    # Faces: use image_generator face dir slug convention
+    if kind == "face":
+        from app.services.social_image_generator import SOCIAL_FACE_DIR, _slugify_name
+        base_dir = Path(SOCIAL_FACE_DIR)
+        slug = _slugify_name(name) or slug
     base_dir.mkdir(parents=True, exist_ok=True)
-    # Clear miss markers so future resolves hit the new file
     miss = base_dir / f"{slug}.miss"
     if miss.exists():
         try:
@@ -580,11 +723,29 @@ def save_admin_upload(
     dest_base = base_dir / slug
     saved = _save_image_bytes(file_bytes, content_type or "image/png", dest_base)
     if not saved:
-        # force write as png
         dest = dest_base.with_suffix(".png")
         dest.write_bytes(file_bytes)
         saved = str(dest)
+    write_asset_trust(saved, source="admin", by=admin or "admin")
     return saved
+
+
+def confirm_library_asset(
+    *,
+    name: str,
+    kind: str = "logo",
+    admin: str = "admin",
+) -> Optional[str]:
+    """Admin confirms an existing library file as accurate (no re-upload)."""
+    kind = (kind or "logo").lower()
+    if kind == "logo":
+        path = find_local_logo(name)
+    else:
+        path = find_local_face(name)
+    if not path:
+        return None
+    write_asset_trust(path, source="confirmed", by=admin or "admin")
+    return path
 
 
 def seed_high_value_logos() -> list[str]:

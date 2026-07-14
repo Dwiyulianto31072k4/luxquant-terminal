@@ -439,7 +439,7 @@ const ImageCard = ({ post, onOpen }) => {
   );
 };
 
-// ── Materials panel: AI asks admin for missing logos/faces ──────
+// ── Materials panel: safe mode — admin upload before AI image ──
 const MaterialsPanel = ({ postId, onUpdated }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -483,6 +483,24 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
     }
   };
 
+  const confirmAsset = async (item) => {
+    setBusy(`confirm:${item.name}`);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("name", item.name);
+      fd.append("kind", item.kind || "logo");
+      await api.post(`/api/v1/admin/social-posts/${postId}/materials/confirm`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await load();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Confirm failed — try uploading a file instead");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const reRender = async () => {
     setBusy("__render__");
     setErr(null);
@@ -491,122 +509,194 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       await load();
       if (onUpdated && res.data?.post) onUpdated(res.data.post);
     } catch (e) {
-      setErr(e?.response?.data?.detail || "Re-render failed");
+      const d = e?.response?.data?.detail;
+      setErr(
+        (typeof d === "object" && d?.message) ||
+          (typeof d === "string" ? d : null) ||
+          "Re-render failed"
+      );
     } finally {
       setBusy(null);
     }
   };
 
   if (loading) {
-    return <p className="text-[11px] font-mono text-text-muted">Detecting materials…</p>;
+    return <p className="text-[11px] font-mono text-text-muted">Checking required assets…</p>;
   }
   if (!data) return null;
 
   const inv = data.inventory || [];
   const requests = data.requests || [];
+  const primaryName = data.primary_org?.name;
+  const pending = inv.filter((i) => i.status === "missing" || i.status === "needs_upload");
+  const ready = inv.filter((i) => i.status === "resolved");
+
+  const statusStyle = (st) => {
+    if (st === "resolved") return "bg-green-500/15 text-green-400 border-green-500/25";
+    if (st === "needs_upload") return "bg-amber-500/15 text-amber-300 border-amber-400/30";
+    return "bg-red-500/10 text-red-300 border-red-500/25";
+  };
 
   return (
-    <div className="rounded-lg border border-white/10 bg-black/35 p-3 space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-gold-primary/90">
-          AI visual materials
-        </p>
+    <div className="rounded-xl border border-amber-400/20 bg-gradient-to-b from-amber-500/[0.07] to-black/40 p-3.5 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-gold-primary">
+            Safe materials · admin verify
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5 leading-snug">
+            Logo &amp; face must be uploaded (or confirmed) by admin before AI image — accuracy first, no wiki guess.
+          </p>
+        </div>
         {data.needs_materials ? (
-          <span className="text-[9px] font-mono text-amber-300">
-            {data.missing_count} missing — upload below
+          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/35">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            {data.missing_count} required
           </span>
         ) : (
-          <span className="text-[9px] font-mono text-green-400">all resolved</span>
+          <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-green-500/15 text-green-400 border border-green-500/30">
+            Verified
+          </span>
         )}
       </div>
 
-      {requests.length > 0 && (
-        <div className="rounded-md bg-amber-500/10 border border-amber-400/25 px-2.5 py-2 space-y-1">
-          <p className="text-[10px] font-semibold text-amber-200">
-            Upload primary brand / face first — then AI puts the brand INTO the scene (not a corner sticker):
+      {primaryName && (
+        <p className="text-[10px] font-mono text-text-muted">
+          Primary brand: <span className="text-white">{primaryName}</span>
+          {data.featured_person ? (
+            <>
+              {" "}
+              · Face: <span className="text-white">{data.featured_person}</span>
+            </>
+          ) : null}
+        </p>
+      )}
+
+      {pending.length > 0 && (
+        <div className="rounded-lg bg-black/35 border border-amber-400/25 px-3 py-2.5 space-y-1.5">
+          <p className="text-[11px] font-semibold text-amber-200">
+            Upload before generate ({pending.length}):
           </p>
-          {requests.map((r, i) => (
+          {pending.map((r, i) => (
             <p key={i} className="text-[11px] text-amber-100/90 leading-snug">
-              • {r.message || `Need ${r.kind} for ${r.name}`}
+              • <span className="font-medium">{r.name}</span>
+              <span className="text-amber-200/60 font-mono text-[10px]"> · {r.kind}</span>
+              {r.request ? ` — ${r.request.split(".")[0]}` : ""}
             </p>
           ))}
         </div>
       )}
 
       <div className="space-y-2">
-        {inv.map((item) => (
-          <div
-            key={`${item.type}-${item.name}`}
-            className="flex items-center gap-2 rounded-md border border-white/[0.07] bg-white/[0.02] px-2 py-1.5"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] text-white truncate">
-                {item.name}
-                <span className="text-text-muted font-mono text-[10px] ml-1.5">
-                  {item.kind} · {item.type}
-                </span>
-              </p>
-              {item.role && (
-                <p className="text-[10px] text-text-muted truncate">{item.role}</p>
-              )}
-              {item.request && item.status === "missing" && (
-                <p className="text-[10px] text-amber-200/80 mt-0.5 leading-snug">{item.request}</p>
-              )}
-            </div>
-            <span
-              className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded shrink-0 ${
-                item.status === "resolved"
-                  ? "bg-green-500/15 text-green-400"
-                  : "bg-amber-500/15 text-amber-300"
+        {inv.map((item) => {
+          const needAction = item.status === "missing" || item.status === "needs_upload";
+          return (
+            <div
+              key={`${item.type}-${item.name}`}
+              className={`rounded-lg border px-2.5 py-2 ${
+                needAction
+                  ? "border-amber-400/30 bg-amber-500/[0.06]"
+                  : "border-white/[0.07] bg-white/[0.02]"
               }`}
             >
-              {item.status}
-            </span>
-            {item.status === "missing" && (
-              <label className="shrink-0 cursor-pointer px-2 py-1 rounded text-[10px] font-medium bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25">
-                {busy === item.name ? "…" : "Upload"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={!!busy}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) upload(item, f);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-          </div>
-        ))}
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-[12px] text-white font-medium truncate">{item.name}</p>
+                    <span className="text-text-muted font-mono text-[9px] uppercase">
+                      {item.kind}
+                    </span>
+                  </div>
+                  {item.role && (
+                    <p className="text-[10px] text-text-muted truncate mt-0.5">{item.role}</p>
+                  )}
+                  {item.request && needAction && (
+                    <p className="text-[10px] text-amber-200/85 mt-1 leading-snug">{item.request}</p>
+                  )}
+                  {item.trusted && (
+                    <p className="text-[9px] font-mono text-green-400/80 mt-0.5">
+                      trusted · {item.source || "admin"}
+                    </p>
+                  )}
+                </div>
+                <span
+                  className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border shrink-0 ${statusStyle(
+                    item.status
+                  )}`}
+                >
+                  {item.status === "needs_upload"
+                    ? "upload req"
+                    : item.status === "resolved"
+                      ? "ok"
+                      : "missing"}
+                </span>
+              </div>
+              {needAction && (
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  <label className="cursor-pointer px-2.5 py-1 rounded-md text-[10px] font-semibold bg-gold-primary text-black hover:bg-gold-light transition-colors">
+                    {busy === item.name ? "Uploading…" : "Upload official file"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={!!busy}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) upload(item, f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {item.status === "needs_upload" && (
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      onClick={() => confirmAsset(item)}
+                      className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-white/15 text-text-muted hover:text-white hover:border-white/25 disabled:opacity-40"
+                    >
+                      {busy === `confirm:${item.name}` ? "…" : "Confirm library file"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
         {inv.length === 0 && (
-          <p className="text-[11px] text-text-muted">No entities detected for this story.</p>
+          <p className="text-[11px] text-text-muted py-2">
+            No logo/face required for this story — you can generate the image.
+          </p>
         )}
       </div>
+
+      {ready.length > 0 && data.needs_materials && (
+        <p className="text-[9px] font-mono text-text-muted">
+          {ready.length} verified · {pending.length} still need admin action
+        </p>
+      )}
 
       <button
         type="button"
         disabled={!!busy || data.needs_materials}
         onClick={reRender}
-        className={`w-full mt-1 px-3 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-40 ${
+        className={`w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border transition-colors disabled:opacity-40 ${
           data.needs_materials
             ? "bg-white/[0.04] text-text-muted border-white/10"
             : "bg-gold-primary text-black border-gold-primary/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
         }`}
-        title={data.needs_materials ? "Upload all missing materials first" : undefined}
+        title={data.needs_materials ? "Upload / confirm all materials first" : undefined}
       >
         {busy === "__render__"
           ? "Generating cinematic poster…"
           : data.needs_materials
-            ? "Upload materials to unlock image"
-            : "Generate image with materials"}
+            ? "Upload assets to unlock AI image"
+            : "Generate image with verified assets"}
       </button>
-      {!data.needs_materials && (
-        <p className="text-[9px] font-mono text-text-muted/80 text-center">
-          One AI image call after assets are ready — no waste regenerate.
-        </p>
-      )}
+      <p className="text-[9px] font-mono text-text-muted/80 text-center leading-relaxed">
+        {data.needs_materials
+          ? "Image AI is paused until uploads are complete — saves cost & keeps marks accurate."
+          : "Assets verified · one AI call · brand integrated into the scene."}
+      </p>
       {err && <p className="text-[11px] text-red-400">{err}</p>}
     </div>
   );

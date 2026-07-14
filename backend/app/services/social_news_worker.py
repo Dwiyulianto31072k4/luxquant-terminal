@@ -488,16 +488,10 @@ def build_draft(
             f"Detecting logos & people ({len(ents)} entities)…",
         )
 
-        # Pre-resolve PRIMARY materials only (1 org + featured face) before paying.
+        # Safe materials: primary org + face must be admin-trusted before AI image.
+        # No Wikipedia autofetch here — accuracy comes from admin upload.
         try:
             from app.services.social_entity_assets import resolve_entity_assets
-            from app.services.social_image_generator import (
-                FACE_AUTOFETCH,
-                fetch_face_reference,
-                resolve_face_reference,
-            )
-            if featured and FACE_AUTOFETCH and not resolve_face_reference(featured):
-                fetch_face_reference(featured)
             pre_assets = resolve_entity_assets(
                 ents,
                 featured_person=featured,
@@ -514,6 +508,7 @@ def build_draft(
                 "critical_missing": pre_assets.get("critical_missing") or [],
                 "primary_org": pre_assets.get("primary_org"),
                 "primary_logo": pre_assets.get("primary_logo"),
+                "safe_mode": bool(pre_assets.get("safe_mode")),
             }
         except Exception:
             pre_assets = None
@@ -528,7 +523,7 @@ def build_draft(
             _progress(
                 progress_cb,
                 "save",
-                f"Paused before AI image — upload {missing_n} material(s) first (cost saved)",
+                f"Safe mode: paused for admin upload ({missing_n} logo/face) — no AI image cost yet",
             )
         else:
             _progress(progress_cb, "image", "Generating cinematic poster with AI (30–90s)…")
