@@ -24,8 +24,8 @@ import {
   formatDateTime,
   shortHash,
   getStatusConfig,
-  exchangeColor,
 } from './helpers';
+import { ExchangeBadge } from './exchangeBranding';
 
 /* ── Pills ────────────────────────────────────────────────────────── */
 
@@ -48,23 +48,6 @@ const Pill = ({ label, color, bg, border, Icon, dense = false, pulse = false }) 
     {label}
   </span>
 );
-
-const ExchangeBadge = ({ exchange, dense = false }) => {
-  if (!exchange) return null;
-  const c = exchangeColor(exchange);
-  return (
-    <span
-      className={`inline-flex items-center gap-1 font-semibold rounded ${
-        dense ? 'text-[9px] px-1.5 py-0.5' : 'text-[9.5px] px-2 py-0.5'
-      }`}
-      style={{ background: `${c}14`, color: c, border: `1px solid ${c}33` }}
-      title={`Received into ${exchange}`}
-    >
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />
-      {exchange}
-    </span>
-  );
-};
 
 const ManualBadge = ({ dense = false }) => (
   <span

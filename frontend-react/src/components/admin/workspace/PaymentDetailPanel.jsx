@@ -23,17 +23,19 @@ import {
   ExternalLinkIcon,
   CopyIcon,
   EditIcon,
-  StarIcon,
 } from '../Icons';
 import { XCircleIcon, TrashIcon, RotateCcwIcon, ArchiveIcon } from './finance/icons-supplement';
 import { CalendarDotIcon, TimerIcon, ChevronDownIcon } from './CategoryIcons';
 import {
   formatUSDT,
   formatDateTimeLong,
-  getStatusConfig,
   roleStyle,
-  exchangeColor,
 } from './finance/helpers';
+import {
+  ExchangePaymentHero,
+  ExchangeLogo,
+  brandColor,
+} from './finance/exchangeBranding';
 
 /* ── Layout primitives (panel-local) ──────────────────────────────── */
 
@@ -98,11 +100,11 @@ const InfoRow = ({ label, value, mono = false, copyable = false, onCopy, valueCo
   </div>
 );
 
-/* ── Exchange row (special — shows dot + colored name) ────────────── */
+/* ── Exchange row (special — logo + brand color) ──────────────────── */
 
 const ExchangeRow = ({ exchangeName, walletLabel }) => {
   if (!exchangeName) return null;
-  const c = exchangeColor(exchangeName);
+  const c = brandColor(exchangeName);
   return (
     <div
       className="flex items-center justify-between gap-3 py-2"
@@ -114,14 +116,11 @@ const ExchangeRow = ({ exchangeName, walletLabel }) => {
       >
         Received Into
       </span>
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span
-          className="w-2 h-2 rounded-full shrink-0"
-          style={{ background: c }}
-        />
+      <div className="flex items-center gap-2 min-w-0">
+        <ExchangeLogo exchange={exchangeName} size={18} />
         <span
           className="text-[11.5px] font-semibold truncate text-right"
-          style={{ color: c }}
+          style={{ color: c === '#FFFFFF' ? '#e8e8e8' : c }}
         >
           {exchangeName}
         </span>
@@ -438,10 +437,6 @@ export const PaymentDetailPanel = ({
   }, [isOpen, paymentSummary?.id]);
 
   const p = payment || paymentSummary;
-  const cfg = useMemo(
-    () => (p ? getStatusConfig(p.status) : null),
-    [p]
-  );
 
   const isPending = p?.status === 'pending';
   const isConfirmed = p?.status === 'confirmed';
@@ -594,102 +589,8 @@ export const PaymentDetailPanel = ({
         </p>
       ) : (
         <div className="space-y-5">
-          {/* HERO */}
-          <div
-            className="relative overflow-hidden rounded-2xl p-5"
-            style={{
-              background: `linear-gradient(135deg, ${cfg.color}0e 0%, rgba(255,255,255,0.02) 60%)`,
-              border: `1px solid ${cfg.border}`,
-            }}
-          >
-            <div
-              className="absolute inset-x-0 top-0 h-px"
-              style={{
-                background: `linear-gradient(to right, transparent, ${cfg.color}60, transparent)`,
-              }}
-            />
-            <div
-              className="absolute -top-10 -right-10 w-32 h-32 rounded-full pointer-events-none"
-              style={{
-                background: `${cfg.color}20`,
-                filter: 'blur(28px)',
-              }}
-            />
-
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <span
-                  className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded"
-                  style={{
-                    background: cfg.bg,
-                    color: cfg.color,
-                    border: `1px solid ${cfg.border}`,
-                  }}
-                >
-                  {cfg.label}
-                </span>
-                {p.is_stale && (
-                  <span
-                    className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-flex items-center gap-1 animate-pulse"
-                    style={{
-                      background: 'rgba(248,113,113,0.10)',
-                      color: '#f87171',
-                      border: '1px solid rgba(248,113,113,0.30)',
-                    }}
-                  >
-                    <AlertTriangleIcon size={9} />
-                    Stale {p.age_hours}h
-                  </span>
-                )}
-                {p.is_manual && (
-                  <span
-                    className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-flex items-center gap-1"
-                    style={{
-                      background: 'rgba(212,168,83,0.10)',
-                      color: '#d4a853',
-                      border: '1px solid rgba(212,168,83,0.28)',
-                    }}
-                    title="Manually recorded by admin"
-                  >
-                    <StarIcon size={9} /> Manual
-                  </span>
-                )}
-                {p.wallet_to_exchange && (
-                  <span
-                    className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-flex items-center gap-1.5"
-                    style={{
-                      background: `${exchangeColor(p.wallet_to_exchange)}14`,
-                      color: exchangeColor(p.wallet_to_exchange),
-                      border: `1px solid ${exchangeColor(p.wallet_to_exchange)}33`,
-                    }}
-                    title={`Received into ${p.wallet_to_exchange}`}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: exchangeColor(p.wallet_to_exchange) }}
-                    />
-                    {p.wallet_to_exchange}
-                  </span>
-                )}
-              </div>
-
-              <p
-                className="text-[10px] uppercase tracking-wider mb-1.5"
-                style={{ color: 'rgba(255,255,255,0.45)' }}
-              >
-                Final Amount
-              </p>
-              <p
-                className="text-4xl font-light tabular-nums tracking-tight leading-none"
-                style={{ color: '#fff' }}
-              >
-                {formatUSDT(p.final_amount)}
-              </p>
-              <p className="text-[11px] mt-2" style={{ color: '#8a7a6e' }}>
-                {p.network} · {p.plan?.name || `Plan #${p.plan_id}`}
-              </p>
-            </div>
-          </div>
+          {/* HERO — brand exchange card with logo, amount, times */}
+          <ExchangePaymentHero payment={p} />
 
           {/* ERROR */}
           {error && (

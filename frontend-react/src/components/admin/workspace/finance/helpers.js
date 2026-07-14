@@ -101,9 +101,27 @@ const EXCHANGE_PALETTE = [
   '#d4a853', // gold
 ];
 
-// Deterministic color from exchange name (stable per name across renders)
+// Deterministic color from exchange name (stable per name across renders).
+// Known brands use official-ish primary colors; unknown names hash to palette.
 export const exchangeColor = (name) => {
   if (!name) return '#8a7a6e';
+  const key = String(name).toLowerCase().replace(/[\s._-]+/g, '');
+  const KNOWN = {
+    binance: '#F0B90B',
+    indodax: '#0C5CFF',
+    bybit: '#F7A600',
+    okx: '#FFFFFF',
+    mexc: '#1ECDC5',
+    gate: '#17E6A1',
+    gateio: '#17E6A1',
+    kucoin: '#23AF91',
+    bitget: '#00F0FF',
+    htx: '#2EBD85',
+    huobi: '#2EBD85',
+  };
+  for (const [k, color] of Object.entries(KNOWN)) {
+    if (key === k || key.includes(k) || k.includes(key)) return color;
+  }
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
