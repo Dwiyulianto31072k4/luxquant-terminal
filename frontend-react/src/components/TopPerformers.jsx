@@ -659,6 +659,15 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
   const multi = total > 1;
   const created = detail?.created_at || item.signal_time;
 
+  // Link to LuxQuant's X post. If a per-signal tweet URL is ever stored on the
+  // signal (detail.x_post_url), use it directly; otherwise fall back to a live
+  // search of LuxQuant's own posts for this coin's cashtag (drives X traffic).
+  const X_HANDLE = "luxquantcrypto";
+  const xCash = (pair || "").replace(/USDT$|USDC$|USD$/i, "");
+  const xUrl =
+    detail?.x_post_url ||
+    `https://x.com/search?q=${encodeURIComponent(`$${xCash} from:${X_HANDLE}`)}&f=live`;
+
   useEffect(() => { setShowTV(false); setPeakPrice(null); }, [currentIndex]);
 
   useEffect(() => {
@@ -737,6 +746,17 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0 flex-1"><CoinLogo pair={pair} size={32} /><div className="min-w-0"><div className="flex items-center gap-2 flex-wrap"><h2 className="text-white font-display text-base font-semibold truncate">{pair}</h2>{status && <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${sColor(status)}`}>{sLabel(status)}</span>}{detail?.risk_level && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-gold-primary/30 text-gold-primary">{detail.risk_level}</span>}</div><p className="text-text-muted text-xs mt-0.5 truncate">{t('top.called_sig')}: {fmtDt(created)}</p></div></div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+              {/* View on X — LuxQuant's post for this coin (fallback: live cashtag search) */}
+              <a
+                href={xUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group/x inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-4 justify-center rounded-full bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
+                title="View LuxQuant's posts on X"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                <span className="hidden sm:inline">View on X</span>
+              </a>
               {onOpenHistory && (
                 <button
                   onClick={() => onOpenHistory(item)}

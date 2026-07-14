@@ -22,6 +22,7 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 import asyncio
+import os
 import re
 from app.core.http_client import get_binance_client
 
@@ -214,6 +215,7 @@ class SignalDetailResponse(BaseModel):
     risk_reasons: Optional[str] = None
     entry_chart_url: Optional[str] = None
     latest_chart_url: Optional[str] = None
+    x_post_url: Optional[str] = None
     updates: List[SignalUpdateItem] = []
     enrichment: Optional[dict] = None
     # NEW: redact flag for non-subscriber accessing open signals (Opsi B)
@@ -1449,6 +1451,32 @@ async def get_coin_intel(
 
 
 # ============================================
+# Helper: LuxQuant X (Twitter) deep-link for a signal
+# The x-poster service (luxquant-x-poster) records signal_id → tweet_id in the
+# shared `x_posts` table. We surface the canonical tweet URL so the UI can link
+# straight to the original LuxQuant post (and drive traffic back to X).
+# ============================================
+_X_ACCOUNT_HANDLE = (os.getenv("X_ACCOUNT_HANDLE", "luxquantcrypto") or "luxquantcrypto").lstrip("@") or "luxquantcrypto"
+
+
+def _tweet_url_for_signal(db: Session, signal_id: str) -> Optional[str]:
+    # Latest milestone tweet (TP2 → TP3 → TP4/closed_win): as the signal
+    # progresses the poster tweets each milestone, so the newest row is the
+    # highest / most impressive result. created_at DESC tracks that automatically.
+    try:
+        row = db.execute(text(
+            "SELECT tweet_id FROM x_posts "
+            "WHERE signal_id = :sid AND tweet_id IS NOT NULL "
+            "ORDER BY created_at DESC LIMIT 1"
+        ), {"sid": signal_id}).fetchone()
+        if row and row[0]:
+            return f"https://x.com/{_X_ACCOUNT_HANDLE}/status/{row[0]}"
+    except Exception:
+        pass
+    return None
+
+
+# ============================================
 # Helper: Redact sensitive fields for non-subscriber on open signals
 # ============================================
 def _build_redacted_detail_response(
@@ -1531,9 +1559,14 @@ async def get_signal_detail_v2(
     market_cap = risk_reasons = entry_chart_path = latest_chart_path = None
     try:
         extra = db.execute(text("SELECT market_cap, risk_reasons, entry_chart_path, latest_chart_path FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).fetchone()
-        if extra: 
+        if extra:
             market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
+
+    # Deep-link to the LuxQuant X post for this signal. The x-poster service
+    # (luxquant-x-poster) records signal_id → tweet_id in the shared `x_posts`
+    # table; we build the canonical tweet URL from the earliest tweet.
+    x_post_url = _tweet_url_for_signal(db, signal_id)
     
     # OPSI B (STRICT): Redact unless user is subscriber OR signal is fully closed
     # (closed_win = tp4 hit, closed_loss = sl hit). Partial running (tp1/tp2/tp3) hidden.
@@ -1595,6 +1628,7 @@ async def get_signal_detail_v2(
         market_cap=market_cap, risk_reasons=risk_reasons, 
         entry_chart_url=chart_path_to_url(entry_chart_path),
         latest_chart_url=chart_path_to_url(latest_chart_path),
+        x_post_url=x_post_url,
         updates=updates,
         enrichment=enrichment_data,
         is_redacted=False,
