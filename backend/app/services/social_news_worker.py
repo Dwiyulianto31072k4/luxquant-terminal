@@ -488,7 +488,7 @@ def build_draft(
             f"Detecting logos & people ({len(ents)} entities)…",
         )
 
-        # Pre-resolve materials (with face autofetch) so we can gate before paying.
+        # Pre-resolve PRIMARY materials only (1 org + featured face) before paying.
         try:
             from app.services.social_entity_assets import resolve_entity_assets
             from app.services.social_image_generator import (
@@ -498,7 +498,12 @@ def build_draft(
             )
             if featured and FACE_AUTOFETCH and not resolve_face_reference(featured):
                 fetch_face_reference(featured)
-            pre_assets = resolve_entity_assets(ents, featured_person=featured)
+            pre_assets = resolve_entity_assets(
+                ents,
+                featured_person=featured,
+                headline=headline or "",
+                visual_only=True,
+            )
             visual_materials = {
                 "inventory": pre_assets.get("inventory") or [],
                 "needs_materials": bool(pre_assets.get("needs_materials")),
@@ -507,6 +512,8 @@ def build_draft(
                 "logos_resolved": len(pre_assets.get("logos") or []),
                 "faces_resolved": len(pre_assets.get("people") or []),
                 "critical_missing": pre_assets.get("critical_missing") or [],
+                "primary_org": pre_assets.get("primary_org"),
+                "primary_logo": pre_assets.get("primary_logo"),
             }
         except Exception:
             pre_assets = None

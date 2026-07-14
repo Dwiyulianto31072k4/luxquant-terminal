@@ -506,17 +506,6 @@ def _text_width(draw, text_value: str, fnt) -> int:
     return box[2] - box[0]
 
 
-# Crypto assets already drawn as physical coins in the AI scene — never stamp
-# a redundant corner logo sticker (e.g. BTC badge on a giant Bitcoin coin).
-_CRYPTO_TOKEN_LOGO_SKIP = frozenset({
-    "bitcoin", "btc", "ethereum", "eth", "solana", "sol", "xrp", "ripple",
-    "dogecoin", "doge", "bnb", "binance coin", "cardano", "ada", "avalanche",
-    "avax", "tether", "usdt", "ton", "toncoin", "tron", "trx", "chainlink",
-    "link", "polkadot", "dot", "polygon", "matic", "litecoin", "ltc",
-    "shiba inu", "shib", "pepe", "uniswap", "uni", "sui", "aptos", "apt",
-})
-
-
 def _wrap_headline(draw, text_value: str, fnt) -> list:
     """Classic LuxQuant stepped headline wrap (shorter lines lower down)."""
     words = (text_value or "").replace("—", "-").split()
@@ -534,67 +523,49 @@ def _wrap_headline(draw, text_value: str, fnt) -> list:
     return lines[:4]
 
 
-def _is_crypto_token_logo(name: str) -> bool:
-    n = re.sub(r"[^a-z0-9\s]", "", (name or "").lower()).strip()
-    if not n:
-        return False
-    if n in _CRYPTO_TOKEN_LOGO_SKIP:
-        return True
-    # "Bitcoin ETF" / "Ethereum Foundation" still token-primary
-    first = n.split()[0] if n.split() else n
-    return first in _CRYPTO_TOKEN_LOGO_SKIP
+def _build_face_logo_reference(
+    face_path: str,
+    logo_path: str,
+    *,
+    news_id: int,
+) -> Optional[str]:
+    """Side-by-side reference so one xAI edit sees both likeness + official brand mark.
 
-
-def _filter_logos_for_overlay(logos: Optional[list]) -> list:
-    """Only institutional multi-brand marks — never redundant crypto coin stickers."""
-    if not logos:
-        return []
-    out = []
-    for item in logos:
-        name = item.get("name") if isinstance(item, dict) else ""
-        path = item.get("path") if isinstance(item, dict) else item
-        if not path or not Path(str(path)).exists():
-            continue
-        if _is_crypto_token_logo(str(name or "")):
-            continue
-        out.append(item if isinstance(item, dict) else {"path": path, "name": ""})
-    # Single non-crypto logo alone often looks like a random sticker — require 2+
-    # (e.g. Hyperliquid + SEC). Otherwise leave the cinematic scene clean.
-    return out[:3] if len(out) >= 2 else []
-
-
-def _paste_entity_logos(img, logos: Optional[list], *, width: int) -> None:
-    """Optional multi-org badges top-right (institutions only, never crypto coins)."""
-    logos = _filter_logos_for_overlay(logos)
-    if not logos:
-        return
+    Left ~62%: face photo. Right ~38%: logo on clean plate.
+    Prompt tells the model person = left, brand mark = right → integrate into ONE scene.
+    """
     from PIL import Image, ImageDraw
 
-    size = 64
-    pad = 18
-    gap = 10
-    x_right = width - pad
-    y = pad
-    for item in logos:
-        path = item.get("path") if isinstance(item, dict) else item
-        if not path or not Path(path).exists():
-            continue
-        try:
-            mark = Image.open(path).convert("RGBA")
-            side = min(mark.width, mark.height)
-            left = (mark.width - side) // 2
-            top = (mark.height - side) // 2
-            mark = mark.crop((left, top, left + side, top + side))
-            mark = mark.resize((size, size), Image.Resampling.LANCZOS)
-            plate = Image.new("RGBA", (size + 10, size + 10), (0, 0, 0, 0))
-            pd = ImageDraw.Draw(plate)
-            pd.rounded_rectangle((0, 0, size + 9, size + 9), radius=12, fill=(0, 0, 0, 90))
-            pd.rounded_rectangle((2, 2, size + 7, size + 7), radius=10, fill=(255, 255, 255, 245))
-            plate.alpha_composite(mark, (5, 5))
-            img.alpha_composite(plate, (x_right - size - 10, y))
-            y += size + gap + 4
-        except Exception:
-            continue
+    try:
+        face = Image.open(face_path).convert("RGB")
+        logo = Image.open(logo_path).convert("RGBA")
+    except Exception:
+        return None
+
+    W, H = 1024, 1024
+    canvas = Image.new("RGB", (W, H), (18, 18, 22))
+    # Face panel
+    fw = int(W * 0.62)
+    face_c = _cover_image(face, (fw, H))
+    canvas.paste(face_c, (0, 0))
+    # Logo panel
+    lw = W - fw
+    plate = Image.new("RGBA", (lw, H), (245, 245, 248, 255))
+    # contain logo in center of plate
+    max_side = int(min(lw, H) * 0.55)
+    logo_c = logo.copy()
+    logo_c.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+    ox = fw + (lw - logo_c.width) // 2
+    oy = (H - logo_c.height) // 2
+    canvas.paste(logo_c, (ox, oy), logo_c if logo_c.mode == "RGBA" else None)
+    # thin divider
+    draw = ImageDraw.Draw(canvas)
+    draw.line([(fw, 0), (fw, H)], fill=(80, 80, 90), width=3)
+
+    out = ASSETS_DIR / f"ref_dual_{news_id}.png"
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    canvas.save(out, quality=95)
+    return str(out)
 
 
 def _compose_editorial_card(
@@ -608,10 +579,13 @@ def _compose_editorial_card(
     """Classic LuxQuant editorial card on a cinematic AI background:
     cover-crop 4:5, bottom vignette, white headline on stepped LuxQuant-red
     highlight boxes (lower-left), LuxQuant mark lower-right.
-    No top-left chip. No redundant crypto logo stickers.
+
+    Brands belong IN the AI raw scene (via reference edit) — never corner stickers.
+    entity_logos is ignored (kept for call-site compatibility).
     """
     from PIL import Image, ImageDraw, ImageFilter
 
+    del entity_logos  # no corner paste — brand is in the raw scene
     width, height = 1080, 1350
     img = _cover_image(Image.open(raw_path).convert("RGB"), (width, height)).convert("RGBA")
     img = _apply_editorial_shadow(img)
@@ -633,9 +607,6 @@ def _compose_editorial_card(
         draw.rectangle((x - 4, y - 2, x + tw + 24, y + 58), fill=LUX_RED)
         draw.text((x + 10, y + 28), line, font=fnt, fill=(255, 255, 255, 255), anchor="lm")
         y += 82
-
-    # Multi-org institutional badges only (never BTC sticker on a BTC coin scene)
-    _paste_entity_logos(img, entity_logos, width=width)
 
     logo_path = Path(SOCIAL_LOGO_PATH)
     if logo_path.exists():
@@ -690,6 +661,8 @@ def _materials_dict(assets: dict) -> dict:
         "logos_resolved": len(assets.get("logos") or []),
         "faces_resolved": len(assets.get("people") or []),
         "critical_missing": assets.get("critical_missing") or [],
+        "primary_org": assets.get("primary_org"),
+        "primary_logo": assets.get("primary_logo"),
     }
 
 
@@ -709,8 +682,9 @@ def generate_ai_social_image(
 ) -> GeneratedSocialImage:
     """Generate cinematic poster image.
 
-    If skip_if_needs_materials=True and critical logos/faces are missing, returns
-    without calling the paid image API (image_mode='awaiting_materials').
+    Brands: primary org logo is fed via xAI image-edit so it becomes an element
+    *inside* the scene (phone UI, signage, prop) — never a corner sticker.
+    Materials gate uses visual_only scope (primary org + featured face).
     """
     # When the AI editorial pack supplies its own image prompt, use it verbatim;
     # otherwise fall back to the deterministic template prompt.
@@ -726,27 +700,37 @@ def generate_ai_social_image(
     raw_path = ASSETS_DIR / f"ai_raw_{news_id}_{slug}.png"
     out_path = ASSETS_DIR / f"ai_{news_id}_{slug}.png"
 
-    # Resolve real logos + face references for named entities (Hyperliquid, SEC, founders…).
-    entity_logos: list = []
     entity_face = None
+    primary_logo_path = None
+    primary_org_name = None
     visual_materials: Optional[dict] = None
     try:
         from app.services.social_entity_assets import resolve_entity_assets
 
-        # Best-effort face autofetch BEFORE gating, so we don't block if Wiki has a portrait.
+        # Face autofetch before gate
         face_path_pre = resolve_face_reference(featured_person)
         if not face_path_pre and featured_person and FACE_AUTOFETCH:
             face_path_pre = fetch_face_reference(featured_person)
 
-        assets = resolve_entity_assets(entities or [], featured_person=featured_person)
-        entity_logos = assets.get("logos") or []
+        assets = resolve_entity_assets(
+            entities or [],
+            featured_person=featured_person,
+            headline=headline or "",
+            visual_only=True,
+        )
         entity_face = assets.get("featured_face_path") or face_path_pre
+        pl = assets.get("primary_logo") or {}
+        primary_logo_path = pl.get("path") if isinstance(pl, dict) else None
+        po = assets.get("primary_org") or {}
+        primary_org_name = (po.get("name") if isinstance(po, dict) else None) or (
+            pl.get("name") if isinstance(pl, dict) else None
+        )
         visual_materials = _materials_dict(assets)
     except Exception as exc:
         logger = __import__("logging").getLogger(__name__)
         logger.warning("entity asset resolve failed: %s", exc)
 
-    # Pause expensive AI image when materials are still missing (unless forced).
+    # Pause expensive AI image when primary materials missing (unless forced).
     if (
         skip_if_needs_materials
         and not force
@@ -763,7 +747,7 @@ def generate_ai_social_image(
             error_message=None,
         )
 
-    # Preferred backend: xAI/Grok raw image + LuxQuant cinematic poster compositor.
+    # Preferred backend: xAI/Grok raw image + classic LuxQuant red-box compositor.
     if IMAGE_PROVIDER == "xai":
         face_path = entity_face or resolve_face_reference(featured_person)
         if not face_path and featured_person and FACE_AUTOFETCH:
@@ -771,54 +755,109 @@ def generate_ai_social_image(
             if face_path and visual_materials is not None:
                 try:
                     from app.services.social_entity_assets import resolve_entity_assets
-                    assets = resolve_entity_assets(entities or [], featured_person=featured_person)
-                    entity_logos = assets.get("logos") or []
+                    assets = resolve_entity_assets(
+                        entities or [],
+                        featured_person=featured_person,
+                        headline=headline or "",
+                        visual_only=True,
+                    )
+                    entity_face = assets.get("featured_face_path") or face_path
+                    pl = assets.get("primary_logo") or {}
+                    primary_logo_path = pl.get("path") if isinstance(pl, dict) else primary_logo_path
                     visual_materials = _materials_dict(assets)
                 except Exception:
                     pass
+
+        brand = primary_org_name or "the primary brand"
         gen_prompt = prompt
         mode = "ai_xai_poster"
+        ref_used = None
         try:
-            if face_path:
-                # Accurate likeness: condition on the curated reference photo.
+            logo_ok = bool(primary_logo_path and Path(str(primary_logo_path)).exists())
+            face_ok = bool(face_path and Path(str(face_path)).exists())
+
+            if face_ok and logo_ok:
+                # Dual reference: person likeness + official mark → ONE integrated scene
+                dual = _build_face_logo_reference(
+                    str(face_path), str(primary_logo_path), news_id=news_id
+                )
+                ref_used = dual or face_path
+                if dual:
+                    edit_prompt = (
+                        "Cinematic vertical Instagram poster, single continuous photoreal scene. "
+                        "The LEFT side of the reference shows the exact person — preserve their real face, "
+                        "hair, and likeness as the large hero subject. "
+                        f"The RIGHT side shows the official {brand} brand mark — integrate that EXACT mark "
+                        "as a large physical element INSIDE the scene (phone app icon/UI, desk plaque, "
+                        "product surface, building signage, or 3D prop). Match logo geometry and colors "
+                        "from the reference. NEVER as a tiny corner sticker, floating badge, or white plate. "
+                        "Scene direction: " + prompt
+                    )
+                    mode = "ai_xai_face_brand_scene"
+                else:
+                    edit_prompt = (
+                        "Cinematic vertical poster. Place the exact person from the reference — "
+                        "preserving face likeness — as the large hero. "
+                        f"Also integrate {brand} brand identity as physical environment/props (not corner stickers). "
+                        + prompt
+                    )
+                    mode = "ai_xai_face_poster"
+                _edit_xai_image(edit_prompt, str(ref_used), raw_path)
+            elif face_ok:
                 edit_prompt = (
                     "Cinematic vertical poster. Place the exact person shown in the reference image — "
                     "preserving their real face, hair, and likeness precisely — as the large hero "
                     "foreground subject of this scene: " + prompt
                 )
-                _edit_xai_image(edit_prompt, face_path, raw_path)
+                if primary_org_name:
+                    edit_prompt += (
+                        f" Environment should clearly evoke {brand} (colors, product, workplace) "
+                        "without inventing fake logo stickers in the corners."
+                    )
+                _edit_xai_image(edit_prompt, str(face_path), raw_path)
+                ref_used = face_path
                 mode = "ai_xai_face_poster"
+            elif logo_ok:
+                # Brand mark is the visual anchor — build scene around it as a physical prop
+                edit_prompt = (
+                    f"Cinematic vertical Instagram poster. Use the official {brand} brand mark from the "
+                    "reference image accurately as a LARGE physical 3D element integrated into the scene "
+                    "(giant product emblem, phone app icon filling part of a device screen, desk object, "
+                    "or environmental signage). Match the reference mark's shape and colors exactly. "
+                    "Never as a tiny corner sticker or badge on a white plate. "
+                    "Full scene: " + prompt
+                )
+                _edit_xai_image(edit_prompt, str(primary_logo_path), raw_path)
+                ref_used = primary_logo_path
+                mode = "ai_xai_brand_scene"
             else:
                 if featured_person:
-                    # Famous figure requested but no verified reference photo on file:
-                    # never fabricate a face — render the person generically instead.
                     gen_prompt = prompt + (
                         " Show the central person only from behind or as a shadowed silhouette, "
                         "face not visible, to avoid depicting an inaccurate likeness."
                     )
                 _generate_xai_image(gen_prompt, raw_path)
+
             _compose_editorial_card(
                 str(raw_path),
                 headline,
                 str(out_path),
-                entity_logos=entity_logos,
+                entity_logos=None,
                 angle=angle,
             )
-            if entity_logos:
-                mode = f"{mode}_logos"
             if visual_materials is not None:
                 visual_materials = {
                     **visual_materials,
                     "raw_image_path": str(raw_path),
+                    "brand_in_scene": bool(logo_ok),
+                    "primary_brand": primary_org_name,
                 }
-            if visual_materials and visual_materials.get("needs_materials"):
-                mode = f"{mode}_needs_assets"
             return GeneratedSocialImage(
                 image_path=str(out_path),
                 image_mode=mode,
                 image_prompt=gen_prompt,
                 reference_image_url=reference_image_url,
-                reference_image_path=face_path,
+                reference_image_path=str(ref_used) if ref_used else face_path,
                 visual_materials=visual_materials,
             )
         except Exception as exc:

@@ -3,14 +3,15 @@ Entity visual assets for social posts (logos + people).
 
 Why this exists
 ---------------
-The editorial image model is deliberately blocked from inventing logos
-("no corporate logos") because AI-drawn marks look wrong and raise IP risk.
-People faces only work when we have a verified reference photo.
+AI-drawn logos look wrong (IP + quality). Verified logo/face files are resolved
+from a library and fed into image generation as *scene references* (brand mark
+integrated into the photograph), never as corner stickers.
 
-This module resolves *real* assets for named entities extracted from the
-story, then the image compositor stamps them onto the final LuxQuant card:
-  · organizations / protocols / agencies  → logo badges
-  · people (founders, officials)          → face library (existing) + autofetch
+Visual scope is intentionally narrow:
+  · 1 primary org (headline-ranked) → logo into the AI scene
+  · 1 featured person               → face likeness edit
+Competitor / tangential orgs (e.g. Coinbase on a Binance story) stay in caption
+entities for text only — not materials, not image.
 
 Assets are cached under SOCIAL_POST_ASSETS_DIR/{logos,faces}.
 """
@@ -315,20 +316,87 @@ def normalize_entities(raw: Any) -> list[dict]:
     return out[:8]
 
 
-def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] = None) -> dict:
+def pick_primary_org(entities: list[dict], headline: str = "") -> Optional[dict]:
+    """Pick the single org that should drive visuals (logo-in-scene).
+
+    Ranks by headline match first so a Binance story does not pull Coinbase
+    into materials / image generation.
+    """
+    orgs = [e for e in (entities or []) if (e.get("type") or "org") == "org" and e.get("name")]
+    if not orgs:
+        return None
+    hl = re.sub(r"\s+", " ", (headline or "").lower())
+    scored: list[tuple[int, dict]] = []
+    for i, org in enumerate(orgs):
+        name = str(org.get("name") or "").strip()
+        name_l = name.lower()
+        score = max(0, 40 - i * 3)  # list order is a weak prior
+        if name_l and name_l in hl:
+            score += 300
+        for w in re.findall(r"[a-z0-9]{3,}", name_l):
+            if w in hl:
+                score += 80
+                break
+        role = str(org.get("role") or "").lower()
+        if any(k in role for k in ("primary", "subject", "protocol", "exchange", "company")):
+            score += 15
+        scored.append((score, org))
+    scored.sort(key=lambda x: (-x[0], orgs.index(x[1]) if x[1] in orgs else 99))
+    return scored[0][1] if scored else None
+
+
+def select_visual_entities(
+    entities: list[dict],
+    *,
+    featured_person: Optional[str] = None,
+    headline: str = "",
+) -> dict:
+    """Narrow entity set for materials + image: 1 primary org + featured person only."""
+    primary = pick_primary_org(entities or [], headline=headline)
+    visual: list[dict] = []
+    if primary:
+        visual.append({**primary, "type": "org", "visual_role": "primary_brand"})
+    fp = None
+    if featured_person:
+        fp = re.split(r"[,(]", featured_person, 1)[0].strip() or None
+    if not fp:
+        # First person entity as soft featured
+        for e in entities or []:
+            if e.get("type") == "person" and e.get("name"):
+                fp = str(e["name"]).strip()
+                break
+    if fp:
+        visual.append({
+            "name": fp if "," in (featured_person or "") else fp,
+            "type": "person",
+            "role": "featured",
+            "domain": None,
+            "visual_role": "featured_person",
+        })
+        # Prefer full featured_person string when provided
+        if featured_person and featured_person.strip():
+            visual[-1]["name"] = featured_person.strip()
+    return {
+        "primary_org": primary,
+        "featured_person": featured_person or fp,
+        "visual_entities": visual,
+    }
+
+
+def resolve_entity_assets(
+    entities: list[dict],
+    featured_person: Optional[str] = None,
+    *,
+    headline: str = "",
+    visual_only: bool = False,
+) -> dict:
     """
     Resolve logo/face paths for entities.
 
-    Returns:
-      {
-        "logos": [{"name", "role", "path"}],
-        "people": [{"name", "role", "path"}],
-        "featured_face_path": Optional[str],
-        "inventory": [ {name, type, role, domain, kind, status, path, request} ],
-        "needs_materials": bool,
-        "missing_count": int,
-        "qc_flags": [str],
-      }
+    When visual_only=True (default for materials gate + image gen), only the
+    headline-ranked primary org + featured person are required/resolved for
+    needs_materials. Full entity lists can still be passed with visual_only=False
+    for admin inventory of everything AI mentioned.
     """
     logos: list[dict] = []
     people: list[dict] = []
@@ -336,15 +404,28 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
     featured_face_path = None
     qc_flags: list[str] = []
 
-    # Ensure featured person is in the list
-    ents = list(entities or [])
-    if featured_person:
-        fp_name = re.split(r"[,(]", featured_person, 1)[0].strip()
-        if fp_name and not any(
-            e.get("type") == "person" and e.get("name", "").lower().startswith(fp_name.lower().split()[0])
-            for e in ents
+    selection = select_visual_entities(
+        entities or [], featured_person=featured_person, headline=headline
+    )
+    primary_org = selection.get("primary_org")
+    if visual_only:
+        ents = list(selection.get("visual_entities") or [])
+        featured_person = selection.get("featured_person") or featured_person
+    else:
+        ents = list(entities or [])
+        if featured_person:
+            fp_name = re.split(r"[,(]", featured_person, 1)[0].strip()
+            if fp_name and not any(
+                e.get("type") == "person" and e.get("name", "").lower().startswith(fp_name.lower().split()[0])
+                for e in ents
+            ):
+                ents.insert(0, {"name": featured_person, "type": "person", "role": "featured", "domain": None})
+        # Ensure primary is first among orgs for display
+        if primary_org and not any(
+            (e.get("name") or "").lower() == (primary_org.get("name") or "").lower()
+            for e in ents if e.get("type") == "org"
         ):
-            ents.insert(0, {"name": featured_person, "type": "person", "role": "featured", "domain": None})
+            ents.insert(0, primary_org)
 
     for e in ents:
         name = e.get("name") or ""
@@ -445,10 +526,22 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
     if org_count >= 2 and not logos:
         qc_flags.append("MULTI_ORG_NO_LOGOS")
 
+    primary_logo = None
+    if primary_org:
+        pname = (primary_org.get("name") or "").lower()
+        for lg in logos:
+            if (lg.get("name") or "").lower() == pname:
+                primary_logo = lg
+                break
+        if not primary_logo and logos:
+            primary_logo = logos[0]
+
     return {
         "logos": logos[:4],
         "people": people[:3],
         "featured_face_path": featured_face_path,
+        "primary_org": primary_org,
+        "primary_logo": primary_logo,
         "inventory": inventory,
         "needs_materials": len(critical) > 0,
         "missing_count": len(critical),
@@ -457,6 +550,7 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
             {"name": i["name"], "kind": i["kind"], "request": i.get("request")}
             for i in critical
         ],
+        "visual_only": visual_only,
     }
 
 

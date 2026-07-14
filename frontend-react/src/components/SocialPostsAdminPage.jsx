@@ -523,7 +523,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       {requests.length > 0 && (
         <div className="rounded-md bg-amber-500/10 border border-amber-400/25 px-2.5 py-2 space-y-1">
           <p className="text-[10px] font-semibold text-amber-200">
-            Upload first — AI image is paused to save cost:
+            Upload primary brand / face first — then AI puts the brand INTO the scene (not a corner sticker):
           </p>
           {requests.map((r, i) => (
             <p key={i} className="text-[11px] text-amber-100/90 leading-snug">

@@ -283,12 +283,19 @@ async def get_post_materials(
             meta = {}
     entities = meta.get("entities") or []
     featured = meta.get("featured_person")
-    assets = resolve_entity_assets(entities, featured_person=featured)
+    # Only primary brand + featured face block / show as required materials
+    assets = resolve_entity_assets(
+        entities,
+        featured_person=featured,
+        headline=row.get("headline") or "",
+        visual_only=True,
+    )
     return {
         "post_id": post_id,
         "headline": row.get("headline"),
         "entities": entities,
         "featured_person": featured,
+        "primary_org": assets.get("primary_org"),
         "inventory": assets.get("inventory") or [],
         "needs_materials": bool(assets.get("needs_materials")),
         "missing_count": int(assets.get("missing_count") or 0),
@@ -372,18 +379,24 @@ async def re_render_post_image(
     angle = row.get("angle")
     article_summary = row.get("caption") or headline
 
-    assets = resolve_entity_assets(entities, featured_person=featured)
+    assets = resolve_entity_assets(
+        entities,
+        featured_person=featured,
+        headline=headline or "",
+        visual_only=True,
+    )
     if assets.get("needs_materials"):
         raise HTTPException(
             400,
             detail={
-                "message": "Still missing materials — upload all logos/faces first",
+                "message": "Still missing primary materials — upload primary brand logo / face first",
                 "missing": assets.get("critical_missing") or [],
                 "missing_count": assets.get("missing_count") or 0,
             },
         )
 
     entity_logos = assets.get("logos") or []
+    primary_logo = assets.get("primary_logo")
     raw_path = meta.get("raw_image_path") or find_raw_image(news_id)
     composed_free = False
     result_path = None
@@ -397,10 +410,21 @@ async def re_render_post_image(
         "qc_flags": assets.get("qc_flags") or [],
         "logos_resolved": len(entity_logos),
         "faces_resolved": len(assets.get("people") or []),
+        "primary_org": assets.get("primary_org"),
+        "primary_logo": primary_logo,
     }
 
-    # Free path: recompose existing raw background with new logos/type
-    if raw_path and Path(raw_path).exists():
+    # Free recompose only for type-only fixes when brand is already baked into raw
+    # (or no primary logo). If primary logo exists but prior mode wasn't brand-in-scene,
+    # force a full AI pass so the mark is integrated into the photograph — never corner paste.
+    prior_mode = str(row.get("image_mode") or "")
+    brand_already_in_scene = "brand" in prior_mode
+    can_free = (
+        raw_path
+        and Path(raw_path).exists()
+        and (not primary_logo or brand_already_in_scene)
+    )
+    if can_free:
         try:
             slug_part = Path(raw_path).name.replace("ai_raw_", "ai_", 1)
             out_path = str(Path(raw_path).parent / slug_part)
@@ -410,7 +434,7 @@ async def re_render_post_image(
                 raw_path=raw_path,
                 out_path=out_path,
                 headline=headline,
-                entity_logos=entity_logos,
+                entity_logos=None,
                 angle=angle,
             )
             result_path = out_path

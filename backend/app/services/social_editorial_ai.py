@@ -48,8 +48,8 @@ IMAGE_NEGATIVE_BASE = (
     "no schematic diagrams, blueprints, flowcharts or documents containing words or labels, "
     "no invented tickers or numbers, no fake/hallucinated brand wordmarks or made-up logos, "
     "no red subtitle boxes, no news-ticker bars, no collage seams, no generic stock-photo boardroom, "
-    "no flat documentary look, no tiny corner stickers. "
-    "Do not invent corporate logos or wordmarks — real brand marks are composited later from verified assets."
+    "no flat documentary look, no tiny corner stickers, no floating logo badges, no white plate logo stickers. "
+    "Official brand marks are provided as image references and must appear as physical scene elements only."
 )
 # Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
 # render and forbid all others — stops the model defaulting to generic Bitcoin.
@@ -308,8 +308,8 @@ def build_editorial_pack(
         "gold coins, never fine lettering; at most three distinct coins. If tokens is empty, no crypto coin props; "
         "(5) if featured_person is a real famous figure, they are the hero portrait (chest-up or full figure), "
         "confident pose, cinematic lighting; if null, no identifiable face — silhouette/back/out-of-focus only; "
-        "(6) brand institutions should appear as physical environment + props (seals, architecture, devices), "
-        "not as floating logo stickers; do NOT draw fake brand wordmarks; "
+        "(6) the PRIMARY brand/org of THIS story must appear as a physical scene element (product, phone UI, "
+        "signage, architecture) — never as a corner sticker; do NOT invent competitor brands in the picture; "
         "(7) keep the lower third darker and less busy for later headline typography; "
         "(8) state lighting (rim light, dramatic key light, night city glow, etc.). "
         "Describe ONLY subject, setting and lighting — no style laundry list, no negatives, no hashtags, no on-image text.\n\n"
@@ -401,26 +401,31 @@ def build_editorial_pack(
         topic = "crypto" if tokens else ""
     pack["topic"] = topic
 
-    # Compose final image prompt: AI-written scene (content) + fixed LuxQuant style +
-    # code-chosen coin clause (encourage vs forbid) + always-on negatives.
-    # Real logos are composited later from verified assets — never ask the model to invent them.
+    # Compose final image prompt: AI scene + style + coin clause + negatives.
+    # Primary brand only — competitors must not clutter the visual.
     content_prompt = str(pack.get("image_prompt") or "").strip()
     if content_prompt:
         coin_clause = _coin_clause(tokens)
-        org_names = [
-            e["name"] for e in (pack.get("entities") or []) if e.get("type") == "org"
-        ][:3]
+        primary_name = None
+        try:
+            from app.services.social_entity_assets import pick_primary_org
+            po = pick_primary_org(pack.get("entities") or [], headline=str(pack.get("headline") or ""))
+            primary_name = (po or {}).get("name")
+        except Exception:
+            orgs = [e["name"] for e in (pack.get("entities") or []) if e.get("type") == "org"]
+            primary_name = orgs[0] if orgs else None
         org_clause = ""
-        if org_names:
+        if primary_name:
             org_clause = (
-                " Scene must clearly evoke the real-world institutions involved "
-                f"({', '.join(org_names)}) through architecture, seals, devices, environment, or physical props "
-                "integrated into the poster — but do NOT draw fake brand logos or wordmarks "
-                "(verified marks are composited later from real assets)."
+                f" Primary brand is {primary_name}: make that brand a clear physical element inside the scene "
+                "(product, phone UI, signage, or environment). Do not include competitor brand logos. "
+                "No corner stickers or floating badges."
             )
         pack["image_prompt"] = (
             f"{content_prompt}{org_clause} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"
         )
+        if primary_name:
+            pack["primary_org_name"] = primary_name
 
     # References: ONLY the search-result URLs the AI vetted as matching THIS exact
     # event. Titles/URLs are taken from the real Tavily results (never AI-invented),
