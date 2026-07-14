@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Public, indexable pages only. Login-gated app routes are excluded.
-       lastmod helps Google prioritize recrawl after SEO/content updates. -->
+  <!-- Auto-generated inventory: public indexable URLs only. -->
   <url><loc>https://luxquant.tw/</loc><lastmod>2026-07-14</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>https://luxquant.tw/home</loc><lastmod>2026-07-14</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://luxquant.tw/pricing</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-
-  <!-- Learn / glossary -->
   <url><loc>https://luxquant.tw/learn</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://luxquant.tw/learn/money-flow</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/learn/flow-intensity</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
@@ -22,15 +19,18 @@
   <url><loc>https://luxquant.tw/learn/smart-money</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/learn/liquidation</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/learn/funding-rate</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-
-  <!-- Blog -->
+  <url><loc>https://luxquant.tw/learn/open-interest</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/risk-reward</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/win-rate</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/rsi</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/market-cap-vs-fdv</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/blog</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://luxquant.tw/blog/how-to-read-crypto-sector-rotation</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://luxquant.tw/blog/btc-dominance-explained</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://luxquant.tw/blog/whale-alerts-exchange-flows-explained</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://luxquant.tw/blog/flow-intensity-turnover-guide</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-
-  <!-- Coins -->
+  <url><loc>https://luxquant.tw/blog/how-to-read-crypto-sector-rotation</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/blog/btc-dominance-explained</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/blog/whale-alerts-exchange-flows-explained</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/blog/flow-intensity-turnover-guide</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/blog/altseason-index-explained</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/blog/stablecoin-dominance-sidelines</loc><lastmod>2026-07-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://luxquant.tw/coins</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://luxquant.tw/coins/btc</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://luxquant.tw/coins/eth</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
@@ -56,6 +56,5 @@
   <url><loc>https://luxquant.tw/coins/render</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/coins/sui</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/coins/apt</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-
   <url><loc>https://luxquant.tw/status</loc><lastmod>2026-07-14</lastmod><changefreq>weekly</changefreq><priority>0.4</priority></url>
 </urlset>

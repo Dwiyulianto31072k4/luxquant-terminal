@@ -4,7 +4,16 @@
 User-agent: *
 Allow: /
 
-# Private / login-gated app areas (thin login shell for crawlers → don't index)
+# Thin / alternate landing (do not dilute the primary homepage)
+Disallow: /v1
+Disallow: /v2
+
+# Auth shells & callbacks (no index value)
+Disallow: /login
+Disallow: /register
+Disallow: /auth/
+
+# Private / login-gated app areas
 Disallow: /admin
 Disallow: /autotrade
 Disallow: /portfolio
@@ -12,10 +21,29 @@ Disallow: /profile
 Disallow: /notifications
 Disallow: /api-keys
 Disallow: /journal
+Disallow: /payment
+Disallow: /assistant
 Disallow: /*?redirect=
 
 # Let Google fetch images (favicon, OG images, logos)
 User-agent: Googlebot-Image
+Allow: /
+
+# AI / research crawlers — public content is allowed; app shells blocked above
+User-agent: GPTBot
+Allow: /blog
+Allow: /learn
+Allow: /coins
+Allow: /pricing
+Allow: /
+Disallow: /admin
+Disallow: /autotrade
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
 Allow: /
 
 Sitemap: https://luxquant.tw/sitemap.xml

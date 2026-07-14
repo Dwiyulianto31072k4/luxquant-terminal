@@ -1,0 +1,43 @@
+# LuxQuant Terminal
+> Quantitative crypto market intelligence — algorithmic signals, money flow, on-chain context, risk scoring, and AI research.
+
+Site: https://luxquant.tw
+Brand: LuxQuant / LuxQuant Terminal
+Founded: 2023
+Contact: https://x.com/luxquantcrypto · https://t.me/LuxQuantSignal
+
+## Primary pages
+- [Homepage](https://luxquant.tw/): Product overview, track-record proof, FAQ
+- [Pricing](https://luxquant.tw/pricing): Free tier and premium plans
+- [Market Overview](https://luxquant.tw/home): Live market overview (sign-in for full terminal)
+- [Status](https://luxquant.tw/status): Platform & API operational status
+
+## Public content (indexable)
+- [Crypto & Quant Glossary](https://luxquant.tw/learn): Money flow, BTC.D, altseason, funding, liquidations, and more
+- [Blog](https://luxquant.tw/blog): Educational guides on sector rotation, dominance, whales, turnover
+- [Coins](https://luxquant.tw/coins): Per-asset pages for BTC, ETH, SOL, and majors
+
+## Glossary highlights
+- https://luxquant.tw/learn/money-flow
+- https://luxquant.tw/learn/btc-dominance
+- https://luxquant.tw/learn/altseason-index
+- https://luxquant.tw/learn/flow-intensity
+- https://luxquant.tw/learn/funding-rate
+- https://luxquant.tw/learn/open-interest
+- https://luxquant.tw/learn/risk-reward
+- https://luxquant.tw/learn/win-rate
+
+## Blog highlights
+- https://luxquant.tw/blog/how-to-read-crypto-sector-rotation
+- https://luxquant.tw/blog/btc-dominance-explained
+- https://luxquant.tw/blog/altseason-index-explained
+- https://luxquant.tw/blog/stablecoin-dominance-sidelines
+- https://luxquant.tw/blog/whale-alerts-exchange-flows-explained
+- https://luxquant.tw/blog/flow-intensity-turnover-guide
+
+## Product philosophy
+Inform, don't decide. LuxQuant surfaces quantitative context and a transparent call history; the trader remains responsible for execution and risk.
+
+## Optional
+- Sitemap: https://luxquant.tw/sitemap.xml
+- Robots: https://luxquant.tw/robots.txt

@@ -17,6 +17,7 @@
 import { useEffect, useState } from "react";
 import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
+import { landingFaqJsonLd } from "../../../content/faq";
 import useLandingData from "./useLandingData";
 import HeaderV2 from "./sections/HeaderV2";
 import HeroSlider from "./sections/HeroSlider";
@@ -53,20 +54,36 @@ export default function LandingPageV2() {
         description="LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you."
         path="/"
         keywords="luxquant, crypto terminal, quantitative crypto, trading signals, on-chain intelligence, autotrade"
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "@id": "https://luxquant.tw/#organization",
-          name: "LuxQuant",
-          url: "https://luxquant.tw/",
-          logo: {
-            "@type": "ImageObject",
-            url: "https://luxquant.tw/logo-512.png",
-            width: 512,
-            height: 512,
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://luxquant.tw/#organization",
+            name: "LuxQuant",
+            url: "https://luxquant.tw/",
+            description:
+              "Quantitative crypto market intelligence — algorithmic signals, on-chain intelligence, risk scoring, and AI research.",
+            foundingDate: "2023",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://luxquant.tw/logo-512.png",
+              width: 512,
+              height: 512,
+            },
+            sameAs: [
+              "https://x.com/luxquantcrypto",
+              "https://t.me/LuxQuantSignal",
+            ],
+            knowsAbout: [
+              "cryptocurrency trading",
+              "algorithmic trading signals",
+              "on-chain analysis",
+              "money flow",
+              "Bitcoin dominance",
+            ],
           },
-          sameAs: ["https://x.com/luxquantcrypto"],
-        }}
+          landingFaqJsonLd(),
+        ]}
       />
       {/* Continuous brand canvas — ONE seamless background for every
           section (scrolls with content, no fixed-bg banding). Sections

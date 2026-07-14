@@ -119,8 +119,65 @@ export const POSTS = [
       { p: "Pair turnover with price change and liquidity: high turnover plus a price move on thin liquidity is fragile; high turnover with deep liquidity is more durable. On-chain DEX buy/sell pressure adds the direction that turnover alone can't." },
       { p: "LuxQuant tags coins as normal / elevated / high turnover straight from this ratio in the Money Flow Coins view." },
     ],
-    related: ["how-to-read-crypto-sector-rotation"],
+    related: ["how-to-read-crypto-sector-rotation", "altseason-index-explained"],
     relatedTerms: ["flow-intensity", "turnover-ratio", "dex-buy-sell-pressure"],
+  },
+  {
+    slug: "altseason-index-explained",
+    title: "Altseason index explained: is it altcoin season?",
+    excerpt:
+      "An altseason index measures how broadly altcoins are outperforming Bitcoin. Here's how to read it with BTC.D and stablecoin dominance — without treating it as a crystal ball.",
+    date: "2026-07-14",
+    updated: "2026-07-14",
+    readingTime: "5 min",
+    keywords:
+      "altseason index, altcoin season, is it altseason, btc dominance altcoins, crypto breadth",
+    body: [
+      { p: "Traders ask “is it altseason?” because capital does not always stay in Bitcoin. An altseason index tries to quantify breadth: how many alts are beating BTC over a window — not whether any single meme coin will moon." },
+      { h2: "What the index is trying to measure" },
+      { p: "Most altseason-style indexes count how many of the top N coins (excluding stablecoins) have outperformed Bitcoin over a lookback (often 90 days or similar). High readings mean broad alt outperformance; low readings mean BTC (or cash) is winning the relative game." },
+      { list: [
+        "High index = many alts beating BTC (risk-on breadth)",
+        "Low index = BTC dominance or selective strength",
+        "Always pair with absolute BTC and total market-cap direction",
+      ] },
+      { h2: "Read it with BTC.D and stables" },
+      { p: "Falling Bitcoin dominance plus a rising altseason index is the classic “capital spreading into alts” tape. Rising stablecoin dominance into that mix can mean new risk is still funded by dry powder — or that traders are hedging. Context stacks beat a single number." },
+      { h2: "What it does not tell you" },
+      { p: "An index does not pick winners, time tops, or replace a risk plan. Narrative rotation (AI, RWA, memes) can lead the index; liquidations and funding can reverse it quickly. Use it as a market-regime dashboard, then size and execute with defined risk." },
+      { h2: "Where LuxQuant puts it" },
+      { p: "LuxQuant’s Money Flow Market Compass groups BTC dominance, ETH dominance, stablecoin dominance, and altseason-style breadth so you can read rotation in one place — then drill into sectors and coin-level flow." },
+    ],
+    related: ["btc-dominance-explained", "how-to-read-crypto-sector-rotation", "stablecoin-dominance-sidelines"],
+    relatedTerms: ["altseason-index", "btc-dominance", "sector-rotation", "stablecoin-dominance"],
+  },
+  {
+    slug: "stablecoin-dominance-sidelines",
+    title: "Stablecoin dominance: the sidelines indicator",
+    excerpt:
+      "Stablecoin dominance is the share of crypto market cap held in stables like USDT and USDC — a simple read on how much capital is parked risk-off.",
+    date: "2026-07-14",
+    updated: "2026-07-14",
+    readingTime: "5 min",
+    keywords:
+      "stablecoin dominance, usdt dominance, crypto dry powder, risk off crypto, market sidelines",
+    body: [
+      { p: "When traders de-risk inside crypto, they often sell into USDT, USDC, and other stables instead of fiat. Stablecoin dominance measures that parked capital as a share of total crypto market cap — a “sidelines” gauge." },
+      { h2: "How to interpret moves" },
+      { list: [
+        "Rising stablecoin dominance = more capital in cash-like crypto",
+        "Falling dominance = stables rotating into BTC/alts (risk-on funding)",
+        "Pair with BTC.D: risk can concentrate in BTC or spread into alts",
+      ] },
+      { h2: "Not a price prediction" },
+      { p: "Stablecoin supply can grow from new issuance, not only from people selling risk assets. Exchange inflows/outflows and on-chain stable transfer volume add nuance. Treat dominance as positioning context, not a signal to FOMO." },
+      { h2: "Practical use" },
+      { p: "Before sizing aggressive alt exposure, check whether the market still has dry powder (elevated stables) or is already fully risk-on. Combine with sector rotation and flow intensity so you are not buying the last narrative tick with no cushion." },
+      { h2: "In LuxQuant" },
+      { p: "Stablecoin dominance sits next to BTC/ETH dominance and altseason context on the Money Flow compass — the same desk view we use to describe market regime without deciding your trade for you." },
+    ],
+    related: ["altseason-index-explained", "btc-dominance-explained", "whale-alerts-exchange-flows-explained"],
+    relatedTerms: ["stablecoin-dominance", "btc-dominance", "exchange-inflow-outflow", "money-flow"],
   },
 ];
 

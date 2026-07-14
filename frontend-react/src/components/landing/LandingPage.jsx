@@ -1457,9 +1457,10 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-bg-primary text-white relative pb-0 overflow-x-hidden">
       <Seo
-        title="LuxQuant Terminal: Crypto Market Intelligence & Analytics"
-        description="Turn market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Bull or bear, informed by data and decided by you."
-        path="/"
+        title="LuxQuant Terminal (legacy landing)"
+        description="Legacy LuxQuant landing page. The primary product experience lives at luxquant.tw."
+        path="/v1"
+        noindex
       />
       {/* GLOBAL ANIMATION STYLES */}
       <style>{`

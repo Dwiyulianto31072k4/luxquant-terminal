@@ -79,11 +79,136 @@ async function main() {
   const { GLOSSARY } = await import("../src/content/glossary.js");
   const { POSTS } = await import("../src/content/posts.js");
   const { COINS } = await import("../src/content/coins.js");
+  const { LANDING_FAQ, landingFaqJsonLd } = await import("../src/content/faq.js");
   const termBy = (slug) => GLOSSARY.find((t) => t.slug === slug);
   const postBy = (slug) => POSTS.find((p) => p.slug === slug);
   const coinBy = (slug) => COINS.find((c) => c.slug === slug);
 
   const pages = [];
+
+  // ── Homepage (overwrites dist/index.html with crawlable body + FAQ schema) ──
+  pages.push({
+    path: "/",
+    title: "LuxQuant Terminal — Quantitative Crypto Intelligence",
+    description:
+      "LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you.",
+    jsonLd: [landingFaqJsonLd(SITE)],
+    body:
+      `<h1>LuxQuant Terminal — Quantitative Crypto Intelligence</h1>` +
+      `<p>A 24/7 quantitative crypto terminal: algorithmic signals with a transparent track record, money-flow and sector rotation, on-chain intelligence, risk scoring, and AI research. Free tier available.</p>` +
+      `<nav aria-label="Popular pages"><ul>` +
+      [
+        ["Market Overview", "/home"],
+        ["Pricing & Plans", "/pricing"],
+        ["Crypto Coins", "/coins"],
+        ["Bitcoin (BTC)", "/coins/btc"],
+        ["Ethereum (ETH)", "/coins/eth"],
+        ["Solana (SOL)", "/coins/sol"],
+        ["Crypto & Quant Glossary", "/learn"],
+        ["Blog", "/blog"],
+        ["Status", "/status"],
+      ]
+        .map(([label, href]) => `<li><a href="${href}">${esc(label)}</a></li>`)
+        .join("") +
+      `</ul></nav>` +
+      `<h2>Frequently asked questions</h2>` +
+      LANDING_FAQ.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("") +
+      `<h2>Learn the concepts</h2><ul>${GLOSSARY.slice(0, 8)
+        .map((t) => `<li><a href="/learn/${t.slug}">${esc(t.term)}</a> — ${esc(t.short)}</li>`)
+        .join("")}</ul>` +
+      `<p><a href="/login">Open app</a> · <a href="/pricing">View pricing</a> · <a href="https://t.me/LuxQuantSignal">Telegram signals</a></p>`,
+  });
+
+  // ── Market Overview teaser (public doorway; full app may require login client-side) ──
+  pages.push({
+    path: "/home",
+    title: "Market Overview — Live Crypto Data & Analytics | LuxQuant Terminal",
+    description:
+      "Live crypto market overview: top movers, sector rotation, and quantitative analytics from LuxQuant Terminal. Real-time data, decided by you.",
+    jsonLd: [
+      breadcrumbLd([{ label: "Home", to: "/" }, { label: "Market Overview", self: "/home" }]),
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Market Overview — LuxQuant Terminal",
+        url: `${SITE}/home`,
+        description:
+          "Live crypto market overview with top movers and quantitative analytics.",
+        isPartOf: { "@type": "WebSite", url: `${SITE}/` },
+      },
+    ],
+    body:
+      crumb([{ label: "Home", to: "/" }, { label: "Market Overview" }]) +
+      `<h1>Market Overview</h1>` +
+      `<p>Live crypto market overview from LuxQuant Terminal — top performers, market context, and quantitative analytics. Sign in for the full live terminal.</p>` +
+      `<ul>` +
+      `<li><a href="/coins">Browse crypto coins</a></li>` +
+      `<li><a href="/learn">Crypto &amp; quant glossary</a></li>` +
+      `<li><a href="/blog">Educational blog</a></li>` +
+      `<li><a href="/pricing">Pricing &amp; plans</a></li>` +
+      `</ul>` +
+      `<p><a href="/login?redirect=%2Fhome">Sign in to open the live overview</a></p>`,
+  });
+
+  // ── Pricing ──
+  pages.push({
+    path: "/pricing",
+    title: "Pricing & Plans — LuxQuant Terminal",
+    description:
+      "Compare LuxQuant Terminal plans. Free tier to start; premium unlocks algorithmic signals, AutoTrade, on-chain intelligence, and AI research.",
+    jsonLd: [
+      breadcrumbLd([{ label: "Home", to: "/" }, { label: "Pricing", self: "/pricing" }]),
+      {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: "LuxQuant Terminal",
+        description:
+          "Quantitative crypto trading terminal with algorithmic signals, AutoTrade, on-chain intelligence, and AI research.",
+        brand: { "@type": "Brand", name: "LuxQuant" },
+        image: `${SITE}/logo-512.png`,
+        url: `${SITE}/pricing`,
+        offers: {
+          "@type": "AggregateOffer",
+          lowPrice: "0",
+          priceCurrency: "USD",
+          offerCount: "3",
+          availability: "https://schema.org/InStock",
+        },
+      },
+    ],
+    body:
+      crumb([{ label: "Home", to: "/" }, { label: "Pricing" }]) +
+      `<h1>Pricing &amp; Plans</h1>` +
+      `<p>LuxQuant Terminal pricing: start free, upgrade when you need full signals, AutoTrade, on-chain intelligence, and AI research.</p>` +
+      `<ul>` +
+      `<li><strong>Free tier</strong> — explore the product and core market views.</li>` +
+      `<li><strong>Premium</strong> — algorithmic signals, AutoTrade, on-chain, AI research.</li>` +
+      `</ul>` +
+      `<p><a href="/login">Create account</a> · <a href="/">Back to homepage</a> · <a href="/learn">Glossary</a></p>`,
+  });
+
+  // ── Status ──
+  pages.push({
+    path: "/status",
+    title: "LuxQuant Status — Platform & API Uptime",
+    description:
+      "Live operational status for the LuxQuant Terminal platform, API, and data services. Real-time uptime and incident history.",
+    jsonLd: [
+      breadcrumbLd([{ label: "Home", to: "/" }, { label: "Status", self: "/status" }]),
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "LuxQuant Status",
+        url: `${SITE}/status`,
+        description: "Platform and API operational status for LuxQuant Terminal.",
+      },
+    ],
+    body:
+      crumb([{ label: "Home", to: "/" }, { label: "Status" }]) +
+      `<h1>LuxQuant Status</h1>` +
+      `<p>Operational status for the LuxQuant Terminal platform, API, and data services. Open this page in the app for live uptime and incident history.</p>` +
+      `<p><a href="/">luxquant.tw</a> · <a href="/pricing">Pricing</a></p>`,
+  });
 
   // ── Learn index ──
   pages.push({

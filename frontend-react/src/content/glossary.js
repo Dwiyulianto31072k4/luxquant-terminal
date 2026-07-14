@@ -179,7 +179,72 @@ export const GLOSSARY = [
       "Perpetual futures have no expiry, so exchanges use a funding rate — a small periodic payment between longs and shorts — to keep the perp price anchored to spot. Positive funding means longs pay shorts (crowded longs); negative funding means shorts pay longs (crowded shorts).",
       "Persistently high positive funding signals aggressive long leverage, which can precede long-squeeze liquidations; deeply negative funding signals the opposite. It's a sentiment/positioning gauge, read alongside price and open interest.",
     ],
-    related: ["liquidation", "money-flow"],
+    related: ["liquidation", "money-flow", "open-interest"],
+  },
+  {
+    slug: "open-interest",
+    term: "Open interest (futures)",
+    aka: "OI",
+    short:
+      "Open interest is the total number of outstanding futures or perpetual contracts that have not been settled — a measure of leverage still in the market.",
+    body: [
+      "Open interest (OI) counts open long and short positions on futures and perpetuals. Rising OI with a price move means new money is entering the trend; falling OI can mean positions are being closed and the move is less “levered.”",
+      "OI alone is not a buy or sell signal. Read it with price, funding rate, and liquidations: rising price + rising OI + high positive funding is a crowded long setup; the reverse for shorts. Context beats any single metric.",
+      "LuxQuant surfaces derivatives context (including funding and related leverage stress) so you can frame risk around algorithmic calls — inform, don’t decide.",
+    ],
+    related: ["funding-rate", "liquidation", "money-flow"],
+  },
+  {
+    slug: "risk-reward",
+    term: "Risk-reward ratio (R:R)",
+    aka: "R-multiple, reward-to-risk",
+    short:
+      "Risk-reward compares potential profit to potential loss on a trade — e.g. 1:2 means you risk $1 to make about $2 if the plan plays out.",
+    body: [
+      "Risk-reward (R:R) is the ratio of planned reward (distance to take-profit) to planned risk (distance to stop-loss). A 1:3 plan risks 1 unit to target 3 units. Combined with win rate, it describes whether an edge can compound over many trades.",
+      "High win rate with poor R:R can still lose money; moderate win rate with strong R:R can be profitable. Always size so a single stop-loss stays within your risk budget (commonly 0.5–1% of equity per idea).",
+      "Every LuxQuant signal includes entry, multiple TPs, and a strict SL so the R:R of the plan is explicit before you act.",
+    ],
+    related: ["win-rate", "liquidation", "money-flow"],
+  },
+  {
+    slug: "win-rate",
+    term: "Win rate (trading)",
+    aka: "Hit rate, percent profitable",
+    short:
+      "Win rate is the share of closed trades that were profitable. Alone it is incomplete — always read it with risk-reward and sample size.",
+    body: [
+      "Win rate = winning trades ÷ total closed trades. A 60% win rate sounds strong, but if average losses dwarf average wins, expectancy can still be negative. Pair win rate with average R:R and a large enough sample.",
+      "Track-record win rates should be transparent: defined window, no hidden trades, and clear rules for when a trade is a win vs loss (e.g. TP vs SL). Cherry-picked screenshots are not a track record.",
+      "LuxQuant publishes a verifiable call history so you can audit win rate, peaks, and outcomes yourself rather than relying on marketing claims.",
+    ],
+    related: ["risk-reward", "money-flow"],
+  },
+  {
+    slug: "rsi",
+    term: "RSI (Relative Strength Index)",
+    aka: "Relative Strength Index",
+    short:
+      "RSI is a momentum oscillator (0–100) that measures recent price gains vs losses — often used to flag overbought or oversold conditions, not certainty.",
+    body: [
+      "The Relative Strength Index (RSI) compares the magnitude of recent gains to recent losses over a lookback (commonly 14 periods). Readings near 70+ are often labeled “overbought”; near 30− “oversold” — rules of thumb, not laws.",
+      "In strong trends, RSI can stay elevated or depressed for long stretches. Divergence (price makes a new high while RSI does not) is a context clue, not a standalone signal. Always combine with structure, volume, and risk.",
+      "LuxQuant focuses on quantitative plans (entry, TP, SL) and market context; classic oscillators like RSI are supporting context, not a substitute for a defined risk plan.",
+    ],
+    related: ["risk-reward", "money-flow", "funding-rate"],
+  },
+  {
+    slug: "market-cap-vs-fdv",
+    term: "Market cap vs FDV",
+    aka: "Fully diluted valuation",
+    short:
+      "Market cap is price × circulating supply; FDV is price × total/fully diluted supply — the gap flags unlock and dilution risk.",
+    body: [
+      "Circulating market cap = current price × coins currently liquid. Fully diluted valuation (FDV) = price × all coins that could exist if every unlock, emission, and locked allocation were in circulation.",
+      "A large FDV-to-market-cap gap means a lot of supply may still unlock. That is not automatically bearish, but it is dilution risk you should price into position size and time horizon.",
+      "When comparing coins on LuxQuant flow and sector views, size metrics help you interpret volume and turnover fairly — small float + high turnover behaves differently from large-cap majors.",
+    ],
+    related: ["flow-intensity", "turnover-ratio", "money-flow"],
   },
 ];
 

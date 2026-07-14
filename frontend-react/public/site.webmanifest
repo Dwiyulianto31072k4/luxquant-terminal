@@ -1,0 +1,28 @@
+{
+  "name": "LuxQuant Terminal",
+  "short_name": "LuxQuant",
+  "description": "Quantitative crypto market intelligence — algorithmic signals, on-chain intelligence, and risk scoring.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0506",
+  "theme_color": "#0a0506",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon-48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
