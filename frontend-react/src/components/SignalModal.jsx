@@ -2649,39 +2649,52 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         .lq-guide-btn:hover { box-shadow: 0 0 14px rgba(212,168,83,0.7); transform: translateY(-1px); }
         @keyframes lqShimmer { 0% { background-position: 200% 0; } 100% { background-position: -120% 0; } }
         @media (prefers-reduced-motion: reduce) { .lq-guide-btn { animation: none; } }
-        .signal-modal-overlay { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; isolation: isolate; }
-        .signal-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.85); }
-        .signal-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .signal-modal-content { position: relative; width: 100%; max-width: 1400px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,0.4); display: flex; flex-direction: column; overflow: hidden; }
+        .signal-modal-overlay { position: fixed; inset: 0; z-index: 200000; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
+        .signal-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(8px); }
+        .signal-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
+        .signal-modal-container > * { pointer-events: auto; }
+        .signal-modal-content {
+          position: relative; width: 100%; max-width: 1400px;
+          height: min(92dvh, 100%); max-height: 92dvh;
+          background: #0c0a07;
+          border: none; border-top: 1px solid rgba(255,255,255,0.12);
+          border-radius: 1.5rem 1.5rem 0 0;
+          display: flex; flex-direction: column; overflow: hidden;
+          box-shadow: 0 -16px 48px rgba(0,0,0,0.55);
+        }
 
         @media(min-width:640px) {
-          .signal-modal-container { padding: 12px; }
-          .signal-modal-content { max-height: calc(100vh - 24px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1); }
+          .signal-modal-overlay { align-items: center; }
+          .signal-modal-container { align-items: center; padding: 12px; }
+          .signal-modal-content {
+            height: auto; max-height: calc(100vh - 24px);
+            border-radius: 16px;
+            border: 1px solid rgba(212,168,83,0.4);
+            background: #0a0506;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1);
+          }
         }
         @media(min-width:1024px) {
           .signal-modal-container { padding: 20px; }
           .signal-modal-content { max-height: 880px; }
-        }
-        @media(max-width:639px) {
-          .signal-modal-content { max-height: 100%; height: 100%; border-radius: 0; border: none; }
         }
         @supports(height:100dvh) { .signal-modal-overlay { height: 100dvh; } }
 
         .mobile-targets-panel { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
         .signal-modal-backdrop { animation: smBI .25s ease-out; }
-        .signal-modal-content { animation: smCI .3s cubic-bezier(.16,1,.3,1); }
+        .signal-modal-content { animation: smSheetUp .32s cubic-bezier(.16,1,.3,1); }
         .signal-modal-closing .signal-modal-backdrop { animation: smBO .2s ease-in forwards; }
-        .signal-modal-closing .signal-modal-content { animation: smCO .2s ease-in forwards; }
+        .signal-modal-closing .signal-modal-content { animation: smSheetDn .22s ease-in forwards; }
         @keyframes smBI { from{opacity:0} to{opacity:1} }
         @keyframes smBO { from{opacity:1} to{opacity:0} }
         @keyframes smCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
         @keyframes smCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
-        @media(max-width:639px) {
-          .signal-modal-content { animation: smUp .3s cubic-bezier(.16,1,.3,1); }
-          .signal-modal-closing .signal-modal-content { animation: smDn .2s ease-in forwards; }
-          @keyframes smUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
-          @keyframes smDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(40px)} }
+        @keyframes smSheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes smSheetDn { from{transform:translateY(0)} to{transform:translateY(100%)} }
+        @media(min-width:640px) {
+          .signal-modal-content { animation: smCI .3s cubic-bezier(.16,1,.3,1); }
+          .signal-modal-closing .signal-modal-content { animation: smCO .2s ease-in forwards; }
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 6px; }

@@ -1,10 +1,10 @@
 // ════════════════════════════════════════════════════════════════
-// GlobalSignalModalHost — coin "called" status modal.
-// Mobile: bottom sheet (handle + slide-up). Desktop: centered card.
-// Footer actions always sticky so Open signal is never clipped by
-// the app bottom nav or short viewports.
+// GlobalSignalModalHost — coin "called" status sheet.
+// ALWAYS portaled to document.body so app bottom-nav (z-50) never covers CTAs.
+// Mobile: bottom sheet from bottom. Desktop: centered card.
 // ════════════════════════════════════════════════════════════════
 import { useContext, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import CoinLogo from "./CoinLogo";
 import { SignalStatusContext, STATUS_META, timeAgo } from "../context/SignalStatusContext";
@@ -18,64 +18,87 @@ const fmtPrice = (v) => {
 };
 const fmtPct0 = (v) => (v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(0) + "%");
 
-/** Compact row: label left · value right (aligned columns in a 2-col grid). */
 function Stat({ label, val, tone }) {
   return (
-    <div className="flex min-h-[40px] items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-2">
-      <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-text-muted/80">
+    <div className="flex min-h-[38px] items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5">
+      <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/75">
         {label}
       </span>
-      <span className={`min-w-0 truncate text-right font-mono text-[12.5px] font-semibold tabular-nums ${tone || "text-white"}`}>
+      <span className={`min-w-0 truncate text-right font-mono text-[12px] font-semibold tabular-nums ${tone || "text-white"}`}>
         {val}
       </span>
     </div>
   );
 }
 
-function SheetShell({ onClose, children, ariaLabel, footer }) {
+/**
+ * Bottom-anchored sheet (mobile) / centered (sm+).
+ * Uses absolute bottom-0 so the footer is always on-screen above the home indicator.
+ * Portaled to body — never trapped under bottom nav stacking context.
+ */
+function SheetShell({ onClose, children, footer, ariaLabel }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-6"
-      onClick={onClose}
+      className="fixed inset-0 z-[200000] isolate"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
     >
+      {/* Backdrop */}
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-[ssFade_.2s_ease-out]"
+        onClick={onClose}
+        aria-label="Close overlay"
+      />
+
+      {/* Sheet: pinned to bottom on mobile so CTAs never sit under tab bar */}
       <div
-        className="relative flex w-full max-w-[420px] max-h-[min(88dvh,640px)] flex-col animate-[ssSheetIn_.3s_cubic-bezier(.16,1,.3,1)] rounded-t-3xl border-t border-white/10 bg-[#0c0a07] shadow-[0_-16px_48px_rgba(0,0,0,0.55)] sm:max-h-[min(85vh,640px)] sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-[#0a0805] sm:shadow-2xl"
+        className="absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-white/12 bg-[#0c0a07] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(85vh,620px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-gold-primary/30 sm:bg-[#0a0805] sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
+        style={{ maxHeight: "min(90dvh, 640px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 justify-center pt-2.5 pb-0.5 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/20" />
+        {/* Handle */}
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
-        <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent sm:block" />
 
-        {/* Scrollable body */}
+        {/* Scroll body */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
 
-        {/* Sticky footer — always visible */}
+        {/* ALWAYS-visible action bar */}
         {footer && (
-          <div className="shrink-0 border-t border-white/[0.08] bg-[#0c0a07]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 sm:bg-[#0a0805]/95 sm:px-5 sm:pb-4">
+          <div
+            className="shrink-0 border-t border-white/10 bg-[#0c0a07] px-4 pt-3 sm:bg-[#0a0805] sm:px-5 sm:pb-4"
+            style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
+          >
             {footer}
           </div>
         )}
       </div>
+
       <style>{`
-        @keyframes ssSheetIn {
+        @keyframes ssFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes ssSheetUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
         @keyframes ssPanelIn {
-          from { opacity: 0; transform: translateY(12px) scale(.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+          from { opacity: 0; transform: translateY(calc(-50% + 16px)) scale(.98); }
+          to { opacity: 1; transform: translateY(-50%) scale(1); }
         }
       `}</style>
     </div>
@@ -92,115 +115,85 @@ export default function GlobalSignalModalHost() {
   const info = ctx.map?.[pair];
   const close = () => ctx.closeModal();
 
-  if (!info) {
-    return (
-      <SheetShell
-        onClose={close}
-        ariaLabel={`${sym} signal status`}
-        footer={
-          <button
-            type="button"
-            onClick={close}
-            className="w-full rounded-xl bg-gold-primary py-3 font-mono text-[12px] font-bold uppercase tracking-wider text-[#1a1206] active:scale-[0.98]"
-          >
-            Done
-          </button>
-        }
-      >
-        <div className="px-4 pt-2 sm:px-5 sm:pt-4">
-          <div className="flex items-center gap-3">
-            <CoinLogo pair={pair} size={32} />
-            <div className="min-w-0">
-              <div className="text-[15px] font-semibold text-white">{sym}</div>
-              <div className="font-mono text-[10px] text-text-muted">{pair}</div>
-            </div>
-            <button
-              onClick={close}
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:text-white"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-          <p className="mt-3 pb-3 text-[12px] leading-relaxed text-text-muted">
-            No active LuxQuant call for this pair in the last 7 days.
-          </p>
-        </div>
-      </SheetShell>
-    );
-  }
-
-  const s = info.item || {};
-  const st = STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af", desc: "" };
-  const ago = timeAgo(info.created);
-  const calledAbs = info.created ? new Date(info.created).toLocaleString() : null;
-  const dir = s.signal_direction || s.v3?.direction || null;
-  const risk = s.risk_norm || s.risk_level || null;
+  const empty = !info;
 
   const openFull = () => {
     close();
-    if (info.signal_id) navigate(`/signals?signal=${info.signal_id}`);
+    if (info?.signal_id) navigate(`/signals?signal=${info.signal_id}`);
   };
 
-  // Fixed 2-col compact stats (always even grid)
-  const stats = [
-    {
-      label: "Max Target",
-      val: s.max_target_pct == null ? "—" : "+" + Number(s.max_target_pct).toFixed(0) + "%",
-      tone: "text-emerald-400",
-    },
-    {
-      label: "Peak Reached",
-      val: s.peak_pct == null ? "—" : fmtPct0(s.peak_pct),
-      tone: s.peak_pct == null ? "text-white" : s.peak_pct >= 0 ? "text-positive" : "text-negative",
-    },
-    { label: "Entry", val: s.entry ? fmtPrice(s.entry) : "—", tone: "text-white" },
-    s.vs_avwap_pct != null
-      ? {
-          label: "vs Call VWAP",
-          val: fmtPct0(s.vs_avwap_pct),
-          tone: s.vs_avwap_pct >= 0 ? "text-positive" : "text-negative",
-        }
-      : { label: "vs Call VWAP", val: "—", tone: "text-text-muted" },
-    s.beta_30d != null
-      ? { label: "Beta 30d", val: Number(s.beta_30d).toFixed(2), tone: "text-white" }
-      : null,
-    calledAbs
-      ? { label: "Called At", val: new Date(info.created).toLocaleDateString(), tone: "text-white" }
-      : null,
-    info.n > 1 ? { label: "Active Calls", val: String(info.n), tone: "text-gold-primary" } : null,
-  ].filter(Boolean);
+  let body = null;
+  let footer = null;
 
-  // Pad to even count so last row stays aligned
-  if (stats.length % 2 === 1) {
-    stats.push({ label: "—", val: "—", tone: "text-transparent" });
-  }
-
-  return (
-    <SheetShell
-      onClose={close}
-      ariaLabel={`${sym} signal status`}
-      footer={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={openFull}
-            className="flex-1 rounded-xl bg-gold-primary py-3 text-[13px] font-bold text-[#17110a] transition-colors hover:brightness-105 active:scale-[0.99]"
-          >
-            Open full signal →
-          </button>
+  if (empty) {
+    body = (
+      <div className="px-4 pt-1 sm:px-5 sm:pt-4">
+        <div className="flex items-center gap-3">
+          <CoinLogo pair={pair} size={32} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold text-white">{sym}</div>
+            <div className="font-mono text-[10px] text-text-muted">{pair}</div>
+          </div>
           <button
             type="button"
             onClick={close}
-            className="rounded-xl border border-white/12 px-4 py-3 text-[13px] font-medium text-white/70 transition-colors hover:border-white/25 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-text-muted"
+            aria-label="Close"
           >
-            Close
+            ✕
           </button>
         </div>
-      }
-    >
+        <p className="mt-3 pb-2 text-[12px] leading-relaxed text-text-muted">
+          No active LuxQuant call for this pair in the last 7 days.
+        </p>
+      </div>
+    );
+    footer = (
+      <button
+        type="button"
+        onClick={close}
+        className="w-full rounded-xl bg-gold-primary py-3.5 text-[13px] font-bold text-[#1a1206] active:scale-[0.99]"
+      >
+        Done
+      </button>
+    );
+  } else {
+    const s = info.item || {};
+    const st = STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af", desc: "" };
+    const ago = timeAgo(info.created);
+    const calledAbs = info.created ? new Date(info.created).toLocaleString() : null;
+    const dir = s.signal_direction || s.v3?.direction || null;
+    const risk = s.risk_norm || s.risk_level || null;
+
+    const stats = [
+      {
+        label: "Max Target",
+        val: s.max_target_pct == null ? "—" : "+" + Number(s.max_target_pct).toFixed(0) + "%",
+        tone: "text-emerald-400",
+      },
+      {
+        label: "Peak Reached",
+        val: s.peak_pct == null ? "—" : fmtPct0(s.peak_pct),
+        tone: s.peak_pct == null ? "text-white" : s.peak_pct >= 0 ? "text-positive" : "text-negative",
+      },
+      { label: "Entry", val: s.entry ? fmtPrice(s.entry) : "—", tone: "text-white" },
+      {
+        label: "vs Call VWAP",
+        val: s.vs_avwap_pct != null ? fmtPct0(s.vs_avwap_pct) : "—",
+        tone:
+          s.vs_avwap_pct == null
+            ? "text-text-muted"
+            : s.vs_avwap_pct >= 0
+              ? "text-positive"
+              : "text-negative",
+      },
+    ];
+    if (s.beta_30d != null) stats.push({ label: "Beta 30d", val: Number(s.beta_30d).toFixed(2), tone: "text-white" });
+    if (calledAbs) stats.push({ label: "Called At", val: new Date(info.created).toLocaleDateString(), tone: "text-white" });
+    if (info.n > 1) stats.push({ label: "Active Calls", val: String(info.n), tone: "text-gold-primary" });
+
+    body = (
       <div className="px-4 pt-1 sm:px-5 sm:pt-4">
-        {/* Header row — compact */}
         <div className="flex items-center gap-2.5">
           <CoinLogo pair={pair} size={34} />
           <div className="min-w-0 flex-1">
@@ -235,15 +228,15 @@ export default function GlobalSignalModalHost() {
             </div>
           </div>
           <button
+            type="button"
             onClick={close}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:border-white/25 hover:text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
 
-        {/* Status banner — compact */}
         <div
           className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5"
           style={{ background: `${st.color}14`, border: `1px solid ${st.color}44` }}
@@ -259,13 +252,38 @@ export default function GlobalSignalModalHost() {
           </span>
         </div>
 
-        {/* Stats — 2 equal columns, label|value aligned */}
-        <div className="mt-3 grid grid-cols-2 gap-1.5 pb-3">
-          {stats.map((row, i) => (
-            <Stat key={`${row.label}-${i}`} label={row.label} val={row.val} tone={row.tone} />
+        <div className="mt-2.5 grid grid-cols-2 gap-1.5 pb-3">
+          {stats.map((row) => (
+            <Stat key={row.label} label={row.label} val={row.val} tone={row.tone} />
           ))}
         </div>
       </div>
-    </SheetShell>
+    );
+
+    footer = (
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={openFull}
+          className="flex-1 rounded-xl bg-gold-primary py-3.5 text-[13px] font-bold text-[#17110a] shadow-[0_4px_16px_rgba(212,168,83,0.3)] active:scale-[0.99]"
+        >
+          Open full signal →
+        </button>
+        <button
+          type="button"
+          onClick={close}
+          className="rounded-xl border border-white/15 px-4 py-3.5 text-[13px] font-medium text-white/75 active:scale-[0.99]"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return createPortal(
+    <SheetShell onClose={close} footer={footer} ariaLabel={`${sym} signal status`}>
+      {body}
+    </SheetShell>,
+    document.body,
   );
 }
