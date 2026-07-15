@@ -351,8 +351,11 @@ function SignalDetailModal({ d, onClose, onFull }) {
     </div>
   );
   return (
-    <div className="fixed inset-x-0 bottom-0 top-16 z-[80] bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center p-3 md:p-6" onClick={onClose}>
-      <div className="relative w-[94vw] max-w-[540px] max-h-[calc(100vh-6rem)] overflow-auto rounded-2xl bg-[#0a0805] border border-gold-primary/25 shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-6" onClick={onClose}>
+      <div className="relative w-full max-w-[540px] max-h-[min(92dvh,100%)] overflow-auto rounded-t-3xl sm:rounded-2xl bg-[#0a0805] border-t border-gold-primary/25 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/60" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-[#0a0805]" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
         <div className="flex items-center gap-3 px-5 pt-5">

@@ -312,8 +312,11 @@ const TipsPage = () => {
 
       {/* Delete Confirmation */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-bg-secondary rounded-2xl p-6 border border-red-500/30 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-red-500/30 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
+              <div className="h-1 w-10 rounded-full bg-white/25" />
+            </div>
             <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-red-500/10 flex items-center justify-center">
               <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -383,15 +386,18 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-6 lg:p-10"
+      className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/80 backdrop-blur-sm p-0 sm:p-6 lg:p-10"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl h-full max-h-[90vh] bg-bg-secondary rounded-2xl border border-gold-primary/20 shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
+        className="relative w-full max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] sm:h-full sm:max-h-[90vh] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-gold-primary/20 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: 'modalIn .25s ease-out' }}
       >
-        <style>{`@keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+        <style>{`@keyframes modalIn{from{transform:translateY(100%)}to{transform:translateY(0)}}@media(min-width:640px){@keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}}`}</style>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gold-primary/10 bg-bg-primary/50 flex-shrink-0">
@@ -541,8 +547,11 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-bg-secondary rounded-2xl border border-gold-primary/20 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-gold-primary/20 sm:border max-w-lg w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.65)]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gold-primary/10">
           <h3 className="text-white font-semibold text-base">
             {isEdit ? t('tips.edit_module_title') : t('tips.upload_new_title')}

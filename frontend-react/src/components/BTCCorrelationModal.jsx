@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import Modal from "./ui/Modal";
+import { Z } from "../constants/zIndex";
 import CoinLogo from "./CoinLogo";
 
 // ── Ikon SVG (line, bersih) ─────────────────────────────────────
@@ -46,7 +47,7 @@ function IconBadge({ d, color, size = 24 }) {
   );
 }
 
-export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose }) {
+export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose, zIndex = Z.nestedModal }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,7 +93,7 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl" padded={false} header={header}>
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl" padded={false} header={header} zIndex={zIndex}>
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-5 sm:py-5">
         {loading && <LoadingSkeleton />}
         {!loading && error && <ErrorState message={error} />}

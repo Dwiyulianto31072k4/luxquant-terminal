@@ -744,7 +744,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-8"
+      className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
       onClick={onClose}
     >
       <button
@@ -756,9 +756,12 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
       </button>
 
       <div
-        className="flex flex-col md:flex-row w-full max-w-[880px] max-h-[90vh] rounded-xl overflow-hidden bg-[#0c0a10] border border-white/10"
+        className="relative flex flex-col md:flex-row w-full max-w-[880px] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-[#0c0a10] border-t border-white/10 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="absolute top-2.5 left-0 right-0 z-20 flex justify-center pointer-events-none sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         {/* Left — post image (contained, never overflows) */}
         <div className="md:w-[55%] flex-shrink-0 bg-black flex items-center justify-center min-h-0 max-h-[42vh] md:max-h-none overflow-hidden">
           {post.image_url ? (

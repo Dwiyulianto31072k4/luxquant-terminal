@@ -29,6 +29,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Z } from "../../constants/zIndex";
 
 const EXIT_MS = 200;
 
@@ -50,7 +51,7 @@ export default function Modal({
   header,
   footer,
   size = "md",
-  placement = "center",   // "center" | "bottom" (bottom = sheet di mobile, dialog di desktop)
+  placement = "bottom",   // "bottom" (default: sheet di mobile, dialog di desktop) | "center"
   accent = true,
   accentColor,
   animate = true,
@@ -58,6 +59,8 @@ export default function Modal({
   usePortal = true,
   closeOnBackdrop = true,
   showClose = true,
+  /** Stacking order — use Z.nestedModal (210000) when opened above SignalModal */
+  zIndex = Z.modal,
   children,
   className = "",
 }) {
@@ -128,7 +131,8 @@ export default function Modal({
   const node = (
     <div
       onClick={closeOnBackdrop ? requestClose : undefined}
-      className={`lqm-overlay ${closing ? "is-closing" : ""} ${animate ? "lqm-animate" : ""} fixed inset-0 z-[100000] flex justify-center ${placement === "bottom" ? "items-end p-0 sm:items-center sm:p-4" : "items-center p-4"}`}
+      style={{ zIndex }}
+      className={`lqm-overlay ${closing ? "is-closing" : ""} ${animate ? "lqm-animate" : ""} fixed inset-0 flex justify-center ${placement === "bottom" ? "items-end p-0 sm:items-center sm:p-4" : "items-center p-4"}`}
     >
       <style>{`
         .lqm-overlay { background: rgba(0,0,0,0.8); }
@@ -158,13 +162,13 @@ export default function Modal({
         style={!animate ? { backdropFilter: "blur(6px)" } : undefined}
         className={`lqm-card relative flex w-full flex-col overflow-hidden border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)] ${SIZES[size] || SIZES.md} ${
           placement === "bottom"
-            ? "lqm-sheet max-h-[90dvh] rounded-t-2xl sm:max-h-[calc(100dvh-4rem)] sm:rounded-2xl"
+            ? "lqm-sheet max-h-[min(92dvh,100%)] rounded-t-3xl border-b-0 sm:max-h-[calc(100dvh-4rem)] sm:rounded-2xl sm:border-b sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)] shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
             : "max-h-[calc(100dvh-2rem)] rounded-2xl sm:max-h-[calc(100dvh-4rem)]"
         } ${className}`}
       >
         {placement === "bottom" ? (
-          <div className="sm:hidden flex justify-center pt-2.5 pb-1 flex-shrink-0">
-            <span className="h-1 w-10 rounded-full bg-white/20" />
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1 flex-shrink-0" aria-hidden="true">
+            <span className="h-1 w-10 rounded-full bg-white/25" />
           </div>
         ) : null}
 
@@ -218,9 +222,12 @@ export default function Modal({
           )}
         </div>
 
-        {/* Footer sticky (prop) */}
+        {/* Footer sticky (prop) — safe-area so CTAs never sit under home indicator / bottom nav */}
         {footer ? (
-          <div className="flex-shrink-0 border-t border-white/[0.06] px-5 py-3">
+          <div
+            className="flex-shrink-0 border-t border-white/[0.06] bg-[#0a0805] px-5 pt-3"
+            style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
+          >
             {renderSlot(footer)}
           </div>
         ) : null}

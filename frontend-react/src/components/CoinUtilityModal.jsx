@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import Modal from "./ui/Modal";
+import { Z } from "../constants/zIndex";
 import CoinLogo from "./CoinLogo";
 
 // ── Ikon SVG ─────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ function SectionHead({ d, color = "#d4a853", children }) {
   );
 }
 
-const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
+const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.nestedModal }) => {
   const [coinData, setCoinData] = useState(prefetchedData || null);
   const [loading, setLoading] = useState(!prefetchedData);
   const [error, setError] = useState(null);
@@ -120,7 +121,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" padded={false} header={header}>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" padded={false} header={header} zIndex={zIndex}>
       <div className="px-3 py-4 sm:px-5 sm:py-5">
         {loading && (
           <div className="space-y-3 animate-pulse">

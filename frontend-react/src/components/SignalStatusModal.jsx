@@ -52,7 +52,8 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
 
   return (
     <div
-      className="fixed inset-0 z-[200000] isolate"
+      className="fixed inset-0 isolate"
+      style={{ zIndex: 200000 }}
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}

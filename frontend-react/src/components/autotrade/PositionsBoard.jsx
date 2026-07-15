@@ -429,9 +429,12 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
   const canOpenSignal = Boolean(signal.luxquant_signal_id);
 
   return (
-    <div className="fixed inset-0 z-[100000] overflow-y-auto bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex min-h-full items-center justify-center py-8">
-        <div className="w-full max-w-5xl overflow-hidden rounded-xl border border-white/[0.09] bg-[#0a0805] shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-5xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.09] sm:border bg-[#0a0805] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-[#0a0805]" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
+        <div className="overflow-hidden">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.06] p-5">
             <div className="flex items-center gap-3">
               <CoinLogo pair={position.symbol} size={42} />
@@ -633,8 +636,11 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
   if (!action) return null;
   const matches = confirmation.trim().toUpperCase() === action.phrase;
   return (
-    <div className="fixed inset-0 z-[100010] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl border border-[#F6465D]/30 bg-[#0a0805] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[100010] flex items-end justify-center sm:items-center bg-black/85 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-[#0a0805] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex justify-center -mt-1 mb-3 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F6465D]">Irreversible exchange action</p>
         <h3 className="mt-2 text-xl font-semibold text-white">{action.title}</h3>
         <p className="mt-2 text-sm leading-6 text-text-muted">{action.description}</p>

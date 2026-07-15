@@ -104,9 +104,12 @@ function TradeDetailModal({ trade, onClose, basis }) {
   const exitOrder = (trade.orders || []).find((order) => order.side === "SELL");
 
   return (
-    <div className="fixed inset-0 z-[100000] overflow-y-auto bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex min-h-full items-center justify-center py-8">
-        <div className="w-full max-w-4xl overflow-hidden rounded-xl border border-white/[0.08] bg-[#0a0805] shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-4xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.08] sm:border bg-[#0a0805] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-[#0a0805]" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
+        <div className="overflow-hidden">
           <div className="flex items-start justify-between border-b border-white/[0.06] p-5">
             <div className="flex items-center gap-3">
               <CoinLogo pair={trade.symbol} size={40} />

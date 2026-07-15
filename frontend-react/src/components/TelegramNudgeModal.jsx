@@ -163,23 +163,26 @@ const TelegramNudgeModal = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       style={{ background: 'rgba(5,5,6,0.72)', backdropFilter: 'blur(4px)' }}
       onClick={dismiss}
     >
       <div
-        className="relative w-full max-w-sm rounded-lg overflow-hidden"
+        className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
         style={{
           background: 'linear-gradient(160deg, #0d0405, #0a0506)',
           border: '1px solid rgba(212,168,83,0.18)',
-          boxShadow: '0 20px 60px -10px rgba(0,0,0,0.7)',
+          boxShadow: '0 -20px 60px rgba(0,0,0,0.65)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         {/* close */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 w-7 h-7 rounded-md flex items-center justify-center text-text-muted/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted/60 hover:text-white hover:bg-white/[0.06] transition-colors"
           aria-label="Close"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +190,7 @@ const TelegramNudgeModal = () => {
           </svg>
         </button>
 
-        <div className="p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-4">
           {/* icon */}
           <div
             className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
@@ -217,39 +220,42 @@ const TelegramNudgeModal = () => {
               </div>
             ))}
           </div>
+        </div>
 
-          {/* CTA */}
-          <div className="mt-5 flex flex-col gap-2">
-            {isLink ? (
-              <a
-                href="/profile"
-                onClick={dismiss}
-                className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
-                style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}
-              >
-                {t('nudge.link_cta', 'Link Telegram')}
-              </a>
-            ) : (
-              <button
-                onClick={handleJoin}
-                disabled={loading}
-                className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  t('nudge.join_cta', 'Join VIP Group')
-                )}
-              </button>
-            )}
-            <button
+        {/* sticky CTA footer — never covered */}
+        <div
+          className="shrink-0 border-t border-white/[0.06] px-6 pt-3 flex flex-col gap-2"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}
+        >
+          {isLink ? (
+            <a
+              href="/profile"
               onClick={dismiss}
-              className="w-full py-2 rounded-md font-mono text-[10px] uppercase tracking-wider text-text-muted/50 hover:text-text-muted/80 transition-colors"
+              className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
+              style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}
             >
-              {t('nudge.later', 'Maybe later')}
+              {t('nudge.link_cta', 'Link Telegram')}
+            </a>
+          ) : (
+            <button
+              onClick={handleJoin}
+              disabled={loading}
+              className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                t('nudge.join_cta', 'Join VIP Group')
+              )}
             </button>
-          </div>
+          )}
+          <button
+            onClick={dismiss}
+            className="w-full py-2 rounded-md font-mono text-[10px] uppercase tracking-wider text-text-muted/50 hover:text-text-muted/80 transition-colors"
+          >
+            {t('nudge.later', 'Maybe later')}
+          </button>
         </div>
       </div>
     </div>

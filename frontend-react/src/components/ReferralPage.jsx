@@ -242,15 +242,18 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border p-6"
+        className="w-full max-w-md max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl border border-b-0 sm:border-b p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         style={{ background: '#1a1014', borderColor: 'rgba(212,168,83,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <h3 className="text-lg font-bold mb-2" style={{ color: '#e8d9c7' }}>
           Create Your Referral Code
         </h3>

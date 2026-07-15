@@ -2535,7 +2535,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
         <div
-          className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
+          style={{ zIndex: 300000 }}
           onClick={() => setLightboxImg(null)}
         >
           <img

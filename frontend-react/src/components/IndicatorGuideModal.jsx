@@ -103,13 +103,16 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
   ];
 
   const content = (
-    <div className="lq-guide-root fixed inset-0 z-[200001] flex items-stretch sm:items-center justify-center" onClick={onClose}>
+    <div className="lq-guide-root fixed inset-0 flex items-end sm:items-center justify-center" style={{ zIndex: 210000 }} onClick={onClose}>
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
 
       <div
-        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto custom-scrollbar bg-[#0a0506] sm:border border-gold-primary/40 sm:rounded-2xl"
+        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-[#0a0506] border-t border-gold-primary/40 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-30 bg-[#0a0506]" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         {/* ─── Header ─── */}
         <div className="sticky top-0 z-20 bg-[#0a0506]/95 backdrop-blur border-b border-gold-primary/20 px-5 sm:px-7 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">

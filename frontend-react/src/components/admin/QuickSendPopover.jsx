@@ -407,14 +407,19 @@ export const QuickSendPopover = ({
   /* ── Floating mode: render as overlay ── */
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       style={{
         background: 'rgba(0,0,0,0.7)',
         backdropFilter: 'blur(6px)',
       }}
       onClick={(e) => e.target === e.currentTarget && onClose && onClose()}
     >
-      {content}
+      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl sm:max-w-none">
+        <div className="flex justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
+        {content}
+      </div>
     </div>
   );
 };

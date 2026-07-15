@@ -1432,7 +1432,7 @@ export const UserDetailDrawer = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center p-0 sm:p-6"
+      className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         background: 'rgba(0,0,0,0.75)',
@@ -1441,15 +1441,18 @@ export const UserDetailDrawer = ({
       }}
     >
       <div
-        className="w-full max-w-3xl h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl overflow-hidden flex flex-col animate-in zoom-in-95 fade-in duration-200"
+        className="w-full max-w-3xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 fade-in duration-200"
         style={{
           background: '#0a0805',
           border: '1px solid rgba(212,168,83,0.25)',
           boxShadow:
-            '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
+            '0 -20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         {/* ── HEADER ── */}
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0 relative"

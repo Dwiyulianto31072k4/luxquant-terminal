@@ -381,18 +381,21 @@ const TermsModal = ({ onClose }) => {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6"
+    <div className="fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-6"
          style={{ background: 'rgba(6,3,3,0.84)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', animation: 'lq-modal-fade 0.2s ease-out' }}
          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
 
-      <div className="relative w-full max-w-2xl flex flex-col rounded-[1.75rem] overflow-hidden"
+      <div className="relative w-full max-w-2xl flex flex-col rounded-t-3xl sm:rounded-[1.75rem] overflow-hidden"
            style={{
-             maxHeight: '85vh',
+             maxHeight: 'min(92dvh, 100%)',
              background: 'radial-gradient(ellipse at 18% 0%, rgba(150,28,28,0.28) 0%, transparent 55%), linear-gradient(160deg, #2c0d10 0%, #1c0809 38%, #110607 64%, #0a0506 100%)',
              border: '1px solid rgba(255,255,255,0.08)',
-             boxShadow: '0 40px 100px rgba(0,0,0,0.85), 0 0 70px rgba(150,28,28,0.12)',
+             boxShadow: '0 -20px 60px rgba(0,0,0,0.85), 0 0 70px rgba(150,28,28,0.12)',
              animation: 'lq-modal-pop 0.3s cubic-bezier(0.16,1,0.3,1)',
            }}>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
 
         {/* Gold hairline */}
         <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none"

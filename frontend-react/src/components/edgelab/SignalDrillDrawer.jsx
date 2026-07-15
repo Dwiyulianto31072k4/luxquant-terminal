@@ -741,13 +741,16 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[150000] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[150000] flex items-end justify-center sm:items-center p-0 sm:p-6">
       <div
         className="absolute inset-0 bg-black/65 backdrop-blur-[3px] animate-[dfadeIn_120ms_ease-out]"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl h-[88vh] bg-[#0a0805] border border-white/[0.08] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-[88vh] bg-[#0a0805] border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
         {/* ① header */}

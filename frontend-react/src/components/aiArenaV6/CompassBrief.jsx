@@ -629,11 +629,14 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
 function Modal({ title, children, onClose }) {
   if (!title) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/75 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#09090d] shadow-2xl"
+        className="max-h-[min(92dvh,100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-white/10 sm:border bg-[#09090d] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
           <div>
             <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">Detail breakdown</div>

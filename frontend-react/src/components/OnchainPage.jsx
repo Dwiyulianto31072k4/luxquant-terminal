@@ -866,15 +866,18 @@ const AlertModal = ({ alert, onClose }) => {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        className="relative w-full max-w-xl bg-[#0a0805] border border-white/[0.08] rounded-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)] max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-xl bg-[#0a0805] border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.65)] max-h-[min(92dvh,100%)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
 
         <button

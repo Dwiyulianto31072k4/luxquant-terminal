@@ -327,8 +327,11 @@ const ResourcesPage = () => {
 
       {/* Delete confirm */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-bg-secondary rounded-2xl p-6 border border-red-500/30 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-red-500/30 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
+              <div className="h-1 w-10 rounded-full bg-white/25" />
+            </div>
             <h3 className="text-white font-semibold text-center mb-2">Delete resource?</h3>
             <p className="text-text-muted text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
             <div className="flex gap-3">

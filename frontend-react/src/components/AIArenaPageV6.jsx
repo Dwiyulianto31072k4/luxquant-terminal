@@ -606,7 +606,7 @@ function ReportPdfModal({ modal, onClose }) {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-center justify-center overflow-hidden bg-[#020102]/88 p-2 text-white backdrop-blur-2xl sm:p-3 lg:p-5"
+      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center overflow-hidden bg-[#020102]/88 p-0 text-white backdrop-blur-2xl sm:p-3 lg:p-5"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
@@ -614,7 +614,10 @@ function ReportPdfModal({ modal, onClose }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
 
-      <div className="relative flex h-[min(920px,calc(100dvh-24px))] max-h-[calc(100dvh-24px)] w-[min(1540px,calc(100vw-24px))] flex-col overflow-hidden rounded-[22px] border border-[#d4a853]/20 bg-[#070507]/98 shadow-[0_30px_140px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))]">
+      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-[#d4a853]/20 bg-[#070507]/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <header className="shrink-0 border-b border-white/[0.08] bg-[#0b0709]/98 px-3 py-2.5 md:px-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">

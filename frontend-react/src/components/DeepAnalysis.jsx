@@ -790,38 +790,36 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
       {/* === STYLES === */}
       <style>{`
-        .da-modal-overlay { position: fixed; inset: 0; z-index: 150000; display: flex; align-items: center; justify-content: center; isolation: isolate; }
+        /* MUST sit above SignalModal (200000) — nested shell */
+        .da-modal-overlay { position: fixed; inset: 0; z-index: 210000; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
         .da-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-        .da-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,0.4); display: flex; flex-direction: column; overflow: hidden; }
+        .da-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; max-height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
+        .da-modal-container > * { pointer-events: auto; }
+        .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0506; border-top: 1px solid rgba(212,168,83,0.4); border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -20px 60px rgba(0,0,0,0.65); animation: daUp .32s cubic-bezier(.16,1,.3,1); }
 
         @media(min-width:640px) {
-          .da-modal-container { padding: 12px; }
-          .da-modal-content { max-height: calc(100vh - 24px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1); }
+          .da-modal-overlay { align-items: center; }
+          .da-modal-container { align-items: center; padding: 12px; }
+          .da-modal-content { height: auto; min-height: 0; max-height: calc(100vh - 24px); border-radius: 16px; border: 1px solid rgba(212,168,83,0.4); box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1); animation: daCI .3s cubic-bezier(.16,1,.3,1); }
         }
         @media(min-width:1024px) {
           .da-modal-container { padding: 20px; }
           .da-modal-content { max-height: 880px; }
         }
-        @media(max-width:639px) {
-          .da-modal-content { max-height: 100%; height: 100%; border-radius: 0; border: none; }
-        }
         @supports(height:100dvh) { .da-modal-overlay { height: 100dvh; } }
 
         .da-modal-backdrop { animation: daBI .25s ease-out; }
-        .da-modal-content { animation: daCI .3s cubic-bezier(.16,1,.3,1); }
         .da-modal-closing .da-modal-backdrop { animation: daBO .2s ease-in forwards; }
-        .da-modal-closing .da-modal-content { animation: daCO .2s ease-in forwards; }
+        .da-modal-closing .da-modal-content { animation: daDn .2s ease-in forwards; }
+        @media(min-width:640px) {
+          .da-modal-closing .da-modal-content { animation: daCO .2s ease-in forwards; }
+        }
         @keyframes daBI { from{opacity:0} to{opacity:1} }
         @keyframes daBO { from{opacity:1} to{opacity:0} }
         @keyframes daCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
         @keyframes daCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
-        @media(max-width:639px) {
-          .da-modal-content { animation: daUp .3s cubic-bezier(.16,1,.3,1); }
-          .da-modal-closing .da-modal-content { animation: daDn .2s ease-in forwards; }
-          @keyframes daUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
-          @keyframes daDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(40px)} }
-        }
+        @keyframes daUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes daDn { from{transform:translateY(0)} to{transform:translateY(100%)} }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

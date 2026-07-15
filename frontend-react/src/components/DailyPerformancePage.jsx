@@ -1243,8 +1243,11 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
 const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="relative w-full max-w-5xl max-h-[90vh] rounded-md bg-[#0a0805] border border-white/[0.08] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4" onClick={onClose}>
+      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-2xl bg-[#0a0805] border-t border-white/[0.08] sm:border flex flex-col shadow-[0_-20px_60px_rgba(0,0,0,0.65)]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
           <div><div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70">· All Filtered Signals ·</div><div className="text-lg text-white/90 mt-0.5">{signals?.length || 0} signals</div></div>

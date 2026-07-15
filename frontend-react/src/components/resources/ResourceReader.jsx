@@ -45,15 +45,18 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
   const videoBody = resource.content || resource.excerpt;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-2 sm:p-6 lg:p-10" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-black/85 backdrop-blur-sm p-0 sm:p-6 lg:p-10" onClick={onClose}>
       <div
-        className={`relative w-full bg-bg-secondary rounded-2xl border border-gold-primary/20 shadow-2xl flex flex-col overflow-hidden ${
-          isArticle ? 'max-w-3xl h-full max-h-[92vh]' : 'max-w-5xl h-full max-h-[90vh]'
+        className={`relative w-full bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-gold-primary/20 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden ${
+          isArticle ? 'max-w-3xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]' : 'max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]'
         }`}
         onClick={(e) => e.stopPropagation()}
         style={{ animation: 'modalIn .25s ease-out' }}
       >
-        <style>{`@keyframes modalIn{from{opacity:0;transform:scale(.98) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+        <style>{`@keyframes modalIn{from{transform:translateY(100%)}to{transform:translateY(0)}}@media(min-width:640px){@keyframes modalIn{from{opacity:0;transform:scale(.98) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}}`}</style>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
         {/* Header */}

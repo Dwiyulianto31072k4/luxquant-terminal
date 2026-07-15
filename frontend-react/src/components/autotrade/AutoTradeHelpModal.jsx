@@ -665,16 +665,17 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
   const Renderer = RENDERERS[active] || SectionHowItWorks;
 
   return (
-    <div className="fixed inset-0 z-[100000] overflow-y-auto overscroll-contain">
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        onClick={onClose}
-        className="relative flex min-h-full items-start justify-center px-4 pt-20 pb-28 sm:items-center sm:py-10"
+        onClick={(event) => event.stopPropagation()}
+        className="relative z-10 flex w-full max-w-[940px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-white/[0.08] bg-[#0a0805] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
       >
-        <div
-          onClick={(event) => event.stopPropagation()}
-          className="relative w-full max-w-[940px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
-        >
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="relative w-full">
           {/* Close */}
           <button
             onClick={onClose}
@@ -777,10 +778,11 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
             </div>
 
             {/* RIGHT pane — content */}
-            <div className="max-h-[78vh] overflow-y-auto p-6 lg:p-8">
+            <div className="max-h-[min(70dvh,78vh)] overflow-y-auto p-6 lg:p-8" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}>
               <Renderer />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -230,11 +230,14 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
   const showPreviewCard = (type === 'video' || type === 'link') && (coverPreview || embedHtml);
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-black/75 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
       <div
-        className="bg-bg-secondary rounded-2xl border border-gold-primary/20 max-w-2xl w-full max-h-[92vh] overflow-y-auto"
+        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-gold-primary/20 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/25" />
+        </div>
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gold-primary/10 bg-bg-secondary/95 backdrop-blur">
           <h3 className="text-white font-semibold text-base">
