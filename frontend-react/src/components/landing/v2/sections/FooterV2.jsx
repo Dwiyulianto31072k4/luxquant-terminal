@@ -156,89 +156,43 @@ export default function FooterV2({ onNav }) {
               and research in one terminal.
             </p>
 
-            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/35">
-              Ecosystem
-            </p>
-            <div className="flex flex-wrap gap-3 [perspective:900px]">
+            {/* Compact icon row — Stripe / OpenAI scale (~28–32px), tight gap */}
+            <div className="flex flex-wrap items-center gap-2" role="list" aria-label="Ecosystem">
               {ECOSYSTEM.map((e) => (
                 <a
                   key={e.label}
                   href={e.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={e.label}
-                  className="group relative block [transform-style:preserve-3d]"
+                  aria-label={`${e.label} — ${e.handle}`}
+                  title={e.handle}
+                  role="listitem"
+                  className={`group flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border transition duration-150 ${
+                    e.light
+                      ? "border-white/[0.08] hover:border-white/20"
+                      : "border-white/[0.08] hover:border-white/18"
+                  } opacity-90 hover:opacity-100 hover:brightness-110`}
+                  style={{ background: e.bg }}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -inset-2.5 rounded-[22px] opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-100"
-                    style={{
-                      background:
-                        "radial-gradient(circle, rgba(212,168,83,0.45) 0%, rgba(212,168,83,0.12) 48%, transparent 72%)",
-                    }}
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-1.5 -bottom-1 h-3 rounded-full bg-black/40 blur-md transition-all duration-300 group-hover:-bottom-1.5"
-                  />
-                  <span
-                    className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] ring-1 ring-inset transition-[transform,box-shadow] duration-300 ease-out will-change-transform ${
-                      e.light ? "ring-black/[0.07]" : "ring-white/10"
-                    } shadow-[0_2px_4px_rgba(0,0,0,0.4),0_8px_16px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.22)] group-hover:shadow-[0_10px_18px_rgba(0,0,0,0.45),0_20px_36px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.35)] motion-safe:group-hover:[transform:translateY(-4px)_scale(1.1)] group-active:[transform:scale(0.96)]`}
-                    style={{ background: e.bg }}
-                  >
-                    {e.img ? (
-                      <>
-                        <span
-                          aria-hidden="true"
-                          className="absolute text-[15px] font-bold"
-                          style={{ color: e.fbColor || "#0a0506", opacity: 0 }}
-                        >
-                          {e.label[0]}
-                        </span>
-                        <img
-                          src={e.img}
-                          alt={e.label}
-                          className="relative h-full w-full object-contain p-2"
-                          onError={(ev) => {
-                            ev.currentTarget.style.display = "none";
-                            const fb = ev.currentTarget.previousElementSibling;
-                            if (fb) fb.style.opacity = "1";
-                          }}
-                        />
-                      </>
-                    ) : (
-                      <svg
-                        className="h-[25px] w-[25px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
-                        viewBox="0 0 24 24"
-                        fill="#ffffff"
-                        aria-hidden="true"
-                      >
-                        {e.glyph}
-                      </svg>
-                    )}
-                  </span>
-
-                  <span
-                    role="tooltip"
-                    className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-medium text-white opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
-                    style={{
-                      background: "rgba(20,8,9,0.96)",
-                      border: "1px solid rgba(212,168,83,0.28)",
-                      boxShadow: "0 10px 24px rgba(0,0,0,0.55)",
-                    }}
-                  >
-                    {e.handle}
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-1/2 top-full -mt-1 h-2 w-2 -translate-x-1/2 rotate-45"
-                      style={{
-                        background: "rgba(20,8,9,0.96)",
-                        borderRight: "1px solid rgba(212,168,83,0.28)",
-                        borderBottom: "1px solid rgba(212,168,83,0.28)",
+                  {e.img ? (
+                    <img
+                      src={e.img}
+                      alt=""
+                      className="h-full w-full object-contain p-1.5"
+                      onError={(ev) => {
+                        ev.currentTarget.style.display = "none";
                       }}
                     />
-                  </span>
+                  ) : (
+                    <svg
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="#ffffff"
+                      aria-hidden="true"
+                    >
+                      {e.glyph}
+                    </svg>
+                  )}
                 </a>
               ))}
             </div>
