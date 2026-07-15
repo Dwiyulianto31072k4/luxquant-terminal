@@ -12,7 +12,7 @@
 // PnL card = deriveChartWithCard(latest_chart_url) → the _with_card.png variant.
 // Order: interleave Weekly then Daily (W,D,W,D…), peak-sorted within each type.
 //
-// Props: gainers (array)
+// Props: gainers (array), blendWithHero (bool — pull into video dissolve only)
 // ════════════════════════════════════════════════════════════════
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -96,7 +96,7 @@ const ArrowUpRight = ({ className = "h-3 w-3" }) => (
   </svg>
 );
 
-export default function RecentWinnersMarquee({ gainers = [] }) {
+export default function RecentWinnersMarquee({ gainers = [], blendWithHero = true }) {
   const { t } = useTranslation();
 
   // Interleave Weekly → Daily → Weekly → Daily (same spirit as Top Gainers).
@@ -259,13 +259,18 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
 
   const track = hasWinners ? [...winners, ...winners] : [];
 
+  // Video hero: pull into dissolve. Algo product slide: normal gap (no collision).
+  const sectionClass = blendWithHero
+    ? "rwm relative z-[1] -mt-16 pt-4 pb-12 sm:-mt-24 sm:pt-6 sm:pb-24 lg:-mt-28"
+    : "rwm relative z-[1] mt-2 pt-10 pb-12 sm:mt-4 sm:pt-14 sm:pb-24";
+
   return (
-    <section className="rwm relative z-[1] -mt-16 pt-4 pb-12 sm:-mt-24 sm:pt-6 sm:pb-24 lg:-mt-28">
+    <section className={sectionClass}>
       {/* Additive glow only — transparent section so page canvas is continuous
           with the hero dissolve (same world, not a new band under a cut). */}
       <div className="rwm-bg" aria-hidden="true" />
 
-      {/* Heading sits in the hero dissolve zone → reads "inside" the canvas */}
+      {/* Heading — only overlaps video dissolve when blendWithHero */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
         <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-white">
           Real calls. Real peaks.

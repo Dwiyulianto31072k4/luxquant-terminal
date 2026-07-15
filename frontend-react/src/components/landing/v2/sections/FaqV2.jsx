@@ -80,7 +80,8 @@ export default function FaqV2() {
           </span>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/55 lg:text-base">
-          Everything you need to know about the LuxQuant algorithm.
+          How the algorithm thinks, how risk is defined, how the track record is audited —
+          and how to start with a process you can actually verify.
         </p>
       </div>
 

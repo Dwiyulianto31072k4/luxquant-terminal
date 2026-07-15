@@ -481,8 +481,10 @@ export default function Performance({ data }) {
           <CardHead title="Where Winners Exit" info={INFO.outcome} sub={`${nfmt(outcomeTotal)} closed trades`} />
           {outcomeTotal > 0 ? (
             <>
-            <div className="flex flex-1 items-center gap-6">
-              <div className="relative h-44 w-44 flex-shrink-0">
+            {/* Mobile: stack donut + full-width legend so Share % never clips.
+                Desktop: side-by-side. */}
+            <div className="flex flex-1 flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
+              <div className="relative h-40 w-40 flex-shrink-0 sm:h-44 sm:w-44">
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie data={outcome} dataKey="count" nameKey="label" startAngle={90} endAngle={-270} innerRadius="62%" outerRadius="100%" stroke="none" paddingAngle={1.5}>
@@ -495,29 +497,43 @@ export default function Performance({ data }) {
                   <span className="font-mono text-[8px] uppercase tracking-wider text-text-muted">reach TP</span>
                 </div>
               </div>
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2.5 pb-0.5 font-mono text-[8px] uppercase tracking-wider text-text-muted">
-                  <span className="w-2.5 flex-shrink-0" />
-                  <span className="w-9">Exit</span>
-                  <span className="flex-1 text-right">Avg P/L</span>
-                  <span className="w-12 text-right">Trades</span>
-                  <span className="w-9 text-right">Share</span>
+              <div className="w-full min-w-0 flex-1 space-y-2">
+                <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-x-2 pb-0.5 font-mono text-[8px] uppercase tracking-wider text-text-muted sm:gap-x-2.5">
+                  <span className="w-2.5" />
+                  <span>Exit</span>
+                  <span className="text-right">Avg P/L</span>
+                  <span className="text-right">Trades</span>
+                  <span className="min-w-[2.5rem] text-right">Share</span>
                 </div>
-                {outcome.map((o) => (
-                  <div key={o.label} className="flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: o.color }} />
-                    <span className="w-9 font-mono text-[12px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>{o.label === "TP4" ? "TP4+" : o.label}</span>
-                    <span className="flex-1 text-right font-mono text-[12px] tabular-nums" style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}>
-                      {o.avg == null ? "—" : signed(o.avg)}
-                    </span>
-                    <span className="w-12 text-right font-mono text-[12px] tabular-nums text-white">{nfmt(o.count)}</span>
-                    <span className="w-9 text-right font-mono text-[10px] text-text-muted">{((o.count / outcomeTotal) * 100).toFixed(0)}%</span>
-                  </div>
-                ))}
+                {outcome.map((o) => {
+                  const share = ((o.count / outcomeTotal) * 100);
+                  return (
+                    <div
+                      key={o.label}
+                      className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-2.5"
+                    >
+                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: o.color }} />
+                      <span className="font-mono text-[12px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>
+                        {o.label === "TP4" ? "TP4+" : o.label}
+                      </span>
+                      <span className="text-right font-mono text-[12px] tabular-nums" style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}>
+                        {o.avg == null ? "—" : signed(o.avg)}
+                      </span>
+                      <span className="text-right font-mono text-[12px] tabular-nums text-white">{nfmt(o.count)}</span>
+                      <span
+                        className="min-w-[2.5rem] text-right font-mono text-[11px] font-semibold tabular-nums sm:text-[10px]"
+                        style={{ color: o.label === "SL" ? C.loss : C.gold }}
+                        title={`${share.toFixed(1)}% of closed trades`}
+                      >
+                        {share.toFixed(0)}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <p className="mt-3 border-t border-white/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
-              Avg P/L · TP1–TP3 = actual target gains · <span className="text-white">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss.
+              Avg P/L · TP1–TP3 = actual target gains · <span className="text-white">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
             </p>
             </>
           ) : (

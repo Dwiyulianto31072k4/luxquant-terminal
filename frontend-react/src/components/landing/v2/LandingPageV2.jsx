@@ -14,7 +14,7 @@
 //
 // Dipasang di route /v2 (lihat catatan integrasi App.jsx).
 // ════════════════════════════════════════════════════════════════
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
 import { landingFaqJsonLd } from "../../../content/faq";
@@ -35,6 +35,8 @@ import FooterV2 from "./sections/FooterV2";
 export default function LandingPageV2() {
   const { stats, topGainers, performanceData } = useLandingData();
   const [activeId, setActiveId] = useState("hero");
+  // Hero carousel: only pull Real calls into dissolve on video slide.
+  const [heroIsVideo, setHeroIsVideo] = useState(true);
 
   // Capture ?ref= → localStorage (sama seperti v1)
   useEffect(() => {
@@ -46,6 +48,10 @@ export default function LandingPageV2() {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const onHeroSlideChange = useCallback((_idx, meta) => {
+    setHeroIsVideo(Boolean(meta?.isVideoSlide));
+  }, []);
 
   return (
     <div className="lp-v2 min-h-screen bg-bg-primary text-white relative overflow-x-hidden">
@@ -102,8 +108,8 @@ export default function LandingPageV2() {
       />
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
-      <HeroSlider onNav={scrollTo} gainers={topGainers} />
-      <RecentWinnersMarquee gainers={topGainers} />
+      <HeroSlider onNav={scrollTo} gainers={topGainers} onSlideChange={onHeroSlideChange} />
+      <RecentWinnersMarquee gainers={topGainers} blendWithHero={heroIsVideo} />
       <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
       <Architecture />
       <TerminalPreview />

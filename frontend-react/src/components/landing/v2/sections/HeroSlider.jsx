@@ -24,13 +24,19 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-export default function HeroSlider({ onNav, gainers = [] }) {
+export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStartX = useRef(null);
 
   const ActiveSlide = SLIDES[active];
   const isVideoSlide = ActiveSlide === HeroSlideVideo;
+
+  // Tell parent which slide is up so Real calls can pull into the video
+  // dissolve only — never under the algo product mockup (overlap bug).
+  useEffect(() => {
+    onSlideChange?.(active, { isVideoSlide });
+  }, [active, isVideoSlide, onSlideChange]);
 
   const goToSlide = (index) => {
     const total = SLIDES.length;
