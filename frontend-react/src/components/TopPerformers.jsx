@@ -156,20 +156,17 @@ const TopPerformers = () => {
     return (
       <div className="mb-10">
         <ShimmerStyles />
-        <div className="lqsk-group relative rounded-2xl border border-white/[0.07] bg-[#0a0805] p-4 sm:p-6 overflow-hidden">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-        {/* Title — matches the real heading, not a boxed placeholder */}
-        <div className="mb-6 sm:mb-7">
-          <div className="h-8 w-56 rounded-lg bg-white/[0.05] sm:h-9 sm:w-72" />
+        <div className="lqsk-group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3.5 sm:p-5">
+        <div className="mb-5">
+          <div className="h-7 w-48 rounded-lg bg-white/[0.05] sm:h-8 sm:w-64" />
+          <div className="mt-2 h-3 w-40 rounded bg-white/[0.03]" />
         </div>
-
-        {/* Control bar — category tabs (left) + time-range pill (right) */}
-        <div className="mb-4 flex flex-col gap-4 border-b border-white/[0.08] pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-5">
-            {[...Array(4)].map((_, j) => <div key={j} className="h-4 w-16 rounded bg-white/[0.05]" />)}
-          </div>
-          <div className="h-8 w-full rounded-full bg-white/[0.04] sm:w-52" />
+        <div className="mb-4 flex gap-2 overflow-hidden">
+          {[...Array(4)].map((_, j) => (
+            <div key={j} className="h-8 w-24 shrink-0 rounded-full bg-white/[0.05]" />
+          ))}
         </div>
+        <div className="mb-4 h-8 w-56 rounded-lg bg-white/[0.04]" />
 
         {/* Open leaderboard rows — borderless, only hairline dividers */}
         <div className="divide-y divide-white/[0.04]">
@@ -191,256 +188,295 @@ const TopPerformers = () => {
     );
   }
 
-  // Solid podium medal (gold / silver / bronze) — filled SVG; plain number otherwise
+  // Exchange-style rank: compact podium tint for top 3
   const rankBadge = (rank) => {
     if (rank <= 3) {
-      const m = rank === 1
-        ? { face: '#f0d890', body: '#d4a853', ring: '#8b6914', ink: '#3a2a08' }
-        : rank === 2
-          ? { face: '#eef1f4', body: '#c2c7cf', ring: '#8b9099', ink: '#2c2f34' }
-          : { face: '#e8b68a', body: '#c0875a', ring: '#8a5a34', ink: '#3a230f' };
+      const tone =
+        rank === 1
+          ? "bg-[#d4a853]/18 text-[#f0d78c] ring-[#d4a853]/35"
+          : rank === 2
+            ? "bg-white/[0.08] text-white/80 ring-white/15"
+            : "bg-[#c0875a]/15 text-[#e8b68a] ring-[#c0875a]/30";
       return (
-        <span className="relative inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0">
-          <svg viewBox="0 0 32 32" className="w-full h-full drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
-            <circle cx="16" cy="16" r="14" fill={m.body} />
-            <circle cx="16" cy="16" r="14" fill="none" stroke={m.ring} strokeWidth="2" />
-            <path d="M16 4a12 12 0 0 1 8.5 3.5A12 12 0 0 0 16 18 12 12 0 0 0 7.5 7.5 12 12 0 0 1 16 4z" fill={m.face} opacity="0.9" />
-            <circle cx="16" cy="14.5" r="8.5" fill={m.face} />
-          </svg>
-          <span className="absolute font-mono text-[11px] sm:text-xs font-bold" style={{ color: m.ink }}>{rank}</span>
+        <span
+          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-[11px] font-bold tabular-nums ring-1 ring-inset ${tone}`}
+        >
+          {rank}
         </span>
       );
     }
     return (
-      <span className="font-mono text-xs tabular-nums text-text-muted/45 w-7 sm:w-8 text-center flex-shrink-0">
-        {String(rank).padStart(2, '0')}
+      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center font-mono text-[11px] tabular-nums text-white/30">
+        {rank}
       </span>
     );
   };
 
-
   return (
     <div className="mb-10 relative">
-      <div className="relative rounded-2xl border border-white/[0.07] bg-[#0a0805] overflow-hidden shadow-2xl shadow-black/40">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-        <div className="p-4 sm:p-6">
-      {/* ═══ HEADER ═══ */}
-      <div className="relative mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="font-display flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[24px] sm:text-[30px] font-bold leading-none tracking-tight text-white">
-            <span className="whitespace-nowrap">Top Gainers</span>
-            <span className="whitespace-nowrap text-gold-primary">by LuxQuant</span>
-          </h2>
-          <p className="mt-2 font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-text-muted/70">LuxQuant's best calls · tap any row for the original proof</p>
-        </div>
-      </div>
-
-      {/* ═══ CUSTOM DATE PICKER (desktop only — mobile uses the sheet) ═══ */}
-      {showCustom && (
-        <div className="mb-4 hidden sm:flex flex-wrap items-center gap-2.5 rounded-xl border border-gold-primary/20 bg-[#0c0a07] p-3">
-          <span className="font-mono text-[9px] text-gold-primary/80 uppercase tracking-[0.18em]">{t('top.custom')}</span>
-          <span className="hidden sm:block h-4 w-px bg-white/10" />
-          <label className="flex items-center gap-2">
-            <span className="font-mono text-[9px] text-text-muted uppercase tracking-[0.15em]">{t('top.from')}</span>
-            <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.1] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/50 hover:border-white/20 transition-colors [color-scheme:dark]" />
-          </label>
-          <svg viewBox="0 0 16 16" className="h-3 w-3 fill-gold-primary/50" aria-hidden="true"><path d="M2.5 7.25h8.3L8.3 4.7l1-1L13.5 8l-4.2 4.3-1-1 2.5-2.55H2.5z" /></svg>
-          <label className="flex items-center gap-2">
-            <span className="font-mono text-[9px] text-text-muted uppercase tracking-[0.15em]">{t('top.to')}</span>
-            <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.1] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/50 hover:border-white/20 transition-colors [color-scheme:dark]" />
-          </label>
-          <button onClick={handleCustomApply} disabled={!customFrom || !customTo} className="ml-auto px-4 py-1.5 bg-gold-primary text-[#1a1206] font-semibold hover:brightness-105 transition-all rounded-lg font-mono text-[10px] uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed">{t('top.apply')}</button>
-        </div>
-      )}
-
-      {data && (data.total_tp_hits || data.total_tp4) === 0 && !loading && (
-        <div className="text-center py-8 mb-3 rounded-2xl border border-white/[0.06] bg-[#0a0805]">
-          <p className="text-text-muted font-mono text-xs uppercase tracking-wider">{t('top.no_tp')}</p>
-        </div>
-      )}
-
-      {/* ═══ CONTROL BAR — DESKTOP: solid category chips (left) + time-range segmented (right) ═══ */}
-      {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-4 hidden gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">
-          {/* Category chips */}
-          <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto">
-            {CATEGORIES.map((c) => {
-              const on = category === c.key;
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => setCategory(c.key)}
-                  className={`min-w-0 rounded-lg px-3 py-2 font-mono text-[10px] uppercase tracking-[0.1em] transition-all sm:text-[11px] ${
-                    on
-                      ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
-                      : 'border border-white/[0.08] bg-[#0c0a07] text-text-muted hover:text-white hover:border-white/20'
-                  }`}
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+        <div className="p-3.5 sm:p-5 lg:p-6">
+          {/* Header */}
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2
+                  className="text-[20px] font-semibold tracking-tight text-white sm:text-[26px]"
+                  style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
                 >
-                  <span className="block truncate">{c.label}</span>
+                  Top Gainers
+                  <span className="ml-1.5 font-medium text-white/35">· Calls</span>
+                </h2>
+                <span className="hidden items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2 py-0.5 sm:inline-flex">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400/90">Live</span>
+                </span>
+              </div>
+              <p className="mt-1 text-[12px] text-white/35">
+                Best resolved calls · tap a row for proof
+              </p>
+            </div>
+            {periodRange.from && (
+              <div className="hidden font-mono text-[11px] tabular-nums text-white/40 sm:block">
+                {periodRange.from}
+                {periodRange.to ? (
+                  <span className="text-white/25"> → {periodRange.to}</span>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          {/* Filters — horizontal chips (Bybit/MEXC) */}
+          {data && data.top_gainers?.length > 0 && (
+            <div className="mb-3 space-y-2.5 sm:mb-4">
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {CATEGORIES.map((c) => {
+                  const on = category === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => setCategory(c.key)}
+                      className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition sm:text-[13px] ${
+                        on
+                          ? "bg-white text-[#0a0506]"
+                          : "bg-white/[0.04] text-white/50 hover:bg-white/[0.07] hover:text-white/80"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-lg border border-white/[0.08] bg-black/20 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {presets.map(({ key, label }) => {
+                    const on = activeFilter === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handlePresetClick(key)}
+                        className={`shrink-0 rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide transition sm:px-3 sm:text-[11px] ${
+                          on
+                            ? "bg-white/[0.12] font-semibold text-white"
+                            : "text-white/40 hover:text-white/70"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSheetOpen(true)}
+                  className="shrink-0 rounded-lg border border-white/[0.08] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-white/40 transition hover:border-white/15 hover:text-white/70 sm:hidden"
+                >
+                  More
                 </button>
-              );
-            })}
-          </div>
+              </div>
 
-          {/* Time range: solid segmented control */}
-          <div className="grid w-full grid-cols-4 items-center rounded-lg border border-white/[0.08] bg-[#0a0506] p-1 sm:flex sm:w-auto sm:flex-shrink-0">
-            {presets.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => handlePresetClick(key)}
-                className={`min-w-0 flex-1 rounded-md px-1 py-1.5 font-mono text-[9px] uppercase tracking-[0.08em] transition-all sm:flex-none sm:px-3.5 sm:text-[10px] sm:tracking-wider ${
-                  activeFilter === key
-                    ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
-                    : 'text-text-muted hover:bg-white/[0.05] hover:text-white'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+              {showCustom && (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-black/25 p-2.5">
+                  <label className="flex items-center gap-1.5">
+                    <span className="font-mono text-[9px] uppercase text-white/35">{t("top.from")}</span>
+                    <input
+                      type="date"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      className="rounded-md border border-white/10 bg-transparent px-2 py-1 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <span className="font-mono text-[9px] uppercase text-white/35">{t("top.to")}</span>
+                    <input
+                      type="date"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                      className="rounded-md border border-white/10 bg-transparent px-2 py-1 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleCustomApply}
+                    disabled={!customFrom || !customTo}
+                    className="ml-auto rounded-md bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0a0506] disabled:opacity-30"
+                  >
+                    {t("top.apply")}
+                  </button>
+                </div>
+              )}
 
-      {/* ═══ CONTROL BAR — MOBILE: two compact triggers → bottom sheet ═══ */}
-      {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-4 sm:hidden">
-          <div className="flex items-stretch gap-2">
-            <button
-              type="button"
-              onClick={() => setSheetOpen(true)}
-              className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#0c0a07] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
-            >
-              <span className="min-w-0">
-                <span className="block font-mono text-[8px] uppercase tracking-[0.18em] text-text-muted/50">View</span>
-                <span className="mt-0.5 block truncate font-mono text-[11px] font-semibold text-white">{catLabel}</span>
-              </span>
-              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 fill-text-muted/60" aria-hidden="true"><path d="M8 11 3.5 6.5l1-1L8 9l3.5-3.5 1 1z" /></svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSheetOpen(true)}
-              className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#0c0a07] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
-            >
-              <span className="min-w-0">
-                <span className="block font-mono text-[8px] uppercase tracking-[0.18em] text-text-muted/50">Range</span>
-                <span className="mt-0.5 block truncate font-mono text-[11px] font-semibold text-gold-primary">{rangeLabel}</span>
-              </span>
-              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 fill-text-muted/60" aria-hidden="true"><path d="M8 11 3.5 6.5l1-1L8 9l3.5-3.5 1 1z" /></svg>
-            </button>
-          </div>
-          {data?.period && (
-            <div className="mt-2 flex items-center gap-1.5 px-0.5 font-mono text-[9px]">
-              <span className="uppercase tracking-[0.18em] text-text-muted/45">Window</span>
-              <span className="truncate tabular-nums text-text-muted/70">
-                {periodRange.from}{periodRange.to ? ` → ${periodRange.to}` : ''}
-              </span>
+              {periodRange.from && (
+                <p className="font-mono text-[10px] tabular-nums text-white/30 sm:hidden">
+                  {periodRange.from}
+                  {periodRange.to ? ` → ${periodRange.to}` : ""}
+                </p>
+              )}
+            </div>
+          )}
+
+          {data && (!data.top_gainers || data.top_gainers.length === 0) && (
+            <div className="py-12 text-center">
+              <p className="text-[13px] text-white/35">{t("top.no_tp")}</p>
+            </div>
+          )}
+
+          {data && data.top_gainers?.length > 0 && (
+            <div className={loading ? "opacity-50 transition-opacity" : ""}>
+              <div className="hidden border-b border-white/[0.06] px-1 pb-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_1fr_1.1fr_0.85fr_6.5rem] sm:gap-3">
+                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-white/30">#</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-white/30">Pair</span>
+                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-white/30">
+                  {t("top.first_entry") || "Entry"}
+                </span>
+                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-white/30">Path</span>
+                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-white/30">
+                  {t("top.duration") || "Time"}
+                </span>
+                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-white/30">Change</span>
+              </div>
+
+              <div className="divide-y divide-white/[0.04]">
+                {displayed.map((item, idx) => {
+                  const rank = idx + 1;
+                  const gainUp = (item.gain_pct || 0) >= 0;
+                  return (
+                    <div
+                      key={`${item.signal_id || item.pair}-${idx}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleItemClick(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleItemClick(item);
+                        }
+                      }}
+                      style={{ animationDelay: `${Math.min(idx * 28, 280)}ms` }}
+                      className="tp-row group cursor-pointer transition-colors hover:bg-white/[0.025] active:bg-white/[0.04]"
+                    >
+                      <div className="hidden items-center gap-3 px-1 py-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_1fr_1.1fr_0.85fr_6.5rem]">
+                        <div className="flex justify-center">{rankBadge(rank)}</div>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <CoinLogo pair={cleanPair(item.pair)} size={28} />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate font-mono text-[14px] font-semibold text-white group-hover:text-gold-primary/90">
+                                {coinSymbol(item.pair)}
+                              </span>
+                              <span className="shrink-0 text-[11px] text-white/25">USDT</span>
+                              {item.signal_count > 1 && (
+                                <span className="shrink-0 rounded bg-white/[0.06] px-1 py-px font-mono text-[9px] text-white/45">
+                                  ×{item.signal_count}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right font-mono text-[12px] tabular-nums text-white/45">
+                          ${formatPrice(item.entry)}
+                        </div>
+                        <div className="flex justify-center px-1">
+                          <div className="w-full max-w-[110px]">
+                            <SinceCallSpark item={item} />
+                          </div>
+                        </div>
+                        <div className="text-right font-mono text-[11px] tabular-nums text-white/35">
+                          {item.duration_display}
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span
+                            className={`inline-flex rounded-md px-2 py-1 font-mono text-[13px] font-semibold tabular-nums leading-none ${
+                              gainUp
+                                ? "bg-emerald-500/12 text-emerald-400"
+                                : "bg-red-500/12 text-red-400"
+                            }`}
+                          >
+                            {gainUp ? "+" : ""}
+                            {formatGainDisplay(item.gain_pct)}
+                          </span>
+                          {item.tp_price > 0 && (
+                            <span className="font-mono text-[9px] tabular-nums text-white/25">
+                              ${formatPrice(item.tp_price)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 py-2.5 sm:hidden">
+                        {rankBadge(rank)}
+                        <CoinLogo pair={cleanPair(item.pair)} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate font-mono text-[14px] font-semibold text-white">
+                              {coinSymbol(item.pair)}
+                            </span>
+                            {item.signal_count > 1 && (
+                              <span className="rounded bg-white/[0.06] px-1 font-mono text-[9px] text-white/40">
+                                ×{item.signal_count}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-white/35">
+                            <span>${formatPrice(item.entry)}</span>
+                            <span className="text-white/15">·</span>
+                            <span>{item.duration_display}</span>
+                          </div>
+                        </div>
+                        <div className="w-[52px] shrink-0">
+                          <SinceCallSpark item={item} compact />
+                        </div>
+                        <div className="w-[4.75rem] shrink-0 text-right">
+                          <span
+                            className={`inline-flex rounded-md px-1.5 py-1 font-mono text-[13px] font-semibold tabular-nums leading-none ${
+                              gainUp
+                                ? "bg-emerald-500/12 text-emerald-400"
+                                : "bg-red-500/12 text-red-400"
+                            }`}
+                          >
+                            {gainUp ? "+" : ""}
+                            {formatGainDisplay(item.gain_pct)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {displayed.length === 0 && (
+                <div className="py-10 text-center">
+                  <p className="text-[13px] text-white/35">{t("top.no_data")}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
-
-      {/* Date window — DESKTOP: one clean solid WINDOW chip */}
-      {data?.period && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-4 hidden items-center gap-2 sm:flex">
-          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/55">Window</span>
-          <span className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#0a0506] px-3 py-1.5 font-mono text-[10px] sm:text-[11px] tracking-wide text-white/85 tabular-nums">
-            <span className="truncate">{periodRange.from}</span>
-            {periodRange.to && (
-              <>
-                <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0 fill-gold-primary/60" aria-hidden="true"><path d="M2.5 7.25h8.3L8.3 4.7l1-1L13.5 8l-4.2 4.3-1-1 2.5-2.55H2.5z" /></svg>
-                <span className="truncate">{periodRange.to}</span>
-              </>
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* ═══ LEADERBOARD — open MEXC-style table (no card wrapper) ═══ */}
-      {data && data.top_gainers?.length > 0 && (
-        <div className={loading ? 'opacity-50' : ''}>
-          <div className="relative">
-
-            {/* Column headers (desktop) */}
-            <div className="hidden sm:grid grid-cols-[2.5rem_1.2fr_1fr_1fr_0.9fr_1.1fr] gap-3 px-2 py-3 border-b border-white/[0.08] font-mono text-[10px] text-text-muted/90 uppercase tracking-[0.2em]">
-              <span className="text-center">#</span>
-              <span>Asset</span>
-              <span className="text-right">{t('top.first_entry') || 'Entry'}</span>
-              <span className="text-center">Since Call</span>
-              <span className="text-right">{t('top.duration') || 'Duration'}</span>
-              <span className="text-right">Gain</span>
-            </div>
-
-            {/* Mobile header — three concise, scan-friendly columns */}
-            <div className="sm:hidden grid grid-cols-[4.25rem_minmax(0,1fr)_4.75rem_5.75rem] items-center gap-x-2 py-2.5 border-b border-white/[0.08]">
-              <span className="col-span-2 font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Asset</span>
-              <span className="text-center font-mono text-[8px] text-text-muted/60 uppercase tracking-[0.12em]">After call</span>
-              <span className="text-right font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Gain</span>
-            </div>
-
-            <div className="divide-y divide-white/[0.04]">
-              {displayed.map((item, idx) => {
-                const rank = idx + 1;
-                const isPodium = idx < 3;
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => handleItemClick(item)}
-                    style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}
-                    className="tp-row relative hover:bg-white/[0.02] transition-colors cursor-pointer group"
-                  >
-
-                    {/* Desktop grid */}
-                    <div className="hidden sm:grid grid-cols-[2.5rem_1.2fr_1fr_1fr_0.9fr_1.1fr] gap-3 px-2 py-3.5 items-center relative">
-                      <div className="flex justify-center">{rankBadge(rank)}</div>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <CoinLogo pair={cleanPair(item.pair)} size={30} />
-                        <span className="text-white font-mono text-[15px] font-semibold group-hover:text-gold-primary transition-colors truncate">{coinSymbol(item.pair)}</span>
-                        {item.signal_count > 1 && <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">×{item.signal_count}</span>}
-                      </div>
-                      <div className="text-right font-mono text-xs text-text-muted tabular-nums">${formatPrice(item.entry)}</div>
-                      <div className="flex justify-center"><div className="w-full max-w-[120px]"><SinceCallSpark item={item} /></div></div>
-                      <div className="text-right font-mono text-[11px] text-text-muted/70">{item.duration_display}</div>
-                      <div className="text-right">
-                        <div className={`font-mono text-lg font-bold text-profit tabular-nums leading-none ${isPodium ? 'drop-shadow-[0_0_10px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
-                        {item.tp_price > 0 && <div className="font-mono text-[9px] text-text-muted/40 tabular-nums mt-1">peak ${formatPrice(item.tp_price)}</div>}
-                      </div>
-                    </div>
-
-                    {/* Mobile — compact four-column market row, with a real After Call sparkline */}
-                    <div className="sm:hidden grid grid-cols-[4.25rem_minmax(0,1fr)_4.75rem_5.75rem] items-center gap-x-2 py-3 relative">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {rankBadge(rank)}
-                        <CoinLogo pair={cleanPair(item.pair)} size={27} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="min-w-0 truncate text-white font-mono text-sm font-semibold group-hover:text-gold-primary transition-colors">{coinSymbol(item.pair)}</span>
-                          {item.signal_count > 1 && <span className="px-1 py-0 font-mono text-[8px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">×{item.signal_count}</span>}
-                        </div>
-                        <div className="mt-0.5 truncate font-mono text-[9px] text-text-muted/60 tabular-nums">${formatPrice(item.entry)} · {item.duration_display}</div>
-                      </div>
-                      <div className="min-w-0 px-0.5">
-                        <SinceCallSpark item={item} compact />
-                      </div>
-                      <div className="min-w-0 text-right">
-                        <div className={`font-mono text-[15px] font-bold leading-none text-profit tabular-nums ${isPodium ? 'drop-shadow-[0_0_8px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
-                        {item.tp_price > 0 && <div className="mt-1 truncate font-mono text-[8px] text-text-muted/40 tabular-nums">peak ${formatPrice(item.tp_price)}</div>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {displayed.length === 0 && (
-              <div className="p-6"><p className="text-text-muted font-mono text-xs uppercase tracking-wider text-center">{t('top.no_data')}</p></div>
-            )}
-          </div>
-        </div>
-      )}
-        </div>
       </div>
+
 
       {/* ═══ MOBILE FILTER BOTTOM SHEET ═══ */}
       {sheetOpen && createPortal(
