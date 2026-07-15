@@ -260,13 +260,12 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
   const track = hasWinners ? [...winners, ...winners] : [];
 
   return (
-    <section className="rwm relative z-10 -mt-6 py-12 sm:-mt-10 sm:py-24">
-      {/* Warm maroon glow only (additive) — section stays transparent so the
-          page canvas flows through with no gradient break. Slight negative
-          margin pulls the rail into the hero dissolve so the seam vanishes. */}
+    <section className="rwm relative z-[1] -mt-16 pt-4 pb-12 sm:-mt-24 sm:pt-6 sm:pb-24 lg:-mt-28">
+      {/* Additive glow only — transparent section so page canvas is continuous
+          with the hero dissolve (same world, not a new band under a cut). */}
       <div className="rwm-bg" aria-hidden="true" />
 
-      {/* Heading */}
+      {/* Heading sits in the hero dissolve zone → reads "inside" the canvas */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
         <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-white">
           Real calls. Real peaks.
@@ -375,9 +374,10 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       <style>{`
         .rwm-bg {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          /* Soft only — no top edge plate that would re-draw a seam under hero */
           background:
-            radial-gradient(ellipse 64% 78% at 50% 46%, rgba(150,30,30,0.22) 0%, rgba(112,24,24,0.10) 42%, rgba(40,10,11,0) 72%),
-            radial-gradient(ellipse 42% 48% at 50% 44%, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0) 70%);
+            radial-gradient(ellipse 70% 55% at 50% 38%, rgba(150,30,30,0.18) 0%, rgba(112,24,24,0.07) 48%, transparent 75%),
+            radial-gradient(ellipse 46% 40% at 50% 42%, rgba(212,168,83,0.045) 0%, transparent 70%);
         }
 
         /* Mask dissolve (globe-style): cards fade to transparent so the page

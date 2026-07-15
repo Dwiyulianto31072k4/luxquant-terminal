@@ -104,14 +104,14 @@ export default function HeroSlider({ onNav, gainers = [] }) {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
-      className="relative z-10 w-full outline-none"
+      className="relative z-[1] w-full outline-none"
     >
-      {/* Ambient background glow — transparent, no hard plate */}
+      {/* Ambient gold — additive only, never a plate under the seam */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[680px]"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[70%]"
       >
-        <div className="absolute left-1/2 top-0 h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-gold-primary/[0.035] blur-[180px]" />
+        <div className="absolute left-1/2 top-[12%] h-[420px] w-[900px] -translate-x-1/2 rounded-full bg-gold-primary/[0.04] blur-[160px]" />
       </div>
 
       {/* Hero stage */}
@@ -133,13 +133,12 @@ export default function HeroSlider({ onNav, gainers = [] }) {
         </div>
       </div>
 
-      {/* Dots overlay INSIDE the hero bottom (not a separate opaque strip).
-          Sitting after the video created a hard contrast band vs Real calls. */}
+      {/* Dots float in the dissolve zone (over transparent canvas) */}
       <div
         className={[
           "pointer-events-none absolute inset-x-0 z-30 flex w-full items-center justify-center gap-2",
           isVideoSlide
-            ? "bottom-5 sm:bottom-7 lg:bottom-8"
+            ? "bottom-8 sm:bottom-10 lg:bottom-12"
             : "bottom-5 sm:bottom-6",
         ].join(" ")}
         aria-label="Hero slide controls"
