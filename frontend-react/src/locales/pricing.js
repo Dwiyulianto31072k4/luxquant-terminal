@@ -72,7 +72,8 @@ export const pricingEn = {
   youre_subscribed: "Active subscription",
 
   compare_title: "What’s included",
-  compare_subtitle: "Paid plans include the full product. Choose the billing that fits.",
+  compare_subtitle: "Select a plan to see what you get. No horizontal scrolling.",
+  compare_note: "Monthly, Annual, and Lifetime unlock the same product. Support and update terms differ.",
   compare_feature: "Capability",
   compare_signals: "Algorithmic signals",
   compare_autotrade: "AutoTrade",
@@ -198,7 +199,8 @@ export const pricingZh = {
   youre_subscribed: "订阅中",
 
   compare_title: "包含内容",
-  compare_subtitle: "付费方案均含完整产品，按计费方式选择即可。",
+  compare_subtitle: "选择方案查看权益。无需左右滑动。",
+  compare_note: "月付、年付与终身解锁相同产品。支持与更新条款不同。",
   compare_feature: "能力",
   compare_signals: "算法信号",
   compare_autotrade: "AutoTrade",

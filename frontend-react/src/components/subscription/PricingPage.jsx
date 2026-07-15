@@ -211,34 +211,52 @@ const PricingPage = () => {
     { q: t("pricing.faq_q5"), a: t("pricing.faq_a5") },
   ];
 
-  const compareRows = [
-    { label: t("pricing.compare_signals"), free: false, monthly: true, yearly: true, lifetime: true },
-    { label: t("pricing.compare_autotrade"), free: false, monthly: true, yearly: true, lifetime: true },
-    { label: t("pricing.compare_analytics"), free: "partial", monthly: true, yearly: true, lifetime: true },
-    { label: t("pricing.compare_onchain"), free: false, monthly: true, yearly: true, lifetime: true },
-    { label: t("pricing.compare_ai"), free: false, monthly: true, yearly: true, lifetime: true },
-    { label: t("pricing.compare_performance"), free: "partial", monthly: true, yearly: true, lifetime: true },
-    {
-      label: t("pricing.compare_support"),
-      free: "—",
-      monthly: t("pricing.compare_support_std"),
-      yearly: t("pricing.compare_support_prio"),
-      lifetime: t("pricing.compare_support_vip"),
-    },
-    {
-      label: t("pricing.compare_updates"),
-      free: "—",
-      monthly: t("pricing.compare_updates_sub"),
-      yearly: t("pricing.compare_updates_sub"),
-      lifetime: t("pricing.compare_updates_life"),
-    },
-  ];
+  // Dynamic inclusion matrix — values drive the interactive “What’s included” (no wide table).
+  const compareMatrix = useMemo(
+    () => [
+      { id: "signals", label: t("pricing.compare_signals"), free: false, monthly: true, yearly: true, lifetime: true },
+      { id: "autotrade", label: t("pricing.compare_autotrade"), free: false, monthly: true, yearly: true, lifetime: true },
+      { id: "analytics", label: t("pricing.compare_analytics"), free: "partial", monthly: true, yearly: true, lifetime: true },
+      { id: "onchain", label: t("pricing.compare_onchain"), free: false, monthly: true, yearly: true, lifetime: true },
+      { id: "ai", label: t("pricing.compare_ai"), free: false, monthly: true, yearly: true, lifetime: true },
+      { id: "performance", label: t("pricing.compare_performance"), free: "partial", monthly: true, yearly: true, lifetime: true },
+      {
+        id: "support",
+        label: t("pricing.compare_support"),
+        free: false,
+        monthly: t("pricing.compare_support_std"),
+        yearly: t("pricing.compare_support_prio"),
+        lifetime: t("pricing.compare_support_vip"),
+      },
+      {
+        id: "updates",
+        label: t("pricing.compare_updates"),
+        free: false,
+        monthly: t("pricing.compare_updates_sub"),
+        yearly: t("pricing.compare_updates_sub"),
+        lifetime: t("pricing.compare_updates_life"),
+      },
+    ],
+    [t]
+  );
 
-  const cell = (v) => {
-    if (v === true) return <Check className="mx-auto h-3.5 w-3.5" />;
-    if (v === false) return <span className="text-white/15">—</span>;
-    if (v === "partial") return <span className="text-[11px] text-white/35">{t("pricing.limited")}</span>;
-    return <span className="text-[12px] text-white/50">{v}</span>;
+  const includeTabs = useMemo(
+    () => [
+      { id: "free", label: t("pricing.free_name") },
+      { id: "monthly", label: t("pricing.monthly") },
+      { id: "yearly", label: t("pricing.yearly") },
+      { id: "lifetime", label: t("pricing.lifetime") },
+    ],
+    [t]
+  );
+
+  const [includeTab, setIncludeTab] = useState("yearly");
+
+  const formatIncludeValue = (v) => {
+    if (v === true) return { kind: "yes" };
+    if (v === false || v === "—") return { kind: "no" };
+    if (v === "partial") return { kind: "partial", text: t("pricing.limited") };
+    return { kind: "text", text: String(v) };
   };
 
   /* Shared card surface — soft, blends with terminal (no heavy fill contrast) */
@@ -473,50 +491,78 @@ const PricingPage = () => {
               </span>
             </p>
 
-            {/* Comparison */}
-            <section className="mx-auto mt-20 max-w-4xl sm:mt-24">
+            {/* What’s included — dynamic plan tabs, no horizontal scroll */}
+            <section className="mx-auto mt-20 max-w-lg sm:mt-24">
               <h2
                 className="mb-2 text-center text-xl font-semibold tracking-tight text-white sm:text-2xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.compare_title")}
               </h2>
-              <p className="mb-10 text-center text-[14px] text-white/35">{t("pricing.compare_subtitle")}</p>
+              <p className="mb-8 text-center text-[14px] text-white/35">{t("pricing.compare_subtitle")}</p>
 
-              <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
-                <table className="w-full min-w-[560px] border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-white/[0.06]">
-                      <th className="px-4 py-3.5 text-[11px] font-normal uppercase tracking-[0.12em] text-white/30 sm:px-5">
-                        {t("pricing.compare_feature")}
-                      </th>
-                      <th className="px-2 py-3.5 text-center text-[11px] font-normal text-white/30">
-                        {t("pricing.free_name")}
-                      </th>
-                      <th className="px-2 py-3.5 text-center text-[11px] font-normal text-white/30">
-                        {t("pricing.monthly")}
-                      </th>
-                      <th className="px-2 py-3.5 text-center text-[11px] font-normal text-white/55">
-                        {t("pricing.yearly")}
-                      </th>
-                      <th className="px-2 py-3.5 text-center text-[11px] font-normal text-white/30">
-                        {t("pricing.lifetime")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {compareRows.map((row) => (
-                      <tr key={row.label} className="border-b border-white/[0.04] last:border-0">
-                        <td className="px-4 py-3.5 text-[13px] text-white/55 sm:px-5">{row.label}</td>
-                        <td className="px-2 py-3.5 text-center">{cell(row.free)}</td>
-                        <td className="px-2 py-3.5 text-center">{cell(row.monthly)}</td>
-                        <td className="px-2 py-3.5 text-center">{cell(row.yearly)}</td>
-                        <td className="px-2 py-3.5 text-center">{cell(row.lifetime)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Segmented control — wraps on narrow screens, no swipe table */}
+              <div
+                className="mb-6 grid grid-cols-4 gap-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-1"
+                role="tablist"
+                aria-label={t("pricing.compare_title")}
+              >
+                {includeTabs.map((tab) => {
+                  const active = includeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setIncludeTab(tab.id)}
+                      className={`rounded-lg py-2 text-[11px] font-medium transition sm:text-[12px] ${
+                        active
+                          ? "bg-white text-[#0a0506] shadow-sm"
+                          : "text-white/45 hover:text-white/75"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
+
+              <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.07] px-1">
+                {compareMatrix.map((row) => {
+                  const raw = row[includeTab];
+                  const v = formatIncludeValue(raw);
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5"
+                    >
+                      <span className="text-[13px] text-white/60 sm:text-[14px]">{row.label}</span>
+                      <span className="shrink-0 text-right">
+                        {v.kind === "yes" && (
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-gold-primary/90">
+                            <Check className="h-3.5 w-3.5" />
+                            <span className="sr-only">Included</span>
+                          </span>
+                        )}
+                        {v.kind === "no" && (
+                          <span className="text-[13px] text-white/20">—</span>
+                        )}
+                        {v.kind === "partial" && (
+                          <span className="text-[12px] text-white/40">{v.text}</span>
+                        )}
+                        {v.kind === "text" && (
+                          <span className="text-[12px] text-white/55">{v.text}</span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <p className="mt-4 text-center text-[12px] leading-relaxed text-white/25">
+                {t("pricing.compare_note")}
+              </p>
             </section>
 
             {/* FAQ */}
