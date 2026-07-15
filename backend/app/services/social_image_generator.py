@@ -328,6 +328,14 @@ SOCIAL_LOGO_PATH = os.environ.get("SOCIAL_LOGO_PATH", str(ASSETS_DIR / "logo-lux
 # xAI image-edit conditioned on that photo so the likeness is accurate.
 SOCIAL_FACE_DIR = Path(os.environ.get("SOCIAL_FACE_DIR", str(ASSETS_DIR / "faces")))
 LUX_RED = (190, 0, 28, 238)
+# Cheap mode: hard-cap paid image API calls per draft (default 1 — no face+brand double hit).
+CHEAP_MODE = os.environ.get("SOCIAL_CHEAP_MODE", "1").strip().lower() not in ("0", "false", "no")
+IMAGE_MAX_CALLS = int(os.environ.get("SOCIAL_IMAGE_MAX_CALLS", "1" if CHEAP_MODE else "2"))
+# Second brand-edit pass is expensive (~+$0.05). Off by default in cheap mode.
+BRAND_SECOND_PASS = os.environ.get(
+    "SOCIAL_BRAND_SECOND_PASS",
+    "0" if CHEAP_MODE else "1",
+).strip().lower() not in ("0", "false", "no")
 
 
 def _slugify_name(name: str) -> str:
@@ -896,21 +904,37 @@ def generate_ai_social_image(
             # Strip invented-logo language from the base scene prompt + hard allow-list
             scene_prompt = f"{prompt} {_brand_allowlist_clause(allow)}"
 
+            image_api_calls = 0
+
             if face_ok:
-                # ── Step 1: FACE ONLY (1:1 identity). Never dual-collage with logo. ──
+                # ── Single face edit (1:1 identity). Cheap mode: NO second brand API call. ──
                 face_ref = _prepare_face_reference(str(face_path), news_id=news_id)
                 ref_used = face_ref
+                # Fold verified brands into the ONE identity prompt so we don't pay twice
                 identity_prompt = _identity_face_prompt(
                     scene_prompt,
                     brand=primary_org_name,
                     verified_brand_names=allow,
                 )
+                if allow and logo_ok:
+                    identity_prompt += (
+                        f" If possible, subtly include verified brand presence for "
+                        f"{', '.join(allow)} via environment/architecture only — "
+                        "never invent unlisted brand logos."
+                    )
                 gen_prompt = identity_prompt
                 _edit_xai_image(identity_prompt, face_ref, raw_path, aspect_ratio="3:4")
-                mode = "ai_xai_face_1to1"
+                image_api_calls = 1
+                mode = "ai_xai_face_1to1_cheap" if CHEAP_MODE else "ai_xai_face_1to1"
 
-                # ── Step 2: ONLY verified brands into scene (no inventing HYPE/etc.) ──
-                if logo_ok and allow:
+                # Optional 2nd pass only when explicitly enabled (costs +~$0.05)
+                if (
+                    BRAND_SECOND_PASS
+                    and IMAGE_MAX_CALLS >= 2
+                    and logo_ok
+                    and allow
+                    and image_api_calls < IMAGE_MAX_CALLS
+                ):
                     try:
                         brand_prompt = _brand_pass_prompt(
                             scene_prompt, verified_brand_names=allow
@@ -921,6 +945,7 @@ def generate_ai_social_image(
                             raw_path,
                             aspect_ratio="3:4",
                         )
+                        image_api_calls += 1
                         mode = "ai_xai_face_1to1_brands"
                         gen_prompt = identity_prompt + " | brands:" + ",".join(allow)
                     except Exception as brand_exc:
@@ -943,6 +968,7 @@ def generate_ai_social_image(
                     "Never corner stickers. Full scene: " + scene_prompt
                 )
                 _edit_xai_image(edit_prompt, logo_ref, raw_path, aspect_ratio="3:4")
+                image_api_calls = 1
                 ref_used = logo_ref
                 mode = "ai_xai_brands_scene"
                 gen_prompt = edit_prompt
@@ -956,6 +982,7 @@ def generate_ai_social_image(
                     gen_prompt = scene_prompt
                 gen_prompt = f"{gen_prompt} {_brand_allowlist_clause([])}"
                 _generate_xai_image(gen_prompt, raw_path)
+                image_api_calls = 1
 
             _compose_editorial_card(
                 str(raw_path),
@@ -972,6 +999,8 @@ def generate_ai_social_image(
                     "identity_lock": bool(face_ok),
                     "primary_brand": primary_org_name,
                     "verified_brand_names": allow,
+                    "image_api_calls": image_api_calls,
+                    "cheap_mode": CHEAP_MODE,
                 }
             return GeneratedSocialImage(
                 image_path=str(out_path),

@@ -1,6 +1,9 @@
 """
 Cost estimation for social-post generation.
 
+Cheap-mode target (SOCIAL_CHEAP_MODE=1, default):
+  ~$0.06–0.09 / full draft  = 1× chat + 0–1× search + 1× image (never 2× image)
+
 Per-unit USD prices (overridable via env) based on published 2026 rates:
   - xAI grok-4 chat:            $3.00 / 1M input tokens, $15.00 / 1M output tokens
   - xAI grok-imagine image:     ~$0.05 / image
@@ -16,6 +19,9 @@ PRICE_CHAT_INPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_INPUT_PER_M", "3
 PRICE_CHAT_OUTPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_OUTPUT_PER_M", "15.0"))
 PRICE_IMAGE_USD = float(os.environ.get("SOCIAL_COST_IMAGE_USD", "0.05"))
 PRICE_SEARCH_USD = float(os.environ.get("SOCIAL_COST_SEARCH_USD", "0.016"))
+
+# Pipeline knobs (mirrored here for ops docs; enforced in worker/image gen)
+CHEAP_MODE = os.environ.get("SOCIAL_CHEAP_MODE", "1").strip().lower() not in ("0", "false", "no")
 
 
 def estimate_cost(

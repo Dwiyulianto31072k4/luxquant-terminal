@@ -213,6 +213,11 @@ def tavily_enrich(query: str, *, url: Optional[str] = None, api_key: Optional[st
 
 
 def _build_context(news: dict, article_text: str, tavily: Optional[dict]) -> dict:
+    # Cheap mode: shorter article window → fewer input tokens on every draft
+    cheap = os.environ.get("SOCIAL_CHEAP_MODE", "1").strip().lower() not in ("0", "false", "no")
+    art_cap = int(os.environ.get("SOCIAL_ARTICLE_CONTEXT_CHARS", "4500" if cheap else "7000"))
+    tavily_cap = 900 if cheap else 1300
+    tavily_n = 3 if cheap else 4
     context = {
         "db_news": {
             "title": news.get("title"),
@@ -221,7 +226,7 @@ def _build_context(news: dict, article_text: str, tavily: Optional[dict]) -> dic
             "domain": news.get("domain"),
             "category": news.get("category"),
         },
-        "article_text": (article_text or "")[:7000],
+        "article_text": (article_text or "")[:art_cap],
     }
     if tavily:
         context["tavily_answer"] = tavily.get("answer", "")
@@ -229,9 +234,9 @@ def _build_context(news: dict, article_text: str, tavily: Optional[dict]) -> dic
             {
                 "title": item.get("title"),
                 "url": item.get("url"),
-                "content": (item.get("raw_content") or item.get("content") or "")[:1300],
+                "content": (item.get("raw_content") or item.get("content") or "")[:tavily_cap],
             }
-            for item in (tavily.get("results") or [])[:4]
+            for item in (tavily.get("results") or [])[:tavily_n]
         ]
     return context
 

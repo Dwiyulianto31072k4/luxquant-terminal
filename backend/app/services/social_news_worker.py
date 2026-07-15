@@ -408,7 +408,10 @@ def build_draft(
         # photo posts): find the original source + more context to elaborate.
         tavily = None
         try:
-            if not item.url or len((article_text or "").strip()) < 600:
+            # Cheap mode: only pay for Tavily when article is truly thin (saves ~$0.016).
+            min_chars = int(os.environ.get("SOCIAL_TAVILY_MIN_CHARS", "400"))
+            need_search = (not item.url) or len((article_text or "").strip()) < min_chars
+            if need_search:
                 _progress(progress_cb, "search", "Enriching sources via web search…")
                 tavily = tavily_enrich(item.extracted_title or item.title, url=item.url)
                 search_count = 1 if tavily else 0
@@ -558,13 +561,18 @@ def build_draft(
     try:
         from app.services.social_cost import estimate_cost
         usage = (ai_pack or {}).get("_usage") or {}
-        image_count = (
-            1
-            if draft.image_mode
-            and str(draft.image_mode).startswith("ai_")
-            and not awaiting_materials
-            else 0
-        )
+        # Prefer actual API call count from image pipeline (cheap mode = max 1)
+        vm_calls = None
+        if visual_materials and isinstance(visual_materials, dict):
+            vm_calls = visual_materials.get("image_api_calls")
+        if awaiting_materials:
+            image_count = 0
+        elif vm_calls is not None:
+            image_count = int(vm_calls)
+        elif draft.image_mode and str(draft.image_mode).startswith("ai_"):
+            image_count = 1
+        else:
+            image_count = 0
         draft.gen_meta = estimate_cost(
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
@@ -573,6 +581,8 @@ def build_draft(
             chat_model=usage.get("chat_model", ""),
             image_model=os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality") if image_count else "",
         )
+        draft.gen_meta["cheap_mode"] = os.environ.get("SOCIAL_CHEAP_MODE", "1")
+        draft.gen_meta["image_api_calls"] = image_count
     except Exception:
         draft.gen_meta = {}
 
