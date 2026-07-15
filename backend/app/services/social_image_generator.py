@@ -159,7 +159,42 @@ def _resolve_image_provider() -> str:
     return "none"
 
 
-def _generate_openai_image(prompt: str, out_path: Path) -> None:
+def _extract_usage(payload: dict) -> dict:
+    """Normalize usage dict from OpenAI / xAI image responses."""
+    if not isinstance(payload, dict):
+        return {}
+    usage = payload.get("usage")
+    if isinstance(usage, dict) and usage:
+        return usage
+    # Some gateways nest under data
+    data0 = (payload.get("data") or [{}])[0]
+    if isinstance(data0, dict) and isinstance(data0.get("usage"), dict):
+        return data0["usage"]
+    return {}
+
+
+def _merge_usage(a: Optional[dict], b: Optional[dict]) -> dict:
+    a = a or {}
+    b = b or {}
+    out = dict(a)
+    for k, v in b.items():
+        if isinstance(v, (int, float)) and isinstance(out.get(k), (int, float)):
+            out[k] = int(out[k]) + int(v)
+        elif k not in out:
+            out[k] = v
+        elif isinstance(v, dict) and isinstance(out.get(k), dict):
+            merged = dict(out[k])
+            for sk, sv in v.items():
+                if isinstance(sv, (int, float)) and isinstance(merged.get(sk), (int, float)):
+                    merged[sk] = int(merged[sk]) + int(sv)
+                else:
+                    merged[sk] = sv
+            out[k] = merged
+    return out
+
+
+def _generate_openai_image(prompt: str, out_path: Path) -> dict:
+    """Returns usage dict from API (may be empty)."""
     payload = {
         "model": OPENAI_IMAGE_MODEL,
         "prompt": prompt,
@@ -167,7 +202,6 @@ def _generate_openai_image(prompt: str, out_path: Path) -> None:
         "quality": OPENAI_IMAGE_QUALITY,
         "n": 1,
     }
-    # Prefer b64 when supported (avoids second HTTP fetch)
     payload["response_format"] = "b64_json"
     response = requests.post(
         f"{OPENAI_BASE_URL.rstrip('/')}/images/generations",
@@ -175,7 +209,6 @@ def _generate_openai_image(prompt: str, out_path: Path) -> None:
         json=payload,
         timeout=IMAGE_TIMEOUT,
     )
-    # gpt-image-2 may reject response_format — retry without
     if response.status_code >= 400 and "response_format" in payload:
         payload.pop("response_format", None)
         response = requests.post(
@@ -185,12 +218,13 @@ def _generate_openai_image(prompt: str, out_path: Path) -> None:
             timeout=IMAGE_TIMEOUT,
         )
     response.raise_for_status()
-    out_path.write_bytes(_decode_openai_image(response.json()))
+    body = response.json()
+    out_path.write_bytes(_decode_openai_image(body))
+    return _extract_usage(body)
 
 
-def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> None:
-    """Identity/brand edit via OpenAI images/edits (gpt-image-2)."""
-    # Ensure we send a common image type; convert webp if needed
+def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> dict:
+    """Identity/brand edit via OpenAI images/edits. Returns usage dict."""
     ref = Path(reference_path)
     mime = "image/png"
     file_name = ref.name
@@ -216,21 +250,21 @@ def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> None
             timeout=IMAGE_TIMEOUT,
         )
     response.raise_for_status()
-    out_path.write_bytes(_decode_openai_image(response.json()))
+    body = response.json()
+    out_path.write_bytes(_decode_openai_image(body))
+    return _extract_usage(body)
 
 
-def _edit_image(prompt: str, reference_path: str, out_path: Path, *, provider: str) -> None:
+def _edit_image(prompt: str, reference_path: str, out_path: Path, *, provider: str) -> dict:
     if provider == "openai":
-        _edit_openai_image(prompt, reference_path, out_path)
-    else:
-        _edit_xai_image(prompt, reference_path, out_path, aspect_ratio="3:4")
+        return _edit_openai_image(prompt, reference_path, out_path)
+    return _edit_xai_image(prompt, reference_path, out_path, aspect_ratio="3:4") or {}
 
 
-def _generate_image(prompt: str, out_path: Path, *, provider: str) -> None:
+def _generate_image(prompt: str, out_path: Path, *, provider: str) -> dict:
     if provider == "openai":
-        _generate_openai_image(prompt, out_path)
-    else:
-        _generate_xai_image(prompt, out_path)
+        return _generate_openai_image(prompt, out_path)
+    return _generate_xai_image(prompt, out_path) or {}
 
 
 def _font(size: int, bold: bool = False):
@@ -494,9 +528,8 @@ def _edit_xai_image(
     out_path: Path,
     *,
     aspect_ratio: str = "3:4",
-) -> None:
-    """Generate via xAI image-edit conditioned on a reference photo (JSON + base64
-    data URI, per xAI /images/edits spec)."""
+) -> dict:
+    """xAI image-edit. Returns usage dict when present."""
     api_key = os.environ.get("XAI_API_KEY")
     if not api_key:
         raise RuntimeError("XAI_API_KEY is not configured")
@@ -510,7 +543,6 @@ def _edit_xai_image(
         "image": {"url": f"data:image/{mime};base64,{b64}", "type": "image_url"},
         "response_format": "b64_json",
     }
-    # Prefer vertical social crop when the API accepts it
     if aspect_ratio:
         payload["aspect_ratio"] = aspect_ratio
     response = requests.post(
@@ -519,7 +551,6 @@ def _edit_xai_image(
         json=payload,
         timeout=XAI_IMAGE_TIMEOUT,
     )
-    # Some model versions reject aspect_ratio on edits — retry without it
     if response.status_code >= 400 and aspect_ratio:
         payload.pop("aspect_ratio", None)
         response = requests.post(
@@ -529,19 +560,20 @@ def _edit_xai_image(
             timeout=XAI_IMAGE_TIMEOUT,
         )
     response.raise_for_status()
-    item = (response.json().get("data") or [{}])[0]
+    body = response.json()
+    item = (body.get("data") or [{}])[0]
     if item.get("b64_json"):
         out_path.write_bytes(base64.b64decode(item["b64_json"]))
-        return
+        return _extract_usage(body)
     if item.get("url"):
         img = requests.get(item["url"], timeout=120)
         img.raise_for_status()
         out_path.write_bytes(img.content)
-        return
+        return _extract_usage(body)
     raise RuntimeError("xAI image edit response missing b64_json/url")
 
 
-def _generate_xai_image(prompt: str, out_path: Path) -> None:
+def _generate_xai_image(prompt: str, out_path: Path) -> dict:
     api_key = os.environ.get("XAI_API_KEY")
     if not api_key:
         raise RuntimeError("XAI_API_KEY is not configured")
@@ -558,15 +590,16 @@ def _generate_xai_image(prompt: str, out_path: Path) -> None:
         timeout=XAI_IMAGE_TIMEOUT,
     )
     response.raise_for_status()
-    item = (response.json().get("data") or [{}])[0]
+    body = response.json()
+    item = (body.get("data") or [{}])[0]
     if item.get("b64_json"):
         out_path.write_bytes(base64.b64decode(item["b64_json"]))
-        return
+        return _extract_usage(body)
     if item.get("url"):
         img = requests.get(item["url"], timeout=120)
         img.raise_for_status()
         out_path.write_bytes(img.content)
-        return
+        return _extract_usage(body)
     raise RuntimeError("xAI image response missing b64_json/url")
 
 
@@ -987,6 +1020,8 @@ def generate_ai_social_image(
 
         scene_prompt = f"{prompt} {_brand_allowlist_clause(allow)}"
         image_api_calls = 0
+        image_usage_acc: dict = {}
+        image_is_edit = False
         model_label = OPENAI_IMAGE_MODEL if provider == "openai" else XAI_IMAGE_MODEL
 
         if face_ok:
@@ -1005,8 +1040,10 @@ def generate_ai_social_image(
                     "never invent unlisted brand logos."
                 )
             gen_prompt = identity_prompt
-            _edit_image(identity_prompt, face_ref, raw_path, provider=provider)
+            u = _edit_image(identity_prompt, face_ref, raw_path, provider=provider)
+            image_usage_acc = _merge_usage(image_usage_acc, u)
             image_api_calls = 1
+            image_is_edit = True
             mode = f"ai_{provider}_face_1to1"
 
             if (
@@ -1020,7 +1057,8 @@ def generate_ai_social_image(
                     brand_prompt = _brand_pass_prompt(
                         scene_prompt, verified_brand_names=allow
                     )
-                    _edit_image(brand_prompt, str(raw_path), raw_path, provider=provider)
+                    u2 = _edit_image(brand_prompt, str(raw_path), raw_path, provider=provider)
+                    image_usage_acc = _merge_usage(image_usage_acc, u2)
                     image_api_calls += 1
                     mode = f"ai_{provider}_face_1to1_brands"
                     gen_prompt = identity_prompt + " | brands:" + ",".join(allow)
@@ -1041,8 +1079,10 @@ def generate_ai_social_image(
                 f"{_brand_allowlist_clause(allow)} "
                 "Never corner stickers. Full scene: " + scene_prompt
             )
-            _edit_image(edit_prompt, logo_ref, raw_path, provider=provider)
+            u = _edit_image(edit_prompt, logo_ref, raw_path, provider=provider)
+            image_usage_acc = _merge_usage(image_usage_acc, u)
             image_api_calls = 1
+            image_is_edit = True
             ref_used = logo_ref
             mode = f"ai_{provider}_brands_scene"
             gen_prompt = edit_prompt
@@ -1055,8 +1095,10 @@ def generate_ai_social_image(
             else:
                 gen_prompt = scene_prompt
             gen_prompt = f"{gen_prompt} {_brand_allowlist_clause([])}"
-            _generate_image(gen_prompt, raw_path, provider=provider)
+            u = _generate_image(gen_prompt, raw_path, provider=provider)
+            image_usage_acc = _merge_usage(image_usage_acc, u)
             image_api_calls = 1
+            image_is_edit = False
             mode = f"ai_{provider}_gen"
 
         _compose_editorial_card(
@@ -1079,6 +1121,9 @@ def generate_ai_social_image(
                 "image_provider": provider,
                 "image_model": model_label,
                 "image_quality": OPENAI_IMAGE_QUALITY if provider == "openai" else "default",
+                "image_size": OPENAI_IMAGE_SIZE if provider == "openai" else "3:4",
+                "image_is_edit": image_is_edit,
+                "image_usage": image_usage_acc,
             }
         return GeneratedSocialImage(
             image_path=str(out_path),

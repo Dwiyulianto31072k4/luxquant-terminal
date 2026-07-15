@@ -114,7 +114,7 @@ async def social_post_cost_summary(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    """Aggregate generation-cost estimates for business monitoring."""
+    """Aggregate generation costs (actual when tracked from API usage / billing schedule)."""
     _ensure_gen_meta(db)
 
     def _agg(where: str) -> dict:
@@ -128,18 +128,34 @@ async def social_post_cost_summary(
                 coalesce(sum((gen_meta->>'prompt_tokens')::int), 0)           AS prompt_tokens,
                 coalesce(sum((gen_meta->>'completion_tokens')::int), 0)       AS completion_tokens,
                 coalesce(sum((gen_meta->>'image_count')::int), 0)             AS images,
-                coalesce(sum((gen_meta->>'search_count')::int), 0)            AS searches
+                coalesce(sum((gen_meta->>'search_count')::int), 0)            AS searches,
+                count(*) FILTER (
+                    WHERE gen_meta->>'cost_source' = 'actual'
+                       OR gen_meta->>'cost_actual' = 'true'
+                ) AS posts_actual,
+                count(*) FILTER (
+                    WHERE gen_meta ? 'total_usd'
+                      AND coalesce(gen_meta->>'cost_source', 'estimated') NOT IN ('actual')
+                      AND coalesce(gen_meta->>'cost_actual', 'false') <> 'true'
+                ) AS posts_estimated
             FROM social_posts
             {where}
         """)).mappings().first()
         d = {k: float(v) if k.endswith("usd") else int(v) for k, v in dict(row).items()}
         d["avg_usd"] = round(d["total_usd"] / d["posts"], 6) if d["posts"] else 0.0
+        d["tracking"] = "actual" if d.get("posts_actual") and not d.get("posts_estimated") else (
+            "mixed" if d.get("posts_actual") else "estimated"
+        )
         return d
 
     return {
         "all_time": _agg("WHERE gen_meta IS NOT NULL"),
         "last_7d": _agg("WHERE gen_meta IS NOT NULL AND created_at > now() - interval '7 days'"),
         "today": _agg("WHERE gen_meta IS NOT NULL AND created_at::date = now()::date"),
+        "note": (
+            "Chat: actual API tokens. OpenAI image: API usage when present, else official "
+            "size×quality token schedule × published rates. xAI image / Tavily: published unit rates."
+        ),
     }
 
 
@@ -509,21 +525,35 @@ async def re_render_post_image(
     elif raw_path:
         meta["raw_image_path"] = raw_path
 
-    # Cost: only bill image if we actually hit the AI API
+    # Cost: only bill image if we actually hit the AI API (actual usage when present)
     if not composed_free:
         try:
-            from app.services.social_cost import estimate_cost
-            add = estimate_cost(
-                prompt_tokens=0,
-                completion_tokens=0,
-                image_count=1,
+            from app.services.social_cost import build_generation_cost
+            vm = visual_materials if isinstance(visual_materials, dict) else {}
+            add = build_generation_cost(
+                chat_usage={},
+                image_usage=vm.get("image_usage") or {},
+                image_count=int(vm.get("image_api_calls") or 1),
                 search_count=0,
-                image_model=os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality"),
+                image_model=str(vm.get("image_model") or os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")),
+                image_provider=str(vm.get("image_provider") or "openai"),
+                image_size=str(vm.get("image_size") or os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")),
+                image_quality=str(vm.get("image_quality") or os.environ.get("OPENAI_IMAGE_QUALITY", "medium")),
+                image_is_edit=bool(vm.get("image_is_edit", True)),
             )
             prev_total = float(meta.get("total_usd") or 0)
-            meta["image_count"] = int(meta.get("image_count") or 0) + 1
-            meta["image_usd"] = float(meta.get("image_usd") or 0) + float(add.get("image_usd") or 0)
+            meta["image_count"] = int(meta.get("image_count") or 0) + int(add.get("image_count") or 1)
+            meta["image_usd"] = round(float(meta.get("image_usd") or 0) + float(add.get("image_usd") or 0), 6)
             meta["total_usd"] = round(prev_total + float(add.get("image_usd") or 0), 6)
+            meta["cost_source"] = add.get("cost_source") or meta.get("cost_source")
+            meta["cost_actual"] = add.get("cost_source") == "actual"
+            meta["image_source"] = add.get("image_source")
+            if add.get("image_output_tokens"):
+                meta["image_output_tokens"] = int(meta.get("image_output_tokens") or 0) + int(add["image_output_tokens"])
+            if vm.get("image_provider"):
+                meta["image_provider"] = vm.get("image_provider")
+            if vm.get("image_model"):
+                meta["image_model"] = vm.get("image_model")
         except Exception:
             pass
 

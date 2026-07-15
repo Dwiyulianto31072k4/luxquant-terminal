@@ -557,14 +557,12 @@ def build_draft(
             else:
                 _progress(progress_cb, "compose", "Composing cinematic poster…")
 
-    # Generation cost estimate (tokens + image + search) for business monitoring.
+    # Cost tracking: API usage tokens × published rates (actual / billing_schedule).
     try:
-        from app.services.social_cost import estimate_cost
+        from app.services.social_cost import build_generation_cost
         usage = (ai_pack or {}).get("_usage") or {}
-        # Prefer actual API call count from image pipeline (cheap mode = max 1)
-        vm_calls = None
-        if visual_materials and isinstance(visual_materials, dict):
-            vm_calls = visual_materials.get("image_api_calls")
+        vm = visual_materials if isinstance(visual_materials, dict) else {}
+        vm_calls = vm.get("image_api_calls")
         if awaiting_materials:
             image_count = 0
         elif vm_calls is not None:
@@ -573,28 +571,35 @@ def build_draft(
             image_count = 1
         else:
             image_count = 0
-        img_model = ""
-        if image_count and visual_materials and isinstance(visual_materials, dict):
-            img_model = str(visual_materials.get("image_model") or "")
+        img_model = str(vm.get("image_model") or "")
+        img_provider = str(vm.get("image_provider") or "")
         if image_count and not img_model:
-            # Prefer OpenAI default when key present (matches auto provider)
             if os.environ.get("OPENAI_API_KEY", "").strip():
                 img_model = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
+                img_provider = img_provider or "openai"
             else:
                 img_model = os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality")
-        draft.gen_meta = estimate_cost(
-            prompt_tokens=usage.get("prompt_tokens", 0),
-            completion_tokens=usage.get("completion_tokens", 0),
+                img_provider = img_provider or "xai"
+        draft.gen_meta = build_generation_cost(
+            chat_usage={
+                "prompt_tokens": usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+            },
+            image_usage=vm.get("image_usage") or {},
             image_count=image_count,
             search_count=search_count,
             chat_model=usage.get("chat_model", ""),
             image_model=img_model,
+            image_provider=img_provider,
+            image_size=str(vm.get("image_size") or os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")),
+            image_quality=str(vm.get("image_quality") or os.environ.get("OPENAI_IMAGE_QUALITY", "medium")),
+            image_is_edit=bool(vm.get("image_is_edit")),
         )
         draft.gen_meta["cheap_mode"] = os.environ.get("SOCIAL_CHEAP_MODE", "1")
         draft.gen_meta["image_api_calls"] = image_count
-        if visual_materials and isinstance(visual_materials, dict):
-            draft.gen_meta["image_provider"] = visual_materials.get("image_provider")
-            draft.gen_meta["image_quality"] = visual_materials.get("image_quality")
+        if vm:
+            draft.gen_meta["image_provider"] = vm.get("image_provider") or img_provider
+            draft.gen_meta["image_quality"] = vm.get("image_quality")
     except Exception:
         draft.gen_meta = {}
 

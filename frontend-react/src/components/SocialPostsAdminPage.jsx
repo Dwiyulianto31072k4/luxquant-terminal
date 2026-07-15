@@ -84,29 +84,56 @@ const money = (n) => {
   return `$${v.toFixed(v < 1 ? 4 : 2)}`;
 };
 
-// ── Cost dashboard (generation spend monitoring) ────────────────
+// ── Cost dashboard (actual when API usage / billing schedule tracked) ─
 const CostBar = ({ cost }) => {
   if (!cost) return null;
   const a = cost.all_time || {};
   const t = cost.today || {};
   const tokens = (a.prompt_tokens || 0) + (a.completion_tokens || 0);
+  const tracking = a.tracking || t.tracking || "mixed";
+  const trackLabel =
+    tracking === "actual" ? "metered" : tracking === "mixed" ? "mixed" : "estimate";
   const cards = [
-    { label: "Total cost", value: money(a.total_usd), sub: `${a.posts || 0} drafts` },
+    { label: "Total cost", value: money(a.total_usd), sub: `${a.posts || 0} drafts · ${trackLabel}` },
     { label: "Today", value: money(t.total_usd), sub: `${t.posts || 0} drafts` },
-    { label: "Avg / draft", value: money(a.avg_usd), sub: "estimate" },
-    { label: "Text", value: money(a.chat_usd), sub: `${tokens.toLocaleString()} tokens` },
-    { label: "Image", value: money(a.image_usd), sub: `${a.images || 0} images` },
-    { label: "Search", value: money(a.search_usd), sub: `${a.searches || 0} searches` },
+    { label: "Avg / draft", value: money(a.avg_usd), sub: trackLabel },
+    { label: "Text", value: money(a.chat_usd), sub: `${tokens.toLocaleString()} tok · API` },
+    { label: "Image", value: money(a.image_usd), sub: `${a.images || 0} imgs` },
+    { label: "Search", value: money(a.search_usd), sub: `${a.searches || 0} · unit rate` },
   ];
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-5">
-      {cards.map((c, i) => (
-        <div key={i} className="rounded-lg bg-black/25 border border-white/[0.08] px-3 py-2.5">
-          <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-text-muted">{c.label}</p>
-          <p className="text-white text-[16px] font-semibold mt-0.5">{c.value}</p>
-          {c.sub && <p className="text-[10px] text-text-muted/70 mt-0.5">{c.sub}</p>}
-        </div>
-      ))}
+    <div className="mb-5 space-y-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted">
+          Generation spend
+        </p>
+        <span
+          className={`text-[9px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border ${
+            tracking === "actual"
+              ? "bg-green-500/10 text-green-400 border-green-500/25"
+              : "bg-white/[0.04] text-text-muted border-white/10"
+          }`}
+          title={cost.note || ""}
+        >
+          {tracking === "actual"
+            ? "Actual (API usage + billing schedule)"
+            : tracking === "mixed"
+              ? "Mixed actual / schedule"
+              : "Estimated"}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        {cards.map((c, i) => (
+          <div key={i} className="rounded-lg bg-black/25 border border-white/[0.08] px-3 py-2.5">
+            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-text-muted">{c.label}</p>
+            <p className="text-white text-[16px] font-semibold mt-0.5">{c.value}</p>
+            {c.sub && <p className="text-[10px] text-text-muted/70 mt-0.5">{c.sub}</p>}
+          </div>
+        ))}
+      </div>
+      {cost.note && (
+        <p className="text-[9px] text-text-muted/70 font-mono leading-relaxed">{cost.note}</p>
+      )}
     </div>
   );
 };
@@ -815,7 +842,15 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
 
             {post.gen_meta && post.gen_meta.total_usd != null && (
               <div className="text-[10px] font-mono text-text-muted/80">
-                cost ≈ {money(post.gen_meta.total_usd)} · {((post.gen_meta.prompt_tokens || 0) + (post.gen_meta.completion_tokens || 0)).toLocaleString()} tok · {post.gen_meta.image_count || 0} img{post.gen_meta.search_count ? ` · ${post.gen_meta.search_count} search` : ""}
+                cost {post.gen_meta.cost_source === "actual" || post.gen_meta.cost_actual ? "" : "≈ "}
+                {money(post.gen_meta.total_usd)}
+                {post.gen_meta.cost_source ? ` · ${post.gen_meta.cost_source}` : ""}
+                {" · "}
+                {((post.gen_meta.prompt_tokens || 0) + (post.gen_meta.completion_tokens || 0)).toLocaleString()} tok
+                {" · "}
+                {post.gen_meta.image_count || 0} img
+                {post.gen_meta.image_model ? ` · ${post.gen_meta.image_model}` : ""}
+                {post.gen_meta.search_count ? ` · ${post.gen_meta.search_count} search` : ""}
               </div>
             )}
 
