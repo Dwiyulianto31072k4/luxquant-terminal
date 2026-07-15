@@ -260,9 +260,10 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
   const track = hasWinners ? [...winners, ...winners] : [];
 
   return (
-    <section className="rwm relative z-10 py-12 sm:py-24">
+    <section className="rwm relative z-10 -mt-6 py-12 sm:-mt-10 sm:py-24">
       {/* Warm maroon glow only (additive) — section stays transparent so the
-          page canvas flows through with no gradient break. */}
+          page canvas flows through with no gradient break. Slight negative
+          margin pulls the rail into the hero dissolve so the seam vanishes. */}
       <div className="rwm-bg" aria-hidden="true" />
 
       {/* Heading */}

@@ -104,9 +104,9 @@ export default function HeroSlider({ onNav, gainers = [] }) {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
-      className="relative z-10 w-full overflow-hidden outline-none"
+      className="relative z-10 w-full outline-none"
     >
-      {/* Ambient background glow */}
+      {/* Ambient background glow — transparent, no hard plate */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[680px]"
@@ -119,7 +119,7 @@ export default function HeroSlider({ onNav, gainers = [] }) {
         className={`relative z-10 flex items-start ${
           isVideoSlide
             ? "w-full"
-            : "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-10 pt-28 sm:px-6 sm:pt-32 lg:min-h-[680px] lg:px-8 lg:pb-12 lg:pt-36 xl:pt-44"
+            : "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-14 pt-28 sm:px-6 sm:pt-32 lg:min-h-[680px] lg:px-8 lg:pb-16 lg:pt-36 xl:pt-44"
         }`}
       >
         <div
@@ -133,13 +133,14 @@ export default function HeroSlider({ onNav, gainers = [] }) {
         </div>
       </div>
 
-      {/* Dots selalu bawah + horizontal */}
+      {/* Dots overlay INSIDE the hero bottom (not a separate opaque strip).
+          Sitting after the video created a hard contrast band vs Real calls. */}
       <div
         className={[
-          "relative z-30 flex w-full items-center justify-center gap-2",
+          "pointer-events-none absolute inset-x-0 z-30 flex w-full items-center justify-center gap-2",
           isVideoSlide
-            ? "-mt-2 pb-6 sm:-mt-3 sm:pb-8"
-            : "mt-1 pb-7 sm:mt-2 sm:pb-9",
+            ? "bottom-5 sm:bottom-7 lg:bottom-8"
+            : "bottom-5 sm:bottom-6",
         ].join(" ")}
         aria-label="Hero slide controls"
       >
@@ -154,7 +155,7 @@ export default function HeroSlider({ onNav, gainers = [] }) {
               aria-current={isActive ? "true" : undefined}
               onClick={() => goToSlide(index)}
               className={[
-                "h-1.5 rounded-full transition-all duration-300",
+                "pointer-events-auto h-1.5 rounded-full transition-all duration-300",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/80",
                 isActive
                   ? "w-7 bg-gold-primary shadow-[0_0_12px_rgba(212,168,83,0.52)]"

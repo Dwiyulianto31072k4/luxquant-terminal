@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import HeroSignupPill from "../shared/HeroSignupPill";
 
+// Page canvas is #0a0506 + soft maroon radials (LandingPageV2). Never lock
+// the hero bottom to a different solid hex — that creates the hard "cut"
+// bar users see between the video and Real calls.
 const PAGE_BG = "#0a0506";
-// Warm maroon the hero bottom fades INTO — matches the page's continuous
-// canvas below, so the hero→next-section transition has no black seam.
-const NEXT_BG = "#1d0c0d";
 
 const HEADLINE_TOP = "Read the Market."; // white
 const HEADLINE_BOTTOM = "Move With Conviction."; // gold
@@ -18,6 +18,14 @@ const HERO_DESCRIPTION =
 // Taruh file portrait di: public/hero-video-mobile.mp4
 const VIDEO_DESKTOP = "/hero-video.mp4";
 const VIDEO_MOBILE = "/hero-video-mobile.mp4";
+
+// Bottom dissolve (mask): multi-stop ease — sharp mid, soft last ~28%
+const BOTTOM_MASK = {
+  WebkitMaskImage:
+    "linear-gradient(to bottom, #000 0%, #000 62%, rgba(0,0,0,0.92) 72%, rgba(0,0,0,0.55) 84%, rgba(0,0,0,0.22) 92%, transparent 100%)",
+  maskImage:
+    "linear-gradient(to bottom, #000 0%, #000 62%, rgba(0,0,0,0.92) 72%, rgba(0,0,0,0.55) 84%, rgba(0,0,0,0.22) 92%, transparent 100%)",
+};
 
 export default function HeroSlideVideo() {
   // Mobile-only: reveal the headline for 5s, then fade it out so the cinematic
@@ -34,148 +42,156 @@ export default function HeroSlideVideo() {
 
   return (
     <div
-      className="relative isolate min-h-[640px] w-full overflow-hidden bg-bg-primary sm:min-h-[710px] lg:min-h-[780px] xl:min-h-[820px]"
-      style={{ backgroundColor: PAGE_BG }}
+      className="relative isolate min-h-[640px] w-full overflow-hidden sm:min-h-[710px] lg:min-h-[780px] xl:min-h-[820px]"
+      style={{ backgroundColor: "transparent" }}
     >
-      {/* ── VIDEO: mobile portrait (full-bleed, no empty bands) ── */}
-      <video
-        className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.97] sm:hidden"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-      >
-        <source src={VIDEO_MOBILE} type="video/mp4" />
-        {/* fallback ke landscape kalau file mobile belum ada */}
-        <source src={VIDEO_DESKTOP} type="video/mp4" />
-      </video>
+      {/* Video stack — masked so the bottom dissolves into the page canvas
+          (same idea as Real calls marquee side mask). */}
+      <div className="absolute inset-0" style={BOTTOM_MASK} aria-hidden="true">
+        {/* Fallback plate under video (only where video is opaque) */}
+        <div className="absolute inset-0" style={{ backgroundColor: PAGE_BG }} />
 
-      {/* ── VIDEO: desktop / tablet landscape (full-bleed) ── */}
-      <video
-        className="absolute inset-0 hidden h-full w-full scale-[1.05] object-cover opacity-[0.97] sm:block"
-        style={{ objectPosition: "50% 62%" }}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-      >
-        <source src={VIDEO_DESKTOP} type="video/mp4" />
-      </video>
+        {/* ── VIDEO: mobile portrait (full-bleed, no empty bands) ── */}
+        <video
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.97] sm:hidden"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={VIDEO_MOBILE} type="video/mp4" />
+          {/* fallback ke landscape kalau file mobile belum ada */}
+          <source src={VIDEO_DESKTOP} type="video/mp4" />
+        </video>
 
-      {/* ═══════════════════ OVERLAYS (shared) ═══════════════════ */}
+        {/* ── VIDEO: desktop / tablet landscape (full-bleed) ── */}
+        <video
+          className="absolute inset-0 hidden h-full w-full scale-[1.05] object-cover opacity-[0.97] sm:block"
+          style={{ objectPosition: "50% 62%" }}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={VIDEO_DESKTOP} type="video/mp4" />
+        </video>
 
-      {/* Soft top blend for navbar readability */}
+        {/* Soft top blend for navbar readability */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[120px] sm:h-[130px] lg:h-[145px]"
+          style={{
+            background: `
+              linear-gradient(
+                180deg,
+                rgba(10, 5, 6, 0.42) 0%,
+                rgba(10, 5, 6, 0.24) 38%,
+                rgba(10, 5, 6, 0.08) 72%,
+                transparent 100%
+              )
+            `,
+          }}
+        />
+
+        {/* Cinematic body wash — stays translucent; NO solid bottom lock */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              linear-gradient(
+                180deg,
+                rgba(10, 5, 6, 0.06) 0%,
+                rgba(10, 5, 6, 0.04) 28%,
+                rgba(10, 5, 6, 0.03) 52%,
+                rgba(10, 5, 6, 0.08) 70%,
+                rgba(10, 5, 6, 0.18) 82%,
+                rgba(10, 5, 6, 0.28) 100%
+              )
+            `,
+          }}
+        />
+
+        {/* Side vignette */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              linear-gradient(
+                90deg,
+                rgba(10, 5, 6, 0.7) 0%,
+                rgba(10, 5, 6, 0.34) 12%,
+                rgba(10, 5, 6, 0.1) 26%,
+                transparent 50%,
+                rgba(10, 5, 6, 0.1) 74%,
+                rgba(10, 5, 6, 0.34) 88%,
+                rgba(10, 5, 6, 0.7) 100%
+              )
+            `,
+          }}
+        />
+
+        {/* Gold atmosphere */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(
+                ellipse 58% 46% at 50% 32%,
+                rgba(255, 214, 102, 0.13) 0%,
+                rgba(236, 181, 57, 0.07) 34%,
+                rgba(212, 168, 83, 0.02) 58%,
+                transparent 78%
+              )
+            `,
+          }}
+        />
+
+        {/* Text readability scrim — ringan (warm) */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(
+                ellipse 60% 38% at 50% 30%,
+                rgba(12, 5, 6, 0.34) 0%,
+                rgba(12, 5, 6, 0.2) 40%,
+                rgba(12, 5, 6, 0.08) 64%,
+                transparent 82%
+              )
+            `,
+          }}
+        />
+      </div>
+
+      {/* Extra bottom dissolve OVER the mask — matches page maroon canvas
+          (same tokens as LandingPageV2 radials), ends transparent. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[120px] sm:h-[130px] lg:h-[145px]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[42%] sm:h-[38%] lg:h-[36%]"
         style={{
           background: `
             linear-gradient(
               180deg,
-              rgba(10, 5, 6, 0.42) 0%,
-              rgba(10, 5, 6, 0.24) 38%,
-              rgba(10, 5, 6, 0.08) 72%,
-              transparent 100%
-            )
-          `,
-        }}
-      />
-
-      {/* Main cinematic vertical fade → menyatu ke section berikutnya */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(
-              180deg,
-              rgba(10, 5, 6, 0.08) 0%,
-              rgba(10, 5, 6, 0.05) 20%,
-              rgba(10, 5, 6, 0.04) 44%,
-              rgba(10, 5, 6, 0.05) 64%,
-              rgba(29, 12, 13, 0.12) 80%,
-              rgba(29, 12, 13, 0.4) 92%,
-              rgba(29, 12, 13, 0.8) 98%,
-              ${NEXT_BG} 100%
-            )
-          `,
-        }}
-      />
-
-      {/* Side vignette */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(
-              90deg,
-              rgba(10, 5, 6, 0.7) 0%,
-              rgba(10, 5, 6, 0.34) 12%,
-              rgba(10, 5, 6, 0.1) 26%,
-              transparent 50%,
-              rgba(10, 5, 6, 0.1) 74%,
-              rgba(10, 5, 6, 0.34) 88%,
-              rgba(10, 5, 6, 0.7) 100%
-            )
-          `,
-        }}
-      />
-
-      {/* Gold atmosphere */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
+              transparent 0%,
+              rgba(10, 5, 6, 0.08) 18%,
+              rgba(10, 5, 6, 0.28) 42%,
+              rgba(10, 5, 6, 0.55) 68%,
+              rgba(10, 5, 6, 0.78) 88%,
+              rgba(10, 5, 6, 0.92) 100%
+            ),
             radial-gradient(
-              ellipse 58% 46% at 50% 32%,
-              rgba(255, 214, 102, 0.13) 0%,
-              rgba(236, 181, 57, 0.07) 34%,
-              rgba(212, 168, 83, 0.02) 58%,
-              transparent 78%
-            )
-          `,
-        }}
-      />
-
-      {/* Text readability scrim — ringan (warm) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
-            radial-gradient(
-              ellipse 60% 38% at 50% 30%,
-              rgba(12, 5, 6, 0.34) 0%,
-              rgba(12, 5, 6, 0.2) 40%,
-              rgba(12, 5, 6, 0.08) 64%,
-              transparent 82%
-            )
-          `,
-        }}
-      />
-
-      {/* Bottom luxury glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%]"
-        style={{
-          background: `
-            radial-gradient(
-              ellipse 42% 38% at 50% 78%,
-              rgba(214, 154, 31, 0.1) 0%,
-              rgba(120, 56, 23, 0.04) 46%,
-              transparent 76%
+              ellipse 90% 70% at 50% 100%,
+              rgba(139, 26, 26, 0.22) 0%,
+              rgba(139, 26, 26, 0.08) 45%,
+              transparent 75%
             )
           `,
         }}
       />
 
       {/* ═══════════════════ CONTENT ═══════════════════ */}
-      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-16 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-10 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-12 lg:pt-[13rem] xl:min-h-[820px] xl:pt-[14.5rem]">
+      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-20 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-16 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-16 lg:pt-[13rem] xl:min-h-[820px] xl:pb-20 xl:pt-[14.5rem]">
         {/* Headline group — localized readability gradient behind text.
             Mobile: fades out after 5s (see hideHeadline). Desktop: always shown. */}
         <div
@@ -257,23 +273,6 @@ export default function HeroSlideVideo() {
           />
         </div>
       </div>
-
-      {/* Smooth transition to next section */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[160px]"
-        style={{
-          background: `
-            linear-gradient(
-              180deg,
-              transparent 0%,
-              rgba(29, 12, 13, 0.18) 34%,
-              rgba(29, 12, 13, 0.64) 76%,
-              ${NEXT_BG} 100%
-            )
-          `,
-        }}
-      />
     </div>
   );
 }
