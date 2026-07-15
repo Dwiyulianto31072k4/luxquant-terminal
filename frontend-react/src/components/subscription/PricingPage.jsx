@@ -65,7 +65,7 @@ const PricingPage = () => {
   const [creating, setCreating] = useState(false);
   const [subStatus, setSubStatus] = useState(null);
   const [adminModalPlan, setAdminModalPlan] = useState(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -91,7 +91,12 @@ const PricingPage = () => {
     }
   };
 
-  const isPremium = subStatus?.is_subscribed && subStatus?.tier !== "admin";
+  // Backend rejects subscribe without is_upgrade when user already has access.
+  // Prefer /subscription/me, fall back to auth role so invoice creation still works.
+  const isPremium =
+    (Boolean(subStatus?.is_subscribed) && subStatus?.tier !== "admin") ||
+    Boolean(subStatus?.is_premium) ||
+    ["premium", "subscriber"].includes(String(user?.role || "").toLowerCase());
   const currentPlanName = subStatus?.plan_name;
 
   const sortedPlans = useMemo(() => {
@@ -110,7 +115,18 @@ const PricingPage = () => {
     setSelectedPlan(plan.id);
     setCreating(true);
     try {
-      const invoice = await subscriptionApi.createInvoice(plan.id, isPremium);
+      let invoice;
+      try {
+        invoice = await subscriptionApi.createInvoice(plan.id, isPremium);
+      } catch (err) {
+        // Auto-retry as upgrade when backend says subscription already active.
+        const detail = String(err.response?.data?.detail || "");
+        if (err.response?.status === 400 && /is_upgrade|sudah punya subscription/i.test(detail)) {
+          invoice = await subscriptionApi.createInvoice(plan.id, true);
+        } else {
+          throw err;
+        }
+      }
       navigate("/payment", { state: { invoice, plan } });
     } catch (err) {
       alert(err.response?.data?.detail || "Failed to create invoice");
