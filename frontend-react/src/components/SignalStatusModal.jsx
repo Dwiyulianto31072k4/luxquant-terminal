@@ -1,11 +1,8 @@
 // ════════════════════════════════════════════════════════════════
-// GlobalSignalModalHost — the one modal opened when ANY coin in the
-// terminal is clicked (via CoinLogo → context.openPair). Shows the
-// coin's live signal status, WHEN it was called (relative + absolute),
-// key stats, and an "Open full signal" action.
-//
-// Mobile: bottom sheet (Top Gainers Filters style — handle, slide up).
-// Desktop: centered card.
+// GlobalSignalModalHost — coin "called" status modal.
+// Mobile: bottom sheet (handle + slide-up). Desktop: centered card.
+// Footer actions always sticky so Open signal is never clipped by
+// the app bottom nav or short viewports.
 // ════════════════════════════════════════════════════════════════
 import { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,17 +18,21 @@ const fmtPrice = (v) => {
 };
 const fmtPct0 = (v) => (v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(0) + "%");
 
+/** Compact row: label left · value right (aligned columns in a 2-col grid). */
 function Stat({ label, val, tone }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-      <div className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
-      <div className={`mt-1 font-mono text-[15px] tabular-nums ${tone || "text-white/90"}`}>{val}</div>
+    <div className="flex min-h-[40px] items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-2">
+      <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-text-muted/80">
+        {label}
+      </span>
+      <span className={`min-w-0 truncate text-right font-mono text-[12.5px] font-semibold tabular-nums ${tone || "text-white"}`}>
+        {val}
+      </span>
     </div>
   );
 }
 
-/** Shared shell: mobile bottom sheet / desktop centered. */
-function SheetShell({ onClose, children, ariaLabel }) {
+function SheetShell({ onClose, children, ariaLabel, footer }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -49,14 +50,23 @@ function SheetShell({ onClose, children, ariaLabel }) {
       aria-label={ariaLabel}
     >
       <div
-        className="relative w-full max-w-[540px] animate-[ssSheetIn_.3s_cubic-bezier(.16,1,.3,1)] rounded-t-3xl border-t border-white/10 bg-[#0c0a07] shadow-[0_-12px_40px_rgba(0,0,0,0.55)] sm:max-h-[min(85vh,720px)] sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-[#0a0805] sm:shadow-2xl"
+        className="relative flex w-full max-w-[420px] max-h-[min(88dvh,640px)] flex-col animate-[ssSheetIn_.3s_cubic-bezier(.16,1,.3,1)] rounded-t-3xl border-t border-white/10 bg-[#0c0a07] shadow-[0_-16px_48px_rgba(0,0,0,0.55)] sm:max-h-[min(85vh,640px)] sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-[#0a0805] sm:shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0.5 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/20" />
         </div>
         <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent sm:block" />
-        {children}
+
+        {/* Scrollable body */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+
+        {/* Sticky footer — always visible */}
+        {footer && (
+          <div className="shrink-0 border-t border-white/[0.08] bg-[#0c0a07]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 sm:bg-[#0a0805]/95 sm:px-5 sm:pb-4">
+            {footer}
+          </div>
+        )}
       </div>
       <style>{`
         @keyframes ssSheetIn {
@@ -84,13 +94,25 @@ export default function GlobalSignalModalHost() {
 
   if (!info) {
     return (
-      <SheetShell onClose={close} ariaLabel={`${sym} signal status`}>
-        <div className="px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-2 sm:p-5 sm:pb-5">
+      <SheetShell
+        onClose={close}
+        ariaLabel={`${sym} signal status`}
+        footer={
+          <button
+            type="button"
+            onClick={close}
+            className="w-full rounded-xl bg-gold-primary py-3 font-mono text-[12px] font-bold uppercase tracking-wider text-[#1a1206] active:scale-[0.98]"
+          >
+            Done
+          </button>
+        }
+      >
+        <div className="px-4 pt-2 sm:px-5 sm:pt-4">
           <div className="flex items-center gap-3">
-            <CoinLogo pair={pair} size={34} />
-            <div>
-              <div className="text-[16px] font-semibold text-white">{sym}</div>
-              <div className="font-mono text-[11px] text-text-muted">{pair}</div>
+            <CoinLogo pair={pair} size={32} />
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold text-white">{sym}</div>
+              <div className="font-mono text-[10px] text-text-muted">{pair}</div>
             </div>
             <button
               onClick={close}
@@ -100,16 +122,9 @@ export default function GlobalSignalModalHost() {
               ✕
             </button>
           </div>
-          <div className="mt-4 text-[12px] leading-relaxed text-text-muted">
+          <p className="mt-3 pb-3 text-[12px] leading-relaxed text-text-muted">
             No active LuxQuant call for this pair in the last 7 days.
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            className="mt-5 w-full rounded-xl bg-gold-primary py-3 font-mono text-[12px] font-bold uppercase tracking-wider text-[#1a1206] active:scale-[0.98] sm:hidden"
-          >
-            Done
-          </button>
+          </p>
         </div>
       </SheetShell>
     );
@@ -127,20 +142,76 @@ export default function GlobalSignalModalHost() {
     if (info.signal_id) navigate(`/signals?signal=${info.signal_id}`);
   };
 
+  // Fixed 2-col compact stats (always even grid)
+  const stats = [
+    {
+      label: "Max Target",
+      val: s.max_target_pct == null ? "—" : "+" + Number(s.max_target_pct).toFixed(0) + "%",
+      tone: "text-emerald-400",
+    },
+    {
+      label: "Peak Reached",
+      val: s.peak_pct == null ? "—" : fmtPct0(s.peak_pct),
+      tone: s.peak_pct == null ? "text-white" : s.peak_pct >= 0 ? "text-positive" : "text-negative",
+    },
+    { label: "Entry", val: s.entry ? fmtPrice(s.entry) : "—", tone: "text-white" },
+    s.vs_avwap_pct != null
+      ? {
+          label: "vs Call VWAP",
+          val: fmtPct0(s.vs_avwap_pct),
+          tone: s.vs_avwap_pct >= 0 ? "text-positive" : "text-negative",
+        }
+      : { label: "vs Call VWAP", val: "—", tone: "text-text-muted" },
+    s.beta_30d != null
+      ? { label: "Beta 30d", val: Number(s.beta_30d).toFixed(2), tone: "text-white" }
+      : null,
+    calledAbs
+      ? { label: "Called At", val: new Date(info.created).toLocaleDateString(), tone: "text-white" }
+      : null,
+    info.n > 1 ? { label: "Active Calls", val: String(info.n), tone: "text-gold-primary" } : null,
+  ].filter(Boolean);
+
+  // Pad to even count so last row stays aligned
+  if (stats.length % 2 === 1) {
+    stats.push({ label: "—", val: "—", tone: "text-transparent" });
+  }
+
   return (
-    <SheetShell onClose={close} ariaLabel={`${sym} signal status`}>
-      <div className="max-h-[min(88dvh,720px)] overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+8px)] sm:max-h-[min(85vh,720px)] sm:pb-0">
-        <div className="flex items-center gap-3 px-5 pt-2 sm:pt-5">
-          <CoinLogo pair={pair} size={38} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[18px] font-semibold leading-none text-white">{sym}</span>
-              <span className="font-mono text-[11px] text-text-muted">{pair}</span>
+    <SheetShell
+      onClose={close}
+      ariaLabel={`${sym} signal status`}
+      footer={
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={openFull}
+            className="flex-1 rounded-xl bg-gold-primary py-3 text-[13px] font-bold text-[#17110a] transition-colors hover:brightness-105 active:scale-[0.99]"
+          >
+            Open full signal →
+          </button>
+          <button
+            type="button"
+            onClick={close}
+            className="rounded-xl border border-white/12 px-4 py-3 text-[13px] font-medium text-white/70 transition-colors hover:border-white/25 hover:text-white"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="px-4 pt-1 sm:px-5 sm:pt-4">
+        {/* Header row — compact */}
+        <div className="flex items-center gap-2.5">
+          <CoinLogo pair={pair} size={34} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[16px] font-semibold leading-none text-white">{sym}</span>
+              <span className="font-mono text-[10px] text-text-muted">{pair}</span>
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
               {dir && (
                 <span
-                  className={`rounded-sm border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider ${
+                  className={`rounded border px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider ${
                     dir === "BULLISH"
                       ? "border-positive/40 text-positive"
                       : dir === "BEARISH"
@@ -152,12 +223,12 @@ export default function GlobalSignalModalHost() {
                 </span>
               )}
               {risk && (
-                <span className="rounded-sm border border-white/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white/60">
+                <span className="rounded border border-white/15 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-white/55">
                   {risk} risk
                 </span>
               )}
               {s.is_decoupled && (
-                <span className="rounded-sm border border-gold-primary/30 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-gold-primary">
+                <span className="rounded border border-gold-primary/30 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-gold-primary">
                   btc-decoupled
                 </span>
               )}
@@ -165,66 +236,34 @@ export default function GlobalSignalModalHost() {
           </div>
           <button
             onClick={close}
-            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:border-white/25 hover:text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:border-white/25 hover:text-white"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
 
+        {/* Status banner — compact */}
         <div
-          className="mx-5 mt-4 flex items-center gap-3 rounded-xl px-4 py-3"
+          className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5"
           style={{ background: `${st.color}14`, border: `1px solid ${st.color}44` }}
         >
-          <span className="font-mono text-[15px] font-bold tracking-wider" style={{ color: st.color }}>
+          <span className="font-mono text-[14px] font-bold tracking-wider" style={{ color: st.color }}>
             {st.label}
           </span>
-          <span className="hidden text-[11px] text-text-muted sm:block">{st.desc}</span>
           <span className="ml-auto text-right">
-            <span className="block font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/70">called</span>
-            <span className="font-mono text-[13px] text-white/90" title={calledAbs || ""}>
+            <span className="block font-mono text-[7.5px] uppercase tracking-[0.15em] text-text-muted/70">called</span>
+            <span className="font-mono text-[12px] text-white/90" title={calledAbs || ""}>
               {ago || "—"}
             </span>
           </span>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 px-5 sm:grid-cols-3">
-          <Stat
-            label="Max Target"
-            val={s.max_target_pct == null ? "—" : "+" + Number(s.max_target_pct).toFixed(0) + "%"}
-            tone="text-emerald-400"
-          />
-          <Stat
-            label="Peak Reached"
-            val={s.peak_pct == null ? "—" : fmtPct0(s.peak_pct)}
-            tone={s.peak_pct >= 0 ? "text-positive" : "text-negative"}
-          />
-          <Stat label="Entry" val={s.entry ? fmtPrice(s.entry) : "—"} />
-          {s.vs_avwap_pct != null && (
-            <Stat
-              label="vs Call VWAP"
-              val={fmtPct0(s.vs_avwap_pct)}
-              tone={s.vs_avwap_pct >= 0 ? "text-positive" : "text-negative"}
-            />
-          )}
-          {s.beta_30d != null && <Stat label="Beta 30d" val={Number(s.beta_30d).toFixed(2)} />}
-          {calledAbs && <Stat label="Called At" val={new Date(info.created).toLocaleDateString()} />}
-          {info.n > 1 && <Stat label="Active Calls" val={`${info.n}`} tone="text-gold-primary" />}
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 border-t border-white/[0.06] px-5 py-4">
-          <button
-            onClick={openFull}
-            className="flex-1 rounded-xl bg-gold-primary py-2.5 text-[13px] font-semibold text-[#17110a] transition-colors hover:brightness-105 active:scale-[0.99]"
-          >
-            Open full signal →
-          </button>
-          <button
-            onClick={close}
-            className="rounded-xl border border-white/12 px-4 py-2.5 text-[13px] text-white/70 transition-colors hover:border-white/25"
-          >
-            Close
-          </button>
+        {/* Stats — 2 equal columns, label|value aligned */}
+        <div className="mt-3 grid grid-cols-2 gap-1.5 pb-3">
+          {stats.map((row, i) => (
+            <Stat key={`${row.label}-${i}`} label={row.label} val={row.val} tone={row.tone} />
+          ))}
         </div>
       </div>
     </SheetShell>

@@ -185,11 +185,15 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
   const sel = list.find((s) => s.signal_id === selId) || null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0a0b0f] shadow-[0_30px_80px_rgba(0,0,0,0.7)]">
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-6">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-[ddFade_.2s_ease-out]" onClick={onClose} />
+      {/* Mobile bottom sheet · desktop centered */}
+      <div className="relative z-10 flex max-h-[min(92dvh,100%)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border-t border-white/10 bg-[#0c0a07] shadow-[0_-16px_48px_rgba(0,0,0,0.55)] animate-[ddSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:max-h-[90vh] sm:rounded-2xl sm:border sm:border-white/12 sm:bg-[#0a0b0f] sm:shadow-[0_30px_80px_rgba(0,0,0,0.7)] sm:animate-none">
+        <div className="flex justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/20" />
+        </div>
         {/* header */}
-        <div className="flex items-start justify-between gap-3 border-b border-white/8 p-4">
+        <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] px-4 pb-3 pt-1 sm:p-4">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">Winning calls · proof</p>
             <h3 className="mt-0.5 text-[16px] font-bold text-white">
@@ -212,18 +216,22 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
         ) : (
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden sm:grid-cols-[250px_1fr]">
             {/* list */}
-            <div className="max-h-[34vh] overflow-y-auto border-b border-white/8 sm:max-h-none sm:border-b-0 sm:border-r">
+            <div className="max-h-[32vh] overflow-y-auto border-b border-white/[0.08] sm:max-h-none sm:border-b-0 sm:border-r">
               {list.map((s) => (
                 <CallRow key={s.signal_id} s={s} active={s.signal_id === selId} onClick={() => setSelId(s.signal_id)} />
               ))}
             </div>
             {/* detail */}
-            <div className="min-h-0 overflow-y-auto p-4">
+            <div className="min-h-0 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4">
               {detailLoading ? <Spinner /> : sel && detail ? <Proof call={sel} detail={detail} /> : <Spinner />}
             </div>
           </div>
         )}
       </div>
+      <style>{`
+        @keyframes ddFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes ddSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      `}</style>
     </div>
   );
 }
