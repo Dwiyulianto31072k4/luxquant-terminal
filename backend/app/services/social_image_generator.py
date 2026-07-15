@@ -109,14 +109,16 @@ def build_visual_prompt(
     )
 
     return "\n".join([
-        "Create an original cinematic Instagram vertical POSTER scene for a premium crypto intelligence brand.",
-        "Hero subject large in the upper/middle frame; one continuous photoreal scene with dramatic lighting.",
-        "The image will later receive bold white headline typography from a separate renderer — leave the lower 40% darker and less busy, and put ZERO readable text in the image itself.",
-        f"Story context (inspire the scene, do not render as text): {context}",
+        "Create an original photoreal premium financial-news Instagram vertical poster scene.",
+        "One continuous REAL-WORLD scene a Bloomberg photo editor would approve — architecture, institution, "
+        "person, product, or market floor — not surreal crypto meme art.",
+        "Hero subject large in the upper/middle frame; natural cinematic lighting.",
+        "ZERO readable text in the image (no wall slogans, no logos invented as type). Lower 40% darker for overlay.",
+        f"Story context (inspire the scene, never paint as text): {context}",
         f"Source: {source}. Angle: {angle_label}. Headline idea (do not paint these words): {headline}.",
         reference_line,
-        "Visual direction: viral crypto Instagram energy — physical 3D props, powerful architecture, hero portraits, giant coins when relevant, high contrast film grading, rim light, not a flat documentary boardroom photo.",
-        "STRICT NEGATIVE: no readable text, no letters, no captions, no fake logos/wordmarks, no red subtitle bars, no watermarks, no chart labels, no collage seams.",
+        "Prefer plausible institutional/city/product settings. Avoid chains-on-books, floating holograms, raining money.",
+        "STRICT NEGATIVE: no readable text, no fake logos/wordmarks, no red subtitle bars, no watermarks, no collage seams.",
     ])
 
 
@@ -726,27 +728,27 @@ def _identity_face_prompt(
     brand: Optional[str] = None,
     verified_brand_names: Optional[list] = None,
 ) -> str:
-    """Build face-only edit prompt: identity first, scene second."""
+    """Build face-only edit prompt: identity first, rational scene second."""
     names = list(verified_brand_names or [])
     if brand and brand not in names:
         names = [brand] + names
     parts = [
         IDENTITY_LOCK_PREFIX,
-        "Task: Transform the reference photograph into a cinematic vertical Instagram poster "
+        "Task: Transform the reference photograph into a premium financial-news vertical Instagram poster "
         "while keeping the same person's face 1:1.",
         "The hero subject is a large chest-up or three-quarter portrait of THIS exact person "
-        "in the upper/middle frame.",
+        "in the upper/middle frame, in a plausible professional setting for the story.",
         f"Scene direction (do not change identity for these): {scene_prompt}",
         _brand_allowlist_clause(names),
+        "Avoid surreal crypto clichés (chains on books, floating holograms, raining money).",
     ]
     if names:
         parts.append(
-            f"Verified brands for later accurate integration: {', '.join(names)}. "
-            "Prefer not inventing marks in this pass; environment only is fine."
+            f"Verified brands for environment only (no invented marks): {', '.join(names)}."
         )
     parts.append(
-        "Lower third of the frame darker and calmer for later headline typography. "
-        "No readable text, no captions, no watermarks."
+        "Lower third darker for later headline typography. "
+        "No readable text, slogans, captions, or watermarks on any surface."
     )
     return " ".join(parts)
 
