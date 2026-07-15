@@ -141,17 +141,17 @@ const TopPerformers = () => {
     return (
       <div className="mb-10">
         <ShimmerStyles />
-        <div className="lqsk-group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3.5 sm:p-5">
+        <div className="lqsk-group relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0805] p-3.5 sm:p-5">
         <div className="mb-5">
           <div className="h-7 w-48 rounded-lg bg-white/[0.05] sm:h-8 sm:w-64" />
           <div className="mt-2 h-3 w-40 rounded bg-white/[0.03]" />
         </div>
-        <div className="mb-4 flex gap-2 overflow-hidden">
+        <div className="mb-3 grid grid-cols-4 gap-1 border-b border-white/[0.06] pb-2">
           {[...Array(4)].map((_, j) => (
-            <div key={j} className="h-8 w-24 shrink-0 rounded-full bg-white/[0.05]" />
+            <div key={j} className="mx-auto h-3 w-14 rounded bg-white/[0.05]" />
           ))}
         </div>
-        <div className="mb-4 h-8 w-56 rounded-lg bg-white/[0.04]" />
+        <div className="mb-4 h-8 w-full rounded-md bg-white/[0.04]" />
 
         {/* Open leaderboard rows — borderless, only hairline dividers */}
         <div className="divide-y divide-white/[0.04]">
@@ -182,42 +182,35 @@ const TopPerformers = () => {
 
   return (
     <div className="mb-10 relative">
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-        <div className="p-3.5 sm:p-5 lg:p-6">
-          {/* Header */}
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
+      {/* Solid panel — same surface as Market Overview (not translucent) */}
+      <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0805]">
+        <div className="p-3.5 sm:p-5 lg:p-5">
+          {/* Header — no LIVE badge (exchanges don't do that on lists) */}
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2 sm:mb-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2
-                  className="text-[20px] font-semibold tracking-tight text-white sm:text-[26px]"
-                  style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
-                >
-                  Top Gainers
-                  <span className="ml-1.5 font-medium text-white/35">· Calls</span>
-                </h2>
-                <span className="hidden items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2 py-0.5 sm:inline-flex">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400/90">Live</span>
-                </span>
-              </div>
-              <p className="mt-1 text-[12px] text-white/35">
-                Best resolved calls · tap a row for proof
+              <h2
+                className="text-[18px] font-semibold tracking-tight text-white sm:text-[22px]"
+                style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
+              >
+                Top Gainers
+              </h2>
+              <p className="mt-0.5 text-[11px] text-text-muted sm:text-[12px]">
+                Best resolved calls · tap for proof
               </p>
             </div>
             {periodRange.from && (
-              <div className="hidden font-mono text-[11px] tabular-nums text-white/40 sm:block">
+              <div className="font-mono text-[10px] tabular-nums text-text-muted sm:text-[11px]">
                 {periodRange.from}
                 {periodRange.to ? (
-                  <span className="text-white/25"> → {periodRange.to}</span>
+                  <span className="text-text-muted/60"> → {periodRange.to}</span>
                 ) : null}
               </div>
             )}
           </div>
 
-          {/* Filters — equal-width grids, no horizontal scroll, no More sheet */}
+          {/* Filters */}
           {data && data.top_gainers?.length > 0 && (
-            <div className="mb-3 space-y-2 sm:mb-4">
-              {/* View: 4 equal tabs — Binance underline density */}
+            <div className="mb-2 space-y-2 sm:mb-3">
               <div className="grid grid-cols-4 gap-0.5 border-b border-white/[0.06]">
                 {CATEGORIES.map((c) => {
                   const on = category === c.key;
@@ -227,7 +220,7 @@ const TopPerformers = () => {
                       type="button"
                       onClick={() => setCategory(c.key)}
                       className={`relative min-w-0 px-0.5 pb-2 pt-1 text-center text-[11px] font-medium transition sm:text-[12px] ${
-                        on ? "text-white" : "text-white/40 hover:text-white/70"
+                        on ? "text-white" : "text-text-muted hover:text-white/80"
                       }`}
                     >
                       <span className="block truncate sm:hidden">{c.short}</span>
@@ -240,8 +233,7 @@ const TopPerformers = () => {
                 })}
               </div>
 
-              {/* Period: full-width 4-seg control */}
-              <div className="grid grid-cols-4 gap-0.5 rounded-md border border-white/[0.08] bg-black/25 p-0.5">
+              <div className="grid grid-cols-4 gap-0.5 rounded-md border border-white/[0.06] bg-[#0c0a07] p-0.5">
                 {presets.map(({ key, short }) => {
                   const on = activeFilter === key;
                   return (
@@ -251,8 +243,8 @@ const TopPerformers = () => {
                       onClick={() => handlePresetClick(key)}
                       className={`min-w-0 rounded-[5px] py-1.5 text-center font-mono text-[10px] font-medium tracking-wide transition sm:text-[11px] ${
                         on
-                          ? "bg-white/[0.12] text-white shadow-sm"
-                          : "text-white/40 hover:text-white/70"
+                          ? "bg-white/[0.1] text-white"
+                          : "text-text-muted hover:text-white/75"
                       }`}
                     >
                       {short}
@@ -262,41 +254,34 @@ const TopPerformers = () => {
               </div>
 
               {showCustom && (
-                <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/[0.08] bg-black/20 p-2 sm:flex sm:flex-wrap sm:items-center">
+                <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/[0.06] bg-[#0c0a07] p-2 sm:flex sm:flex-wrap sm:items-center">
                   <label className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-1.5">
-                    <span className="font-mono text-[9px] uppercase text-white/35">{t("top.from")}</span>
+                    <span className="font-mono text-[9px] uppercase text-text-muted">{t("top.from")}</span>
                     <input
                       type="date"
                       value={customFrom}
                       onChange={(e) => setCustomFrom(e.target.value)}
-                      className="w-full min-w-0 rounded-md border border-white/10 bg-transparent px-2 py-1.5 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                      className="w-full min-w-0 rounded-md border border-white/10 bg-[#0a0805] px-2 py-1.5 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
                     />
                   </label>
                   <label className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-1.5">
-                    <span className="font-mono text-[9px] uppercase text-white/35">{t("top.to")}</span>
+                    <span className="font-mono text-[9px] uppercase text-text-muted">{t("top.to")}</span>
                     <input
                       type="date"
                       value={customTo}
                       onChange={(e) => setCustomTo(e.target.value)}
-                      className="w-full min-w-0 rounded-md border border-white/10 bg-transparent px-2 py-1.5 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                      className="w-full min-w-0 rounded-md border border-white/10 bg-[#0a0805] px-2 py-1.5 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
                     />
                   </label>
                   <button
                     type="button"
                     onClick={handleCustomApply}
                     disabled={!customFrom || !customTo}
-                    className="col-span-2 rounded-md bg-white/90 py-1.5 text-[11px] font-semibold text-[#0a0506] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-4"
+                    className="col-span-2 rounded-md bg-gold-primary py-1.5 text-[11px] font-semibold text-[#1a1206] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-4"
                   >
                     {t("top.apply")}
                   </button>
                 </div>
-              )}
-
-              {periodRange.from && (
-                <p className="font-mono text-[10px] tabular-nums text-white/28">
-                  {periodRange.from}
-                  {periodRange.to ? ` → ${periodRange.to}` : ""}
-                </p>
               )}
             </div>
           )}
