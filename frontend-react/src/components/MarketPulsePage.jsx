@@ -1811,17 +1811,23 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
 
       {expanded && createPortal(
         <div
-          className="fixed inset-0 z-[95] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-6"
           onClick={() => setExpanded(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Heatmap expanded"
         >
           <div
-            className="relative w-full max-w-6xl h-[calc(100vh-3rem)] flex flex-col rounded-2xl bg-[#0b0907] border border-gold-primary/25 shadow-2xl shadow-black/60 p-4 sm:p-6"
+            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-white/10 bg-[#0c0a07] p-4 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-[#0b0907] sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-            <div className="flex items-center justify-between mb-4 shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-white font-semibold text-[15px]">Heatmap</span>
+            <div className="mb-1 flex justify-center sm:hidden" aria-hidden="true">
+              <div className="h-1 w-10 rounded-full bg-white/20" />
+            </div>
+            <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent sm:block" />
+            <div className="mb-3 flex shrink-0 items-center justify-between sm:mb-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-[15px] font-semibold text-white">Heatmap</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60">
                   {withCalled.length} coins · 1h
                 </span>
@@ -1830,17 +1836,19 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
                 <SortToggle big />
                 <button
                   onClick={() => setExpanded(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-white hover:border-white/25"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-text-muted hover:border-white/25 hover:text-white"
                   aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="min-h-0 flex-1">
               <HeatTreemap data={withCalled} height="100%" onPick={pick} />
             </div>
-            <Legend />
+            <div className="pb-[env(safe-area-inset-bottom)] sm:pb-0">
+              <Legend />
+            </div>
           </div>
         </div>,
         document.body
@@ -2322,30 +2330,39 @@ const CoinChartModal = ({ pair, onClose }) => {
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[100000] flex items-start justify-center px-3 py-4 sm:px-6 md:px-8 pt-[60px] sm:pt-[80px] pb-6 ${
+      className={`fixed inset-0 z-[100000] flex justify-center ${
         isClosing
           ? "animate-[mpfade-out_.18s_ease-in_forwards]"
           : "animate-[mpfade-in_.22s_ease-out]"
-      }`}
-      style={{ backgroundColor: "rgba(0,0,0,0.82)", backdropFilter: "blur(8px)" }}
+      } items-end sm:items-start sm:px-6 md:px-8 sm:pt-[72px] sm:pb-6`}
+      style={{ backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)" }}
       onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${symbol} chart`}
     >
+      {/* Mobile: bottom sheet (Top Gainers Filters grammar). Desktop: centered panel. */}
       <div
-        className={`relative w-full max-w-[1180px] bg-[#0a0805] border border-white/[0.08] rounded-md overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.07)] flex flex-col h-[calc(100dvh-90px)] sm:h-[calc(100dvh-110px)] max-h-[920px] min-h-0 ${
+        className={`relative flex w-full max-w-[1180px] flex-col overflow-hidden bg-[#0c0a07] shadow-[0_-12px_40px_rgba(0,0,0,0.55)] min-h-0 ${
           isClosing
-            ? "animate-[mppanel-out_.18s_ease-in_forwards]"
-            : "animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
-        }`}
+            ? "animate-[mpsheet-out_.2s_ease-in_forwards] sm:animate-[mppanel-out_.18s_ease-in_forwards]"
+            : "animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
+        } h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-white/10 sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-[#0a0805] sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8)]`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top accent line */}
+        {/* Grab handle — mobile only */}
+        <div className="flex justify-center pt-2.5 pb-0.5 sm:hidden shrink-0" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-white/20" />
+        </div>
+
+        {/* Top accent line — desktop */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent"
+          className="pointer-events-none absolute inset-x-6 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent sm:block"
         />
 
         {/* Header */}
-        <div className="px-4 sm:px-5 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.015] flex-shrink-0 relative z-10">
+        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.015] flex-shrink-0 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
             <CoinLogo pair={pair} size={36} />
             <div className="min-w-0">
@@ -2445,11 +2462,18 @@ const CoinChartModal = ({ pair, onClose }) => {
           </p>
         </div>
 
-        <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-white/[0.01] flex-shrink-0 relative z-10">
+        <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-white/[0.01] flex-shrink-0 relative z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-2">
           <span className="uppercase tracking-[0.15em]">
             Chart · TradingView · Metrics · Binance Futures
           </span>
-          <span className="uppercase tracking-[0.15em]">ESC to close</span>
+          <span className="hidden uppercase tracking-[0.15em] sm:inline">ESC to close</span>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="sm:hidden rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-white/70 active:scale-95"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -2647,6 +2671,21 @@ const PulseStyles = () => (
     @keyframes mppanel-out {
       from { opacity: 1; transform: translateY(0)    scale(1); }
       to   { opacity: 0; transform: translateY(20px) scale(.98); }
+    }
+    /* Mobile bottom-sheet (Top Gainers Filters grammar) */
+    @keyframes mpsheet-in {
+      from { opacity: 1; transform: translateY(100%); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes mpsheet-out {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(100%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .animate-\\[mpsheet-in_\\.3s_cubic-bezier\\(\\.16\\,1\\,\\.3\\,1\\)\\],
+      .animate-\\[mpsheet-out_\\.2s_ease-in_forwards\\] {
+        animation: none !important;
+      }
     }
 
     /* Split feed (Pumps | Dumps) */
