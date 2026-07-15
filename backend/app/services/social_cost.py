@@ -17,8 +17,13 @@ import os
 
 PRICE_CHAT_INPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_INPUT_PER_M", "3.0"))
 PRICE_CHAT_OUTPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_OUTPUT_PER_M", "15.0"))
-PRICE_IMAGE_USD = float(os.environ.get("SOCIAL_COST_IMAGE_USD", "0.05"))
+# Default image rate ≈ gpt-image-2 medium portrait (~$0.041) or Grok ~$0.05
+PRICE_IMAGE_USD = float(os.environ.get("SOCIAL_COST_IMAGE_USD", "0.045"))
 PRICE_SEARCH_USD = float(os.environ.get("SOCIAL_COST_SEARCH_USD", "0.016"))
+# Optional model-specific overrides
+PRICE_IMAGE_GPT2_MEDIUM = float(os.environ.get("SOCIAL_COST_GPT_IMAGE2_MEDIUM", "0.041"))
+PRICE_IMAGE_GPT2_HIGH = float(os.environ.get("SOCIAL_COST_GPT_IMAGE2_HIGH", "0.165"))
+PRICE_IMAGE_XAI = float(os.environ.get("SOCIAL_COST_XAI_IMAGE", "0.05"))
 
 # Pipeline knobs (mirrored here for ops docs; enforced in worker/image gen)
 CHEAP_MODE = os.environ.get("SOCIAL_CHEAP_MODE", "1").strip().lower() not in ("0", "false", "no")
@@ -43,7 +48,14 @@ def estimate_cost(
         prompt_tokens / 1_000_000 * PRICE_CHAT_INPUT_PER_M
         + completion_tokens / 1_000_000 * PRICE_CHAT_OUTPUT_PER_M
     )
-    image_usd = image_count * PRICE_IMAGE_USD
+    unit = PRICE_IMAGE_USD
+    im = (image_model or "").lower()
+    if "gpt-image-2" in im or im.endswith("image-2"):
+        q = os.environ.get("OPENAI_IMAGE_QUALITY", "medium").lower()
+        unit = PRICE_IMAGE_GPT2_HIGH if q == "high" else PRICE_IMAGE_GPT2_MEDIUM
+    elif "grok" in im or "xai" in im or "imagine" in im:
+        unit = PRICE_IMAGE_XAI
+    image_usd = image_count * unit
     search_usd = search_count * PRICE_SEARCH_USD
     total_usd = chat_usd + image_usd + search_usd
 
@@ -58,4 +70,5 @@ def estimate_cost(
         "total_usd": round(total_usd, 6),
         "chat_model": chat_model,
         "image_model": image_model,
+        "image_unit_usd": unit,
     }

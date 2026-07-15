@@ -1,14 +1,20 @@
 """
 Social AI Image Generator
 
-Generate Instagram-ready AI images for social posts. The service uses OpenAI
-Images when OPENAI_API_KEY is configured and gracefully falls back to the
-existing deterministic card renderer when the API is unavailable.
+Instagram-ready AI backgrounds for social posts, then classic LuxQuant red-box
+compose.
+
+Quality-first + cost-efficient defaults (2026):
+  - Primary image model: OpenAI gpt-image-2 @ medium, 1024x1536 (~$0.04/img)
+  - Fallback: xAI Grok Imagine if OPENAI_API_KEY missing
+  - Max 1 paid image API call per draft (SOCIAL_CHEAP_MODE)
+  - Caption/chat stays on xAI Grok (separate, cheaper tokens)
 """
 
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -18,13 +24,16 @@ from urllib.parse import urlparse
 
 import requests
 
+logger = logging.getLogger(__name__)
+
 
 ASSETS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
-OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1")
+# gpt-image-2 + medium + portrait = best quality/cost for social posters
+OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
 OPENAI_IMAGE_SIZE = os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")
 OPENAI_IMAGE_QUALITY = os.environ.get("OPENAI_IMAGE_QUALITY", "medium")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-IMAGE_TIMEOUT = int(os.environ.get("SOCIAL_IMAGE_TIMEOUT", "120"))
+IMAGE_TIMEOUT = int(os.environ.get("SOCIAL_IMAGE_TIMEOUT", "180"))
 
 
 @dataclass
@@ -129,40 +138,99 @@ def _openai_headers() -> dict:
     return {"Authorization": f"Bearer {api_key}"}
 
 
+def _resolve_image_provider() -> str:
+    """Prefer GPT Image 2 when key present; else xAI. Env can force either."""
+    pref = os.environ.get("SOCIAL_IMAGE_PROVIDER", "auto").strip().lower()
+    has_oai = bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    has_xai = bool(os.environ.get("XAI_API_KEY", "").strip())
+    if pref in ("openai", "gpt", "gpt-image-2", "gpt-image-1"):
+        if has_oai:
+            return "openai"
+        logger.warning("SOCIAL_IMAGE_PROVIDER=%s but OPENAI_API_KEY missing", pref)
+    if pref == "xai":
+        if has_xai:
+            return "xai"
+        logger.warning("SOCIAL_IMAGE_PROVIDER=xai but XAI_API_KEY missing")
+    # auto: quality-first OpenAI gpt-image-2, then Grok
+    if has_oai:
+        return "openai"
+    if has_xai:
+        return "xai"
+    return "none"
+
+
 def _generate_openai_image(prompt: str, out_path: Path) -> None:
+    payload = {
+        "model": OPENAI_IMAGE_MODEL,
+        "prompt": prompt,
+        "size": OPENAI_IMAGE_SIZE,
+        "quality": OPENAI_IMAGE_QUALITY,
+        "n": 1,
+    }
+    # Prefer b64 when supported (avoids second HTTP fetch)
+    payload["response_format"] = "b64_json"
     response = requests.post(
         f"{OPENAI_BASE_URL.rstrip('/')}/images/generations",
         headers={**_openai_headers(), "Content-Type": "application/json"},
-        json={
-            "model": OPENAI_IMAGE_MODEL,
-            "prompt": prompt,
-            "size": OPENAI_IMAGE_SIZE,
-            "quality": OPENAI_IMAGE_QUALITY,
-            "n": 1,
-        },
+        json=payload,
         timeout=IMAGE_TIMEOUT,
     )
+    # gpt-image-2 may reject response_format — retry without
+    if response.status_code >= 400 and "response_format" in payload:
+        payload.pop("response_format", None)
+        response = requests.post(
+            f"{OPENAI_BASE_URL.rstrip('/')}/images/generations",
+            headers={**_openai_headers(), "Content-Type": "application/json"},
+            json=payload,
+            timeout=IMAGE_TIMEOUT,
+        )
     response.raise_for_status()
     out_path.write_bytes(_decode_openai_image(response.json()))
 
 
 def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> None:
+    """Identity/brand edit via OpenAI images/edits (gpt-image-2)."""
+    # Ensure we send a common image type; convert webp if needed
+    ref = Path(reference_path)
+    mime = "image/png"
+    file_name = ref.name
+    suf = ref.suffix.lower()
+    if suf in (".jpg", ".jpeg"):
+        mime = "image/jpeg"
+    elif suf == ".webp":
+        mime = "image/webp"
     with open(reference_path, "rb") as image_file:
+        files = {"image": (file_name, image_file, mime)}
+        data = {
+            "model": OPENAI_IMAGE_MODEL,
+            "prompt": prompt,
+            "size": OPENAI_IMAGE_SIZE,
+            "quality": OPENAI_IMAGE_QUALITY,
+            "n": "1",
+        }
         response = requests.post(
             f"{OPENAI_BASE_URL.rstrip('/')}/images/edits",
             headers=_openai_headers(),
-            data={
-                "model": OPENAI_IMAGE_MODEL,
-                "prompt": prompt,
-                "size": OPENAI_IMAGE_SIZE,
-                "quality": OPENAI_IMAGE_QUALITY,
-                "n": "1",
-            },
-            files={"image": image_file},
+            data=data,
+            files=files,
             timeout=IMAGE_TIMEOUT,
         )
     response.raise_for_status()
     out_path.write_bytes(_decode_openai_image(response.json()))
+
+
+def _edit_image(prompt: str, reference_path: str, out_path: Path, *, provider: str) -> None:
+    if provider == "openai":
+        _edit_openai_image(prompt, reference_path, out_path)
+    else:
+        _edit_xai_image(prompt, reference_path, out_path, aspect_ratio="3:4")
+
+
+def _generate_image(prompt: str, out_path: Path, *, provider: str) -> None:
+    if provider == "openai":
+        _generate_openai_image(prompt, out_path)
+    else:
+        _generate_xai_image(prompt, out_path)
 
 
 def _font(size: int, bold: bool = False):
@@ -321,7 +389,7 @@ XAI_API_BASE = os.environ.get("XAI_API_BASE", "https://api.x.ai/v1")
 XAI_IMAGE_MODEL = os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality")
 XAI_IMAGE_EDIT_MODEL = os.environ.get("XAI_IMAGE_EDIT_MODEL", "grok-imagine-image-quality")
 XAI_IMAGE_TIMEOUT = int(os.environ.get("XAI_IMAGE_TIMEOUT", "280"))
-IMAGE_PROVIDER = os.environ.get("SOCIAL_IMAGE_PROVIDER", "xai").strip().lower()
+# Legacy env name still read via _resolve_image_provider(); default is "auto"
 SOCIAL_LOGO_PATH = os.environ.get("SOCIAL_LOGO_PATH", str(ASSETS_DIR / "logo-luxquant.png"))
 # Curated library of real face photos keyed by slug, e.g. faces/vitalik-buterin.jpg.
 # When a story's featured_person matches a file here, the image is generated via
@@ -813,12 +881,12 @@ def generate_ai_social_image(
     entities: Optional[list] = None,
     skip_if_needs_materials: bool = False,
     force: bool = False,
+    force_provider: Optional[str] = None,
 ) -> GeneratedSocialImage:
     """Generate cinematic poster image.
 
-    Brands: primary org logo is fed via xAI image-edit so it becomes an element
-    *inside* the scene (phone UI, signage, prop) — never a corner sticker.
-    Materials gate uses visual_only scope (primary org + featured face).
+    Default provider: OpenAI gpt-image-2 (medium, portrait) when key present;
+    else xAI Grok Imagine. force_provider overrides auto/env selection.
     """
     # When the AI editorial pack supplies its own image prompt, use it verbatim;
     # otherwise fall back to the deterministic template prompt.
@@ -881,192 +949,178 @@ def generate_ai_social_image(
             error_message=None,
         )
 
-    # Preferred backend: xAI/Grok raw image + classic LuxQuant red-box compositor.
-    if IMAGE_PROVIDER == "xai":
-        # Only use admin-trusted face (never raw wiki scrape for generation accuracy)
-        face_path = entity_face
+    # Primary pipeline: GPT Image 2 (quality) or Grok Imagine (fallback) + red-box compose.
+    if force_provider in ("openai", "xai"):
+        provider = force_provider
+        if force_provider == "openai" and not os.environ.get("OPENAI_API_KEY", "").strip():
+            provider = "none"
+        if force_provider == "xai" and not os.environ.get("XAI_API_KEY", "").strip():
+            provider = "none"
+    else:
+        provider = _resolve_image_provider()
+    face_path = entity_face  # admin-trusted only
+    brand = primary_org_name or "the primary brand"
+    gen_prompt = prompt
+    mode = f"ai_{provider}_poster"
+    ref_used = None
 
-        brand = primary_org_name or "the primary brand"
-        gen_prompt = prompt
-        mode = "ai_xai_poster"
-        ref_used = None
-        try:
-            logo_paths = [
-                b.get("path") for b in verified_brands
-                if isinstance(b, dict) and b.get("path") and Path(str(b["path"])).exists()
-            ]
-            if not logo_paths and primary_logo_path and Path(str(primary_logo_path)).exists():
-                logo_paths = [str(primary_logo_path)]
-            logo_ok = bool(logo_paths)
-            face_ok = bool(face_path and Path(str(face_path)).exists())
-            allow = verified_brand_names or ([primary_org_name] if primary_org_name else [])
-
-            # Strip invented-logo language from the base scene prompt + hard allow-list
-            scene_prompt = f"{prompt} {_brand_allowlist_clause(allow)}"
-
-            image_api_calls = 0
-
-            if face_ok:
-                # ── Single face edit (1:1 identity). Cheap mode: NO second brand API call. ──
-                face_ref = _prepare_face_reference(str(face_path), news_id=news_id)
-                ref_used = face_ref
-                # Fold verified brands into the ONE identity prompt so we don't pay twice
-                identity_prompt = _identity_face_prompt(
-                    scene_prompt,
-                    brand=primary_org_name,
-                    verified_brand_names=allow,
-                )
-                if allow and logo_ok:
-                    identity_prompt += (
-                        f" If possible, subtly include verified brand presence for "
-                        f"{', '.join(allow)} via environment/architecture only — "
-                        "never invent unlisted brand logos."
-                    )
-                gen_prompt = identity_prompt
-                _edit_xai_image(identity_prompt, face_ref, raw_path, aspect_ratio="3:4")
-                image_api_calls = 1
-                mode = "ai_xai_face_1to1_cheap" if CHEAP_MODE else "ai_xai_face_1to1"
-
-                # Optional 2nd pass only when explicitly enabled (costs +~$0.05)
-                if (
-                    BRAND_SECOND_PASS
-                    and IMAGE_MAX_CALLS >= 2
-                    and logo_ok
-                    and allow
-                    and image_api_calls < IMAGE_MAX_CALLS
-                ):
-                    try:
-                        brand_prompt = _brand_pass_prompt(
-                            scene_prompt, verified_brand_names=allow
-                        )
-                        _edit_xai_image(
-                            brand_prompt,
-                            str(raw_path),
-                            raw_path,
-                            aspect_ratio="3:4",
-                        )
-                        image_api_calls += 1
-                        mode = "ai_xai_face_1to1_brands"
-                        gen_prompt = identity_prompt + " | brands:" + ",".join(allow)
-                    except Exception as brand_exc:
-                        logger = __import__("logging").getLogger(__name__)
-                        logger.warning(
-                            "brand pass failed (keeping face-locked image): %s", brand_exc
-                        )
-
-            elif logo_ok:
-                # Multi-brand sheet when several logos verified; else single primary
-                logo_ref = _prepare_logos_sheet(
-                    [str(p) for p in logo_paths], news_id=news_id
-                ) or str(logo_paths[0])
-                edit_prompt = (
-                    "Cinematic vertical Instagram poster. "
-                    f"Use ONLY the official brand mark(s) from the reference for: {', '.join(allow)}. "
-                    "Integrate them as large physical 3D elements in the scene "
-                    "(signage, product emblem, desk object). Match reference geometry exactly. "
-                    f"{_brand_allowlist_clause(allow)} "
-                    "Never corner stickers. Full scene: " + scene_prompt
-                )
-                _edit_xai_image(edit_prompt, logo_ref, raw_path, aspect_ratio="3:4")
-                image_api_calls = 1
-                ref_used = logo_ref
-                mode = "ai_xai_brands_scene"
-                gen_prompt = edit_prompt
-            else:
-                if featured_person:
-                    gen_prompt = scene_prompt + (
-                        " Show the central person only from behind or as a shadowed silhouette, "
-                        "face not visible, to avoid depicting an inaccurate likeness."
-                    )
-                else:
-                    gen_prompt = scene_prompt
-                gen_prompt = f"{gen_prompt} {_brand_allowlist_clause([])}"
-                _generate_xai_image(gen_prompt, raw_path)
-                image_api_calls = 1
-
-            _compose_editorial_card(
-                str(raw_path),
-                headline,
-                str(out_path),
-                entity_logos=None,
-                angle=angle,
-            )
-            if visual_materials is not None:
-                visual_materials = {
-                    **visual_materials,
-                    "raw_image_path": str(raw_path),
-                    "brand_in_scene": bool(logo_ok),
-                    "identity_lock": bool(face_ok),
-                    "primary_brand": primary_org_name,
-                    "verified_brand_names": allow,
-                    "image_api_calls": image_api_calls,
-                    "cheap_mode": CHEAP_MODE,
-                }
-            return GeneratedSocialImage(
-                image_path=str(out_path),
-                image_mode=mode,
-                image_prompt=gen_prompt,
-                reference_image_url=reference_image_url,
-                reference_image_path=str(ref_used) if ref_used else face_path,
-                visual_materials=visual_materials,
-            )
-        except Exception as exc:
-            return GeneratedSocialImage(
-                image_path=None,
-                image_mode="template_fallback",
-                image_prompt=gen_prompt,
-                reference_image_url=reference_image_url,
-                error_message=f"xai image failed: {type(exc).__name__}: {exc}",
-                visual_materials=visual_materials,
-            )
-
-    reference_path = download_reference_image(reference_image_url, news_id=news_id)
-    edit_error = None
-    try:
-        if reference_path:
-            try:
-                _edit_openai_image(prompt, reference_path, raw_path)
-                compose_luxquant_image(
-                    background_path=str(raw_path),
-                    out_path=str(out_path),
-                    headline=headline,
-                    source_domain=source_domain,
-                    angle=angle,
-                )
-                return GeneratedSocialImage(
-                    image_path=str(out_path),
-                    image_mode="ai_reference",
-                    image_prompt=prompt,
-                    reference_image_url=reference_image_url,
-                    reference_image_path=reference_path,
-                )
-            except Exception as exc:
-                edit_error = f"{type(exc).__name__}: {exc}"
-        _generate_openai_image(prompt, raw_path)
-        compose_luxquant_image(
-            background_path=str(raw_path),
-            out_path=str(out_path),
-            headline=headline,
-            source_domain=source_domain,
-            angle=angle,
-        )
-        return GeneratedSocialImage(
-            image_path=str(out_path),
-            image_mode="ai_generated",
-            image_prompt=prompt,
-            reference_image_url=reference_image_url,
-            reference_image_path=reference_path,
-            error_message=edit_error,
-        )
-    except Exception as exc:
-        error_message = f"{type(exc).__name__}: {exc}"
-        if edit_error:
-            error_message = f"reference edit failed ({edit_error}); generation failed ({error_message})"
+    if provider == "none":
         return GeneratedSocialImage(
             image_path=None,
             image_mode="template_fallback",
             image_prompt=prompt,
             reference_image_url=reference_image_url,
-            reference_image_path=reference_path,
-            error_message=error_message,
+            error_message="No OPENAI_API_KEY or XAI_API_KEY configured for images",
+            visual_materials=visual_materials,
+        )
+
+    try:
+        logo_paths = [
+            b.get("path") for b in verified_brands
+            if isinstance(b, dict) and b.get("path") and Path(str(b["path"])).exists()
+        ]
+        if not logo_paths and primary_logo_path and Path(str(primary_logo_path)).exists():
+            logo_paths = [str(primary_logo_path)]
+        logo_ok = bool(logo_paths)
+        face_ok = bool(face_path and Path(str(face_path)).exists())
+        allow = verified_brand_names or ([primary_org_name] if primary_org_name else [])
+
+        scene_prompt = f"{prompt} {_brand_allowlist_clause(allow)}"
+        image_api_calls = 0
+        model_label = OPENAI_IMAGE_MODEL if provider == "openai" else XAI_IMAGE_MODEL
+
+        if face_ok:
+            # Single face edit (1:1). Cheap: no second brand API call.
+            face_ref = _prepare_face_reference(str(face_path), news_id=news_id)
+            ref_used = face_ref
+            identity_prompt = _identity_face_prompt(
+                scene_prompt,
+                brand=primary_org_name,
+                verified_brand_names=allow,
+            )
+            if allow and logo_ok:
+                identity_prompt += (
+                    f" If possible, subtly include verified brand presence for "
+                    f"{', '.join(allow)} via environment/architecture only — "
+                    "never invent unlisted brand logos."
+                )
+            gen_prompt = identity_prompt
+            _edit_image(identity_prompt, face_ref, raw_path, provider=provider)
+            image_api_calls = 1
+            mode = f"ai_{provider}_face_1to1"
+
+            if (
+                BRAND_SECOND_PASS
+                and IMAGE_MAX_CALLS >= 2
+                and logo_ok
+                and allow
+                and image_api_calls < IMAGE_MAX_CALLS
+            ):
+                try:
+                    brand_prompt = _brand_pass_prompt(
+                        scene_prompt, verified_brand_names=allow
+                    )
+                    _edit_image(brand_prompt, str(raw_path), raw_path, provider=provider)
+                    image_api_calls += 1
+                    mode = f"ai_{provider}_face_1to1_brands"
+                    gen_prompt = identity_prompt + " | brands:" + ",".join(allow)
+                except Exception as brand_exc:
+                    logger.warning(
+                        "brand pass failed (keeping face-locked image): %s", brand_exc
+                    )
+
+        elif logo_ok:
+            logo_ref = _prepare_logos_sheet(
+                [str(p) for p in logo_paths], news_id=news_id
+            ) or str(logo_paths[0])
+            edit_prompt = (
+                "Cinematic vertical Instagram poster. "
+                f"Use ONLY the official brand mark(s) from the reference for: {', '.join(allow)}. "
+                "Integrate them as large physical 3D elements in the scene "
+                "(signage, product emblem, desk object). Match reference geometry exactly. "
+                f"{_brand_allowlist_clause(allow)} "
+                "Never corner stickers. Full scene: " + scene_prompt
+            )
+            _edit_image(edit_prompt, logo_ref, raw_path, provider=provider)
+            image_api_calls = 1
+            ref_used = logo_ref
+            mode = f"ai_{provider}_brands_scene"
+            gen_prompt = edit_prompt
+        else:
+            if featured_person:
+                gen_prompt = scene_prompt + (
+                    " Show the central person only from behind or as a shadowed silhouette, "
+                    "face not visible, to avoid depicting an inaccurate likeness."
+                )
+            else:
+                gen_prompt = scene_prompt
+            gen_prompt = f"{gen_prompt} {_brand_allowlist_clause([])}"
+            _generate_image(gen_prompt, raw_path, provider=provider)
+            image_api_calls = 1
+            mode = f"ai_{provider}_gen"
+
+        _compose_editorial_card(
+            str(raw_path),
+            headline,
+            str(out_path),
+            entity_logos=None,
+            angle=angle,
+        )
+        if visual_materials is not None:
+            visual_materials = {
+                **visual_materials,
+                "raw_image_path": str(raw_path),
+                "brand_in_scene": bool(logo_ok),
+                "identity_lock": bool(face_ok),
+                "primary_brand": primary_org_name,
+                "verified_brand_names": allow,
+                "image_api_calls": image_api_calls,
+                "cheap_mode": CHEAP_MODE,
+                "image_provider": provider,
+                "image_model": model_label,
+                "image_quality": OPENAI_IMAGE_QUALITY if provider == "openai" else "default",
+            }
+        return GeneratedSocialImage(
+            image_path=str(out_path),
+            image_mode=mode,
+            image_prompt=gen_prompt,
+            reference_image_url=reference_image_url,
+            reference_image_path=str(ref_used) if ref_used else face_path,
+            visual_materials=visual_materials,
+        )
+    except Exception as exc:
+        err = f"{provider} image failed: {type(exc).__name__}: {exc}"
+        logger.warning("%s", err)
+        # One automatic fallback: OpenAI → xAI (no recursion loop)
+        if (
+            provider == "openai"
+            and not force_provider
+            and os.environ.get("XAI_API_KEY", "").strip()
+        ):
+            try:
+                logger.info("Falling back to xAI Grok Imagine after OpenAI failure")
+                return generate_ai_social_image(
+                    news_id=news_id,
+                    headline=headline,
+                    article_summary=article_summary,
+                    source_domain=source_domain,
+                    angle=angle,
+                    reference_image_url=reference_image_url,
+                    override_prompt=override_prompt,
+                    featured_person=featured_person,
+                    entities=entities,
+                    skip_if_needs_materials=False,
+                    force=True,
+                    force_provider="xai",
+                )
+            except Exception as fb_exc:
+                err = f"{err}; xai fallback failed: {type(fb_exc).__name__}: {fb_exc}"
+        return GeneratedSocialImage(
+            image_path=None,
+            image_mode="template_fallback",
+            image_prompt=gen_prompt,
+            reference_image_url=reference_image_url,
+            reference_image_path=face_path,
+            error_message=err,
+            visual_materials=visual_materials,
         )

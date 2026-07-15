@@ -573,16 +573,28 @@ def build_draft(
             image_count = 1
         else:
             image_count = 0
+        img_model = ""
+        if image_count and visual_materials and isinstance(visual_materials, dict):
+            img_model = str(visual_materials.get("image_model") or "")
+        if image_count and not img_model:
+            # Prefer OpenAI default when key present (matches auto provider)
+            if os.environ.get("OPENAI_API_KEY", "").strip():
+                img_model = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
+            else:
+                img_model = os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality")
         draft.gen_meta = estimate_cost(
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
             image_count=image_count,
             search_count=search_count,
             chat_model=usage.get("chat_model", ""),
-            image_model=os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality") if image_count else "",
+            image_model=img_model,
         )
         draft.gen_meta["cheap_mode"] = os.environ.get("SOCIAL_CHEAP_MODE", "1")
         draft.gen_meta["image_api_calls"] = image_count
+        if visual_materials and isinstance(visual_materials, dict):
+            draft.gen_meta["image_provider"] = visual_materials.get("image_provider")
+            draft.gen_meta["image_quality"] = visual_materials.get("image_quality")
     except Exception:
         draft.gen_meta = {}
 
