@@ -136,7 +136,7 @@ export default function HeroSlideVideo() {
       </div>
 
       {/* ── CONTENT (not masked — stays readable as media dissolves) ── */}
-      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-24 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-28 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-32 lg:pt-[13rem] xl:min-h-[820px] xl:pb-36 xl:pt-[14.5rem]">
+      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-16 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-20 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-24 lg:pt-[13rem] xl:min-h-[820px] xl:pb-28 xl:pt-[14.5rem]">
         <div
           className={`relative flex w-full flex-col items-center transition-all duration-700 ease-out ${
             hideHeadline

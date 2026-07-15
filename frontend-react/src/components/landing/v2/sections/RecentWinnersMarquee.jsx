@@ -259,9 +259,10 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
 
   const track = hasWinners ? [...winners, ...winners] : [];
 
-  // Video hero: pull into dissolve. Algo product slide: normal gap (no collision).
+  // Video hero: mild pull into dissolve, but leave the slider dots (z-40) clear.
+  // Algo product slide: normal gap (no collision with CTA/devices).
   const sectionClass = blendWithHero
-    ? "rwm relative z-[1] -mt-16 pt-4 pb-12 sm:-mt-24 sm:pt-6 sm:pb-24 lg:-mt-28"
+    ? "rwm relative z-[1] -mt-2 pt-3 pb-12 sm:-mt-3 sm:pt-4 sm:pb-24"
     : "rwm relative z-[1] mt-2 pt-10 pb-12 sm:mt-4 sm:pt-14 sm:pb-24";
 
   return (

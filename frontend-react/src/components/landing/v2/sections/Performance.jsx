@@ -152,6 +152,147 @@ function Card({ className = "", children }) {
     </div>
   );
 }
+
+/** Period filter popover — mobile-safe (never clips off the left edge). */
+function PeriodFilterPopover({
+  filterOpen,
+  setFilterOpen,
+  eventId,
+  setEventId,
+  customOn,
+  customStart,
+  setCustomStart,
+  customEnd,
+  setCustomEnd,
+  activeEvent,
+  EVENTS,
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setFilterOpen((o) => !o)}
+        className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors sm:w-auto ${
+          eventId || customOn
+            ? "border-gold-primary/50 text-white"
+            : "border-white/10 text-text-muted hover:border-white/25 hover:text-white"
+        }`}
+      >
+        <span className="max-w-[140px] truncate sm:max-w-[110px]">
+          {activeEvent ? activeEvent.label : customOn ? "Custom range" : "Period"}
+        </span>
+        <svg className="h-3 w-3 shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {filterOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} aria-hidden="true" />
+          {/* Fixed on mobile so Card overflow + right-0 never shove the panel off-screen.
+              Desktop: anchor under the button. */}
+          <div
+            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-white/12 bg-[#0c0d12] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.7)] sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
+            role="dialog"
+            aria-label="Market period filter"
+          >
+            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Market period</p>
+            <div className="relative">
+              <select
+                value={customOn ? "" : eventId || ""}
+                onChange={(e) => {
+                  setEventId(e.target.value || null);
+                  setCustomStart("");
+                  setCustomEnd("");
+                }}
+                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-white outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
+              >
+                <option value="" className="bg-[#0c0d12]">All / none</option>
+                <optgroup label="Bull" className="bg-[#0c0d12]">
+                  {EVENTS.filter((e) => e.cat === "bull").map((e) => (
+                    <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Bear" className="bg-[#0c0d12]">
+                  {EVENTS.filter((e) => e.cat === "bear").map((e) => (
+                    <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Black-swan event" className="bg-[#0c0d12]">
+                  {EVENTS.filter((e) => e.cat === "event").map((e) => (
+                    <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+
+            <div className="my-2.5 flex items-center gap-2">
+              <span className="h-px flex-1 bg-white/10" />
+              <span className="font-mono text-[9px] uppercase tracking-wider text-white/30">or custom dates</span>
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-lg sm:border sm:border-white/10 sm:bg-white/[0.03] sm:px-2 sm:py-1.5">
+              <label className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted sm:hidden">From</span>
+                <input
+                  type="date"
+                  value={customStart}
+                  max={customEnd || undefined}
+                  onChange={(e) => {
+                    setCustomStart(e.target.value);
+                    setEventId(null);
+                  }}
+                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-white outline-none [color-scheme:dark] sm:text-[11px]"
+                />
+              </label>
+              <span className="hidden font-mono text-[10px] text-text-muted sm:inline">→</span>
+              <label className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted sm:hidden">To</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  min={customStart || undefined}
+                  onChange={(e) => {
+                    setCustomEnd(e.target.value);
+                    setEventId(null);
+                  }}
+                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-white outline-none [color-scheme:dark] sm:text-[11px]"
+                />
+              </label>
+            </div>
+
+            <div className="mt-2.5 flex gap-2">
+              {(eventId || customOn) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEventId(null);
+                    setCustomStart("");
+                    setCustomEnd("");
+                  }}
+                  className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setFilterOpen(false)}
+                className="flex-1 rounded-lg border border-gold-primary/40 bg-gold-primary/15 px-2 py-1.5 font-mono text-[10px] text-gold-primary transition-colors hover:bg-gold-primary/25"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 // Small "i" affordance that reveals a what-is-this / how-to-read tooltip.
 function InfoTip({ info }) {
   const [open, setOpen] = useState(false);
@@ -181,15 +322,19 @@ function InfoTip({ info }) {
 
 function CardHead({ title, sub, right, info }) {
   return (
-    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div>
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+      <div className="min-w-0">
         <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-white">
           {title}
           <InfoTip info={info} />
         </h3>
         {sub && <p className="mt-0.5 font-mono text-[11px] text-text-muted">{sub}</p>}
       </div>
-      {right}
+      {right && (
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          {right}
+        </div>
+      )}
     </div>
   );
 }
@@ -573,93 +718,30 @@ export default function Performance({ data }) {
 
       {/* WIN RATE × BITCOIN (filterable, deep) */}
       {anaTab === "wrbtc" && (
-      <Card>
+      <Card className="!overflow-visible">
         <CardHead
           title="Win Rate × Bitcoin"
           info={INFO.wrBtc}
           sub="Does the edge survive every BTC regime?"
           right={
-            <div className="flex flex-wrap items-center gap-2">
-              <Seg items={["30D", "90D", "1Y", "ALL"]} value={eventId || customOn ? "" : rangeId} onChange={(v) => { setRangeId(v); setEventId(null); setCustomStart(""); setCustomEnd(""); }} />
-              <Seg items={["Win rate", "vs BTC"]} value={showBtc ? "vs BTC" : "Win rate"} onChange={(v) => setShowBtc(v === "vs BTC")} />
-
-              {/* Period / custom-date filter — opens a popover (no layout shift) */}
-              <div className="relative">
-                <button
-                  onClick={() => setFilterOpen((o) => !o)}
-                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors ${
-                    eventId || customOn ? "border-gold-primary/50 text-white" : "border-white/10 text-text-muted hover:border-white/25 hover:text-white"
-                  }`}
-                >
-                  <span className="max-w-[110px] truncate">{activeEvent ? activeEvent.label : customOn ? "Custom range" : "Period"}</span>
-                  <svg className="h-3 w-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
-
-                {filterOpen && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setFilterOpen(false)} />
-                    <div className="absolute right-0 top-9 z-30 w-[280px] rounded-xl border border-white/12 bg-[#0c0d12] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
-                      <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Market period</p>
-                      <div className="relative">
-                        <select
-                          value={customOn ? "" : eventId || ""}
-                          onChange={(e) => { setEventId(e.target.value || null); setCustomStart(""); setCustomEnd(""); }}
-                          className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-1.5 pl-3 pr-8 font-mono text-[11px] text-white outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
-                        >
-                          <option value="" className="bg-[#0c0d12]">All / none</option>
-                          <optgroup label="Bull" className="bg-[#0c0d12]">
-                            {EVENTS.filter((e) => e.cat === "bull").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
-                          </optgroup>
-                          <optgroup label="Bear" className="bg-[#0c0d12]">
-                            {EVENTS.filter((e) => e.cat === "bear").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
-                          </optgroup>
-                          <optgroup label="Black-swan event" className="bg-[#0c0d12]">
-                            {EVENTS.filter((e) => e.cat === "event").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
-                          </optgroup>
-                        </select>
-                        <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-                        </svg>
-                      </div>
-
-                      <div className="my-2.5 flex items-center gap-2">
-                        <span className="h-px flex-1 bg-white/10" />
-                        <span className="font-mono text-[9px] uppercase tracking-wider text-white/30">or custom dates</span>
-                        <span className="h-px flex-1 bg-white/10" />
-                      </div>
-
-                      <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
-                        <input
-                          type="date"
-                          value={customStart}
-                          max={customEnd || undefined}
-                          onChange={(e) => { setCustomStart(e.target.value); setEventId(null); }}
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
-                        />
-                        <span className="font-mono text-[10px] text-text-muted">→</span>
-                        <input
-                          type="date"
-                          value={customEnd}
-                          min={customStart || undefined}
-                          onChange={(e) => { setCustomEnd(e.target.value); setEventId(null); }}
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
-                        />
-                      </div>
-
-                      {(eventId || customOn) && (
-                        <button
-                          onClick={() => { setEventId(null); setCustomStart(""); setCustomEnd(""); }}
-                          className="mt-2.5 w-full rounded-lg border border-white/10 px-2 py-1 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
-                        >
-                          Clear filter
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <Seg items={["30D", "90D", "1Y", "ALL"]} value={eventId || customOn ? "" : rangeId} onChange={(v) => { setRangeId(v); setEventId(null); setCustomStart(""); setCustomEnd(""); }} />
+                <Seg items={["Win rate", "vs BTC"]} value={showBtc ? "vs BTC" : "Win rate"} onChange={(v) => setShowBtc(v === "vs BTC")} />
               </div>
+              <PeriodFilterPopover
+                filterOpen={filterOpen}
+                setFilterOpen={setFilterOpen}
+                eventId={eventId}
+                setEventId={setEventId}
+                customOn={customOn}
+                customStart={customStart}
+                setCustomStart={setCustomStart}
+                customEnd={customEnd}
+                setCustomEnd={setCustomEnd}
+                activeEvent={activeEvent}
+                EVENTS={EVENTS}
+              />
             </div>
           }
         />

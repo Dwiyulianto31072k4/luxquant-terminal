@@ -139,13 +139,13 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
         </div>
       </div>
 
-      {/* Dots float in the dissolve zone (over transparent canvas) */}
+      {/* Dots in normal flow + high z-index so Real calls pull-up never covers them */}
       <div
         className={[
-          "pointer-events-none absolute inset-x-0 z-30 flex w-full items-center justify-center gap-2",
+          "relative z-40 flex w-full items-center justify-center gap-2.5",
           isVideoSlide
-            ? "bottom-8 sm:bottom-10 lg:bottom-12"
-            : "bottom-5 sm:bottom-6",
+            ? "-mt-10 pb-2 pt-1 sm:-mt-12 sm:pb-3"
+            : "mt-1 pb-4 sm:pb-5",
         ].join(" ")}
         aria-label="Hero slide controls"
       >
@@ -160,11 +160,12 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
               aria-current={isActive ? "true" : undefined}
               onClick={() => goToSlide(index)}
               className={[
-                "pointer-events-auto h-1.5 rounded-full transition-all duration-300",
+                "rounded-full transition-all duration-300",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/80",
+                "shadow-[0_2px_10px_rgba(0,0,0,0.45)]",
                 isActive
-                  ? "w-7 bg-gold-primary shadow-[0_0_12px_rgba(212,168,83,0.52)]"
-                  : "w-1.5 bg-white/30 hover:bg-white/65",
+                  ? "h-2 w-8 bg-gold-primary shadow-[0_0_14px_rgba(212,168,83,0.55)]"
+                  : "h-2 w-2 bg-white/45 hover:bg-white/75",
               ].join(" ")}
             />
           );
