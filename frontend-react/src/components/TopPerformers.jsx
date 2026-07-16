@@ -641,231 +641,436 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
   if (detail?.updates) { detail.updates.forEach(u => { const isSL = u.update_type === 'sl' || u.update_type === 'sl1' || u.update_type === 'sl2'; events.push({ label: isSL ? t('top.sl_hit') : `${u.update_type?.toUpperCase().replace('TP','TP ')} ${t('top.hit')}`, time: `+${fmtDiff(created, u.update_at)}`, sub: fmtDt(u.update_at), detail: u.price > 0 ? `$${formatPrice(u.price)}${!isSL && detail.entry > 0 ? ` (+${((Math.abs(u.price - detail.entry) / detail.entry) * 100).toFixed(2)}%)` : ''}` : null, key: isSL ? 'red' : 'green', isSL }); }); }
 
   const modalContent = (
-    <div className={`fixed inset-0 z-[100000] flex items-end justify-center isolation-isolate sm:items-center sm:p-4 lg:p-6 ${isClosing ? 'animate-[smBO_.2s_ease-in_forwards]' : 'animate-[smBI_.25s_ease-out]'}`}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
-      {/* Mobile: bottom sheet (Filters grammar). Desktop: centered panel. */}
-      <div className={`relative flex w-full max-w-5xl flex-col overflow-hidden bg-[#0c0a07] shadow-[0_-16px_48px_rgba(0,0,0,0.55)] lg:max-w-[1400px] sm:bg-[#0a0506] sm:shadow-[0_25px_50px_rgba(0,0,0,0.5),0_0_40px_rgba(212,168,83,0.1)] h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-white/10 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl sm:border sm:border-gold-primary/40 lg:max-h-[calc(100dvh-3rem)] ${isClosing ? 'animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]' : 'animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.3s_cubic-bezier(.16,1,.3,1)]'}`}>
-        <div className="sm:hidden flex-shrink-0 flex justify-center pt-2.5 pb-1 bg-transparent"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
-        <div className="flex-shrink-0 bg-[#0c0a07]/95 sm:bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3 z-10">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0 flex-1"><CoinLogo pair={pair} size={32} /><div className="min-w-0"><div className="flex items-center gap-2 flex-wrap"><h2 className="text-white font-display text-base font-semibold truncate">{pair}</h2>{status && <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${sColor(status)}`}>{sLabel(status)}</span>}{detail?.risk_level && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-gold-primary/30 text-gold-primary">{detail.risk_level}</span>}</div><p className="text-text-muted text-xs mt-0.5 truncate">{t('top.called_sig')}: {fmtDt(created)}</p></div></div>
-            <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
-              {/* View on X — LuxQuant's post for this coin (fallback: live cashtag search) */}
-              <a
-                href={xUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
-                title="View LuxQuant's posts on X"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                <span className="hidden sm:inline">View on X</span>
-              </a>
-
-              {/* Full History — per-coin signal history (opens in place if available, else the terminal history tab) */}
-              {onOpenHistory ? (
-                <button
-                  onClick={() => onOpenHistory(item)}
-                  className="inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
-                  title="View full signal history"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span className="hidden sm:inline">Full History</span>
-                </button>
-              ) : (
-                <a
-                  href={historyHref}
-                  className="inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
-                  title="View full signal history"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span className="hidden sm:inline">Full History</span>
-                </a>
-              )}
-
-              <button onClick={handleClose} className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/10 hover:bg-loss/20 hover:border-loss/50 flex items-center justify-center text-text-muted hover:text-white transition-all active:scale-[0.97]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-          </div>
-          {multi && (
-            <div className="mt-3 pt-3 border-t border-gold-primary/10">
-              <div className="mx-auto flex w-full max-w-sm items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
-                <button
-                  onClick={() => onNavigate(currentIndex - 1)}
-                  disabled={currentIndex <= 0}
-                  className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] sm:text-xs font-bold text-gold-primary hover:bg-gold-primary/10 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-                  <span className="hidden sm:inline">{t('top.prev')}</span>
-                </button>
-                <div className="flex items-center gap-1.5">
-                  <span className="hidden sm:inline text-text-muted/70 font-mono text-[9px] uppercase tracking-wider mr-1">{t('top.signal')}</span>
-                  {signalIds.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => onNavigate(i)}
-                      className={`h-6 min-w-[1.5rem] px-1 rounded-md text-[10px] font-bold tabular-nums transition-all ${i === currentIndex ? 'bg-gold-primary text-[#1a1206] shadow-[0_2px_8px_-2px_rgba(212,168,83,0.6)]' : 'text-text-muted hover:text-white hover:bg-white/5'}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => onNavigate(currentIndex + 1)}
-                  disabled={currentIndex >= total - 1}
-                  className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] sm:text-xs font-bold text-gold-primary hover:bg-gold-primary/10 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
-                >
-                  <span className="hidden sm:inline">{t('top.next')}</span>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-                </button>
-              </div>
-            </div>
-          )}
+    <div className={`fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-3 lg:p-5 ${isClosing ? "animate-[smBO_.2s_ease-in_forwards]" : "animate-[smBI_.25s_ease-out]"}`}>
+      <div className="absolute inset-0 bg-black/75" onClick={handleClose} />
+      <div
+        className={`relative flex h-[min(92dvh,100%)] max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-white/[0.08] bg-[#0a0805] shadow-2xl lg:max-w-[1200px] sm:h-auto sm:max-h-[min(90dvh,900px)] sm:rounded-xl ${
+          isClosing
+            ? "animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]"
+            : "animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.28s_cubic-bezier(.16,1,.3,1)]"
+        }`}
+      >
+        <div className="flex shrink-0 justify-center pt-2 sm:hidden">
+          <div className="h-1 w-9 rounded-full bg-white/20" />
         </div>
-        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden bg-[#0a0a0a] px-4 py-4 sm:px-6 sm:py-6">
-          {loading ? (<div className="flex items-center justify-center py-20"><div className="text-center"><div className="w-10 h-10 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin mx-auto mb-4" /><p className="text-gold-primary font-mono text-sm">{t('top.loading')}</p></div></div>
-          ) : detail?.is_redacted ? (
-            <div className="flex items-center justify-center py-12 px-4">
-              <div className="max-w-md text-center">
-                <div className="w-20 h-20 mx-auto rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </div>
-                <h3 className="text-white font-display font-bold text-xl mb-3">Premium Live Signal</h3>
-                <p className="text-white/60 text-sm leading-relaxed mb-2">
-                  This signal is still <span className="text-gold-primary font-semibold">open and running</span>.
-                </p>
-                <p className="text-white/50 text-xs leading-relaxed mb-6">
-                  Subscribe to view live entry, take-profits, stop-loss, charts, and full trade journey.
-                </p>
-                <button onClick={() => { window.location.href = '/pricing'; }} className="px-6 py-3 rounded-lg bg-gold-primary text-black font-bold text-sm hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
-                  Subscribe to Unlock
+
+        {/* Header — exchange trade ticket */}
+        <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.06] px-3 py-2.5 sm:px-4">
+          <CoinLogo pair={pair} size={28} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h2 className="truncate font-mono text-[15px] font-semibold text-white sm:text-base">{pair}</h2>
+              {status && (
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${sColor(status)}`}>
+                  {sLabel(status)}
+                </span>
+              )}
+              {detail?.risk_level && (
+                <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-white/50">
+                  {detail.risk_level}
+                </span>
+              )}
+            </div>
+            <p className="truncate font-mono text-[10px] text-text-muted">
+              {fmtDt(created)}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <a
+              href={xUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-white/60 transition hover:bg-white/[0.04] hover:text-white sm:px-2.5"
+              title="View on X"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+              <span className="hidden sm:inline">X</span>
+            </a>
+            {onOpenHistory ? (
+              <button
+                type="button"
+                onClick={() => onOpenHistory(item)}
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-white/60 transition hover:bg-white/[0.04] hover:text-white sm:px-2.5"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="hidden sm:inline">History</span>
+              </button>
+            ) : (
+              <a
+                href={historyHref}
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-white/60 transition hover:bg-white/[0.04] hover:text-white sm:px-2.5"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="hidden sm:inline">History</span>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-white/45 transition hover:bg-white/[0.04] hover:text-white"
+              aria-label="Close"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {multi && (
+          <div className="flex shrink-0 items-center justify-center gap-2 border-b border-white/[0.05] px-3 py-2">
+            <button
+              type="button"
+              onClick={() => onNavigate(currentIndex - 1)}
+              disabled={currentIndex <= 0}
+              className="rounded-md px-2 py-1 text-[11px] text-white/50 disabled:opacity-25 hover:text-white"
+            >
+              ‹
+            </button>
+            <div className="flex items-center gap-1">
+              {signalIds.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onNavigate(i)}
+                  className={`h-6 min-w-[1.5rem] rounded px-1 font-mono text-[10px] tabular-nums ${
+                    i === currentIndex ? "bg-white/15 text-white" : "text-white/35 hover:text-white/70"
+                  }`}
+                >
+                  {i + 1}
                 </button>
-                <p className="text-[11px] text-white/40 mt-4">
-                  Closed signals are visible for free as track record proof.
-                </p>
-                {detail.pair && (
-                  <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
-                    <span className="text-text-muted text-xs">Pair:</span>
-                    <span className="text-white font-mono font-semibold text-sm">{detail.pair}</span>
-                    <span className="text-text-muted text-xs">·</span>
-                    <span className="text-cyan-400 text-xs font-bold uppercase">OPEN</span>
-                  </div>
-                )}
-              </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate(currentIndex + 1)}
+              disabled={currentIndex >= total - 1}
+              className="rounded-md px-2 py-1 text-[11px] text-white/50 disabled:opacity-25 hover:text-white"
+            >
+              ›
+            </button>
+          </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/50" />
+            </div>
+          ) : detail?.is_redacted ? (
+            <div className="mx-auto max-w-sm py-12 text-center">
+              <p className="text-[15px] font-semibold text-white">Premium live signal</p>
+              <p className="mt-2 text-[13px] text-text-muted">
+                Subscribe to view entry, targets, charts, and journey while the trade is open.
+              </p>
+              <button
+                type="button"
+                onClick={() => { window.location.href = "/pricing"; }}
+                className="mt-5 rounded-md bg-gold-primary px-5 py-2.5 text-[13px] font-semibold text-[#1a1206]"
+              >
+                View plans
+              </button>
             </div>
           ) : detail ? (
-            <div className="max-w-[1320px] mx-auto space-y-6 sm:space-y-8 pb-4">
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-3"><span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">{t('top.trade_proof')}</span></div>
-                {!hasAnyImg ? (<div className="w-full h-[360px] sm:h-[440px] lg:h-[560px] bg-[#0d0d0d] rounded-xl border border-gold-primary/15 overflow-hidden relative shadow-lg"><div id="tv_chart_modal_topperf" className="absolute inset-0 w-full h-full" /></div>
+            <div className="space-y-4 pb-2">
+              {/* Compact metrics strip */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Entry</p>
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-white">
+                    {detail.entry > 0 ? `$${formatPrice(detail.entry)}` : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Peak</p>
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-white">
+                    {peakPrice ? `$${formatPrice(peakPrice)}` : "—"}
+                    {peakPrice && detail.entry > 0 && (
+                      <span className="ml-1.5 text-[11px] text-emerald-400">
+                        +{(((Math.abs(peakPrice - detail.entry)) / detail.entry) * 100).toFixed(1)}%
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">{t("top.duration")}</p>
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold text-white">
+                    {detail.updates?.length > 0
+                      ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at)
+                      : "Active"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">{t("top.risk")}</p>
+                  <p
+                    className={`mt-0.5 font-mono text-[13px] font-semibold ${
+                      detail.risk_level === "High"
+                        ? "text-loss"
+                        : detail.risk_level === "Medium"
+                          ? "text-yellow-400"
+                          : "text-emerald-400"
+                    }`}
+                  >
+                    {detail.risk_level || "—"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Charts */}
+              <div>
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                  {t("top.trade_proof")}
+                </p>
+                {!hasAnyImg ? (
+                  <div className="relative h-[320px] overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[420px]">
+                    <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
+                  </div>
                 ) : (
-                  <div className="flex flex-col md:flex-row items-stretch gap-4 sm:gap-5 w-full">
-                    <div className="flex-1 w-full min-w-0 flex flex-col">
-                      <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]"><span className="text-blue-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase">{t('top.before')}</span>{detail?.entry > 0 && (<span className="text-[10px] sm:text-[11px] font-mono text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5">Entry: <span className="text-white ml-1">${formatPrice(detail.entry)}</span></span>)}</div>
-                      {entryImg ? (<div className="relative group rounded-xl overflow-hidden border border-gold-primary/10 bg-[#0d0d0d] h-[240px] sm:h-[340px] lg:h-[440px] xl:h-[520px] w-full cursor-zoom-in shadow-md" onClick={() => setLightboxImg(entryImg)}><img src={entryImg} alt="Entry" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" /><div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none"><span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-3 py-1.5 rounded font-medium backdrop-blur-sm">{t('top.fullscreen')}</span></div></div>) : (<div className="rounded-xl border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[240px] sm:h-[340px] lg:h-[440px] xl:h-[520px] w-full text-text-muted"><p className="text-xs">{t('top.waiting_ss')}</p></div>)}
+                  <div className="grid gap-2 md:grid-cols-2 md:gap-3">
+                    <div className="min-w-0">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                          {t("top.before")}
+                        </span>
+                        {detail?.entry > 0 && (
+                          <span className="font-mono text-[10px] tabular-nums text-white/50">
+                            ${formatPrice(detail.entry)}
+                          </span>
+                        )}
+                      </div>
+                      {entryImg ? (
+                        <button
+                          type="button"
+                          onClick={() => setLightboxImg(entryImg)}
+                          className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[280px] lg:h-[360px]"
+                        >
+                          <img src={entryImg} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
+                        </button>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#0c0a07] text-[11px] text-text-muted sm:h-[280px] lg:h-[360px]">
+                          {t("top.waiting_ss")}
+                        </div>
+                      )}
                     </div>
-                    <div className="hidden md:flex flex-col items-center justify-center w-10 shrink-0 relative mt-6"><div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/30 via-white/10 to-profit/30 -translate-y-1/2 z-0" /><div className="relative z-10 bg-[#0a0a0a] border border-white/10 text-white/50 w-8 h-8 rounded-full flex items-center justify-center"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></div></div>
-                    <div className="md:hidden flex justify-center py-1"><div className="w-[2px] h-6 bg-gradient-to-b from-blue-500/30 via-white/10 to-profit/30 relative"><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-profit/50" /></div></div>
-                    <div className="flex-1 w-full min-w-0 flex flex-col">
-                      <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]"><span className={`text-[10px] sm:text-xs font-bold tracking-wide uppercase ${isStopped ? 'text-loss' : 'text-profit'}`}>{t('top.after')} ({status === 'open' ? t('top.latest') : sLabel(status)})</span><div className="flex items-center gap-2">{showInteractiveRight && afterImg && (<button onClick={() => setShowTV(false)} className="text-[9px] sm:text-[10px] text-text-muted hover:text-white flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded border border-white/5"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>{t('top.back_img')}</button>)}{detail?.updates?.length > 0 && (<span className="text-[10px] sm:text-[11px] font-mono text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5 flex items-center gap-1">Last: <span className="text-white">${formatPrice(detail.updates[detail.updates.length - 1].price)}</span>{detail.entry > 0 && detail.updates[detail.updates.length - 1].price > 0 && (<span className={`ml-1 font-bold ${isStopped ? 'text-loss' : 'text-profit'}`}>{(((Math.abs(detail.updates[detail.updates.length - 1].price - detail.entry)) / detail.entry) * 100).toFixed(2)}%</span>)}</span>)}</div></div>
-                      {showInteractiveRight ? (<div className="relative rounded-xl overflow-hidden border border-gold-primary/10 bg-[#0d0d0d] h-[240px] sm:h-[340px] lg:h-[440px] xl:h-[520px] w-full shadow-md"><div id="tv_chart_modal_topperf" className="absolute inset-0 w-full h-full" /></div>) : (<div className={`relative group rounded-xl overflow-hidden border bg-[#0d0d0d] h-[240px] sm:h-[340px] lg:h-[440px] xl:h-[520px] w-full shadow-md ${isStopped ? 'border-loss/20' : 'border-gold-primary/10'}`}><img src={afterImg} alt="Latest" className="absolute inset-0 w-full h-full object-contain" loading="lazy" onError={(e) => { if (rawAfterImg && e.target.src !== rawAfterImg) { e.target.onerror = null; e.target.src = rawAfterImg; } }} /><div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10"><button onClick={() => setShowTV(true)} className="px-5 py-2.5 bg-gold-primary text-[#1a1206] hover:bg-gold-primary/90 rounded-full font-bold text-xs shadow-[0_4px_16px_-4px_rgba(212,168,83,0.7)] flex items-center gap-2 transition-all active:scale-[0.97]"><span>{t('top.interactive')}</span><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></button><button onClick={() => setLightboxImg(afterImg)} className="text-white/70 hover:text-white text-[11px] font-medium underline underline-offset-2">{t('top.view_full')}</button></div></div>)}
+                    <div className="min-w-0">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${isStopped ? "text-loss" : "text-emerald-400/80"}`}>
+                          {t("top.after")} · {status === "open" ? t("top.latest") : sLabel(status)}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {showInteractiveRight && afterImg && (
+                            <button
+                              type="button"
+                              onClick={() => setShowTV(false)}
+                              className="text-[10px] text-text-muted hover:text-white"
+                            >
+                              {t("top.back_img")}
+                            </button>
+                          )}
+                          {detail?.updates?.length > 0 && (
+                            <span className="font-mono text-[10px] tabular-nums text-white/50">
+                              ${formatPrice(detail.updates[detail.updates.length - 1].price)}
+                              {detail.entry > 0 && detail.updates[detail.updates.length - 1].price > 0 && (
+                                <span className={`ml-1 ${isStopped ? "text-loss" : "text-emerald-400"}`}>
+                                  {(((Math.abs(detail.updates[detail.updates.length - 1].price - detail.entry)) / detail.entry) * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {showInteractiveRight ? (
+                        <div className="relative h-[200px] overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[280px] lg:h-[360px]">
+                          <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
+                        </div>
+                      ) : (
+                        <div className="group relative h-[200px] overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[280px] lg:h-[360px]">
+                          <img
+                            src={afterImg}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-contain"
+                            loading="lazy"
+                            onError={(e) => {
+                              if (rawAfterImg && e.target.src !== rawAfterImg) {
+                                e.target.onerror = null;
+                                e.target.src = rawAfterImg;
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => setShowTV(true)}
+                              className="rounded-md bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0a0506]"
+                            >
+                              {t("top.interactive")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setLightboxImg(afterImg)}
+                              className="text-[11px] text-white/70 underline"
+                            >
+                              {t("top.view_full")}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
-                {peakPrice && detail?.entry > 0 && (<div className="mt-5 bg-gradient-to-br from-profit/[0.06] to-[#0d0d0d] border border-profit/15 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6"><div className="flex flex-col items-center sm:items-end"><span className="text-white text-xs sm:text-sm font-bold uppercase tracking-widest">Highest Price After Called</span></div><div className="hidden sm:block h-8 w-px bg-white/10" /><div className="flex items-center gap-3 sm:gap-4"><span className="text-lg sm:text-2xl font-mono font-bold text-white">${formatPrice(peakPrice)}</span><span className="text-sm sm:text-base font-bold text-profit bg-profit/10 px-2.5 py-1 rounded-lg border border-profit/20 font-mono">{(((Math.abs(peakPrice - detail.entry)) / detail.entry) * 100).toFixed(2)}%</span></div></div>)}
               </div>
-              <div className="space-y-6">
-                {/* ── SIGNAL JOURNEY — glowing nodes + gradient progress track ── */}
-                <div>
-                  <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">{t('top.journey')}</h4>
-                  <div className="bg-[#0d0d0d] rounded-xl border border-gold-primary/10 p-4 sm:p-5">
-                    {/* MOBILE — vertical timeline (no horizontal scroll) */}
-                    <div className="sm:hidden">
+
+              {/* Journey */}
+              <div>
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                  {t("top.journey")}
+                </p>
+                <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] p-3 sm:p-4">
+                  <div className="sm:hidden space-y-0">
+                    {events.map((ev, i) => {
+                      const c = themeColors[ev.key] || themeColors.gold;
+                      const isLast = i === events.length - 1;
+                      return (
+                        <div key={i} className="flex gap-2.5">
+                          <div className="flex flex-col items-center">
+                            <div className={`flex h-7 w-7 items-center justify-center rounded-full text-white ${c.dot}`}>
+                              {i === 0 ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                              ) : ev.isSL ? (
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                              ) : (
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              )}
+                            </div>
+                            {!isLast && <div className="my-0.5 w-px flex-1 min-h-[12px] bg-white/10" />}
+                          </div>
+                          <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-2.5"}`}>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className={`text-[12px] font-semibold ${c.text}`}>{ev.label}</span>
+                              <span className="font-mono text-[9px] text-white/40">{ev.time}</span>
+                            </div>
+                            {ev.sub && <p className="text-[10px] text-text-muted">{ev.sub}</p>}
+                            {ev.detail && (
+                              <p className={`font-mono text-[11px] ${ev.isSL ? "text-loss" : "text-emerald-400"}`}>
+                                {ev.detail}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden overflow-x-auto sm:block">
+                    <div className="flex items-start pt-1" style={{ minWidth: `${Math.max(events.length * 100, 400)}px` }}>
                       {events.map((ev, i) => {
                         const c = themeColors[ev.key] || themeColors.gold;
                         const isLast = i === events.length - 1;
                         return (
-                          <div key={i} className="flex gap-3">
-                            <div className="flex flex-col items-center">
-                              <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-[0_0_14px_-3px] ${c.dot} ${c.glow}`}>
-                                {i === 0 ? (
-                                  <span className="w-2 h-2 rounded-full bg-white/90" />
-                                ) : ev.isSL ? (
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                ) : (
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                )}
+                          <div key={i} className="relative flex flex-1 flex-col items-center">
+                            {!isLast && (
+                              <div className="absolute left-1/2 top-[14px] h-px w-full bg-white/10" />
+                            )}
+                            <div className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-white ${c.dot}`}>
+                              {i === 0 ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                              ) : ev.isSL ? (
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                              ) : (
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              )}
                             </div>
-                            {!isLast && <div className={`w-0.5 flex-1 min-h-[20px] my-1 rounded-full ${c.dot} opacity-30`} />}
-                          </div>
-                          <div className={`min-w-0 flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-[12px] font-bold ${c.text}`}>{ev.label}</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-white/70 whitespace-nowrap">{ev.time}</span>
+                            <div className="mt-2 w-full px-1 text-center">
+                              <p className={`truncate text-[10px] font-semibold ${c.text}`}>{ev.label}</p>
+                              <p className="font-mono text-[9px] text-white/40">{ev.time}</p>
+                              {ev.detail && (
+                                <p className={`truncate font-mono text-[9px] ${ev.isSL ? "text-loss" : "text-emerald-400"}`}>
+                                  {ev.detail}
+                                </p>
+                              )}
                             </div>
-                            {ev.sub && <p className="text-[10px] text-text-muted mt-0.5">{ev.sub}</p>}
-                            {ev.detail && <p className={`text-[11px] font-mono mt-0.5 ${ev.isSL ? 'text-loss' : 'text-profit'}`}>{ev.detail}</p>}
                           </div>
-                        </div>
                         );
                       })}
                     </div>
-
-                    {/* DESKTOP — horizontal timeline (width scales to step count) */}
-                    <div className="hidden sm:block overflow-x-auto custom-scrollbar">
-                      <div className="flex items-start relative pt-1 pb-2" style={{ minWidth: `${Math.max(events.length * 112, 460)}px` }}>
-                        <div className="absolute top-[18px] left-[7%] right-[7%] h-[2px] bg-white/[0.05] rounded-full z-0" />
-                        {events.map((ev, i) => {
-                          const c = themeColors[ev.key] || themeColors.gold;
-                          const isLast = i === events.length - 1;
-                          const nextC = !isLast ? (themeColors[events[i + 1].key] || themeColors.gold) : null;
-                          return (
-                            <div key={i} className="relative flex flex-col items-center flex-1 z-10 group">
-                              {!isLast && (
-                                <div className={`absolute top-[18px] left-1/2 w-full h-[2px] z-0 rounded-full bg-gradient-to-r ${c.from} ${nextC.to}`} />
-                              )}
-                              <div className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-white shadow-[0_0_18px_-2px] ${c.dot} ${c.glow} ${isLast ? 'ring-2 ring-white/10' : ''}`}>
-                                {i === 0 ? (
-                                  <span className="w-2.5 h-2.5 rounded-full bg-white/90" />
-                                ) : ev.isSL ? (
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                ) : (
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                )}
-                            </div>
-                            <div className="mt-3 text-center flex flex-col items-center gap-1 px-1 w-full">
-                              <span className={`text-[10px] sm:text-[11px] font-bold tracking-wide truncate w-full ${c.text}`} title={ev.label}>{ev.label}</span>
-                              <span className="text-[8px] sm:text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-white/70 whitespace-nowrap">{ev.time}</span>
-                              {ev.sub && <span className="text-[8px] text-text-muted truncate w-full" title={ev.sub}>{ev.sub}</span>}
-                              {ev.detail && <span className={`text-[9px] font-mono truncate w-full ${ev.isSL ? 'text-loss' : 'text-profit'}`} title={ev.detail}>{ev.detail}</span>}
-                            </div>
-                          </div>
-                        );
-                        })}
-                      </div>
-                    </div>
                   </div>
                 </div>
+              </div>
 
-                {detail.signal_id && (
-                  <div>
-                    <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">Detailed Journey</h4>
-                    <SignalJourneyExtended signalId={detail.signal_id} />
-                  </div>
-                )}
+              {detail.signal_id && (
+                <div>
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                    Detailed journey
+                  </p>
+                  <SignalJourneyExtended signalId={detail.signal_id} />
+                </div>
+              )}
 
-                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">{t('top.sig_data')}</h4><div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"><StatBlock label={t('top.duration')} value={detail.updates?.length > 0 ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at) : 'Active'} /><StatBlock label={t('top.vol_rank')} value={detail.volume_rank_num && detail.volume_rank_den ? `#${detail.volume_rank_num} / ${detail.volume_rank_den}` : 'N/A'} /><StatBlock label={t('top.risk')} value={detail.risk_level || 'N/A'} valueClass={detail.risk_level === 'High' ? 'text-loss' : detail.risk_level === 'Medium' ? 'text-yellow-400' : 'text-profit'} /></div></div>
+              <div className="grid grid-cols-3 gap-2">
+                <StatBlock
+                  label={t("top.duration")}
+                  value={
+                    detail.updates?.length > 0
+                      ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at)
+                      : "Active"
+                  }
+                />
+                <StatBlock
+                  label={t("top.vol_rank")}
+                  value={
+                    detail.volume_rank_num && detail.volume_rank_den
+                      ? `#${detail.volume_rank_num}/${detail.volume_rank_den}`
+                      : "—"
+                  }
+                />
+                <StatBlock
+                  label={t("top.risk")}
+                  value={detail.risk_level || "—"}
+                  valueClass={
+                    detail.risk_level === "High"
+                      ? "text-loss"
+                      : detail.risk_level === "Medium"
+                        ? "text-yellow-400"
+                        : "text-emerald-400"
+                  }
+                />
               </div>
             </div>
-          ) : (<div className="flex items-center justify-center py-20"><p className="text-text-muted text-sm">{t('top.failed')}</p></div>)}
+          ) : (
+            <div className="py-16 text-center text-[13px] text-text-muted">{t("top.failed")}</div>
+          )}
         </div>
       </div>
-      {lightboxImg && (<div className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightboxImg(null)}><img src={lightboxImg} alt="Full" className="max-w-full max-h-[95vh] object-contain rounded-xl shadow-2xl border border-white/10" onClick={e => e.stopPropagation()} /><button className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm" onClick={() => setLightboxImg(null)}><svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button></div>)}
-      <style>{`.custom-scrollbar::-webkit-scrollbar{width:4px;height:6px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(212,168,83,.3);border-radius:4px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,.5)}@keyframes smBI{from{opacity:0}to{opacity:1}}@keyframes smBO{from{opacity:1}to{opacity:0}}@keyframes smCI{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes smCO{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.97)}}@keyframes smUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}@keyframes smDn{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}@keyframes smSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes smSheetDn{from{transform:translateY(0)}to{transform:translateY(100%)}}.lq-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(240,216,144,0.55) 50%,transparent 65%);transform:translateX(-130%);animation:lqShine 3s ease-in-out infinite;pointer-events:none}@keyframes lqShine{0%,55%{transform:translateX(-130%)}100%{transform:translateX(130%)}}@media (prefers-reduced-motion:reduce){.lq-shine::after{animation:none;opacity:0}}`}</style>
+
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-[200000] flex cursor-zoom-out items-center justify-center bg-black/95 p-4"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            src={lightboxImg}
+            alt=""
+            className="max-h-[95vh] max-w-full rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+      <style>{`
+        @keyframes smBI{from{opacity:0}to{opacity:1}}
+        @keyframes smBO{from{opacity:1}to{opacity:0}}
+        @keyframes smCI{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+        @keyframes smCO{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.98)}}
+        @keyframes smSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes smSheetDn{from{transform:translateY(0)}to{transform:translateY(100%)}}
+      `}</style>
     </div>
   );
+
   return createPortal(modalContent, document.body);
 };
 
-const StatBlock = ({ label, value, valueClass = 'text-white' }) => (<div className="bg-[#0d0d0d] rounded-xl border border-gold-primary/10 p-3 sm:p-4 flex flex-col justify-center items-center text-center hover:border-gold-primary/20 transition-colors"><span className="text-text-muted text-[9px] sm:text-[10px] uppercase tracking-wider mb-1.5">{label}</span><span className={`font-mono font-bold text-sm sm:text-base ${valueClass}`}>{value}</span></div>);
+const StatBlock = ({ label, value, valueClass = "text-white" }) => (
+  <div className="flex flex-col items-center justify-center rounded-lg border border-white/[0.06] bg-[#0c0a07] px-2 py-2.5 text-center">
+    <span className="mb-1 font-mono text-[9px] uppercase tracking-wider text-text-muted">{label}</span>
+    <span className={`font-mono text-[12px] font-semibold sm:text-[13px] ${valueClass}`}>{value}</span>
+  </div>
+);
 
 export default TopPerformers;
