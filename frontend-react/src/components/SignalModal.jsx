@@ -1931,36 +1931,38 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               />
                             </div>
                           ) : (
-                            <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[300px]">
-                              <img
-                                src={afterImg}
-                                alt="Latest Chart"
-                                className="absolute inset-0 h-full w-full object-contain"
-                                loading="lazy"
-                                onError={(e) => {
-                                  if (rawAfterImg && e.target.src !== rawAfterImg) {
-                                    e.target.onerror = null;
-                                    e.target.src = rawAfterImg;
-                                  }
-                                }}
-                              />
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-3 pb-3 pt-10">
+                            <div>
+                              <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[300px]">
+                                <img
+                                  src={afterImg}
+                                  alt="Latest Chart"
+                                  className="absolute inset-0 h-full w-full object-contain"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    if (rawAfterImg && e.target.src !== rawAfterImg) {
+                                      e.target.onerror = null;
+                                      e.target.src = rawAfterImg;
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="mt-1.5 flex items-center gap-1.5">
                                 <button
                                   type="button"
                                   onClick={() => setShowTV(true)}
-                                  className="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-md border border-white/15 bg-white/95 py-2 text-[12px] font-semibold text-[#0a0506] transition hover:bg-white active:scale-[0.99]"
+                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-white/85 transition hover:bg-white/[0.1] hover:text-white active:scale-[0.99]"
                                 >
-                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
                                   </svg>
-                                  Click for live chart
+                                  Live chart
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setLightboxImg(afterImg)}
-                                  className="pointer-events-auto mt-1.5 w-full text-center text-[11px] text-white/55 hover:text-white/85"
+                                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-white/50 transition hover:text-white/80"
                                 >
-                                  Fullscreen screenshot
+                                  Full
                                 </button>
                               </div>
                             </div>
