@@ -21,6 +21,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import ThemeToggle from "./components/ThemeToggle";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
@@ -875,6 +876,9 @@ function AppShell({ children }) {
 
             {/* RIGHT SIDE */}
             <div className="flex items-center gap-1.5 lg:gap-2">
+              {/* Theme switch — admin-only while feature is gated */}
+              <ThemeToggle />
+
               {/* EN/ZH toggle — Flowscan filter pill */}
               <div className="flex items-center gap-0.5 p-0.5 mr-1 rounded-sm bg-white/[0.03] border border-white/[0.06]">
                 {["en", "zh"].map((lang) => (
