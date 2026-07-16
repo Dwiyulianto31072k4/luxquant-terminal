@@ -783,9 +783,11 @@ function CanvasGlobe() {
         cy,
         radius * 1.85
       );
-      ambientGlow.addColorStop(0, "rgba(70,30,28,0.12)");
-      ambientGlow.addColorStop(0.32, "rgba(45,20,20,0.06)");
-      ambientGlow.addColorStop(0.62, "rgba(22,11,11,0.025)");
+      // Warm brown halo in Luxquant; neutral grey in Dark (solid-black taste).
+      const glowDark = document.documentElement.dataset.theme === "dark";
+      ambientGlow.addColorStop(0, glowDark ? "rgba(42,42,46,0.10)" : "rgba(70,30,28,0.12)");
+      ambientGlow.addColorStop(0.32, glowDark ? "rgba(28,28,32,0.05)" : "rgba(45,20,20,0.06)");
+      ambientGlow.addColorStop(0.62, glowDark ? "rgba(15,15,17,0.02)" : "rgba(22,11,11,0.025)");
       ambientGlow.addColorStop(1, "rgba(0,0,0,0)");
       context.fillStyle = ambientGlow;
       context.fillRect(

@@ -96,7 +96,7 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row overflow-x-hidden" style={{ background: 'radial-gradient(ellipse at 16% 22%, rgba(150,28,28,0.30) 0%, transparent 46%), linear-gradient(100deg, #2c0d10 0%, #1c0809 33%, #110607 57%, #0a0506 100%)' }}>
+    <div className="lux-warm-auth min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
       {/* Desktop left panel (hidden on mobile) — now part of one continuous page */}
       <LeftBrandPanel />
 
@@ -385,12 +385,10 @@ const TermsModal = ({ onClose }) => {
          style={{ background: 'rgba(6,3,3,0.84)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', animation: 'lq-modal-fade 0.2s ease-out' }}
          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
 
-      <div className="relative w-full max-w-2xl flex flex-col rounded-t-3xl sm:rounded-[1.75rem] overflow-hidden"
+      <div className="lux-warm-auth-sheet relative w-full max-w-2xl flex flex-col rounded-t-3xl sm:rounded-[1.75rem] overflow-hidden"
            style={{
              maxHeight: 'min(92dvh, 100%)',
-             background: 'radial-gradient(ellipse at 18% 0%, rgba(150,28,28,0.28) 0%, transparent 55%), linear-gradient(160deg, #2c0d10 0%, #1c0809 38%, #110607 64%, #0a0506 100%)',
              border: '1px solid rgba(255,255,255,0.08)',
-             boxShadow: '0 -20px 60px rgba(0,0,0,0.85), 0 0 70px rgba(150,28,28,0.12)',
              animation: 'lq-modal-pop 0.3s cubic-bezier(0.16,1,0.3,1)',
            }}>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">

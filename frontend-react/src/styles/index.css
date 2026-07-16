@@ -97,8 +97,8 @@
      grey). Page is near-black; panels lift just enough to read as cards,
      separation carried by thin borders rather than lightness. Neutral hue so
      the gold accent pops. */
-  --surface: 8 8 9;
-  --surface-secondary: 13 13 15;
+  --surface: 5 5 6;
+  --surface-secondary: 11 11 13;
   --surface-raised: 18 18 20;
   --surface-hover: 28 28 31;
   --accent: 224 178 92;
@@ -308,6 +308,36 @@ body::-webkit-scrollbar,
 .lux-warm-glow { background: radial-gradient(circle, rgba(139, 26, 26, 0.14), transparent 70%); }
 [data-theme="dark"] .lux-warm-glow { background: transparent; }
 [data-theme="bright"] .lux-warm-glow { background: transparent; }
+
+/* Auth pages (Login) warm maroon backdrop — flat solid black in Dark. */
+.lux-warm-auth {
+  background:
+    radial-gradient(ellipse at 16% 22%, rgba(150, 28, 28, 0.30) 0%, transparent 46%),
+    linear-gradient(100deg, #2c0d10 0%, #1c0809 33%, #110607 57%, #0a0506 100%);
+}
+[data-theme="dark"] .lux-warm-auth { background: rgb(var(--surface)); }
+[data-theme="bright"] .lux-warm-auth { background: rgb(var(--surface)); }
+
+/* Login mobile sheet — warm gradient + red glow shadow in Luxquant, neutral in Dark. */
+.lux-warm-auth-sheet {
+  background:
+    radial-gradient(ellipse at 18% 0%, rgba(150, 28, 28, 0.28) 0%, transparent 55%),
+    linear-gradient(160deg, #2c0d10 0%, #1c0809 38%, #110607 64%, #0a0506 100%);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.85), 0 0 70px rgba(150, 28, 28, 0.12);
+}
+[data-theme="dark"] .lux-warm-auth-sheet {
+  background: rgb(var(--surface-secondary));
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.85);
+}
+[data-theme="bright"] .lux-warm-auth-sheet {
+  background: rgb(var(--surface-raised));
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* Subtle red veil overlay (Register) — off outside Luxquant. */
+.lux-warm-veil { background: radial-gradient(ellipse at 50% 0%, rgba(139, 26, 26, 0.1) 0%, transparent 60%); }
+[data-theme="dark"] .lux-warm-veil { background: transparent; }
+[data-theme="bright"] .lux-warm-veil { background: transparent; }
 
 /* ==========================================
    Corner Ornaments

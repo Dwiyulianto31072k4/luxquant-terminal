@@ -385,6 +385,8 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
             radial-gradient(ellipse 70% 55% at 50% 38%, rgba(150,30,30,0.18) 0%, rgba(112,24,24,0.07) 48%, transparent 75%),
             radial-gradient(ellipse 46% 40% at 50% 42%, rgba(212,168,83,0.045) 0%, transparent 70%);
         }
+        /* Dark: no warm wash — flat solid canvas */
+        [data-theme="dark"] .rwm-bg { background: none; }
 
         /* Mask dissolve (globe-style): cards fade to transparent so the page
            canvas shows through — no black/maroon curtain overlays. Multi-stop
@@ -467,6 +469,10 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
         .rwm-card:hover .rwm-img-wrap {
           box-shadow: 0 0 0 1px rgba(212,168,83,0.38), 0 28px 60px -18px rgba(139,26,26,0.55);
           transform: translateY(-3px);
+        }
+        /* Dark: neutral hover shadow (no red glow) */
+        [data-theme="dark"] .rwm-card:hover .rwm-img-wrap {
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.38), 0 28px 60px -18px rgba(0,0,0,0.75);
         }
         .rwm-meta { padding: 16px 4px 0; }
         .rwm-proof {
