@@ -146,7 +146,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
             <CoinLogo pair="BTCUSDT" size={32} />
             {/* warning badge */}
             <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ring-2 ring-surface-secondary"
-              style={{ background: accent, color: '#1a1207' }}>
+              style={{ background: accent, color: 'rgb(var(--surface-hover))' }}>
               !
             </span>
           </div>

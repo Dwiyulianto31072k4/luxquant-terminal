@@ -73,10 +73,10 @@ export const SetRoleModal = ({ user, onClose, onSetRole }) => {
           <Avatar src={user?.avatar_url} name={user?.username} size="md" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary truncate">{user?.username}</p>
-            <p className="text-[11px] font-mono truncate" style={{ color: '#6b5c52' }}>
+            <p className="text-[11px] font-mono truncate" style={{ color: 'rgb(var(--fg-muted))' }}>
               {user?.email}
             </p>
-            <p className="text-[10px] mt-0.5" style={{ color: '#8a7a6e' }}>
+            <p className="text-[10px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
               Current:{' '}
               <span className="font-semibold uppercase tracking-wider text-text-primary/70">
                 {ROLE_LABELS[user?.role] || user?.role}
@@ -108,12 +108,12 @@ export const SetRoleModal = ({ user, onClose, onSetRole }) => {
                     {opt.label}
                   </span>
                   {opt.value === user?.role && (
-                    <span className="text-[9px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                    <span className="text-[9px] uppercase tracking-wider" style={{ color: 'rgb(var(--fg-muted))' }}>
                       current
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
+                <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
                   {opt.desc}
                 </p>
               </button>

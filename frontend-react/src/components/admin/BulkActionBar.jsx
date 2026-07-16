@@ -126,7 +126,7 @@ export const BulkActionBar = ({
           className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md text-xs font-bold tabular-nums"
           style={{
             background: 'rgba(212,168,83,0.18)',
-            color: '#d4a853',
+            color: 'rgb(var(--accent))',
             border: '1px solid rgba(212,168,83,0.3)',
           }}
         >
@@ -134,7 +134,7 @@ export const BulkActionBar = ({
         </span>
         <div className="text-[11px]">
           <p className="text-text-primary font-semibold leading-tight">selected</p>
-          <p className="leading-tight" style={{ color: '#6b5c52' }}>
+          <p className="leading-tight" style={{ color: 'rgb(var(--fg-muted))' }}>
             {subscriberCount} subs · {reachableCount} reachable
           </p>
         </div>
@@ -167,7 +167,7 @@ export const BulkActionBar = ({
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
           style={{
             background: 'rgba(52,211,153,0.08)',
-            color: '#34d399',
+            color: 'rgb(var(--pos))',
             border: '1px solid rgba(52,211,153,0.22)',
           }}
           title="Grant subscription to selected users"
@@ -180,7 +180,7 @@ export const BulkActionBar = ({
           <div
             className="absolute bottom-full mb-2 right-0 w-48 rounded-xl overflow-hidden shadow-2xl"
             style={{
-              background: '#12090d',
+              background: 'rgb(var(--surface-secondary))',
               border: '1px solid rgba(212,168,83,0.25)',
             }}
           >
@@ -196,7 +196,7 @@ export const BulkActionBar = ({
                 style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}
               >
                 <span className="font-semibold">{opt.label}</span>
-                <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
+                <span className="block text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
                   {opt.sub}
                 </span>
               </button>
@@ -213,7 +213,7 @@ export const BulkActionBar = ({
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
           style={{
             background: 'rgba(248,113,113,0.08)',
-            color: '#f87171',
+            color: 'rgb(var(--neg))',
             border: '1px solid rgba(248,113,113,0.22)',
           }}
           title="Revoke subscription from selected subscribers"
@@ -235,7 +235,7 @@ export const BulkActionBar = ({
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
             style={{
               background: 'rgba(212,168,83,0.08)',
-              color: '#d4a853',
+              color: 'rgb(var(--accent))',
               border: '1px solid rgba(212,168,83,0.22)',
             }}
             title="Send a template message to selected users"
@@ -248,14 +248,14 @@ export const BulkActionBar = ({
             <div
               className="absolute bottom-full mb-2 right-0 w-64 rounded-xl overflow-hidden shadow-2xl"
               style={{
-                background: '#12090d',
+                background: 'rgb(var(--surface-secondary))',
                 border: '1px solid rgba(212,168,83,0.25)',
               }}
             >
               <div
                 className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold"
                 style={{
-                  color: '#6b5c52',
+                  color: 'rgb(var(--fg-muted))',
                   background: 'rgba(255,255,255,0.02)',
                 }}
               >
@@ -275,7 +275,7 @@ export const BulkActionBar = ({
                     }
                   >
                     <span className="font-semibold">{t.label}</span>
-                    <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
+                    <span className="block text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
                       {t.description}
                     </span>
                   </button>
@@ -290,7 +290,7 @@ export const BulkActionBar = ({
         onClick={onClear}
         disabled={busy}
         className="ml-1 w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 hover:bg-white/5"
-        style={{ background: 'rgba(255,255,255,0.04)', color: '#6b5c52' }}
+        style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}
         title="Clear selection"
       >
         <CloseIcon size={13} />

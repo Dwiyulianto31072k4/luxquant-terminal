@@ -16,7 +16,7 @@ export const FinancePagination = ({ page, totalPages, total, onChange }) => {
       className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-[10.5px] font-semibold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       style={{
         background: 'rgba(255,255,255,0.04)',
-        color: '#c9b59e',
+        color: 'rgb(var(--fg-secondary))',
         border: '1px solid rgba(255,255,255,0.07)',
       }}
     >
@@ -29,13 +29,13 @@ export const FinancePagination = ({ page, totalPages, total, onChange }) => {
       className="flex items-center justify-between gap-3 pt-3 flex-wrap"
       style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
     >
-      <p className="text-[10.5px]" style={{ color: '#6b5c52' }}>
+      <p className="text-[10.5px]" style={{ color: 'rgb(var(--fg-muted))' }}>
         Page{' '}
-        <span className="tabular-nums font-semibold" style={{ color: '#c9b59e' }}>
+        <span className="tabular-nums font-semibold" style={{ color: 'rgb(var(--fg-secondary))' }}>
           {page}
         </span>{' '}
         of{' '}
-        <span className="tabular-nums font-semibold" style={{ color: '#c9b59e' }}>
+        <span className="tabular-nums font-semibold" style={{ color: 'rgb(var(--fg-secondary))' }}>
           {totalPages}
         </span>
         {total != null && (

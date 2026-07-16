@@ -138,7 +138,7 @@ const AnnouncementModal = () => {
               className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
               style={{
                 background: 'linear-gradient(135deg, #d4a853, #b8893c)',
-                color: '#0a0506',
+                color: 'rgb(var(--surface))',
                 border: '1px solid rgba(212,168,83,0.3)',
               }}
             >

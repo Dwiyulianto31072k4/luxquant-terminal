@@ -36,7 +36,7 @@ const statusesFor = (impact) => (impact === 'maintenance' ? MAINTENANCE_STATUSES
 const fmt = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return ''; } };
 
 // ── shared field styling ──────────────────────────────────────────────
-const fieldStyle = { background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' };
+const fieldStyle = { background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgb(var(--fg))' };
 const Field = (props) => (
   <input {...props} className="w-full rounded-md px-3 py-2 text-[13px] focus:outline-none placeholder:text-text-primary/30" style={fieldStyle} />
 );
@@ -93,7 +93,7 @@ function CreateForm({ components, onCreated, onError }) {
 
   return (
     <div className="rounded-xl p-4 sm:p-5 relative overflow-hidden mb-6"
-      style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], 0.4)}, transparent)` }} />
       <div className="flex items-center gap-2 mb-4">
         <PlusIcon size={13} style={{ color: palette.gold[300] }} />
@@ -177,7 +177,7 @@ function IncidentCard({ inc, busy, onUpdate, onDelete }) {
   const options = statusesFor(inc.impact);
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: '#0a0805', border: `1px solid ${closed ? 'rgba(255,255,255,0.07)' : tint(accent, 0.3)}` }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${closed ? 'rgba(255,255,255,0.07)' : tint(accent, 0.3)}` }}>
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(accent, 0.3)}, transparent)` }} />
       <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ background: closed ? 'transparent' : tint(accent, 0.05) }}>
         <div className="min-w-0">

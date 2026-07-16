@@ -53,11 +53,11 @@ const CopyButton = ({ text, label = 'Copy', onCopied, className = '' }) => {
 
 const StatusBadge = ({ status }) => {
   const config = {
-    pending: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24', label: 'Pending' },
-    active: { bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.3)', color: '#4ade80', label: 'Active' },
-    subscribed: { bg: 'rgba(212,168,83,0.18)', border: 'rgba(212,168,83,0.4)', color: '#d4a853', label: 'Subscribed' },
+    pending: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', color: 'rgb(var(--warn))', label: 'Pending' },
+    active: { bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.3)', color: 'rgb(var(--pos))', label: 'Active' },
+    subscribed: { bg: 'rgba(212,168,83,0.18)', border: 'rgba(212,168,83,0.4)', color: 'rgb(var(--accent))', label: 'Subscribed' },
     churned: { bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)', color: '#94a3b8', label: 'Churned' },
-    cancelled: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', color: '#f87171', label: 'Cancelled' },
+    cancelled: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', color: 'rgb(var(--neg))', label: 'Cancelled' },
   }[status] || { bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)', color: '#94a3b8', label: status };
 
   return (
@@ -98,14 +98,14 @@ const StatCard = ({ label, value, subtitle, accent = false }) => (
       borderColor: accent ? 'rgba(212,168,83,0.25)' : 'rgba(255,255,255,0.06)',
     }}
   >
-    <p className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: '#6b5c52' }}>
+    <p className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'rgb(var(--fg-muted))' }}>
       {label}
     </p>
     <p className="text-2xl sm:text-3xl font-bold tabular-nums" style={{ color: accent ? '#d4a853' : '#e8d9c7' }}>
       {value}
     </p>
     {subtitle && (
-      <p className="text-xs mt-1" style={{ color: '#8a7a6e' }}>
+      <p className="text-xs mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>
         {subtitle}
       </p>
     )}
@@ -120,9 +120,9 @@ const FunnelBar = ({ funnel }) => {
   const max = Math.max(funnel.signed_up, 1);
   const stages = [
     { key: 'signed_up', label: 'Signed Up', value: funnel.signed_up, color: '#94a3b8' },
-    { key: 'active', label: 'Active', value: funnel.active, color: '#4ade80' },
-    { key: 'subscribed', label: 'Subscribed', value: funnel.subscribed, color: '#d4a853' },
-    { key: 'churned', label: 'Churned', value: funnel.churned, color: '#f87171' },
+    { key: 'active', label: 'Active', value: funnel.active, color: 'rgb(var(--pos))' },
+    { key: 'subscribed', label: 'Subscribed', value: funnel.subscribed, color: 'rgb(var(--accent))' },
+    { key: 'churned', label: 'Churned', value: funnel.churned, color: 'rgb(var(--neg))' },
   ];
 
   return (
@@ -132,7 +132,7 @@ const FunnelBar = ({ funnel }) => {
         return (
           <div key={stage.key}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium" style={{ color: '#b8a89a' }}>
+              <span className="text-xs font-medium" style={{ color: 'rgb(var(--fg-secondary))' }}>
                 {stage.label}
               </span>
               <span className="text-sm font-semibold tabular-nums" style={{ color: stage.color }}>
@@ -152,12 +152,12 @@ const FunnelBar = ({ funnel }) => {
       {(funnel.activation_rate > 0 || funnel.subscription_rate > 0) && (
         <div className="flex items-center gap-4 pt-3 mt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <div className="flex-1">
-            <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: '#6b5c52' }}>Activation</p>
-            <p className="text-sm font-semibold" style={{ color: '#4ade80' }}>{funnel.activation_rate}%</p>
+            <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>Activation</p>
+            <p className="text-sm font-semibold" style={{ color: 'rgb(var(--pos))' }}>{funnel.activation_rate}%</p>
           </div>
           <div className="flex-1">
-            <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: '#6b5c52' }}>Subscription</p>
-            <p className="text-sm font-semibold" style={{ color: '#d4a853' }}>{funnel.subscription_rate}%</p>
+            <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>Subscription</p>
+            <p className="text-sm font-semibold" style={{ color: 'rgb(var(--accent))' }}>{funnel.subscription_rate}%</p>
           </div>
         </div>
       )}
@@ -177,7 +177,7 @@ const RefereeRow = ({ referee }) => {
       {/* Avatar */}
       <div
         className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden"
-        style={{ background: 'rgba(212,168,83,0.12)', color: '#d4a853' }}
+        style={{ background: 'rgba(212,168,83,0.12)', color: 'rgb(var(--accent))' }}
       >
         {referee.avatar_url ? (
           <img src={referee.avatar_url} alt={referee.username} className="w-full h-full object-cover" />
@@ -194,7 +194,7 @@ const RefereeRow = ({ referee }) => {
           </span>
           <StatusBadge status={referee.status} />
         </div>
-        <p className="text-xs mt-0.5" style={{ color: '#8a7a6e' }}>
+        <p className="text-xs mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
           Joined {formatRelativeTime(referee.joined_at)}
           {referee.last_login_at && ` · Last login ${formatRelativeTime(referee.last_login_at)}`}
         </p>
@@ -205,7 +205,7 @@ const RefereeRow = ({ referee }) => {
         <p className="text-sm font-semibold tabular-nums" style={{ color: referee.total_commission_earned > 0 ? '#d4a853' : '#6b5c52' }}>
           ${referee.total_commission_earned.toFixed(2)}
         </p>
-        <p className="text-[10px]" style={{ color: '#6b5c52' }}>
+        <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
           {referee.total_payments} payment{referee.total_payments !== 1 ? 's' : ''}
         </p>
       </div>
@@ -248,7 +248,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
     >
       <div
         className="w-full max-w-md max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl border border-b-0 sm:border-b p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-        style={{ background: '#1a1014', borderColor: 'rgba(212,168,83,0.25)' }}
+        style={{ background: 'rgb(var(--surface-hover))', borderColor: 'rgba(212,168,83,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
@@ -257,7 +257,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
         <h3 className="text-lg font-bold mb-2" style={{ color: '#e8d9c7' }}>
           Create Your Referral Code
         </h3>
-        <p className="text-sm mb-5" style={{ color: '#8a7a6e' }}>
+        <p className="text-sm mb-5" style={{ color: 'rgb(var(--fg-muted))' }}>
           Pick a custom code (4-20 chars, letters/numbers/dash) or auto-generate.
         </p>
 
@@ -276,12 +276,12 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
         />
 
         {error && (
-          <p className="text-xs mt-2" style={{ color: '#f87171' }}>
+          <p className="text-xs mt-2" style={{ color: 'rgb(var(--neg))' }}>
             {error}
           </p>
         )}
 
-        <p className="text-[11px] mt-2" style={{ color: '#6b5c52' }}>
+        <p className="text-[11px] mt-2" style={{ color: 'rgb(var(--fg-muted))' }}>
           Examples: <code>DWI-2026</code>, <code>LUXKING</code>, <code>crypto_pro</code>
         </p>
 
@@ -290,7 +290,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
             onClick={onClose}
             disabled={loading}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'rgba(255,255,255,0.04)', color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             Cancel
           </button>
@@ -298,7 +298,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
             onClick={() => handleSubmit(false)}
             disabled={loading}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'rgba(212,168,83,0.1)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.25)' }}
+            style={{ background: 'rgba(212,168,83,0.1)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.25)' }}
           >
             {loading ? '...' : 'Auto-generate'}
           </button>
@@ -511,7 +511,7 @@ const ReferralPage = () => {
         <h1 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: '#e8d9c7' }}>
           Start Your Referral Program
         </h1>
-        <p className="text-sm sm:text-base mb-8 max-w-md mx-auto" style={{ color: '#8a7a6e' }}>
+        <p className="text-sm sm:text-base mb-8 max-w-md mx-auto" style={{ color: 'rgb(var(--fg-muted))' }}>
           Share your link, earn 10% commission on every payment from people you invite.
           Pick a custom code or auto-generate one.
         </p>
@@ -520,7 +520,7 @@ const ReferralPage = () => {
           className="px-6 py-3 rounded-xl text-sm font-bold transition-transform hover:scale-105"
           style={{
             background: 'linear-gradient(135deg, #d4a853 0%, #b8941f 100%)',
-            color: '#0a0506',
+            color: 'rgb(var(--surface))',
           }}
         >
           Create My Referral Code
@@ -560,7 +560,7 @@ const ReferralPage = () => {
                 src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
                 alt={`QR for ${code.code}`}
                 className="w-40 h-40 sm:w-48 sm:h-48 block"
-                style={{ background: '#ffffff' }}
+                style={{ background: 'rgb(var(--fg))' }}
               />
             </div>
             <button
@@ -569,7 +569,7 @@ const ReferralPage = () => {
               style={{
                 background: 'rgba(212,168,83,0.08)',
                 border: '1px solid rgba(212,168,83,0.2)',
-                color: '#d4a853',
+                color: 'rgb(var(--accent))',
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -580,14 +580,14 @@ const ReferralPage = () => {
           {/* Code & Link */}
           <div className="flex flex-col justify-between gap-4 min-w-0">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#6b5c52' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'rgb(var(--fg-muted))' }}>
                 Your Referral Code
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <h2
                   className="text-2xl sm:text-3xl font-bold tracking-wider"
                   style={{
-                    color: '#d4a853',
+                    color: 'rgb(var(--accent))',
                     fontFamily: 'ui-monospace, "SF Mono", "Cascadia Code", monospace',
                   }}
                 >
@@ -597,7 +597,7 @@ const ReferralPage = () => {
               </div>
 
               {/* Share metrics */}
-              <div className="flex items-center gap-4 mt-3 text-xs" style={{ color: '#8a7a6e' }}>
+              <div className="flex items-center gap-4 mt-3 text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
                 <span>📤 Shared {code.share_count || 0}×</span>
                 <span>📥 QR {code.qr_count || 0}×</span>
                 <span>🎯 Used {code.times_used || 0}×</span>
@@ -606,7 +606,7 @@ const ReferralPage = () => {
 
             {/* Share Link */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#6b5c52' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'rgb(var(--fg-muted))' }}>
                 Share Link
               </p>
               <div className="flex items-center gap-2">
@@ -615,7 +615,7 @@ const ReferralPage = () => {
                   style={{
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.06)',
-                    color: '#b8a89a',
+                    color: 'rgb(var(--fg-secondary))',
                     fontFamily: 'ui-monospace, monospace',
                   }}
                 >
@@ -634,14 +634,14 @@ const ReferralPage = () => {
               <button
                 onClick={shareToTwitter}
                 className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors hover:bg-white/[0.04]"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', color: '#b8a89a' }}
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgb(var(--fg-secondary))' }}
               >
                 Share on X
               </button>
               <button
                 onClick={shareToTelegram}
                 className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors hover:bg-white/[0.04]"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', color: '#b8a89a' }}
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgb(var(--fg-secondary))' }}
               >
                 Share on Telegram
               </button>
@@ -689,7 +689,7 @@ const ReferralPage = () => {
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: 'rgba(212,168,83,0.1)' }}
             >
-              <svg className="w-5 h-5" style={{ color: '#d4a853' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" style={{ color: 'rgb(var(--accent))' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
@@ -698,9 +698,9 @@ const ReferralPage = () => {
               <h4 className="text-sm font-bold mb-1" style={{ color: '#e8d9c7' }}>
                 Withdraw to USDT
               </h4>
-              <p className="text-xs leading-relaxed" style={{ color: '#8a7a6e' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'rgb(var(--fg-muted))' }}>
                 {cashoutBalance.active_cashout
-                  ? <>You have an active cashout (#{cashoutBalance.active_cashout.id}, status: <span style={{color:'#fbbf24'}}>{cashoutBalance.active_cashout.status}</span>). Check history tab.</>
+                  ? <>You have an active cashout (#{cashoutBalance.active_cashout.id}, status: <span style={{color:'rgb(var(--warn))'}}>{cashoutBalance.active_cashout.status}</span>). Check history tab.</>
                   : cashoutBalance.can_request_cashout
                     ? 'Convert your referral credit balance to USDT via Telegram admin.'
                     : 'Earn referral commission first to be able to withdraw.'}
@@ -754,7 +754,7 @@ const ReferralPage = () => {
           <h3 className="text-base font-semibold mb-1" style={{ color: '#e8d9c7' }}>
             Conversion Funnel
           </h3>
-          <p className="text-xs mb-5" style={{ color: '#8a7a6e' }}>
+          <p className="text-xs mb-5" style={{ color: 'rgb(var(--fg-muted))' }}>
             How your referees move from signup to subscription.
           </p>
           <FunnelBar funnel={funnel} />
@@ -769,15 +769,15 @@ const ReferralPage = () => {
         >
           {refereesPage.items.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm mb-2" style={{ color: '#b8a89a' }}>No referees yet</p>
-              <p className="text-xs" style={{ color: '#6b5c52' }}>
+              <p className="text-sm mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>No referees yet</p>
+              <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
                 Share your link to start earning commission.
               </p>
             </div>
           ) : (
             <>
               <div className="px-3 sm:px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-xs" style={{ color: '#8a7a6e' }}>
+                <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
                   Showing {refereesPage.items.length} of {refereesPage.total} referees
                 </p>
               </div>
@@ -795,18 +795,18 @@ const ReferralPage = () => {
                     onClick={() => fetchRefereesPage(refereesPageNum - 1)}
                     disabled={refereesPageNum <= 1}
                     className="px-3 py-1.5 rounded-md text-xs transition-colors disabled:opacity-30"
-                    style={{ background: 'rgba(255,255,255,0.04)', color: '#b8a89a' }}
+                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--fg-secondary))' }}
                   >
                     ← Prev
                   </button>
-                  <span className="text-xs" style={{ color: '#6b5c52' }}>
+                  <span className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
                     Page {refereesPageNum}
                   </span>
                   <button
                     onClick={() => fetchRefereesPage(refereesPageNum + 1)}
                     disabled={!refereesPage.has_more}
                     className="px-3 py-1.5 rounded-md text-xs transition-colors disabled:opacity-30"
-                    style={{ background: 'rgba(255,255,255,0.04)', color: '#b8a89a' }}
+                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--fg-secondary))' }}
                   >
                     Next →
                   </button>
@@ -828,7 +828,7 @@ const ReferralPage = () => {
               <h3 className="text-base font-semibold mb-1" style={{ color: '#e8d9c7' }}>
                 Cashout Requests
               </h3>
-              <p className="text-xs" style={{ color: '#8a7a6e' }}>
+              <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
                 History of your USDT withdrawal requests.
               </p>
             </div>
@@ -838,7 +838,7 @@ const ReferralPage = () => {
                 className="px-4 py-2 rounded-lg text-xs font-bold transition-transform hover:scale-105"
                 style={{
                   background: 'linear-gradient(135deg, #d4a853, #a07c2e)',
-                  color: '#0a0506',
+                  color: 'rgb(var(--surface))',
                 }}
               >
                 + New Request
@@ -854,7 +854,7 @@ const ReferralPage = () => {
 
       {/* PRIVACY DISCLOSURE */}
       <div className="text-center pt-4 pb-2">
-        <p className="text-[11px]" style={{ color: '#6b5c52' }}>
+        <p className="text-[11px]" style={{ color: 'rgb(var(--fg-muted))' }}>
           Privacy: when someone uses your referral link, their username, avatar, signup date,
           and login activity are visible to you.
         </p>

@@ -31,24 +31,24 @@ const IMPACTS = ['All', 'High', 'Medium', 'Low', 'Holiday'];
 
 // Muted Flowscan palette — replaces all rainbow rgba constants
 const IMPACT_STYLE = {
-  High:    { color: '#e07288', bg: 'rgba(224,114,136,0.08)', border: 'rgba(224,114,136,0.25)', dot: '#e07288' },
-  Medium:  { color: '#f0b450', bg: 'rgba(240,180,80,0.08)',  border: 'rgba(240,180,80,0.25)',  dot: '#f0b450' },
-  Low:     { color: '#9a8a7d', bg: 'rgba(154,138,125,0.06)', border: 'rgba(255,255,255,0.06)', dot: '#9a8a7d' },
-  Holiday: { color: '#d4a853', bg: 'rgba(212,168,83,0.06)',  border: 'rgba(212,168,83,0.20)',  dot: '#d4a853' },
+  High:    { color: 'rgb(var(--neg))', bg: 'rgba(224,114,136,0.08)', border: 'rgba(224,114,136,0.25)', dot: '#e07288' },
+  Medium:  { color: 'rgb(var(--accent))', bg: 'rgba(240,180,80,0.08)',  border: 'rgba(240,180,80,0.25)',  dot: '#f0b450' },
+  Low:     { color: 'rgb(var(--fg-muted))', bg: 'rgba(154,138,125,0.06)', border: 'rgba(255,255,255,0.06)', dot: '#9a8a7d' },
+  Holiday: { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.06)',  border: 'rgba(212,168,83,0.20)',  dot: '#d4a853' },
 };
 
 // Type styles — all gold-tier (no rainbow), differentiated by opacity & label
 const TYPE_STYLE = {
-  macro:        { color: '#d4a853', bg: 'rgba(212,168,83,0.08)',  border: 'rgba(212,168,83,0.20)', label: 'Macro',  labelZh: '宏观' },
-  unlock:       { color: '#56c996', bg: 'rgba(86,201,150,0.06)',  border: 'rgba(86,201,150,0.20)', label: 'Unlock', labelZh: '解锁' },
-  crypto_event: { color: '#f0d890', bg: 'rgba(240,216,144,0.06)', border: 'rgba(240,216,144,0.20)', label: 'Event',  labelZh: '事件' },
+  macro:        { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.08)',  border: 'rgba(212,168,83,0.20)', label: 'Macro',  labelZh: '宏观' },
+  unlock:       { color: 'rgb(var(--pos))', bg: 'rgba(86,201,150,0.06)',  border: 'rgba(86,201,150,0.20)', label: 'Unlock', labelZh: '解锁' },
+  crypto_event: { color: 'rgb(var(--accent-light))', bg: 'rgba(240,216,144,0.06)', border: 'rgba(240,216,144,0.20)', label: 'Event',  labelZh: '事件' },
 };
 
 // Source badges — unified gold (no brand-rainbow)
 const SOURCE_STYLE = {
-  CoinTelegraph: { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
-  CoinDesk:      { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
-  Decrypt:       { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
+  CoinTelegraph: { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
+  CoinDesk:      { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
+  Decrypt:       { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
 };
 
 // ── Event Translations (EN → ZH) ──
@@ -782,7 +782,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
 // ══════════════════════════════════════
 const NewsItem = ({ article }) => {
   const srcStyle = SOURCE_STYLE[article.source] || {
-    color: '#d4a853',
+    color: 'rgb(var(--accent))',
     bg: 'rgba(212,168,83,0.08)',
     border: 'rgba(212,168,83,0.20)'
   };

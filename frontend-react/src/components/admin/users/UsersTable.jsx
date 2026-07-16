@@ -38,7 +38,7 @@ const SubscriptionPill = ({ user }) => {
     admin:    { color: palette.violet[400], label: '∞ Admin' },
     co_admin: { color: palette.blue[400], label: 'View Co-Admin' },
     founder:  { color: palette.amber[400], label: 'View Founder' },
-    free:     { color: '#4a3f39', label: '—' },
+    free:     { color: 'rgb(var(--fg-muted))', label: '—' },
     lifetime: { color: palette.amber[400], label: 'Lifetime' },
     expired:  { color: palette.red[400], label: 'Expired' },
     expiring: { color: palette.orange[400], label: s.label },
@@ -62,7 +62,7 @@ const RoleChip = ({ role, onClick }) => {
     founder: { color: palette.amber[400], bg: tint(palette.amber[400], 0.12), border: tint(palette.amber[400], 0.3), label: 'founder' },
     subscriber: { color: palette.green[400], bg: tint(palette.green[400], 0.12), border: tint(palette.green[400], 0.3), label: 'subscriber' },
     premium: { color: palette.green[400], bg: tint(palette.green[400], 0.12), border: tint(palette.green[400], 0.3), label: 'premium' },
-    free: { color: '#8a7a6e', bg: 'rgba(107,92,82,0.12)', border: 'rgba(107,92,82,0.3)', label: 'free' },
+    free: { color: 'rgb(var(--fg-muted))', bg: 'rgba(107,92,82,0.12)', border: 'rgba(107,92,82,0.3)', label: 'free' },
   };
   const c = map[role] || map.free;
   const className =
@@ -125,7 +125,7 @@ const UserCell = ({ user, onClick }) => (
         )}
         <CrmBadge status={user.crm_status} lastAt={user.last_followup_at} />
       </p>
-      <p className="text-[10px] truncate font-mono" style={{ color: '#6b5c52' }}>
+      <p className="text-[10px] truncate font-mono" style={{ color: 'rgb(var(--fg-muted))' }}>
         {user.email}
       </p>
     </div>
@@ -136,7 +136,7 @@ const UserCell = ({ user, onClick }) => (
 // CRM touch indicator — has this user been followed up on?
 // ════════════════════════════════════════════════════════════════════
 const CRM_BADGE = {
-  untouched: { color: '#8a7a6e', text: 'NEW',     label: 'Never contacted' },
+  untouched: { color: 'rgb(var(--fg-muted))', text: 'NEW',     label: 'Never contacted' },
   open:      { color: palette.amber?.[400] || '#fbbf24', text: 'OPEN', label: 'Follow-up in progress' },
   tracked:   { color: palette.green[400], text: 'SEEN',  label: 'Tracked' },
 };
@@ -336,7 +336,7 @@ const DesktopTable = ({
             <td className="px-3 py-2.5 hidden md:table-cell">
               <SubscriptionPill user={u} />
               {u.subscription_expires_at && u.role === 'subscriber' && (
-                <p className="text-[9px] mt-0.5 tabular-nums" style={{ color: '#4a3f39' }}>
+                <p className="text-[9px] mt-0.5 tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
                   {formatDate(u.subscription_expires_at)}
                 </p>
               )}
@@ -348,7 +348,7 @@ const DesktopTable = ({
               >
                 {relativeTime(u.last_active_at)}
               </span>
-              <p className="text-[9px] tabular-nums" style={{ color: '#4a3f39' }}>
+              <p className="text-[9px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
                 {u.total_sessions > 0 ? `${u.total_sessions} sessions` : 'no sessions'}
                 {u.last_feature_touched ? ` · ${u.last_feature_touched}` : ''}
               </p>
@@ -425,7 +425,7 @@ const MobileCardStack = ({
             <div className="text-right">
               <SubscriptionPill user={u} />
               {u.subscription_expires_at && u.role === 'subscriber' && (
-                <p className="text-[9px] tabular-nums" style={{ color: '#4a3f39' }}>
+                <p className="text-[9px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
                   {formatDate(u.subscription_expires_at)}
                 </p>
               )}
@@ -434,7 +434,7 @@ const MobileCardStack = ({
 
           {/* Bottom row — last login + actions */}
           <div className="flex items-center justify-between">
-            <span className="text-[10px]" style={{ color: '#8a7a6e' }}>
+            <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
               {u.last_active_at ? `Active ${relativeTime(u.last_active_at)}` : 'No web activity'}
               {u.last_feature_touched ? ` · ${u.last_feature_touched}` : ''}
             </span>

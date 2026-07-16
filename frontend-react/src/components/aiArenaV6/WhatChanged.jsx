@@ -88,7 +88,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
             className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5"
             style={{
               backgroundColor: "rgba(245,196,81,0.12)",
-              color: "#f5c451",
+              color: "rgb(var(--accent))",
             }}
           >
             <svg

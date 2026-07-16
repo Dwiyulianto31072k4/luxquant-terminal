@@ -168,7 +168,7 @@ export default function HeroSlideVideo() {
             <span
               className="mt-1 block text-balance sm:whitespace-nowrap"
               style={{
-                color: "#ffcb2e",
+                color: "rgb(var(--warn))",
                 textShadow:
                   "0 0 18px rgba(255, 203, 46, 0.5), 0 6px 16px rgba(0,0,0,0.28)",
               }}

@@ -999,7 +999,7 @@ const BtcTradingViewChart = ({ t }) => {
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: true,
-        backgroundColor: "#0a0805",
+        backgroundColor: "rgb(var(--surface-raised))",
         gridColor: "rgba(212, 168, 83, 0.04)",
         hide_top_toolbar: false,
         hide_legend: false,

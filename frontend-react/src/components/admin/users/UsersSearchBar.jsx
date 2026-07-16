@@ -16,7 +16,7 @@ export const UsersSearchBar = ({ search, onSearchChange, total, selectedCount })
       Icon={SearchIcon}
       className="flex-1"
     />
-    <div className="text-[10px] whitespace-nowrap tabular-nums" style={{ color: '#6b5c52' }}>
+    <div className="text-[10px] whitespace-nowrap tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
       <span className="text-text-primary font-bold">{total}</span> user{total !== 1 ? 's' : ''}
       {selectedCount > 0 && (
         <span style={{ color: palette.gold[300] }}> · {selectedCount} selected</span>

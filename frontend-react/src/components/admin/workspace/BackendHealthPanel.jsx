@@ -45,7 +45,7 @@ const gauge = (pct) =>
 const Tile = ({ color, Icon, label, children }) => (
   <div
     className="rounded-xl p-3 flex-1 min-w-[150px]"
-    style={{ background: '#0a0805', border: `1px solid ${tint(color, 0.16)}`, boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}
+    style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(color, 0.16)}`, boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}
   >
     <div className="flex items-center gap-1.5 mb-1.5">
       <Icon size={12} style={{ color }} />
@@ -248,7 +248,7 @@ export const BackendHealthPanel = () => {
           {open && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 mt-2">
               {/* top slow */}
-              <div className="rounded-xl p-3" style={{ background: '#0a0805', border: `1px solid ${tint(palette.amber[400], 0.14)}` }}>
+              <div className="rounded-xl p-3" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(palette.amber[400], 0.14)}` }}>
                 <div className="flex items-center gap-1.5 mb-2">
                   <ClockIcon size={11} style={{ color: palette.amber[400] }} />
                   <span className="text-[9px] uppercase tracking-[0.14em] font-semibold" style={{ color: tint(palette.amber[400], 0.85) }}>Top slow endpoints</span>
@@ -272,7 +272,7 @@ export const BackendHealthPanel = () => {
               </div>
 
               {/* recent errors */}
-              <div className="rounded-xl p-3" style={{ background: '#0a0805', border: `1px solid ${tint(palette.red[400], 0.14)}` }}>
+              <div className="rounded-xl p-3" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(palette.red[400], 0.14)}` }}>
                 <div className="flex items-center gap-1.5 mb-2">
                   {d.errors?.count_24h > 0
                     ? <XCircleIcon size={11} style={{ color: palette.red[400] }} />

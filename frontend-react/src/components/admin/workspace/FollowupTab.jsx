@@ -63,17 +63,17 @@ const timeUntilDue = (dateStr) => {
 };
 
 const PRIORITY_CONFIG = {
-  urgent: { color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.3)' },
+  urgent: { color: 'rgb(var(--neg))', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.3)' },
   high: { color: '#fb923c', bg: 'rgba(251,146,60,0.1)', border: 'rgba(251,146,60,0.3)' },
   normal: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.22)' },
-  low: { color: '#8a7a6e', bg: 'rgba(138,122,110,0.08)', border: 'rgba(138,122,110,0.22)' },
+  low: { color: 'rgb(var(--fg-muted))', bg: 'rgba(138,122,110,0.08)', border: 'rgba(138,122,110,0.22)' },
 };
 
 const STATUS_CONFIG = {
-  pending: { color: '#fbbf24', label: 'Pending' },
+  pending: { color: 'rgb(var(--warn))', label: 'Pending' },
   in_progress: { color: '#60a5fa', label: 'In Progress' },
-  done: { color: '#34d399', label: 'Done' },
-  cancelled: { color: '#6b5c52', label: 'Cancelled' },
+  done: { color: 'rgb(var(--pos))', label: 'Done' },
+  cancelled: { color: 'rgb(var(--fg-muted))', label: 'Cancelled' },
 };
 
 const CATEGORY_CONFIG = {
@@ -106,7 +106,7 @@ const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
         <h2 className="text-lg font-semibold text-text-primary tracking-tight">
           Follow-up Queue
         </h2>
-        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
+        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: 'rgb(var(--fg-muted))' }}>
           Collections, renewal reminders, and support tickets — all scheduled here.
         </p>
       </div>
@@ -127,7 +127,7 @@ const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
       <button
         onClick={onCreate}
         className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-        style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+        style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: 'rgb(var(--surface))' }}
       >
         <PlusIcon size={13} />
         Add Follow-up
@@ -143,7 +143,7 @@ const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
     onClick={onClick}
     className="relative overflow-hidden text-left rounded-xl px-4 py-3 transition-all"
     style={{
-      background: '#0a0805',
+      background: 'rgb(var(--surface-raised))',
       border: `1px solid ${active ? `${accent}80` : 'rgba(255,255,255,0.07)'}`,
     }}
     onMouseEnter={(e) => { if (!active) e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)'; }}
@@ -191,7 +191,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
     <div
       className="rounded-xl p-3 transition-colors"
       style={{
-        background: '#0a0805',
+        background: 'rgb(var(--surface-raised))',
         border: `1px solid ${
           due?.overdue && isOpen ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.07)'
         }`,
@@ -231,7 +231,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap text-[11px] mb-2">
-            <span className="flex items-center gap-1" style={{ color: '#8a7a6e' }}>
+            <span className="flex items-center gap-1" style={{ color: 'rgb(var(--fg-muted))' }}>
               <span>{cat.emoji}</span>
               {cat.label}
             </span>
@@ -257,18 +257,18 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
           {followup.note && (
             <p
               className="text-xs mb-2 whitespace-pre-wrap"
-              style={{ color: '#c9b59e', opacity: isOpen ? 1 : 0.6 }}
+              style={{ color: 'rgb(var(--fg-secondary))', opacity: isOpen ? 1 : 0.6 }}
             >
               {followup.note}
             </p>
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <div className="text-[10px] flex items-center gap-2 flex-wrap" style={{ color: '#6b5c52' }}>
+            <div className="text-[10px] flex items-center gap-2 flex-wrap" style={{ color: 'rgb(var(--fg-muted))' }}>
               <span>Due {formatDateTime(followup.due_date)}</span>
               {followup.creator && <span>· by @{followup.creator.username}</span>}
               {followup.completer && (
-                <span style={{ color: '#34d399' }}>· ✓ by @{followup.completer.username}</span>
+                <span style={{ color: 'rgb(var(--pos))' }}>· ✓ by @{followup.completer.username}</span>
               )}
             </div>
 
@@ -289,7 +289,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                     onClick={() => onStatusChange(followup.id, 'done')}
                     title="Mark as done"
                     className="p-1.5 rounded-md transition-colors"
-                    style={{ color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}
+                    style={{ color: 'rgb(var(--pos))', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}
                   >
                     <CheckCircleIcon size={11} />
                   </button>
@@ -300,7 +300,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                   onClick={() => onStatusChange(followup.id, 'pending')}
                   title="Reopen"
                   className="p-1.5 rounded-md transition-colors"
-                  style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}
+                  style={{ color: 'rgb(var(--warn))', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}
                 >
                   <ClockIcon size={11} />
                 </button>
@@ -309,7 +309,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 onClick={() => onEdit(followup)}
                 title="Edit"
                 className="p-1.5 rounded-md transition-colors"
-                style={{ color: '#d4a853', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}
+                style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}
               >
                 <EditIcon size={11} />
               </button>
@@ -317,7 +317,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 onClick={() => onDelete(followup)}
                 title="Delete"
                 className="p-1.5 rounded-md transition-colors"
-                style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
+                style={{ color: 'rgb(var(--neg))', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
               >
                 <TrashIcon size={11} />
               </button>
@@ -516,7 +516,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
       {/* Filter bar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6b5c52' }} />
+          <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgb(var(--fg-muted))' }} />
           <input
             type="text"
             value={search}
@@ -569,7 +569,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
               setPriorityFilter('');
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
-            style={{ color: '#f87171', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}
+            style={{ color: 'rgb(var(--neg))', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}
           >
             <CloseIcon size={11} />
             Clear all
@@ -580,7 +580,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="inline-flex items-center gap-2 text-xs" style={{ color: '#6b5c52' }}>
+          <div className="inline-flex items-center gap-2 text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
             <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }} />
             Loading…
           </div>
@@ -598,12 +598,12 @@ export const FollowupTab = ({ onRefreshStats }) => {
             <p className="text-sm font-semibold text-text-primary mb-1">
               {hasFilters ? 'No follow-ups match these filters' : 'No follow-ups yet'}
             </p>
-            <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>
+            <p className="text-[11.5px] mb-4" style={{ color: 'rgb(var(--fg-muted))' }}>
               {hasFilters ? 'Try adjusting the filters or search.' : 'Schedule your first collection or renewal reminder.'}
             </p>
             <button onClick={hasFilters ? () => { setSearch(''); setStatusFilter('open'); setCategoryFilter(''); setPriorityFilter(''); } : handleCreate}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(212,168,83,0.10)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.28)' }}>
+              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.28)' }}>
               {hasFilters ? 'Reset filters' : <><PlusIcon size={11} /> Add first follow-up</>}
             </button>
           </div>

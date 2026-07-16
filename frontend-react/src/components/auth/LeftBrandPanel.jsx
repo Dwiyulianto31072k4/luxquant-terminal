@@ -41,9 +41,9 @@ export const TypewriterLine = ({ mobile }) => {
   const parts = useTypewriter(getTaglines(t));
   return (
     <div style={{ textAlign: mobile ? 'left' : 'center', minHeight: mobile ? 44 : 40 }}>
-      <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: mobile ? 15 : 26, fontWeight: 500, lineHeight: 1.5, color: '#6b5c52' }}>
+      <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: mobile ? 15 : 26, fontWeight: 500, lineHeight: 1.5, color: 'rgb(var(--fg-muted))' }}>
         {parts.map((p, i) => (<span key={i} style={{ color: p.g ? '#d4a853' : '#8a7d73' }}>{p.text}</span>))}
-        <span style={{ color: '#d4a853', fontWeight: 300, marginLeft: 1, animation: 'lq-blink 1s step-end infinite' }}>|</span>
+        <span style={{ color: 'rgb(var(--accent))', fontWeight: 300, marginLeft: 1, animation: 'lq-blink 1s step-end infinite' }}>|</span>
       </p>
     </div>
   );
@@ -127,8 +127,8 @@ export const MobileGlobeSection = () => {
   return (
     <div className="lg:hidden">
       <div className="mx-auto" style={{ maxWidth: 280 }}><DeviceShowcase compact /></div>
-      <p className="mt-3 pb-1 text-center" style={{ fontSize: 12, color: '#6b5c52' }}>
-        <span style={{ color: '#d4a853' }}>📊</span>{' '}{a('globe_more')} <span style={{ color: '#b8a89a', fontWeight: 600 }}>{a('globe_countries')}</span> {a('globe_trust')}
+      <p className="mt-3 pb-1 text-center" style={{ fontSize: 12, color: 'rgb(var(--fg-muted))' }}>
+        <span style={{ color: 'rgb(var(--accent))' }}>📊</span>{' '}{a('globe_more')} <span style={{ color: 'rgb(var(--fg-secondary))', fontWeight: 600 }}>{a('globe_countries')}</span> {a('globe_trust')}
       </p>
     </div>
   );
@@ -179,7 +179,7 @@ export const AssetCoins = ({ size = 40, className = '' }) => {
         </span>
       ))}
       <span className="flex items-center justify-center rounded-full font-semibold"
-        style={{ height: size, paddingInline: Math.round(size * 0.35), marginLeft: -overlap, background: '#241416', color: '#cbb6a6', fontSize: Math.round(size * 0.31), boxShadow: '0 0 0 3px #160608' }}>
+        style={{ height: size, paddingInline: Math.round(size * 0.35), marginLeft: -overlap, background: 'rgb(var(--surface-hover))', color: 'rgb(var(--fg-secondary))', fontSize: Math.round(size * 0.31), boxShadow: '0 0 0 3px #160608' }}>
         +more
       </span>
     </div>
@@ -258,8 +258,8 @@ const LeftBrandPanel = () => {
               <DeviceShowcase phone={false} />
             </div>
 
-            <h2 className="mt-4 text-center font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#ffffff', lineHeight: 1.16, fontSize: 'clamp(26px, 2.5vw, 36px)' }}>
-              Detect <span style={{ color: '#d4a853' }}>Crypto</span> &amp; Tokenized <span style={{ color: '#d4a853' }}>TradFi</span> Moves
+            <h2 className="mt-4 text-center font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgb(var(--fg))', lineHeight: 1.16, fontSize: 'clamp(26px, 2.5vw, 36px)' }}>
+              Detect <span style={{ color: 'rgb(var(--accent))' }}>Crypto</span> &amp; Tokenized <span style={{ color: 'rgb(var(--accent))' }}>TradFi</span> Moves
             </h2>
 
             {/* Asset logos — shared component */}
@@ -268,8 +268,8 @@ const LeftBrandPanel = () => {
 
           {/* Bottom — markets row (LuxQuant, solid gold icons) */}
           <div className="text-center">
-            <p className="mb-5 font-mono uppercase tracking-[0.22em]" style={{ color: '#8a7a6e', fontSize: 11 }}>All Markets, One Edge</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3" style={{ color: '#c4b3a3', fontSize: 13.5 }}>
+            <p className="mb-5 font-mono uppercase tracking-[0.22em]" style={{ color: 'rgb(var(--fg-muted))', fontSize: 11 }}>All Markets, One Edge</p>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3" style={{ color: 'rgb(var(--fg-secondary))', fontSize: 13.5 }}>
               {MARKETS.map((m) => (
                 <span key={m.label} className="inline-flex items-center gap-2">{m.icon}{m.label}</span>
               ))}

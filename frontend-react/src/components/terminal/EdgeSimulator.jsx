@@ -86,11 +86,11 @@ export function EdgeTab() {
     const closed = s.closed_trades || ((s.tp1_count || 0) + (s.tp2_count || 0) + (s.tp3_count || 0) + (s.tp4_count || 0) + (s.sl_count || 0));
     if (!closed) return null;
     const tiers = [
-      { k: "TP1", n: s.tp1_count || 0, avg: ta.TP1 ?? 0, color: "#2dd4a0" },
-      { k: "TP2", n: s.tp2_count || 0, avg: ta.TP2 ?? 0, color: "#4ade80" },
+      { k: "TP1", n: s.tp1_count || 0, avg: ta.TP1 ?? 0, color: "rgb(var(--pos))" },
+      { k: "TP2", n: s.tp2_count || 0, avg: ta.TP2 ?? 0, color: "rgb(var(--pos))" },
       { k: "TP3", n: s.tp3_count || 0, avg: ta.TP3 ?? 0, color: "#86efac" },
       { k: "TP4", n: s.tp4_count || 0, avg: ta.TP4 ?? 0, color: GOLD },
-      { k: "SL", n: s.sl_count || 0, avg: ta.SL ?? 0, color: "#f87171" },
+      { k: "SL", n: s.sl_count || 0, avg: ta.SL ?? 0, color: "rgb(var(--neg))" },
     ];
     let grossWin = 0, grossLoss = 0, exp = 0;
     tiers.forEach((tt) => {

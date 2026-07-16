@@ -83,7 +83,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
           <ChevronDownIcon
             size={14}
             className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
-            style={{ color: '#8a7a6e' }}
+            style={{ color: 'rgb(var(--fg-muted))' }}
           />
         </div>
       </button>

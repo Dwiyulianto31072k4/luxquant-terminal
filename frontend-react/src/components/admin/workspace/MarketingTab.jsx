@@ -41,10 +41,10 @@ const formatDate = (dateStr) => {
 
 const STATUS_CONFIG = {
   planning: { color: '#a78bfa', label: 'Planning', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)' },
-  active: { color: '#34d399', label: 'Active', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)' },
-  paused: { color: '#fbbf24', label: 'Paused', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)' },
+  active: { color: 'rgb(var(--pos))', label: 'Active', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)' },
+  paused: { color: 'rgb(var(--warn))', label: 'Paused', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)' },
   completed: { color: '#60a5fa', label: 'Completed', bg: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.3)' },
-  cancelled: { color: '#6b5c52', label: 'Cancelled', bg: 'rgba(107,92,82,0.1)', border: 'rgba(107,92,82,0.3)' },
+  cancelled: { color: 'rgb(var(--fg-muted))', label: 'Cancelled', bg: 'rgba(107,92,82,0.1)', border: 'rgba(107,92,82,0.3)' },
 };
 
 const TwitterIcon = ({ size = 14, ...props }) => (
@@ -54,11 +54,11 @@ const TwitterIcon = ({ size = 14, ...props }) => (
 );
 
 const PLATFORM_CONFIG = {
-  twitter: { Icon: TwitterIcon, label: 'Twitter/X', color: '#fff' },
+  twitter: { Icon: TwitterIcon, label: 'Twitter/X', color: 'rgb(var(--fg))' },
   telegram: { Icon: TelegramIcon, label: 'Telegram', color: '#229ED9' },
   discord: { Icon: DiscordIcon, label: 'Discord', color: '#5865F2' },
-  influencer: { Icon: SparklesIcon, label: 'Influencer', color: '#d4a853' },
-  other: { Icon: TrendingUpIcon, label: 'Other', color: '#8a7a6e' },
+  influencer: { Icon: SparklesIcon, label: 'Influencer', color: 'rgb(var(--accent))' },
+  other: { Icon: TrendingUpIcon, label: 'Other', color: 'rgb(var(--fg-muted))' },
 };
 
 /* ── Header ───────────────────────────────────────────────────────── */
@@ -72,14 +72,14 @@ const MarketingHeader = ({ onCreate }) => (
           Growth & Spend
         </p>
         <h2 className="text-lg font-semibold text-text-primary tracking-tight">Marketing Budget</h2>
-        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
+        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: 'rgb(var(--fg-muted))' }}>
           Track campaign budgets, line items, and custom KPIs per platform.
         </p>
       </div>
     </div>
     <button onClick={onCreate}
       className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-      style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>
+      style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: 'rgb(var(--surface))' }}>
       <PlusIcon size={13} />
       New Campaign
     </button>
@@ -90,7 +90,7 @@ const MarketingHeader = ({ onCreate }) => (
 
 const StatCard = ({ label, value, accent, Icon }) => (
   <div className="relative overflow-hidden rounded-xl px-4 py-3"
-    style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)' }}>
+    style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
     <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
       style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.2), transparent)' }} />
     <div className="flex items-center justify-between mb-1.5">
@@ -103,7 +103,7 @@ const StatCard = ({ label, value, accent, Icon }) => (
         </span>
       )}
     </div>
-    <p className="text-2xl font-bold tracking-tight tabular-nums leading-none" style={{ color: '#fff' }}>
+    <p className="text-2xl font-bold tracking-tight tabular-nums leading-none" style={{ color: 'rgb(var(--fg))' }}>
       {value ?? '—'}
     </p>
   </div>
@@ -127,7 +127,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
 
   return (
     <div className="relative overflow-hidden rounded-xl p-4 transition-colors"
-      style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.2), transparent)' }} />
 
@@ -139,7 +139,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
           </div>
           <div className="min-w-0">
             <h4 className="text-sm font-semibold text-text-primary tracking-tight truncate">{campaign.name}</h4>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>{platCfg.label}</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: 'rgb(var(--fg-muted))' }}>{platCfg.label}</p>
           </div>
         </div>
         <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
@@ -149,7 +149,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
       </div>
 
       {campaign.description && (
-        <p className="text-xs mb-3 line-clamp-2" style={{ color: '#c9b59e', lineHeight: '1.5' }}>
+        <p className="text-xs mb-3 line-clamp-2" style={{ color: 'rgb(var(--fg-secondary))', lineHeight: '1.5' }}>
           {campaign.description}
         </p>
       )}
@@ -160,7 +160,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             <span className="text-lg font-light tabular-nums tracking-tight" style={{ color: overBudget ? '#f87171' : '#fff' }}>
               {formatCurrency(spent)}
             </span>
-            <span className="text-[11px] tabular-nums" style={{ color: '#6b5c52' }}>/ {formatCurrency(budget)}</span>
+            <span className="text-[11px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>/ {formatCurrency(budget)}</span>
           </div>
           <span className="text-[10px] uppercase tracking-wider font-semibold tabular-nums"
             style={{ color: overBudget ? '#f87171' : pct > 80 ? '#fb923c' : '#34d399' }}>
@@ -181,17 +181,17 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
         </div>
 
         {!overBudget && budget > 0 && (
-          <p className="text-[10px] mt-1 tabular-nums" style={{ color: '#6b5c52' }}>{formatCurrency(remaining)} remaining</p>
+          <p className="text-[10px] mt-1 tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>{formatCurrency(remaining)} remaining</p>
         )}
         {overBudget && (
-          <p className="text-[10px] mt-1 tabular-nums" style={{ color: '#f87171' }}>Over budget by {formatCurrency(spent - budget)}</p>
+          <p className="text-[10px] mt-1 tabular-nums" style={{ color: 'rgb(var(--neg))' }}>Over budget by {formatCurrency(spent - budget)}</p>
         )}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap mb-3 text-[10px]">
         {(campaign.start_date || campaign.end_date) && (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded"
-            style={{ background: 'rgba(255,255,255,0.02)', color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.04)' }}>
+            style={{ background: 'rgba(255,255,255,0.02)', color: 'rgb(var(--fg-muted))', border: '1px solid rgba(255,255,255,0.04)' }}>
             <ClockIcon size={10} />
             {formatDate(campaign.start_date)} → {formatDate(campaign.end_date)}
           </span>
@@ -204,24 +204,24 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
         )}
         {metadataKeys > 0 && (
           <span className="px-2 py-0.5 rounded font-medium"
-            style={{ background: 'rgba(212,168,83,0.06)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.22)' }}>
+            style={{ background: 'rgba(212,168,83,0.06)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.22)' }}>
             {metadataKeys} custom field{metadataKeys > 1 ? 's' : ''}
           </span>
         )}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px]" style={{ color: '#4a3f39' }}>
+        <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
           {campaign.creator && <>by @{campaign.creator.username} · </>}
           {formatDate(campaign.created_at)}
         </p>
         <div className="flex items-center gap-1">
           <button onClick={() => onEdit(campaign)} title="Edit" className="p-1.5 rounded-md transition-colors"
-            style={{ color: '#d4a853', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+            style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
             <EditIcon size={11} />
           </button>
           <button onClick={() => onDelete(campaign)} title="Delete" className="p-1.5 rounded-md transition-colors"
-            style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
+            style={{ color: 'rgb(var(--neg))', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
             <TrashIcon size={11} />
           </button>
         </div>
@@ -364,7 +364,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6b5c52' }} />
+          <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgb(var(--fg-muted))' }} />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search campaign name or description…"
             className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none" style={fieldStyle(!!search)} />
@@ -393,7 +393,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
         {hasFilters && (
           <button onClick={() => { setSearch(''); setStatusFilter(''); setPlatformFilter(''); }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
-            style={{ color: '#f87171', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}>
+            style={{ color: 'rgb(var(--neg))', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}>
             <CloseIcon size={11} />
             Clear all
           </button>
@@ -402,7 +402,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="inline-flex items-center gap-2 text-xs" style={{ color: '#6b5c52' }}>
+          <div className="inline-flex items-center gap-2 text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
             <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }} />
             Loading…
           </div>
@@ -420,12 +420,12 @@ export const MarketingTab = ({ onRefreshStats }) => {
             <p className="text-sm font-semibold text-text-primary mb-1">
               {hasFilters ? 'No campaigns match these filters' : 'No campaigns yet'}
             </p>
-            <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>
+            <p className="text-[11.5px] mb-4" style={{ color: 'rgb(var(--fg-muted))' }}>
               {hasFilters ? 'Try adjusting the filters or search.' : 'Start tracking your first marketing campaign.'}
             </p>
             <button onClick={hasFilters ? () => { setSearch(''); setStatusFilter(''); setPlatformFilter(''); } : handleCreate}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(212,168,83,0.10)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.28)' }}>
+              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.28)' }}>
               {hasFilters ? 'Reset filters' : <><PlusIcon size={11} /> Create first campaign</>}
             </button>
           </div>

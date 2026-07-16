@@ -180,7 +180,7 @@ const UserMenu = () => {
       {/* ── Dropdown Panel ── */}
       {isOpen && (
         <div className={`absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden z-50 shadow-2xl shadow-black/60 ${isClosing ? 'user-menu-exit' : 'user-menu-enter'}`}
-          style={{ background: '#0d0a10', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'rgb(var(--surface-secondary))', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 

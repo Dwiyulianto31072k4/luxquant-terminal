@@ -332,17 +332,17 @@ const fmtPrice = (v) => {
 };
 const ST_META = {
   open: { label: "OPEN", color: "#60a5fa", desc: "Live — no target hit yet" },
-  tp1: { label: "TP1 HIT", color: "#34d399", desc: "First target reached" },
-  tp2: { label: "TP2 HIT", color: "#34d399", desc: "Second target reached" },
-  tp3: { label: "TP3 HIT", color: "#2dd4a0", desc: "Third target reached" },
-  closed_win: { label: "TP4 / WIN", color: "#d4a853", desc: "Final target — closed in profit" },
-  closed_loss: { label: "STOPPED OUT", color: "#f87171", desc: "Hit stop loss" },
+  tp1: { label: "TP1 HIT", color: "rgb(var(--pos))", desc: "First target reached" },
+  tp2: { label: "TP2 HIT", color: "rgb(var(--pos))", desc: "Second target reached" },
+  tp3: { label: "TP3 HIT", color: "rgb(var(--pos))", desc: "Third target reached" },
+  closed_win: { label: "TP4 / WIN", color: "rgb(var(--accent))", desc: "Final target — closed in profit" },
+  closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg))", desc: "Hit stop loss" },
 };
 
 // ── Signal detail modal — opens when any point/row/tile is clicked ──
 function SignalDetailModal({ d, onClose, onFull }) {
   if (!d) return null;
-  const st = ST_META[d.status] || { label: (d.status || "—").toUpperCase(), color: "#9ca3af", desc: "" };
+  const st = ST_META[d.status] || { label: (d.status || "—").toUpperCase(), color: "rgb(var(--fg-secondary))", desc: "" };
   const sign = (v) => (v == null ? "text-text-primary/90" : v >= 0 ? "text-positive" : "text-negative");
   const Stat = ({ label, val, tone }) => (
     <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-3 py-2.5">
@@ -726,7 +726,7 @@ function Matrix({ model, onPick }) {
                 return (
                   <td key={k} className="p-0 text-center">
                     <div onClick={() => onPick(d)} className="m-1 h-9 rounded-md flex items-center justify-center font-mono text-[12px] font-bold cursor-pointer hover:outline hover:outline-1 hover:outline-white transition-transform hover:-translate-y-0.5"
-                      style={missing ? { background: "#211d19", color: "#6b6259" } : { background: colorByMetric(d, k, model), color: "#0a0506" }}>
+                      style={missing ? { background: "rgb(var(--surface-hover))", color: "#6b6259" } : { background: colorByMetric(d, k, model), color: "rgb(var(--surface))" }}>
                       {txt}
                     </div>
                   </td>

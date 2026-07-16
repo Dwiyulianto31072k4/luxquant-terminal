@@ -86,7 +86,7 @@ const AccessGuard = () => (
         </div>
       </div>
       <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Staff Only</h2>
-      <p className="text-xs" style={{ color: '#6b5c52' }}>
+      <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
         This page is restricted to admin, co-admin, and founder roles.
       </p>
     </div>
@@ -104,7 +104,7 @@ const ViewOnlyBanner = () => (
     <ShieldIcon size={14} style={{ color: '#60a5fa', marginTop: 2, flexShrink: 0 }} />
     <div>
       <p className="text-[12px] font-semibold text-text-primary/90">View-only access</p>
-      <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
+      <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
         As co-admin / founder you can browse users and stats, but grant, revoke, ban, send, and role changes are disabled.
       </p>
     </div>
@@ -156,7 +156,7 @@ const PageHeader = ({ stats, onCleanup }) => (
         <UsersIcon size={24} style={{ color: palette.gold[300] }} />
         User Management
       </h1>
-      <p className="text-xs mt-1.5" style={{ color: '#6b5c52' }}>
+      <p className="text-xs mt-1.5" style={{ color: 'rgb(var(--fg-muted))' }}>
         Manage members, subscriptions, contact enrichment, and outreach.
       </p>
     </div>

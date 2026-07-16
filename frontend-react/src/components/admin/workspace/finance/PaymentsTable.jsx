@@ -56,7 +56,7 @@ const ManualBadge = ({ dense = false }) => (
     }`}
     style={{
       background: 'rgba(212,168,83,0.10)',
-      color: '#d4a853',
+      color: 'rgb(var(--accent))',
       border: '1px solid rgba(212,168,83,0.28)',
     }}
     title="Manually recorded by admin"
@@ -67,7 +67,7 @@ const ManualBadge = ({ dense = false }) => (
 );
 
 const METHOD_BADGE = {
-  binance_uid:   { label: 'Binance UID', color: '#F0B90B' },
+  binance_uid:   { label: 'Binance UID', color: 'rgb(var(--warn))' },
   bank_transfer: { label: 'Bank',        color: '#60a5fa' },
   other:         { label: 'Other',       color: '#a78bfa' },
 };
@@ -92,10 +92,10 @@ const MethodBadge = ({ method, dense = false }) => {
 /* ── Icon button ──────────────────────────────────────────────────── */
 
 const TONE = {
-  success: { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.22)' },
-  danger:  { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.22)' },
-  gold:    { color: '#d4a853', bg: 'rgba(212,168,83,0.08)',  border: 'rgba(212,168,83,0.22)' },
-  muted:   { color: '#8a7a6e', bg: 'transparent',            border: 'transparent' },
+  success: { color: 'rgb(var(--pos))', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.22)' },
+  danger:  { color: 'rgb(var(--neg))', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.22)' },
+  gold:    { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.08)',  border: 'rgba(212,168,83,0.22)' },
+  muted:   { color: 'rgb(var(--fg-muted))', bg: 'transparent',            border: 'transparent' },
 };
 
 const IconButton = ({ Icon, tone = 'gold', title, onClick, size = 'sm' }) => {
@@ -153,7 +153,7 @@ const StatusPill = ({ status, isStale, ageHours, dense = false }) => {
 const TxHashCell = ({ hash, onCopy, dense = false }) => {
   if (!hash) {
     return (
-      <span className="text-[11px]" style={{ color: '#4a3f39' }}>—</span>
+      <span className="text-[11px]" style={{ color: 'rgb(var(--fg-muted))' }}>—</span>
     );
   }
   return (
@@ -269,7 +269,7 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
           <p className="text-[12px] font-semibold text-text-primary truncate">
             @{payment.user?.username || 'unknown'}
           </p>
-          <p className="text-[10px] truncate" style={{ color: '#6b5c52' }}>
+          <p className="text-[10px] truncate" style={{ color: 'rgb(var(--fg-muted))' }}>
             ID #{payment.user_id}
           </p>
         </div>
@@ -316,12 +316,12 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
           <>
             <p
               className="text-[11px] truncate font-medium"
-              style={{ color: '#d4a853' }}
+              style={{ color: 'rgb(var(--accent))' }}
               title={formatDateTime(payment.verified_at)}
             >
               {formatRelative(payment.verified_at)}
             </p>
-            <p className="text-[9.5px] truncate" style={{ color: '#6b5c52' }}>
+            <p className="text-[9.5px] truncate" style={{ color: 'rgb(var(--fg-muted))' }}>
               {formatDateTime(payment.verified_at)}
             </p>
             {(() => {
@@ -332,7 +332,7 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
               return Math.abs(diffDays) >= 1 ? (
                 <p
                   className="text-[9px] truncate"
-                  style={{ color: '#4a3f39' }}
+                  style={{ color: 'rgb(var(--fg-muted))' }}
                   title={`Recorded: ${formatDateTime(payment.created_at)}`}
                 >
                   ↳ recorded {diffDays > 0 ? `+${diffDays}d` : `${diffDays}d`}
@@ -342,10 +342,10 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
           </>
         ) : (
           <>
-            <p className="text-[11px] truncate" style={{ color: '#c9b59e' }}>
+            <p className="text-[11px] truncate" style={{ color: 'rgb(var(--fg-secondary))' }}>
               {formatRelative(payment.created_at)}
             </p>
-            <p className="text-[9.5px] truncate" style={{ color: '#4a3f39' }}>
+            <p className="text-[9.5px] truncate" style={{ color: 'rgb(var(--fg-muted))' }}>
               {formatDateTime(payment.created_at)}
             </p>
           </>
@@ -396,11 +396,11 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
           <p className="text-[13px] font-semibold text-text-primary truncate">
             @{payment.user?.username || 'unknown'}
           </p>
-          <p className="text-[10px]" style={{ color: '#6b5c52' }}>
+          <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
             {payment.plan?.name || `Plan #${payment.plan_id}`}
           </p>
         </div>
-        <ChevronRightIcon size={14} style={{ color: '#6b5c52' }} />
+        <ChevronRightIcon size={14} style={{ color: 'rgb(var(--fg-muted))' }} />
       </div>
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -427,7 +427,7 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
 
       <div
         className="flex items-center justify-between gap-2 pt-2 text-[10.5px] flex-wrap"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: '#6b5c52' }}
+        style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}
       >
         <span
           style={{ color: payment.verified_at ? '#d4a853' : '#6b5c52' }}

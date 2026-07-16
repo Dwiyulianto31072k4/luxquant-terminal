@@ -27,8 +27,8 @@ import { GoldButton } from '../autotrade/AutoTradeUI';
 const CHANNEL_LABELS = {
   telegram: { Icon: TelegramIcon, label: 'Telegram', color: '#229ED9' },
   discord:  { Icon: DiscordIcon,  label: 'Discord',  color: '#5865F2' },
-  email:    { Icon: EmailIcon,    label: 'Email',    color: '#fbbf24' },
-  generic:  { Icon: CopyIcon,     label: 'Copy Only', color: '#6b5c52' },
+  email:    { Icon: EmailIcon,    label: 'Email',    color: 'rgb(var(--warn))' },
+  generic:  { Icon: CopyIcon,     label: 'Copy Only', color: 'rgb(var(--fg-muted))' },
 };
 
 export const QuickSendPopover = ({
@@ -143,7 +143,7 @@ export const QuickSendPopover = ({
         inline
           ? {}
           : {
-              background: '#12090d',
+              background: 'rgb(var(--surface-secondary))',
               border: '1px solid rgba(212,168,83,0.25)',
               boxShadow:
                 '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08)',
@@ -170,7 +170,7 @@ export const QuickSendPopover = ({
             <h3 className="text-sm font-bold text-text-primary tracking-tight">
               Quick Send
             </h3>
-            <p className="text-[10px]" style={{ color: '#6b5c52' }}>
+            <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
               To: @{user.username}
             </p>
           </div>
@@ -178,7 +178,7 @@ export const QuickSendPopover = ({
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center hover:scale-105 transition-all shrink-0"
             style={{
-              color: '#d4a853',
+              color: 'rgb(var(--accent))',
               background: 'rgba(212,168,83,0.08)',
               border: '1px solid rgba(212,168,83,0.22)',
             }}
@@ -223,7 +223,7 @@ export const QuickSendPopover = ({
                   </p>
                   <p
                     className="text-[10px] truncate"
-                    style={{ color: '#6b5c52' }}
+                    style={{ color: 'rgb(var(--fg-muted))' }}
                   >
                     {t.description}
                   </p>
@@ -256,7 +256,7 @@ export const QuickSendPopover = ({
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
             />
-            <p className="text-[10px] mt-1" style={{ color: '#6b5c52' }}>
+            <p className="text-[10px] mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>
               Placeholders:{' '}
               {
                 '{username} {plan_name} {expires_at} {expires_in_days} {last_login} {first_login} {referrer_username}'
@@ -270,7 +270,7 @@ export const QuickSendPopover = ({
           <div className="flex items-center justify-center py-6">
             <div
               className="inline-flex items-center gap-2 text-xs"
-              style={{ color: '#6b5c52' }}
+              style={{ color: 'rgb(var(--fg-muted))' }}
             >
               <div
                 className="w-3 h-3 border-2 rounded-full animate-spin"
@@ -314,7 +314,7 @@ export const QuickSendPopover = ({
                     className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded ml-1 shrink-0"
                     style={{
                       background: 'rgba(248,113,113,0.12)',
-                      color: '#f87171',
+                      color: 'rgb(var(--neg))',
                       border: '1px solid rgba(248,113,113,0.25)',
                     }}
                   >
@@ -358,10 +358,10 @@ export const QuickSendPopover = ({
             <div className="px-3 py-2.5 max-h-64 overflow-y-auto">
               <pre
                 className="text-xs whitespace-pre-wrap font-sans"
-                style={{ color: '#c9b59e', lineHeight: '1.5' }}
+                style={{ color: 'rgb(var(--fg-secondary))', lineHeight: '1.5' }}
               >
                 {rendered.body || (
-                  <span style={{ color: '#4a3f39' }}>
+                  <span style={{ color: 'rgb(var(--fg-muted))' }}>
                     (empty — type your message above)
                   </span>
                 )}

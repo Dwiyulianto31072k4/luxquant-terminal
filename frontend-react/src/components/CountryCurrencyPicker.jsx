@@ -109,7 +109,7 @@ export default function CountryCurrencyPicker({
               <Combobox.Options
                 className="absolute z-[10000] mt-2 max-h-72 w-full overflow-auto rounded-xl py-1.5 text-sm shadow-2xl focus:outline-none"
                 style={{
-                  background: '#12090d',
+                  background: 'rgb(var(--surface-secondary))',
                   border: '1px solid rgba(212,168,83,0.25)',
                   boxShadow: '0 25px 50px rgba(0,0,0,0.6), 0 0 30px rgba(212,168,83,0.05)',
                 }}
@@ -219,7 +219,7 @@ export default function CountryCurrencyPicker({
               <Combobox.Options
                 className="absolute z-[10000] mt-2 max-h-72 w-full overflow-auto rounded-xl py-1.5 text-sm shadow-2xl focus:outline-none"
                 style={{
-                  background: '#12090d',
+                  background: 'rgb(var(--surface-secondary))',
                   border: '1px solid rgba(212,168,83,0.25)',
                   boxShadow: '0 25px 50px rgba(0,0,0,0.6), 0 0 30px rgba(212,168,83,0.05)',
                 }}

@@ -36,10 +36,10 @@ const UserPicker = ({ selectedUser, onChange }) => {
           <UserIcon size={12} style={{ color: '#60a5fa' }} />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-text-primary">@{selectedUser.username}</p>
-            <p className="truncate font-mono text-[10px]" style={{ color: '#6b5c52' }}>#{selectedUser.id}</p>
+            <p className="truncate font-mono text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>#{selectedUser.id}</p>
           </div>
         </div>
-        <button type="button" onClick={() => { onChange(null); setSearch(''); }} className="rounded p-1.5 transition-colors" style={{ color: '#8a7a6e', background: 'rgba(255,255,255,0.04)' }}>
+        <button type="button" onClick={() => { onChange(null); setSearch(''); }} className="rounded p-1.5 transition-colors" style={{ color: 'rgb(var(--fg-muted))', background: 'rgba(255,255,255,0.04)' }}>
           <CloseIcon size={11} />
         </button>
       </div>
@@ -48,25 +48,25 @@ const UserPicker = ({ selectedUser, onChange }) => {
 
   return (
     <div className="relative">
-      <SearchIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b5c52' }} />
+      <SearchIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgb(var(--fg-muted))' }} />
       <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} onFocus={() => setShowResults(true)} placeholder="Search user (min 2 chars)…"
         className="w-full rounded-lg py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
       {showResults && results.length > 0 && (
-        <div className="absolute left-0 right-0 z-10 mt-1 max-h-60 overflow-y-auto rounded-lg shadow-2xl" style={{ background: '#12090d', border: '1px solid rgba(212,168,83,0.22)' }}>
+        <div className="absolute left-0 right-0 z-10 mt-1 max-h-60 overflow-y-auto rounded-lg shadow-2xl" style={{ background: 'rgb(var(--surface-secondary))', border: '1px solid rgba(212,168,83,0.22)' }}>
           {results.map((u, i) => (
             <button key={u.id} type="button" onClick={() => { onChange(u); setSearch(''); setShowResults(false); }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-white/5" style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}>{u.username?.charAt(0).toUpperCase()}</span>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: 'rgba(212,168,83,0.15)', color: 'rgb(var(--accent))' }}>{u.username?.charAt(0).toUpperCase()}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-text-primary">@{u.username}</p>
-                <p className="truncate font-mono text-[10px]" style={{ color: '#6b5c52' }}>{u.email}</p>
+                <p className="truncate font-mono text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{u.email}</p>
               </div>
               <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wider" style={{ background: u.role === 'subscriber' ? 'rgba(52,211,153,0.12)' : 'rgba(107,92,82,0.12)', color: u.role === 'subscriber' ? '#34d399' : '#8a7a6e' }}>{u.role}</span>
             </button>
           ))}
         </div>
       )}
-      {searching && <p className="mt-1 text-[10px]" style={{ color: '#6b5c52' }}>Searching…</p>}
+      {searching && <p className="mt-1 text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>Searching…</p>}
     </div>
   );
 };
@@ -74,8 +74,8 @@ const UserPicker = ({ selectedUser, onChange }) => {
 const Field = ({ label, hint, required, children }) => (
   <div>
     <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
-      {label}{required && <span style={{ color: '#f87171' }}> *</span>}
-      {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: '#4a3f39' }}>{hint}</span>}
+      {label}{required && <span style={{ color: 'rgb(var(--neg))' }}> *</span>}
+      {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</span>}
     </label>
     {children}
   </div>
@@ -86,7 +86,7 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
   return (
     <button type="button" onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-all"
-      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : '#8a7a6e', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
+      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
       {Icon && <Icon size={12} />}
       {label}
     </button>
@@ -96,16 +96,16 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 const CATEGORIES = [
   { value: 'renewal', label: 'Renewal', Icon: RenewalIcon, color: '#60a5fa' },
   { value: 'winback', label: 'Win-back', Icon: RenewalIcon, color: '#a78bfa' },
-  { value: 'payment', label: 'Payment', Icon: PaymentCardIcon, color: '#34d399' },
-  { value: 'support', label: 'Support', Icon: SupportIcon, color: '#fbbf24' },
-  { value: 'general', label: 'General', Icon: NoteIcon, color: '#8a7a6e' },
+  { value: 'payment', label: 'Payment', Icon: PaymentCardIcon, color: 'rgb(var(--pos))' },
+  { value: 'support', label: 'Support', Icon: SupportIcon, color: 'rgb(var(--warn))' },
+  { value: 'general', label: 'General', Icon: NoteIcon, color: 'rgb(var(--fg-muted))' },
 ];
 
 const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent', color: '#f87171' },
+  { value: 'urgent', label: 'Urgent', color: 'rgb(var(--neg))' },
   { value: 'high', label: 'High', color: '#fb923c' },
   { value: 'normal', label: 'Normal', color: '#60a5fa' },
-  { value: 'low', label: 'Low', color: '#8a7a6e' },
+  { value: 'low', label: 'Low', color: 'rgb(var(--fg-muted))' },
 ];
 
 const toDateTimeLocal = (isoStr) => {
@@ -217,17 +217,17 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         </Field>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
+          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: 'rgb(var(--neg))', border: '1px solid rgba(248,113,113,0.25)' }}>
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />{error}
           </div>
         )}
 
         {isEdit && editingItem && (
-          <div className="rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: '#6b5c52' }}>
+          <div className="rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}>
             <p>Created {new Date(editingItem.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {editingItem.creator && <> by @{editingItem.creator.username}</>}</p>
             {editingItem.completer && (
-              <p style={{ color: '#34d399' }}>Completed by @{editingItem.completer.username} on {new Date(editingItem.completed_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+              <p style={{ color: 'rgb(var(--pos))' }}>Completed by @{editingItem.completer.username} on {new Date(editingItem.completed_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
             )}
           </div>
         )}

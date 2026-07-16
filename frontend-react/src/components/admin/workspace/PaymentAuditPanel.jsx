@@ -185,7 +185,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
         id={id}
         className="rounded-xl px-4 py-2.5 mb-1 flex items-center gap-2"
         style={{
-          background: '#0a0805',
+          background: 'rgb(var(--surface-raised))',
           border: `1px solid ${tint(palette.green[400], 0.2)}`,
         }}
       >
@@ -203,7 +203,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
         id={id}
         className="rounded-xl px-4 py-3 mb-1 flex items-center gap-2"
         style={{
-          background: '#0a0805',
+          background: 'rgb(var(--surface-raised))',
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
@@ -225,7 +225,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
       id={id}
       className="rounded-xl mb-1 overflow-hidden scroll-mt-4"
       style={{
-        background: '#0a0805',
+        background: 'rgb(var(--surface-raised))',
         border: `1px solid ${tint(accent, 0.35)}`,
       }}
     >
@@ -304,7 +304,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                     onChange={(e) => setBulkAdmin(e.target.value)}
                     className="text-[11px] rounded-md px-2 py-1.5 outline-none"
                     style={{
-                      background: '#12090d',
+                      background: 'rgb(var(--surface-secondary))',
                       border: `1px solid ${tint(palette.warm[100], 0.14)}`,
                       color: palette.warm[100],
                     }}
@@ -322,7 +322,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                     onChange={(e) => setBulkStatus(e.target.value)}
                     className="text-[11px] rounded-md px-2 py-1.5 outline-none"
                     style={{
-                      background: '#12090d',
+                      background: 'rgb(var(--surface-secondary))',
                       border: `1px solid ${tint(palette.warm[100], 0.14)}`,
                       color: palette.warm[100],
                     }}
@@ -441,7 +441,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                       }
                       className="text-[11px] rounded-md px-2 py-1.5 outline-none w-full md:w-auto"
                       style={{
-                        background: '#12090d',
+                        background: 'rgb(var(--surface-secondary))',
                         border: `1px solid ${tint(palette.warm[100], 0.14)}`,
                         color: palette.warm[100],
                       }}
@@ -459,13 +459,13 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                       onChange={(e) => save(u.user_id, { status: e.target.value })}
                       className="text-[11px] rounded-md px-2 py-1.5 outline-none w-full md:w-auto"
                       style={{
-                        background: '#12090d',
+                        background: 'rgb(var(--surface-secondary))',
                         border: `1px solid ${tint(st.color, 0.3)}`,
                         color: st.color,
                       }}
                     >
                       {Object.entries(STATUS).map(([k, v]) => (
-                        <option key={k} value={k} style={{ color: '#fff', background: '#12090d' }}>
+                        <option key={k} value={k} style={{ color: 'rgb(var(--fg))', background: 'rgb(var(--surface-secondary))' }}>
                           {v.label}
                         </option>
                       ))}
@@ -483,7 +483,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                         placeholder="note (tx / metode / catatan)"
                         className="text-[11px] rounded-md px-2 py-1.5 outline-none flex-1 w-full"
                         style={{
-                          background: '#12090d',
+                          background: 'rgb(var(--surface-secondary))',
                           border: `1px solid ${tint(palette.warm[100], 0.12)}`,
                           color: palette.warm[100],
                         }}

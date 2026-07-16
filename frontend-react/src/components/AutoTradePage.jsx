@@ -150,13 +150,13 @@ function MobileSectionPicker({ tabs, value, onChange }) {
                 className={`flex w-full items-center gap-2.5 px-4 py-3 text-left font-mono text-[12px] uppercase tracking-[0.15em] transition-colors ${
                   on ? "" : "text-text-muted active:bg-white/[0.04]"
                 }`}
-                style={on ? { background: "rgba(212,168,83,0.10)", color: "#ecd6a3" } : undefined}
+                style={on ? { background: "rgba(212,168,83,0.10)", color: "rgb(var(--accent-light))" } : undefined}
               >
                 <span
                   className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                   style={
                     on
-                      ? { background: "#d4a853", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }
+                      ? { background: "rgb(var(--accent))", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }
                       : { background: "rgba(255,255,255,0.15)" }
                   }
                 />
@@ -197,14 +197,14 @@ function SideNav({ tabs, value, onChange }) {
             {on ? (
               <span
                 className="absolute -left-[9px] top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full"
-                style={{ background: "#d4a853", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
+                style={{ background: "rgb(var(--accent))", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
               />
             ) : null}
             <span
               className={`font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
                 on ? "" : "text-text-muted group-hover:text-text-primary"
               }`}
-              style={on ? { color: "#ecd6a3" } : undefined}
+              style={on ? { color: "rgb(var(--accent-light))" } : undefined}
             >
               {item.label}
             </span>

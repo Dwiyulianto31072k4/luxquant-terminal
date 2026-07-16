@@ -11,8 +11,8 @@ import { GoldButton, GhostButton } from '../../autotrade/AutoTradeUI';
 const Field = ({ label, hint, required, children }) => (
   <div>
     <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
-      {label}{required && <span style={{ color: '#f87171' }}> *</span>}
-      {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: '#4a3f39' }}>{hint}</span>}
+      {label}{required && <span style={{ color: 'rgb(var(--neg))' }}> *</span>}
+      {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</span>}
     </label>
     {children}
   </div>
@@ -23,7 +23,7 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
   return (
     <button type="button" onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-all"
-      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : '#8a7a6e', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
+      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
       {Icon && <Icon size={12} />}
       {label}
     </button>
@@ -32,25 +32,25 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 
 const CATEGORIES = [
   { value: 'product', label: 'Product', Icon: GearIcon, color: '#60a5fa' },
-  { value: 'marketing', label: 'Marketing', Icon: MegaphoneIcon, color: '#d4a853' },
-  { value: 'ops', label: 'Ops', Icon: WrenchIcon, color: '#34d399' },
-  { value: 'bug', label: 'Bug', Icon: BugIcon, color: '#f87171' },
-  { value: 'idea', label: 'Idea', Icon: BulbIcon, color: '#fbbf24' },
-  { value: 'other', label: 'Other', Icon: PinIcon, color: '#8a7a6e' },
+  { value: 'marketing', label: 'Marketing', Icon: MegaphoneIcon, color: 'rgb(var(--accent))' },
+  { value: 'ops', label: 'Ops', Icon: WrenchIcon, color: 'rgb(var(--pos))' },
+  { value: 'bug', label: 'Bug', Icon: BugIcon, color: 'rgb(var(--neg))' },
+  { value: 'idea', label: 'Idea', Icon: BulbIcon, color: 'rgb(var(--warn))' },
+  { value: 'other', label: 'Other', Icon: PinIcon, color: 'rgb(var(--fg-muted))' },
 ];
 
 const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent', color: '#f87171' },
+  { value: 'urgent', label: 'Urgent', color: 'rgb(var(--neg))' },
   { value: 'high', label: 'High', color: '#fb923c' },
   { value: 'normal', label: 'Normal', color: '#60a5fa' },
-  { value: 'low', label: 'Low', color: '#8a7a6e' },
+  { value: 'low', label: 'Low', color: 'rgb(var(--fg-muted))' },
 ];
 
 const STATUSES = [
-  { value: 'backlog', label: 'Backlog', color: '#8a7a6e' },
+  { value: 'backlog', label: 'Backlog', color: 'rgb(var(--fg-muted))' },
   { value: 'in_progress', label: 'In Progress', color: '#60a5fa' },
-  { value: 'done', label: 'Done', color: '#34d399' },
-  { value: 'cancelled', label: 'Cancelled', color: '#6b5c52' },
+  { value: 'done', label: 'Done', color: 'rgb(var(--pos))' },
+  { value: 'cancelled', label: 'Cancelled', color: 'rgb(var(--fg-muted))' },
 ];
 
 const TagsInput = ({ tags, onChange }) => {
@@ -68,9 +68,9 @@ const TagsInput = ({ tags, onChange }) => {
   return (
     <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg p-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
       {tags.map((t) => (
-        <span key={t} className="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px]" style={{ background: 'rgba(212,168,83,0.08)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.22)' }}>
+        <span key={t} className="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px]" style={{ background: 'rgba(212,168,83,0.08)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.22)' }}>
           #{t}
-          <button type="button" onClick={() => removeTag(t)} className="hover:text-red-400" style={{ color: '#8a7a6e' }}><CloseIcon size={9} /></button>
+          <button type="button" onClick={() => removeTag(t)} className="hover:text-red-400" style={{ color: 'rgb(var(--fg-muted))' }}><CloseIcon size={9} /></button>
         </span>
       ))}
       <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} onBlur={() => addTag(input)}
@@ -187,17 +187,17 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
         </Field>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
+          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: 'rgb(var(--neg))', border: '1px solid rgba(248,113,113,0.25)' }}>
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />{error}
           </div>
         )}
 
         {isEdit && editingItem && (
-          <div className="space-y-0.5 rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: '#6b5c52' }}>
+          <div className="space-y-0.5 rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}>
             <p>Created {new Date(editingItem.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {editingItem.creator && <> by @{editingItem.creator.username}</>}</p>
             {editingItem.completer && (
-              <p style={{ color: '#34d399' }}>Completed by @{editingItem.completer.username} on {new Date(editingItem.completed_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+              <p style={{ color: 'rgb(var(--pos))' }}>Completed by @{editingItem.completer.username} on {new Date(editingItem.completed_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
             )}
           </div>
         )}

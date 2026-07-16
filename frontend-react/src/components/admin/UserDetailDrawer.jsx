@@ -124,7 +124,7 @@ const Section = ({ title, Icon, action, children }) => (
   <section className="space-y-2.5">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-1.5">
-        {Icon && <Icon size={12} style={{ color: '#d4a853' }} />}
+        {Icon && <Icon size={12} style={{ color: 'rgb(var(--accent))' }} />}
         <h4
           className="text-[10px] font-bold tracking-wider uppercase"
           style={{ color: 'rgba(255,255,255,0.5)' }}
@@ -175,7 +175,7 @@ const EmptyState = ({ Icon, title, hint, accent = '#4a3f39' }) => (
     </div>
     <p className="text-sm font-semibold text-text-primary mb-1">{title}</p>
     {hint && (
-      <p className="text-[11.5px]" style={{ color: '#6b5c52' }}>
+      <p className="text-[11.5px]" style={{ color: 'rgb(var(--fg-muted))' }}>
         {hint}
       </p>
     )}
@@ -194,7 +194,7 @@ const UserHero = ({ user }) => (
         background: user.avatar_url
           ? 'transparent'
           : 'rgba(212,168,83,0.12)',
-        color: '#d4a853',
+        color: 'rgb(var(--accent))',
         border: '1px solid rgba(212,168,83,0.22)',
       }}
     >
@@ -218,7 +218,7 @@ const UserHero = ({ user }) => (
       </div>
       <p
         className="text-[11px] font-mono truncate"
-        style={{ color: '#8a7a6e' }}
+        style={{ color: 'rgb(var(--fg-muted))' }}
       >
         {user.email}
       </p>
@@ -265,7 +265,7 @@ const UserHero = ({ user }) => (
           className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
           style={{
             background: 'rgba(255,255,255,0.04)',
-            color: '#8a7a6e',
+            color: 'rgb(var(--fg-muted))',
             border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
@@ -276,7 +276,7 @@ const UserHero = ({ user }) => (
             className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{
               background: 'rgba(248,113,113,0.12)',
-              color: '#f87171',
+              color: 'rgb(var(--neg))',
               border: '1px solid rgba(248,113,113,0.3)',
             }}
           >
@@ -288,7 +288,7 @@ const UserHero = ({ user }) => (
             className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{
               background: 'rgba(212,168,83,0.1)',
-              color: '#d4a853',
+              color: 'rgb(var(--accent))',
               border: '1px solid rgba(212,168,83,0.22)',
             }}
           >
@@ -362,7 +362,7 @@ const ActivityPulse = ({ userId }) => {
           <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.35)' }}>
             Last 30 days
           </span>
-          <span className="text-[9px]" style={{ color: '#4a3f39' }}>
+          <span className="text-[9px]" style={{ color: 'rgb(var(--fg-muted))' }}>
             {data.events_30d ?? 0} actions
           </span>
         </div>
@@ -426,7 +426,7 @@ const computeVipDiagnosis = (user) => {
   // healthy
   if (active && hasTg && inGroup) {
     return {
-      tone: 'ok', color: '#34d399', icon: 'check',
+      tone: 'ok', color: 'rgb(var(--pos))', icon: 'check',
       title: 'Healthy — active access & inside the VIP group',
       detail: 'No action needed.',
       action: null,
@@ -436,7 +436,7 @@ const computeVipDiagnosis = (user) => {
   // active + linked + outside -> invite
   if (active && hasTg && !inGroup) {
     return {
-      tone: 'warn', color: '#d4a853', icon: 'alert',
+      tone: 'warn', color: 'rgb(var(--accent))', icon: 'alert',
       title: 'Paid & Telegram linked, but outside the group',
       detail: 'Telegram is linked and access is active, but they haven\'t joined (or have left) the VIP group. Generate an invite link to re-invite them.',
       action: 'invite',
@@ -456,7 +456,7 @@ const computeVipDiagnosis = (user) => {
   // expired + in grace + inside
   if (!active && inGroup && inGrace) {
     return {
-      tone: 'warn', color: '#fbbf24', icon: 'alert',
+      tone: 'warn', color: 'rgb(var(--warn))', icon: 'alert',
       title: 'Expired — in grace period',
       detail: `Subscription has lapsed but is still within the grace period. They'll be auto-kicked when grace ends (${formatDate(user.telegram_grace_until)}).`,
       action: null,
@@ -466,7 +466,7 @@ const computeVipDiagnosis = (user) => {
   // expired + inside + no grace -> anomaly (should be kicked)
   if (!active && inGroup && !inGrace) {
     return {
-      tone: 'danger', color: '#f87171', icon: 'alert',
+      tone: 'danger', color: 'rgb(var(--neg))', icon: 'alert',
       title: 'Expired but still inside the group',
       detail: 'Subscription has ended and grace has passed, yet the user is still in the VIP group. The worker should have kicked them — check subscription_worker, or kick manually.',
       action: null,
@@ -475,7 +475,7 @@ const computeVipDiagnosis = (user) => {
   }
   // free / no access, outside
   return {
-    tone: 'neutral', color: '#6b5c52', icon: 'user',
+    tone: 'neutral', color: 'rgb(var(--fg-muted))', icon: 'user',
     title: 'No active access',
     detail: 'User has no active access. Being outside the VIP group is expected.',
     action: null,
@@ -567,7 +567,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleFollowup} disabled={fuBusy}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
-              style={{ background: '#34d39924', color: '#34d399', border: '1px solid #34d3994d', cursor: fuBusy ? 'wait' : 'pointer' }}>
+              style={{ background: '#34d39924', color: 'rgb(var(--pos))', border: '1px solid #34d3994d', cursor: fuBusy ? 'wait' : 'pointer' }}>
               <SendIcon size={13} /> {fuBusy ? 'Sending…' : 'Send follow-up via bot'}
             </button>
             <button onClick={handleInvite} disabled={busy}
@@ -578,7 +578,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
           </div>
         )}
         {!canWrite && d.action && (
-          <p className="text-[11px]" style={{ color: '#6b5c52' }}>
+          <p className="text-[11px]" style={{ color: 'rgb(var(--fg-muted))' }}>
             View-only — invite / follow-up actions are disabled.
           </p>
         )}
@@ -590,7 +590,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
           </button>
         )}
         {inviteLink && (
-          <div className="mt-2 p-2 rounded-md text-[11px] break-all" style={{ background: 'rgba(255,255,255,0.04)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+          <div className="mt-2 p-2 rounded-md text-[11px] break-all" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--pos))', border: '1px solid rgba(52,211,153,0.3)' }}>
             <div className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Invite link (copied · valid 1 hour)</div>
             {inviteLink}
           </div>
@@ -625,16 +625,16 @@ const AccountTimeline = ({ data }) => {
   const events = [];
 
   if (user.created_at)
-    events.push({ ts: user.created_at, icon: SparklesIcon, color: '#d4a853', label: `Account created (via ${user.auth_provider || 'unknown'})` });
+    events.push({ ts: user.created_at, icon: SparklesIcon, color: 'rgb(var(--accent))', label: `Account created (via ${user.auth_provider || 'unknown'})` });
   if (user.first_login_at)
     events.push({ ts: user.first_login_at, icon: UserIcon, color: '#5aa9e6', label: 'First login' });
 
   (payments || []).filter((p) => p.status === 'confirmed').forEach((p) => {
-    events.push({ ts: p.verified_at || p.created_at, icon: StarIcon, color: '#34d399', label: `Payment confirmed${p.plan_label ? ` · ${p.plan_label}` : ''} ($${p.final_amount || p.amount_usdt})` });
+    events.push({ ts: p.verified_at || p.created_at, icon: StarIcon, color: 'rgb(var(--pos))', label: `Payment confirmed${p.plan_label ? ` · ${p.plan_label}` : ''} ($${p.final_amount || p.amount_usdt})` });
   });
 
   if (user.subscription_granted_at)
-    events.push({ ts: user.subscription_granted_at, icon: StarIcon, color: '#fbbf24', label: `Subscription granted${user.subscription_source ? ` (${user.subscription_source})` : ''}` });
+    events.push({ ts: user.subscription_granted_at, icon: StarIcon, color: 'rgb(var(--warn))', label: `Subscription granted${user.subscription_source ? ` (${user.subscription_source})` : ''}` });
   if (user.subscription_expires_at)
     events.push({ ts: user.subscription_expires_at, icon: ClockIcon, color: new Date(user.subscription_expires_at) > new Date() ? '#34d399' : '#f87171', label: new Date(user.subscription_expires_at) > new Date() ? 'Subscription valid until' : 'Subscription expired' });
 
@@ -666,10 +666,10 @@ const _fuRgba = (hex, a) => {
   return `rgba(${r},${g},${b},${a})`;
 };
 const FU_STATUS = {
-  pending:     { color: '#fbbf24', label: 'Pending' },
+  pending:     { color: 'rgb(var(--warn))', label: 'Pending' },
   in_progress: { color: '#5aa9e6', label: 'In progress' },
-  done:        { color: '#34d399', label: 'Done' },
-  cancelled:   { color: '#6b5c52', label: 'Cancelled' },
+  done:        { color: 'rgb(var(--pos))', label: 'Done' },
+  cancelled:   { color: 'rgb(var(--fg-muted))', label: 'Cancelled' },
 };
 
 const FollowupTimeline = ({ userId }) => {
@@ -717,7 +717,7 @@ const FollowupTimeline = ({ userId }) => {
                     </span>
                     {f.priority === 'urgent' && (
                       <span className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
-                        style={{ background: _fuRgba('#f87171', 0.12), color: '#f87171' }}>
+                        style={{ background: _fuRgba('#f87171', 0.12), color: 'rgb(var(--neg))' }}>
                         Urgent
                       </span>
                     )}
@@ -753,7 +753,7 @@ const OverviewTab = ({ data, onUserUpdated, onToast, canWrite = true, canManageR
           style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.22)' }}>
           <div>
             <p className="text-[11px] font-semibold text-text-primary/90">Staff / member role</p>
-            <p className="text-[10px]" style={{ color: '#8a7a6e' }}>
+            <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
               Current: <span className="uppercase font-bold tracking-wider text-text-primary/70">{user.role}</span>
               {' · '}admin full · co_admin/founder view-only
             </p>
@@ -904,7 +904,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-amber-500/10"
               style={{
-                color: '#d4a853',
+                color: 'rgb(var(--accent))',
                 background: 'rgba(212,168,83,0.06)',
                 border: '1px solid rgba(212,168,83,0.22)',
               }}
@@ -947,7 +947,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 className="text-xs p-3 rounded-lg flex items-start gap-2"
                 style={{
                   background: 'rgba(248,113,113,0.05)',
-                  color: '#f87171',
+                  color: 'rgb(var(--neg))',
                   border: '1px solid rgba(248,113,113,0.18)',
                 }}
               >
@@ -974,7 +974,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <div>
               <label
                 className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
-                style={{ color: '#d4a853' }}
+                style={{ color: 'rgb(var(--accent))' }}
               >
                 <TelegramIcon size={11} colored />
                 Admin Telegram Note
@@ -993,14 +993,14 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               {user.telegram_username && (
                 <p
                   className="text-[10px] mt-1 flex items-center gap-1"
-                  style={{ color: '#34d399' }}
+                  style={{ color: 'rgb(var(--pos))' }}
                 >
-                  <span style={{ color: '#6b5c52' }}>Real username (from login):</span>
+                  <span style={{ color: 'rgb(var(--fg-muted))' }}>Real username (from login):</span>
                   <strong>@{user.telegram_username}</strong>
                 </p>
               )}
               {!user.telegram_username && (
-                <p className="text-[9px] mt-1" style={{ color: '#6b5c52' }}>
+                <p className="text-[9px] mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>
                   No login-linked Telegram yet — admin note used as fallback.
                 </p>
               )}
@@ -1009,7 +1009,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <div>
               <label
                 className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
-                style={{ color: '#d4a853' }}
+                style={{ color: 'rgb(var(--accent))' }}
               >
                 <DiscordIcon size={11} colored />
                 Discord Handle
@@ -1028,7 +1028,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               {user.discord_id && (
                 <p
                   className="text-[9px] mt-1"
-                  style={{ color: '#6b5c52' }}
+                  style={{ color: 'rgb(var(--fg-muted))' }}
                 >
                   OAuth ID: {user.discord_id}
                 </p>
@@ -1038,7 +1038,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <div>
               <label
                 className="block text-[10px] uppercase tracking-wider font-semibold mb-1"
-                style={{ color: '#d4a853' }}
+                style={{ color: 'rgb(var(--accent))' }}
               >
                 Admin Notes
               </label>
@@ -1060,7 +1060,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 className="text-xs px-2 py-1.5 rounded flex items-start gap-2"
                 style={{
                   background: 'rgba(248,113,113,0.1)',
-                  color: '#f87171',
+                  color: 'rgb(var(--neg))',
                   border: '1px solid rgba(248,113,113,0.3)',
                 }}
               >
@@ -1087,12 +1087,12 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
         {user.admin_enriched_at && enriched_by_user && (
           <div
             className="mt-1.5 text-[10px] flex items-center gap-1.5"
-            style={{ color: '#6b5c52' }}
+            style={{ color: 'rgb(var(--fg-muted))' }}
           >
-            <SparklesIcon size={10} style={{ color: '#d4a853' }} />
+            <SparklesIcon size={10} style={{ color: 'rgb(var(--accent))' }} />
             <span>
               Enriched by{' '}
-              <strong style={{ color: '#d4a853' }}>
+              <strong style={{ color: 'rgb(var(--accent))' }}>
                 @{enriched_by_user.username}
               </strong>{' '}
               on {formatDateTime(user.admin_enriched_at)}
@@ -1109,7 +1109,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.05)',
-              color: '#c9b59e',
+              color: 'rgb(var(--fg-secondary))',
               lineHeight: '1.5',
             }}
           >
@@ -1162,13 +1162,13 @@ const PaymentsTab = ({ data }) => {
           />
           <p
             className="text-[10px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: '#34d399' }}
+            style={{ color: 'rgb(var(--pos))' }}
           >
             Total Paid
           </p>
           <p
             className="text-xl font-light tabular-nums tracking-tight"
-            style={{ color: '#34d399' }}
+            style={{ color: 'rgb(var(--pos))' }}
           >
             ${totalConfirmed.toFixed(2)}
           </p>
@@ -1189,13 +1189,13 @@ const PaymentsTab = ({ data }) => {
           />
           <p
             className="text-[10px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: '#d4a853' }}
+            style={{ color: 'rgb(var(--accent))' }}
           >
             Records
           </p>
           <p
             className="text-xl font-light tabular-nums tracking-tight"
-            style={{ color: '#d4a853' }}
+            style={{ color: 'rgb(var(--accent))' }}
           >
             {payments.length}
           </p>
@@ -1220,13 +1220,13 @@ const PaymentsTab = ({ data }) => {
                   </p>
                   <p
                     className="text-[11px] tabular-nums"
-                    style={{ color: '#8a7a6e' }}
+                    style={{ color: 'rgb(var(--fg-muted))' }}
                   >
                     ${(p.final_amount || p.amount_usdt).toFixed(2)}
                     {p.credit_redeemed > 0 && (
                       <span
                         className="text-[10px] ml-1.5"
-                        style={{ color: '#fbbf24' }}
+                        style={{ color: 'rgb(var(--warn))' }}
                       >
                         (−${p.credit_redeemed.toFixed(2)} credit)
                       </span>
@@ -1237,7 +1237,7 @@ const PaymentsTab = ({ data }) => {
               </div>
               <div
                 className="flex items-center gap-3 text-[10px] flex-wrap"
-                style={{ color: '#6b5c52' }}
+                style={{ color: 'rgb(var(--fg-muted))' }}
               >
                 <span className="tabular-nums">
                   {formatDateTime(p.created_at)}
@@ -1297,7 +1297,7 @@ const ReferralTab = ({ data }) => {
               </p>
               <p
                 className="text-[10px] tabular-nums"
-                style={{ color: '#6b5c52' }}
+                style={{ color: 'rgb(var(--fg-muted))' }}
               >
                 Joined via: {formatDate(as_referred.created_at)}
               </p>
@@ -1337,7 +1337,7 @@ const ReferralTab = ({ data }) => {
                   </p>
                   <p
                     className="text-[10px] tabular-nums"
-                    style={{ color: '#6b5c52' }}
+                    style={{ color: 'rgb(var(--fg-muted))' }}
                   >
                     {formatDate(r.created_at)} · {r.total_payments || 0}{' '}
                     payment(s)
@@ -1347,14 +1347,14 @@ const ReferralTab = ({ data }) => {
                   {r.total_commission_earned > 0 && (
                     <p
                       className="text-xs font-bold tabular-nums"
-                      style={{ color: '#34d399' }}
+                      style={{ color: 'rgb(var(--pos))' }}
                     >
                       ${r.total_commission_earned.toFixed(2)}
                     </p>
                   )}
                   <p
                     className="text-[9px] uppercase tracking-wider"
-                    style={{ color: '#6b5c52' }}
+                    style={{ color: 'rgb(var(--fg-muted))' }}
                   >
                     {r.status}
                   </p>
@@ -1401,10 +1401,10 @@ const OutreachTab = ({ data, templates, canWrite = true }) => {
 
   return (
     <div>
-      <p className="text-[11px] mb-3" style={{ color: '#8a7a6e' }}>
+      <p className="text-[11px] mb-3" style={{ color: 'rgb(var(--fg-muted))' }}>
         Pick a template to DM{' '}
         <strong className="text-text-primary">@{user.username}</strong>. Click{' '}
-        <strong style={{ color: '#d4a853' }}>Send</strong> to copy the message
+        <strong style={{ color: 'rgb(var(--accent))' }}>Send</strong> to copy the message
         and open the channel.
       </p>
       <QuickSendPopover
@@ -1499,7 +1499,7 @@ export const UserDetailDrawer = ({
       <div
         className="w-full max-w-3xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 fade-in duration-200"
         style={{
-          background: '#0a0805',
+          background: 'rgb(var(--surface-raised))',
           border: '1px solid rgba(212,168,83,0.25)',
           boxShadow:
             '0 -20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
@@ -1513,7 +1513,7 @@ export const UserDetailDrawer = ({
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0 relative"
           style={{
-            background: '#0a0805',
+            background: 'rgb(var(--surface-raised))',
             borderBottom: '1px solid rgba(255,255,255,0.05)',
           }}
         >
@@ -1532,7 +1532,7 @@ export const UserDetailDrawer = ({
                 border: '1px solid rgba(212,168,83,0.22)',
               }}
             >
-              <UserIcon size={14} style={{ color: '#d4a853' }} />
+              <UserIcon size={14} style={{ color: 'rgb(var(--accent))' }} />
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-bold text-text-primary tracking-tight leading-tight">
@@ -1541,7 +1541,7 @@ export const UserDetailDrawer = ({
               {data?.user && (
                 <p
                   className="text-[10px] font-mono tabular-nums leading-tight"
-                  style={{ color: '#6b5c52' }}
+                  style={{ color: 'rgb(var(--fg-muted))' }}
                 >
                   @{data.user.username} · #{data.user.id}
                 </p>
@@ -1553,7 +1553,7 @@ export const UserDetailDrawer = ({
             onClick={onClose}
             className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 shrink-0"
             style={{
-              color: '#d4a853',
+              color: 'rgb(var(--accent))',
               background: 'rgba(212,168,83,0.08)',
               border: '1px solid rgba(212,168,83,0.22)',
             }}
@@ -1569,7 +1569,7 @@ export const UserDetailDrawer = ({
           <div
             className="flex shrink-0 px-2 pt-1.5 overflow-x-auto"
             style={{
-              background: '#0f070a',
+              background: 'rgb(var(--surface-secondary))',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
             }}
           >
@@ -1613,7 +1613,7 @@ export const UserDetailDrawer = ({
             <div className="flex items-center justify-center py-20">
               <div
                 className="inline-flex items-center gap-2 text-xs"
-                style={{ color: '#6b5c52' }}
+                style={{ color: 'rgb(var(--fg-muted))' }}
               >
                 <div
                   className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
@@ -1632,7 +1632,7 @@ export const UserDetailDrawer = ({
               className="rounded-lg p-3 text-xs flex items-start gap-2"
               style={{
                 background: 'rgba(248,113,113,0.08)',
-                color: '#f87171',
+                color: 'rgb(var(--neg))',
                 border: '1px solid rgba(248,113,113,0.25)',
               }}
             >

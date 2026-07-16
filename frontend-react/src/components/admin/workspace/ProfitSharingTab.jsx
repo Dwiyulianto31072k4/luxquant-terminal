@@ -18,7 +18,7 @@ const SCHEME_LABEL = { regular: 'Regular / Indonesia', canada: 'Canada (Sam)' };
 const SCHEME_COLOR = { regular: palette.blue[400], canada: palette.teal[400] };
 
 const Stat = ({ label, value, color, sub }) => (
-  <div className="rounded-xl p-3.5" style={{ background: '#0a0805', border: `1px solid ${tint(color, 0.18)}` }}>
+  <div className="rounded-xl p-3.5" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(color, 0.18)}` }}>
     <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: tint(color, 0.8) }}>{label}</div>
     <div className="text-[20px] font-bold mt-1 tabular-nums" style={{ color }}>{value}</div>
     {sub && <div className="text-[10px] mt-0.5" style={{ color: palette.warm[500] }}>{sub}</div>}
@@ -76,12 +76,12 @@ export const ProfitSharingTab = () => {
         <div>
           <label className="block text-[10px] uppercase tracking-wider font-semibold mb-1" style={{ color: palette.warm[400] }}>From</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: '#12090d', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[100] }} />
+            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[100] }} />
         </div>
         <div>
           <label className="block text-[10px] uppercase tracking-wider font-semibold mb-1" style={{ color: palette.warm[400] }}>To</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: '#12090d', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[100] }} />
+            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[100] }} />
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
           style={{ background: tint(palette.gold[300], 0.1), border: `1px solid ${tint(palette.gold[300], 0.28)}`, color: palette.gold[300] }}>
@@ -124,7 +124,7 @@ export const ProfitSharingTab = () => {
         <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${tint(palette.warm[100], 0.1)}` }}>
           <table className="w-full text-[11.5px]" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#12090d', color: palette.warm[300] }}>
+              <tr style={{ background: 'rgb(var(--surface-secondary))', color: palette.warm[300] }}>
                 {['Tgl', 'User', 'Metode', 'Skema', 'Gross', 'Sam', 'Kamu', 'Bigstar'].map((h) => (
                   <th key={h} className="text-left font-semibold px-2.5 py-2 whitespace-nowrap">{h}</th>
                 ))}
@@ -140,9 +140,9 @@ export const ProfitSharingTab = () => {
                     <select value={r.scheme} disabled={busy[r.payment_id]}
                       onChange={(e) => retag(r.payment_id, e.target.value)}
                       className="text-[11px] rounded px-1.5 py-1 outline-none"
-                      style={{ background: '#12090d', border: `1px solid ${tint(SCHEME_COLOR[r.scheme] || palette.warm[400], 0.3)}`, color: SCHEME_COLOR[r.scheme] || palette.warm[200] }}>
-                      <option value="regular" style={{ background: '#12090d', color: '#fff' }}>Regular</option>
-                      <option value="canada" style={{ background: '#12090d', color: '#fff' }}>Canada</option>
+                      style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(SCHEME_COLOR[r.scheme] || palette.warm[400], 0.3)}`, color: SCHEME_COLOR[r.scheme] || palette.warm[200] }}>
+                      <option value="regular" style={{ background: 'rgb(var(--surface-secondary))', color: 'rgb(var(--fg))' }}>Regular</option>
+                      <option value="canada" style={{ background: 'rgb(var(--surface-secondary))', color: 'rgb(var(--fg))' }}>Canada</option>
                     </select>
                   </td>
                   <td className="px-2.5 py-1.5 tabular-nums" style={{ color: palette.gold[300] }}>{money(r.gross)}</td>

@@ -9,8 +9,8 @@ import CoinLogo from './CoinLogo';
 import AssistantWidget from './assistant/AssistantWidget';
 
 const EX_META = {
-  binance: { label: 'Binance', domain: 'binance.com', color: '#f0b90b' },
-  bybit:   { label: 'Bybit',   domain: 'bybit.com',   color: '#f7a600' },
+  binance: { label: 'Binance', domain: 'binance.com', color: 'rgb(var(--warn))' },
+  bybit:   { label: 'Bybit',   domain: 'bybit.com',   color: 'rgb(var(--warn))' },
   okx:     { label: 'OKX',     domain: 'okx.com',     color: '#dfe1e6' },
 };
 const favicon = (d) => `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
@@ -158,7 +158,7 @@ export default function DelistingsPage() {
             </thead>
             <tbody>
               {pageRows.map((x, i) => {
-                const ex = EX_META[x.exchange] || { label: x.exchange, domain: '', color: '#d4a853' };
+                const ex = EX_META[x.exchange] || { label: x.exchange, domain: '', color: 'rgb(var(--accent))' };
                 return (
                   <tr key={`${x.id}-${x.token || i}`}
                     onClick={() => x.url && window.open(x.url, '_blank', 'noopener')}

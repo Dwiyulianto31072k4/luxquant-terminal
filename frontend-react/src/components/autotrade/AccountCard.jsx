@@ -15,10 +15,10 @@ import {
 
 const EXCHANGE_BRANDING = {
   binance: { color: "#f3ba2f", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/270.png" },
-  bybit:   { color: "#f7a600", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/521.png" },
-  okx:     { color: "#ffffff", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/294.png" },
+  bybit:   { color: "rgb(var(--warn))", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/521.png" },
+  okx:     { color: "rgb(var(--fg))", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/294.png" },
   bitget:  { color: "#00e8b5", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/513.png" },
-  mexc:    { color: "#1972e2", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/544.png" },
+  mexc:    { color: "rgb(var(--tg))", logo: "https://s2.coinmarketcap.com/static/img/exchanges/64x64/544.png" },
 };
 
 const fmtUsd = (n) => {
@@ -89,7 +89,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
     (balance?.spot?.total_usd || 0) + (balance?.futures?.total_usd || 0);
 
   const isEnabled = config?.enabled;
-  const brand = EXCHANGE_BRANDING[account.exchange_id] || { color: "#d4a853", logo: null };
+  const brand = EXCHANGE_BRANDING[account.exchange_id] || { color: "rgb(var(--accent))", logo: null };
 
   return (
     <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">

@@ -42,7 +42,7 @@ const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
       <SearchIcon
         size={13}
         className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-        style={{ color: '#6b5c52' }}
+        style={{ color: 'rgb(var(--fg-muted))' }}
       />
     )}
     <input
@@ -62,7 +62,7 @@ const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
       <button
         onClick={onClear}
         className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/5"
-        style={{ color: '#8a7a6e' }}
+        style={{ color: 'rgb(var(--fg-muted))' }}
         title="Clear search"
         aria-label="Clear search"
       >
@@ -83,7 +83,7 @@ const SelectBox = ({ value, onChange, options, highlight, className = '' }) => (
     }}
   >
     {options.map((opt) => (
-      <option key={opt.value} value={opt.value} style={{ background: '#1a0f0d', color: '#fff' }}>
+      <option key={opt.value} value={opt.value} style={{ background: 'rgb(var(--surface-hover))', color: 'rgb(var(--fg))' }}>
         {opt.label}
       </option>
     ))}
@@ -172,7 +172,7 @@ export const FinanceFilterBar = ({
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 whitespace-nowrap"
             style={{
-              color: '#f87171',
+              color: 'rgb(var(--neg))',
               background: 'rgba(248,113,113,0.06)',
               border: '1px solid rgba(248,113,113,0.22)',
             }}
@@ -184,17 +184,17 @@ export const FinanceFilterBar = ({
       </div>
 
       {resultCount != null && (
-        <p className="text-[10.5px]" style={{ color: '#6b5c52' }}>
+        <p className="text-[10.5px]" style={{ color: 'rgb(var(--fg-muted))' }}>
           {hasFilters ? (
             <>
-              <span style={{ color: '#c9b59e' }} className="tabular-nums font-semibold">
+              <span style={{ color: 'rgb(var(--fg-secondary))' }} className="tabular-nums font-semibold">
                 {resultCount.toLocaleString()}
               </span>{' '}
               {resultCount === 1 ? 'payment matches' : 'payments match'} your filters
             </>
           ) : (
             <>
-              <span style={{ color: '#c9b59e' }} className="tabular-nums font-semibold">
+              <span style={{ color: 'rgb(var(--fg-secondary))' }} className="tabular-nums font-semibold">
                 {resultCount.toLocaleString()}
               </span>{' '}
               {resultCount === 1 ? 'payment' : 'payments'} total

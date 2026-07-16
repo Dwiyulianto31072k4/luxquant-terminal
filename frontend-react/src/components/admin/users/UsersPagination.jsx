@@ -46,9 +46,9 @@ export const UsersPagination = ({ page, totalPages, total, onChange }) => {
         background: 'rgba(255,255,255,0.012)',
       }}
     >
-      <p className="text-[10px] tabular-nums" style={{ color: '#6b5c52' }}>
+      <p className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
         Page <span className="text-text-primary font-bold">{page}</span> of {totalPages}
-        <span className="mx-2" style={{ color: '#4a3f39' }}>·</span>
+        <span className="mx-2" style={{ color: 'rgb(var(--fg-muted))' }}>·</span>
         <span className="text-text-primary font-bold">{total}</span> total
       </p>
       <div className="flex items-center gap-1">

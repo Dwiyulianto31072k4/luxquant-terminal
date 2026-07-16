@@ -17,7 +17,7 @@ const STATUS_CONFIG = {
   pending: {
     bg: 'rgba(251,191,36,0.12)',
     border: 'rgba(251,191,36,0.3)',
-    color: '#fbbf24',
+    color: 'rgb(var(--warn))',
     label: 'Pending Review',
     description: 'Admin will contact you on Telegram',
   },
@@ -31,14 +31,14 @@ const STATUS_CONFIG = {
   completed: {
     bg: 'rgba(74,222,128,0.12)',
     border: 'rgba(74,222,128,0.3)',
-    color: '#4ade80',
+    color: 'rgb(var(--pos))',
     label: 'Completed',
     description: 'Funds sent successfully',
   },
   rejected: {
     bg: 'rgba(239,68,68,0.12)',
     border: 'rgba(239,68,68,0.3)',
-    color: '#f87171',
+    color: 'rgb(var(--neg))',
     label: 'Rejected',
     description: 'Balance has been refunded',
   },
@@ -123,25 +123,25 @@ const CashoutRow = ({ item, onUpdate }) => {
           {/* Left: Amount + Date */}
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2 mb-1.5">
-              <span className="text-xs" style={{ color: '#6b5c52' }}>$</span>
+              <span className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>$</span>
               <span
                 className="text-xl sm:text-2xl font-bold tabular-nums"
                 style={{ color: '#e8d9c7', fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {Number(item.amount_usdt).toFixed(2)}
               </span>
-              <span className="text-xs font-semibold" style={{ color: '#d4a853' }}>
+              <span className="text-xs font-semibold" style={{ color: 'rgb(var(--accent))' }}>
                 USDT
               </span>
             </div>
-            <div className="flex items-center gap-2 text-[11px]" style={{ color: '#8a7a6e' }}>
+            <div className="flex items-center gap-2 text-[11px]" style={{ color: 'rgb(var(--fg-muted))' }}>
               <span>#{item.id}</span>
-              <span style={{ color: '#534a42' }}>·</span>
+              <span style={{ color: 'rgb(var(--fg-muted))' }}>·</span>
               <span>{formatRelativeTime(item.requested_at)}</span>
               {item.destination_telegram && (
                 <>
-                  <span style={{ color: '#534a42' }}>·</span>
-                  <span style={{ color: '#d4a853' }}>@{item.destination_telegram}</span>
+                  <span style={{ color: 'rgb(var(--fg-muted))' }}>·</span>
+                  <span style={{ color: 'rgb(var(--accent))' }}>@{item.destination_telegram}</span>
                 </>
               )}
             </div>
@@ -161,7 +161,7 @@ const CashoutRow = ({ item, onUpdate }) => {
             </span>
             <svg
               className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
-              style={{ color: '#6b5c52' }}
+              style={{ color: 'rgb(var(--fg-muted))' }}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -177,7 +177,7 @@ const CashoutRow = ({ item, onUpdate }) => {
         </div>
 
         {/* Status description */}
-        <p className="text-[11px] mt-2.5 leading-relaxed" style={{ color: '#8a7a6e' }}>
+        <p className="text-[11px] mt-2.5 leading-relaxed" style={{ color: 'rgb(var(--fg-muted))' }}>
           {status.description}
         </p>
       </div>
@@ -241,7 +241,7 @@ const CashoutRow = ({ item, onUpdate }) => {
           {canCancel && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(212,168,83,0.06)' }}>
               {error && (
-                <p className="text-[11px] mb-2" style={{ color: '#f87171' }}>
+                <p className="text-[11px] mb-2" style={{ color: 'rgb(var(--neg))' }}>
                   {error}
                 </p>
               )}
@@ -251,7 +251,7 @@ const CashoutRow = ({ item, onUpdate }) => {
                 className="w-full py-2.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                 style={{
                   background: 'rgba(239,68,68,0.06)',
-                  color: '#f87171',
+                  color: 'rgb(var(--neg))',
                   border: '1px solid rgba(239,68,68,0.2)',
                 }}
               >
@@ -269,7 +269,7 @@ const DetailRow = ({ label, value, mono = false, highlight = false }) => (
   <div className="flex items-start justify-between gap-3">
     <span
       className="font-semibold uppercase tracking-wider text-[10px] flex-shrink-0 pt-0.5"
-      style={{ color: '#6b5c52' }}
+      style={{ color: 'rgb(var(--fg-muted))' }}
     >
       {label}
     </span>
@@ -304,7 +304,7 @@ const CashoutHistoryList = ({ items = [], onUpdate, onEmpty }) => {
         >
           <svg
             className="w-5 h-5"
-            style={{ color: '#6b5c52' }}
+            style={{ color: 'rgb(var(--fg-muted))' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -317,10 +317,10 @@ const CashoutHistoryList = ({ items = [], onUpdate, onEmpty }) => {
             />
           </svg>
         </div>
-        <p className="text-sm font-semibold mb-1" style={{ color: '#b8a89a' }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'rgb(var(--fg-secondary))' }}>
           No cashout requests yet
         </p>
-        <p className="text-xs" style={{ color: '#6b5c52' }}>
+        <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
           Submit your first request to withdraw balance.
         </p>
       </div>

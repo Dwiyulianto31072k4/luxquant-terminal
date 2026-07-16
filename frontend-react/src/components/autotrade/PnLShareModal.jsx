@@ -186,11 +186,11 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
             }}
           >
             <div className="pointer-events-none absolute left-0 top-0 h-32 w-32 rounded-full opacity-30 blur-3xl" style={{ background: roeColor }} />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full opacity-20 blur-3xl" style={{ background: "#d4a853" }} />
+            <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full opacity-20 blur-3xl" style={{ background: "rgb(var(--accent))" }} />
 
             <div className="relative mb-6 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-black" style={{ background: "linear-gradient(135deg, #d4a853, #8b6914)", color: "#0a0506" }}>LQ</div>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-black" style={{ background: "linear-gradient(135deg, #d4a853, #8b6914)", color: "rgb(var(--surface))" }}>LQ</div>
                 <div>
                   <p className="font-display text-sm font-bold leading-none text-text-primary">LuxQuant</p>
                   <p className="mt-0.5 text-[9px] text-gold-primary">AutoTrade</p>
@@ -212,10 +212,10 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                   <h3 className="font-display text-xl font-bold leading-none text-text-primary">{data.pair}</h3>
                   <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `${sideColor}20`, color: sideColor, border: `1px solid ${sideColor}60` }}>{sideLabel}</span>
                   {data.market_type === "futures" && (
-                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "#d4a853", border: "1px solid rgba(212,168,83,0.3)" }}>{data.leverage}x · {data.margin_mode === "cross" ? "CROSS" : "ISOLATED"}</span>
+                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "rgb(var(--accent))", border: "1px solid rgba(212,168,83,0.3)" }}>{data.leverage}x · {data.margin_mode === "cross" ? "CROSS" : "ISOLATED"}</span>
                   )}
                   {data.market_type === "spot" && (
-                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "#d4a853", border: "1px solid rgba(212,168,83,0.3)" }}>SPOT</span>
+                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "rgb(var(--accent))", border: "1px solid rgba(212,168,83,0.3)" }}>SPOT</span>
                   )}
                 </div>
               </div>

@@ -314,16 +314,16 @@ function KeyObservations({ observations }) {
 
 function ActionableHints({ interpretation }) {
   const items = [
-    { d: IC.ruler, label: "Sizing", text: interpretation.sizing_hint, color: "#d4a853" },
-    { d: IC.shield, label: "Hedge", text: interpretation.hedge_hint, color: "#d4a853" },
-    { d: IC.target, label: "Bias", text: interpretation.trade_bias, color: "#d4a853" },
+    { d: IC.ruler, label: "Sizing", text: interpretation.sizing_hint, color: "rgb(var(--accent))" },
+    { d: IC.shield, label: "Hedge", text: interpretation.hedge_hint, color: "rgb(var(--accent))" },
+    { d: IC.target, label: "Bias", text: interpretation.trade_bias, color: "rgb(var(--accent))" },
   ].filter((i) => i.text);
 
   if (interpretation.regime_warning) {
-    items.push({ d: IC.alert, label: "Warning", text: interpretation.regime_warning, color: "#e0a82e", textClass: "text-amber-300" });
+    items.push({ d: IC.alert, label: "Warning", text: interpretation.regime_warning, color: "rgb(var(--warn))", textClass: "text-amber-300" });
   }
   if (interpretation.decoupling_note) {
-    items.push({ d: IC.bolt, label: "Catalyst", text: interpretation.decoupling_note, color: "#d4a853" });
+    items.push({ d: IC.bolt, label: "Catalyst", text: interpretation.decoupling_note, color: "rgb(var(--accent))" });
   }
 
   if (items.length === 0) return null;

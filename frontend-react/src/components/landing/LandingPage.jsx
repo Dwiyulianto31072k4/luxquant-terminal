@@ -577,7 +577,7 @@ const TelegramPromo = ({ gainers }) => {
               className="group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-[0_4px_14px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.35)]"
               style={{
                 background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                color: "#0a0506",
+                color: "rgb(var(--surface))",
               }}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -891,10 +891,10 @@ export const LivePerformanceStats = ({ data }) => {
   const openSignals = stats?.open_signals ?? 0;
 
   const outcomeItems = [
-    { label: "TP1", count: stats?.tp1_count ?? 0, color: "#f0d890", opacity: 1 },
-    { label: "TP2", count: stats?.tp2_count ?? 0, color: "#d4a853", opacity: 0.85 },
+    { label: "TP1", count: stats?.tp1_count ?? 0, color: "rgb(var(--accent-light))", opacity: 1 },
+    { label: "TP2", count: stats?.tp2_count ?? 0, color: "rgb(var(--accent))", opacity: 0.85 },
     { label: "TP3", count: stats?.tp3_count ?? 0, color: "#b88a3e", opacity: 0.7 },
-    { label: "TP4", count: stats?.tp4_count ?? 0, color: "#8b6914", opacity: 0.55 },
+    { label: "TP4", count: stats?.tp4_count ?? 0, color: "rgb(var(--accent-dark))", opacity: 0.55 },
     { label: "SL", count: slCount, color: "#EF4444", opacity: 1 },
   ];
   const outcomeTotal = outcomeItems.reduce((s, i) => s + i.count, 0);
@@ -1210,7 +1210,7 @@ export const LivePerformanceStats = ({ data }) => {
                       className="h-full"
                       style={{
                         width: `${winPct}%`,
-                        backgroundColor: "#d4a853",
+                        backgroundColor: "rgb(var(--accent))",
                         opacity: 1,
                         marginRight: "1px",
                       }}
@@ -1219,16 +1219,16 @@ export const LivePerformanceStats = ({ data }) => {
                       className="h-full"
                       style={{
                         width: `${100 - winPct}%`,
-                        backgroundColor: "#d4a853",
+                        backgroundColor: "rgb(var(--accent))",
                         opacity: 0.3,
                       }}
                     />
                   </div>
                   <div className="flex justify-between text-[10px]">
-                    <span className="font-mono tabular-nums" style={{ color: "#d4a853", opacity: 1 }}>
+                    <span className="font-mono tabular-nums" style={{ color: "rgb(var(--accent))", opacity: 1 }}>
                       {rd.winners?.toLocaleString()} W
                     </span>
-                    <span className="font-mono tabular-nums" style={{ color: "#d4a853", opacity: 0.4 }}>
+                    <span className="font-mono tabular-nums" style={{ color: "rgb(var(--accent))", opacity: 0.4 }}>
                       {rd.losers?.toLocaleString()} L
                     </span>
                   </div>
@@ -1279,7 +1279,7 @@ export const LivePerformanceStats = ({ data }) => {
           style={{
             background:
               "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-            color: "#0a0506",
+            color: "rgb(var(--surface))",
           }}
         >
           <span className="tracking-wide">View Full Analytics</span>
@@ -1544,7 +1544,7 @@ const LandingPage = () => {
                 style={{
                   background:
                     "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                  color: "#0a0506",
+                  color: "rgb(var(--surface))",
                 }}
               >
                 <span className="uppercase tracking-widest text-[10px] lg:text-xs">
@@ -1612,7 +1612,7 @@ const LandingPage = () => {
                 className="w-full py-3.5 rounded-xl font-bold text-xs text-center uppercase tracking-widest flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(212,168,83,0.15)]"
                 style={{
                   background: "linear-gradient(to right, #d4a853, #8b6914)",
-                  color: "#0a0506",
+                  color: "rgb(var(--surface))",
                 }}
               >
                 Open Platform
@@ -1709,7 +1709,7 @@ const LandingPage = () => {
                 style={{
                   background:
                     "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                  color: "#0a0506",
+                  color: "rgb(var(--surface))",
                 }}
               >
                 <span className="tracking-wide">Open Terminal</span>
@@ -2549,7 +2549,7 @@ const LandingPage = () => {
           style={{
             background:
               "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-            color: "#0a0506",
+            color: "rgb(var(--surface))",
           }}
         >
           Open Terminal

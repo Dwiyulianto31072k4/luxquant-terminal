@@ -143,7 +143,7 @@ const VipGroupCard = ({ onToast }) => {
             ) : (
               <button onClick={handleJoin} disabled={loading}
                 className="px-3 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold transition-all disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}>
+                style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: 'rgb(var(--fg))', border: '1px solid rgba(0,136,204,0.3)' }}>
                 {loading
                   ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mx-3" />
                   : t('vip.join', 'Join Group')}

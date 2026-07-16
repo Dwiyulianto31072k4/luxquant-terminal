@@ -50,7 +50,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
           <h2 className="text-lg font-semibold text-text-primary tracking-tight">
             Finance Hub
           </h2>
-          <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
+          <p className="text-[11px] mt-0.5 max-w-md" style={{ color: 'rgb(var(--fg-muted))' }}>
             Monitor revenue, approve pending payments, and audit the financial trail.
           </p>
         </div>
@@ -62,7 +62,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
           style={{
             background: 'linear-gradient(135deg, #d4a853, #8b6914)',
-            color: '#0a0506',
+            color: 'rgb(var(--surface))',
           }}
           title="Record a payment that was made out-of-band"
         >
@@ -76,7 +76,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
             className="group flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
             style={{
               background: 'rgba(248,113,113,0.10)',
-              color: '#f87171',
+              color: 'rgb(var(--neg))',
               border: '1px solid rgba(248,113,113,0.30)',
             }}
           >
@@ -95,7 +95,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
 
 const LoadingRows = () => (
   <div className="flex items-center justify-center py-20">
-    <div className="inline-flex items-center gap-2 text-xs" style={{ color: '#6b5c52' }}>
+    <div className="inline-flex items-center gap-2 text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
       <div
         className="w-4 h-4 border-2 rounded-full animate-spin"
         style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }}
@@ -123,7 +123,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
         style={{
           background: 'rgba(52,211,153,0.10)',
           border: '1px solid rgba(52,211,153,0.22)',
-          color: '#34d399',
+          color: 'rgb(var(--pos))',
         }}
       >
         <TrendingUpIcon size={20} />
@@ -131,7 +131,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
       <p className="text-sm font-semibold text-text-primary mb-1">
         {hasFilters ? 'No payments match these filters' : 'No payments yet'}
       </p>
-      <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>
+      <p className="text-[11.5px] mb-4" style={{ color: 'rgb(var(--fg-muted))' }}>
         {hasFilters
           ? 'Try adjusting the search or status filter.'
           : 'Payments will appear here as users subscribe.'}
@@ -142,7 +142,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
           className="px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider transition-colors"
           style={{
             background: 'rgba(212,168,83,0.10)',
-            color: '#d4a853',
+            color: 'rgb(var(--accent))',
             border: '1px solid rgba(212,168,83,0.28)',
           }}
         >

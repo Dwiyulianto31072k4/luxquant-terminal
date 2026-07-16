@@ -94,7 +94,7 @@ function OverallBanner({ overall, label, counts = {} }) {
     ["major_outage", "Outage"], ["maintenance", "Maintenance"],
   ].filter(([k]) => (counts[k] || 0) > 0);
   return (
-    <div className="relative rounded-2xl border overflow-hidden shadow-2xl shadow-black/40" style={{ borderColor: tint(c, 0.3), background: "#0a0805" }}>
+    <div className="relative rounded-2xl border overflow-hidden shadow-2xl shadow-black/40" style={{ borderColor: tint(c, 0.3), background: "rgb(var(--surface-raised))" }}>
       <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${c}, transparent)` }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(130% 120% at 0% 0%, ${tint(c, 0.1)}, transparent 55%)` }} />
       <div className="relative flex flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
@@ -139,7 +139,7 @@ function IncidentCard({ inc, past = false }) {
   const headColor = closed ? palette.green[400] : accent;
   const updates = inc.updates?.length > 0 ? inc.updates.slice().reverse() : [];
   return (
-    <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: past ? "rgba(255,255,255,0.07)" : tint(accent, 0.3), background: "#0a0805" }}>
+    <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: past ? "rgba(255,255,255,0.07)" : tint(accent, 0.3), background: "rgb(var(--surface-raised))" }}>
       <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(headColor, 0.5)}, transparent)` }} />
       <div className="px-5 py-4 sm:px-6 sm:py-5">
         <div className="flex items-start justify-between gap-3">
@@ -315,7 +315,7 @@ export default function StatusPage() {
             {/* full-width single column — status-page convention, no empty side rail */}
             <section className="mt-8">
               <SectionLabel>Components</SectionLabel>
-              <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
+              <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "rgb(var(--surface-raised))" }}>
                 <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
                 {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
               </div>
@@ -339,7 +339,7 @@ export default function StatusPage() {
                       onClick={() => setPastPage((p) => Math.max(0, p - 1))}
                       disabled={safePage <= 0}
                       className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-text-primary"
-                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
+                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgb(var(--surface-raised))", color: palette.warm[300] }}
                     >
                       <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                       Prev
@@ -349,7 +349,7 @@ export default function StatusPage() {
                       onClick={() => setPastPage((p) => Math.min(pastPages - 1, p + 1))}
                       disabled={safePage >= pastPages - 1}
                       className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-text-primary"
-                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
+                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgb(var(--surface-raised))", color: palette.warm[300] }}
                     >
                       Next
                       <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>

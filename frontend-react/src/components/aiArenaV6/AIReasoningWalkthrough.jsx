@@ -102,7 +102,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
         className="absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center font-mono text-sm font-semibold transition-all"
         style={
           isOpen
-            ? { backgroundColor: "#f5c451", color: "#0a0a0a" }
+            ? { backgroundColor: "rgb(var(--accent))", color: "rgb(var(--surface-raised))" }
             : {
                 backgroundColor: "rgba(255,255,255,0.05)",
                 color: "rgba(255,255,255,0.6)",
@@ -137,7 +137,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
                 className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase tracking-wider"
                 style={{
                   backgroundColor: "rgba(245, 196, 81, 0.15)",
-                  color: "#f5c451",
+                  color: "rgb(var(--accent))",
                 }}
                 title="AI flagged a concern about this step"
               >
@@ -236,7 +236,7 @@ function CritiqueBanner({ critique }) {
     },
     approved_with_caveat: {
       label: "Approved with caveat",
-      color: "#f5c451",
+      color: "rgb(var(--accent))",
       bg: "rgba(245, 196, 81, 0.1)",
       icon: "⚠",
     },

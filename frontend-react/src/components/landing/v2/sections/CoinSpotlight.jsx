@@ -208,7 +208,7 @@ export default function CoinSpotlight() {
                     >
                       <CoinLogo pair={c.pair} size={20} />
                       <span className="text-[12px] font-semibold text-text-primary">{sym(c.pair)}<span className="ml-1 font-mono text-[9px] text-text-muted">USDT</span></span>
-                      {c.win_rate != null && <span className="ml-auto font-mono text-[10px]" style={{ color: "#4ade80" }}>{pct(c.win_rate)}</span>}
+                      {c.win_rate != null && <span className="ml-auto font-mono text-[10px]" style={{ color: "rgb(var(--pos))" }}>{pct(c.win_rate)}</span>}
                     </button>
                   ))
                 ) : (

@@ -608,7 +608,7 @@ export const ProviderIcon = ({ provider, size = 14, className = '' }) => {
     case 'google':   return <GoogleIcon size={size} className={className} colored />;
     case 'telegram': return <TelegramIcon size={size} className={className} colored />;
     case 'discord':  return <DiscordIcon size={size} className={className} style={{ color: '#5865F2' }} />;
-    case 'local':    return <EmailIcon size={size} className={className} style={{ color: '#8a7a6e' }} />;
+    case 'local':    return <EmailIcon size={size} className={className} style={{ color: 'rgb(var(--fg-muted))' }} />;
     default:         return null;
   }
 };

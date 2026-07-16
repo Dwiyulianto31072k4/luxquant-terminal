@@ -20,11 +20,11 @@ const authHeaders = () => {
 // status → { label, color, desc } — matches the terminal detail modal
 export const STATUS_META = {
   open: { label: "OPEN", color: "#60a5fa", desc: "Live — no target hit yet" },
-  tp1: { label: "TP1 HIT", color: "#34d399", desc: "First target reached" },
-  tp2: { label: "TP2 HIT", color: "#34d399", desc: "Second target reached" },
-  tp3: { label: "TP3 HIT", color: "#2dd4a0", desc: "Third target reached" },
-  closed_win: { label: "TP4 / WIN", color: "#d4a853", desc: "Final target — closed in profit" },
-  closed_loss: { label: "STOPPED OUT", color: "#f87171", desc: "Hit stop loss" },
+  tp1: { label: "TP1 HIT", color: "rgb(var(--pos))", desc: "First target reached" },
+  tp2: { label: "TP2 HIT", color: "rgb(var(--pos))", desc: "Second target reached" },
+  tp3: { label: "TP3 HIT", color: "rgb(var(--pos))", desc: "Third target reached" },
+  closed_win: { label: "TP4 / WIN", color: "rgb(var(--accent))", desc: "Final target — closed in profit" },
+  closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg))", desc: "Hit stop loss" },
 };
 
 // compact relative time, e.g. "3h ago" / "2d ago"

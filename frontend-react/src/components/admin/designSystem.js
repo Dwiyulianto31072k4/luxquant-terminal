@@ -137,7 +137,7 @@ export const semantic = {
   role: {
     admin:      { color: palette.violet[400], bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
     subscriber: { color: palette.green[400],  bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.3)' },
-    free:       { color: '#8a7a6e',            bg: 'rgba(107,92,82,0.12)',  border: 'rgba(107,92,82,0.3)' },
+    free:       { color: 'rgb(var(--fg-muted))',            bg: 'rgba(107,92,82,0.12)',  border: 'rgba(107,92,82,0.3)' },
   },
   // status (general)
   status: {
@@ -146,7 +146,7 @@ export const semantic = {
     warning: { color: palette.amber[400],  bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.3)' },
     pending: { color: palette.amber[400],  bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.3)' },
     info:    { color: palette.blue[400],   bg: 'rgba(96,165,250,0.1)',  border: 'rgba(96,165,250,0.3)' },
-    neutral: { color: '#8a7a6e',           bg: 'rgba(138,122,110,0.1)', border: 'rgba(138,122,110,0.3)' },
+    neutral: { color: 'rgb(var(--fg-muted))',           bg: 'rgba(138,122,110,0.1)', border: 'rgba(138,122,110,0.3)' },
     urgent:  { color: palette.orange[400], bg: 'rgba(251,146,60,0.1)',  border: 'rgba(251,146,60,0.3)' },
   },
   // accent palette for stat tiles

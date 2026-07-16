@@ -114,7 +114,7 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
   return (
     <div
       className="rounded-xl p-3.5 relative overflow-hidden"
-      style={{ background: '#0a0805', border: `1px solid ${tint(meta.color, svc.health === 'down' ? 0.4 : 0.14)}`, boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}
+      style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(meta.color, svc.health === 'down' ? 0.4 : 0.14)}`, boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}
     >
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(meta.color, svc.health === 'down' ? 0.5 : 0.28)}, transparent)` }} />
       <div className="flex items-start justify-between gap-3">

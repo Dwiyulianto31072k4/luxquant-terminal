@@ -35,7 +35,7 @@ const SectionLabel = ({ label, accent = "#d4a853" }) => (
     <div className="w-1 h-1 rounded-full" style={{ background: accent }} />
     <span
       className="text-[10px] font-bold uppercase tracking-[0.15em]"
-      style={{ color: "#534a42" }}
+      style={{ color: "rgb(var(--fg-muted))" }}
     >
       {label}
     </span>
@@ -53,7 +53,7 @@ const StatCard = ({ label, children }) => (
   >
     <p
       className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
-      style={{ color: "#534a42" }}
+      style={{ color: "rgb(var(--fg-muted))" }}
     >
       {label}
     </p>
@@ -181,7 +181,7 @@ const PaymentPage = () => {
               />
               <span
                 className="text-[10px] font-bold uppercase tracking-[0.2em]"
-                style={{ color: "#534a42" }}
+                style={{ color: "rgb(var(--fg-muted))" }}
               >
                 Payment Invoice
               </span>
@@ -192,9 +192,9 @@ const PaymentPage = () => {
             >
               Complete Your Payment
             </h1>
-            <p className="text-sm mt-2" style={{ color: "#8a7a6e" }}>
-              <span style={{ color: "#d4a853" }}>{planLabel}</span>
-              <span className="mx-2" style={{ color: "#534a42" }}>·</span>
+            <p className="text-sm mt-2" style={{ color: "rgb(var(--fg-muted))" }}>
+              <span style={{ color: "rgb(var(--accent))" }}>{planLabel}</span>
+              <span className="mx-2" style={{ color: "rgb(var(--fg-muted))" }}>·</span>
               <span className="font-mono font-semibold text-text-primary">
                 {amount || "?"} USDT
               </span>
@@ -240,7 +240,7 @@ const PaymentPage = () => {
               </span>
               <span
                 className="text-xs font-semibold"
-                style={{ color: "#d4a853" }}
+                style={{ color: "rgb(var(--accent))" }}
               >
                 USDT
               </span>
@@ -252,7 +252,7 @@ const PaymentPage = () => {
               <UsdtIcon size={26} />
               <div>
                 <div className="text-sm font-bold text-text-primary">USDT</div>
-                <div className="text-[10px]" style={{ color: "#6b5c52" }}>
+                <div className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
                   Tether USD
                 </div>
               </div>
@@ -264,7 +264,7 @@ const PaymentPage = () => {
               <BNBIcon size={26} />
               <div>
                 <div className="text-sm font-bold text-text-primary">BSC</div>
-                <div className="text-[10px]" style={{ color: "#6b5c52" }}>
+                <div className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
                   BEP-20
                 </div>
               </div>
@@ -274,11 +274,11 @@ const PaymentPage = () => {
           <StatCard label="Expires In">
             <div
               className={`text-lg sm:text-xl font-mono font-bold tracking-wider ${isExpired ? "text-red-400" : ""}`}
-              style={!isExpired ? { color: "#d4a853" } : {}}
+              style={!isExpired ? { color: "rgb(var(--accent))" } : {}}
             >
               {timeLeft || t("payment.calculating")}
             </div>
-            <div className="text-[10px] mt-1" style={{ color: "#6b5c52" }}>
+            <div className="text-[10px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
               24h payment window
             </div>
           </StatCard>
@@ -323,7 +323,7 @@ const PaymentPage = () => {
                 <div className="flex items-center justify-between mb-2.5">
                   <span
                     className="text-[10px] font-semibold uppercase tracking-wider"
-                    style={{ color: "#534a42" }}
+                    style={{ color: "rgb(var(--fg-muted))" }}
                   >
                     Wallet Address
                   </span>
@@ -333,7 +333,7 @@ const PaymentPage = () => {
                     className="px-3 py-1 rounded-md text-[10px] font-semibold transition-all disabled:opacity-20 hover:scale-[1.02]"
                     style={{
                       background: "rgba(212,168,83,0.08)",
-                      color: "#d4a853",
+                      color: "rgb(var(--accent))",
                       border: "1px solid rgba(212,168,83,0.15)",
                     }}
                   >
@@ -359,7 +359,7 @@ const PaymentPage = () => {
                   <div>
                     <p
                       className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-                      style={{ color: "#534a42" }}
+                      style={{ color: "rgb(var(--fg-muted))" }}
                     >
                       Exact Amount
                     </p>
@@ -372,7 +372,7 @@ const PaymentPage = () => {
                       </span>
                       <span
                         className="text-xs font-semibold"
-                        style={{ color: "#d4a853" }}
+                        style={{ color: "rgb(var(--accent))" }}
                       >
                         USDT
                       </span>
@@ -384,7 +384,7 @@ const PaymentPage = () => {
                     className="px-3 py-1.5 rounded-md text-[10px] font-semibold transition-all disabled:opacity-20 hover:scale-[1.02]"
                     style={{
                       background: "rgba(212,168,83,0.08)",
-                      color: "#d4a853",
+                      color: "rgb(var(--accent))",
                       border: "1px solid rgba(212,168,83,0.15)",
                     }}
                   >
@@ -405,7 +405,7 @@ const PaymentPage = () => {
               >
                 <svg
                   className="w-4 h-4 flex-shrink-0 mt-0.5"
-                  style={{ color: "#d4a853" }}
+                  style={{ color: "rgb(var(--accent))" }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -419,7 +419,7 @@ const PaymentPage = () => {
                 </svg>
                 <p
                   className="text-[11px] leading-relaxed"
-                  style={{ color: "#a09080" }}
+                  style={{ color: "rgb(var(--fg-muted))" }}
                 >
                   <span className="font-semibold text-text-primary/90">
                     Only send USDT via BSC (BEP-20).
@@ -458,7 +458,7 @@ const PaymentPage = () => {
               <div className="space-y-4">
                 <p
                   className="text-[11px] leading-relaxed"
-                  style={{ color: "#8a7a6e" }}
+                  style={{ color: "rgb(var(--fg-muted))" }}
                 >
                   After completing the transfer, paste your transaction hash
                   below to verify and activate your subscription.
@@ -467,7 +467,7 @@ const PaymentPage = () => {
                 <div>
                   <label
                     className="block text-[10px] font-semibold uppercase tracking-wider mb-2"
-                    style={{ color: "#534a42" }}
+                    style={{ color: "rgb(var(--fg-muted))" }}
                   >
                     TX Hash
                   </label>
@@ -498,7 +498,7 @@ const PaymentPage = () => {
                   className="w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden group"
                   style={{
                     background: "linear-gradient(135deg, #d4a853, #a07c2e)",
-                    color: "#0a0506",
+                    color: "rgb(var(--surface))",
                     boxShadow: "0 4px 24px rgba(212,168,83,0.15)",
                   }}
                 >
@@ -608,7 +608,7 @@ const PaymentPage = () => {
                             ? "Payment confirmed!"
                             : "Verification failed"}
                         </h4>
-                        <p className="text-xs" style={{ color: "#a09080" }}>
+                        <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
                           {result.status === "confirmed"
                             ? `${result.subscription?.plan_label || planLabel} is now active. Redirecting…`
                             : result.message}
@@ -616,7 +616,7 @@ const PaymentPage = () => {
                         {result.can_retry && (
                           <p
                             className="text-[10px] mt-2"
-                            style={{ color: "#6b5c52" }}
+                            style={{ color: "rgb(var(--fg-muted))" }}
                           >
                             You can submit a new TX hash to retry.
                           </p>
@@ -648,7 +648,7 @@ const PaymentPage = () => {
               >
                 <svg
                   className="w-5 h-5"
-                  style={{ color: "#d4a853" }}
+                  style={{ color: "rgb(var(--accent))" }}
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -661,7 +661,7 @@ const PaymentPage = () => {
                 </h4>
                 <p
                   className="text-xs leading-relaxed"
-                  style={{ color: "#8a7a6e" }}
+                  style={{ color: "rgb(var(--fg-muted))" }}
                 >
                   Contact our admin via Telegram for bank transfer, manual
                   payment, or any payment-related questions.
@@ -674,7 +674,7 @@ const PaymentPage = () => {
               style={{
                 background: "rgba(212,168,83,0.08)",
                 border: "1px solid rgba(212,168,83,0.25)",
-                color: "#d4a853",
+                color: "rgb(var(--accent))",
               }}
             >
               Subscribe via Admin
@@ -694,14 +694,14 @@ const PaymentPage = () => {
 
         {/* Footer */}
         <div className="text-center space-y-2">
-          <p className="text-[10px]" style={{ color: "#534a42" }}>
+          <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
             Payment will be verified on-chain via BSCScan. Activation is
             instant.
           </p>
           <button
             onClick={() => navigate("/pricing")}
             className="text-xs transition-colors hover:text-text-primary"
-            style={{ color: "#534a42" }}
+            style={{ color: "rgb(var(--fg-muted))" }}
           >
             ← Back to pricing
           </button>

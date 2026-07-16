@@ -228,7 +228,7 @@ export default function ConfigPanel({ account, onClose }) {
                 dirty && !saving
                   ? {
                       background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                      color: "#0a0506",
+                      color: "rgb(var(--surface))",
                     }
                   : {
                       background: "rgba(255,255,255,0.04)",
@@ -519,7 +519,7 @@ export default function ConfigPanel({ account, onClose }) {
               dirty && !saving
                 ? {
                     background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                    color: "#0a0506",
+                    color: "rgb(var(--surface))",
                   }
                 : {
                     background: "rgba(255,255,255,0.04)",

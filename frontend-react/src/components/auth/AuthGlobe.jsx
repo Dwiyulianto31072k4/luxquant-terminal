@@ -106,7 +106,7 @@ const AuthGlobe = () => {
 
     // Points
     globe
-      .pointsData(LOCATIONS.map(l => ({ lat: l.lat, lng: l.lng, color: '#d4a853' })))
+      .pointsData(LOCATIONS.map(l => ({ lat: l.lat, lng: l.lng, color: 'rgb(var(--accent))' })))
       .pointColor('color')
       .pointRadius(0.5)
       .pointAltitude(0.01);
@@ -116,7 +116,7 @@ const AuthGlobe = () => {
     globe
       .arcsData(LOCATIONS.filter(l => l.name !== 'Jakarta').map(l => ({
         startLat: jakartaLat, startLng: jakartaLng,
-        endLat: l.lat, endLng: l.lng, color: '#ffffff'
+        endLat: l.lat, endLng: l.lng, color: 'rgb(var(--fg))'
       })))
       .arcColor('color')
       .arcStroke(0.35)
@@ -159,7 +159,7 @@ const AuthGlobe = () => {
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 rounded-full border-2 animate-spin"
               style={{ borderColor: 'rgba(212,168,83,0.2)', borderTopColor: '#d4a853' }} />
-            <span className="text-xs" style={{ color: '#6b5c52' }}>Loading Globe...</span>
+            <span className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>Loading Globe...</span>
           </div>
         </div>
       )}

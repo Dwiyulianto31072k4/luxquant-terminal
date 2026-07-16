@@ -291,7 +291,7 @@ export const StatTile = ({
       </div>
       <p
         className="text-2xl font-bold tracking-tight tabular-nums leading-none transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left"
-        style={{ color: '#fff' }}
+        style={{ color: 'rgb(var(--fg))' }}
       >
         {loading ? (
           <span className="inline-block w-12 h-6 lqsk" style={{ background: 'rgba(255,255,255,0.08)' }} />
@@ -403,7 +403,7 @@ export const IntentTile = ({
       </div>
       <p
         className="text-xl font-bold tracking-tight tabular-nums leading-none"
-        style={{ color: '#fff' }}
+        style={{ color: 'rgb(var(--fg))' }}
       >
         {value ?? '—'}
       </p>
@@ -435,7 +435,7 @@ export const Badge = ({
   style = {},
   ...rest
 }) => {
-  let palette_ = { color: '#fff', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.1)' };
+  let palette_ = { color: 'rgb(var(--fg))', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.1)' };
 
   if (variant === 'role' && value && semantic.role[value]) palette_ = semantic.role[value];
   else if (variant === 'status' && value && semantic.status[value]) palette_ = semantic.status[value];
@@ -566,16 +566,16 @@ export const Button = React.forwardRef(
     const variants = {
       primary: {
         background: gradient.goldFill,
-        color: '#17110a',
+        color: 'rgb(var(--surface-hover))',
         border: '1px solid #d4a853',
       },
       secondary: {
-        background: '#0c0a07',
+        background: 'rgb(var(--surface-raised))',
         color: 'rgba(255,255,255,0.78)',
         border: '1px solid rgba(255,255,255,0.12)',
       },
       ghost: {
-        background: '#0a0805',
+        background: 'rgb(var(--surface-raised))',
         color: typography.body.muted,
         border: '1px solid rgba(255,255,255,0.10)',
       },

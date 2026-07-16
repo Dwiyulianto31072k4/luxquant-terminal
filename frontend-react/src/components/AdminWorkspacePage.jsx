@@ -244,7 +244,7 @@ const AccessGuard = () => (
         </div>
       </div>
       <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Restricted Area</h2>
-      <p className="text-xs" style={{ color: '#6b5c52' }}>
+      <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
         LuxQuant Management System is reserved for admin, co-admin, and founder. If you believe this is an error, reach out to your team lead.
       </p>
     </div>
@@ -352,7 +352,7 @@ const AdminWorkspacePage = () => {
             <p className="text-[12px] font-semibold text-text-primary/90">
               View-only mode ({currentUser?.role === 'founder' ? 'Founder' : 'Co-Admin'})
             </p>
-            <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
               You can browse all management tabs. Create, edit, delete, grant, and send actions are blocked by the server.
             </p>
           </div>

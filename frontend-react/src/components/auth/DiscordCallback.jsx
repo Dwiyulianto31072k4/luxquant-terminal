@@ -52,13 +52,13 @@ const DiscordCallback = () => {
   }, [location, navigate, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0506' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'rgb(var(--surface))' }}>
       <div className="flex flex-col items-center gap-4">
         <div className="relative w-14 h-14">
           <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212,168,83,0.2)' }} />
           <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
         </div>
-        <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>Menyelesaikan login Discord...</p>
+        <p className="text-sm font-medium" style={{ color: 'rgb(var(--fg-muted))' }}>Menyelesaikan login Discord...</p>
       </div>
     </div>
   );

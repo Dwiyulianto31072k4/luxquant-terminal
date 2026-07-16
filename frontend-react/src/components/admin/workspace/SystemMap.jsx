@@ -68,20 +68,20 @@ const ServiceNode = ({ data }) => {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {data.count != null
-          ? <span style={{ color: '#fff', fontWeight: 700, fontSize: size > 52 ? 16 : 14 }}>{data.count}</span>
+          ? <span style={{ color: 'rgb(var(--fg))', fontWeight: 700, fontSize: size > 52 ? 16 : 14 }}>{data.count}</span>
           : <span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />}
       </div>
       {down && <span className="lqf-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px solid ${c}` }} />}
       <div style={{ position: 'absolute', top: size + 5, left: '50%', transform: 'translateX(-50%)', width: 132, textAlign: 'center', pointerEvents: 'none' }}>
-        <div style={{ color: '#f5f0e8', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.title}</div>
-        <div style={{ color: '#a8967e', fontSize: 9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.sub}</div>
+        <div style={{ color: 'rgb(var(--fg))', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.title}</div>
+        <div style={{ color: 'rgb(var(--fg-muted))', fontSize: 9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.sub}</div>
       </div>
     </div>
   );
 };
 
 const TierNode = ({ data }) => (
-  <div style={{ color: '#6b5c52', fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', whiteSpace: 'nowrap', pointerEvents: 'none', fontWeight: 600 }}>
+  <div style={{ color: 'rgb(var(--fg-muted))', fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', whiteSpace: 'nowrap', pointerEvents: 'none', fontWeight: 600 }}>
     {data.label}
   </div>
 );
@@ -206,7 +206,7 @@ function DetailModal({ selectedId, topo, onClose, onAction }) {
     const out = edges.filter(e => e.from === id).map((e, i) => <ConnRow key={'o' + i} name={nameOf(e.to)} type={e.type} dir="out" />);
     const inc = edges.filter(e => e.to === id).map((e, i) => <ConnRow key={'i' + i} name={nameOf(e.from)} type={e.type} dir="in" />);
     const all = out.concat(inc);
-    return all.length ? all : <div className="lqd-conn" style={{ color: '#6b5c52' }}>no mapped connections</div>;
+    return all.length ? all : <div className="lqd-conn" style={{ color: 'rgb(var(--fg-muted))' }}>no mapped connections</div>;
   };
 
   let body;
@@ -216,7 +216,7 @@ function DetailModal({ selectedId, topo, onClose, onAction }) {
       <>
         <h3>{view.id}</h3>
         <div className="lqd-sub">{CATFN[view.id] || ''}</div>
-        <div style={{ margin: '10px 0' }}><Pill h={hstatus(list)} /> <span style={{ color: '#a8967e', fontSize: 12 }}>· {list.length} services</span></div>
+        <div style={{ margin: '10px 0' }}><Pill h={hstatus(list)} /> <span style={{ color: 'rgb(var(--fg-muted))', fontSize: 12 }}>· {list.length} services</span></div>
         {list.map(n => (
           <div key={n.name} className="lqd-svc" onClick={() => setView({ kind: 'service', id: n.name })}>
             <div className="lqd-row">
@@ -343,7 +343,7 @@ function MapFlow({ topo, onAction }) {
             nodeColor={(n) => n.data?.color || '#8a7a6e'}
             nodeStrokeWidth={0}
             maskColor="rgba(10,5,6,0.6)"
-            style={{ background: '#0c0709', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}
+            style={{ background: 'rgb(var(--surface))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}
           />
           <Controls showInteractive={false} />
         </ReactFlow>
@@ -448,9 +448,9 @@ export default function SystemMap() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading && !topo) return <div style={{ padding: '60px 0', textAlign: 'center', color: '#a8967e' }}>Loading topology…</div>;
+  if (loading && !topo) return <div style={{ padding: '60px 0', textAlign: 'center', color: 'rgb(var(--fg-muted))' }}>Loading topology…</div>;
   if (error) return <div style={{ padding: 16, borderRadius: 10, background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>;
-  if (topo && topo.available === false) return <div style={{ padding: '40px 0', textAlign: 'center', color: '#a8967e' }}>{topo.reason || 'Topology unavailable.'}</div>;
+  if (topo && topo.available === false) return <div style={{ padding: '40px 0', textAlign: 'center', color: 'rgb(var(--fg-muted))' }}>{topo.reason || 'Topology unavailable.'}</div>;
   if (!topo) return null;
 
   return (

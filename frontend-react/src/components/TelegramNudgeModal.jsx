@@ -238,7 +238,7 @@ const TelegramNudgeModal = () => {
               href="/profile"
               onClick={dismiss}
               className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
-              style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}
+              style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: 'rgb(var(--fg))', border: '1px solid rgba(0,136,204,0.3)' }}
             >
               {t('nudge.link_cta', 'Link Telegram')}
             </a>
@@ -247,7 +247,7 @@ const TelegramNudgeModal = () => {
               onClick={handleJoin}
               disabled={loading}
               className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: '#fff', border: '1px solid rgba(0,136,204,0.3)' }}
+              style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: 'rgb(var(--fg))', border: '1px solid rgba(0,136,204,0.3)' }}
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

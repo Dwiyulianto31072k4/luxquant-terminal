@@ -11,7 +11,7 @@ const CRM_CHIPS = [
     key: 'untouched',
     label: 'Untracked',
     hint: 'No follow-up yet — needs first outreach',
-    color: '#8a7a6e',
+    color: 'rgb(var(--fg-muted))',
   },
   {
     key: 'open',

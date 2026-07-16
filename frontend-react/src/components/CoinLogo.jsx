@@ -246,7 +246,7 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
   };
 
   const info = statusMap && pair ? statusMap[pair.toUpperCase()] : null;
-  const meta = info ? (STATUS_META[info.status] || { label: (info.status || '—').toUpperCase(), color: '#9ca3af', desc: '' }) : null;
+  const meta = info ? (STATUS_META[info.status] || { label: (info.status || '—').toUpperCase(), color: 'rgb(var(--fg-secondary))', desc: '' }) : null;
   const ago = info ? timeAgo(info.created) : null;
   // native title → never clipped by overflow-hidden panels
   const tip = info ? `${symbol} · ${meta.label}${ago ? ` · called ${ago}` : ''} · click for details` : symbol;
@@ -282,7 +282,7 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
         decoding="async"
         style={{
           width: size, height: size, objectFit: 'cover',
-          backgroundColor: '#1a0a0a',
+          backgroundColor: 'rgb(var(--surface-hover))',
         }}
         title={tip}
       />

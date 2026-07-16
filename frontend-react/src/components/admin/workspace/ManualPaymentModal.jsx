@@ -49,8 +49,8 @@ const Field = ({ label, hint, error, children }) => (
   <div className="space-y-1">
     <label className="block text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</label>
     {children}
-    {hint && !error && <p className="text-[10px]" style={{ color: '#6b5c52' }}>{hint}</p>}
-    {error && <p className="flex items-center gap-1 text-[10px]" style={{ color: '#f87171' }}><AlertTriangleIcon size={10} />{error}</p>}
+    {hint && !error && <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</p>}
+    {error && <p className="flex items-center gap-1 text-[10px]" style={{ color: 'rgb(var(--neg))' }}><AlertTriangleIcon size={10} />{error}</p>}
   </div>
 );
 
@@ -64,10 +64,10 @@ const TextInput = ({ value, onChange, placeholder, mono, disabled, autoFocus }) 
 
 const Pill = ({ tone, children, Icon, pulse }) => {
   const tones = {
-    green: { bg: 'rgba(52,211,153,0.10)', color: '#34d399', border: 'rgba(52,211,153,0.3)' },
-    amber: { bg: 'rgba(251,191,36,0.10)', color: '#fbbf24', border: 'rgba(251,191,36,0.3)' },
-    red: { bg: 'rgba(248,113,113,0.10)', color: '#f87171', border: 'rgba(248,113,113,0.3)' },
-    gold: { bg: 'rgba(212,168,83,0.10)', color: '#d4a853', border: 'rgba(212,168,83,0.3)' },
+    green: { bg: 'rgba(52,211,153,0.10)', color: 'rgb(var(--pos))', border: 'rgba(52,211,153,0.3)' },
+    amber: { bg: 'rgba(251,191,36,0.10)', color: 'rgb(var(--warn))', border: 'rgba(251,191,36,0.3)' },
+    red: { bg: 'rgba(248,113,113,0.10)', color: 'rgb(var(--neg))', border: 'rgba(248,113,113,0.3)' },
+    gold: { bg: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: 'rgba(212,168,83,0.3)' },
   };
   const t = tones[tone] || tones.gold;
   return (
@@ -103,7 +103,7 @@ const TxStep = ({ txHash, setTxHash, verifying, verifyResult, verifyError, onVer
             {verifying ? 'Inspecting on BSC…' : 'Verify on BSC'}
           </button>
           {verifyError && (
-            <div className="flex items-start gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.28)' }}>
+            <div className="flex items-start gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: 'rgb(var(--neg))', border: '1px solid rgba(248,113,113,0.28)' }}>
               <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" /><span>{verifyError}</span>
             </div>
           )}
@@ -135,16 +135,16 @@ const TxStep = ({ txHash, setTxHash, verifying, verifyResult, verifyError, onVer
             )}
           </div>
           {blockers.map((b) => (
-            <div key={b.code} className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.28)' }}>
+            <div key={b.code} className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: 'rgb(var(--neg))', border: '1px solid rgba(248,113,113,0.28)' }}>
               <AlertCircleIcon size={13} className="mt-0.5 shrink-0" /><span>{b.message}</span>
             </div>
           ))}
           {warnings.map((w) => (
-            <div key={w.code} className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(251,191,36,0.08)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.28)' }}>
+            <div key={w.code} className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(251,191,36,0.08)', color: 'rgb(var(--warn))', border: '1px solid rgba(251,191,36,0.28)' }}>
               <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" /><span>{w.message}</span>
             </div>
           ))}
-          <button onClick={onReset} className="text-[10.5px] underline" style={{ color: '#6b5c52' }}>Use a different TX hash</button>
+          <button onClick={onReset} className="text-[10.5px] underline" style={{ color: 'rgb(var(--fg-muted))' }}>Use a different TX hash</button>
           {tx?.timestamp && <PaymentDateOverride txTimestamp={tx.timestamp} value={paymentDateOverride} onChange={setPaymentDateOverride} />}
         </div>
       )}
@@ -169,24 +169,24 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
       style={{ background: overriding ? 'rgba(212,168,83,0.04)' : 'rgba(255,255,255,0.02)', border: `1px solid ${overriding ? 'rgba(212,168,83,0.22)' : 'rgba(255,255,255,0.05)'}` }}>
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: '#d4a853' }}>
+          <span className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))' }}>
             <CalendarMini /> Payment Date
           </span>
-          {!overriding && <span className="text-[10px]" style={{ color: '#8a7a6e' }}>(uses TX date — subscription starts from here)</span>}
+          {!overriding && <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>(uses TX date — subscription starts from here)</span>}
         </div>
         <button onClick={handleToggle} className="text-[9.5px] font-semibold uppercase tracking-wider transition-colors" style={{ color: overriding ? '#f87171' : '#d4a853' }}>
           {overriding ? 'Reset to TX date' : 'Override'}
         </button>
       </div>
       {!overriding ? (
-        <p className="font-mono text-xs tabular-nums" style={{ color: '#fff' }}>{txDateStr || '—'}</p>
+        <p className="font-mono text-xs tabular-nums" style={{ color: 'rgb(var(--fg))' }}>{txDateStr || '—'}</p>
       ) : (
         <>
           <input type="date" value={value} onChange={(e) => onChange(e.target.value)} max={new Date().toISOString().slice(0, 10)}
             className="w-full rounded-md px-2.5 py-1.5 font-mono text-xs text-text-primary focus:outline-none"
             style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.25)', colorScheme: 'dark' }} />
           {diffDays !== 0 && txDateStr && (
-            <p className="mt-1.5 flex items-center gap-1 text-[10px]" style={{ color: '#fbbf24' }}>
+            <p className="mt-1.5 flex items-center gap-1 text-[10px]" style={{ color: 'rgb(var(--warn))' }}>
               <AlertTriangleIcon size={10} />
               {diffDays > 0 ? `${diffDays} day(s) AFTER TX date — subscription will start later than the on-chain payment` : `${Math.abs(diffDays)} day(s) BEFORE TX date — unusual, double-check`}
             </p>
@@ -205,11 +205,11 @@ const CalendarMini = () => (
 
 const Row = ({ label, value, mono, valueColor, big, copyable }) => (
   <div className="flex items-center justify-between gap-3">
-    <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>{label}</span>
+    <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--fg-muted))' }}>{label}</span>
     <div className="flex min-w-0 items-center gap-1.5">
       <span className={`truncate ${mono ? 'font-mono tabular-nums' : ''} ${big ? 'text-sm font-semibold' : ''}`} style={{ color: valueColor || '#fff' }}>{value || '—'}</span>
       {copyable && value && (
-        <button onClick={() => navigator.clipboard?.writeText(String(value)).catch(() => {})} className="rounded p-1 hover:bg-white/5" style={{ color: '#8a7a6e' }} title="Copy">
+        <button onClick={() => navigator.clipboard?.writeText(String(value)).catch(() => {})} className="rounded p-1 hover:bg-white/5" style={{ color: 'rgb(var(--fg-muted))' }} title="Copy">
           <CopyIcon size={10} />
         </button>
       )}
@@ -262,12 +262,12 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
             <button onClick={() => setSelectedUser(suggested)} className="mb-3 w-full rounded-lg px-3 py-2.5 text-left transition-all hover:scale-[1.01]"
               style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.22)' }}>
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(212,168,83,0.14)', color: '#d4a853', boxShadow: 'inset 0 0 0 1px rgba(212,168,83,0.3)' }}>
+                <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(212,168,83,0.14)', color: 'rgb(var(--accent))', boxShadow: 'inset 0 0 0 1px rgba(212,168,83,0.3)' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.5.4.8 1 .8 1.6v.7h6.4v-.7c0-.6.3-1.2.8-1.6A7 7 0 0 0 12 2z" /></svg>
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[11px] font-semibold text-text-primary">Link to @{suggested.username}?</p>
-                  <p className="text-[10px]" style={{ color: '#8a7a6e' }}>This wallet previously paid for them.</p>
+                  <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>This wallet previously paid for them.</p>
                 </div>
               </div>
             </button>
@@ -277,20 +277,20 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
               {!selectedUser ? (
                 <>
                   <div className="relative">
-                    <SearchIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b5c52' }} />
+                    <SearchIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgb(var(--fg-muted))' }} />
                     <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search username, email, or telegram…"
                       className="w-full rounded-md py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
                   </div>
-                  {searching && <p className="text-[10px]" style={{ color: '#6b5c52' }}>Searching…</p>}
+                  {searching && <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>Searching…</p>}
                   {!searching && results.length > 0 && (
                     <div className="max-h-56 overflow-y-auto rounded-lg" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
                       {results.map((u, i) => (
                         <button key={u.id} onClick={() => setSelectedUser(u)} className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-white/5"
                           style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}>
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(212,168,83,0.12)', color: '#d4a853' }}>{u.username[0].toUpperCase()}</span>
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(212,168,83,0.12)', color: 'rgb(var(--accent))' }}>{u.username[0].toUpperCase()}</span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[11.5px] font-semibold text-text-primary">@{u.username}<span className="ml-1 text-[9px] font-normal" style={{ color: '#6b5c52' }}>#{u.id}</span></p>
-                            <p className="truncate text-[10px]" style={{ color: '#8a7a6e' }}>{u.email}</p>
+                            <p className="truncate text-[11.5px] font-semibold text-text-primary">@{u.username}<span className="ml-1 text-[9px] font-normal" style={{ color: 'rgb(var(--fg-muted))' }}>#{u.id}</span></p>
+                            <p className="truncate text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{u.email}</p>
                           </div>
                           <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
                             style={{ background: u.role === 'subscriber' ? 'rgba(52,211,153,0.12)' : 'rgba(107,92,82,0.12)', color: u.role === 'subscriber' ? '#34d399' : '#8a7a6e' }}>{u.role}</span>
@@ -324,15 +324,15 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
 
 const SelectedUserCard = ({ user, onClear }) => (
   <div className="flex items-center gap-3 rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.22)' }}>
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold" style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}>{user.username[0].toUpperCase()}</span>
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold" style={{ background: 'rgba(212,168,83,0.15)', color: 'rgb(var(--accent))' }}>{user.username[0].toUpperCase()}</span>
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-1.5">
         <p className="truncate text-[12px] font-semibold text-text-primary">@{user.username}</p>
-        <CheckCircleIcon size={11} style={{ color: '#34d399' }} />
+        <CheckCircleIcon size={11} style={{ color: 'rgb(var(--pos))' }} />
       </div>
-      <p className="truncate text-[10px]" style={{ color: '#8a7a6e' }}>{user.email} · #{user.id} · {user.role}</p>
+      <p className="truncate text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{user.email} · #{user.id} · {user.role}</p>
     </div>
-    <button onClick={onClear} className="shrink-0 text-[10px] underline" style={{ color: '#6b5c52' }}>Change</button>
+    <button onClick={onClear} className="shrink-0 text-[10px] underline" style={{ color: 'rgb(var(--fg-muted))' }}>Change</button>
   </div>
 );
 
@@ -343,7 +343,7 @@ const PlanStep = ({ locked, plans, selectedPlanId, setSelectedPlanId, suggestedP
     <StepHeader num={3} title="Subscription Plan" complete={!!selectedPlanId} locked={locked} />
     {!locked && (
       <div className="space-y-2">
-        {plans.length === 0 ? <p className="text-[11px]" style={{ color: '#6b5c52' }}>Loading plans…</p> : (
+        {plans.length === 0 ? <p className="text-[11px]" style={{ color: 'rgb(var(--fg-muted))' }}>Loading plans…</p> : (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {plans.map((p) => {
               const isSelected = selectedPlanId === p.id;
@@ -358,10 +358,10 @@ const PlanStep = ({ locked, plans, selectedPlanId, setSelectedPlanId, suggestedP
                   </div>
                   <div className="flex items-baseline justify-between">
                     <span className="text-base font-light tabular-nums" style={{ color: isSelected ? '#d4a853' : '#fff' }}>${Number(p.price_usdt).toFixed(2)}</span>
-                    <span className="text-[10px]" style={{ color: '#6b5c52' }}>{p.is_lifetime ? 'lifetime' : `${p.duration_days} days`}</span>
+                    <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{p.is_lifetime ? 'lifetime' : `${p.duration_days} days`}</span>
                   </div>
                   {amountMatch && txAmount && (
-                    <p className="mt-1 flex items-center gap-1 text-[9.5px]" style={{ color: '#34d399' }}><CheckCircleIcon size={9} />Matches TX amount</p>
+                    <p className="mt-1 flex items-center gap-1 text-[9.5px]" style={{ color: 'rgb(var(--pos))' }}><CheckCircleIcon size={9} />Matches TX amount</p>
                   )}
                 </button>
               );
@@ -556,11 +556,11 @@ export const ManualPaymentModal = ({ isOpen, onClose, onSuccess, preselectedUser
   const header = (
     <div className="flex items-center gap-2.5">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: 'rgba(212,168,83,0.1)', border: '1px solid rgba(212,168,83,0.22)' }}>
-        <StarIcon size={14} style={{ color: '#d4a853' }} />
+        <StarIcon size={14} style={{ color: 'rgb(var(--accent))' }} />
       </div>
       <div className="min-w-0">
         <h2 className="text-sm font-bold leading-tight tracking-tight text-text-primary">Record Manual Payment</h2>
-        <p className="text-[10px] leading-tight" style={{ color: '#6b5c52' }}>For users who paid out-of-band (Telegram support, etc.)</p>
+        <p className="text-[10px] leading-tight" style={{ color: 'rgb(var(--fg-muted))' }}>For users who paid out-of-band (Telegram support, etc.)</p>
       </div>
     </div>
   );
@@ -612,12 +612,12 @@ export const ManualPaymentModal = ({ isOpen, onClose, onSuccess, preselectedUser
         {isOnchain && step3Done && hasWalletNotInPoolWarning && (
           <div className="space-y-2 rounded-lg p-3" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.28)' }}>
             <div className="flex items-start gap-2">
-              <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" style={{ color: '#f87171' }} />
-              <div className="text-[11px]" style={{ color: '#f87171' }}>
+              <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--neg))' }} />
+              <div className="text-[11px]" style={{ color: 'rgb(var(--neg))' }}>
                 <strong>Out-of-pool wallet:</strong> recipient address is not registered in the receiving wallet pool. This is unusual.
               </div>
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-[11px]" style={{ color: '#f87171' }}>
+            <label className="flex cursor-pointer items-center gap-2 text-[11px]" style={{ color: 'rgb(var(--neg))' }}>
               <input type="checkbox" checked={acceptWalletNotInPool} onChange={(e) => setAcceptWalletNotInPool(e.target.checked)} className="cursor-pointer" />
               I verified this — accept anyway.
             </label>
@@ -629,7 +629,7 @@ export const ManualPaymentModal = ({ isOpen, onClose, onSuccess, preselectedUser
         </div>
 
         {submitError && (
-          <div className="flex items-start gap-2 rounded-lg p-3 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.28)' }}>
+          <div className="flex items-start gap-2 rounded-lg p-3 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: 'rgb(var(--neg))', border: '1px solid rgba(248,113,113,0.28)' }}>
             <AlertCircleIcon size={14} className="mt-0.5 shrink-0" />{submitError}
           </div>
         )}

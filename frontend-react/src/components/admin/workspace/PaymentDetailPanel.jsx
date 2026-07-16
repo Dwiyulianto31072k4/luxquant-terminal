@@ -132,7 +132,7 @@ const ExchangeRow = ({ exchangeName, walletLabel }) => {
     >
       <span
         className="text-[10px] uppercase tracking-wider shrink-0"
-        style={{ color: '#6b5c52' }}
+        style={{ color: 'rgb(var(--fg-muted))' }}
       >
         Received Into
       </span>
@@ -147,7 +147,7 @@ const ExchangeRow = ({ exchangeName, walletLabel }) => {
         {walletLabel && (
           <span
             className="text-[10px] truncate"
-            style={{ color: '#8a7a6e' }}
+            style={{ color: 'rgb(var(--fg-muted))' }}
             title={`Internal wallet label: ${walletLabel}`}
           >
             ({walletLabel})
@@ -187,7 +187,7 @@ const TONE = {
     iconBg: '#120f0c',
   },
   gold: {
-    color: '#17110a',
+    color: 'rgb(var(--surface-hover))',
     bg: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
     border: '#d4a853',
     iconBg: 'transparent',
@@ -285,7 +285,7 @@ const NoteInput = ({ actionType, note, onChange, onCancel, onSubmit, busy }) => 
           className="block text-[9.5px] uppercase tracking-wider font-semibold mb-1 font-mono"
           style={{ color: t.color }}
         >
-          Reason <span style={{ color: '#f87171' }}>*</span>
+          Reason <span style={{ color: 'rgb(var(--neg))' }}>*</span>
         </label>
         <textarea
           value={note}
@@ -340,7 +340,7 @@ const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
         style={{ background: PANEL.hairline }}
       />
       <div>
-        <p className="text-[12px] font-bold" style={{ color: '#d4a853' }}>
+        <p className="text-[12px] font-bold" style={{ color: 'rgb(var(--accent))' }}>
           Add Note to Audit Trail
         </p>
         <p className="text-[10.5px] mt-0.5" style={{ color: PANEL.muted }}>
@@ -384,7 +384,7 @@ const PaymentDateRow = ({ verifiedAt }) => (
   >
     <span
       className="text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5"
-      style={{ color: '#d4a853' }}
+      style={{ color: 'rgb(var(--accent))' }}
     >
       <CalendarDotIcon size={11} />
       Payment Date
@@ -597,7 +597,7 @@ export const PaymentDetailPanel = ({
     >
       {loading && !payment ? (
         <div className="flex items-center justify-center py-16">
-          <div className="inline-flex items-center gap-2 text-xs" style={{ color: '#6b5c52' }}>
+          <div className="inline-flex items-center gap-2 text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
             <div
               className="w-4 h-4 border-2 rounded-full animate-spin"
               style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }}
@@ -606,7 +606,7 @@ export const PaymentDetailPanel = ({
           </div>
         </div>
       ) : !p ? (
-        <p className="text-center text-xs py-12" style={{ color: '#6b5c52' }}>
+        <p className="text-center text-xs py-12" style={{ color: 'rgb(var(--fg-muted))' }}>
           No payment selected.
         </p>
       ) : (
@@ -783,7 +783,7 @@ export const PaymentDetailPanel = ({
                   className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
                   style={{
                     background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
-                    color: '#17110a',
+                    color: 'rgb(var(--surface-hover))',
                     border: '1px solid #d4a853',
                   }}
                 >
@@ -918,9 +918,9 @@ export const PaymentDetailPanel = ({
             {recordGapDays !== null && Math.abs(recordGapDays) >= 1 && (
               <p
                 className="text-[10.5px] mt-1.5 flex items-center gap-1.5 px-2"
-                style={{ color: '#8a7a6e' }}
+                style={{ color: 'rgb(var(--fg-muted))' }}
               >
-                <TimerIcon size={11} style={{ color: '#d4a853' }} />
+                <TimerIcon size={11} style={{ color: 'rgb(var(--accent))' }} />
                 {recordGapDays > 0
                   ? `Recorded ${recordGapDays} day${recordGapDays !== 1 ? 's' : ''} after the payment`
                   : `Record predates the payment by ${Math.abs(recordGapDays)} day${Math.abs(recordGapDays) !== 1 ? 's' : ''} (unusual)`}
@@ -948,7 +948,7 @@ export const PaymentDetailPanel = ({
                   className="rounded-lg p-2.5 text-[10px] font-mono overflow-x-auto max-h-60 overflow-y-auto"
                   style={{
                     background: 'rgba(0,0,0,0.4)',
-                    color: '#c9b59e',
+                    color: 'rgb(var(--fg-secondary))',
                     border: '1px solid rgba(255,255,255,0.06)',
                   }}
                 >
@@ -965,7 +965,7 @@ export const PaymentDetailPanel = ({
                 className="rounded-lg p-3 text-[10.5px] font-mono whitespace-pre-wrap leading-relaxed"
                 style={{
                   background: 'rgba(0,0,0,0.30)',
-                  color: '#c9b59e',
+                  color: 'rgb(var(--fg-secondary))',
                   border: '1px solid rgba(255,255,255,0.06)',
                   maxHeight: 220,
                   overflowY: 'auto',

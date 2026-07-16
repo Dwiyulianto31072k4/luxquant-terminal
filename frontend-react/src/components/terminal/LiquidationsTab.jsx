@@ -62,10 +62,10 @@ function LiqCell(props) {
             }}
           >
             {big && <CoinLogo pair={name} size={logo} />}
-            <span style={{ color: "#fff", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ color: "rgb(var(--fg))", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {sym}
             </span>
-            <span style={{ color: "#fff", opacity: 0.95, fontFamily: "ui-monospace, monospace", fontSize: big ? 11 : 9.5, lineHeight: 1.05 }}>
+            <span style={{ color: "rgb(var(--fg))", opacity: 0.95, fontFamily: "ui-monospace, monospace", fontSize: big ? 11 : 9.5, lineHeight: 1.05 }}>
               {fmtMoney(size)}
             </span>
           </div>

@@ -30,7 +30,7 @@ const SubscriptionStatus = ({ compact = false }) => {
     if (sub?.tier === 'admin') {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-              style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'rgb(var(--neg))', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
           ADMIN
         </span>
       );
@@ -39,7 +39,7 @@ const SubscriptionStatus = ({ compact = false }) => {
     if (sub?.is_subscribed) {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-              style={{ background: 'rgba(212, 168, 83, 0.15)', color: '#d4a853', border: '1px solid rgba(212, 168, 83, 0.3)' }}>
+              style={{ background: 'rgba(212, 168, 83, 0.15)', color: 'rgb(var(--accent))', border: '1px solid rgba(212, 168, 83, 0.3)' }}>
           PREMIUM
         </span>
       );
@@ -49,7 +49,7 @@ const SubscriptionStatus = ({ compact = false }) => {
       <button
         onClick={() => navigate('/pricing')}
         className="px-2 py-0.5 rounded text-[10px] font-bold transition-colors"
-        style={{ background: 'rgba(100, 100, 100, 0.15)', color: '#6b5c52', border: '1px solid rgba(100, 100, 100, 0.2)' }}
+        style={{ background: 'rgba(100, 100, 100, 0.15)', color: 'rgb(var(--fg-muted))', border: '1px solid rgba(100, 100, 100, 0.2)' }}
       >
         FREE
       </button>
@@ -64,17 +64,17 @@ const SubscriptionStatus = ({ compact = false }) => {
         <span className="text-sm font-medium text-text-primary">Subscription</span>
         {sub?.tier === 'admin' ? (
           <span className="px-2 py-0.5 rounded text-xs font-bold"
-                style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
+                style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'rgb(var(--neg))' }}>
             ADMIN
           </span>
         ) : sub?.is_subscribed ? (
           <span className="px-2 py-0.5 rounded text-xs font-bold"
-                style={{ background: 'rgba(212, 168, 83, 0.15)', color: '#d4a853' }}>
+                style={{ background: 'rgba(212, 168, 83, 0.15)', color: 'rgb(var(--accent))' }}>
             PREMIUM
           </span>
         ) : (
           <span className="px-2 py-0.5 rounded text-xs font-bold"
-                style={{ background: 'rgba(100, 100, 100, 0.15)', color: '#6b5c52' }}>
+                style={{ background: 'rgba(100, 100, 100, 0.15)', color: 'rgb(var(--fg-muted))' }}>
             FREE
           </span>
         )}
@@ -97,13 +97,13 @@ const SubscriptionStatus = ({ compact = false }) => {
         </div>
       ) : (
         <div>
-          <p className="text-xs mb-3" style={{ color: '#6b5c52' }}>
+          <p className="text-xs mb-3" style={{ color: 'rgb(var(--fg-muted))' }}>
             Upgrade untuk akses semua fitur premium
           </p>
           <button
             onClick={() => navigate('/pricing')}
             className="w-full py-2 rounded-lg text-xs font-semibold transition-all"
-            style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}
+            style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: 'rgb(var(--surface))' }}
           >
             Upgrade Sekarang
           </button>

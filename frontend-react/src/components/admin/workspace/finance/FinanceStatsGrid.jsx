@@ -34,7 +34,7 @@ const KpiTile = ({
         isClickable && !loading ? 'cursor-pointer' : 'cursor-default'
       }`}
       style={{
-        background: '#0a0805',
+        background: 'rgb(var(--surface-raised))',
         border: `1px solid ${active ? `${accent}80` : 'rgba(255,255,255,0.07)'}`,
       }}
       onMouseEnter={(e) => { if (isClickable && !active) e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)'; }}

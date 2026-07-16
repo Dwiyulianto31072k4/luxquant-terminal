@@ -19,8 +19,8 @@ const Field = ({ label, hint, required, children }) => (
   <div>
     <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
       {label}
-      {required && <span style={{ color: '#f87171' }}> *</span>}
-      {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: '#4a3f39' }}>{hint}</span>}
+      {required && <span style={{ color: 'rgb(var(--neg))' }}> *</span>}
+      {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</span>}
     </label>
     {children}
   </div>
@@ -31,7 +31,7 @@ const PickOption = ({ value, currentValue, onClick, label, color, Icon }) => {
   return (
     <button type="button" onClick={onClick}
       className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-all"
-      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : '#8a7a6e', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
+      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
       {Icon && <Icon size={11} />}
       {label}
     </button>
@@ -45,19 +45,19 @@ const TwitterIcon = ({ size = 14, ...props }) => (
 );
 
 const PLATFORMS = [
-  { value: 'twitter', label: 'Twitter/X', color: '#fff', Icon: TwitterIcon },
+  { value: 'twitter', label: 'Twitter/X', color: 'rgb(var(--fg))', Icon: TwitterIcon },
   { value: 'telegram', label: 'Telegram', color: '#229ED9', Icon: TelegramIcon },
   { value: 'discord', label: 'Discord', color: '#5865F2', Icon: DiscordIcon },
-  { value: 'influencer', label: 'Influencer', color: '#d4a853', Icon: SparklesIcon },
-  { value: 'other', label: 'Other', color: '#8a7a6e', Icon: TrendingUpIcon },
+  { value: 'influencer', label: 'Influencer', color: 'rgb(var(--accent))', Icon: SparklesIcon },
+  { value: 'other', label: 'Other', color: 'rgb(var(--fg-muted))', Icon: TrendingUpIcon },
 ];
 
 const STATUSES = [
   { value: 'planning', label: 'Planning', color: '#a78bfa' },
-  { value: 'active', label: 'Active', color: '#34d399' },
-  { value: 'paused', label: 'Paused', color: '#fbbf24' },
+  { value: 'active', label: 'Active', color: 'rgb(var(--pos))' },
+  { value: 'paused', label: 'Paused', color: 'rgb(var(--warn))' },
   { value: 'completed', label: 'Completed', color: '#60a5fa' },
-  { value: 'cancelled', label: 'Cancelled', color: '#6b5c52' },
+  { value: 'cancelled', label: 'Cancelled', color: 'rgb(var(--fg-muted))' },
 ];
 
 const inputCls = "w-full rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none";
@@ -72,7 +72,7 @@ const LineItemRow = ({ item, onChange, onDelete }) => (
     <div className="flex items-center gap-2">
       <input type="date" value={item.date || ''} onChange={(e) => onChange({ ...item, date: e.target.value })} className={`${inputCls} flex-1 font-mono`} style={{ ...inputStyle, colorScheme: 'dark' }} />
       <input type="text" value={item.note || ''} onChange={(e) => onChange({ ...item, note: e.target.value })} placeholder="Note (optional)" className={`${inputCls} flex-[2]`} style={inputStyle} />
-      <button type="button" onClick={onDelete} className="rounded-md p-1.5 transition-colors" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
+      <button type="button" onClick={onDelete} className="rounded-md p-1.5 transition-colors" style={{ color: 'rgb(var(--neg))', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
         <TrashIcon size={11} />
       </button>
     </div>
@@ -83,7 +83,7 @@ const MetadataRow = ({ k, v, onChange, onDelete }) => (
   <div className="flex items-center gap-2">
     <input type="text" value={k} onChange={(e) => onChange(e.target.value, v)} placeholder="Key (e.g. impressions)" className={`${inputCls} flex-1 font-mono`} style={inputStyle} />
     <input type="text" value={typeof v === 'string' ? v : JSON.stringify(v)} onChange={(e) => { const val = e.target.value; const num = Number(val); onChange(k, val !== '' && !isNaN(num) ? num : val); }} placeholder="Value (e.g. 50000)" className={`${inputCls} flex-[2]`} style={inputStyle} />
-    <button type="button" onClick={onDelete} className="rounded-md p-1.5 transition-colors" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
+    <button type="button" onClick={onDelete} className="rounded-md p-1.5 transition-colors" style={{ color: 'rgb(var(--neg))', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
       <TrashIcon size={11} />
     </button>
   </div>
@@ -203,7 +203,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             <input type="number" step="0.01" min="0" value={spentUsd} onChange={(e) => setSpentUsd(e.target.value)} placeholder="0.00"
               className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
             {lineItemsTotal > 0 && lineItemsTotal !== parseFloat(spentUsd) && (
-              <button type="button" onClick={() => setSpentUsd(String(lineItemsTotal))} className="mt-1 text-[10px] hover:underline" style={{ color: '#d4a853' }}>
+              <button type="button" onClick={() => setSpentUsd(String(lineItemsTotal))} className="mt-1 text-[10px] hover:underline" style={{ color: 'rgb(var(--accent))' }}>
                 Sync from line items: ${lineItemsTotal.toFixed(2)}
               </button>
             )}
@@ -225,15 +225,15 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Line Items <span className="ml-1 lowercase tracking-normal" style={{ color: '#4a3f39' }}>({lineItems.length})</span>
+              Line Items <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>({lineItems.length})</span>
             </label>
             <button type="button" onClick={() => setLineItems([...lineItems, { label: '', amount: 0, date: '', note: '' }])}
-              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#d4a853', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.22)' }}>
+              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.22)' }}>
               <PlusIcon size={10} /> Add Item
             </button>
           </div>
           {lineItems.length === 0 ? (
-            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', color: '#6b5c52' }}>
+            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', color: 'rgb(var(--fg-muted))' }}>
               No line items yet. Click "Add Item" to track a spending breakdown.
             </div>
           ) : (
@@ -241,7 +241,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               {lineItems.map((item, i) => (
                 <LineItemRow key={i} item={item} onChange={(u) => { const n = [...lineItems]; n[i] = u; setLineItems(n); }} onDelete={() => setLineItems(lineItems.filter((_, idx) => idx !== i))} />
               ))}
-              <p className="text-right text-[10px] tabular-nums" style={{ color: '#8a7a6e' }}>Line items total: ${lineItemsTotal.toFixed(2)}</p>
+              <p className="text-right text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>Line items total: ${lineItemsTotal.toFixed(2)}</p>
             </div>
           )}
         </div>
@@ -250,15 +250,15 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Custom Fields <span className="ml-1 lowercase tracking-normal" style={{ color: '#4a3f39' }}>({metadata.length})</span>
+              Custom Fields <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>({metadata.length})</span>
             </label>
             <button type="button" onClick={() => setMetadata([...metadata, { key: '', value: '' }])}
-              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#d4a853', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.22)' }}>
+              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.22)' }}>
               <PlusIcon size={10} /> Add Field
             </button>
           </div>
           {metadata.length === 0 ? (
-            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', color: '#6b5c52' }}>
+            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', color: 'rgb(var(--fg-muted))' }}>
               Custom fields: add any KPI/metric (impressions, conversions, ROI, tags, etc.).
             </div>
           ) : (
@@ -271,13 +271,13 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
+          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(248,113,113,0.08)', color: 'rgb(var(--neg))', border: '1px solid rgba(248,113,113,0.25)' }}>
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />{error}
           </div>
         )}
 
         {isEdit && editingItem && (
-          <div className="rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: '#6b5c52' }}>
+          <div className="rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}>
             <p>Created {new Date(editingItem.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {editingItem.creator && <> by @{editingItem.creator.username}</>}</p>
           </div>

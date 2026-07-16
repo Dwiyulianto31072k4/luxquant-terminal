@@ -78,7 +78,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
             style={{
               background: "rgba(246,70,93,0.08)",
               border: "1px solid rgba(246,70,93,0.25)",
-              color: "#f87171",
+              color: "rgb(var(--neg))",
             }}
           >
             This user hasn't linked Telegram, so the bot can't message them.
@@ -95,7 +95,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
                   className="rounded-md px-2 py-1 text-[10px] font-semibold"
                   style={{
                     background: "rgba(212,168,83,0.1)",
-                    color: "#d4a853",
+                    color: "rgb(var(--accent))",
                     border: "1px solid rgba(212,168,83,0.25)",
                   }}
                 >
@@ -106,7 +106,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
                 <button
                   onClick={() => setText("")}
                   className="rounded-md px-2 py-1 text-[10px] font-semibold"
-                  style={{ background: "rgba(255,255,255,0.04)", color: "#8a7a6e" }}
+                  style={{ background: "rgba(255,255,255,0.04)", color: "rgb(var(--fg-muted))" }}
                 >
                   Clear
                 </button>

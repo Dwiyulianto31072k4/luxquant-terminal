@@ -89,7 +89,7 @@ export function LoadingScreen({ label = "Loading LuxQuant", fullscreen = true })
         <div className="flex flex-col items-center gap-3">
           <span
             className="font-mono uppercase"
-            style={{ color: "#efe7dd", fontSize: 13, letterSpacing: "0.42em", textIndent: "0.42em", fontWeight: 600 }}
+            style={{ color: "rgb(var(--fg))", fontSize: 13, letterSpacing: "0.42em", textIndent: "0.42em", fontWeight: 600 }}
           >
             LuxQuant
           </span>
@@ -104,7 +104,7 @@ export function LoadingScreen({ label = "Loading LuxQuant", fullscreen = true })
             />
           </div>
           {label ? (
-            <span className="font-mono" style={{ color: "#6b5c52", fontSize: 10, letterSpacing: "0.16em" }}>
+            <span className="font-mono" style={{ color: "rgb(var(--fg-muted))", fontSize: 10, letterSpacing: "0.16em" }}>
               {label}…
             </span>
           ) : null}

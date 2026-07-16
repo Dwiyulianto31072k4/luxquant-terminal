@@ -114,7 +114,7 @@ function FngBadge({ value, label }) {
         <div className="h-2 rounded-full" style={{ background: "linear-gradient(90deg,#f87171,#f97316,#fbbf24,#a3e635,#34d399)" }} />
         <div
           className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-surface-raised shadow"
-          style={{ left: `${pos}%`, transform: "translate(-50%,-50%)", background: "#fff" }}
+          style={{ left: `${pos}%`, transform: "translate(-50%,-50%)", background: "rgb(var(--fg))" }}
         />
         <div className="mt-1 flex justify-between font-mono text-[7.5px] uppercase tracking-wider text-text-muted/40">
           <span>Fear</span><span>Greed</span>
@@ -202,8 +202,8 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
       {/* footer — risk warnings (left) + flow verdict (right); avg/outperf removed */}
       <div className="mt-auto px-4 pt-2.5 pb-3.5 mt-3 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9.5px] min-h-[15px]">
         {warns.length > 0 && (
-          <span className="flex items-center gap-1.5 min-w-0" style={{ color: "#c98b6b" }}>
-            <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "#c98b6b" }} />
+          <span className="flex items-center gap-1.5 min-w-0" style={{ color: "rgb(var(--accent))" }}>
+            <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "rgb(var(--accent))" }} />
             <span className="truncate">{warns.map(nice).join(" · ")}</span>
           </span>
         )}

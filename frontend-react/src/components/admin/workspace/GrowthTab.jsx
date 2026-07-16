@@ -44,7 +44,7 @@ const SOURCE_LABEL = {
 const RevenueTrend = ({ trend }) => {
   const max = Math.max(...trend.map((t) => t.revenue), 1);
   if (!trend.length) {
-    return <p className="text-[11px] py-6 text-center" style={{ color: '#6b5c52' }}>No revenue recorded yet.</p>;
+    return <p className="text-[11px] py-6 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No revenue recorded yet.</p>;
   }
   return (
     <div className="flex items-end gap-1.5 h-40 pt-2">
@@ -77,14 +77,14 @@ const RevenueTrend = ({ trend }) => {
 
 const SourceTable = ({ bySource }) => {
   const maxRev = Math.max(...bySource.map((s) => s.revenue), 1);
-  if (!bySource.length) return <p className="text-[11px] py-4 text-center" style={{ color: '#6b5c52' }}>No source data.</p>;
+  if (!bySource.length) return <p className="text-[11px] py-4 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No source data.</p>;
   return (
     <div className="space-y-2.5">
       {bySource.map((s) => (
         <div key={s.source} className="flex items-center gap-3">
           <div className="w-28 shrink-0 min-w-0">
             <p className="text-[11.5px] font-medium text-text-primary truncate">{SOURCE_LABEL[s.source] || s.source}</p>
-            <p className="text-[9px]" style={{ color: '#6b5c52' }}>{num(s.users)} users</p>
+            <p className="text-[9px]" style={{ color: 'rgb(var(--fg-muted))' }}>{num(s.users)} users</p>
           </div>
           <Bar3D pct={(s.revenue / maxRev) * 100} heightClass="h-2" />
           <span className="w-16 text-right text-[12px] font-bold tabular-nums text-text-primary">{usd(s.revenue)}</span>
@@ -96,7 +96,7 @@ const SourceTable = ({ bySource }) => {
 
 const ReferralTable = ({ referral }) => {
   const rows = referral?.top_referrers || [];
-  if (!rows.length) return <p className="text-[11px] py-4 text-center" style={{ color: '#6b5c52' }}>No referrals yet.</p>;
+  if (!rows.length) return <p className="text-[11px] py-4 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No referrals yet.</p>;
   return (
     <div className="space-y-1.5">
       {rows.map((r, i) => (
@@ -126,7 +126,7 @@ const ChurnRisk = ({ risk }) => {
             <Avatar name={u.username} tone={palette.red[400]} size="sm" />
             <div className="min-w-0">
               <p className="text-xs font-medium text-text-primary truncate">@{u.username}</p>
-              <p className="text-[10px]" style={{ color: '#6b5c52' }}>Renews {fmtDate(u.expires_at)}</p>
+              <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>Renews {fmtDate(u.expires_at)}</p>
             </div>
           </div>
           <span
@@ -149,7 +149,7 @@ const Panel = ({ title, sub, children, right, className = '' }) => (
     <div className="flex items-start justify-between gap-3 mb-4">
       <div>
         <h3 className="text-[14px] font-semibold text-text-primary tracking-tight">{title}</h3>
-        {sub && <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>{sub}</p>}
+        {sub && <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>{sub}</p>}
       </div>
       {right}
     </div>
@@ -200,7 +200,7 @@ export const GrowthTab = () => {
         <div>
           <div className="mb-2"><Eyebrow>Business Intelligence</Eyebrow></div>
           <h2 className="text-lg font-semibold text-text-primary tracking-tight">Growth &amp; Revenue</h2>
-          <p className="text-[11px] mt-0.5 max-w-lg" style={{ color: '#8a7a6e' }}>
+          <p className="text-[11px] mt-0.5 max-w-lg" style={{ color: 'rgb(var(--fg-muted))' }}>
             Revenue, recurring run-rate, churn, and where your paying members come from.
           </p>
         </div>
@@ -254,7 +254,7 @@ export const GrowthTab = () => {
         <Panel
           title="Referral leaderboard"
           sub="Top advocates by referrals brought in"
-          right={<span className="text-[10px] tabular-nums" style={{ color: '#8a7a6e' }}>{num(attr.referral?.total_referred)} total</span>}
+          right={<span className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>{num(attr.referral?.total_referred)} total</span>}
         >
           <ReferralTable referral={attr.referral} />
         </Panel>
@@ -269,9 +269,9 @@ export const GrowthTab = () => {
 };
 
 const MiniStat = ({ label, value, tone }) => (
-  <div className="rounded-lg px-3 py-2.5" style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)' }}>
+  <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
     <p className="text-[9.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
-    <p className="text-xl font-bold tabular-nums leading-none" style={{ color: '#fff' }}>{value}</p>
+    <p className="text-xl font-bold tabular-nums leading-none" style={{ color: 'rgb(var(--fg))' }}>{value}</p>
     <span className="inline-block w-6 h-0.5 rounded-full mt-2" style={{ background: tone }} />
   </div>
 );

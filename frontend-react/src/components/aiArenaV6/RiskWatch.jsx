@@ -39,7 +39,7 @@ function severityStyle(severity) {
   if (lower === "medium" || lower === "moderate") {
     return {
       label: "Medium",
-      color: "#f5c451",
+      color: "rgb(var(--accent))",
       bg: "rgba(245,196,81,0.08)",
       border: "rgba(245,196,81,0.3)",
       icon: "◆",
@@ -228,7 +228,7 @@ export default function RiskWatch({ riskScenarios }) {
             </span>
           )}
           {severityCounts.med > 0 && (
-            <span style={{ color: "#f5c451" }}>
+            <span style={{ color: "rgb(var(--accent))" }}>
               ◆ {severityCounts.med} medium
             </span>
           )}

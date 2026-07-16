@@ -951,7 +951,7 @@ export default function Performance({ data }) {
         <button
           onClick={() => navigate("/performance")}
           className="group inline-flex flex-shrink-0 items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:-translate-y-0.5"
-          style={{ background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)", color: "#0a0506" }}
+          style={{ background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)", color: "rgb(var(--surface))" }}
         >
           See Full Analytics
           <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">

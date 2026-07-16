@@ -9,9 +9,9 @@ import api from '../services/authApi';
 // ════════════════════════════════════════
 
 const SENTIMENT_CONFIG = {
-  bullish:  { color: '#4ade80', bg: 'rgba(74,222,128,0.06)',  border: 'rgba(74,222,128,0.15)', label: 'BULLISH',  icon: '🟢' },
-  bearish:  { color: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.15)', label: 'BEARISH',  icon: '🔴' },
-  cautious: { color: '#fbbf24', bg: 'rgba(251,191,36,0.06)',  border: 'rgba(251,191,36,0.15)',  label: 'CAUTIOUS', icon: '🟡' },
+  bullish:  { color: 'rgb(var(--pos))', bg: 'rgba(74,222,128,0.06)',  border: 'rgba(74,222,128,0.15)', label: 'BULLISH',  icon: '🟢' },
+  bearish:  { color: 'rgb(var(--neg))', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.15)', label: 'BEARISH',  icon: '🔴' },
+  cautious: { color: 'rgb(var(--warn))', bg: 'rgba(251,191,36,0.06)',  border: 'rgba(251,191,36,0.15)',  label: 'CAUTIOUS', icon: '🟡' },
   neutral:  { color: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)', label: 'NEUTRAL',  icon: '⚪' },
 };
 
@@ -371,11 +371,11 @@ function PriceChart({ activeTF, onTFChange }) {
         const liq = chartData.liquidation_levels;
         if (liq) {
           if (liq.nearest_long_cluster) {
-            const s = chart.addSeries(LineSeries, { color: '#f87171', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title: 'Liq Long' });
+            const s = chart.addSeries(LineSeries, { color: 'rgb(var(--neg))', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title: 'Liq Long' });
             s.setData(chartData.candles.map(c => ({ time: c.time, value: liq.nearest_long_cluster })));
           }
           if (liq.nearest_short_cluster) {
-            const s = chart.addSeries(LineSeries, { color: '#4ade80', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title: 'Liq Short' });
+            const s = chart.addSeries(LineSeries, { color: 'rgb(var(--pos))', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, title: 'Liq Short' });
             s.setData(chartData.candles.map(c => ({ time: c.time, value: liq.nearest_short_cluster })));
           }
         }
@@ -406,7 +406,7 @@ function PriceChart({ activeTF, onTFChange }) {
         rightPriceScale: { borderColor: 'rgba(212,168,83,0.1)', scaleMargins: { top: 0.05, bottom: 0.05 } },
         timeScale: { visible: false }, crosshair: { mode: 0 },
       });
-      const rsiLine = chart.addSeries(LineSeries, { color: '#d4a853', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      const rsiLine = chart.addSeries(LineSeries, { color: 'rgb(var(--accent))', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
       rsiLine.setData(chartData.rsi_series);
       const ob = chart.addSeries(LineSeries, { color: 'rgba(248,113,113,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
       ob.setData(chartData.rsi_series.map(d => ({ time: d.time, value: 70 })));
@@ -492,9 +492,9 @@ function ThreePillars({ pillars }) {
   if (!pillars) return null;
 
   const items = [
-    { key: 'trend', icon: '📈', label: 'Trend', color: '#4ade80' },
+    { key: 'trend', icon: '📈', label: 'Trend', color: 'rgb(var(--pos))' },
     { key: 'flow',  icon: '💧', label: 'Flow',  color: '#22d3ee' },
-    { key: 'risk',  icon: '⚠️', label: 'Risk',  color: '#f87171' },
+    { key: 'risk',  icon: '⚠️', label: 'Risk',  color: 'rgb(var(--neg))' },
   ];
 
   return (
@@ -832,7 +832,7 @@ function MetricsRow({ report }) {
   const liq = report.liquidation_hotspots || {};
 
   const items = [
-    { label: 'BTC Price', value: `$${(report.btc_price || 0).toLocaleString()}`, color: '#d4a853' },
+    { label: 'BTC Price', value: `$${(report.btc_price || 0).toLocaleString()}`, color: 'rgb(var(--accent))' },
     { label: 'Fear & Greed', value: report.fear_greed ?? '—', color: report.fear_greed <= 25 ? '#f87171' : report.fear_greed <= 45 ? '#f97316' : report.fear_greed <= 55 ? '#fbbf24' : '#4ade80' },
     { label: 'RSI (4H)', value: tfSummary?.['4H']?.rsi_14 || '—', color: (tfSummary?.['4H']?.rsi_14 >= 70) ? '#f87171' : (tfSummary?.['4H']?.rsi_14 <= 30) ? '#4ade80' : '#d4a853' },
     { label: 'Cascade Risk', value: (liq.cascade_risk || '—').toUpperCase(), color: liq.cascade_risk === 'high' ? '#f87171' : liq.cascade_risk === 'medium' ? '#fbbf24' : '#4ade80' },

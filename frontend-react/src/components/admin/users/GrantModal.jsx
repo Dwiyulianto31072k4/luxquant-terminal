@@ -62,11 +62,11 @@ const DateInput = ({ label, required, value, onChange, min, helper }) => (
       {label}{required && <span style={{ color: GOLD }}> *</span>}
     </label>
     <div className="relative">
-      <CalendarIcon size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#6b5c52" }} />
+      <CalendarIcon size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "rgb(var(--fg-muted))" }} />
       <input
         type="date" value={value} min={min} onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg py-2 pl-8 pr-3 font-mono text-xs text-text-primary outline-none focus:border-gold-primary/40"
-        style={{ background: "#0d0b09", border: `1px solid ${required ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`, colorScheme: "dark" }}
+        style={{ background: "rgb(var(--surface-secondary))", border: `1px solid ${required ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`, colorScheme: "dark" }}
       />
     </div>
     {helper && <p className="mt-1 text-[10px] text-text-muted/70">{helper}</p>}
@@ -90,7 +90,7 @@ const PreviewCard = ({ start, end, days }) => (
         <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted">Starts</p>
         <p className="font-medium tabular-nums text-text-primary">{start || "Today"}</p>
       </div>
-      <ArrowRightIcon size={12} style={{ color: "#6b5c52" }} />
+      <ArrowRightIcon size={12} style={{ color: "rgb(var(--fg-muted))" }} />
       <div className="text-right">
         <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted">Ends</p>
         <p className="font-medium tabular-nums text-text-primary">{end}</p>
@@ -185,7 +185,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
     <Modal isOpen={true} onClose={onClose} size="sm" padded={false} header={header} footer={footer}>
       <div className="space-y-4 px-5 py-5">
         {/* Mode toggle */}
-        <div className="flex rounded-lg p-0.5" style={{ background: "#0d0b09", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex rounded-lg p-0.5" style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgba(255,255,255,0.06)" }}>
           <ModeTab active={mode === "quick"} onClick={() => { setMode("quick"); setError(null); }}>Quick Preset</ModeTab>
           <ModeTab active={mode === "custom"} onClick={() => { setMode("custom"); setError(null); }}>Custom Range</ModeTab>
         </div>
@@ -220,12 +220,12 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
           <input
             value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Payment via BCA, promo code XYZ"
             className="w-full rounded-lg px-3 py-2 text-xs text-text-primary outline-none focus:border-gold-primary/40"
-            style={{ background: "#0d0b09", border: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgba(255,255,255,0.06)" }}
           />
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(248,113,113,0.08)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
+          <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(248,113,113,0.08)", color: "rgb(var(--neg))", border: "1px solid rgba(248,113,113,0.25)" }}>
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />
             {error}
           </div>

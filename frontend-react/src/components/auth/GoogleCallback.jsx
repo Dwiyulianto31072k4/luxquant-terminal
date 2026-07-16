@@ -125,7 +125,7 @@ const GoogleCallback = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center"
-      style={{ background: "#0a0506" }}
+      style={{ background: "rgb(var(--surface))" }}
     >
       <div className="flex flex-col items-center gap-4">
         <div className="relative w-14 h-14">
@@ -138,7 +138,7 @@ const GoogleCallback = () => {
             style={{ borderTopColor: "#d4a853" }}
           />
         </div>
-        <p className="text-sm font-medium" style={{ color: "#8a7a6e" }}>
+        <p className="text-sm font-medium" style={{ color: "rgb(var(--fg-muted))" }}>
           Menyelesaikan login Google...
         </p>
       </div>

@@ -127,9 +127,9 @@ export function outcomeIcon(outcome) {
 
 export const CYCLE_PHASES = [
   { key: 'DEEP_BOTTOM', label: 'Deep Bottom', range: [0, 10], color: '#22d3ee' },
-  { key: 'ACCUMULATION', label: 'Accumulation', range: [10, 30], color: '#4ade80' },
+  { key: 'ACCUMULATION', label: 'Accumulation', range: [10, 30], color: 'rgb(var(--pos))' },
   { key: 'EARLY_BULL', label: 'Early Bull', range: [30, 50], color: '#84cc16' },
-  { key: 'MID_BULL', label: 'Mid Bull', range: [50, 70], color: '#d4a853' },
+  { key: 'MID_BULL', label: 'Mid Bull', range: [50, 70], color: 'rgb(var(--accent))' },
   { key: 'LATE_BULL', label: 'Late Bull', range: [70, 85], color: '#f97316' },
   { key: 'DISTRIBUTION', label: 'Distribution', range: [85, 95], color: '#ef4444' },
   { key: 'TOP', label: 'Top', range: [95, 100], color: '#dc2626' },
@@ -240,7 +240,7 @@ export function confidenceTier(confidence) {
     return { label: "STRONG", color: "#22c55e" };
   }
   if (confidence >= 50) {
-    return { label: "MODERATE", color: "#f5c451" };
+    return { label: "MODERATE", color: "rgb(var(--accent))" };
   }
   return { label: "LOW", color: "#94a3b8" };
 }

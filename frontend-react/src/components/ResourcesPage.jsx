@@ -24,9 +24,9 @@ const TYPE_TABS = [
 
 const TYPE_META = {
   article: { label: 'Research', color: '#60a5fa' },
-  pdf:     { label: 'Guide',    color: '#f87171' },
+  pdf:     { label: 'Guide',    color: 'rgb(var(--neg))' },
   video:   { label: 'Video',    color: '#f97316' },
-  link:    { label: 'Link',     color: '#34d399' },
+  link:    { label: 'Link',     color: 'rgb(var(--pos))' },
 };
 
 const fmtDate = (d) =>

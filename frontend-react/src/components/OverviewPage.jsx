@@ -564,7 +564,7 @@ const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
         className="h-full transition-all duration-700 rounded-full"
         style={{
           width: `${Math.min((pct / max) * 100, 100)}%`,
-          backgroundColor: '#d4a853',
+          backgroundColor: 'rgb(var(--accent))',
           opacity,
         }}
       />

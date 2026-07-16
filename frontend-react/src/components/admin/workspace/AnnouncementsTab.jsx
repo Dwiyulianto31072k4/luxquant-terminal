@@ -228,7 +228,7 @@ export const AnnouncementsTab = () => {
           <div className="flex items-center gap-2 pt-2">
             <button onClick={save} disabled={saving}
               className="px-4 py-2 rounded-md text-[11px] uppercase tracking-wider font-bold font-mono transition-all disabled:opacity-50"
-              style={{ background: palette.gold[300], color: '#0a0506' }}>
+              style={{ background: palette.gold[300], color: 'rgb(var(--surface))' }}>
               {saving ? 'Saving...' : (editing === 'new' ? 'Create' : 'Save changes')}
             </button>
             <button onClick={cancel}
@@ -248,7 +248,7 @@ export const AnnouncementsTab = () => {
         <SectionHeader title="Announcements" subtitle="Modal messages shown to users in-app" />
         <button onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[11px] uppercase tracking-wider font-bold font-mono transition-all"
-          style={{ background: palette.gold[300], color: '#0a0506' }}>
+          style={{ background: palette.gold[300], color: 'rgb(var(--surface))' }}>
           <PlusIcon size={14} /> New
         </button>
       </div>

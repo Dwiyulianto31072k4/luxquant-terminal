@@ -66,7 +66,7 @@ export const ExpiringSoonPanel = ({ expiringUsers, onExtend, onDm }) => {
                   <Avatar name={u.username} tone={urgency} size="sm" />
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-text-primary truncate">{u.username}</p>
-                    <p className="text-[10px] truncate font-mono" style={{ color: '#6b5c52' }}>
+                    <p className="text-[10px] truncate font-mono" style={{ color: 'rgb(var(--fg-muted))' }}>
                       {u.email}
                     </p>
                   </div>
@@ -120,7 +120,7 @@ export const ExpiringSoonPanel = ({ expiringUsers, onExtend, onDm }) => {
             );
           })}
           {expiringUsers.length > 5 && (
-            <p className="text-[10px] text-center pt-1" style={{ color: '#6b5c52' }}>
+            <p className="text-[10px] text-center pt-1" style={{ color: 'rgb(var(--fg-muted))' }}>
               +{expiringUsers.length - 5} more — use filter to see all
             </p>
           )}

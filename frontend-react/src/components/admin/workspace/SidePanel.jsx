@@ -36,7 +36,7 @@ export const SidePanel = ({
             boxShadow: 'inset 0 0 0 1px rgba(212,168,83,0.22)',
           }}
         >
-          <Icon size={14} style={{ color: '#d4a853' }} />
+          <Icon size={14} style={{ color: 'rgb(var(--accent))' }} />
         </span>
       )}
       <div className="min-w-0">

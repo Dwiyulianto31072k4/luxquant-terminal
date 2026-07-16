@@ -15,7 +15,7 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
   const data = [
     { label: "TP1", value: breakdown.tp1, color: "#22c55e" },
     { label: "TP2", value: breakdown.tp2, color: "#3b82f6" },
-    { label: "TP3", value: breakdown.tp3, color: "#eab308" },
+    { label: "TP3", value: breakdown.tp3, color: "rgb(var(--warn))" },
     { label: "TP4", value: breakdown.tp4, color: "#a855f7" },
     { label: "SL", value: breakdown.sl, color: "#ef4444" },
   ].filter((d) => d.value > 0);

@@ -30,7 +30,7 @@ const CHANNEL_CONFIG = {
     Icon: EmailIcon,
     label: 'Email',
     short: 'Mail',
-    color: '#fbbf24',
+    color: 'rgb(var(--warn))',
     bg: 'rgba(251,191,36,0.06)',
     border: 'rgba(251,191,36,0.18)',
   },
@@ -83,7 +83,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
           <span
             className="absolute -top-[3px] -right-[3px] w-2.5 h-2.5 rounded-full"
             style={{
-              background: '#d4a853',
+              background: 'rgb(var(--accent))',
               boxShadow: '0 0 0 1.5px #0a0506',
             }}
             title="Admin-added"
@@ -92,7 +92,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
         {botReady === false && !deepLink && (
           <span
             className="absolute -bottom-[3px] -right-[3px] w-2.5 h-2.5 rounded-full"
-            style={{ background: '#fbbf24', boxShadow: '0 0 0 1.5px #0a0506' }}
+            style={{ background: 'rgb(var(--warn))', boxShadow: '0 0 0 1.5px #0a0506' }}
             title="Bot DM unconfirmed — user may not have started the bot. Reach them via in-app Announcements."
           />
         )}
@@ -122,7 +122,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
               className="text-[8px] font-bold px-1.5 py-px rounded"
               style={{
                 background: 'rgba(212,168,83,0.15)',
-                color: '#d4a853',
+                color: 'rgb(var(--accent))',
                 border: '1px solid rgba(212,168,83,0.25)',
               }}
             >
@@ -134,7 +134,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
               className="text-[8px] font-bold px-1.5 py-px rounded"
               style={{
                 background: 'rgba(255,255,255,0.04)',
-                color: '#6b5c52',
+                color: 'rgb(var(--fg-muted))',
                 border: '1px solid rgba(255,255,255,0.06)',
               }}
             >
@@ -146,7 +146,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
               className="text-[8px] font-bold px-1.5 py-px rounded"
               style={{
                 background: 'rgba(251,191,36,0.12)',
-                color: '#fbbf24',
+                color: 'rgb(var(--warn))',
                 border: '1px solid rgba(251,191,36,0.25)',
               }}
               title="The bot hasn't confirmed it can DM this user. Reach them via in-app Announcements."
@@ -196,7 +196,7 @@ export const ContactBadgeRow = ({ user, reach }) => {
         className="inline-flex items-center text-[10px] px-2 py-0.5 rounded font-medium"
         style={{
           background: 'rgba(248,113,113,0.07)',
-          color: '#f87171',
+          color: 'rgb(var(--neg))',
           border: '1px solid rgba(248,113,113,0.18)',
         }}
         title="No contact channel available"

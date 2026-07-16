@@ -702,9 +702,9 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
   const { bull, bear, bullPct, verdict, adRatio } = ratio;
   const bearPct = 100 - bullPct;
   const cfg = {
-    bull: { label: "Bullish", bias: "Long bias", color: "#34d399", text: "text-emerald-400", chip: "bg-emerald-500/[0.12] text-emerald-400 border-emerald-500/30" },
-    bear: { label: "Bearish", bias: "Short bias", color: "#f87171", text: "text-red-400", chip: "bg-red-500/[0.12] text-red-400 border-red-500/30" },
-    neutral: { label: "Neutral", bias: "No clear bias", color: "#e8c877", text: "text-gold-primary", chip: "bg-gold-primary/[0.12] text-gold-primary border-gold-primary/30" },
+    bull: { label: "Bullish", bias: "Long bias", color: "rgb(var(--pos))", text: "text-emerald-400", chip: "bg-emerald-500/[0.12] text-emerald-400 border-emerald-500/30" },
+    bear: { label: "Bearish", bias: "Short bias", color: "rgb(var(--neg))", text: "text-red-400", chip: "bg-red-500/[0.12] text-red-400 border-red-500/30" },
+    neutral: { label: "Neutral", bias: "No clear bias", color: "rgb(var(--accent-light))", text: "text-gold-primary", chip: "bg-gold-primary/[0.12] text-gold-primary border-gold-primary/30" },
   }[verdict];
 
   const adDisplay =
@@ -1680,7 +1680,7 @@ function HeatCell(props) {
             }}
           >
             {big && <CoinLogo pair={pair} size={logo} />}
-            <span style={{ color: "#fff", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ color: "rgb(var(--fg))", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {sym}
             </span>
             <span style={{ fontFamily: "ui-monospace, monospace", fontSize: big ? 12 : 9.5, lineHeight: 1.05, color: isBull ? "#6ee7b7" : "#fca5a5" }}>

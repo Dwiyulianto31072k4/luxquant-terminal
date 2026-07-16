@@ -83,13 +83,13 @@ const LoginPage = () => {
 
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0506' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'rgb(var(--surface))' }}>
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-14 h-14">
             <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212,168,83,0.2)' }} />
             <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
           </div>
-          <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>{a('redirecting')}</p>
+          <p className="text-sm font-medium" style={{ color: 'rgb(var(--fg-muted))' }}>{a('redirecting')}</p>
         </div>
       </div>
     );
@@ -135,15 +135,15 @@ const LoginPage = () => {
 
           {/* ── Desktop heading (small account line, dark on white) ── */}
           <div className="mb-9 hidden lg:block text-left">
-            <h1 className="font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#0a0a0a', lineHeight: 1.22, fontSize: 'clamp(20px, 2.1vw, 26px)' }}>
+            <h1 className="font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgb(var(--surface-raised))', lineHeight: 1.22, fontSize: 'clamp(20px, 2.1vw, 26px)' }}>
               {a('login_subtitle')}
             </h1>
           </div>
 
           {/* ── Mobile hero (centered) — mirrors the desktop brand panel ── */}
           <div className="lg:hidden text-center">
-            <h1 className="mx-auto font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#ffffff', lineHeight: 1.12, fontSize: 'clamp(31px, 8.6vw, 42px)', maxWidth: '14ch' }}>
-              Detect <span style={{ color: '#d4a853' }}>Crypto</span> &amp; Tokenized <span style={{ color: '#d4a853' }}>TradFi</span> Moves
+            <h1 className="mx-auto font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgb(var(--fg))', lineHeight: 1.12, fontSize: 'clamp(31px, 8.6vw, 42px)', maxWidth: '14ch' }}>
+              Detect <span style={{ color: 'rgb(var(--accent))' }}>Crypto</span> &amp; Tokenized <span style={{ color: 'rgb(var(--accent))' }}>TradFi</span> Moves
             </h1>
             {/* coins right under the headline */}
             <AssetCoins size={38} className="mt-8" />
@@ -171,7 +171,7 @@ const LoginPage = () => {
               <div className="relative">
                 <button type="button" onMouseEnter={() => setHoverIdx(2)} onClick={() => setShowMore(v => !v)}
                         className="lq-login-btn relative w-full rounded-full font-semibold flex items-center justify-center transition-all duration-300"
-                        style={{ padding: '15px 22px', background: '#f5f5f6', border: '1px solid #e7e7ea', color: '#18181b', fontSize: 'clamp(13.5px,1.7vw,15px)' }}>
+                        style={{ padding: '15px 22px', background: 'rgb(var(--fg))', border: '1px solid #e7e7ea', color: 'rgb(var(--surface-hover))', fontSize: 'clamp(13.5px,1.7vw,15px)' }}>
                   <span>More Options</span>
                   <svg className="absolute right-6 h-4 w-4 transition-transform duration-300" style={{ transform: showMore ? 'rotate(180deg)' : 'none' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/>
@@ -179,10 +179,10 @@ const LoginPage = () => {
                 </button>
                 {showMore && (
                   <div className="mt-2 overflow-hidden rounded-[1.4rem]"
-                       style={{ background: '#ffffff', boxShadow: '0 16px 38px rgba(0,0,0,0.16)', animation: 'lq-item-in 0.26s cubic-bezier(0.16,1,0.3,1) both' }}>
+                       style={{ background: 'rgb(var(--fg))', boxShadow: '0 16px 38px rgba(0,0,0,0.16)', animation: 'lq-item-in 0.26s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <button type="button" onClick={handleDiscordLogin} disabled={discordLoading}
                             className="relative w-full flex items-center justify-center font-semibold transition-colors disabled:opacity-50"
-                            style={{ padding: '16px 22px', color: '#18181b', fontSize: 'clamp(13.5px,1.7vw,15px)' }}
+                            style={{ padding: '16px 22px', color: 'rgb(var(--surface-hover))', fontSize: 'clamp(13.5px,1.7vw,15px)' }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                       <span className="absolute left-5 flex items-center justify-center" style={{ width: 22, height: 22 }}><DiscordIcon /></span>
@@ -206,7 +206,7 @@ const LoginPage = () => {
               {refOpen && (
                 <input value={refCode} onChange={(e) => setRefCode(e.target.value)} placeholder="Enter invitation code (case-sensitive)"
                        className="mt-2.5 w-full rounded-2xl px-4 py-3.5 outline-none transition-colors"
-                       style={{ background: '#f7f7f8', border: '1px solid #e4e4e7', color: '#18181b', fontSize: 14, animation: 'lq-item-in 0.25s ease both' }} />
+                       style={{ background: 'rgb(var(--fg))', border: '1px solid #e4e4e7', color: 'rgb(var(--surface-hover))', fontSize: 14, animation: 'lq-item-in 0.25s ease both' }} />
               )}
             </div>
 
@@ -215,7 +215,7 @@ const LoginPage = () => {
               Already have an account?{' '}
               <button type="button" onClick={handleTelegramLogin} className="font-semibold transition-opacity hover:opacity-80" style={{ color: '#c8941f', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13 }}>Log in now!</button>
             </p>
-            <p className="mt-3 text-center leading-relaxed" style={{ color: '#9ca3af', fontSize: 11.5 }}>
+            <p className="mt-3 text-center leading-relaxed" style={{ color: 'rgb(var(--fg-secondary))', fontSize: 11.5 }}>
               By continuing, you agree to our{' '}
               <button type="button" onClick={() => setShowTerms(true)} className="underline underline-offset-2" style={{ color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11.5 }}>User Agreement</button>
               {' '}and{' '}
@@ -226,7 +226,7 @@ const LoginPage = () => {
           {/* ════════ MOBILE — MEXC pattern (pills + "or" + More Options) ════════ */}
           <div className="lg:hidden flex flex-1 flex-col mt-11">
             {/* small thin login descriptor — sits right above the form */}
-            <p className="mx-auto mb-6 text-center" style={{ color: '#9a8a7e', fontWeight: 400, fontSize: 'clamp(12.5px, 3.4vw, 14px)', maxWidth: '32ch', lineHeight: 1.5 }}>{a('login_subtitle')}</p>
+            <p className="mx-auto mb-6 text-center" style={{ color: 'rgb(var(--fg-muted))', fontWeight: 400, fontSize: 'clamp(12.5px, 3.4vw, 14px)', maxWidth: '32ch', lineHeight: 1.5 }}>{a('login_subtitle')}</p>
             {/* Primary — Telegram (white pill) */}
             <PillButton variant="white" icon={<TelegramIcon />} text={a('continue_telegram')} onClick={handleTelegramLogin} loading={!telegramReady || telegramLoading} loadingText={!telegramReady ? a('preparing') : a('connecting')} />
 
@@ -243,7 +243,7 @@ const LoginPage = () => {
             {/* More Options → bottom sheet (Discord) */}
             <button type="button" onClick={() => setShowMore(true)}
                     className="mt-5 w-full py-2.5 text-center font-semibold transition-colors"
-                    style={{ color: '#9a9aa0', fontSize: 15, background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ color: 'rgb(var(--fg-muted))', fontSize: 15, background: 'none', border: 'none', cursor: 'pointer' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
                     onMouseLeave={e => { e.currentTarget.style.color = '#9a9aa0'; }}>
               More Options
@@ -252,7 +252,7 @@ const LoginPage = () => {
             {/* Footer — pinned to the bottom of the viewport */}
             <p className="mt-auto pt-12 text-center leading-relaxed" style={{ color: '#7a6b60', fontSize: 12 }}>
               {a('login_terms')}{' '}
-              <button type="button" onClick={() => setShowTerms(true)} className="underline underline-offset-2" style={{ color: '#c4b3a3', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 600 }}>{a('terms')}</button>
+              <button type="button" onClick={() => setShowTerms(true)} className="underline underline-offset-2" style={{ color: 'rgb(var(--fg-secondary))', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 600 }}>{a('terms')}</button>
             </p>
           </div>
         </div>
@@ -265,7 +265,7 @@ const LoginPage = () => {
             <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.62)', animation: 'lq-modal-fade 0.2s ease-out' }} />
             <div className="absolute inset-x-0 bottom-0 rounded-t-[1.75rem] px-5 pb-9 pt-3"
                  onClick={e => e.stopPropagation()}
-                 style={{ background: '#161618', borderTop: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -20px 60px rgba(0,0,0,0.6)', animation: 'lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)' }}>
+                 style={{ background: 'rgb(var(--surface-hover))', borderTop: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -20px 60px rgba(0,0,0,0.6)', animation: 'lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)' }}>
               <div className="mx-auto mb-5 h-1 w-10 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
               <h3 className="mb-4 font-bold text-text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>More Options</h3>
               <PillButton variant="dark" icon={<DiscordIcon />} text={a('continue_discord')} onClick={handleDiscordLogin} loading={discordLoading} loadingText={a('connecting')} />
@@ -408,13 +408,13 @@ const TermsModal = ({ onClose }) => {
             <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Terms & Conditions
             </h2>
-            <p className="text-sm" style={{ color: '#9a8a7e' }}>
+            <p className="text-sm" style={{ color: 'rgb(var(--fg-muted))' }}>
               Please read these terms carefully before using LuxQuant Terminal
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close"
                   className="flex items-center justify-center rounded-full transition-colors duration-200 flex-shrink-0 ml-4"
-                  style={{ width: 36, height: 36, color: '#9a8a7e', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ width: 36, height: 36, color: 'rgb(var(--fg-muted))', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
                   onMouseLeave={e => { e.currentTarget.style.color = '#9a8a7e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -425,7 +425,7 @@ const TermsModal = ({ onClose }) => {
 
         {/* Scrollable body */}
         <div className="lq-terms-scroll overflow-y-auto px-6 sm:px-9 py-6" style={{ flex: 1 }}>
-          <p className="mb-6 text-xs uppercase font-semibold" style={{ color: '#d4a853', letterSpacing: '0.18em' }}>
+          <p className="mb-6 text-xs uppercase font-semibold" style={{ color: 'rgb(var(--accent))', letterSpacing: '0.18em' }}>
             Last updated · June 2026
           </p>
           {TERMS_SECTIONS.map((s) => (
@@ -433,7 +433,7 @@ const TermsModal = ({ onClose }) => {
               <h3 className="text-sm font-semibold text-text-primary mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {s.title}
               </h3>
-              <p className="text-[13px] leading-relaxed" style={{ color: '#9a8a7e' }}>
+              <p className="text-[13px] leading-relaxed" style={{ color: 'rgb(var(--fg-muted))' }}>
                 {s.body}
               </p>
             </div>
@@ -445,7 +445,7 @@ const TermsModal = ({ onClose }) => {
              style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.25)' }}>
           <button type="button" onClick={onClose}
                   className="rounded-full text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
-                  style={{ padding: '12px 30px', background: '#ffffff', color: '#0a0a0a', boxShadow: '0 10px 24px rgba(0,0,0,0.4)' }}
+                  style={{ padding: '12px 30px', background: 'rgb(var(--fg))', color: 'rgb(var(--surface-raised))', boxShadow: '0 10px 24px rgba(0,0,0,0.4)' }}
                   onMouseEnter={e => { e.currentTarget.style.background = '#ececef'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}>
             I understand

@@ -58,7 +58,7 @@ function zoneStyle(kind) {
   // fair_value / neutral
   return {
     label: "Fair Value",
-    color: "#f5c451",
+    color: "rgb(var(--accent))",
     bg: "rgba(245,196,81,0.05)",
     border: "rgba(245,196,81,0.2)",
     barBg: "rgba(245,196,81,0.12)",
@@ -123,7 +123,7 @@ function ZoneCard({ zone, currentPrice }) {
             className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded font-bold"
             style={{
               backgroundColor: style.color,
-              color: "#0a0a0a",
+              color: "rgb(var(--surface-raised))",
             }}
           >
             ● Active
@@ -250,9 +250,9 @@ function PriceLadder({ zones, currentPrice }) {
           <div
             className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold whitespace-nowrap"
             style={{
-              backgroundColor: "#0a0a0a",
+              backgroundColor: "rgb(var(--surface-raised))",
               border: "1px solid #f5c451",
-              color: "#f5c451",
+              color: "rgb(var(--accent))",
               boxShadow: "0 0 8px rgba(245,196,81,0.4)",
             }}
           >

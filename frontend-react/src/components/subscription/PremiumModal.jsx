@@ -161,7 +161,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
               >
                 {badge && (
                   <div className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2">
-                    <div className="rounded-full px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider" style={{ background: "linear-gradient(135deg, #d4a853, #a07c2e)", color: "#0a0506" }}>
+                    <div className="rounded-full px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider" style={{ background: "linear-gradient(135deg, #d4a853, #a07c2e)", color: "rgb(var(--surface))" }}>
                       {badge}
                     </div>
                   </div>

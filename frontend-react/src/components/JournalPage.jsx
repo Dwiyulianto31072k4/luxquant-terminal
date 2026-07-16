@@ -1639,7 +1639,7 @@ const SliderField = ({ label, value, onChange, leftLabel, rightLabel, color = "e
         />
         <div
           className="absolute w-3.5 h-3.5 rounded-full border-2 pointer-events-none transition-all"
-          style={{ left: `calc(${pct}% - 7px)`, backgroundColor: "#0a0805", borderColor: colorVar.fill, boxShadow: `0 0 6px ${colorVar.glow}` }}
+          style={{ left: `calc(${pct}% - 7px)`, backgroundColor: "rgb(var(--surface-raised))", borderColor: colorVar.fill, boxShadow: `0 0 6px ${colorVar.glow}` }}
         />
       </div>
       <div className="flex items-center justify-between mt-1.5">

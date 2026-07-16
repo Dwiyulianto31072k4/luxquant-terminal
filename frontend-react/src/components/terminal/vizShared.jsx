@@ -269,7 +269,7 @@ export function ScatterTip({ active, payload, xLabel = "x", yLabel = "y" }) {
   const p = payload[0]?.payload;
   if (!p) return null;
   const info = ctx?.map && p.pair ? ctx.map[p.pair.toUpperCase()] : null;
-  const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af" }) : null;
+  const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "rgb(var(--fg-secondary))" }) : null;
   const ago = info ? timeAgo(info.created) : null;
   return (
     <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
@@ -494,7 +494,7 @@ export function useZoom(x0, x1, y0, y1) {
 export const CoinPill = ({ pair, onPair, className = "" }) => {
   const ctx = useContext(SignalStatusContext);
   const info = ctx?.map && pair ? ctx.map[pair.toUpperCase()] : null;
-  const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af" }) : null;
+  const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "rgb(var(--fg-secondary))" }) : null;
   const ago = info ? timeAgo(info.created) : null;
   const tip = info ? `${pair} · ${meta.label}${ago ? ` · called ${ago}` : ""}` : pair;
   return (

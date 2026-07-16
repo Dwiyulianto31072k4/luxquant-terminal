@@ -57,29 +57,29 @@ const RegisterPage = () => {
     let s = 0;
     if (pwd.length >= 8) s++; if (pwd.length >= 12) s++;
     if (/[A-Z]/.test(pwd)) s++; if (/[0-9]/.test(pwd)) s++; if (/[^A-Za-z0-9]/.test(pwd)) s++;
-    if (s <= 1) return { level: 1, label: a('strength_weak'), color: '#f87171' };
-    if (s <= 2) return { level: 2, label: a('strength_fair'), color: '#fbbf24' };
-    if (s <= 3) return { level: 3, label: a('strength_good'), color: '#4ade80' };
+    if (s <= 1) return { level: 1, label: a('strength_weak'), color: 'rgb(var(--neg))' };
+    if (s <= 2) return { level: 2, label: a('strength_fair'), color: 'rgb(var(--warn))' };
+    if (s <= 3) return { level: 3, label: a('strength_good'), color: 'rgb(var(--pos))' };
     return { level: 4, label: a('strength_strong'), color: '#22c55e' };
   };
   const strength = getStrength(password);
 
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0506' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'rgb(var(--surface))' }}>
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-14 h-14">
             <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212,168,83,0.2)' }} />
             <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
           </div>
-          <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>{a('preparing')}</p>
+          <p className="text-sm font-medium" style={{ color: 'rgb(var(--fg-muted))' }}>{a('preparing')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row overflow-x-hidden" style={{ background: '#0a0506' }}>
+    <div className="min-h-screen flex flex-col lg:flex-row overflow-x-hidden" style={{ background: 'rgb(var(--surface))' }}>
       <LeftBrandPanel />
 
       <div className="w-full lg:w-[45%] flex items-center justify-center relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-0">
@@ -106,7 +106,7 @@ const RegisterPage = () => {
           {/* Heading */}
           <div className="mb-1 text-center lg:text-left">
             <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{a('register_title')}</h1>
-            <p className="text-sm" style={{ color: '#8a7a6e' }}>{a('register_subtitle')}</p>
+            <p className="text-sm" style={{ color: 'rgb(var(--fg-muted))' }}>{a('register_subtitle')}</p>
           </div>
 
           {/* Mobile typewriter */}
@@ -120,9 +120,9 @@ const RegisterPage = () => {
               <MobileGlobeInner />
               <FlagBadgesCompact />
             </div>
-            <p className="text-center" style={{ fontSize: 11, color: '#8a7a6e', marginTop: -2, paddingBottom: 4, letterSpacing: '0.03em' }}>
-              <span style={{ color: '#d4a853' }}>🌍</span>{' '}
-              {a('globe_more')} <span style={{ color: '#b8a89a', fontWeight: 600 }}>{a('globe_countries')}</span> {a('globe_trust')}
+            <p className="text-center" style={{ fontSize: 11, color: 'rgb(var(--fg-muted))', marginTop: -2, paddingBottom: 4, letterSpacing: '0.03em' }}>
+              <span style={{ color: 'rgb(var(--accent))' }}>🌍</span>{' '}
+              {a('globe_more')} <span style={{ color: 'rgb(var(--fg-secondary))', fontWeight: 600 }}>{a('globe_countries')}</span> {a('globe_trust')}
             </p>
           </div>
 
@@ -138,10 +138,10 @@ const RegisterPage = () => {
             <FormInput label={a('email')} type="email" value={email} onChange={setEmail} placeholder={a('email_placeholder')} />
             <div>
               <FormInput label={a('username')} type="text" value={username} onChange={setUsername} placeholder={a('username_placeholder')} />
-              <p className="mt-1 text-xs ml-1" style={{ color: '#8a7a6e' }}>{a('username_hint')}</p>
+              <p className="mt-1 text-xs ml-1" style={{ color: 'rgb(var(--fg-muted))' }}>{a('username_hint')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{a('password')}</label>
+              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>{a('password')}</label>
               <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder={a('password_min')} />
               {password && (
                 <div className="mt-2 bg-black/30 p-2 rounded-xl border border-white/5 transition-all">
@@ -157,16 +157,16 @@ const RegisterPage = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{a('confirm_password')}</label>
+              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>{a('confirm_password')}</label>
               <PasswordField value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} placeholder={a('confirm_placeholder')} />
               {confirmPassword && confirmPassword !== password && (
-                <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: '#f87171' }}>
+                <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: 'rgb(var(--neg))' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   {a('password_mismatch')}
                 </p>
               )}
               {confirmPassword && confirmPassword === password && password && (
-                <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: '#4ade80' }}>
+                <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: 'rgb(var(--pos))' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                   {a('password_match')}
                 </p>
@@ -186,15 +186,15 @@ const RegisterPage = () => {
             <SocialBtn icon={<TelegramIcon />} text="Telegram" />
           </div>
 
-          <p className="mt-3 sm:mt-6 text-center text-sm" style={{ color: '#8a7a6e' }}>
+          <p className="mt-3 sm:mt-6 text-center text-sm" style={{ color: 'rgb(var(--fg-muted))' }}>
             {a('has_account')}{' '}
-            <Link to="/login" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>{a('login_title')}</Link>
+            <Link to="/login" className="font-semibold transition-all hover:tracking-wide" style={{ color: 'rgb(var(--accent))' }}>{a('login_title')}</Link>
           </p>
-          <p className="mt-2 sm:mt-4 text-center pb-1" style={{ color: '#6b5c52', fontSize: 11 }}>
+          <p className="mt-2 sm:mt-4 text-center pb-1" style={{ color: 'rgb(var(--fg-muted))', fontSize: 11 }}>
             {a('register_terms')}{' '}
-            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('terms')}</a>
+            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: 'rgb(var(--fg-secondary))' }}>{a('terms')}</a>
             {' '}{a('and')}{' '}
-            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('privacy')}</a>
+            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: 'rgb(var(--fg-secondary))' }}>{a('privacy')}</a>
           </p>
         </div>
       </div>
@@ -312,7 +312,7 @@ const FlagBadgesCompact = () => (
 
 const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
   <div>
-    {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{label}</label>}
+    {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>{label}</label>}
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
       className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
       style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
@@ -344,7 +344,7 @@ const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
         e.target.style.boxShadow = 'none';
         e.target.style.background = 'rgba(0,0,0,0.3)';
       }} />
-    <button type="button" onClick={toggle} className="absolute right-4 top-1/2 p-1 rounded-md transition-all" style={{ transform: 'translateY(-50%)', color: '#6b5c52', background: 'transparent' }}
+    <button type="button" onClick={toggle} className="absolute right-4 top-1/2 p-1 rounded-md transition-all" style={{ transform: 'translateY(-50%)', color: 'rgb(var(--fg-muted))', background: 'transparent' }}
       onMouseEnter={e => { e.currentTarget.style.color = '#d4a853'; e.currentTarget.style.background = 'rgba(212,168,83,0.1)'; }} 
       onMouseLeave={e => { e.currentTarget.style.color = '#6b5c52'; e.currentTarget.style.background = 'transparent'; }}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -357,7 +357,7 @@ const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
 const GoldButton = ({ loading, text, loadingText }) => (
   <button type="submit" disabled={loading}
     className="w-full py-3.5 sm:py-4 font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group active:scale-[0.98]"
-    style={{ background: 'linear-gradient(135deg, #d4a853 0%, #8b6914 100%)', color: '#0a0506', boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(212,168,83,0.4)' }}>
+    style={{ background: 'linear-gradient(135deg, #d4a853 0%, #8b6914 100%)', color: 'rgb(var(--surface))', boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(212,168,83,0.4)' }}>
     <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, #fceca1 0%, #d4a853 100%)' }} />
     <span className="relative flex justify-center items-center gap-2">{loading ? (
       <>
@@ -371,7 +371,7 @@ const GoldButton = ({ loading, text, loadingText }) => (
 const Divider = ({ text }) => (
   <div className="flex items-center gap-4 my-4 sm:my-7 opacity-70">
     <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.4))' }} />
-    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8a7a6e' }}>{text}</span>
+    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgb(var(--fg-muted))' }}>{text}</span>
     <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, rgba(212,168,83,0.4))' }} />
   </div>
 );
@@ -379,7 +379,7 @@ const Divider = ({ text }) => (
 const SocialBtn = ({ icon, text }) => (
   <button type="button"
     className="w-full py-3 sm:py-3.5 rounded-2xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 shadow-sm"
-    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,83,0.15)', color: '#b8a89a' }}
+    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,83,0.15)', color: 'rgb(var(--fg-secondary))' }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; e.currentTarget.style.background = 'rgba(212,168,83,0.08)'; e.currentTarget.style.color = '#fff'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = '#b8a89a'; }}>
     {icon} <span>{text}</span>

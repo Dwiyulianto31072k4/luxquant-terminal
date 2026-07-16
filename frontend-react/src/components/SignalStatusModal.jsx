@@ -160,7 +160,7 @@ export default function GlobalSignalModalHost() {
     );
   } else {
     const s = info.item || {};
-    const st = STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af", desc: "" };
+    const st = STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "rgb(var(--fg-secondary))", desc: "" };
     const ago = timeAgo(info.created);
     const calledAbs = info.created ? new Date(info.created).toLocaleString() : null;
     const dir = s.signal_direction || s.v3?.direction || null;
