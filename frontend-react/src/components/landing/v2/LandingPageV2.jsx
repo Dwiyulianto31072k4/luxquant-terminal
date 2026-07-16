@@ -96,15 +96,7 @@ export default function LandingPageV2() {
           stay transparent so this flows through them without hard edges. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background: `
-            radial-gradient(ellipse at 0% 0%, rgba(139,26,26,0.40) 0%, transparent 50%),
-            radial-gradient(ellipse at 100% 0%, rgba(139,26,26,0.30) 0%, transparent 42%),
-            radial-gradient(ellipse at 50% 100%, rgba(139,26,26,0.22) 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 52%, rgba(212,168,83,0.05) 0%, transparent 72%)
-          `,
-        }}
+        className="lux-warm-page pointer-events-none absolute inset-0 z-0"
       />
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />

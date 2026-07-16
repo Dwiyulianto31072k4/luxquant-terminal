@@ -353,11 +353,10 @@ const MoreMenuDropdown = ({
         }`}
       >
         <div
-          className="relative w-[720px] max-w-[92vw] rounded-lg border border-white/[0.07] shadow-2xl shadow-black/50 overflow-hidden"
-          style={{ background: 'linear-gradient(160deg, #1a0a0c 0%, #120608 55%, #0d0405 100%)' }}
+          className="lux-warm-panel relative w-[720px] max-w-[92vw] rounded-lg border border-white/[0.07] shadow-2xl shadow-black/50 overflow-hidden"
         >
           {/* Ambient depth glow — single, restrained */}
-          <span className="absolute -top-24 -right-16 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(139,26,26,0.14), transparent 70%)' }} />
+          <span className="lux-warm-glow absolute -top-24 -right-16 w-72 h-72 rounded-full pointer-events-none" />
           {/* Top accent edge */}
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 

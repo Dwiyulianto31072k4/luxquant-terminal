@@ -279,6 +279,41 @@ body::-webkit-scrollbar,
     rgb(var(--surface));
 }
 
+/* Warm brand PAGE wash (landing hero backdrop). Warm maroon in Luxquant,
+   neutral deep black in Dark so admins get a real dark landing. */
+.lux-warm-page {
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(139, 26, 26, 0.40) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(139, 26, 26, 0.30) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 100%, rgba(139, 26, 26, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 52%, rgba(212, 168, 83, 0.05) 0%, transparent 72%);
+}
+[data-theme="dark"] .lux-warm-page {
+  background:
+    radial-gradient(ellipse at 50% -8%, rgba(255, 255, 255, 0.035) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 52%, rgba(224, 178, 92, 0.05) 0%, transparent 72%);
+}
+[data-theme="bright"] .lux-warm-page { background: transparent; }
+
+/* Warm brand PANEL background (dropdowns/menus). Neutral solid in Dark. */
+.lux-warm-panel {
+  background: linear-gradient(160deg, #1a0a0c 0%, #120608 55%, #0d0405 100%);
+}
+[data-theme="dark"] .lux-warm-panel {
+  background: linear-gradient(
+    160deg,
+    rgb(var(--surface-raised)) 0%,
+    rgb(var(--surface-secondary)) 55%,
+    rgb(var(--surface)) 100%
+  );
+}
+[data-theme="bright"] .lux-warm-panel { background: rgb(var(--surface-raised)); }
+
+/* Small ambient red glow accent — neutral (cool white) in Dark, off in Bright. */
+.lux-warm-glow { background: radial-gradient(circle, rgba(139, 26, 26, 0.14), transparent 70%); }
+[data-theme="dark"] .lux-warm-glow { background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 70%); }
+[data-theme="bright"] .lux-warm-glow { background: transparent; }
+
 /* ==========================================
    Corner Ornaments
    ========================================== */
