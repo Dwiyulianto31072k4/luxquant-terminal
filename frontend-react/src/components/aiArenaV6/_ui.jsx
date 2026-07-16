@@ -488,7 +488,7 @@ export const GoldButton = ({ children, className = "", size = "md", ...rest }) =
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary font-semibold leading-none text-[#1a0f08] transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary font-semibold leading-none text-surface-hover transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}

@@ -1292,7 +1292,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
   if (selectedSignalId) {
     const lk = signals.find((s) => s.signal_id === selectedSignalId);
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-[#150b0d] via-[#0a0805] to-[#150b0d] border border-gold-primary/25 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-surface-secondary via-surface-raised to-surface-secondary border border-gold-primary/25 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
         <div className="relative z-10 p-3 flex items-center gap-3">
           <span className="w-8 h-8 rounded-md border border-gold-primary/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary flex-shrink-0">
             <IconLink className="h-3.5 w-3.5" />
@@ -1851,7 +1851,7 @@ const HeroCard = ({ label, value, sub, accent }) => {
 
 // ── AI Coach Insights ────────────────────────────────────
 const AICoachCard = ({ insights, stats, closedCount }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-[#150b0d] to-[#0a0805] border border-gold-primary/15 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-surface-secondary to-surface-raised border border-gold-primary/15 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="flex items-center gap-2.5 mb-3">
         <span className="w-7 h-7 rounded-md border border-gold-primary/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary">

@@ -137,7 +137,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary px-4 text-[13px] font-semibold leading-none text-[#1a0f08] transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary px-4 text-[13px] font-semibold leading-none text-surface-hover transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className={refreshing ? "animate-spin" : ""}>
               <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -408,7 +408,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
     return (
       <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
           Report library
         </div>
         <h2 className="mt-1 text-2xl font-medium text-text-primary/90">PDF archive is unavailable</h2>
@@ -428,7 +428,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
         <div className="border-b border-white/[0.06] p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
                 Report library
               </div>
               <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-text-primary md:text-3xl">
@@ -511,14 +511,14 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               ? "hover:border-emerald-400/35"
               : bearish
                 ? "hover:border-red-400/35"
-                : "hover:border-[#d4a853]/35";
+                : "hover:border-accent/35";
             return (
               <article
                 key={item.report_id}
-                className={`group relative overflow-hidden rounded-sm border border-white/[0.06] bg-surface-secondary p-4 transition ${ringClass} hover:bg-[#d4a853]/[0.035]`}
+                className={`group relative overflow-hidden rounded-sm border border-white/[0.06] bg-surface-secondary p-4 transition ${ringClass} hover:bg-accent/[0.035]`}
               >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/45 to-transparent opacity-60" />
-                <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#d4a853]/10 blur-3xl transition group-hover:bg-[#d4a853]/15" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/45 to-transparent opacity-60" />
+                <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-accent/10 blur-3xl transition group-hover:bg-accent/15" />
 
                 <div className="relative flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -576,7 +576,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-gold-primary px-3.5 text-[12px] font-semibold leading-none text-[#1a0f08] transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-gold-primary px-3.5 text-[12px] font-semibold leading-none text-surface-hover transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
                     {loading ? "Opening…" : "Open reader →"}
                   </button>
@@ -612,9 +612,9 @@ function ReportPdfModal({ modal, onClose }) {
       aria-label="Compass PDF preview"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/55 to-transparent" />
 
-      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-[#d4a853]/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
+      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-accent/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
@@ -622,7 +622,7 @@ function ReportPdfModal({ modal, onClose }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
+                <span className="rounded-md border border-accent/20 bg-accent/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-accent">
                   Compass reader
                 </span>
                 <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
@@ -648,7 +648,7 @@ function ReportPdfModal({ modal, onClose }) {
               <a
                 href={modal.url}
                 download={modal.filename || "compass-report.pdf"}
-                className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-3 py-2 text-xs font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15"
+                className="rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent/45 hover:bg-accent/15"
               >
                 Download
               </a>
@@ -666,8 +666,8 @@ function ReportPdfModal({ modal, onClose }) {
         <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,17vw,286px)_minmax(0,1fr)]">
           <aside className="hidden min-h-0 border-r border-white/[0.08] bg-surface-raised/92 p-2.5 lg:block">
             <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
-                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+              <div className="rounded-2xl border border-accent/15 bg-accent/[0.045] p-4">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
                   Reading brief
                 </div>
                 <p className="mt-2 text-sm leading-6 text-text-primary/62">
@@ -683,7 +683,7 @@ function ReportPdfModal({ modal, onClose }) {
               </div>
 
               <div className="mt-auto rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
                   Reader mode
                 </div>
                 <p className="mt-2 text-xs leading-5 text-text-primary/42">
@@ -828,7 +828,7 @@ function CompassPdfViewer({ url, title }) {
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.10] bg-surface-raised shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-surface-raised/95 px-3 py-2 md:px-4">
         <div className="min-w-0">
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             Fit reader
           </div>
           <div className="mt-1 max-w-[54vw] truncate text-xs font-semibold text-text-primary/78 md:text-sm">
@@ -866,7 +866,7 @@ function CompassPdfViewer({ url, title }) {
           <button
             type="button"
             onClick={() => setZoom(1)}
-            className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2.5 py-1.5 text-[#f5c451] transition hover:bg-[#d4a853]/15"
+            className="rounded-md border border-accent/20 bg-accent/10 px-2.5 py-1.5 text-accent transition hover:bg-accent/15"
           >
             Fit {Math.round(zoom * 100)}%
           </button>

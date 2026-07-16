@@ -183,7 +183,7 @@ function EmergencyButton({ children, onClick, disabled = false }) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="rounded-md border border-[#F6465D]/35 bg-[#F6465D]/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#ff7a8b] transition hover:bg-[#F6465D]/20 disabled:cursor-not-allowed disabled:opacity-40"
+      className="rounded-md border border-[#F6465D]/35 bg-[#F6465D]/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-negative transition hover:bg-[#F6465D]/20 disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

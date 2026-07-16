@@ -213,7 +213,7 @@ function HorizonPanel({ horizon, data }) {
         </div>
         <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
           <div
-            className="h-full rounded-full bg-[#f5c451]"
+            className="h-full rounded-full bg-accent"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -251,7 +251,7 @@ export default function ModelCalibrationPanel({ data }) {
   if (!data) {
     return (
       <section className="mb-8 rounded-xl border border-white/[0.06] bg-white/[0.015] p-5">
-        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451] mb-2">
+        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent mb-2">
           Phase 5 · Model calibration
         </div>
         <div className="text-sm text-text-primary/45">
@@ -266,7 +266,7 @@ export default function ModelCalibrationPanel({ data }) {
       <div className="min-w-0 rounded-xl border border-white/[0.06] bg-surface-secondary/80 p-4 md:p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
           <div>
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451] mb-1">
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent mb-1">
               Phase 5 · Model calibration
             </div>
             <h2 className="text-xl md:text-2xl text-text-primary/90 font-medium">
@@ -303,7 +303,7 @@ export default function ModelCalibrationPanel({ data }) {
           <span className="text-text-primary/30">
             Window {data.window_days}d · decision authority disabled
           </span>
-          <span className="text-[#f5c451]/70">
+          <span className="text-accent/70">
             Manual review required even after every gate passes
           </span>
         </div>

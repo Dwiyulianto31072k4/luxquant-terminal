@@ -473,7 +473,7 @@ const PricingPage = () => {
                             current
                               ? "border border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-400/90"
                               : recommended
-                                ? "bg-white text-[#0a0506] hover:bg-white/90"
+                                ? "bg-white text-surface hover:bg-white/90"
                                 : "border border-white/[0.12] text-text-primary/85 hover:border-white/25 hover:bg-white/[0.03]"
                           }`}
                         >
@@ -534,7 +534,7 @@ const PricingPage = () => {
                       onClick={() => setIncludeTab(tab.id)}
                       className={`rounded-lg py-2 text-[11px] font-medium transition sm:text-[12px] ${
                         active
-                          ? "bg-white text-[#0a0506] shadow-sm"
+                          ? "bg-white text-surface shadow-sm"
                           : "text-text-primary/45 hover:text-text-primary/75"
                       }`}
                     >

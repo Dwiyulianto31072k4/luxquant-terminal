@@ -153,7 +153,7 @@ export function RiskTab({ view, deriv }) {
 
           <div className="flex gap-1 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
             {["long", "short"].map((sd) => (
-              <button key={sd} onClick={() => setSide(sd)} className={`flex-1 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${side === sd ? (sd === "long" ? "bg-positive text-[#08160c] font-semibold" : "bg-negative text-[#180808] font-semibold") : "text-text-muted hover:text-text-primary"}`}>{sd}</button>
+              <button key={sd} onClick={() => setSide(sd)} className={`flex-1 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${side === sd ? (sd === "long" ? "bg-positive text-surface-raised font-semibold" : "bg-negative text-surface-secondary font-semibold") : "text-text-muted hover:text-text-primary"}`}>{sd}</button>
             ))}
           </div>
 

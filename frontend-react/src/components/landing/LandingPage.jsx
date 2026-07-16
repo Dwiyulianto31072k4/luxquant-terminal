@@ -608,7 +608,7 @@ const TelegramPromo = ({ gainers }) => {
 
           <div className="relative w-[240px] lg:w-[280px] aspect-[9/19.5] z-10 group">
             {/* Phone bezel */}
-            <div className="absolute inset-0 bg-surface border-[6px] lg:border-[8px] border-[#1a1a1a] rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+            <div className="absolute inset-0 bg-surface border-[6px] lg:border-[8px] border-surface-hover rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
               {/* Dynamic island */}
               <div className="absolute top-0 inset-x-0 z-30">
                 <div className="w-[35%] h-[16px] lg:h-[20px] bg-surface-secondary mx-auto rounded-b-xl lg:rounded-b-2xl" />
@@ -1669,7 +1669,7 @@ const LandingPage = () => {
               style={{ animation: "heroCardFadeIn 0.8s ease-out 0.2s both" }}
             >
               An{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark">
                 Algorithm
               </span>
               <br />
@@ -1767,7 +1767,7 @@ const LandingPage = () => {
                 }}
                 className="w-full relative z-10"
               >
-                <div className="relative w-full aspect-[16/10] bg-surface-raised rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-[#2a2a2a] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
+                <div className="relative w-full aspect-[16/10] bg-surface-raised rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-surface-hover overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
                   <div className="absolute inset-0 border border-black rounded-t-lg lg:rounded-t-3xl overflow-hidden bg-bg-primary">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[12%] h-[10px] lg:h-[18px] bg-surface-raised rounded-b-sm lg:rounded-b-md z-30 flex justify-center items-center">
                       <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-white/10" />
@@ -1790,8 +1790,8 @@ const LandingPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="relative w-[104%] -left-[2%] h-1.5 lg:h-3 bg-gradient-to-b from-[#4a4a4a] to-[#0a0a0a] rounded-b-sm lg:rounded-b-lg border-b border-white/10 flex justify-center shadow-2xl z-20">
-                  <div className="w-[15%] h-[1px] lg:h-1 bg-[#222] rounded-b-sm" />
+                <div className="relative w-[104%] -left-[2%] h-1.5 lg:h-3 bg-gradient-to-b from-[#4a4a4a] to-surface-raised rounded-b-sm lg:rounded-b-lg border-b border-white/10 flex justify-center shadow-2xl z-20">
+                  <div className="w-[15%] h-[1px] lg:h-1 bg-surface-hover rounded-b-sm" />
                 </div>
               </div>
 
@@ -1800,7 +1800,7 @@ const LandingPage = () => {
                   style={{ animation: "floatPhone 5s ease-in-out infinite 1s" }}
                   className="w-full h-full relative group"
                 >
-                  <div className="absolute inset-0 bg-black rounded-[1.8rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,168,83,0.3)]">
+                  <div className="absolute inset-0 bg-black rounded-[1.8rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-surface-hover overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,168,83,0.3)]">
                     <div className="absolute top-0 inset-x-0 z-30">
                       <div className="w-[35%] h-[12px] lg:h-[20px] bg-black mx-auto rounded-b-lg lg:rounded-b-2xl" />
                     </div>
@@ -2500,7 +2500,7 @@ const LandingPage = () => {
                   rel="noopener noreferrer"
                   className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-gold-primary/30 transition-all"
                 >
-                  <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#833AB4]/20 via-[#FD1D1D]/20 to-[#FCB045]/20 border border-[#FD1D1D]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[#833AB4]/30 group-hover:via-[#FD1D1D]/30 group-hover:to-[#FCB045]/30 transition-colors">
+                  <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#833AB4]/20 via-[#FD1D1D]/20 to-warning/20 border border-[#FD1D1D]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[#833AB4]/30 group-hover:via-[#FD1D1D]/30 group-hover:to-warning/30 transition-colors">
                     <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z" />
                     </svg>

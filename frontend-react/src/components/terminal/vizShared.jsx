@@ -170,7 +170,7 @@ export const Chip = ({ active, onClick, children }) => (
     onClick={onClick}
     className={`shrink-0 px-2.5 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider border transition-colors ${
       active
-        ? "bg-gold-primary text-[#17110a] border-gold-primary font-semibold shadow-sm shadow-gold-primary/20"
+        ? "bg-gold-primary text-surface-hover border-gold-primary font-semibold shadow-sm shadow-gold-primary/20"
         : "bg-surface-raised text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
     }`}
   >

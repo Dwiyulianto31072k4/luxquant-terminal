@@ -135,7 +135,7 @@ export default function CoinSpotlight() {
         </span>
         <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Track any coin{" "}
-          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">we've called.</span>
+          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">we've called.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           Pick a coin — or search any pair — to see its full, timestamped call history.
@@ -167,7 +167,7 @@ export default function CoinSpotlight() {
               })}
             </div>
             {/* MEXC-style dark fade + scroll arrow → 3D depth at the edge */}
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-[#0c0807] via-[#0c0807]/75 to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-surface-raised via-surface-raised/75 to-transparent" />
             <button
               onClick={() => railRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
               aria-label="Scroll coins"

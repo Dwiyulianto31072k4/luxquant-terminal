@@ -1214,7 +1214,7 @@ export default function GlobalReach() {
 
           <h2 className="mt-5 text-[2rem] font-bold leading-[1.08] tracking-tight text-text-primary sm:text-[2.8rem] lg:text-[3.3rem]">
             Precision Intelligence,{" "}
-            <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">
               Serving Globally.
             </span>
           </h2>

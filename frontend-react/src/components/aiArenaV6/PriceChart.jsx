@@ -476,11 +476,11 @@ export default function PriceChart({ report }) {
                   onClick={() => toggleLayer(key)}
                   className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] transition ${
                     active
-                      ? "border-[#d4a853]/30 bg-[#d4a853]/10 text-[#f5c451]"
+                      ? "border-accent/30 bg-accent/10 text-accent"
                       : "border-white/[0.06] bg-black/10 text-text-primary/35 hover:border-white/[0.12] hover:text-text-primary/65"
                   }`}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-sm ${active ? "bg-[#f5c451]" : "bg-white/20"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-sm ${active ? "bg-accent" : "bg-white/20"}`} />
                   {label}
                 </button>
               );
@@ -613,7 +613,7 @@ function ProjectionPanel({ projection, lastPrice }) {
             {directionArrow(projection.direction)}
           </span>
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-accent/75">
               {projection.horizonLabel}
             </div>
             <h3 className="mt-0.5 text-xl font-semibold leading-tight text-text-primary/90">
@@ -698,7 +698,7 @@ function ChartReadPanel({ read }) {
     <section className="relative mt-4 overflow-hidden rounded-md border border-gold-primary/15 bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
         <div className="max-w-4xl">
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             AI chart reasoning
           </div>
           <h3 className="mt-1 text-lg font-semibold leading-tight text-text-primary/90 lg:text-xl">
@@ -721,8 +721,8 @@ function ChartReadPanel({ read }) {
 
       <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-[0.92fr_1.08fr]">
         <div className="space-y-3">
-          <div className="rounded-lg border border-[#d4a853]/15 bg-[#d4a853]/[0.055] p-3">
-            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">
+          <div className="rounded-lg border border-accent/15 bg-accent/[0.055] p-3">
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-accent/75">
               What to do with it
             </div>
             <p className="mt-2 text-sm leading-6 text-text-primary/70">
@@ -776,7 +776,7 @@ function ReasonRow({ item }) {
   return (
     <div className="rounded-lg border border-white/[0.06] bg-black/15 p-3">
       <div className="flex items-start gap-2">
-        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-sm bg-[#d4a853]" />
+        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-sm bg-accent" />
         <div>
           <div className="text-sm font-semibold text-text-primary/85">{item.title}</div>
           <p className="mt-1 text-xs leading-5 text-text-primary/50">{item.body}</p>
@@ -791,7 +791,7 @@ function MetricExplain({ metric }) {
     <div className="rounded-sm border border-white/[0.04] bg-surface-secondary p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{metric.label}</div>
       <div className="mt-1 font-mono text-sm font-semibold text-text-primary/90">{metric.value}</div>
-      <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#d4a853]/75">{metric.state}</div>
+      <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent/75">{metric.state}</div>
       <p className="mt-1 text-[10px] leading-4 text-text-primary/45">{metric.reason}</p>
     </div>
   );

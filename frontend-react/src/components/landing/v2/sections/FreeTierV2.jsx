@@ -25,7 +25,7 @@ export default function FreeTierV2() {
         </span>
         <h2 className="mt-7 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Try Before You{" "}
-          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">
             Subscribe.
           </span>
         </h2>

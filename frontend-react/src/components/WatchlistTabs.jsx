@@ -63,7 +63,7 @@ const WatchlistTabs = () => {
                   }`}
                 >
                   <svg
-                    className={`w-[18px] h-[18px] ${active ? "text-[#0a0805]" : "text-text-muted"}`}
+                    className={`w-[18px] h-[18px] ${active ? "text-surface-raised" : "text-text-muted"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -72,10 +72,10 @@ const WatchlistTabs = () => {
                   </svg>
                 </span>
                 <span className="text-left">
-                  <span className={`block text-sm font-semibold leading-tight ${active ? "text-[#0a0805]" : "text-text-secondary"}`}>
+                  <span className={`block text-sm font-semibold leading-tight ${active ? "text-surface-raised" : "text-text-secondary"}`}>
                     {tb.label}
                   </span>
-                  <span className={`block font-mono text-[10px] uppercase tracking-[0.08em] mt-0.5 ${active ? "text-[#0a0805]/55" : "text-text-muted/70"}`}>
+                  <span className={`block font-mono text-[10px] uppercase tracking-[0.08em] mt-0.5 ${active ? "text-surface-raised/55" : "text-text-muted/70"}`}>
                     {tb.sublabel}
                   </span>
                 </span>

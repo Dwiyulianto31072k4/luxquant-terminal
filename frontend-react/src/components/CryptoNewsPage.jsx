@@ -508,8 +508,8 @@ const PulseTicker = ({ items, onSelect }) => {
         .group:hover .ticker-track { animation-play-state: paused; }
       `}</style>
 
-      <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-[#0c0a10] to-transparent" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-[#0c0a10] to-transparent" />
+      <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-surface-secondary to-transparent" />
+      <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-surface-secondary to-transparent" />
 
       <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" style={{ boxShadow: "0 0 8px #ef4444" }} />

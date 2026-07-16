@@ -152,7 +152,7 @@ export default function TerminalPreview() {
       <div className="mx-auto mb-10 max-w-7xl px-4 text-center lg:px-8">
         <h2 className="text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Interactive{" "}
-          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">
             Terminal Preview
           </span>
         </h2>
@@ -236,7 +236,7 @@ export default function TerminalPreview() {
                 >
                   <span className="h-px w-14 bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
                   <h3 className="text-xl font-bold text-text-primary sm:text-2xl lg:text-3xl">
-                    …and much <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">more</span>
+                    …and much <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">more</span>
                   </h3>
                   <p className="hidden max-w-md text-xs leading-relaxed text-text-primary/55 sm:block sm:text-sm">
                     Everything else a serious trader needs — already built into the terminal.
@@ -249,8 +249,8 @@ export default function TerminalPreview() {
             </div>
 
             {/* silver chin + Apple logo */}
-            <div className="flex h-[26px] items-center justify-center bg-gradient-to-b from-[#e8e9eb] via-[#d8dadd] to-[#c4c6ca] sm:h-[32px] lg:h-[44px]">
-              <AppleLogo className="h-[13px] w-[13px] text-[#070708] sm:h-[15px] sm:w-[15px] lg:h-[20px] lg:w-[20px]" />
+            <div className="flex h-[26px] items-center justify-center bg-gradient-to-b from-text-primary via-[#d8dadd] to-[#c4c6ca] sm:h-[32px] lg:h-[44px]">
+              <AppleLogo className="h-[13px] w-[13px] text-surface sm:h-[15px] sm:w-[15px] lg:h-[20px] lg:w-[20px]" />
             </div>
           </div>
 

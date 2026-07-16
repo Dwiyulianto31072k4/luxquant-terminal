@@ -403,7 +403,7 @@ function Seg({ items, value, onChange }) {
         <button
           key={it}
           onClick={() => onChange(it)}
-          className={`rounded-md px-2.5 py-1 transition-colors ${value === it ? "text-[#0a0506]" : "text-text-muted hover:text-text-primary"}`}
+          className={`rounded-md px-2.5 py-1 transition-colors ${value === it ? "text-surface" : "text-text-muted hover:text-text-primary"}`}
           style={value === it ? { background: C.gold } : {}}
         >
           {it}
@@ -561,7 +561,7 @@ export default function Performance({ data }) {
         </span>
         <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.9rem]">
           An edge you can{" "}
-          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">audit.</span>
+          <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">audit.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           Every signal recorded since day one — no hidden trades, no

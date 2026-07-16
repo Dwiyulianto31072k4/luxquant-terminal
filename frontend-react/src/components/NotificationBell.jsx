@@ -193,7 +193,7 @@ const NotificationBell = () => {
         {/* FIX: Badge — bigger min-width, proper height for 99+, z-index, ring for separation */}
         {unreadCount > 0 && (
           <span
-            className="absolute -top-1 -right-1 min-w-[18px] h-[16px] flex items-center justify-center px-1 bg-gold-primary text-[#0a0805] text-[9px] font-mono font-bold rounded-full tabular-nums leading-none ring-2 ring-bg-primary z-10"
+            className="absolute -top-1 -right-1 min-w-[18px] h-[16px] flex items-center justify-center px-1 bg-gold-primary text-surface-raised text-[9px] font-mono font-bold rounded-full tabular-nums leading-none ring-2 ring-bg-primary z-10"
             style={{ paddingLeft: 4, paddingRight: 4 }}
           >
             {unreadCount > 99 ? "99+" : unreadCount}

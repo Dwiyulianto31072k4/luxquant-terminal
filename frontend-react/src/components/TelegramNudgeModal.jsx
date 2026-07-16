@@ -202,7 +202,7 @@ const TelegramNudgeModal = () => {
             className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
             style={{ background: 'rgba(0,136,204,0.08)', border: '1px solid rgba(0,136,204,0.25)' }}
           >
-            <TelegramIcon className="w-6 h-6 text-[#0088cc]" />
+            <TelegramIcon className="w-6 h-6 text-brand-telegram" />
           </div>
 
           {/* title */}

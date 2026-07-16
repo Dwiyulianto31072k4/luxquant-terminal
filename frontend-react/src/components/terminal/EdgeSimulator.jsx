@@ -154,7 +154,7 @@ export function EdgeTab() {
         <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.edgeLookback")}</span>
         {[7, 30, 90].map((dv) => (
           <button key={dv} onClick={() => setDays(dv)}
-            className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${days === dv ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-text-primary"}`}>
+            className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${days === dv ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted hover:text-text-primary"}`}>
             {dv}d
           </button>
         ))}
@@ -183,7 +183,7 @@ export function EdgeTab() {
                   <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
                     {[["7d", "7D"], ["30d", "30D"], ["ytd", "YTD"], ["all", "ALL"]].map(([v, lbl]) => (
                       <button key={v} onClick={() => setEconRange(v)}
-                        className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-text-primary"}`}>
+                        className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted hover:text-text-primary"}`}>
                         {lbl}
                       </button>
                     ))}

@@ -37,12 +37,12 @@ const WARNING_TAGS = [
   "RISK_OFF_REGIME", "HTF_TREND_EXHAUSTED", "PATTERN_CONFLICTING", "HARMONIC_CONFLICTING",
 ];
 const EQ_TAGS = {
-  FRESH_BREAKOUT: { tone: "text-[#08160c] bg-positive border-positive" },
-  DEEP_PULLBACK: { tone: "text-[#06232b] bg-cyan-400 border-cyan-400" },
-  EXHAUSTION_CANDLE: { tone: "text-[#1a1206] bg-orange-400 border-orange-400" },
-  PARABOLIC: { tone: "text-[#180808] bg-negative border-negative" },
-  LATE_ENTRY: { tone: "text-[#1a1206] bg-warning border-warning" },
-  OVEREXTENDED: { tone: "text-[#180808] bg-negative border-negative" },
+  FRESH_BREAKOUT: { tone: "text-surface-raised bg-positive border-positive" },
+  DEEP_PULLBACK: { tone: "text-surface-hover bg-cyan-400 border-cyan-400" },
+  EXHAUSTION_CANDLE: { tone: "text-surface-hover bg-orange-400 border-orange-400" },
+  PARABOLIC: { tone: "text-surface-secondary bg-negative border-negative" },
+  LATE_ENTRY: { tone: "text-surface-hover bg-warning border-warning" },
+  OVEREXTENDED: { tone: "text-surface-secondary bg-negative border-negative" },
 };
 const nice = (tag) => tag.replaceAll("_", " ").toLowerCase();
 const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: "#fbbf24" };
@@ -113,7 +113,7 @@ function FngBadge({ value, label }) {
       <div className="relative flex-1 min-w-[120px]">
         <div className="h-2 rounded-full" style={{ background: "linear-gradient(90deg,#f87171,#f97316,#fbbf24,#a3e635,#34d399)" }} />
         <div
-          className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0a0805] shadow"
+          className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-surface-raised shadow"
           style={{ left: `${pos}%`, transform: "translate(-50%,-50%)", background: "#fff" }}
         />
         <div className="mt-1 flex justify-between font-mono text-[7.5px] uppercase tracking-wider text-text-muted/40">

@@ -100,7 +100,7 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
 // Stat Card
 // ════════════════════════════════════════
 const StatCard = ({ label, value, sub, color = "text-text-primary", icon }) => (
-  <div className="bg-[#111]/80 rounded-lg p-2.5 border border-white/5 flex-1 min-w-[100px]">
+  <div className="bg-surface-secondary/80 rounded-lg p-2.5 border border-white/5 flex-1 min-w-[100px]">
     <div className="flex items-center gap-1.5 mb-1">
       {icon && <span className="text-xs">{icon}</span>}
       <p className="text-[9px] text-text-primary/40 uppercase tracking-wider font-medium">
@@ -493,7 +493,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         </div>
 
         {/* ── TP Breakdown ── */}
-        <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+        <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
           <p className="text-text-primary/40 text-[9px] uppercase tracking-wider font-medium mb-3 flex items-center gap-1.5">
             {Ic.target("w-3 h-3")} Outcome Distribution
           </p>
@@ -513,7 +513,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
               <span className="inline-block w-3 h-3 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
             )}
           </p>
-          <div className="flex items-center bg-[#111] rounded-lg p-0.5 border border-white/10">
+          <div className="flex items-center bg-surface-secondary rounded-lg p-0.5 border border-white/10">
             {[3, 5, 10, "All"].map((n) => (
               <button
                 key={n}

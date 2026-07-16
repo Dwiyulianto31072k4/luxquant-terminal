@@ -203,7 +203,7 @@ const AnalyzePage = () => {
               onClick={() => setTimeRange(opt.value)}
               className={`px-3.5 py-1.5 rounded-[7px] font-mono text-[10px] uppercase tracking-wider transition-all ${
                 timeRange === opt.value
-                  ? "bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
+                  ? "bg-gold-primary text-surface-hover font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
                   : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"
               }`}
             >

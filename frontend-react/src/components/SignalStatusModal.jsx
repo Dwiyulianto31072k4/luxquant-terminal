@@ -153,7 +153,7 @@ export default function GlobalSignalModalHost() {
       <button
         type="button"
         onClick={close}
-        className="w-full rounded-xl bg-gold-primary py-3.5 text-[13px] font-bold text-[#1a1206] active:scale-[0.99]"
+        className="w-full rounded-xl bg-gold-primary py-3.5 text-[13px] font-bold text-surface-hover active:scale-[0.99]"
       >
         Done
       </button>
@@ -266,7 +266,7 @@ export default function GlobalSignalModalHost() {
         <button
           type="button"
           onClick={openFull}
-          className="flex-1 rounded-xl bg-gold-primary py-3.5 text-[13px] font-bold text-[#17110a] shadow-[0_4px_16px_rgba(212,168,83,0.3)] active:scale-[0.99]"
+          className="flex-1 rounded-xl bg-gold-primary py-3.5 text-[13px] font-bold text-surface-hover shadow-[0_4px_16px_rgba(212,168,83,0.3)] active:scale-[0.99]"
         >
           Open full signal →
         </button>

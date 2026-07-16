@@ -400,7 +400,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
         </div>
 
         <div className="px-5 py-4 mt-4 border-t border-white/[0.06] flex items-center gap-2">
-          <button onClick={onFull} className="flex-1 rounded-xl bg-gold-primary text-[#17110a] font-semibold text-[13px] py-2.5 hover:brightness-105 transition-colors">Open full signal →</button>
+          <button onClick={onFull} className="flex-1 rounded-xl bg-gold-primary text-surface-hover font-semibold text-[13px] py-2.5 hover:brightness-105 transition-colors">Open full signal →</button>
           <button onClick={onClose} className="rounded-xl border border-white/12 text-text-primary/70 text-[13px] px-4 py-2.5 hover:border-white/25 transition-colors">Close</button>
         </div>
       </div>
@@ -423,7 +423,7 @@ function Enc({ label, value, onChange }) {
 
 // ── Filter bar ──
 function FilterBar({ filters, setF }) {
-  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-text-primary/55 border-white/[0.1] bg-surface-raised hover:border-white/20"}`;
+  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-surface-hover border-gold-primary bg-gold-primary font-semibold" : "text-text-primary/55 border-white/[0.1] bg-surface-raised hover:border-white/20"}`;
   const sel = "appearance-none bg-surface-raised border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
   return (
     <div className="sticky top-0 z-30 bg-surface-raised border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
@@ -798,7 +798,7 @@ function ExploreView({ model, onPick }) {
   const [logX, setLogX] = useState(true);
   const [labels, setLabels] = useState(true);
   const mx = METRICS[xk], my = METRICS[yk];
-  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-text-primary/55 bg-surface-raised border-white/[0.12] hover:border-white/25"}`;
+  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-surface-hover bg-gold-primary border-gold-primary font-semibold" : "text-text-primary/55 bg-surface-raised border-white/[0.12] hover:border-white/25"}`;
   return (
     <>
       <div className="flex flex-wrap items-center gap-3 mb-3">

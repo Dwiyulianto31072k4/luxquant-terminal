@@ -145,7 +145,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
           <div className="relative flex-shrink-0">
             <CoinLogo pair="BTCUSDT" size={32} />
             {/* warning badge */}
-            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ring-2 ring-[#120c0a]"
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ring-2 ring-surface-secondary"
               style={{ background: accent, color: '#1a1207' }}>
               !
             </span>
@@ -258,7 +258,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                       <div className="relative flex justify-between items-start z-10">
                         {tpLevels.map((tp, idx) => (
                           <div key={idx} className="flex flex-col items-center gap-1.5">
-                            <div className={`w-2 h-2 rounded-full ring-4 ring-[#0c0808] transition-all ${tp.hit ? 'bg-green-400' : 'bg-gray-700'}`}
+                            <div className={`w-2 h-2 rounded-full ring-4 ring-surface-raised transition-all ${tp.hit ? 'bg-green-400' : 'bg-gray-700'}`}
                               style={tp.hit ? { boxShadow: '0 0 6px #4ade80' } : undefined} />
                             <span className={`text-[9px] font-semibold tracking-wide ${tp.hit ? 'text-green-400' : 'text-gray-600'}`}>{tp.label}</span>
                             <span className={`text-[8px] font-mono ${tp.hit ? 'text-text-primary/70' : 'text-text-muted/35'}`}>{formatPrice(tp.value)}</span>

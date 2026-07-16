@@ -310,7 +310,7 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
         {isCalled ? (
           <button
             onClick={onOpen}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] font-bold text-[#0a0805] hover:brightness-110 transition-all whitespace-nowrap"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] font-bold text-surface-raised hover:brightness-110 transition-all whitespace-nowrap"
             style={{ background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)" }}
           >
             Open →

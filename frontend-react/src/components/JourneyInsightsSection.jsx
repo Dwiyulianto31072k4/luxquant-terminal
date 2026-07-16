@@ -98,7 +98,7 @@ const JourneyInsightsSection = ({ pair }) => {
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="bg-[#111]/80 rounded-xl p-3 border border-white/5 animate-pulse">
+        <div className="bg-surface-secondary/80 rounded-xl p-3 border border-white/5 animate-pulse">
           <div className="h-3 bg-white/5 rounded w-1/3 mb-2" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[1, 2, 3, 4].map((i) => (
@@ -116,7 +116,7 @@ const JourneyInsightsSection = ({ pair }) => {
   if (data.available === false) {
     if (data.reason === "insufficient_data") {
       return (
-        <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+        <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
           <p className="text-text-primary/40 text-[10px] uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
             <span>📊</span>
             <span>Behavior Insights</span>
@@ -148,7 +148,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 1. Entry Behavior                          */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
         <SectionHeader
           icon="🚪"
           title="Entry Behavior"
@@ -197,7 +197,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 2. Time to Each TP                         */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
         <SectionHeader icon="⏱️" title="Time to Each TP" />
         <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full text-xs min-w-[400px]">
@@ -246,7 +246,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 3. Drawdown Before Each TP                */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
         <SectionHeader icon="📉" title="Drawdown Before Each TP" />
         <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full text-xs min-w-[400px]">
@@ -292,7 +292,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 4. Hit Rate per TP                         */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
         <SectionHeader icon="🎯" title="Hit Rate per TP" />
         <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full text-xs min-w-[400px]">
@@ -361,7 +361,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 5. Peak Potential                          */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
         <SectionHeader icon="🚀" title="Peak Potential" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <StatPill
@@ -400,7 +400,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 6. Risk Profile                            */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
         <SectionHeader icon="⚠️" title="Risk Profile" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
           <StatPill

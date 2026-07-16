@@ -1042,7 +1042,7 @@ const SignalModal = ({
         active: isStopped,
         color: isStopped ? "text-red-400" : "text-gray-500",
         border: isStopped ? "border-red-500/30" : "border-gray-700",
-        bg: isStopped ? "bg-red-500/10" : "bg-[#111]",
+        bg: isStopped ? "bg-red-500/10" : "bg-surface-secondary",
       });
     }
 
@@ -1107,7 +1107,7 @@ const SignalModal = ({
         active: h,
         color: h ? tp.c : "text-gray-500",
         border: h ? tp.b : "border-gray-700",
-        bg: h ? tp.bg : "bg-[#111]",
+        bg: h ? tp.bg : "bg-surface-secondary",
       });
     });
 
@@ -1683,7 +1683,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </button>
                   {/* END TOMBOL JOURNAL */}
 
-                  <div className="flex items-center bg-[#111] rounded-md p-0.5 border border-gold-primary/15">
+                  <div className="flex items-center bg-surface-secondary rounded-md p-0.5 border border-gold-primary/15">
                     {[
                       { id: "chart", label: t("modal.chart"), icon: (
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
@@ -2349,7 +2349,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* === AI PROMPT GENERATOR SECTION === */}
                     <div className="mb-4 sm:mb-5">
-                      <div className="lq-card lq-card--gold bg-gradient-to-br from-[#111] to-[#0d0d0d]">
+                      <div className="lq-card lq-card--gold bg-gradient-to-br from-surface-secondary to-surface-secondary">
                         {/* Header */}
                         <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-gold-primary/10 bg-gold-primary/5">
                           <div className="flex items-center gap-2">

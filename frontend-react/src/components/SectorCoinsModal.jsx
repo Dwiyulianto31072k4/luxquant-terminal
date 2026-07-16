@@ -120,7 +120,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
     <div className="flex items-center gap-3 min-w-0">
       <div className="flex -space-x-1.5 shrink-0">
         {(sector?.top_3_coins || []).slice(0, 3).map((url, k) => (
-          <img key={k} src={url} alt="" className="w-6 h-6 rounded-full border border-[#0a0805] bg-white/5" onError={(e) => (e.target.style.display = "none")} />
+          <img key={k} src={url} alt="" className="w-6 h-6 rounded-full border border-surface-raised bg-white/5" onError={(e) => (e.target.style.display = "none")} />
         ))}
       </div>
       <div className="min-w-0">

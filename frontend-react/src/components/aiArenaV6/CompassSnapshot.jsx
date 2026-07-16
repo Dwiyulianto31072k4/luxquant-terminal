@@ -226,7 +226,7 @@ export default function CompassSnapshot({ className = "" }) {
         >
           {/* big solid chevron */}
           <span
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gold-primary text-[#1a0f08] shadow-[0_2px_12px_rgba(212,168,83,0.4)] transition-all duration-200 group-hover:bg-gold-light ${collapsed ? "" : "rotate-180"}`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gold-primary text-surface-hover shadow-[0_2px_12px_rgba(212,168,83,0.4)] transition-all duration-200 group-hover:bg-gold-light ${collapsed ? "" : "rotate-180"}`}
             aria-hidden="true"
           >
             <svg width="17" height="17" viewBox="0 0 16 16" fill="none">

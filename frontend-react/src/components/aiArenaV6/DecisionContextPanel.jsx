@@ -88,7 +88,7 @@ function HorizonCard({ horizon, data }) {
             <span className={`text-xl font-semibold ${directionTone[data?.verdict_direction] || "text-text-primary/70"}`}>
               {directionLabel(data?.verdict_direction)}
             </span>
-            <span className="font-mono text-sm text-[#f5c451]">
+            <span className="font-mono text-sm text-accent">
               {data?.verdict_confidence != null
                 ? `${data.verdict_confidence}%`
                 : "-"}
@@ -185,7 +185,7 @@ export default function DecisionContextPanel({ data }) {
   if (!data) {
     return (
       <section className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
-        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
+        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent">
           Phase 6 / Evidence-first dashboard
         </div>
         <p className="mt-2 text-sm text-text-primary/45">
@@ -201,10 +201,10 @@ export default function DecisionContextPanel({ data }) {
   const changes = data.changes?.items || [];
 
   return (
-    <section className="min-w-0 rounded-2xl border border-[#f5c451]/15 bg-surface-secondary/90 p-4 md:p-6">
+    <section className="min-w-0 rounded-2xl border border-accent/15 bg-surface-secondary/90 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]/75">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             Phase 6 / Evidence-first dashboard
           </div>
           <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">
@@ -244,7 +244,7 @@ export default function DecisionContextPanel({ data }) {
           label="Decision authority"
           value="DISPLAY ONLY"
           note="health status cannot change direction"
-          tone="text-[#f5c451]"
+          tone="text-accent"
         />
       </div>
 

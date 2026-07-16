@@ -76,11 +76,11 @@ export default function InAppBrowserBanner() {
   return (
     <div
       role="alert"
-      className="fixed top-0 inset-x-0 z-[9999] bg-surface-raised border-b border-[#c9a04e]/40"
+      className="fixed top-0 inset-x-0 z-[9999] bg-surface-raised border-b border-accent/40"
     >
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a04e] mb-1">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent mb-1">
             Better in a real browser
           </p>
           <p className="text-sm text-neutral-300 leading-snug">
@@ -92,7 +92,7 @@ export default function InAppBrowserBanner() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={copyLink}
-            className="text-xs font-medium px-3 py-1.5 rounded border border-[#c9a04e]/50 text-[#c9a04e] hover:bg-[#c9a04e]/10 transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded border border-accent/50 text-accent hover:bg-accent/10 transition-colors"
           >
             {copied ? "Copied ✓" : "Copy link"}
           </button>

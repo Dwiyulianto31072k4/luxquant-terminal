@@ -55,7 +55,7 @@ function DetailButton({ children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-3 py-2 text-[11px] font-medium text-[#f5c451] transition hover:border-[#d4a853]/40 hover:bg-[#d4a853]/15"
+      className="rounded-md border border-accent/20 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent transition hover:border-accent/40 hover:bg-accent/15"
     >
       {children}
     </button>
@@ -66,7 +66,7 @@ function SectionTitle({ eyebrow, title, children }) {
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
           {eyebrow}
         </div>
         <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">
@@ -249,7 +249,7 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
 
       <div className="grid gap-6 p-5 md:grid-cols-[1.3fr_0.7fr] md:p-6">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent/75">
             Short-term market outlook
           </div>
           <h1 className="mt-3 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.03em] text-text-primary md:text-5xl">
@@ -258,8 +258,8 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
           <p className="mt-4 max-w-3xl text-sm leading-7 text-text-primary/55">
             {buildTraderSummary(tactical, rows, contract)}
           </p>
-          <div className="mt-5 rounded-2xl border border-[#d4a853]/20 bg-[#d4a853]/[0.055] p-4">
-            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#f5c451]">
+          <div className="mt-5 rounded-2xl border border-accent/20 bg-accent/[0.055] p-4">
+            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-accent">
               Altcoin exposure guide
             </div>
             <p className="mt-2 text-sm leading-6 text-text-primary/65">{exposure.text}</p>
@@ -276,7 +276,7 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
               <div className="text-4xl font-semibold text-text-primary/90">
                 {directionLabel(dir)}
               </div>
-              <div className="mt-1 font-mono text-xl text-[#d4a853]">
+              <div className="mt-1 font-mono text-xl text-accent">
                 {tactical?.confidence ?? "-"}% confidence
               </div>
             </div>
@@ -328,7 +328,7 @@ function MetricPreviewCard({ row, horizon, onDetail }) {
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-text-primary/35">
         <span>strength {numberPct(score.strength)}</span>
         <span>score {signedScore(score.weighted_score)}</span>
-        <button type="button" onClick={onDetail} className="text-[#d4a853] hover:text-[#f5c451]">
+        <button type="button" onClick={onDetail} className="text-accent hover:text-accent">
           details
         </button>
       </div>
@@ -426,7 +426,7 @@ function ZoneList({ zones, currentPrice, onDetail }) {
                   {zone.why}
                 </p>
               )}
-              <button type="button" onClick={onDetail} className="mt-3 text-[11px] font-medium text-[#d4a853] hover:text-[#f5c451]">
+              <button type="button" onClick={onDetail} className="mt-3 text-[11px] font-medium text-accent hover:text-accent">
                 open levels + liquidity
               </button>
             </div>
@@ -460,7 +460,7 @@ function RiskList({ risks, onDetail }) {
           {risk.why_matters && (
             <p className="mt-2 text-xs leading-relaxed text-text-primary/40">{risk.why_matters}</p>
           )}
-          <button type="button" onClick={onDetail} className="mt-3 text-[11px] font-medium text-[#d4a853] hover:text-[#f5c451]">
+          <button type="button" onClick={onDetail} className="mt-3 text-[11px] font-medium text-accent hover:text-accent">
             full risk logic
           </button>
         </div>
@@ -484,14 +484,14 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
               <div className={cx("mt-2 text-2xl font-semibold", textTone(swing?.direction))}>
                 {directionLabel(swing?.direction)}
               </div>
-              <div className="mt-1 font-mono text-[#d4a853]">{swing?.confidence ?? "-"}%</div>
+              <div className="mt-1 font-mono text-accent">{swing?.confidence ?? "-"}%</div>
             </div>
             <div className={cx(mutedCard, "p-4")}>
               <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">Cycle</div>
               <div className={cx("mt-2 text-2xl font-semibold", textTone(cycle?.direction))}>
                 {directionLabel(cycle?.direction)}
               </div>
-              <div className="mt-1 font-mono text-[#d4a853]">{cycle?.confidence ?? "-"}%</div>
+              <div className="mt-1 font-mono text-accent">{cycle?.confidence ?? "-"}%</div>
             </div>
           </div>
           <div className="space-y-2">
@@ -531,7 +531,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
             <div className={cx("mt-3 text-3xl font-semibold", textTone(cycle?.direction))}>
               {directionLabel(cycle?.direction)}
             </div>
-            <div className="mt-1 font-mono text-[#d4a853]">
+            <div className="mt-1 font-mono text-accent">
               {cycle?.confidence ?? "-"}% context confidence
             </div>
             <p className="mt-4 text-sm leading-6 text-text-primary/48">
@@ -600,7 +600,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
               className={cx(
                 "group flex min-h-[64px] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                 active
-                  ? "border-[#d4a853]/35 bg-[#d4a853]/12 text-text-primary shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
+                  ? "border-accent/35 bg-accent/12 text-text-primary shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
                   : "border-white/[0.06] bg-white/[0.018] text-text-primary/45 hover:border-white/[0.12] hover:bg-white/[0.045] hover:text-text-primary/75",
               )}
             >
@@ -608,7 +608,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
                 className={cx(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold",
                   active
-                    ? "border-[#d4a853]/35 bg-[#d4a853]/14 text-[#f5c451]"
+                    ? "border-accent/35 bg-accent/14 text-accent"
                     : "border-white/[0.08] bg-black/15 text-text-primary/35 group-hover:text-text-primary/65",
                 )}
               >
@@ -639,7 +639,7 @@ function Modal({ title, children, onClose }) {
         </div>
         <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">Detail breakdown</div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">Detail breakdown</div>
             <h3 className="mt-1 text-xl font-semibold text-text-primary/90">{title}</h3>
           </div>
           <button
@@ -878,7 +878,7 @@ export default function CompassBrief({
       <section className={cx(card, "overflow-hidden")}>
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
               Detail workspace
             </div>
             <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">

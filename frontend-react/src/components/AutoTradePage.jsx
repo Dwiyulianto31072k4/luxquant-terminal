@@ -438,7 +438,7 @@ function AutoTradeOverview({
           <button
             type="button"
             onClick={() => onOpenSettings("connections")}
-            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F] hover:text-[#ffd75e]"
+            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F] hover:text-accent-light"
           >
             Manage connection →
           </button>

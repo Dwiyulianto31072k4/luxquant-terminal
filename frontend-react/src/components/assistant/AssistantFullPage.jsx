@@ -129,7 +129,7 @@ export default function AssistantFullPage() {
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
               m.role === 'user'
-                ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
+                ? 'whitespace-pre-wrap bg-gold-primary text-surface-hover font-medium'
                 : 'bg-white/[0.05] text-text-primary/90 border border-white/5'
             }`}>
               {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => navigate(path))}</div> : m.content}
@@ -164,7 +164,7 @@ export default function AssistantFullPage() {
           <button
             onClick={() => send()}
             disabled={loading || !input.trim()}
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gold-primary text-[#1a1206] disabled:opacity-30 hover:bg-gold-primary/90 transition-all active:scale-[0.97]"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gold-primary text-surface-hover disabled:opacity-30 hover:bg-gold-primary/90 transition-all active:scale-[0.97]"
             aria-label="Send"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" /></svg>

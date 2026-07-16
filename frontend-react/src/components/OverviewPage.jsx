@@ -660,7 +660,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
               key={i}
               src={url}
               alt=""
-              className="w-4 h-4 rounded-full border border-[#0a0805] bg-surface-raised"
+              className="w-4 h-4 rounded-full border border-surface-raised bg-surface-raised"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           ))}

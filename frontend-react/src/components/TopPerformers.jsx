@@ -277,7 +277,7 @@ const TopPerformers = () => {
                     type="button"
                     onClick={handleCustomApply}
                     disabled={!customFrom || !customTo}
-                    className="col-span-2 rounded-md bg-gold-primary py-1.5 text-[11px] font-semibold text-[#1a1206] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-4"
+                    className="col-span-2 rounded-md bg-gold-primary py-1.5 text-[11px] font-semibold text-surface-hover disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-4"
                   >
                     {t("top.apply")}
                   </button>
@@ -764,7 +764,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               <button
                 type="button"
                 onClick={() => { window.location.href = "/pricing"; }}
-                className="mt-5 rounded-md bg-gold-primary px-5 py-2.5 text-[13px] font-semibold text-[#1a1206]"
+                className="mt-5 rounded-md bg-gold-primary px-5 py-2.5 text-[13px] font-semibold text-surface-hover"
               >
                 View plans
               </button>

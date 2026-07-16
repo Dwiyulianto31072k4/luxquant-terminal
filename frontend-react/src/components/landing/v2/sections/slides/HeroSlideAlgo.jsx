@@ -67,8 +67,8 @@ function IMacMockup({ src, alt, className = "" }) {
         </div>
 
         {/* Silver chin with proportional deep-black Apple logo */}
-        <div className="flex h-[30px] items-center justify-center bg-gradient-to-b from-[#e8e9eb] via-[#d8dadd] to-[#c4c6ca] sm:h-[34px] lg:h-[44px]">
-          <AppleLogo className="h-[15px] w-[15px] text-[#070708] sm:h-[17px] sm:w-[17px] lg:h-[22px] lg:w-[22px]" />
+        <div className="flex h-[30px] items-center justify-center bg-gradient-to-b from-text-primary via-[#d8dadd] to-[#c4c6ca] sm:h-[34px] lg:h-[44px]">
+          <AppleLogo className="h-[15px] w-[15px] text-surface sm:h-[17px] sm:w-[17px] lg:h-[22px] lg:w-[22px]" />
         </div>
       </div>
 
@@ -118,7 +118,7 @@ function PhoneMockup({ src, alt, className = "" }) {
   return (
     <div className={`relative ${className}`}>
       {/* Silver aluminium side rail — ultra thin */}
-      <div className="rounded-[0.95rem] bg-gradient-to-b from-[#eceef0] via-[#b8babe] to-[#e4e5e7] p-[1px] shadow-[0_24px_56px_rgba(0,0,0,0.85),0_0_34px_rgba(212,168,83,0.12)] sm:rounded-[1.15rem] lg:rounded-[1.5rem] lg:p-[1.5px]">
+      <div className="rounded-[0.95rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgba(0,0,0,0.85),0_0_34px_rgba(212,168,83,0.12)] sm:rounded-[1.15rem] lg:rounded-[1.5rem] lg:p-[1.5px]">
         {/* Thin black display bezel */}
         <div className="overflow-hidden rounded-[0.9rem] bg-black p-[1.5px] sm:rounded-[1.1rem] lg:rounded-[1.44rem] lg:p-[2px]">
           {/* Screen — height follows the screenshot's own ratio (no crop),
@@ -142,19 +142,19 @@ function PhoneMockup({ src, alt, className = "" }) {
       {/* side buttons — aluminium */}
       <span
         aria-hidden="true"
-        className="absolute left-[-1.5px] top-[20%] h-[6%] w-[2px] rounded-l bg-gradient-to-b from-[#d2d4d7] to-[#a6a8ac]"
+        className="absolute left-[-1.5px] top-[20%] h-[6%] w-[2px] rounded-l bg-gradient-to-b from-[#d2d4d7] to-text-secondary"
       />
       <span
         aria-hidden="true"
-        className="absolute left-[-1.5px] top-[30%] h-[9%] w-[2px] rounded-l bg-gradient-to-b from-[#d2d4d7] to-[#a6a8ac]"
+        className="absolute left-[-1.5px] top-[30%] h-[9%] w-[2px] rounded-l bg-gradient-to-b from-[#d2d4d7] to-text-secondary"
       />
       <span
         aria-hidden="true"
-        className="absolute left-[-1.5px] top-[42%] h-[9%] w-[2px] rounded-l bg-gradient-to-b from-[#d2d4d7] to-[#a6a8ac]"
+        className="absolute left-[-1.5px] top-[42%] h-[9%] w-[2px] rounded-l bg-gradient-to-b from-[#d2d4d7] to-text-secondary"
       />
       <span
         aria-hidden="true"
-        className="absolute right-[-1.5px] top-[28%] h-[12%] w-[2px] rounded-r bg-gradient-to-b from-[#d2d4d7] to-[#a6a8ac]"
+        className="absolute right-[-1.5px] top-[28%] h-[12%] w-[2px] rounded-r bg-gradient-to-b from-[#d2d4d7] to-text-secondary"
       />
 
       {/* contact shadow */}
@@ -175,7 +175,7 @@ export default function HeroSlideAlgo() {
         style={{ textShadow: "0 2px 30px rgba(0,0,0,0.35)" }}
       >
         Data Meets{" "}
-        <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">
           Algorithmic Precision.
         </span>
       </h1>

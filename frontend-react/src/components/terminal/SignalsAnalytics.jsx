@@ -545,7 +545,7 @@ export default function SignalsAnalytics() {
                 onClick={() => toggleDay(d)}
                 title={d === 0 ? "today" : `${d} day${d > 1 ? "s" : ""} ago`}
                 className={`px-1.5 py-1 rounded-sm font-mono text-[9px] tracking-wide transition-colors whitespace-nowrap ${
-                  on ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted/60 hover:text-text-primary"
+                  on ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted/60 hover:text-text-primary"
                 }`}
               >
                 {label}

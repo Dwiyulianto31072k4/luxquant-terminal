@@ -664,8 +664,8 @@ const PulseTape = ({ items, onSelect }) => {
   const tape = [...items, ...items];
   return (
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0a0805] to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#0a0805] to-transparent z-10 pointer-events-none" />
+      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-surface-raised to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface-raised to-transparent z-10 pointer-events-none" />
       <div className="flex gap-8 py-2.5 animate-pulse-tape whitespace-nowrap relative z-0">
         {tape.map((m, i) => {
           const symbol = stripQuote(m.pair);

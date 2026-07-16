@@ -402,9 +402,9 @@ const TimelineRow = ({ event, isLast }) => {
       {/* Dot indicator */}
       <div className="flex-shrink-0 mt-1">
         {confirmed ? (
-          <div className={`w-3.5 h-3.5 rounded-full ${c.dot} ring-2 ring-[#0d0d0d]`} />
+          <div className={`w-3.5 h-3.5 rounded-full ${c.dot} ring-2 ring-surface-secondary`} />
         ) : (
-          <div className={`w-3.5 h-3.5 rounded-full bg-transparent ring-1 ${c.border} ring-2 ring-[#0d0d0d]`}>
+          <div className={`w-3.5 h-3.5 rounded-full bg-transparent ring-1 ${c.border} ring-2 ring-surface-secondary`}>
             <div className={`w-full h-full rounded-full ${c.bg}`} />
           </div>
         )}

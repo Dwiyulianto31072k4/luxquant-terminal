@@ -59,7 +59,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
             className="h-auto max-h-52 w-full object-cover sm:max-h-60"
             onError={() => setImgFailed(true)}
           />
-          <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0a0805] to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-surface-raised to-transparent" />
         </div>
       )}
 

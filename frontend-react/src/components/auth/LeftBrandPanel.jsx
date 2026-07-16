@@ -83,8 +83,8 @@ export const DeviceShowcase = ({ compact = false, phone = true }) => {
                 className="h-full w-full object-cover object-top" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
             </div>
           </div>
-          <div className="flex items-center justify-center bg-gradient-to-b from-[#e8e9eb] via-[#d8dadd] to-[#c4c6ca]" style={{ height: compact ? 18 : 26 }}>
-            <AppleLogo className={compact ? 'h-[9px] w-[9px] text-[#070708]' : 'h-[13px] w-[13px] text-[#070708]'} />
+          <div className="flex items-center justify-center bg-gradient-to-b from-text-primary via-[#d8dadd] to-[#c4c6ca]" style={{ height: compact ? 18 : 26 }}>
+            <AppleLogo className={compact ? 'h-[9px] w-[9px] text-surface' : 'h-[13px] w-[13px] text-surface'} />
           </div>
         </div>
         <div className="relative mx-auto -mt-px" style={{ width: '34%', maxWidth: 180 }}>

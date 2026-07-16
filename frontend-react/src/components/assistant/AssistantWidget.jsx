@@ -70,7 +70,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-24 right-4 z-[9998] flex items-center gap-2 rounded-full bg-gold-primary text-[#1a1206] pl-3 pr-4 h-12 font-bold text-sm shadow-[0_6px_24px_-6px_rgba(212,168,83,0.8)] hover:bg-gold-primary/90 transition-all active:scale-[0.97] sm:bottom-5 sm:right-5"
+          className="fixed bottom-24 right-4 z-[9998] flex items-center gap-2 rounded-full bg-gold-primary text-surface-hover pl-3 pr-4 h-12 font-bold text-sm shadow-[0_6px_24px_-6px_rgba(212,168,83,0.8)] hover:bg-gold-primary/90 transition-all active:scale-[0.97] sm:bottom-5 sm:right-5"
           aria-label="Open LuxQuant Assistant"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z" /></svg>
@@ -134,7 +134,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed sm:text-[14px] ${
                     m.role === 'user'
-                      ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
+                      ? 'whitespace-pre-wrap bg-gold-primary text-surface-hover font-medium'
                       : 'bg-white/[0.05] text-text-primary/90 border border-white/5'
                   }`}>
                     {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => { setOpen(false); navigate(path); })}</div> : m.content}
@@ -169,7 +169,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                 <button
                   onClick={() => send()}
                   disabled={loading || !input.trim()}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gold-primary text-[#1a1206] disabled:opacity-30 hover:bg-gold-primary/90 transition-all active:scale-[0.97]"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gold-primary text-surface-hover disabled:opacity-30 hover:bg-gold-primary/90 transition-all active:scale-[0.97]"
                   aria-label="Send"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" /></svg>
