@@ -22,6 +22,7 @@ import {
   LineChart, Line,
 } from "recharts";
 import SignalModal from "../SignalModal";
+import CoinLogo from "../CoinLogo";
 import {
   API_BASE, authHeaders,
   GOLD, POS, NEG, PURPLE, ORANGE, CYAN, GRAYBAR, GRID, AXIS, TICK, TICK_SM,
@@ -38,6 +39,30 @@ import { EdgeTab } from "./EdgeSimulator";
 import { RiskTab } from "./RiskCalculator";
 import { RsiHeatmapTab, AtrLevelsTab, VolSqueezeTab, OrderFlowTab } from "./Screeners";
 import { useSignalStatus } from "../../context/SignalStatusContext";
+
+// Anomaly scatter dot — hot pumps glow + grow; decoupled stay cyan; rest muted.
+function AnomDot({ cx, cy, payload, statusMap, onPair }) {
+  if (cx == null || cy == null || !payload) return null;
+  const sc = statusColorOf(statusMap, payload.pair);
+  const hot = !!payload.hot;
+  const dec = !!payload.dec;
+  const r = hot ? 6.5 : dec ? 5 : 3.5;
+  const fill = hot ? GOLD : dec ? CYAN : GRAYBAR;
+  return (
+    <g style={{ cursor: "pointer" }} onClick={() => payload.pair && onPair?.(payload.pair)}>
+      {hot && <circle cx={cx} cy={cy} r={r + 5} fill={GOLD} fillOpacity={0.12} />}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={fill}
+        fillOpacity={hot ? 0.95 : dec ? 0.85 : 0.55}
+        stroke={sc || (hot ? "rgba(240,216,144,0.7)" : "transparent")}
+        strokeWidth={sc ? 2 : hot ? 1 : 0}
+      />
+    </g>
+  );
+}
 
 // ── Market Regime gauge — fuses altseason, BTC dominance, breadth (calls in
 // profit) and aggregate funding into one risk-on/off score so users read the
@@ -465,6 +490,18 @@ export default function SignalsAnalytics() {
   const losers = useMemo(() => [...agg.movers].sort((a, b) => a.v - b.v).slice(0, 8), [agg.movers]);
   const rsTop = useMemo(() => [...agg.rs].sort((a, b) => b.v - a.v).slice(0, 8), [agg.rs]);
   const rsBottom = useMemo(() => [...agg.rs].sort((a, b) => a.v - b.v).slice(0, 8), [agg.rs]);
+
+  // Anomaly tab meta — hot list, legend counts, data-age freshness badge
+  const anomMeta = useMemo(() => {
+    const hotPts = agg.anomPts.filter((p) => p.hot).sort((a, b) => b.x - a.x);
+    const decN = agg.anomPts.filter((p) => p.dec && !p.hot).length;
+    const restN = agg.anomPts.filter((p) => !p.hot && !p.dec).length;
+    const ageS = deriv?.generated_at
+      ? Math.max(0, Math.round((Date.now() - Date.parse(deriv.generated_at)) / 1000))
+      : null;
+    const fresh = ageS != null && ageS < 90 && !deriv?.stale;
+    return { hotPts, hotN: hotPts.length, decN, restN, ageS, fresh };
+  }, [agg.anomPts, deriv?.generated_at, deriv?.stale]);
   // top-10 |movers| → default selection of the vs-BTC chart
   const moversAbs = useMemo(
     () => [...agg.movers].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 10),
@@ -790,24 +827,80 @@ export default function SignalsAnalytics() {
           {/* ═══════════ ANOMALY (LIVE) ═══════════ */}
           {tab === "anomaly" && (
             <>
-              <SectionBand title={t("terminal.viz.sectionAnom")} desc={t("terminal.viz.sectionAnomDesc")} />
+              <SectionBand
+                title={t("terminal.viz.sectionAnom")}
+                desc={t("terminal.viz.sectionAnomDesc")}
+                badge={
+                  <span className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                    <span className={`w-1.5 h-1.5 rounded-full ${anomMeta.fresh ? "bg-positive animate-pulse" : "bg-warning"}`} />
+                    {anomMeta.fresh ? "Live" : "Stale"}
+                    {anomMeta.ageS != null && <span className="text-text-primary/50">· {anomMeta.ageS}s</span>}
+                  </span>
+                }
+              />
 
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
                 <Kpi
                   label="BTC"
-                  value={agg.btcPrice ? `$${Number(agg.btcPrice).toLocaleString()}` : "—"}
+                  value={agg.btcPrice ? `$${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 1 })}` : "—"}
+                  sub={agg.btcChg != null ? fmtPct(agg.btcChg) : null}
                   desc={t("terminal.viz.kBtcDesc")}
                   tone={agg.btcChg >= 0 ? "text-positive" : "text-negative"}
+                  accent={agg.btcChg >= 0 ? POS : NEG}
                 />
-                <Kpi label={t("terminal.viz.kHot")} value={agg.anomPts.filter((p) => p.hot).length} desc={t("terminal.viz.kHotDesc")} tone="text-gold-primary" />
-                <Kpi label={t("terminal.viz.kSpikes")} value={session.spikes.length} desc={t("terminal.viz.kSpikesDesc")} tone={session.spikes.length ? "text-orange-400" : undefined} />
+                <Kpi
+                  label={t("terminal.viz.kHot")}
+                  value={anomMeta.hotN}
+                  sub={anomMeta.hotN ? t("terminal.viz.kHotSub") : t("terminal.viz.none")}
+                  desc={t("terminal.viz.kHotDesc")}
+                  tone={anomMeta.hotN ? "text-gold-primary" : undefined}
+                  accent={anomMeta.hotN ? GOLD : undefined}
+                />
+                <Kpi
+                  label={t("terminal.viz.kSpikes")}
+                  value={session.spikes.length}
+                  sub={session.spikes.length ? t("terminal.viz.kSpikesSub") : t("terminal.viz.none")}
+                  desc={t("terminal.viz.kSpikesDesc")}
+                  tone={session.spikes.length ? "text-orange-400" : undefined}
+                  accent={session.spikes.length ? ORANGE : undefined}
+                />
                 <Kpi
                   label={t("terminal.viz.kSession")}
-                  value={deriv?.generated_at ? `${Math.max(0, Math.round((Date.now() - Date.parse(deriv.generated_at)) / 1000))}s` : "—"}
+                  value={anomMeta.ageS != null ? `${anomMeta.ageS}s` : "—"}
+                  sub={anomMeta.fresh ? t("terminal.viz.kSessionFresh") : t("terminal.viz.kSessionLag")}
                   desc={t("terminal.viz.kSessionDesc")}
-                  tone={deriv?.stale ? "text-warning" : undefined}
+                  tone={deriv?.stale ? "text-warning" : anomMeta.fresh ? "text-positive" : "text-warning"}
+                  accent={anomMeta.fresh ? POS : "#fbbf24"}
                 />
               </div>
+
+              {anomMeta.hotN > 0 && (
+                <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised px-3.5 py-2.5">
+                  <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] text-gold-primary/90 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
+                      {t("terminal.viz.hotNow")}
+                    </span>
+                    {anomMeta.hotPts.slice(0, 12).map((p) => (
+                      <button
+                        key={p.pair}
+                        type="button"
+                        onClick={() => openPair(p.pair)}
+                        className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full border border-gold-primary/25 bg-gold-primary/[0.07] hover:bg-gold-primary/[0.14] hover:border-gold-primary/40 transition-colors"
+                      >
+                        <CoinLogo pair={p.pair} size={15} />
+                        <span className="font-mono text-[10.5px] text-text-primary/85">
+                          {(p.pair || "").replace(/USDT$/i, "")}
+                        </span>
+                        <span className="font-mono text-[10px] tabular-nums text-gold-primary/90">
+                          {fmtPct(p.x, 1)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
@@ -816,22 +909,45 @@ export default function SignalsAnalytics() {
                   zoom={zAnom}
                   hint={t("terminal.viz.anomHint")}
                   render={(h) => (
-                    <div style={{ height: h }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                          <CartesianGrid stroke={GRID} />
-                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domX} allowDataOverflow tickFormatter={fmtAxis} />
-                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domY} allowDataOverflow tickFormatter={fmtAxis} />
-                          <Tooltip content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                          <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                          {agg.medFlow > 0 && <ReferenceLine y={agg.medFlow * 3} stroke={ORANGE} strokeDasharray="3 3" />}
-                          <Scatter data={agg.anomPts} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                            {agg.anomPts.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
-                              <Cell key={i} fill={p.hot ? GOLD : p.dec ? CYAN : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
-                            ); })}
-                          </Scatter>
-                        </ScatterChart>
-                      </ResponsiveContainer>
+                    <div className="flex flex-col" style={{ height: h }}>
+                      <div className="flex-1 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ScatterChart margin={{ top: 10, right: 14, left: -8, bottom: 4 }}>
+                            <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
+                            <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                            <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domY} allowDataOverflow tickFormatter={fmtAxis} />
+                            <Tooltip content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                            <ReferenceLine x={0} stroke="rgba(212,168,83,0.35)" strokeDasharray="4 4" />
+                            {agg.medFlow > 0 && (
+                              <ReferenceLine
+                                y={agg.medFlow * 3}
+                                stroke="rgba(251,146,60,0.55)"
+                                strokeDasharray="4 4"
+                                label={{ value: "3× flow", position: "insideTopRight", fill: "rgba(251,146,60,0.7)", fontSize: 9, fontFamily: "JetBrains Mono" }}
+                              />
+                            )}
+                            <Scatter
+                              data={agg.anomPts}
+                              shape={(props) => <AnomDot {...props} statusMap={statusMap} onPair={openPair} />}
+                              isAnimationActive={false}
+                              onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}
+                            />
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-1.5 border-t border-white/[0.04] mt-1">
+                        {[
+                          { c: GOLD, l: t("terminal.viz.legHot"), n: anomMeta.hotN },
+                          { c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN },
+                          { c: GRAYBAR, l: t("terminal.viz.legRest"), n: anomMeta.restN },
+                        ].map((e) => (
+                          <span key={e.l} className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                            <span className="w-2 h-2 rounded-full" style={{ background: e.c, boxShadow: e.c === GOLD ? `0 0 6px ${GOLD}80` : undefined }} />
+                            {e.l}
+                            <span className="text-text-primary/45 tabular-nums">{e.n}</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 />
@@ -841,11 +957,22 @@ export default function SignalsAnalytics() {
                   desc={t("terminal.viz.spikeDesc")}
                   render={() =>
                     session.spikes.length === 0 ? (
-                      <div className="py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed">
-                        {session.warming ? t("terminal.viz.spikeWarming") : t("terminal.viz.none")}
+                      <div className="py-14 text-center">
+                        <div className="mx-auto w-10 h-10 rounded-full border border-white/[0.06] bg-white/[0.02] flex items-center justify-center mb-3">
+                          <span className="text-text-muted/50 text-lg leading-none">∅</span>
+                        </div>
+                        <div className="font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed">
+                          {session.warming ? t("terminal.viz.spikeWarming") : t("terminal.viz.none")}
+                        </div>
                       </div>
                     ) : (
-                      <RankBars data={session.spikes.map((s) => ({ ...s, color: ORANGE }))} fmt={(v) => `${v.toFixed(1)}`} suffix="×" onPair={openPair} />
+                      <RankBars
+                        align="start"
+                        data={session.spikes.map((s) => ({ ...s, color: ORANGE }))}
+                        fmt={(v) => `${v.toFixed(1)}`}
+                        suffix="×"
+                        onPair={openPair}
+                      />
                     )
                   }
                 />

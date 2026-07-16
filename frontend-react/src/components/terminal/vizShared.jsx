@@ -148,20 +148,34 @@ export const StatusTag = ({ status }) => {
 };
 
 // solid landing-page surface + gold top hairline (matches Track Record cards)
-export const SectionBand = ({ title, desc }) => (
+export const SectionBand = ({ title, desc, badge }) => (
   <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised px-4 py-3.5">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-    <div className="text-[14px] text-text-primary/95">{title}</div>
-    {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="text-[14px] text-text-primary/95">{title}</div>
+        {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+      </div>
+      {badge}
+    </div>
   </div>
 );
 
-export const Kpi = ({ label, value, desc, tone }) => (
-  <div className="group relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-line/25">
+export const Kpi = ({ label, value, desc, tone, sub, accent }) => (
+  <div className="group relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-white/[0.12]">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+    {accent && (
+      <span
+        className="pointer-events-none absolute left-0 top-3 bottom-3 w-0.5 rounded-full opacity-80"
+        style={{ background: accent }}
+      />
+    )}
     <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
     <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-text-primary/95"}`}>{value}</div>
-    {desc && <div className="text-[10px] text-text-muted mt-2 leading-relaxed">{desc}</div>}
+    {sub != null && sub !== "" && (
+      <div className={`font-mono text-[11px] tabular-nums mt-1.5 ${tone || "text-text-muted"}`}>{sub}</div>
+    )}
+    {desc && <div className="text-[10px] text-text-muted mt-2 leading-relaxed line-clamp-2">{desc}</div>}
   </div>
 );
 
@@ -511,33 +525,57 @@ export const CoinPill = ({ pair, onPair, className = "" }) => {
   );
 };
 
-// ranked horizontal diverging bars with coin pills
-export function RankBars({ data, fmt, suffix, onPair }) {
+// ranked horizontal bars with coin pills.
+// align="center" (default) = diverging around mid (gains/losses).
+// align="start" = left-fill bars for always-positive rankings (spikes, multiples).
+export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
   if (!data.length)
     return <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">—</div>;
   const max = Math.max(...data.map((d) => Math.abs(d.v))) || 1;
+  const start = align === "start";
   return (
     <div className="space-y-1.5 py-1">
-      {data.map((d) => (
-        <div key={d.pair} className="flex items-center gap-2">
-          <span className="w-28 shrink-0"><CoinPill pair={d.pair} onPair={onPair} /></span>
-          <span className="flex-1 h-4 rounded-sm bg-white/[0.03] overflow-hidden relative">
+      {data.map((d, i) => {
+        const color = d.color || (d.v >= 0 ? POS : NEG);
+        const pct = (Math.abs(d.v) / max) * (start ? 100 : 50);
+        return (
+          <div key={d.pair} className="flex items-center gap-2 group/row">
+            <span className="w-4 shrink-0 font-mono text-[9px] tabular-nums text-text-muted/45 text-right">
+              {i + 1}
+            </span>
+            <span className="w-28 shrink-0"><CoinPill pair={d.pair} onPair={onPair} /></span>
+            <span className={`flex-1 ${start ? "h-[18px]" : "h-4"} rounded-md bg-white/[0.03] overflow-hidden relative`}>
+              <span
+                className="absolute top-0 bottom-0 rounded-md transition-[width] duration-300"
+                style={
+                  start
+                    ? {
+                        width: `${Math.max(pct, 2)}%`,
+                        left: 0,
+                        background: `linear-gradient(90deg, ${color}28 0%, ${color} 100%)`,
+                        boxShadow: i === 0 ? `0 0 12px ${color}40` : undefined,
+                      }
+                    : {
+                        width: `${pct}%`,
+                        left: d.v >= 0 ? "50%" : `${50 - pct}%`,
+                        background: color,
+                        opacity: 0.75,
+                      }
+                }
+              />
+              {!start && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-white/15" />}
+            </span>
             <span
-              className="absolute top-0 bottom-0 rounded-sm"
-              style={{
-                width: `${(Math.abs(d.v) / max) * 50}%`,
-                left: d.v >= 0 ? "50%" : `${50 - (Math.abs(d.v) / max) * 50}%`,
-                background: d.color || (d.v >= 0 ? POS : NEG),
-                opacity: 0.75,
-              }}
-            />
-            <span className="absolute top-0 bottom-0 left-1/2 w-px bg-white/15" />
-          </span>
-          <span className={`w-20 shrink-0 text-right font-mono text-[10.5px] tabular-nums ${d.v >= 0 ? "text-positive" : "text-negative"}`}>
-            {fmt ? fmt(d.v) : fmtPct(d.v)}{suffix || ""}
-          </span>
-        </div>
-      ))}
+              className={`w-[4.25rem] shrink-0 text-right font-mono text-[11px] tabular-nums font-medium ${
+                start ? "" : d.v >= 0 ? "text-positive" : "text-negative"
+              }`}
+              style={start ? { color } : undefined}
+            >
+              {fmt ? fmt(d.v) : fmtPct(d.v)}{suffix || ""}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
