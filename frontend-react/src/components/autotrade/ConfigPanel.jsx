@@ -17,7 +17,7 @@ const SectionLabel = ({ children, subtitle, step }) => (
       <span className="h-px w-6 bg-gold-primary/40" />
       {step && (
         <>
-          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/60">
+          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
             {step}
           </span>
           <span className="h-px w-3 bg-white/[0.08]" />
@@ -125,7 +125,7 @@ const SelectField = ({ label, value, onChange, options, hint }) => (
 // NESTED FIELDS WRAPPER (indented when toggle is enabled)
 // ════════════════════════════════════════════════════════════════
 const NestedFields = ({ children }) => (
-  <div className="mt-2 ml-1 pl-4 border-l border-gold-primary/15 space-y-1">
+  <div className="mt-2 ml-1 pl-4 border-l border-line/15 space-y-1">
     {children}
   </div>
 );
@@ -174,7 +174,7 @@ export default function ConfigPanel({ account, onClose }) {
     return (
       <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
+        <div className="w-8 h-8 border-2 border-line/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
         <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
           Loading config…
         </p>
@@ -254,7 +254,7 @@ export default function ConfigPanel({ account, onClose }) {
         )}
 
         {/* ── Master toggle ── */}
-        <div className="relative overflow-hidden bg-gold-primary/[0.03] border border-gold-primary/20 rounded-md p-4">
+        <div className="relative overflow-hidden bg-gold-primary/[0.03] border border-line/20 rounded-md p-4">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <Toggle
             label="AutoTrade Enabled"

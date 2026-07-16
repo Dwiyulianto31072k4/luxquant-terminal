@@ -277,7 +277,7 @@ export default function SignalTerminalPage() {
 
       {/* encoders — view itself is chosen from the left nav now */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold-primary/80">{view}</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-gold-primary/80">{view}</span>
         <div className="flex-1" />
         {view === "treemap" && <Enc label="Size" value={sizeBy} onChange={setSizeBy} />}
         {view !== "explore" && <Enc label="Color" value={colorBy} onChange={setColorBy} />}
@@ -352,7 +352,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
   );
   return (
     <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-6" onClick={onClose}>
-      <div className="relative w-full max-w-[540px] max-h-[min(92dvh,100%)] overflow-auto rounded-t-3xl sm:rounded-2xl bg-surface-raised border-t border-gold-primary/25 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/60" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-[540px] max-h-[min(92dvh,100%)] overflow-auto rounded-t-3xl sm:rounded-2xl bg-surface-raised border-t border-line/25 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/60" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-surface-raised" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
@@ -367,7 +367,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
             </div>
             <div className="mt-1.5 flex items-center gap-1.5">
               {d.risk && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-white/15 text-text-primary/60">{d.risk} risk</span>}
-              {d.decoupled && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-gold-primary/30 text-gold-primary">btc-decoupled</span>}
+              {d.decoupled && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-line/30 text-gold-primary">btc-decoupled</span>}
             </div>
           </div>
           <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-text-primary hover:border-white/25">✕</button>
@@ -558,7 +558,7 @@ function BubbleTip({ active, payload, colorBy }) {
   const meta = STATUS_META[d.status] || (info ? STATUS_META[info.status] : null);
   const ago = info ? timeAgo(info.created) : null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-line/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{d.sym}</span>{meta && <span className="font-bold ml-auto" style={{ color: meta.color }}>{meta.label}</span>}</div>
       {ago && <div className="text-text-primary/45 mb-1">called {ago}</div>}
       <div className="text-text-primary/55">Win rate: <span className="text-text-primary/90">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</span></div>
@@ -831,7 +831,7 @@ function Screener({ model, onPick }) {
   return (
     <div className="rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
       <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-      <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-center justify-between">
+      <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-line/[0.12] flex items-center justify-between">
         <span className="text-[12.5px] text-text-primary/90">Signal Screener</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{model.length} pairs</span>
       </div>

@@ -135,7 +135,7 @@ const FeatureSliderSection = () => {
     <section id="features" className="relative z-10 w-full pt-20 lg:pt-28 pb-16 lg:pb-24 overflow-hidden">
       {/* HEADER */}
       <div className="max-w-7xl mx-auto px-4 lg:px-8 text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-gold-primary/20 bg-gold-primary/5 rounded-full mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-line/20 bg-gold-primary/5 rounded-full mb-4">
           <span className="text-gold-primary font-mono text-[9px] uppercase tracking-[0.3em]">Core Technology</span>
         </div>
         <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4">

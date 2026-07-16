@@ -30,7 +30,7 @@ function EdgeTip({ active, payload }) {
   const p = payload[0]?.payload?.d;
   if (!p) return null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg max-w-[250px]">
+    <div className="rounded-md bg-surface-secondary border border-line/25 px-3 py-2 font-mono text-[10px] shadow-lg max-w-[250px]">
       <div className="text-text-primary mb-1">{nice(p.pattern)}</div>
       <div className="text-text-primary/60">Win rate: <span className="text-text-primary/90">{p.win_rate?.toFixed(1)}%</span></div>
       <div className="text-text-primary/60">Expected value: <span style={{ color: evColor(p.expected_value) }}>{p.expected_value == null ? "—" : (p.expected_value >= 0 ? "+" : "") + p.expected_value.toFixed(2) + "%/trade"}</span></div>
@@ -177,7 +177,7 @@ export function EdgeTab() {
           {economics && (
             <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-              <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
+              <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-[12.5px] text-text-primary/90">Edge Economics</div>
                   <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
@@ -218,7 +218,7 @@ export function EdgeTab() {
 
           <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-            <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
+            <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
               <div className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeMapTitle")}</div>
               <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{t("terminal.viz.edgeMapDesc")}</div>
             </div>

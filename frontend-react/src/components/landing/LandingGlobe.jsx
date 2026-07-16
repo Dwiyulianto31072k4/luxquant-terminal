@@ -125,7 +125,7 @@ const LandingGlobe = () => {
     <div ref={containerRef} className="w-full h-full relative">
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
         </div>
       )}
     </div>

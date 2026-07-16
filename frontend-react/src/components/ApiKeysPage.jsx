@@ -878,7 +878,7 @@ const StatCard = ({ label, value, accent, icon }) => (
 );
 
 const SectionHead = ({ children }) => (
-  <h2 className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.22em] text-gold-primary/70 mb-3">
+  <h2 className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80 mb-3">
     {children}
   </h2>
 );
@@ -1244,7 +1244,7 @@ const TocChips = ({ active, onNavigate }) => (
           onClick={() => onNavigate(s.id)}
           className={`px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap transition-colors flex-shrink-0 border ${
             active === s.id
-              ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
+              ? "bg-gold-primary/15 text-gold-primary border-line/30"
               : "bg-white/[0.03] text-text-secondary border-white/5"
           }`}
         >
@@ -1427,14 +1427,14 @@ const ApiKeysPage = () => {
       {/* ── Non-subscriber upsell ── */}
       {!hasAccess && (
         <div
-          className="rounded-2xl p-5 border border-gold-primary/20 relative overflow-hidden"
+          className="rounded-2xl p-5 border border-line/20 relative overflow-hidden"
           style={{
             background:
               "linear-gradient(160deg, rgba(212,168,83,0.08), rgba(255,255,255,0.01))",
           }}
         >
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gold-primary/10 border border-gold-primary/25">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gold-primary/10 border border-line/25">
               <svg
                 className="w-5 h-5 text-gold-primary"
                 fill="none"
@@ -1511,7 +1511,7 @@ const ApiKeysPage = () => {
             </code>
             <button
               onClick={() => copyKey(justCreated.key)}
-              className="px-3 py-2.5 rounded-lg text-[12px] font-semibold bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-colors whitespace-nowrap"
+              className="px-3 py-2.5 rounded-lg text-[12px] font-semibold bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/25 transition-colors whitespace-nowrap"
             >
               {copied ? copiedLabel : copyLabel}
             </button>
@@ -1530,7 +1530,7 @@ const ApiKeysPage = () => {
         {/* Panel header */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/5">
           <div>
-            <h2 className="text-[11px] font-mono uppercase tracking-[0.22em] text-gold-primary/70">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
               {t("apiKeys.your_keys")}
             </h2>
             <p className="text-[11px] text-text-muted mt-0.5">
@@ -1603,7 +1603,7 @@ const ApiKeysPage = () => {
         {/* Rows */}
         {loading ? (
           <div className="py-10 flex items-center justify-center">
-            <div className="w-5 h-5 rounded-full border-2 border-gold-primary/30 border-t-gold-primary animate-spin" />
+            <div className="w-5 h-5 rounded-full border-2 border-line/30 border-t-gold-primary animate-spin" />
           </div>
         ) : keys.length === 0 ? (
           <div className="py-10 text-center">

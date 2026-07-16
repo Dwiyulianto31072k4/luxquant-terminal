@@ -145,7 +145,7 @@ const AnalyzePage = () => {
         <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-4">{error}</p>
         <button
           onClick={fetchAnalyzeData}
-          className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-gold-primary/25"
+          className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-line/25"
         >
           Retry
         </button>
@@ -180,7 +180,7 @@ const AnalyzePage = () => {
       {/* ── PAGE HEADER — eyebrow + title + tagline, with integrated time range ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/70">
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
             Verified Track Record
           </span>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1.5">
@@ -355,7 +355,7 @@ const AnalyzePage = () => {
                     dot: "bg-profit",
                   },
                   Normal: {
-                    border: "border-gold-primary/20",
+                    border: "border-line/20",
                     bg: "from-gold-primary/[0.05] to-transparent",
                     text: "text-gold-primary",
                     dot: "bg-gold-primary",
@@ -546,7 +546,7 @@ const AnalyzePage = () => {
                   <h3 className="text-text-primary text-sm font-normal tracking-tight">
                     {t("perf.sig_history")}
                   </h3>
-                  <span className="px-2 py-0.5 rounded-sm bg-gold-primary/10 border border-gold-primary/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-sm bg-gold-primary/10 border border-line/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider">
                     Proof of Calls
                   </span>
                 </div>
@@ -558,11 +558,11 @@ const AnalyzePage = () => {
 
             <a
               href="/signals"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-gold-primary/10 border border-gold-primary/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider hover:bg-gold-primary/15 transition-colors group"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-gold-primary/10 border border-line/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider hover:bg-gold-primary/15 transition-colors group"
             >
               <IconBolt />
               {t("perf.view_latest")}
-              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-gold-primary/15 text-gold-primary/80 border border-gold-primary/20">
+              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-gold-primary/15 text-gold-primary/80 border border-line/20">
                 PRO
               </span>
             </a>
@@ -579,7 +579,7 @@ const AnalyzePage = () => {
               <IconFilter />
               <span className="font-mono text-[11px] uppercase tracking-wider text-text-primary">Filters</span>
               {sigActiveFilters > 0 && (
-                <span className="bg-gold-primary/15 text-gold-primary border border-gold-primary/30 font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm">
+                <span className="bg-gold-primary/15 text-gold-primary border border-line/30 font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm">
                   {sigActiveFilters}
                 </span>
               )}
@@ -644,7 +644,7 @@ const AnalyzePage = () => {
               </FilterField>
               <button
                 onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
-                className="px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm hover:border-gold-primary/30 transition-colors flex items-center gap-1.5"
+                className="px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm hover:border-line/30 transition-colors flex items-center gap-1.5"
               >
                 {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
                 <span className="font-mono text-[11px] uppercase tracking-wider">
@@ -739,7 +739,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
     <div
       className={`group relative rounded-md p-4 border transition-all overflow-hidden ${
         accent
-          ? "bg-gradient-to-b from-gold-primary/[0.07] to-transparent border-gold-primary/25"
+          ? "bg-gradient-to-b from-gold-primary/[0.07] to-transparent border-line/25"
           : "bg-surface-raised border-white/[0.06] hover:border-white/[0.13]"
       }`}
     >
@@ -1479,7 +1479,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       : isLoss
         ? "bg-loss/10 text-loss border-loss/25"
         : isOpen
-          ? "bg-gold-primary/10 text-gold-primary border-gold-primary/25"
+          ? "bg-gold-primary/10 text-gold-primary border-line/25"
           : "bg-white/[0.04] text-text-muted border-white/[0.06]";
     const labels = {
       open: t("perf.not_hit_badge"),
@@ -1501,7 +1501,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
     if (rl.startsWith("low"))
       return "bg-profit/10 text-profit border-profit/25";
     if (rl.startsWith("nor") || rl.startsWith("med"))
-      return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
+      return "bg-gold-primary/10 text-gold-primary border-line/25";
     if (rl.startsWith("high"))
       return "bg-loss/10 text-loss border-loss/25";
     return "bg-white/[0.04] text-text-muted border-white/[0.06]";
@@ -1616,7 +1616,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
             <div
               key={i}
               onClick={() => onSelect(s)}
-              className="bg-surface-raised rounded-md p-3 border border-white/[0.06] active:border-gold-primary/25 transition-all cursor-pointer relative overflow-hidden"
+              className="bg-surface-raised rounded-md p-3 border border-white/[0.06] active:border-line/25 transition-all cursor-pointer relative overflow-hidden"
             >
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="flex items-center justify-between mb-2">
@@ -1687,7 +1687,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
    ────────────────────────────────────────────────────────────── */
 
 const IconTrend = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <path d="M7 14l4-4 4 4 6-6" />
@@ -1696,7 +1696,7 @@ const IconTrend = () => (
 );
 
 const IconOutcome = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="14" width="4" height="7" />
       <rect x="10" y="9" width="4" height="12" />
@@ -1706,7 +1706,7 @@ const IconOutcome = () => (
 );
 
 const IconRR = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 14l4-4" />
       <path d="M3.34 19a10 10 0 1 1 17.32 0" />
@@ -1715,7 +1715,7 @@ const IconRR = () => (
 );
 
 const IconRisk = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2L2 22h20L12 2z" />
       <path d="M12 9v4M12 17h.01" />
@@ -1724,7 +1724,7 @@ const IconRisk = () => (
 );
 
 const IconRiskTrend = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <path d="M7 12l3-3 3 3 7-7" />
@@ -1734,7 +1734,7 @@ const IconRiskTrend = () => (
 );
 
 const IconPairs = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 15L5 8h14l-7 7z" />
       <circle cx="12" cy="3" r="1.5" />
@@ -1745,7 +1745,7 @@ const IconPairs = () => (
 );
 
 const IconHistory = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />

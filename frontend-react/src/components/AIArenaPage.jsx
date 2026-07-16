@@ -117,7 +117,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
               <svg className={`w-3 h-3 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-1 w-64 max-h-72 overflow-y-auto rounded-xl bg-bg-card border border-gold-primary/15 shadow-xl z-50">
+              <div className="absolute right-0 top-full mt-1 w-64 max-h-72 overflow-y-auto rounded-xl bg-bg-card border border-line/15 shadow-xl z-50">
                 {history.map((r) => {
                   const s = SENTIMENT_CONFIG[r.sentiment] || SENTIMENT_CONFIG.neutral;
                   const t = new Date(r.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -158,7 +158,7 @@ function BlufHero({ report }) {
   const whatChanged = report.what_changed;
 
   return (
-    <div className="glass-card rounded-2xl p-5 lg:p-6 border border-gold-primary/15" style={{ background: sentimentCfg.bg }}>
+    <div className="glass-card rounded-2xl p-5 lg:p-6 border border-line/15" style={{ background: sentimentCfg.bg }}>
       <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: sentimentCfg.color }}>
         Market Stance
       </div>
@@ -209,7 +209,7 @@ function ZonesToWatch({ zones, currentPrice }) {
   if (!zones) return null;
 
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-3">Zones to Watch</div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         {['demand', 'fair_value', 'supply'].map(key => {
@@ -251,7 +251,7 @@ function TripleScreenStrip({ alignment, tfSummary, onTFClick }) {
   ];
 
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-3">Triple Screen</div>
       <div className="grid grid-cols-3 gap-3">
         {screens.map(({ tf, label, data, tech }) => {
@@ -425,13 +425,13 @@ function PriceChart({ activeTF, onTFChange }) {
   const maKeys = Object.keys(chartData?.ma_series || {});
 
   return (
-    <div className="glass-card rounded-2xl border border-gold-primary/10 overflow-hidden">
+    <div className="glass-card rounded-2xl border border-line/10 overflow-hidden">
       {/* TF Tabs + Legend */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 flex-wrap gap-2">
         <div className="flex items-center gap-1">
           {[{ key: '1D', label: 'Daily', sub: 'Tide' }, { key: '4H', label: '4H', sub: 'Wave' }, { key: '1H', label: '1H', sub: 'Ripple' }].map(tf => (
             <button key={tf.key} onClick={() => onTFChange(tf.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/30' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04] border border-transparent'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-line/30' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04] border border-transparent'}`}>
               {tf.label} <span className="text-[9px] opacity-60">({tf.sub})</span>
             </button>
           ))}
@@ -498,7 +498,7 @@ function ThreePillars({ pillars }) {
   ];
 
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-3">The Three Pillars</div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {items.map(({ key, icon, label, color }) => {
@@ -541,7 +541,7 @@ function DeepAnalysis({ analysis, sections }) {
   if (!hasContent) return null;
 
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-4">Deep Analysis</div>
       <div className="space-y-5">
         {items.map(({ key, fallbackKey, icon, label }) => {
@@ -597,7 +597,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
     : 0;
 
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">
           🏦 Institutional Flow Radar
@@ -693,7 +693,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
 
       {/* Interpretation */}
       {flow.interpretation && (
-        <p className="text-[12px] text-text-secondary leading-relaxed mt-4 italic border-l-2 border-gold-primary/30 pl-3">
+        <p className="text-[12px] text-text-secondary leading-relaxed mt-4 italic border-l-2 border-line/30 pl-3">
           {flow.interpretation}
         </p>
       )}
@@ -729,7 +729,7 @@ function MacroPulse({ macro, macroLive }) {
   ];
 
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">
           🌐 Macro Pulse
@@ -777,7 +777,7 @@ function MacroPulse({ macro, macroLive }) {
 
       {/* Interpretation */}
       {macro.interpretation && (
-        <p className="text-[12px] text-text-secondary leading-relaxed mt-4 italic border-l-2 border-gold-primary/30 pl-3">
+        <p className="text-[12px] text-text-secondary leading-relaxed mt-4 italic border-l-2 border-line/30 pl-3">
           {macro.interpretation}
         </p>
       )}
@@ -794,7 +794,7 @@ function WhatChanged({ data }) {
   if (!data || !data.diffs?.length) return null;
 
   return (
-    <div className="glass-card rounded-2xl p-4 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 border border-line/10">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">What Changed</div>
         <div className="text-[10px] text-text-muted">vs {data.vs_previous_id} · {data.hours_ago ? `${data.hours_ago}h ago` : ''}</div>
@@ -843,7 +843,7 @@ function MetricsRow({ report }) {
   return (
     <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
       {items.map(({ label, value, color }) => (
-        <div key={label} className="glass-card rounded-xl p-2.5 border border-gold-primary/10">
+        <div key={label} className="glass-card rounded-xl p-2.5 border border-line/10">
           <div className="text-[9px] text-text-muted uppercase tracking-wider">{label}</div>
           <div className="text-base font-bold font-mono mt-0.5" style={{ color }}>{value}</div>
         </div>
@@ -941,7 +941,7 @@ export default function AIArenaPage() {
         <h2 className="font-display text-2xl font-semibold text-text-primary">AI Arena</h2>
       </div>
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="glass-card rounded-2xl p-6 animate-pulse border border-gold-primary/10">
+        <div key={i} className="glass-card rounded-2xl p-6 animate-pulse border border-line/10">
           <div className="h-4 bg-gold-primary/20 rounded w-40 mb-3" />
           <div className="h-20 bg-gold-primary/10 rounded" />
         </div>

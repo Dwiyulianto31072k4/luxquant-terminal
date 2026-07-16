@@ -178,7 +178,7 @@ const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
   ];
 
   return (
-    <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-xl border border-gold-primary/30 p-3 sm:p-4">
+    <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-xl border border-line/30 p-3 sm:p-4">
       {/* Top: bias + multi-timeframe trend triad */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <div className="flex items-center gap-2">
@@ -619,12 +619,12 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                     <div className="relative">
                       <button
                         onClick={() => setShowCopyMenu(!showCopyMenu)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gold-primary/10 hover:bg-gold-primary/20 border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg text-gold-primary text-[10px] sm:text-[11px] font-semibold transition-all"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gold-primary/10 hover:bg-gold-primary/20 border border-line/30 hover:border-gold-primary/60 rounded-lg text-gold-primary text-[10px] sm:text-[11px] font-semibold transition-all"
                       >
                         📋 Copy ▼
                       </button>
                       {showCopyMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-gold-primary/30 rounded-lg shadow-xl overflow-hidden z-20 min-w-[180px]">
+                        <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-line/30 rounded-lg shadow-xl overflow-hidden z-20 min-w-[180px]">
                           {COPY_OPTIONS.map((opt) => (
                             <button
                               key={opt.id}
@@ -646,7 +646,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
                   <button
                     onClick={handleClose}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-line/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

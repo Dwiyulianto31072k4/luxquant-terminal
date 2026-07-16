@@ -457,7 +457,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
                 type="button"
                 disabled={!canOpenSignal}
                 onClick={() => onOpenSignal(position)}
-                className="rounded-md border border-gold-primary/30 bg-gold-primary/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/15 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md border border-line/30 bg-gold-primary/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/15 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Open full signal
               </button>
@@ -755,7 +755,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
   return (
     <div className="space-y-7">
       {operationMessage ? (
-        <div className="rounded-lg border border-gold-primary/20 bg-gold-primary/[0.05] px-4 py-3 text-sm text-gold-primary">
+        <div className="rounded-lg border border-line/20 bg-gold-primary/[0.05] px-4 py-3 text-sm text-gold-primary">
           {operationMessage}
         </div>
       ) : null}

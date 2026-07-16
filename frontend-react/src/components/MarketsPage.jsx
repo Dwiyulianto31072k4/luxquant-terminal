@@ -182,7 +182,7 @@ const MarketsPage = () => {
               {trending.coins.map((c, i) => (
                 <div
                   key={c.id}
-                  className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-secondary border border-white/[0.04] hover:border-gold-primary/20 hover:bg-white/[0.02] transition-all group"
+                  className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-secondary border border-white/[0.04] hover:border-line/20 hover:bg-white/[0.02] transition-all group"
                 >
                   <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
                     {String(i + 1).padStart(2, '0')}
@@ -271,7 +271,7 @@ const MarketsPage = () => {
                     onClick={() => setSelectedArticle(a)}
                     className="group cursor-pointer"
                   >
-                    <div className="bg-surface-secondary rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
+                    <div className="bg-surface-secondary rounded-md overflow-hidden border border-white/[0.04] hover:border-line/25 transition-all duration-200 h-full">
                       {a.image && (
                         <div className="h-40 overflow-hidden">
                           <img
@@ -902,7 +902,7 @@ const MarketsPage = () => {
 
 const SectionHeader = ({ title, subtitle, icon }) => (
   <div className="flex items-center gap-2.5">
-    <div className="w-7 h-7 rounded-sm flex items-center justify-center flex-shrink-0 bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <div className="w-7 h-7 rounded-sm flex items-center justify-center flex-shrink-0 bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
       <SectionIcon type={icon} />
     </div>
     <div>
@@ -1404,7 +1404,7 @@ const ErrorState = ({ error, onRetry, t }) => (
       <p className="font-mono text-[11px] uppercase tracking-wider text-loss mb-5">{error}</p>
       <button
         onClick={onRetry}
-        className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-gold-primary/25"
+        className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-line/25"
       >
         {t ? t('markets.retry') : 'Retry'}
       </button>

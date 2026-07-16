@@ -31,7 +31,7 @@ function H({ children }) {
 
 function Sub({ children }) {
   return (
-    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
+    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
       {children}
     </p>
   );
@@ -697,7 +697,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
           <div className="grid lg:grid-cols-[0.88fr_1.12fr]">
             {/* LEFT pane — navigation */}
             <div className="border-b border-white/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-7">
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Guide
               </p>
               <div className="mt-3 flex items-center gap-3">
@@ -733,7 +733,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                     onClick={() => setActive(section.id)}
                     className={`whitespace-nowrap rounded-[3px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                       active === section.id
-                        ? "border-gold-primary/35 bg-gold-primary/10 text-gold-primary"
+                        ? "border-line/35 bg-gold-primary/10 text-gold-primary"
                         : "border-white/[0.07] text-text-muted"
                     }`}
                   >

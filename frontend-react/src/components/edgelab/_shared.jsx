@@ -85,7 +85,7 @@ export const Methodology = ({ title, children, defaultOpen = false }) => {
 const KIND = {
   good: { dot: "#10b981", val: "text-emerald-400", ring: "border-emerald-500/25 bg-emerald-500/[0.045]" },
   bad: { dot: "#ef4444", val: "text-red-400", ring: "border-red-500/25 bg-red-500/[0.045]" },
-  neutral: { dot: "#d4a853", val: "text-gold-primary", ring: "border-gold-primary/25 bg-gold-primary/[0.04]" },
+  neutral: { dot: "#d4a853", val: "text-gold-primary", ring: "border-line/25 bg-gold-primary/[0.04]" },
 };
 
 export const InsightBand = ({ items = [] }) => {

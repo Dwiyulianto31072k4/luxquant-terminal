@@ -61,7 +61,7 @@ const Header = ({ activeTab, setActiveTab }) => {
                 onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}
                 className="flex items-center gap-2 flex-shrink-0 group"
               >
-                <div className="relative w-6 h-6 rounded-sm flex items-center justify-center bg-gold-primary/[0.08] border border-gold-primary/25">
+                <div className="relative w-6 h-6 rounded-sm flex items-center justify-center bg-gold-primary/[0.08] border border-line/25">
                   <span className="font-mono text-[9px] font-bold tracking-wider text-gold-primary">
                     LQ
                   </span>

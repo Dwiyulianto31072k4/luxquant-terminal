@@ -24,7 +24,7 @@ const COLOR_MAP = {
   cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", dot: "bg-cyan-500" },
   purple: { text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", dot: "bg-purple-500" },
   red: { text: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30", dot: "bg-red-500" },
-  gold: { text: "text-gold-primary", bg: "bg-gold-primary/10", border: "border-gold-primary/30", dot: "bg-gold-primary" },
+  gold: { text: "text-gold-primary", bg: "bg-gold-primary/10", border: "border-line/30", dot: "bg-gold-primary" },
   gray: { text: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/30", dot: "bg-gray-500" },
 };
 
@@ -134,7 +134,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
           📊 Detailed Journey
         </h4>
-        <div className="bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl p-6 border border-gold-primary/30 text-center">
+        <div className="bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl p-6 border border-line/30 text-center">
           <div className="w-12 h-12 mx-auto rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-3">
             <span className="text-lg">🔒</span>
           </div>
@@ -282,7 +282,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           {hasMore && (
             <button
               onClick={() => setShowAll(!showAll)}
-              className="mt-3 w-full py-2 text-[11px] text-gold-primary hover:bg-gold-primary/10 rounded-lg border border-gold-primary/20 hover:border-gold-primary/40 transition-all font-semibold"
+              className="mt-3 w-full py-2 text-[11px] text-gold-primary hover:bg-gold-primary/10 rounded-lg border border-line/20 hover:border-gold-primary/40 transition-all font-semibold"
             >
               {showAll
                 ? `▲ Show fewer events (${eventCount} total)`

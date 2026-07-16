@@ -93,7 +93,7 @@ export function Card({ children, className = "", hover = false, padded = true })
         padded ? "p-4 lg:p-5" : ""
       } ${
         hover
-          ? "transition-all duration-200 hover:border-gold-primary/25 hover:-translate-y-0.5"
+          ? "transition-all duration-200 hover:border-line/25 hover:-translate-y-0.5"
           : ""
       } ${className}`}
     >
@@ -117,8 +117,8 @@ export function StatCard({
     <div
       className={`relative overflow-hidden rounded-md border bg-surface-raised p-4 lg:p-5 transition-all duration-200 hover:-translate-y-0.5 ${
         accent
-          ? "border-gold-primary/25 hover:border-gold-primary/40"
-          : "border-white/[0.06] hover:border-gold-primary/20"
+          ? "border-line/25 hover:border-gold-primary/40"
+          : "border-white/[0.06] hover:border-line/20"
       }`}
     >
       <span className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
@@ -213,7 +213,7 @@ export function Toggle({ label, hint, checked, onChange, disabled = false }) {
       onClick={() => onChange(!checked)}
       className={`flex w-full items-center justify-between gap-4 rounded-md border px-4 py-3 text-left transition-colors ${
         checked
-          ? "border-gold-primary/20 bg-gold-primary/[0.04]"
+          ? "border-line/20 bg-gold-primary/[0.04]"
           : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]"
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
     >
@@ -275,7 +275,7 @@ export function GhostButton({
   const tones = {
     neutral:
       "border-white/[0.08] text-text-muted hover:text-text-primary hover:border-white/[0.16]",
-    gold: "border-gold-primary/25 text-gold-primary hover:bg-gold-primary/[0.08]",
+    gold: "border-line/25 text-gold-primary hover:bg-gold-primary/[0.08]",
     danger: "border-red-500/25 text-red-400 hover:bg-red-500/[0.08]",
   };
   return (
@@ -407,7 +407,7 @@ export function PillToggle({ active, onClick, children }) {
       onClick={onClick}
       className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors ${
         active
-          ? "border-gold-primary/30 bg-gold-primary/10 text-gold-primary"
+          ? "border-line/30 bg-gold-primary/10 text-gold-primary"
           : "border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/[0.16] hover:text-text-primary"
       }`}
     >
@@ -423,7 +423,7 @@ export function Notice({ tone = "info", children }) {
   const tones = {
     error: "border-red-500/25 bg-red-500/[0.05] text-red-400",
     success: "border-emerald-500/25 bg-emerald-500/[0.05] text-emerald-400",
-    warn: "border-gold-primary/20 bg-gold-primary/[0.04] text-gold-primary/90",
+    warn: "border-line/20 bg-gold-primary/[0.04] text-gold-primary/90",
     info: "border-white/[0.08] bg-white/[0.02] text-text-muted",
   };
   return (
@@ -464,7 +464,7 @@ export function Spinner({ label = "Loading…" }) {
   return (
     <Card className="text-center" padded>
       <div className="flex flex-col items-center gap-3 py-8">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold-primary/20 border-t-gold-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-line/20 border-t-gold-primary" />
         <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-text-muted">
           {label}
         </p>

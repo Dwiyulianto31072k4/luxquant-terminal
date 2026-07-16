@@ -159,7 +159,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
   }, [data, selectedDates]);
 
   if (loading) return (
-    <div className="glass-card rounded-xl p-4 border border-gold-primary/10 mb-4 animate-pulse">
+    <div className="glass-card rounded-xl p-4 border border-line/10 mb-4 animate-pulse">
       <div className="h-4 bg-gold-primary/10 rounded w-40 mb-2" /><div className="h-3 bg-gold-primary/5 rounded w-56" />
     </div>
   );
@@ -174,7 +174,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
           <div className="w-8 h-[3px] bg-gradient-to-r from-accent to-transparent rounded-full shadow-[0_0_8px_rgba(212,168,83,0.5)]" />
           <div className="flex items-center gap-3">
             <h3 className="text-text-primary text-base font-bold tracking-wide group-hover:text-accent transition-colors">Coin Intelligence</h3>
-            <span className="text-[9px] font-mono text-accent bg-accent/10 px-2.5 py-1 rounded-md border border-accent/20 shadow-inner">{dateLabel}</span>
+            <span className="text-[9px] font-mono text-accent bg-accent/10 px-2.5 py-1 rounded-md border border-line/20 shadow-inner">{dateLabel}</span>
             <div className="flex gap-1.5">
               {avoid.length > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm" style={{ background:SEV.danger.bg, color:SEV.danger.text, border:`1px solid ${SEV.danger.border}30` }}>{avoid.length} Avoid</span>}
               {worthIt.length > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm" style={{ background:SEV.positive.bg, color:SEV.positive.text, border:`1px solid ${SEV.positive.border}30` }}>{worthIt.length} Worth It</span>}

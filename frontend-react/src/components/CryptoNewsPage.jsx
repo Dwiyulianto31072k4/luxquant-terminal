@@ -554,7 +554,7 @@ const LeadCard = ({ item, onSelect }) => {
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-gold-primary/30 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
+      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-line/30 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}
     >
       <GoldEdges />
@@ -585,7 +585,7 @@ const LeadCard = ({ item, onSelect }) => {
 
       {/* Content */}
       <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center gap-2.5">
-        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/85">Lead Story</span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">Lead Story</span>
         <h2
           className="text-text-primary text-lg sm:text-xl lg:text-2xl leading-tight group-hover:text-gold-primary transition-colors line-clamp-3"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
@@ -616,7 +616,7 @@ const SecondaryCard = ({ item, onSelect }) => {
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
+      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-line/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
       style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
     >
       <GoldEdges />
@@ -741,7 +741,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                 onClick={() => onSearchTopic(t.topic)}
                 className={`px-2 py-1 rounded text-[10px] font-mono transition-all hover:scale-[1.04] ${
                   i < 3
-                    ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/30"
+                    ? "bg-gold-primary/15 text-gold-primary border border-line/30"
                     : "bg-white/[0.04] text-text-muted border border-white/5 hover:text-text-primary hover:border-white/15"
                 }`}
               >
@@ -1264,7 +1264,7 @@ const FilterBar = ({
             value={searchInput}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search news, topics, sources…"
-            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-text-primary text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/30 focus:bg-black/30 transition-all"
+            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-text-primary text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-line/30 focus:bg-black/30 transition-all"
           />
           {searchInput && (
             <button

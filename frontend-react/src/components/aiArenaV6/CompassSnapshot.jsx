@@ -234,7 +234,7 @@ export default function CompassSnapshot({ className = "" }) {
             </svg>
           </span>
           <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
+            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
               BTC Compass · 24h
             </span>
             <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] ${dir.tag}`}>
@@ -260,13 +260,13 @@ export default function CompassSnapshot({ className = "" }) {
         <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center">
           <Link
             to="/ai-arena?tab=read"
-            className="whitespace-nowrap rounded-md border border-gold-primary/30 bg-gold-primary/10 px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-gold-primary/50 hover:bg-gold-primary/15"
+            className="whitespace-nowrap rounded-md border border-line/30 bg-gold-primary/10 px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-gold-primary/50 hover:bg-gold-primary/15"
           >
             Full outlook →
           </Link>
           <Link
             to="/ai-arena?tab=chart"
-            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/70 transition hover:border-gold-primary/35 hover:text-gold-primary"
+            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/70 transition hover:border-line/35 hover:text-gold-primary"
           >
             Projection chart →
           </Link>
@@ -294,7 +294,7 @@ export default function CompassSnapshot({ className = "" }) {
 
             {/* alt exposure card */}
             <div className="flex items-stretch">
-              <div className="w-full rounded-lg border border-gold-primary/20 bg-gold-primary/[0.06] px-4 py-3">
+              <div className="w-full rounded-lg border border-line/20 bg-gold-primary/[0.06] px-4 py-3">
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-gold-primary/70">
                   Alt exposure — how to trade the signals below
                 </div>
@@ -342,7 +342,7 @@ export default function CompassSnapshot({ className = "" }) {
 
           {/* ── why this report exists (event-driven trigger) ── */}
           {(whatChanged || triggerHuman) && (
-            <div className="mt-3 rounded-lg border border-gold-primary/[0.12] bg-gold-primary/[0.04] px-3 py-2">
+            <div className="mt-3 rounded-lg border border-line/[0.12] bg-gold-primary/[0.04] px-3 py-2">
               <div className="flex items-start gap-2">
                 <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-gold-primary/75">
                   {isAnomaly ? "Triggered by" : "Why updated"}

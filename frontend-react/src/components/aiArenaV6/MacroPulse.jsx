@@ -128,7 +128,7 @@ const AssetCard = ({ config, asset }) => {
   const corrInfo = corrInterp(corr);
 
   return (
-    <div className="bg-bg-card/50 rounded-xl p-4 border border-white/5 hover:border-gold-primary/15 transition-colors">
+    <div className="bg-bg-card/50 rounded-xl p-4 border border-white/5 hover:border-line/15 transition-colors">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-base leading-none">{config.icon}</span>
         <span className="text-[10px] uppercase tracking-widest text-text-muted font-bold">
@@ -212,13 +212,13 @@ export default function MacroPulse() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
+      <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
           <h2 className="font-display text-xl text-text-primary">Macro Pulse</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -227,7 +227,7 @@ export default function MacroPulse() {
   // ── Error / no data ──
   if (error || !data || !data.assets) {
     return (
-      <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
+      <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
           <h2 className="font-display text-xl text-text-primary">Macro Pulse</h2>
@@ -236,7 +236,7 @@ export default function MacroPulse() {
           {error ? `Could not load macro data: ${error}` : "No macro data available."}
           <button
             onClick={fetchData}
-            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-gold-primary/30 text-gold-primary hover:bg-gold-primary/10 transition-colors"
+            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-gold-primary hover:bg-gold-primary/10 transition-colors"
           >
             Retry
           </button>
@@ -278,7 +278,7 @@ export default function MacroPulse() {
   })();
 
   return (
-    <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-6 border border-line/10">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
         <div className="flex items-center gap-3">
@@ -304,7 +304,7 @@ export default function MacroPulse() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
         {/* BTC reference card */}
         {btc && (
-          <div className="bg-gold-primary/5 rounded-xl p-3 border border-gold-primary/15">
+          <div className="bg-gold-primary/5 rounded-xl p-3 border border-line/15">
             <div className="text-[9px] uppercase tracking-widest text-gold-primary/80 font-bold mb-1">
               BTC Reference
             </div>

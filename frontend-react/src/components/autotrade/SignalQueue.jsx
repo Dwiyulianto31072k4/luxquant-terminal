@@ -91,7 +91,7 @@ export default function SignalQueue() {
         <button
           type="button"
           onClick={load}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary/80 transition-all hover:border-gold-primary/30 hover:text-gold-primary"
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary/80 transition-all hover:border-line/30 hover:text-gold-primary"
         >
           <svg
             className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}

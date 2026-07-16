@@ -47,7 +47,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-black/85 backdrop-blur-sm p-0 sm:p-6 lg:p-10" onClick={onClose}>
       <div
-        className={`relative w-full bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-gold-primary/20 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden ${
+        className={`relative w-full bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden ${
           isArticle ? 'max-w-3xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]' : 'max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -60,7 +60,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gold-primary/10 bg-bg-primary/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-line/10 bg-bg-primary/50 flex-shrink-0">
           <button onClick={onClose} className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-xl transition-all flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

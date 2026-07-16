@@ -170,7 +170,7 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
                         }
                         className={`relative aspect-square rounded-md border flex flex-col items-center justify-center px-0.5 transition ${
                           has
-                            ? "cursor-pointer border-white/[0.06] hover:ring-1 hover:ring-gold-primary/60 hover:border-gold-primary/30"
+                            ? "cursor-pointer border-white/[0.06] hover:ring-1 hover:ring-gold-primary/60 hover:border-line/30"
                             : "cursor-default border-white/[0.03]"
                         } ${cell.isToday ? "ring-1 ring-gold-primary/70" : ""}`}
                         style={{ background: bg, opacity: cell.inRange ? 1 : 0.25 }}

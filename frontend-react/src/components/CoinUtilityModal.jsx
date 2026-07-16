@@ -141,7 +141,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
         )}
 
         {coinData && !coinData.is_categorized && (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-gold-primary/25 bg-gold-primary/5 p-6 text-center">
+          <div className="flex flex-col items-center justify-center rounded-lg border border-line/25 bg-gold-primary/5 p-6 text-center">
             <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gold-primary/10 text-gold-primary ring-1 ring-gold-primary/25">
               <Icon d={IC.clock} className="h-5 w-5" />
             </span>
@@ -153,9 +153,9 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
         {coinData && coinData.is_categorized && (
           <div className="space-y-3 sm:space-y-4">
             {/* HERO */}
-            <div className="space-y-3 rounded-xl border border-gold-primary/30 bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 p-3 sm:p-4">
+            <div className="space-y-3 rounded-xl border border-line/30 bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 p-3 sm:p-4">
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-gold-primary/30 bg-gold-primary/10 px-2.5 py-1 text-xs font-bold text-gold-primary">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-line/30 bg-gold-primary/10 px-2.5 py-1 text-xs font-bold text-gold-primary">
                   <Icon d={meta.d} className="h-3.5 w-3.5" />
                   <span>{meta.label}</span>
                 </span>
@@ -187,7 +187,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
               (coinData.key_features && coinData.key_features.length > 0)) && (
               <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
                 {coinData.use_cases && coinData.use_cases.length > 0 && (
-                  <div className="h-full rounded-xl border border-gold-primary/15 bg-surface-raised p-3 sm:p-4">
+                  <div className="h-full rounded-xl border border-line/15 bg-surface-raised p-3 sm:p-4">
                     <SectionHead d={IC.bulb}>Use Cases</SectionHead>
                     <ul className="space-y-1.5">
                       {coinData.use_cases.map((uc, i) => (
@@ -200,7 +200,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
                   </div>
                 )}
                 {coinData.key_features && coinData.key_features.length > 0 && (
-                  <div className="h-full rounded-xl border border-gold-primary/15 bg-surface-raised p-3 sm:p-4">
+                  <div className="h-full rounded-xl border border-line/15 bg-surface-raised p-3 sm:p-4">
                     <SectionHead d={IC.gear}>Key Features</SectionHead>
                     <ul className="space-y-1.5">
                       {coinData.key_features.map((kf, i) => (
@@ -217,7 +217,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
 
             {/* Utility Breakdown */}
             {coinData.utility_details && Object.keys(coinData.utility_details).length > 0 && (
-              <div className="rounded-xl border border-gold-primary/15 bg-surface-raised p-3 sm:p-4">
+              <div className="rounded-xl border border-line/15 bg-surface-raised p-3 sm:p-4">
                 <SectionHead d={IC.tool}>Utility Breakdown</SectionHead>
                 <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                   {Object.entries(coinData.utility_details).map(([key, value]) => (

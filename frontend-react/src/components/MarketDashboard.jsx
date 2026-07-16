@@ -206,7 +206,7 @@ const MarketDashboard = () => {
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Fear & Greed */}
-        <div className="bg-bg-card rounded-xl p-5 border border-gold-primary/10">
+        <div className="bg-bg-card rounded-xl p-5 border border-line/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gold-primary font-semibold">Fear & Greed Index</h3>
             <span className="text-xs text-text-muted">alternative.me</span>
@@ -234,7 +234,7 @@ const MarketDashboard = () => {
         </div>
 
         {/* Long/Short Ratio */}
-        <div className="bg-bg-card rounded-xl p-5 border border-gold-primary/10">
+        <div className="bg-bg-card rounded-xl p-5 border border-line/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gold-primary font-semibold">Long/Short Ratio</h3>
             <span className="text-xs text-text-muted">Binance/Bybit</span>
@@ -280,7 +280,7 @@ const MarketDashboard = () => {
         </div>
 
         {/* Open Interest */}
-        <div className="bg-bg-card rounded-xl p-5 border border-gold-primary/10">
+        <div className="bg-bg-card rounded-xl p-5 border border-line/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gold-primary font-semibold">Open Interest</h3>
             <span className="text-xs text-text-muted">BTC Futures</span>
@@ -312,8 +312,8 @@ const MarketDashboard = () => {
       </div>
 
       {/* Top Funding Rates Table */}
-      <div className="bg-bg-card rounded-xl border border-gold-primary/10 overflow-hidden">
-        <div className="p-4 border-b border-gold-primary/10 flex items-center justify-between">
+      <div className="bg-bg-card rounded-xl border border-line/10 overflow-hidden">
+        <div className="p-4 border-b border-line/10 flex items-center justify-between">
           <h3 className="text-gold-primary font-semibold">💰 Top Funding Rates</h3>
           <span className="text-xs text-text-muted">Sorted by highest absolute rate</span>
         </div>

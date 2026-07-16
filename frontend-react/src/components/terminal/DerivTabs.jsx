@@ -201,7 +201,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       {liq && !liq.warming ? (
         <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-          <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
+          <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
             <div className="text-[12.5px] text-text-primary/90">Liquidations · live</div>
             <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">Forced position closes streaming from Bybit. Red = longs liquidated (price dumped), green = shorts liquidated (price ripped). Big prints = capitulation / squeeze zones.</div>
           </div>
@@ -389,7 +389,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
               <div className="flex flex-wrap gap-1.5">
                 {shortSqueeze.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
                 {shortSqueeze.slice(0, 10).map((r) => (
-                  <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-gold-primary/30 bg-gold-primary/[0.08] font-mono text-[10px]">
+                  <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-line/30 bg-gold-primary/[0.08] font-mono text-[10px]">
                     <CoinPill pair={r.pair} onPair={openPair} />
                     <span className="text-text-muted">f {r.fPct.toFixed(3)}%</span>
                     <span className="text-positive">OI {fmtPct(r.oi_chg_1h)}</span>
@@ -564,7 +564,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                 ))}
               </div>
               <span className="h-4 w-px bg-white/[0.08]" />
-              <span className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-gold-primary/30 bg-gold-primary/[0.08] font-mono text-[10px]">
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-line/30 bg-gold-primary/[0.08] font-mono text-[10px]">
                 <CoinLogo pair="BTCUSDT" size={14} />
                 <span className="text-gold-primary">BTC</span>
               </span>
@@ -583,7 +583,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
                 />
                 {searchOpts.length > 0 && (
-                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-surface-secondary border border-gold-primary/20 shadow-xl p-1">
+                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-surface-secondary border border-line/20 shadow-xl p-1">
                     {searchOpts.map((p) => (
                       <button
                         key={p}

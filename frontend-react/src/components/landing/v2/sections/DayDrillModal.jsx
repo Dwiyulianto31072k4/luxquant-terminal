@@ -195,7 +195,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
         {/* header */}
         <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] px-4 pb-3 pt-1 sm:p-4">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">Winning calls · proof</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Winning calls · proof</p>
             <h3 className="mt-0.5 text-[16px] font-bold text-text-primary">
               {new Date(date).toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
             </h3>

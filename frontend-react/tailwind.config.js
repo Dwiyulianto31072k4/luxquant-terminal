@@ -48,6 +48,9 @@ export default {
           // also lift above the old base. Theme/gold/bg unchanged.
           muted: withAlpha("--fg-muted"),
         },
+        // Container hairline/border colour — gold in Luxquant, neutral in Dark.
+        // Use for static card/panel borders; interactive gold stays gold-primary.
+        line: withAlpha("--line"),
         positive: withAlpha("--pos"),
         negative: withAlpha("--neg"),
         warning: withAlpha("--warn"),

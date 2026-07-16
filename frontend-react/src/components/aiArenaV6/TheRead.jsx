@@ -94,7 +94,7 @@ export default function TheRead({ data }) {
   return (
     <div className="space-y-4">
       {/* ════════ WHY THIS UPDATED — what triggered a fresh run ════════ */}
-      <div className="flex items-start gap-3 rounded-xl border border-gold-primary/15 bg-gold-primary/[0.045] p-3.5">
+      <div className="flex items-start gap-3 rounded-xl border border-line/15 bg-gold-primary/[0.045] p-3.5">
         <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-primary/[0.14] text-[13px] text-gold-light">
           ↻
         </span>
@@ -106,7 +106,7 @@ export default function TheRead({ data }) {
             <span
               className={`rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.12em] ${
                 isAnomaly
-                  ? "border-gold-primary/25 bg-gold-primary/10 text-gold-light/90"
+                  ? "border-line/25 bg-gold-primary/10 text-gold-light/90"
                   : "border-white/[0.12] bg-white/[0.04] text-text-muted/70"
               }`}
             >

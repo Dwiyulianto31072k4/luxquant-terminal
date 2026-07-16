@@ -135,7 +135,7 @@ export const GuideModal = ({ onClose }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-gold-primary/25 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-line/25 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
@@ -168,7 +168,7 @@ export const GuideModal = ({ onClose }) => {
                     onClick={() => setActive(s.id)}
                     className={`text-left px-3 py-2.5 rounded-md font-mono text-[11px] tracking-wide transition-all ${
                       on
-                        ? 'bg-gold-primary/10 border border-gold-primary/30 text-gold-primary'
+                        ? 'bg-gold-primary/10 border border-line/30 text-gold-primary'
                         : 'border border-transparent text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
                     }`}
                   >

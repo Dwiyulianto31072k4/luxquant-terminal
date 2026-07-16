@@ -78,7 +78,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
     <header className="space-y-5">
       <div className="flex min-w-0 items-center gap-3">
         <span className="h-px w-8 shrink-0 bg-gold-primary/40" />
-        <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80 sm:tracking-[0.25em]">
+        <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 sm:tracking-[0.25em]">
           BTC Compass · AI Research
         </span>
         <span className="hidden h-px flex-1 bg-white/[0.06] sm:block" />
@@ -327,7 +327,7 @@ function ChartPanel({ report }) {
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
             Price context
           </div>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-text-primary md:text-2xl">
@@ -511,7 +511,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               ? "hover:border-emerald-400/35"
               : bearish
                 ? "hover:border-red-400/35"
-                : "hover:border-accent/35";
+                : "hover:border-line/35";
             return (
               <article
                 key={item.report_id}
@@ -614,7 +614,7 @@ function ReportPdfModal({ modal, onClose }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/55 to-transparent" />
 
-      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-accent/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
+      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-line/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
@@ -622,7 +622,7 @@ function ReportPdfModal({ modal, onClose }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md border border-accent/20 bg-accent/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-accent">
+                <span className="rounded-md border border-line/20 bg-accent/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-accent">
                   Compass reader
                 </span>
                 <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
@@ -648,7 +648,7 @@ function ReportPdfModal({ modal, onClose }) {
               <a
                 href={modal.url}
                 download={modal.filename || "compass-report.pdf"}
-                className="rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent/45 hover:bg-accent/15"
+                className="rounded-lg border border-line/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent/45 hover:bg-accent/15"
               >
                 Download
               </a>
@@ -666,7 +666,7 @@ function ReportPdfModal({ modal, onClose }) {
         <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,17vw,286px)_minmax(0,1fr)]">
           <aside className="hidden min-h-0 border-r border-white/[0.08] bg-surface-raised/92 p-2.5 lg:block">
             <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-accent/15 bg-accent/[0.045] p-4">
+              <div className="rounded-2xl border border-line/15 bg-accent/[0.045] p-4">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
                   Reading brief
                 </div>
@@ -866,7 +866,7 @@ function CompassPdfViewer({ url, title }) {
           <button
             type="button"
             onClick={() => setZoom(1)}
-            className="rounded-md border border-accent/20 bg-accent/10 px-2.5 py-1.5 text-accent transition hover:bg-accent/15"
+            className="rounded-md border border-line/20 bg-accent/10 px-2.5 py-1.5 text-accent transition hover:bg-accent/15"
           >
             Fit {Math.round(zoom * 100)}%
           </button>

@@ -1208,7 +1208,7 @@ export default function GlobalReach() {
 
       <div className="relative z-10 mx-auto max-w-6xl px-4">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.32em] text-gold-primary/70">
+          <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.25em] text-gold-primary/80">
             <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/55" />
             Global Reach
             <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/55" />

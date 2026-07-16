@@ -42,7 +42,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
     return (
       <>
         <div 
-          className="relative w-16 h-10 rounded-md overflow-hidden cursor-pointer group border border-gold-primary/20 hover:border-gold-primary/50 transition-all flex-shrink-0"
+          className="relative w-16 h-10 rounded-md overflow-hidden cursor-pointer group border border-line/20 hover:border-gold-primary/50 transition-all flex-shrink-0"
           onClick={(e) => { e.stopPropagation(); openLightbox(thumbUrl); }}
         >
           <img 
@@ -109,7 +109,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
           {/* Chart Image */}
           {currentUrl && !imgError[currentUrl] && (
             <div 
-              className="relative rounded-lg overflow-hidden border border-gold-primary/10 cursor-pointer group"
+              className="relative rounded-lg overflow-hidden border border-line/10 cursor-pointer group"
               onClick={(e) => { e.stopPropagation(); openLightbox(currentUrl); }}
             >
               <img 
@@ -150,7 +150,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeView === 'before'
                   ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm shadow-blue-500/10'
-                  : 'bg-bg-card text-text-muted border border-gold-primary/10 hover:text-text-primary hover:border-gold-primary/30'
+                  : 'bg-bg-card text-text-muted border border-line/10 hover:text-text-primary hover:border-line/30'
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-blue-400" />
@@ -163,7 +163,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeView === 'after'
                   ? 'bg-green-500/20 text-green-400 border border-green-500/40 shadow-sm shadow-green-500/10'
-                  : 'bg-bg-card text-text-muted border border-gold-primary/10 hover:text-text-primary hover:border-gold-primary/30'
+                  : 'bg-bg-card text-text-muted border border-line/10 hover:text-text-primary hover:border-line/30'
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-green-400" />
@@ -175,7 +175,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
         {/* Chart Image - Large */}
         {currentUrl && !imgError[currentUrl] ? (
           <div 
-            className="relative rounded-xl overflow-hidden border border-gold-primary/10 cursor-pointer group"
+            className="relative rounded-xl overflow-hidden border border-line/10 cursor-pointer group"
             onClick={() => openLightbox(currentUrl)}
           >
             <img 
@@ -205,7 +205,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
             </div>
           </div>
         ) : (
-          <div className="glass-card rounded-xl p-12 border border-gold-primary/10 text-center">
+          <div className="glass-card rounded-xl p-12 border border-line/10 text-center">
             <div className="w-16 h-16 rounded-full bg-bg-card flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl">📷</span>
             </div>

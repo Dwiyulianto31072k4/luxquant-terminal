@@ -195,7 +195,7 @@ export default function StatusAdminPage() {
               onClick={() => toggleAffected(c.key)}
               className={`px-2.5 py-1.5 rounded-md text-[12px] border transition-colors ${
                 affected.includes(c.key)
-                  ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
+                  ? "bg-gold-primary/15 text-gold-primary border-line/30"
                   : "bg-white/[0.03] text-text-secondary border-white/[0.08] hover:text-text-primary"
               }`}
             >
@@ -213,7 +213,7 @@ export default function StatusAdminPage() {
         />
 
         <div className="mt-4">
-          <button onClick={create} disabled={busy} className={`${btnCls} bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20`}>
+          <button onClick={create} disabled={busy} className={`${btnCls} bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/20`}>
             Publish incident
           </button>
         </div>
@@ -277,7 +277,7 @@ function IncidentAdminCard({ inc, busy, onUpdate, onDelete }) {
               <button
                 onClick={() => { onUpdate(inc.id, newStatus, body); setBody(""); }}
                 disabled={busy}
-                className={`${btnCls} bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 whitespace-nowrap`}
+                className={`${btnCls} bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/20 whitespace-nowrap`}
               >
                 Post update
               </button>

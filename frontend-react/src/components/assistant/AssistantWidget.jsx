@@ -84,7 +84,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
           <div className="hidden sm:block fixed inset-0 z-[9998] bg-black/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
 
           {/* Panel: mobile bottom sheet, desktop centered wide modal */}
-          <div className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold-primary/30 bg-surface-raised shadow-[0_-8px_40px_rgba(0,0,0,0.5)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:h-[600px] sm:w-[760px] sm:max-w-[92vw] sm:-translate-x-1/2 sm:rounded-2xl sm:shadow-[0_25px_60px_rgba(0,0,0,0.55)] lg:w-[900px]">
+          <div className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-line/30 bg-surface-raised shadow-[0_-8px_40px_rgba(0,0,0,0.5)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:h-[600px] sm:w-[760px] sm:max-w-[92vw] sm:-translate-x-1/2 sm:rounded-2xl sm:shadow-[0_25px_60px_rgba(0,0,0,0.55)] lg:w-[900px]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 bg-surface-raised px-4 py-3 sm:px-5">
               <div className="flex items-center gap-2.5 min-w-0">

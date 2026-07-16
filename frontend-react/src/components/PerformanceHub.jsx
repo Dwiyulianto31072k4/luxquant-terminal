@@ -201,7 +201,7 @@ const PerformanceHub = () => {
       {/* ── breadcrumb strip ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/90 truncate">
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 truncate">
             Performance
           </span>
           <span className="text-text-primary/20">·</span>
@@ -222,7 +222,7 @@ const PerformanceHub = () => {
               onClick={() => go(item)}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
                 on
-                  ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
+                  ? "bg-gold-primary/15 text-gold-primary border-line/30"
                   : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary"
               }`}
             >

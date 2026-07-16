@@ -175,7 +175,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
         {/* ── Balance ── */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/70">
+            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
               Balance
             </span>
             <button
@@ -240,7 +240,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           </button>
           <button
             onClick={() => onConfigure?.(account)}
-            className="flex-1 px-3 py-2 rounded-md border border-gold-primary/25 text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/40 transition-all"
+            className="flex-1 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/40 transition-all"
           >
             Configure
           </button>

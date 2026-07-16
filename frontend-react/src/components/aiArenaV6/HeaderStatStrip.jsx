@@ -310,7 +310,7 @@ export default function HeaderStatStrip({ data }) {
   if (cells.length === 0) return null;
 
   return (
-    <div className="glass-card rounded-xl border border-gold-primary/10 px-4 py-3">
+    <div className="glass-card rounded-xl border border-line/10 px-4 py-3">
       <div
         className="grid gap-x-4 gap-y-3"
         style={{

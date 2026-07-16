@@ -40,7 +40,7 @@ const STATUS_STYLE = {
 
 const Spinner = ({ className = "w-3.5 h-3.5" }) => (
   <span
-    className={`${className} inline-block rounded-full border-2 border-gold-primary/25 border-t-gold-primary animate-spin`}
+    className={`${className} inline-block rounded-full border-2 border-line/25 border-t-gold-primary animate-spin`}
     aria-hidden
   />
 );
@@ -179,7 +179,7 @@ const GenerationConsole = ({
   const borderTone = isError
     ? "border-red-500/35"
     : isRunning
-      ? "border-gold-primary/35"
+      ? "border-line/35"
       : isDone
         ? "border-green-500/30"
         : "border-white/[0.08]";
@@ -236,7 +236,7 @@ const GenerationConsole = ({
                   Generate Console
                 </h2>
                 {isRunning && (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-gold-primary/15 text-gold-primary border border-line/30">
                     <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
                     Live
                   </span>
@@ -353,7 +353,7 @@ const GenerationConsole = ({
                       failed
                         ? "bg-red-500/10 border-red-500/30 text-red-300"
                         : active
-                          ? "bg-gold-primary/10 border-gold-primary/35 text-gold-primary"
+                          ? "bg-gold-primary/10 border-line/35 text-gold-primary"
                           : done
                             ? "bg-green-500/8 border-green-500/20 text-green-400/90"
                             : "bg-white/[0.02] border-white/[0.06] text-text-muted/70"
@@ -1063,7 +1063,7 @@ const SocialPostsAdminPage = () => {
           </p>
         </div>
         {isGenRunning && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-primary/10 border border-gold-primary/30 text-gold-primary text-[11px] font-mono">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-primary/10 border border-line/30 text-gold-primary text-[11px] font-mono">
             <Spinner className="w-3 h-3" />
             Generation in progress
             {typeof genJob?.progress === "number" ? ` · ${genJob.progress}%` : ""}

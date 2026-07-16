@@ -221,7 +221,7 @@ const NotificationBell = () => {
                   {t("notifications.title") || "Notifications"}
                 </h3>
                 {unreadCount > 0 && (
-                  <span className="inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-gold-primary/25 tabular-nums">
+                  <span className="inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-line/25 tabular-nums">
                     {unreadCount} new
                   </span>
                 )}
@@ -260,7 +260,7 @@ const NotificationBell = () => {
             <div className="border-t border-white/[0.06]">
               <button
                 onClick={handleViewAll}
-                className="w-full py-2.5 text-center text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary/80 hover:text-gold-primary hover:bg-gold-primary/[0.04] transition-all"
+                className="w-full py-2.5 text-center text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80 hover:text-gold-primary hover:bg-gold-primary/[0.04] transition-all"
               >
                 {t("notifications.view_all") || "View all"} →
               </button>

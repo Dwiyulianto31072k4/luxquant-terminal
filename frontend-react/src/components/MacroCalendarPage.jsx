@@ -295,7 +295,7 @@ const MacroCalendarPage = () => {
               {isZh ? tab.labelZh : tab.label}
               {countNum != null && (
                 <span className={`font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm border ${
-                  active ? 'bg-gold-primary/10 text-gold-primary border-gold-primary/25' : 'bg-white/[0.04] text-text-muted/70 border-white/[0.04]'
+                  active ? 'bg-gold-primary/10 text-gold-primary border-line/25' : 'bg-white/[0.04] text-text-muted/70 border-white/[0.04]'
                 }`}>
                   {countNum}
                 </span>
@@ -392,7 +392,7 @@ const MacroCalendarPage = () => {
               <p className="font-mono text-[11px] uppercase tracking-wider text-loss mb-3">{error}</p>
               <button
                 onClick={loadEvents}
-                className="px-4 py-2 rounded-sm bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/15 font-mono text-[11px] uppercase tracking-wider transition-colors"
+                className="px-4 py-2 rounded-sm bg-gold-primary/10 text-gold-primary border border-line/25 hover:bg-gold-primary/15 font-mono text-[11px] uppercase tracking-wider transition-colors"
               >
                 {t('calendar.try_again')}
               </button>
@@ -500,7 +500,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
 
   return (
     <div className={`bg-surface-raised rounded-md overflow-hidden border relative ${
-      isToday ? 'border-gold-primary/30' : 'border-white/[0.06]'
+      isToday ? 'border-line/30' : 'border-white/[0.06]'
     }`}>
       {isToday && (
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
@@ -517,7 +517,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
         </svg>
 
         {isToday && (
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-gold-primary/25">
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-line/25">
             Today
           </span>
         )}
@@ -544,7 +544,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
             </span>
           )}
           {cryptoCount > 0 && (
-            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-gold-primary/20">
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-line/20">
               {cryptoCount}
               <IconBoltMini />
             </span>
@@ -627,7 +627,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
     }
     if (event.type === 'crypto_event' && event.category) {
       return (
-        <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-gold-primary/20">
+        <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-line/20">
           {event.category}
         </span>
       );
@@ -756,7 +756,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
                 </span>
               )}
               {event.type === 'crypto_event' && event.category && (
-                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-gold-primary/20">
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-line/20">
                   {event.category}
                 </span>
               )}
@@ -792,7 +792,7 @@ const NewsItem = ({ article }) => {
       href={article.link}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-white/[0.06] hover:border-gold-primary/25 hover:bg-white/[0.02] transition-all duration-200"
+      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-white/[0.06] hover:border-line/25 hover:bg-white/[0.02] transition-all duration-200"
     >
       {article.image && (
         <div className="w-20 h-14 rounded-sm overflow-hidden shrink-0 bg-surface-secondary">
@@ -845,7 +845,7 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
           {label}
         </p>
-        <div className="w-6 h-6 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+        <div className="w-6 h-6 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
           <StatIcon type={icon} />
         </div>
       </div>

@@ -210,7 +210,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
       )}
 
       {/* Payment info */}
-      <div className="border-t border-gold-primary/[0.06] pt-5 text-center">
+      <div className="border-t border-line/[0.06] pt-5 text-center">
         <div className="flex items-center justify-center gap-6 text-[10px] text-text-muted">
           {[t("pricing.usdt_bep20"), t("pricing.auto_verify"), t("pricing.instant_act")].map((label, i) => (
             <span key={i} className="flex items-center gap-1.5">

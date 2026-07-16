@@ -45,7 +45,7 @@ function RsiTip({ active, payload, tf }) {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-line/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{sym(d.pair)}</span></div>
       <div className="text-text-primary/60">RSI(14 · {tf}): <span className="text-text-primary/90">{d.y.toFixed(1)}</span></div>
       {d.pctb != null && <div className="text-text-primary/60">%B: <span className="text-text-primary/90">{d.pctb.toFixed(0)}</span> <span className="text-text-primary/40">{d.pctb >= 100 ? "above upper band" : d.pctb <= 0 ? "below lower band" : "in band"}</span></div>}
@@ -292,7 +292,7 @@ function FlowTip({ active, payload }) {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-line/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{sym(d.pair)}</span></div>
       <div className="text-text-primary/60">CVD 1h: <span className={d.y >= 0 ? "text-positive" : "text-negative"}>{fmtUsd(d.y)}</span></div>
       <div className="text-text-primary/60">Price 24h: <span className={d.x >= 0 ? "text-positive" : "text-negative"}>{d.x.toFixed(1)}%</span></div>

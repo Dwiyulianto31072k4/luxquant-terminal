@@ -83,7 +83,7 @@ const transferTypeStyle = (type) => {
   if (type === "exchange_outflow")
     return "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
   if (type === "exchange_to_exchange")
-    return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
+    return "bg-gold-primary/10 text-gold-primary border-line/25";
   return "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
 };
 
@@ -453,7 +453,7 @@ const LoadingSkeleton = () => (
 
 const EmptyState = ({ message, hint }) => (
   <div className="relative overflow-hidden p-12 text-center">
-    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
+    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-5 h-5 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>

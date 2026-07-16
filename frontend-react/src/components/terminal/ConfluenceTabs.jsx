@@ -67,7 +67,7 @@ function flowChipsOf(flow) {
   const out = [];
   const liq = flow?.liq;
   if (liq) {
-    if (liq.spike) out.push({ k: "liq spike", cls: "bg-gold-primary/15 border-gold-primary/30 text-gold-primary" });
+    if (liq.spike) out.push({ k: "liq spike", cls: "bg-gold-primary/15 border-line/30 text-gold-primary" });
     else if ((liq.side_bias || 0) > 0.4) out.push({ k: "shorts flushed", cls: "bg-positive/10 border-positive/30 text-positive" });
     else if ((liq.side_bias || 0) < -0.4) out.push({ k: "longs flushed", cls: "bg-negative/10 border-negative/30 text-negative" });
   }
@@ -152,7 +152,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
   return (
     <button
       onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
-      className="group relative text-left rounded-2xl bg-surface-raised border border-white/[0.07] hover:border-gold-primary/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
+      className="group relative text-left rounded-2xl bg-surface-raised border border-white/[0.07] hover:border-line/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
@@ -322,7 +322,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
 
       {/* Coiled — good setups that haven't moved yet (the opportunity) */}
       {coiled.length > 0 && (
-        <div className="rounded-lg border border-gold-primary/20 bg-gradient-to-b from-gold-primary/[0.06] to-transparent overflow-hidden">
+        <div className="rounded-lg border border-line/20 bg-gradient-to-b from-gold-primary/[0.06] to-transparent overflow-hidden">
           <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <div className="px-4 py-2.5 flex items-baseline justify-between gap-3">
             <span className="text-[12.5px] text-text-primary/95">{t("terminal.viz.coiledTitle")}</span>
@@ -334,7 +334,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
               <button
                 key={s.signal_id}
                 onClick={() => (openSignalRow ? openSignalRow(s) : openPair(s.pair))}
-                className="flex items-center gap-2 rounded-lg bg-surface-raised border border-white/[0.08] hover:border-gold-primary/35 px-2.5 py-1.5 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-surface-raised border border-white/[0.08] hover:border-line/35 px-2.5 py-1.5 transition-colors"
               >
                 <CoinLogo pair={s.pair} size={18} />
                 <span className="font-mono text-[11px] text-text-primary/90">{s.pair}</span>

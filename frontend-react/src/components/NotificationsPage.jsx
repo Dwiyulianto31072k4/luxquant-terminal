@@ -65,7 +65,7 @@ const getTypeToken = (type, data) => {
 
 const toneStyle = (tone) => {
   if (tone === "gold")
-    return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
+    return "bg-gold-primary/10 text-gold-primary border-line/25";
   if (tone === "danger")
     return "bg-red-500/10 text-red-400 border-red-500/25";
   return "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
@@ -274,7 +274,7 @@ const NotificationsPage = () => {
               {t("notifications.title") || "Notifications"}
             </h1>
             {view === "inbox" && unreadCount > 0 && (
-              <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-[0.15em] px-2 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-gold-primary/25 tabular-nums">
+              <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-[0.15em] px-2 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-line/25 tabular-nums">
                 {unreadCount} new
               </span>
             )}
@@ -295,7 +295,7 @@ const NotificationsPage = () => {
           <button
             onClick={handleMarkAllRead}
             disabled={markingAll}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gold-primary/25 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/40 disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/40 disabled:opacity-50 transition-all"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -388,7 +388,7 @@ const NotificationsPage = () => {
               {groupByCategory(notifications, t).map(([catLabel, items]) => (
                 <div key={catLabel} className="space-y-1.5">
                   <div className="flex items-center gap-2 px-1 pt-1">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/70">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                       {catLabel}
                     </span>
                     <span className="h-px flex-1 bg-white/[0.04]" />
@@ -452,7 +452,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
       onClick={onClick}
       className={`group relative flex items-start gap-3 pl-4 pr-3 py-3 rounded-md border cursor-pointer transition-all ${
         isUnread
-          ? "bg-gold-primary/[0.03] border-white/[0.06] hover:border-gold-primary/25"
+          ? "bg-gold-primary/[0.03] border-white/[0.06] hover:border-line/25"
           : "bg-transparent border-white/[0.04] hover:bg-white/[0.015] hover:border-white/[0.10]"
       }`}
     >
@@ -504,7 +504,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
               </span>
             )}
             {notif.data.tp_level && (
-              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-gold-primary/25">
+              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-line/25">
                 {notif.data.tp_level.toUpperCase()} hit
               </span>
             )}
@@ -520,7 +520,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
         {isUnread && onMarkRead && (
           <button
             onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
-            className="p-1.5 rounded-md border border-transparent hover:border-gold-primary/25 hover:bg-gold-primary/[0.06] text-text-muted/40 hover:text-gold-primary transition-all"
+            className="p-1.5 rounded-md border border-transparent hover:border-line/25 hover:bg-gold-primary/[0.06] text-text-muted/40 hover:text-gold-primary transition-all"
             title="Mark as read"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -569,7 +569,7 @@ const LoadingSkeleton = () => (
 const EmptyState = ({ t }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
       </svg>

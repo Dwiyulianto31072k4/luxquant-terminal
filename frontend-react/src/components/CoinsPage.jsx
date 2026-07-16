@@ -64,7 +64,7 @@ function CoinDetail({ slug }) {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Coins", to: "/coins" }, { label: coin.symbol }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Coins</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Coins</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
         {coin.name} <span className="text-text-muted">({coin.symbol})</span>
       </h1>
@@ -74,7 +74,7 @@ function CoinDetail({ slug }) {
         {coin.body.map((p, i) => <p key={i}>{p}</p>)}
       </div>
 
-      <div className="mt-8 rounded-xl border border-gold-primary/20 bg-gold-primary/[0.04] p-5">
+      <div className="mt-8 rounded-xl border border-line/20 bg-gold-primary/[0.04] p-5">
         <h2 className="text-[15px] font-semibold text-text-primary">Track {coin.symbol} on LuxQuant</h2>
         <p className="mt-1.5 text-[13.5px] text-text-primary/70">Live money flow, on-chain whale activity, and algorithmic signals.</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -140,7 +140,7 @@ function CoinsIndex() {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Coins" }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Coins</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Coins</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Crypto Coins</h1>
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Money flow, on-chain intelligence, and algorithmic signals for the assets traders watch most.
@@ -149,7 +149,7 @@ function CoinsIndex() {
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {COINS.map((c) => (
           <Link key={c.slug} to={`/coins/${c.slug}`}
-            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
+            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-white/[0.02] transition-colors">
             <div className="flex items-baseline gap-2">
               <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{c.name}</h2>
               <span className="font-mono text-[12px] text-text-muted">{c.symbol}</span>

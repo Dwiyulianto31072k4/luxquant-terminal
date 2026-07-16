@@ -157,7 +157,7 @@ export const SectionBand = ({ title, desc }) => (
 );
 
 export const Kpi = ({ label, value, desc, tone }) => (
-  <div className="group relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-gold-primary/25">
+  <div className="group relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-line/25">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
     <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
     <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-text-primary/95"}`}>{value}</div>
@@ -182,7 +182,7 @@ export const IconBtn = ({ onClick, title, children }) => (
   <button
     onClick={onClick}
     title={title}
-    className="w-6 h-6 flex items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.02] text-text-muted hover:text-gold-primary hover:border-gold-primary/30 transition-colors font-mono text-[11px] leading-none"
+    className="w-6 h-6 flex items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.02] text-text-muted hover:text-gold-primary hover:border-line/30 transition-colors font-mono text-[11px] leading-none"
   >
     {children}
   </button>
@@ -225,7 +225,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute z-40 mt-1 left-0 min-w-[180px] max-h-64 overflow-y-auto rounded-md bg-surface-secondary border border-gold-primary/20 shadow-xl p-1.5">
+          <div className="absolute z-40 mt-1 left-0 min-w-[180px] max-h-64 overflow-y-auto rounded-md bg-surface-secondary border border-line/20 shadow-xl p-1.5">
             {selected.length > 0 && (
               <button
                 onClick={() => onChange([])}
@@ -250,7 +250,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
 export const DarkTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-line/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       {label != null && <div className="text-text-primary/50 mb-1">{label}</div>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
@@ -272,7 +272,7 @@ export function ScatterTip({ active, payload, xLabel = "x", yLabel = "y" }) {
   const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "rgb(var(--fg-secondary))" }) : null;
   const ago = info ? timeAgo(info.created) : null;
   return (
-    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-line/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="text-text-primary mb-0.5 flex items-center gap-2">
         <span>{p.pair}</span>
         {meta && <span className="font-bold" style={{ color: meta.color }}>{meta.label}</span>}
@@ -338,7 +338,7 @@ export function XCard({ title, desc, render, zoom, hint }) {
     <>
       <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-        <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
+        <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-line/[0.12] flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12.5px] text-text-primary/90">{title}</div>
             {desc && <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
@@ -357,11 +357,11 @@ export function XCard({ title, desc, render, zoom, hint }) {
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex flex-col w-[94vw] max-w-[1600px] h-full max-h-[calc(100vh-5.5rem)] rounded-2xl bg-surface-raised border border-gold-primary/25 shadow-2xl shadow-black/60 overflow-hidden"
+            className="relative flex flex-col w-[94vw] max-w-[1600px] h-full max-h-[calc(100vh-5.5rem)] rounded-2xl bg-surface-raised border border-line/25 shadow-2xl shadow-black/60 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-            <div className="shrink-0 px-5 py-3.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
+            <div className="shrink-0 px-5 py-3.5 bg-gold-primary/[0.05] border-b border-line/[0.12] flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[15px] text-text-primary/95">{title}</div>
                 {desc && <div className="text-[11.5px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
@@ -607,7 +607,7 @@ export function Donut({ data, active, onPick, h = 190 }) {
 // "warming up" placeholder — shown while the backend blob is precomputing
 export const Warming = ({ text }) => (
   <div className="py-12 flex flex-col items-center gap-2">
-    <div className="w-5 h-5 border border-gold-primary/25 border-t-gold-primary rounded-full animate-spin" />
+    <div className="w-5 h-5 border border-line/25 border-t-gold-primary rounded-full animate-spin" />
     <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted text-center leading-relaxed max-w-xs">{text}</span>
   </div>
 );

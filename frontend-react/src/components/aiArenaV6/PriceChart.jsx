@@ -415,7 +415,7 @@ export default function PriceChart({ report }) {
             <div className="flex items-center gap-2">
               <h2 className="font-display text-xl lg:text-2xl font-semibold text-text-primary">Projection Chart</h2>
               <Tooltip termKey="confluence">
-                <span className="text-text-muted text-[10px] font-mono px-1.5 py-0.5 rounded-md border border-gold-primary/15">
+                <span className="text-text-muted text-[10px] font-mono px-1.5 py-0.5 rounded-md border border-line/15">
                   {labelText}
                 </span>
               </Tooltip>
@@ -476,7 +476,7 @@ export default function PriceChart({ report }) {
                   onClick={() => toggleLayer(key)}
                   className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] transition ${
                     active
-                      ? "border-accent/30 bg-accent/10 text-accent"
+                      ? "border-line/30 bg-accent/10 text-accent"
                       : "border-white/[0.06] bg-black/10 text-text-primary/35 hover:border-white/[0.12] hover:text-text-primary/65"
                   }`}
                 >
@@ -519,7 +519,7 @@ export default function PriceChart({ report }) {
 
       <div className="relative mt-4">
         {crosshair && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-none flex items-center gap-3 px-3 py-1.5 rounded-lg bg-bg-primary/85 backdrop-blur-md border border-gold-primary/20 text-[10px] font-mono">
+          <div className="absolute top-2 left-2 z-10 pointer-events-none flex items-center gap-3 px-3 py-1.5 rounded-lg bg-bg-primary/85 backdrop-blur-md border border-line/20 text-[10px] font-mono">
             <span className="text-text-muted">O <span className="text-text-primary">{formatPrice(crosshair.open)}</span></span>
             <span className="text-text-muted">H <span className="text-text-primary">{formatPrice(crosshair.high)}</span></span>
             <span className="text-text-muted">L <span className="text-text-primary">{formatPrice(crosshair.low)}</span></span>
@@ -536,7 +536,7 @@ export default function PriceChart({ report }) {
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/50 backdrop-blur-sm rounded-xl">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-gold-primary/25 border-t-gold-primary rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-line/25 border-t-gold-primary rounded-full animate-spin" />
               <p className="text-text-muted text-[10px] font-mono uppercase tracking-wider">
                 Loading {tf} candles…
               </p>
@@ -550,7 +550,7 @@ export default function PriceChart({ report }) {
               <p className="text-negative text-xs">⚠ {error}</p>
               <button
                 onClick={() => fetchData(tf)}
-                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-gold-primary/15 border border-gold-primary/30 text-gold-primary hover:bg-gold-primary/25 transition-all"
+                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-gold-primary/15 border border-line/30 text-gold-primary hover:bg-gold-primary/25 transition-all"
               >
                 Retry
               </button>
@@ -695,7 +695,7 @@ function ChartReadPanel({ read }) {
   if (!read) return null;
   const toneColor = directionColor(read.direction);
   return (
-    <section className="relative mt-4 overflow-hidden rounded-md border border-gold-primary/15 bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <section className="relative mt-4 overflow-hidden rounded-md border border-line/15 bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
         <div className="max-w-4xl">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
@@ -721,7 +721,7 @@ function ChartReadPanel({ read }) {
 
       <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-[0.92fr_1.08fr]">
         <div className="space-y-3">
-          <div className="rounded-lg border border-accent/15 bg-accent/[0.055] p-3">
+          <div className="rounded-lg border border-line/15 bg-accent/[0.055] p-3">
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-accent/75">
               What to do with it
             </div>

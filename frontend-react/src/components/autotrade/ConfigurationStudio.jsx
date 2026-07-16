@@ -429,7 +429,7 @@ export default function ConfigurationStudio({
       </Card>
 
       {/* ── Risk limits ── */}
-      <Card className="border-gold-primary/15">
+      <Card className="border-line/15">
         <SectionTitle hint="Server-enforced before every live entry">
           Risk limits
         </SectionTitle>
@@ -520,7 +520,7 @@ export default function ConfigurationStudio({
                 suffix="USDT"
               />
             </Row>
-            <div className="rounded-md border border-gold-primary/15 bg-gold-primary/[0.05] px-3 py-2.5 text-xs leading-5 text-text-secondary">
+            <div className="rounded-md border border-line/15 bg-gold-primary/[0.05] px-3 py-2.5 text-xs leading-5 text-text-secondary">
               Reconciliation issues always block new live entries regardless of
               these values.
             </div>
@@ -554,7 +554,7 @@ export default function ConfigurationStudio({
       </Card>
 
       {/* ── Save bar ── */}
-      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-lg border border-gold-primary/20 bg-surface-raised/95 px-4 py-3 shadow-2xl backdrop-blur">
+      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-lg border border-line/20 bg-surface-raised/95 px-4 py-3 shadow-2xl backdrop-blur">
         <div>
           <p
             className={`text-xs font-semibold ${

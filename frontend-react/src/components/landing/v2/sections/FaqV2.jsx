@@ -68,7 +68,7 @@ export default function FaqV2() {
   return (
     <section id="faq" className="relative z-10 mx-auto w-full max-w-3xl px-4 py-16 lg:px-8 lg:py-24">
       <div className="mb-9 text-center lg:mb-12">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/80">
+        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/60" />
           Help Center
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/60" />

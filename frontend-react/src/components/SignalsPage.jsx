@@ -936,7 +936,7 @@ const SignalsPage = () => {
           <button
             onClick={goTerminal}
             title="Visualize the current (filtered) signals in the Terminal"
-            className="group flex items-center gap-2 bg-gold-primary/[0.08] hover:bg-gold-primary/[0.15] border border-gold-primary/30 hover:border-gold-primary/50 px-3.5 py-1.5 rounded-full transition-colors"
+            className="group flex items-center gap-2 bg-gold-primary/[0.08] hover:bg-gold-primary/[0.15] border border-line/30 hover:border-gold-primary/50 px-3.5 py-1.5 rounded-full transition-colors"
           >
             <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="8" height="10" rx="1" /><rect x="13" y="3" width="8" height="6" rx="1" /><rect x="13" y="11" width="8" height="10" rx="1" /><rect x="3" y="15" width="8" height="6" rx="1" />
@@ -1178,7 +1178,7 @@ const SignalsPage = () => {
             <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary">Call Filter</h2>
             <button
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-gold-primary/30 text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-mono text-[9px] uppercase tracking-wider"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-line/30 text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-mono text-[9px] uppercase tracking-wider"
             >
               <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-gold-primary/50 text-[8px] leading-none">?</span>
               {t('guide.button')}
@@ -1270,7 +1270,7 @@ const SignalsPage = () => {
           </div>
           <button
             onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-white/[0.08] hover:border-line/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
           >
             {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
             <span className="hidden sm:inline">{getOrderLabel()}</span>
@@ -1290,7 +1290,7 @@ const SignalsPage = () => {
                 Advanced Filters
               </span>
               {advancedActiveCount > 0 && (
-                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-gold-primary/15 text-gold-primary border border-line/30">
                   {advancedActiveCount} active
                 </span>
               )}
@@ -1317,7 +1317,7 @@ const SignalsPage = () => {
               <button
                 key={i}
                 onClick={chip.clear}
-                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-gold-primary/10 border border-gold-primary/30 text-gold-primary font-mono text-[9px] uppercase tracking-wider hover:bg-gold-primary/20 transition-all"
+                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-gold-primary/10 border border-line/30 text-gold-primary font-mono text-[9px] uppercase tracking-wider hover:bg-gold-primary/20 transition-all"
               >
                 <span>{chip.label}</span>
                 <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold-primary/15 group-hover:bg-gold-primary/30 leading-none">×</span>

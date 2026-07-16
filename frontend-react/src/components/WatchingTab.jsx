@@ -212,7 +212,7 @@ const WatchingTab = () => {
           <button
             onClick={handleAdd}
             disabled={adding || alreadyWatching}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] hover:bg-gold-primary/[0.07] transition-all text-left disabled:cursor-default"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md border border-line/20 bg-gold-primary/[0.04] hover:bg-gold-primary/[0.07] transition-all text-left disabled:cursor-default"
           >
             <CoinLogo pair={previewSymbol} size={28} />
             <div className="flex-1 min-w-0">
@@ -299,7 +299,7 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
             Called
           </span>
         ) : (
-          <span className="inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-gold-primary/10 text-gold-primary border-gold-primary/25">
+          <span className="inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-gold-primary/10 text-gold-primary border-line/25">
             Waiting
           </span>
         )}
@@ -351,7 +351,7 @@ const ListSkeleton = () => (
 const EmptyState = () => (
   <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
       </svg>

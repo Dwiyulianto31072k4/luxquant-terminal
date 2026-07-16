@@ -146,7 +146,7 @@ function pearson(xs, ys) {
 
 function Card({ className = "", children }) {
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised p-5 transition-all duration-300 hover:border-gold-primary/25 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${className}`}>
+    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised p-5 transition-all duration-300 hover:border-line/25 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${className}`}>
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       {children}
     </div>
@@ -555,7 +555,7 @@ export default function Performance({ data }) {
     <section id="performance" className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 lg:px-8 lg:py-28">
       {/* header */}
       <div className="mb-12 text-center lg:mb-16">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/80">
+        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/60" />
           Verified Track Record
         </span>
@@ -919,7 +919,7 @@ export default function Performance({ data }) {
         {coins.length ? (
           <div className="grid gap-2.5 sm:grid-cols-2">
             {coins.map((c) => (
-              <div key={c.pair} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] px-3.5 py-2.5 transition-colors hover:border-gold-primary/25">
+              <div key={c.pair} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] px-3.5 py-2.5 transition-colors hover:border-line/25">
                 <CoinLogo pair={c.pair} size={30} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-text-primary">
@@ -944,7 +944,7 @@ export default function Performance({ data }) {
       </div>
 
       {/* footer CTA */}
-      <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gold-primary/15 bg-gold-primary/[0.04] p-5 sm:flex-row">
+      <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-line/15 bg-gold-primary/[0.04] p-5 sm:flex-row">
         <p className="text-sm text-text-primary/60">
           <span className="font-semibold text-text-primary">Every trade on record.</span> Pattern reliability, expected value, timing & per-coin breakdowns — all live.
         </p>

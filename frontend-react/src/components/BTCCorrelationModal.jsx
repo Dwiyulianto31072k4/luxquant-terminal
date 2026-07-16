@@ -83,7 +83,7 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose, z
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <h2 className="truncate text-sm font-semibold text-text-primary">{pair}</h2>
-          <span className="flex-shrink-0 rounded border border-gold-primary/30 bg-gold-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-gold-primary">
+          <span className="flex-shrink-0 rounded border border-line/30 bg-gold-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-gold-primary">
             vs BTC
           </span>
         </div>
@@ -219,7 +219,7 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
     "text-rose-400";
 
   return (
-    <div className="rounded-xl border border-gold-primary/30 bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 p-4">
+    <div className="rounded-xl border border-line/30 bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 p-4">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gold-primary/70">BTC Alignment</p>
@@ -239,12 +239,12 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
           {risk.toUpperCase()} RISK
         </span>
         {is_decoupled && (
-          <span className="inline-flex items-center gap-1 rounded border border-gold-primary/30 bg-gold-primary/10 px-2 py-0.5 text-[9px] font-bold text-gold-primary">
+          <span className="inline-flex items-center gap-1 rounded border border-line/30 bg-gold-primary/10 px-2 py-0.5 text-[9px] font-bold text-gold-primary">
             <Icon d={IC.bolt} className="h-2.5 w-2.5" /> DECOUPLED
           </span>
         )}
         {is_extended && (
-          <span className="inline-flex items-center gap-1 rounded border border-gold-primary/30 bg-gold-primary/10 px-2 py-0.5 text-[9px] font-bold text-gold-primary">
+          <span className="inline-flex items-center gap-1 rounded border border-line/30 bg-gold-primary/10 px-2 py-0.5 text-[9px] font-bold text-gold-primary">
             <Icon d={IC.flame} className="h-2.5 w-2.5" /> EXTENDED
           </span>
         )}

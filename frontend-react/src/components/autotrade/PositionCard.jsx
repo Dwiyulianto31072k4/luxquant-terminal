@@ -22,7 +22,7 @@ const sideStyle = (side) =>
 const statusStyle = (status) => {
   const map = {
     filled: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
-    partial: "bg-gold-primary/10 text-gold-primary border-gold-primary/25",
+    partial: "bg-gold-primary/10 text-gold-primary border-line/25",
     placed: "bg-white/[0.04] text-text-primary/70 border-white/[0.08]",
     pending: "bg-white/[0.04] text-text-muted border-white/[0.06]",
     error: "bg-red-500/10 text-red-400 border-red-500/25",
@@ -134,7 +134,7 @@ export default function PositionCard({ order, onClosed }) {
 
         {/* ── Trailing status ── */}
         {order.trailing_enabled && (
-          <div className="relative overflow-hidden bg-gold-primary/[0.04] border border-gold-primary/20 rounded mb-3 p-2.5">
+          <div className="relative overflow-hidden bg-gold-primary/[0.04] border border-line/20 rounded mb-3 p-2.5">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">

@@ -78,7 +78,7 @@ const SectionHeader = ({ label, small = false, suffix }) => (
     </span>
     <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
     {suffix && (
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/70 shrink-0">
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 shrink-0">
         {suffix}
       </span>
     )}
@@ -338,7 +338,7 @@ const WallsCard = ({ walls, total, type }) => {
                   <div className="flex items-center gap-1.5">
                     {/* Strength badge (NEW — using backend field) */}
                     {w.strength && (
-                      <span className="text-[8px] font-mono tabular-nums px-1 py-0.5 rounded border bg-gold-primary/[0.08] text-gold-primary/80 border-gold-primary/20">
+                      <span className="text-[8px] font-mono tabular-nums px-1 py-0.5 rounded border bg-gold-primary/[0.08] text-gold-primary/80 border-line/20">
                         {w.strength.toFixed(1)}
                       </span>
                     )}
@@ -825,7 +825,7 @@ export default function OrderBookPage() {
       {/* Loading / Error */}
       {loading && !data && (
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-line/20 border-t-gold-primary rounded-full animate-spin" />
         </div>
       )}
 
@@ -835,7 +835,7 @@ export default function OrderBookPage() {
           <p className="text-red-400 text-sm mb-3 font-mono">{error}</p>
           <button
             onClick={() => fetchOB(true)}
-            className="px-4 py-2 rounded-md text-[11px] font-mono uppercase tracking-[0.2em] border border-gold-primary/25 text-gold-primary hover:bg-gold-primary/[0.08] transition-all"
+            className="px-4 py-2 rounded-md text-[11px] font-mono uppercase tracking-[0.2em] border border-line/25 text-gold-primary hover:bg-gold-primary/[0.08] transition-all"
           >
             {t("orderbook.retry") || "Retry"} →
           </button>

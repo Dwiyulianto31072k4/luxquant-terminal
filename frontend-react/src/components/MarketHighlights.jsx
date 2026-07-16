@@ -163,7 +163,7 @@ const MarketHighlights = () => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        <div className="glass-card rounded-xl p-4 border border-gold-primary/10 animate-pulse">
+        <div className="glass-card rounded-xl p-4 border border-line/10 animate-pulse">
           <div className="h-4 bg-bg-card rounded w-16 mb-3"></div>
           <div className="space-y-2">
             {[...Array(3)].map((_, j) => (
@@ -171,7 +171,7 @@ const MarketHighlights = () => {
             ))}
           </div>
         </div>
-        <div className="md:col-span-2 glass-card rounded-xl p-4 border border-gold-primary/10 animate-pulse">
+        <div className="md:col-span-2 glass-card rounded-xl p-4 border border-line/10 animate-pulse">
           <div className="h-4 bg-bg-card rounded w-32 mb-3"></div>
           <div className="grid grid-cols-2 gap-3">
             {[...Array(6)].map((_, j) => (
@@ -179,7 +179,7 @@ const MarketHighlights = () => {
             ))}
           </div>
         </div>
-        <div className="glass-card rounded-xl p-4 border border-gold-primary/10 animate-pulse">
+        <div className="glass-card rounded-xl p-4 border border-line/10 animate-pulse">
           <div className="h-4 bg-bg-card rounded w-16 mb-3"></div>
           <div className="space-y-2">
             {[...Array(3)].map((_, j) => (
@@ -206,8 +206,8 @@ const MarketHighlights = () => {
       />
 
       {/* Market Overview - Expanded 2 columns */}
-      <div className="md:col-span-2 glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gold-primary/10">
+      <div className="md:col-span-2 glass-card rounded-xl border border-line/10 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-line/10">
           <div className="flex items-center gap-2">
             <span className="text-sm">📊</span>
             <span className="text-text-primary font-semibold text-sm">Market Overview</span>
@@ -217,7 +217,7 @@ const MarketHighlights = () => {
         
         <div className="p-4">
           {/* Top Row - Big Numbers */}
-          <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-gold-primary/10">
+          <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-line/10">
             {/* Total Market Cap */}
             <div>
               <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Total Market Cap</p>
@@ -262,7 +262,7 @@ const MarketHighlights = () => {
             </div>
             
             {/* Altcoin Cap */}
-            <div className="text-center p-2 rounded-lg bg-gold-primary/5 border border-gold-primary/20">
+            <div className="text-center p-2 rounded-lg bg-gold-primary/5 border border-line/20">
               <p className="text-text-muted text-[10px] uppercase mb-1">Altcoin Cap</p>
               <p className="text-gold-primary font-mono text-sm font-bold">{formatLargeNumber(overview.altcoinMarketCap)}</p>
             </div>
@@ -279,8 +279,8 @@ const MarketHighlights = () => {
       {/* Top Gainer & Top Volume Combined */}
       <div className="space-y-3">
         {/* Top Gainer - Compact */}
-        <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gold-primary/10">
+        <div className="glass-card rounded-xl border border-line/10 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-line/10">
             <div className="flex items-center gap-1.5">
               <span className="text-xs">📈</span>
               <span className="text-text-primary font-semibold text-xs">Top Gainer</span>
@@ -303,8 +303,8 @@ const MarketHighlights = () => {
         </div>
 
         {/* Top Volume - Compact */}
-        <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gold-primary/10">
+        <div className="glass-card rounded-xl border border-line/10 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-line/10">
             <div className="flex items-center gap-1.5">
               <span className="text-xs">💎</span>
               <span className="text-text-primary font-semibold text-xs">Top Volume</span>
@@ -334,8 +334,8 @@ const MarketHighlights = () => {
 
 // Reusable Category Card for coins list
 const CategoryCard = ({ icon, label, coins, formatChange }) => (
-  <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden group hover:border-gold-primary/30 transition-all">
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gold-primary/10">
+  <div className="glass-card rounded-xl border border-line/10 overflow-hidden group hover:border-line/30 transition-all">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-line/10">
       <div className="flex items-center gap-2">
         <span className="text-sm">{icon}</span>
         <span className="text-text-primary font-semibold text-sm">{label}</span>

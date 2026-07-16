@@ -94,7 +94,7 @@ const IconGauge = ({ className = 'w-3.5 h-3.5' }) => (
 // ================================================================
 
 const CardShell = ({ children, className = '', hover = true }) => (
-  <div className={`relative bg-surface-raised rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-gold-primary/20 transition-colors' : ''} ${className}`}>
+  <div className={`relative bg-surface-raised rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-line/20 transition-colors' : ''} ${className}`}>
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
     {children}
   </div>
@@ -392,7 +392,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
                 href={`https://www.coingecko.com/en/categories/${cat.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] px-2 py-0.5 bg-gold-primary/10 text-gold-primary border border-gold-primary/20 hover:bg-gold-primary/15 hover:border-gold-primary/40 transition-all rounded-sm"
+                className="font-mono text-[10px] px-2 py-0.5 bg-gold-primary/10 text-gold-primary border border-line/20 hover:bg-gold-primary/15 hover:border-gold-primary/40 transition-all rounded-sm"
               >
                 {cat.name}
               </a>

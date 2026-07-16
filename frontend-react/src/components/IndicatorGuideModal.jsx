@@ -50,7 +50,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
 
   const Tag = ({ children, tone = "gold" }) => {
     const tones = {
-      gold: "bg-gold-primary/12 text-gold-primary border-gold-primary/30",
+      gold: "bg-gold-primary/12 text-gold-primary border-line/30",
       green: "bg-green-500/12 text-green-400 border-green-500/30",
       red: "bg-red-500/12 text-red-400 border-red-500/30",
       blue: "bg-blue-400/12 text-blue-300 border-blue-400/30",
@@ -114,9 +114,9 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         {/* ─── Header ─── */}
-        <div className="sticky top-0 z-20 bg-surface/95 backdrop-blur border-b border-gold-primary/20 px-5 sm:px-7 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-surface/95 backdrop-blur border-b border-line/20 px-5 sm:px-7 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gold-primary/12 border border-gold-primary/30 flex items-center justify-center text-gold-primary flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gold-primary/12 border border-line/30 flex items-center justify-center text-gold-primary flex-shrink-0">
               {I.chart("w-5 h-5")}
             </div>
             <div className="min-w-0">
@@ -124,7 +124,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
               <p className="text-text-muted text-[11px] sm:text-xs truncate">MACD · RSI · Bollinger Bands — how this confluence works</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-line/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0">
             {I.close()}
           </button>
         </div>
@@ -133,7 +133,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
         <div className="px-5 sm:px-7 py-5 space-y-5">
 
           {/* Intro / confluence */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-gold-primary/[0.07] to-transparent border border-gold-primary/20 rounded-xl p-4 sm:p-5">
+          <div className="relative overflow-hidden bg-gradient-to-br from-gold-primary/[0.07] to-transparent border border-line/20 rounded-xl p-4 sm:p-5">
             <p className="text-text-secondary text-xs sm:text-sm leading-relaxed">
               No single indicator is reliable alone — MACD crossovers and Bollinger squeezes each win roughly{" "}
               <Tag tone="red">40–60%</Tag> of the time. The edge comes from <span className="text-gold-primary font-semibold">confluence</span>:
@@ -145,13 +145,13 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
           {/* Indicator cards grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
             {indicators.map((ind) => (
-              <div key={ind.name} className="flex flex-col bg-surface-raised border border-white/[0.06] rounded-xl p-4 hover:border-gold-primary/20 transition-colors">
+              <div key={ind.name} className="flex flex-col bg-surface-raised border border-white/[0.06] rounded-xl p-4 hover:border-line/20 transition-colors">
                 <div className="flex items-start justify-between mb-2.5 gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-gold-primary flex-shrink-0">{ind.icon("w-4 h-4")}</span>
                     <h3 className="text-text-primary font-bold text-sm truncate">{ind.name}</h3>
                   </div>
-                  <span className="text-[9px] font-mono text-gold-primary/80 bg-gold-primary/10 px-1.5 py-0.5 rounded-[3px] border border-gold-primary/20 whitespace-nowrap flex-shrink-0">{ind.setting}</span>
+                  <span className="text-[9px] font-mono text-gold-primary/80 bg-gold-primary/10 px-1.5 py-0.5 rounded-[3px] border border-line/20 whitespace-nowrap flex-shrink-0">{ind.setting}</span>
                 </div>
                 <div className="mb-2.5"><Tag tone={ind.tone}>{ind.tag}</Tag></div>
                 <p className="text-text-secondary text-[11px] leading-relaxed mb-3">{ind.what}</p>
@@ -168,15 +168,15 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Putting it together */}
-          <div className="bg-gradient-to-br from-gold-primary/[0.08] to-transparent border border-gold-primary/20 rounded-xl p-4 sm:p-5">
+          <div className="bg-gradient-to-br from-gold-primary/[0.08] to-transparent border border-line/20 rounded-xl p-4 sm:p-5">
             <div className="flex items-center gap-2.5 mb-3.5">
               <span className="text-gold-primary">{I.target("w-5 h-5")}</span>
               <h3 className="text-gold-primary font-bold text-sm sm:text-base">Putting It Together</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {steps.map((s, i) => (
-                <div key={i} className="flex gap-3 bg-surface/60 border border-gold-primary/10 rounded-lg p-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-primary/15 border border-gold-primary/30 text-gold-primary text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
+                <div key={i} className="flex gap-3 bg-surface/60 border border-line/10 rounded-lg p-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-primary/15 border border-line/30 text-gold-primary text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
                   <div>
                     <p className="text-text-primary text-xs font-semibold mb-0.5">{s.t}</p>
                     <p className="text-text-muted text-[11px] leading-relaxed">{s.d}</p>
@@ -213,9 +213,9 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* ─── Footer ─── */}
-        <div className="sticky bottom-0 bg-surface/95 backdrop-blur border-t border-gold-primary/15 px-5 sm:px-7 py-3 flex items-center justify-between">
+        <div className="sticky bottom-0 bg-surface/95 backdrop-blur border-t border-line/15 px-5 sm:px-7 py-3 flex items-center justify-between">
           <p className="text-text-muted text-[10px] sm:text-[11px]">Inform, don't decide.</p>
-          <button onClick={onClose} className="px-4 py-1.5 rounded-lg bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 text-xs font-bold transition-all">Got it</button>
+          <button onClick={onClose} className="px-4 py-1.5 rounded-lg bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/25 text-xs font-bold transition-all">Got it</button>
         </div>
       </div>
 

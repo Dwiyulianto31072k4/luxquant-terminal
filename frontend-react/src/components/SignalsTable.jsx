@@ -113,7 +113,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-white/[0.08] hover:border-line/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -668,7 +668,7 @@ const SignalsTable = ({
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
 
     return (
-      <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-gold-primary/30">
+      <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-line/30">
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
         {/* COLLAPSED — overview, tap to expand */}
@@ -758,7 +758,7 @@ const SignalsTable = ({
                 </span>
               ) : null}
               {topTag ? (
-                <span title={`${fmtTag(topTag.tag)}: ${topTag.wr}% historical win rate when present`} className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-gold-primary/30 normal-case max-w-[160px] truncate">
+                <span title={`${fmtTag(topTag.tag)}: ${topTag.wr}% historical win rate when present`} className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-line/30 normal-case max-w-[160px] truncate">
                   {fmtTag(topTag.tag).toLowerCase()} {topTag.wr}%
                 </span>
               ) : null}
@@ -1191,7 +1191,7 @@ const SignalsTable = ({
                                     return (
                                       <span
                                         title={`${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`}
-                                        className="font-mono text-[9px] tabular-nums mt-1 px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/90 border border-gold-primary/20 normal-case leading-none max-w-[120px] truncate"
+                                        className="font-mono text-[9px] tabular-nums mt-1 px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/90 border border-line/20 normal-case leading-none max-w-[120px] truncate"
                                       >
                                         {fmtTag(tt.tag).toLowerCase()} · {tt.wr}%
                                       </span>
@@ -1289,7 +1289,7 @@ const SignalsTable = ({
                                         </div>
                                         <button
                                           onClick={() => { setShowVerdictHint(false); setSelectedCoinIntel(v.coin); }}
-                                          className="w-full mt-2.5 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-all"
+                                          className="w-full mt-2.5 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/25 transition-all"
                                         >
                                           View Detail →
                                         </button>
@@ -1383,10 +1383,10 @@ const SignalsTable = ({
 
       {showNotice && (
         <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-md z-[60] lq-notice-in">
-          <div className="relative flex items-start gap-3 bg-surface-raised border border-gold-primary/25 rounded-md p-4 pr-10 shadow-2xl overflow-hidden">
+          <div className="relative flex items-start gap-3 bg-surface-raised border border-line/25 rounded-md p-4 pr-10 shadow-2xl overflow-hidden">
             <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
             <span className="absolute left-0 inset-y-0 w-0.5 bg-gold-primary/50" />
-            <div className="w-8 h-8 shrink-0 rounded-sm bg-gold-primary/[0.08] border border-gold-primary/20 flex items-center justify-center text-gold-primary/80">
+            <div className="w-8 h-8 shrink-0 rounded-sm bg-gold-primary/[0.08] border border-line/20 flex items-center justify-center text-gold-primary/80">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="16" x2="12" y2="12" />

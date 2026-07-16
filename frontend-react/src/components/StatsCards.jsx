@@ -5,7 +5,7 @@ const StatsCards = ({ stats, loading }) => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
         {[...Array(7)].map((_, i) => (
-          <div key={i} className="glass-card rounded-xl p-4 border border-gold-primary/10 animate-pulse">
+          <div key={i} className="glass-card rounded-xl p-4 border border-line/10 animate-pulse">
             <div className="h-4 bg-bg-card rounded w-20 mb-2"></div>
             <div className="h-8 bg-bg-card rounded w-16"></div>
           </div>
@@ -36,7 +36,7 @@ const StatsCards = ({ stats, loading }) => {
       const data = payload[0].payload;
       const percentage = totalClosed > 0 ? ((data.value / totalClosed) * 100).toFixed(1) : 0;
       return (
-        <div className="bg-bg-primary border border-gold-primary/30 rounded-lg px-3 py-2 shadow-xl">
+        <div className="bg-bg-primary border border-line/30 rounded-lg px-3 py-2 shadow-xl">
           <p className="text-gold-primary font-semibold">{data.name}</p>
           <p className="text-text-primary">{data.value.toLocaleString()} signals</p>
           <p className="text-text-muted">{percentage}%</p>
@@ -51,7 +51,7 @@ const StatsCards = ({ stats, loading }) => {
       {/* Main Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         {/* Total Signals Card */}
-        <div className="glass-card rounded-xl p-5 border border-gold-primary/10">
+        <div className="glass-card rounded-xl p-5 border border-line/10">
           <p className="text-text-muted text-xs uppercase tracking-wider mb-1">Total Signals</p>
           <p className="text-3xl font-display font-bold text-gold-primary">
             {stats.total_signals?.toLocaleString() || 0}
@@ -64,7 +64,7 @@ const StatsCards = ({ stats, loading }) => {
         </div>
 
         {/* Pie Chart Card */}
-        <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
+        <div className="glass-card rounded-xl p-4 border border-line/10">
           <p className="text-text-muted text-xs uppercase tracking-wider mb-2 text-center">Distribution</p>
           <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
@@ -98,7 +98,7 @@ const StatsCards = ({ stats, loading }) => {
         </div>
 
         {/* Win Rate Card */}
-        <div className="glass-card rounded-xl p-5 border border-gold-primary/10">
+        <div className="glass-card rounded-xl p-5 border border-line/10">
           <p className="text-text-muted text-xs uppercase tracking-wider mb-1">Win Rate</p>
           <p className="text-3xl font-display font-bold text-status-profit">
             {stats.win_rate?.toFixed(2) || 0}%
@@ -130,7 +130,7 @@ const StatsCards = ({ stats, loading }) => {
 
 // Small stat card component
 const StatCard = ({ label, value, color }) => (
-  <div className="glass-card rounded-lg p-3 border border-gold-primary/10 text-center">
+  <div className="glass-card rounded-lg p-3 border border-line/10 text-center">
     <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">{label}</p>
     <p className={`text-lg font-display font-bold ${color}`}>
       {value?.toLocaleString() || 0}

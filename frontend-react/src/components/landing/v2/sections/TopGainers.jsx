@@ -227,7 +227,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
     >
       {/* header — framed as LuxQuant's own signal calls (not market noise) */}
       <div className="text-center mb-12 lg:mb-16">
-        <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.3em] text-gold-primary/75">
+        <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.25em] text-gold-primary/80">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/55" />
           Verified Track Record
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/55" />
@@ -257,7 +257,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                 onClick={s.onClick || undefined}
                 className={`group relative flex-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-center transition-all sm:p-4 lg:flex-none lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:text-left ${
                   s.onClick
-                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-gold-primary/30 hover:bg-white/[0.035] lg:hover:translate-y-0 lg:hover:bg-transparent"
+                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-line/30 hover:bg-white/[0.035] lg:hover:translate-y-0 lg:hover:bg-transparent"
                     : ""
                 }`}
               >

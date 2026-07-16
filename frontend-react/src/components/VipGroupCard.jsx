@@ -19,7 +19,7 @@ const Section = ({ title, badge, children }) => (
   <div className="overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.015]"
     style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.3)' }}>
     <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/70 font-semibold">
+      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-semibold">
         {title}
       </h2>
       {badge}

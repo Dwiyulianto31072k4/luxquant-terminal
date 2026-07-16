@@ -156,7 +156,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
       {/* Loading */}
       {loading && (
         <div className="flex flex-col items-center py-10">
-          <div className="mb-3 h-10 w-10 animate-spin rounded-full border-2 border-gold-primary/20 border-t-gold-primary" />
+          <div className="mb-3 h-10 w-10 animate-spin rounded-full border-2 border-line/20 border-t-gold-primary" />
           <p className="font-semibold text-text-primary">Fetching live data…</p>
           <p className="mt-1 text-xs text-text-muted">Querying {order.exchange_id.toUpperCase()} API</p>
         </div>

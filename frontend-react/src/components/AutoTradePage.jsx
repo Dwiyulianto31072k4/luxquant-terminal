@@ -103,17 +103,17 @@ function MobileSectionPicker({ tabs, value, onChange }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 rounded-lg border border-gold-primary/35 bg-gold-primary/[0.07] px-4 py-3 text-left transition-colors active:bg-gold-primary/[0.12]"
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-line/35 bg-gold-primary/[0.07] px-4 py-3 text-left transition-colors active:bg-gold-primary/[0.12]"
       >
         <span className="min-w-0">
-          <span className="block font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
+          <span className="block font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
             Section · tap to switch
           </span>
           <span className="mt-0.5 block font-mono text-[13px] uppercase tracking-[0.15em] text-gold-light">
             {current.label}
           </span>
         </span>
-        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-gold-primary/30 bg-gold-primary/15">
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-line/30 bg-gold-primary/15">
           <svg
             className={`h-4 w-4 text-gold-primary transition-transform duration-200 ${
               open ? "rotate-180" : ""
@@ -133,7 +133,7 @@ function MobileSectionPicker({ tabs, value, onChange }) {
       {open ? (
         <div
           role="listbox"
-          className="absolute left-0 right-0 z-30 mt-1.5 overflow-hidden rounded-md border border-gold-primary/20 bg-surface-raised shadow-2xl"
+          className="absolute left-0 right-0 z-30 mt-1.5 overflow-hidden rounded-md border border-line/20 bg-surface-raised shadow-2xl"
         >
           {tabs.map((item) => {
             const on = item.id === value;
@@ -265,7 +265,7 @@ function AutoTradeControlCenter({
     description:
       "Your configuration is saved. Start the bot when you want it to process incoming signals.",
     tone: "warn",
-    panel: "border-gold-primary/25 bg-gold-primary/[0.035]",
+    panel: "border-line/25 bg-gold-primary/[0.035]",
   };
   if (active && isDryRun) {
     state = {
@@ -292,7 +292,7 @@ function AutoTradeControlCenter({
       description:
         "The server-wide live order switch is disabled. Your strategy remains saved and no new orders can be placed.",
       tone: "warn",
-      panel: "border-gold-primary/25 bg-gold-primary/[0.035]",
+      panel: "border-line/25 bg-gold-primary/[0.035]",
     };
   }
 
@@ -329,7 +329,7 @@ function AutoTradeControlCenter({
                 ? state.tone === "good"
                   ? "border-[#0ECB81]/35 bg-[#0ECB81]/10 text-[#0ECB81]"
                   : "border-[#5B8DEF]/35 bg-[#5B8DEF]/10 text-[#7da4ff]"
-                : "border-gold-primary/30 bg-gold-primary/10 text-gold-primary"
+                : "border-line/30 bg-gold-primary/10 text-gold-primary"
             }`}
           >
             <BinanceIcon className="h-5 w-5" />
@@ -528,7 +528,7 @@ function LoadingState() {
 
 function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
   return (
-    <Card className="border-gold-primary/20 bg-gold-primary/[0.03]">
+    <Card className="border-line/20 bg-gold-primary/[0.03]">
       <div className="max-w-2xl space-y-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary">
           AutoTrade Setup
@@ -801,7 +801,7 @@ export default function AutoTradePage() {
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             AutoTrade
           </h1>
-          <p className="mt-1.5 font-mono text-sm text-text-muted">
+          <p className="mt-2 text-sm text-text-secondary">
             {summaryText}
           </p>
         </div>
@@ -820,7 +820,7 @@ export default function AutoTradePage() {
             type="button"
             onClick={() => setShowHelp(true)}
             aria-label="Open AutoTrade guide"
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-text-muted transition-colors hover:border-gold-primary/30 hover:bg-gold-primary/[0.05] hover:text-gold-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-text-muted transition-colors hover:border-line/30 hover:bg-gold-primary/[0.05] hover:text-gold-primary"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />

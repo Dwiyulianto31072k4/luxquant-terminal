@@ -606,7 +606,7 @@ export default function SignalsAnalytics() {
       {/* ── loading / error (only when nothing hydrated) ── */}
       {loading && !data && (
         <div className="rounded-lg bg-surface-raised border border-white/[0.07] py-24 flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-6 h-6 border border-line/20 border-t-gold-primary rounded-full animate-spin" />
           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.loading")}</span>
         </div>
       )}

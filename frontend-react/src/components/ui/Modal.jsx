@@ -199,7 +199,7 @@ export default function Modal({
         ) : simpleHeader ? (
           <div className={`flex-shrink-0 px-6 pt-6 lg:px-8 lg:pt-8 ${showClose ? "pr-12" : ""}`}>
             {eyebrow ? (
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">{eyebrow}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{eyebrow}</p>
             ) : null}
             {(icon || title) ? (
               <div className={`flex items-center gap-3 ${eyebrow ? "mt-3" : ""}`}>

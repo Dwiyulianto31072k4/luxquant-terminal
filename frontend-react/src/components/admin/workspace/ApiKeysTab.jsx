@@ -104,7 +104,7 @@ export function ApiKeysTab() {
               onClick={() => setFilter(f.id)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${
                 filter === f.id
-                  ? 'bg-gold-primary/15 text-gold-primary border-gold-primary/30'
+                  ? 'bg-gold-primary/15 text-gold-primary border-line/30'
                   : 'text-text-muted border-white/5 hover:text-text-secondary hover:border-white/10'
               }`}
             >
@@ -131,7 +131,7 @@ export function ApiKeysTab() {
       {/* List */}
       {loading ? (
         <div className="rounded-2xl p-8 border border-white/5 bg-white/[0.02] flex items-center justify-center">
-          <div className="w-5 h-5 rounded-full border-2 border-gold-primary/30 border-t-gold-primary animate-spin" />
+          <div className="w-5 h-5 rounded-full border-2 border-line/30 border-t-gold-primary animate-spin" />
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl p-8 border border-white/5 bg-white/[0.02] text-center">

@@ -138,7 +138,7 @@ export const confLevel = (c) => {
 // Panel — the single card surface for Compass v2.
 export const Card = ({ className = "", children, accent, hairline = true }) => {
   const border =
-    accent === "gold" ? "border-gold-primary/25"
+    accent === "gold" ? "border-line/25"
     : accent === "up" ? "border-profit/25"
     : accent === "down" ? "border-loss/25"
     : "border-white/[0.07]";
@@ -158,7 +158,7 @@ export const Card = ({ className = "", children, accent, hairline = true }) => {
 export const SectionHeader = ({ label, right, className = "" }) => (
   <div className={`mb-4 flex min-w-0 items-center gap-3 ${className}`}>
     <span className="h-px w-8 shrink-0 bg-gold-primary/40" />
-    <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80 sm:tracking-[0.25em]">
+    <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 sm:tracking-[0.25em]">
       {label}
     </span>
     <span className="hidden h-px flex-1 bg-white/[0.06] sm:block" />
@@ -177,7 +177,7 @@ export const Tag = ({ children, tone = "muted", className = "" }) => {
     up: "bg-profit/10 text-profit border-profit/25",
     down: "bg-loss/10 text-loss border-loss/25",
     neutral: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    gold: "bg-gold-primary/10 text-gold-primary border-gold-primary/25",
+    gold: "bg-gold-primary/10 text-gold-primary border-line/25",
     muted: "bg-white/[0.03] text-text-muted border-white/[0.08]",
   };
   return (
@@ -242,7 +242,7 @@ export const highlightPrices = (text) => {
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
   const tones = {
     neutral: "border-white/[0.05] bg-surface-secondary",
-    gold: "border-gold-primary/25 bg-gold-primary/[0.06]",
+    gold: "border-line/25 bg-gold-primary/[0.06]",
     up: "border-profit/20 bg-profit/[0.05]",
     down: "border-loss/20 bg-loss/[0.05]",
   };

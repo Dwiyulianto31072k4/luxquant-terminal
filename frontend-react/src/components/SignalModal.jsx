@@ -1054,7 +1054,7 @@ const SignalModal = ({
       icon: "•",
       active: true,
       color: "text-gold-primary",
-      border: "border-gold-primary/30",
+      border: "border-line/30",
       bg: "bg-gold-primary/10",
     });
 
@@ -1381,7 +1381,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {/* ── DEEP ANALYSIS ── */}
         {signalDetail?.enrichment && (
           <button onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]">
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-line/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]">
             {Ic.cpu("w-3.5 h-3.5")}<span>Deep Analysis</span>
           </button>
         )}
@@ -1518,7 +1518,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           <div className="lq-card lq-card--gold bg-surface-raised">
             {goldLine}
             <div className="p-3 text-center">
-              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-gold-primary/30 bg-gold-primary/12">
+              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-line/30 bg-gold-primary/12">
                 <svg className="h-4 w-4 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
@@ -1683,7 +1683,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </button>
                   {/* END TOMBOL JOURNAL */}
 
-                  <div className="flex items-center bg-surface-secondary rounded-md p-0.5 border border-gold-primary/15">
+                  <div className="flex items-center bg-surface-secondary rounded-md p-0.5 border border-line/15">
                     {[
                       { id: "chart", label: t("modal.chart"), icon: (
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
@@ -1710,7 +1710,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                   <button
                     onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-line/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -1733,7 +1733,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
@@ -1744,7 +1744,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
@@ -1787,10 +1787,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       className="w-full h-full"
                     />
                   </div>
-                  <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
+                  <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-line/20 overflow-y-auto custom-scrollbar">
                     {renderTargetsPanel("sidebar")}
                   </div>
-                  <div className="lg:hidden flex-shrink-0 bg-surface-raised border-t border-gold-primary/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
+                  <div className="lg:hidden flex-shrink-0 bg-surface-raised border-t border-line/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
                     {renderTargetsPanel("bottom")}
                   </div>
                 </div>
@@ -2351,9 +2351,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     <div className="mb-4 sm:mb-5">
                       <div className="lq-card lq-card--gold bg-gradient-to-br from-surface-secondary to-surface-secondary">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-gold-primary/10 bg-gold-primary/5">
+                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-line/10 bg-gold-primary/5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-gold-primary/15 border border-gold-primary/25 flex items-center justify-center text-gold-primary">
+                            <div className="w-6 h-6 rounded-md bg-gold-primary/15 border border-line/25 flex items-center justify-center text-gold-primary">
                               {Ic.cpu("w-3.5 h-3.5")}
                             </div>
                             <div>
@@ -2371,7 +2371,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
                               promptCopied
                                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : "bg-gold-primary/15 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/25 hover:text-gold-primary active:scale-95"
+                                : "bg-gold-primary/15 text-gold-primary border border-line/25 hover:bg-gold-primary/25 hover:text-gold-primary active:scale-95"
                             }`}
                           >
                             {promptCopied ? (
@@ -2418,7 +2418,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </pre>
                         </div>
                         {/* Footer hint */}
-                        <div className="px-3 sm:px-4 py-2 border-t border-gold-primary/10 bg-gold-primary/[0.03]">
+                        <div className="px-3 sm:px-4 py-2 border-t border-line/10 bg-gold-primary/[0.03]">
                           <p className="text-[9px] sm:text-[10px] text-text-muted flex items-center gap-1.5">
                             <svg
                               className="w-3 h-3 text-gold-primary/60 flex-shrink-0"

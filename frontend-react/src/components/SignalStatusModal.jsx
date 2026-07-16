@@ -68,7 +68,7 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
 
       {/* Sheet: pinned to bottom on mobile so CTAs never sit under tab bar */}
       <div
-        className="absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-white/12 bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(85vh,620px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-gold-primary/30 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
+        className="absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-white/12 bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(85vh,620px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-line/30 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
         style={{ maxHeight: "min(90dvh, 640px)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -222,7 +222,7 @@ export default function GlobalSignalModalHost() {
                 </span>
               )}
               {s.is_decoupled && (
-                <span className="rounded border border-gold-primary/30 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-gold-primary">
+                <span className="rounded border border-line/30 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-gold-primary">
                   btc-decoupled
                 </span>
               )}

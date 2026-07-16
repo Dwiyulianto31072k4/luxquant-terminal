@@ -66,7 +66,7 @@ const RichEditor = ({ value, onChange }) => {
   const block = (tag) => exec('formatBlock', tag);
 
   return (
-    <div className="rounded-xl border border-gold-primary/15 overflow-hidden bg-bg-card">
+    <div className="rounded-xl border border-line/15 overflow-hidden bg-bg-card">
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-white/10 bg-black/20">
         <TB title="Bold" onClick={() => exec('bold')}><b>B</b></TB>
         <TB title="Italic" onClick={() => exec('italic')}><i>I</i></TB>
@@ -117,7 +117,7 @@ const Field = ({ label, children, required }) => (
 );
 
 const inputCls =
-  'w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors';
+  'w-full bg-bg-card border border-line/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors';
 
 const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
   const isEdit = !!resource;
@@ -232,14 +232,14 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-black/75 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
       <div
-        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-gold-primary/20 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
+        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gold-primary/10 bg-bg-secondary/95 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-line/10 bg-bg-secondary/95 backdrop-blur">
           <h3 className="text-text-primary font-semibold text-base">
             {isEdit ? 'Edit Resource' : 'New Resource'}
           </h3>
@@ -261,7 +261,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                 className={`p-3 rounded-xl border text-left transition-all ${
                   type === tt.id
                     ? 'bg-gold-primary/15 border-gold-primary/40'
-                    : 'bg-bg-card border-white/5 hover:border-gold-primary/20'
+                    : 'bg-bg-card border-white/5 hover:border-line/20'
                 }`}
               >
                 <div className={`text-sm font-bold ${type === tt.id ? 'text-gold-primary' : 'text-text-primary'}`}>{tt.label}</div>
@@ -358,7 +358,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
           {/* PDF upload */}
           {type === 'pdf' && (
             <Field label="PDF File" required={!isEdit}>
-              <label className="flex items-center gap-3 bg-bg-card border-2 border-dashed border-gold-primary/20 rounded-xl px-4 py-4 cursor-pointer hover:border-gold-primary/40 transition-colors">
+              <label className="flex items-center gap-3 bg-bg-card border-2 border-dashed border-line/20 rounded-xl px-4 py-4 cursor-pointer hover:border-gold-primary/40 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -387,7 +387,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   <option value="General">General</option>
                   {categories.filter((c) => c !== 'General').map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="+ new" className="w-24 bg-bg-card border border-gold-primary/15 rounded-xl px-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40" />
+                <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="+ new" className="w-24 bg-bg-card border border-line/15 rounded-xl px-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40" />
               </div>
             </Field>
             <Field label="Tags (comma separated)">
@@ -401,12 +401,12 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
             </Field>
             <Field label="Cover Image">
               <div className="flex gap-3">
-                <label className="flex-1 flex items-center justify-center bg-bg-card border-2 border-dashed border-gold-primary/20 rounded-xl px-4 py-3 cursor-pointer hover:border-gold-primary/40 transition-colors text-text-muted text-xs">
+                <label className="flex-1 flex items-center justify-center bg-bg-card border-2 border-dashed border-line/20 rounded-xl px-4 py-3 cursor-pointer hover:border-gold-primary/40 transition-colors text-text-muted text-xs">
                   {coverFile ? coverFile.name : 'Upload cover'}
                   <input type="file" accept=".jpg,.jpeg,.png,.webp,.gif" onChange={handleCoverChange} className="hidden" />
                 </label>
                 {coverPreview && (
-                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-gold-primary/15 flex-shrink-0">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-line/15 flex-shrink-0">
                     <img src={coverPreview} alt="cover" className="w-full h-full object-cover" />
                   </div>
                 )}

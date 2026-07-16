@@ -469,25 +469,15 @@ const MarketPulsePageInner = () => {
       {/* ═══ PAGE HEADER (Flowscan: gradient title + subtitle + live pill) ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-primary/70 mb-2">
-            <span className="relative flex h-1.5 w-1.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-primary/40 opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-primary/80" />
-            </span>
-            <span>Live Market Activity</span>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="h-px w-8 bg-gold-primary/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Live Market Activity</span>
+            <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
           </div>
-          <h1
-            className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
-            style={{
-              background: "linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 60%, rgba(212,168,83,0.85) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             Market Pulse
           </h1>
-          <p className="text-sm text-text-muted/70 mt-2">
+          <p className="text-sm text-text-secondary mt-2">
             Real-time event flow across{" "}
             <span className="text-text-primary/85 font-mono tabular-nums">{stats?.hourly?.unique_coins || 0}</span>{" "}
             coins · auto-refresh 10s
@@ -622,7 +612,7 @@ const MarketPulsePageInner = () => {
             aria-expanded={sidebarOpen}
             aria-label="Show side panel"
             title="Show side panel"
-            className="mp-sidebar-rail group relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-gold-primary/30 transition-colors"
+            className="mp-sidebar-rail group relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-line/30 transition-colors"
           >
             <span className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
               <IconChevronsLeft className="h-3.5 w-3.5" />
@@ -704,7 +694,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
   const cfg = {
     bull: { label: "Bullish", bias: "Long bias", color: "rgb(var(--pos))", text: "text-emerald-400", chip: "bg-emerald-500/[0.12] text-emerald-400 border-emerald-500/30" },
     bear: { label: "Bearish", bias: "Short bias", color: "rgb(var(--neg))", text: "text-red-400", chip: "bg-red-500/[0.12] text-red-400 border-red-500/30" },
-    neutral: { label: "Neutral", bias: "No clear bias", color: "rgb(var(--accent-light))", text: "text-gold-primary", chip: "bg-gold-primary/[0.12] text-gold-primary border-gold-primary/30" },
+    neutral: { label: "Neutral", bias: "No clear bias", color: "rgb(var(--accent-light))", text: "text-gold-primary", chip: "bg-gold-primary/[0.12] text-gold-primary border-line/30" },
   }[verdict];
 
   const adDisplay =
@@ -940,7 +930,7 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(biggest.pair)}
-      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-gold-primary/30 hover:bg-surface-secondary cursor-pointer"
+      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-line/30 hover:bg-surface-secondary cursor-pointer"
     >
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between mb-1.5">
@@ -988,7 +978,7 @@ const ControlBar = ({
     <div className="relative z-10 p-4 flex flex-col gap-3">
       {/* Row 1: Search + active coin pills */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-        <label className="group flex h-9 min-w-0 md:w-52 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-gold-primary/30 focus-within:bg-white/[0.05]">
+        <label className="group flex h-9 min-w-0 md:w-52 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-white/[0.05]">
           <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-gold-primary/70 shrink-0" />
           <input
             type="text"
@@ -1109,7 +1099,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
   const stats = coinDetail.stats;
   const bullPct = stats.bull_pct;
   return (
-    <div className="border-t border-gold-primary/15 bg-gradient-to-r from-gold-primary/[0.04] to-transparent p-4">
+    <div className="border-t border-line/15 bg-gradient-to-r from-gold-primary/[0.04] to-transparent p-4">
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-3">
           <CoinLogo pair={pair} size={32} />
@@ -1137,7 +1127,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
           {onOpenChart && (
             <button
               onClick={() => onOpenChart(pair)}
-              className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border border-gold-primary/30 text-gold-primary hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-medium uppercase tracking-[0.12em]"
+              className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border border-line/30 text-gold-primary hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-medium uppercase tracking-[0.12em]"
             >
               <IconChartLine className="h-3 w-3" />
               <span>Chart</span>
@@ -1384,7 +1374,7 @@ const ActivityFeedPanel = ({
               aria-expanded={sidebarOpen}
               aria-label={sidebarOpen ? "Hide side panel" : "Show side panel"}
               title={sidebarOpen ? "Hide side panel" : "Show side panel"}
-              className="hidden lg:inline-flex items-center justify-center w-7 h-7 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-gold-primary/30 transition-colors"
+              className="hidden lg:inline-flex items-center justify-center w-7 h-7 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
             >
               {sidebarOpen ? <IconChevronsRight className="h-3.5 w-3.5" /> : <IconChevronsLeft className="h-3.5 w-3.5" />}
             </button>
@@ -1796,7 +1786,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
               <button
                 onClick={() => setExpanded(true)}
                 title="Expand heatmap"
-                className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-gold-primary/30 transition-colors"
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
@@ -1818,7 +1808,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
           aria-label="Heatmap expanded"
         >
           <div
-            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-white/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
+            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-white/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-line/25 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-1 flex justify-center sm:hidden" aria-hidden="true">
@@ -2450,7 +2440,7 @@ const CoinChartModal = ({ pair, onClose }) => {
         </div>
 
         {/* Region-block fallback note — glowing VPN hint */}
-        <div className="px-4 sm:px-5 py-2 border-t border-gold-primary/[0.07] bg-gradient-to-r from-gold-primary/[0.05] via-transparent to-transparent flex-shrink-0 relative z-10 overflow-hidden">
+        <div className="px-4 sm:px-5 py-2 border-t border-line/[0.07] bg-gradient-to-r from-gold-primary/[0.05] via-transparent to-transparent flex-shrink-0 relative z-10 overflow-hidden">
           <p className="mp-vpn-hint text-[9px] font-mono leading-relaxed flex items-center justify-center sm:justify-start gap-1.5">
             <svg className="mp-vpn-ico h-3 w-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z" />

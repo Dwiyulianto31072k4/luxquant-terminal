@@ -150,7 +150,7 @@ const BitcoinPage = () => {
                 <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
                   {t('btc.title')}
                 </h1>
-                <span className="px-2 py-0.5 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-gold-primary/25">
+                <span className="px-2 py-0.5 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-line/25">
                   Rank #{data.marketCapRank}
                 </span>
               </div>
@@ -366,7 +366,7 @@ const BitcoinPage = () => {
                         ? "bg-loss/15 text-loss border-loss/30"
                         : technical.summary.includes("Sell")
                           ? "bg-loss/10 text-loss border-loss/25"
-                          : "bg-gold-primary/10 text-gold-primary border-gold-primary/25"
+                          : "bg-gold-primary/10 text-gold-primary border-line/25"
                 }`}
               >
                 {getApiTranslation(technical.summary)}
@@ -793,7 +793,7 @@ const BitcoinPage = () => {
             </div>
           </div>
           {news?.total > 0 && (
-            <span className="px-2.5 py-1 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-gold-primary/25 tabular-nums whitespace-nowrap">
+            <span className="px-2.5 py-1 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-line/25 tabular-nums whitespace-nowrap">
               {news.total} {t('btc.articles')}
             </span>
           )}
@@ -820,7 +820,7 @@ const BitcoinPage = () => {
                         onClick={() => openArticle(i)}
                         className="group cursor-pointer"
                       >
-                        <div className="bg-surface-secondary rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
+                        <div className="bg-surface-secondary rounded-md overflow-hidden border border-white/[0.04] hover:border-line/25 transition-all duration-200 h-full">
                           {a.image ? (
                             <div className="w-full overflow-hidden bg-black/40 flex items-center justify-center">
                               <img
@@ -866,7 +866,7 @@ const BitcoinPage = () => {
                       onClick={() => openArticle(2 + newsPage * NEWS_PER_PAGE + i)}
                       className="group cursor-pointer"
                     >
-                      <div className="flex gap-3 bg-surface-secondary rounded-sm overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
+                      <div className="flex gap-3 bg-surface-secondary rounded-sm overflow-hidden border border-white/[0.04] hover:border-line/25 transition-all duration-200 h-full">
                         {a.image ? (
                           <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
                             <img
@@ -1094,13 +1094,13 @@ const PriceBadge = ({ label, value }) => {
 };
 
 const MetricCard = ({ label, value, iconType }) => (
-  <div className="bg-surface-raised rounded-md border border-white/[0.06] p-4 relative overflow-hidden hover:-translate-y-0.5 hover:border-gold-primary/25 transition-all duration-200">
+  <div className="bg-surface-raised rounded-md border border-white/[0.06] p-4 relative overflow-hidden hover:-translate-y-0.5 hover:border-line/25 transition-all duration-200">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="flex items-center justify-between mb-2">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80">
         {label}
       </p>
-      <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+      <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
         <MetricIcon type={iconType} />
       </div>
     </div>
@@ -1194,7 +1194,7 @@ const ErrorState = ({ error, onRetry, t }) => (
       </p>
       <button
         onClick={onRetry}
-        className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-gold-primary/25"
+        className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-line/25"
       >
         {t('btc.retry')}
       </button>

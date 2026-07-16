@@ -301,7 +301,7 @@ const MoreMenuDropdown = ({
               className="h-1 w-1 rounded-full flex-shrink-0"
               style={{ background: `rgb(${GOLD})`, boxShadow: `0 0 5px rgba(${GOLD},0.5)` }}
             />
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/75">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               {group.label}
             </span>
           </div>

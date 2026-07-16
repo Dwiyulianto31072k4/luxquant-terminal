@@ -41,7 +41,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
     return (
       <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
+        <div className="w-8 h-8 border-2 border-line/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
         <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
           Loading…
         </p>

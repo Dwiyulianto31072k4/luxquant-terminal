@@ -46,7 +46,7 @@ const HelpSupportModal = ({ isOpen, onClose }) => {
 
         {/* Name + Role */}
         <h3 className="mb-1 text-lg font-bold text-text-primary">{t("helpModal.adminName")}</h3>
-        <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-gold-primary/20 bg-gold-primary/10 px-2.5 py-1">
+        <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-line/20 bg-gold-primary/10 px-2.5 py-1">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-gold-primary">
             {t("helpModal.adminRole")}

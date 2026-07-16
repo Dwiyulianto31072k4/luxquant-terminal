@@ -31,7 +31,7 @@ function outcomeTone(value) {
     return "border-loss/25 bg-loss/10 text-loss";
   }
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
-    return "border-gold-primary/25 bg-gold-primary/10 text-gold-light";
+    return "border-line/25 bg-gold-primary/10 text-gold-light";
   }
   return "border-amber-500/25 bg-amber-500/10 text-amber-400";
 }

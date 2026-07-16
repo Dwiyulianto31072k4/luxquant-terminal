@@ -63,9 +63,9 @@ function ServerIpBlock() {
   };
 
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-gold-primary/30 bg-gold-primary/[0.06] px-3.5 py-3">
+    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-line/30 bg-gold-primary/[0.06] px-3.5 py-3">
       <div className="min-w-0">
-        <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
+        <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
           AutoTrade server IP
         </p>
         <p className="mt-0.5 select-all font-mono text-sm tracking-wide text-text-primary">
@@ -75,7 +75,7 @@ function ServerIpBlock() {
       <button
         type="button"
         onClick={copy}
-        className="flex-shrink-0 rounded-md border border-gold-primary/30 bg-gold-primary/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary transition-colors hover:bg-gold-primary/20"
+        className="flex-shrink-0 rounded-md border border-line/30 bg-gold-primary/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary transition-colors hover:bg-gold-primary/20"
       >
         {copied ? "Copied" : "Copy"}
       </button>
@@ -212,7 +212,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
           <div className="grid lg:grid-cols-[0.92fr_1.08fr]">
             {/* LEFT: guidance */}
             <div className="border-b border-white/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-8">
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Exchange
               </p>
               <div className="mt-3 flex items-center gap-3 pr-10">

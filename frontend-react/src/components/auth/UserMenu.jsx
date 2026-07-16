@@ -38,7 +38,7 @@ const UserMenu = () => {
       <div className="flex items-center gap-1.5 sm:gap-2">
         <button
           onClick={() => navigate('/login')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/10 transition-all whitespace-nowrap"
+          className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gold-primary border border-line/30 hover:bg-gold-primary/10 transition-all whitespace-nowrap"
         >
           {t('userMenu.login')}
         </button>

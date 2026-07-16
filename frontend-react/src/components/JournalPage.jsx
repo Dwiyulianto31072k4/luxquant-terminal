@@ -403,7 +403,7 @@ const JournalPage = () => {
       {/* ═══ HEADER ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-primary/70 mb-2">
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-gold-primary/80 mb-2">
             <IconBook className="h-3 w-3" />
             <span>Personal Trading Logbook</span>
           </div>
@@ -494,7 +494,7 @@ const TabButton = ({ active, onClick, icon, label, count }) => (
   <button
     onClick={onClick}
     className={`relative flex items-center justify-center gap-2 h-10 rounded-sm text-[11px] font-medium uppercase tracking-[0.14em] transition-all ${
-      active ? "bg-gold-primary/12 text-text-primary border border-gold-primary/30" : "text-text-muted/65 hover:text-text-primary border border-transparent hover:bg-white/[0.02]"
+      active ? "bg-gold-primary/12 text-text-primary border border-line/30" : "text-text-muted/65 hover:text-text-primary border border-transparent hover:bg-white/[0.02]"
     }`}
   >
     {icon}
@@ -596,7 +596,7 @@ const HistoryView = ({
 const HistoryEmptyState = ({ onNewEntry }) => (
   <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 sm:p-16 text-center">
     <div className="relative z-10 flex flex-col items-center gap-4">
-      <div className="w-14 h-14 rounded-md border border-gold-primary/20 bg-gold-primary/[0.06] flex items-center justify-center text-gold-primary/70">
+      <div className="w-14 h-14 rounded-md border border-line/20 bg-gold-primary/[0.06] flex items-center justify-center text-gold-primary/70">
         <IconBook className="h-6 w-6" />
       </div>
       <div className="space-y-1.5">
@@ -793,7 +793,7 @@ const FilterBar = ({
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10 p-3 flex flex-col gap-3">
         <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-gold-primary/30 focus-within:bg-white/[0.05]">
+          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-white/[0.05]">
             <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-gold-primary/70 shrink-0" />
             <input
               type="text"
@@ -807,7 +807,7 @@ const FilterBar = ({
           <select
             value={filterStrategy}
             onChange={(e) => setFilterStrategy(e.target.value)}
-            className="h-9 px-2.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-white/[0.14] focus:border-gold-primary/30 transition-colors font-medium cursor-pointer"
+            className="h-9 px-2.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-white/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
           >
             <option value="all">All Strategy</option>
             {STRATEGY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -820,7 +820,7 @@ const FilterBar = ({
               setSortBy(field === "pnl" ? "pnl_usd" : field === "entry" ? "entry_at" : field);
               setSortOrder(order);
             }}
-            className="h-9 px-2.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-white/[0.14] focus:border-gold-primary/30 transition-colors font-medium cursor-pointer"
+            className="h-9 px-2.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-white/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
           >
             <option value="entry_at_desc">Newest first</option>
             <option value="entry_at_asc">Oldest first</option>
@@ -935,7 +935,7 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
           <CoinLogo pair={entry.pair} size={22} />
           <span className="text-[12px] font-medium text-text-primary tracking-tight">{stripQuote(entry.pair)}</span>
           {entry.signal_id && (
-            <span className="text-[8.5px] font-mono uppercase tracking-wider text-gold-primary/70 bg-gold-primary/[0.08] border border-gold-primary/20 rounded-sm px-1 py-px">sig</span>
+            <span className="text-[8.5px] font-mono uppercase tracking-wider text-gold-primary/70 bg-gold-primary/[0.08] border border-line/20 rounded-sm px-1 py-px">sig</span>
           )}
         </div>
       </td>
@@ -1292,9 +1292,9 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
   if (selectedSignalId) {
     const lk = signals.find((s) => s.signal_id === selectedSignalId);
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-surface-secondary via-surface-raised to-surface-secondary border border-gold-primary/25 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-surface-secondary via-surface-raised to-surface-secondary border border-line/25 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
         <div className="relative z-10 p-3 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-md border border-gold-primary/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary flex-shrink-0">
+          <span className="w-8 h-8 rounded-md border border-line/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary flex-shrink-0">
             <IconLink className="h-3.5 w-3.5" />
           </span>
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1325,7 +1325,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-gold-primary/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-gold-primary/40 hover:text-text-primary hover:bg-gold-primary/[0.06] transition-all"
+        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-line/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-gold-primary/40 hover:text-text-primary hover:bg-gold-primary/[0.06] transition-all"
       >
         <IconLink className="h-4 w-4 text-gold-primary/70 flex-shrink-0" />
         <span className="text-[12px] font-medium tracking-tight">Link LuxQuant Signal</span>
@@ -1335,7 +1335,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       {open && (
         <div className="absolute z-50 top-full left-0 right-0 mt-2 rounded-md overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/60 bg-surface-raised">
           <div className="p-2 border-b border-white/[0.06]">
-            <label className="group flex h-9 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-gold-primary/30 focus-within:bg-white/[0.05]">
+            <label className="group flex h-9 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-white/[0.05]">
               <IconSearch className="h-3.5 w-3.5 text-text-muted/55 shrink-0" />
               <input
                 type="text"
@@ -1851,17 +1851,17 @@ const HeroCard = ({ label, value, sub, accent }) => {
 
 // ── AI Coach Insights ────────────────────────────────────
 const AICoachCard = ({ insights, stats, closedCount }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-surface-secondary to-surface-raised border border-gold-primary/15 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-surface-secondary to-surface-raised border border-line/15 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="w-7 h-7 rounded-md border border-gold-primary/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary">
+        <span className="w-7 h-7 rounded-md border border-line/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary">
           <IconSparkles className="h-3.5 w-3.5" />
         </span>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">AI Coach Insights</h3>
             {insights?.source === "gemini" && (
-              <span className="text-[8.5px] font-mono uppercase tracking-[0.12em] text-gold-primary bg-gold-primary/[0.1] border border-gold-primary/20 px-1.5 py-px rounded-sm">
+              <span className="text-[8.5px] font-mono uppercase tracking-[0.12em] text-gold-primary bg-gold-primary/[0.1] border border-line/20 px-1.5 py-px rounded-sm">
                 Gemini
               </span>
             )}
@@ -1885,7 +1885,7 @@ const AICoachCard = ({ insights, stats, closedCount }) => (
       ) : (
         <div className="space-y-2">
           {insights.insights.map((text, i) => (
-            <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-md border border-gold-primary/15 bg-gold-primary/[0.03]">
+            <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-md border border-line/15 bg-gold-primary/[0.03]">
               <span className="flex-shrink-0 mt-0.5 text-gold-primary/80">
                 <IconSparkles className="h-3.5 w-3.5" />
               </span>

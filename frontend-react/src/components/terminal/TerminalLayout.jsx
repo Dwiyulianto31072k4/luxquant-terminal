@@ -95,7 +95,7 @@ export default function TerminalLayout() {
             {t("terminal.backToSignals")}
           </button>
           <span className="hidden sm:inline text-text-primary/20">/</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/90 truncate">
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 truncate">
             {t("terminal.title")}
           </span>
           <span className="text-text-primary/20">·</span>
@@ -114,7 +114,7 @@ export default function TerminalLayout() {
             onClick={() => go(id, route)}
             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
               active === id
-                ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
+                ? "bg-gold-primary/15 text-gold-primary border-line/30"
                 : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary"
             }`}
           >

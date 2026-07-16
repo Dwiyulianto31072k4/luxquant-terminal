@@ -49,7 +49,7 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
   const cover = cardCover(resource);
   return (
     <div
-      className="tip-card group relative glass-card rounded-2xl border border-gold-primary/15 overflow-hidden cursor-pointer grid grid-cols-1 lg:grid-cols-2"
+      className="tip-card group relative glass-card rounded-2xl border border-line/15 overflow-hidden cursor-pointer grid grid-cols-1 lg:grid-cols-2"
       onClick={() => onOpen(resource)}
     >
       <div className="relative h-56 lg:h-full min-h-[240px] overflow-hidden bg-gradient-to-br from-gold-primary/10 to-orange-500/5">
@@ -95,7 +95,7 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
   const cover = cardCover(resource);
   const isVideo = resource.type === 'video';
   return (
-    <div className="tip-card glass-card rounded-xl border border-gold-primary/10 overflow-hidden cursor-pointer group relative" onClick={() => onOpen(resource)}>
+    <div className="tip-card glass-card rounded-xl border border-line/10 overflow-hidden cursor-pointer group relative" onClick={() => onOpen(resource)}>
       <div className="relative w-full overflow-hidden bg-gradient-to-br from-gold-primary/5 to-orange-500/5" style={{ aspectRatio: '16 / 9' }}>
         {cover ? (
           <img src={cover} alt={resource.title} className="w-full h-full object-cover tip-cover" />
@@ -251,14 +251,14 @@ const ResourcesPage = () => {
       </div>
 
       {/* Filter bar */}
-      <div className="glass-card rounded-xl p-4 border border-gold-primary/10 space-y-3">
+      <div className="glass-card rounded-xl p-4 border border-line/10 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <form onSubmit={(e) => { e.preventDefault(); setLoading(true); fetchAll(); }} className="flex-1 min-w-[200px]">
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               </span>
-              <input type="text" placeholder={t('resources.search', { defaultValue: 'Search resources…' })} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-bg-card border border-gold-primary/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors" />
+              <input type="text" placeholder={t('resources.search', { defaultValue: 'Search resources…' })} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-bg-card border border-line/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors" />
             </div>
           </form>
           <div className="flex flex-wrap gap-2">
@@ -267,7 +267,7 @@ const ResourcesPage = () => {
                 key={tab.id}
                 onClick={() => { setActiveType(tab.id); setLoading(true); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30' : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-gold-primary/20'
+                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-line/30' : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-line/20'
                 }`}
               >
                 {tab.label}
@@ -298,7 +298,7 @@ const ResourcesPage = () => {
       )}
 
       {!error && items.length === 0 && (
-        <div className="glass-card rounded-xl p-12 border border-gold-primary/10 text-center">
+        <div className="glass-card rounded-xl p-12 border border-line/10 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gold-primary/10 flex items-center justify-center">
             <svg className="w-8 h-8 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
           </div>
@@ -361,11 +361,11 @@ const LoadingSkeleton = () => (
   <div className="space-y-5">
     <style>{`@keyframes sp{0%,100%{opacity:.05}50%{opacity:.15}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(212,175,55,.1);border-radius:8px}`}</style>
     <div className="flex items-center gap-3"><div className="skel w-16 h-1" /><div className="skel w-40 h-7" /></div>
-    <div className="glass-card rounded-xl p-4 border border-gold-primary/10"><div className="skel w-full h-10" /></div>
+    <div className="glass-card rounded-xl p-4 border border-line/10"><div className="skel w-full h-10" /></div>
     <div className="skel w-full h-64 rounded-2xl" />
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="glass-card rounded-xl overflow-hidden border border-gold-primary/10">
+        <div key={i} className="glass-card rounded-xl overflow-hidden border border-line/10">
           <div className="skel h-40 rounded-none" />
           <div className="p-4 space-y-2"><div className="skel w-3/4 h-4" /><div className="skel w-full h-3" /><div className="skel w-1/2 h-3" /></div>
         </div>

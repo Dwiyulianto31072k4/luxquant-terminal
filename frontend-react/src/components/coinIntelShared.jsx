@@ -196,7 +196,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
             </div>
 
             {/* ── HEADER (sticky) ── */}
-            <div className="flex-shrink-0 relative bg-surface-raised border-b border-gold-primary/30 px-4 py-3.5 z-10">
+            <div className="flex-shrink-0 relative bg-surface-raised border-b border-line/30 px-4 py-3.5 z-10">
               {/* verdict-colored accent line (semantic) */}
               <div className="absolute top-0 inset-x-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${vc}, transparent)`, opacity: 0.7 }} />
               <div className="flex items-center gap-3 pr-10">
@@ -222,7 +222,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               </div>
               <button
                 onClick={handleClose}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all"
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-line/20 hover:border-red-500/50 rounded-lg transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -245,7 +245,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 {/* Stat cards (values = semantic) */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   {statCards.map((s,i) => (
-                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-gold-primary/25 transition-colors">
+                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-line/25 transition-colors">
                       <p className="text-[8px] uppercase tracking-widest text-text-muted mb-1.5 text-center">{s.l}</p>
                       <div className="flex items-center gap-1">
                         <p className="font-mono font-extrabold text-[15px]" style={{ color:s.c }}>{s.v}</p>
@@ -345,10 +345,10 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       </div>
                     )}
                     {coin.tp4_streaks?.total_tp4 > 0 && (
-                      <div className="grid grid-cols-3 gap-3 text-center border-t border-gold-primary/10 pt-3">
+                      <div className="grid grid-cols-3 gap-3 text-center border-t border-line/10 pt-3">
                         <div><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
-                        <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-text-primary">{coin.tp4_streaks.longest_streak}</p></div>
-                        <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
+                        <div className="border-l border-line/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-text-primary">{coin.tp4_streaks.longest_streak}</p></div>
+                        <div className="border-l border-line/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
                       </div>
                     )}
                   </Section>
@@ -473,7 +473,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
                       <div className="overflow-x-auto cdm-scroll">
                         <table className="w-full text-left border-collapse min-w-[500px]">
-                          <thead className="bg-surface-raised border-b border-gold-primary/15">
+                          <thead className="bg-surface-raised border-b border-line/15">
                             <tr>
                               {['Date','LuxQuant WR','Entry','Result','P/L'].map(h => (
                                 <th key={h} className="px-4 py-3 text-[8px] uppercase tracking-widest text-gold-primary font-semibold">{h}</th>
@@ -501,7 +501,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       </div>
                       {/* Pagination controls */}
                       {pages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gold-primary/10 bg-surface-raised">
+                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-line/10 bg-surface-raised">
                           <span className="font-mono text-[10px] text-text-muted">
                             {start + 1}–{Math.min(start + HIST_PER_PAGE, total)} of {total}
                           </span>
@@ -509,7 +509,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             <button
                               onClick={() => setHistPage((p) => Math.max(1, p - 1))}
                               disabled={page <= 1}
-                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              className="px-2.5 py-1 rounded-md border border-line/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                             >
                               Prev
                             </button>
@@ -517,7 +517,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             <button
                               onClick={() => setHistPage((p) => Math.min(pages, p + 1))}
                               disabled={page >= pages}
-                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              className="px-2.5 py-1 rounded-md border border-line/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                             >
                               Next
                             </button>

@@ -289,7 +289,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
       {/* tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-20 max-w-[260px] rounded-lg border border-gold-primary/25 bg-surface-secondary/95 px-3 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur"
+          className="pointer-events-none absolute z-20 max-w-[260px] rounded-lg border border-line/25 bg-surface-secondary/95 px-3 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur"
           style={{ left: Math.min(tooltip.x, (wrapRef.current?.clientWidth || 400) - 270), top: tooltip.y }}
         >
           {tooltip.lines.map((line, i) => (
@@ -390,7 +390,7 @@ export default function BrainPanel() {
 
             {/* selection detail */}
             {selectedLesson && (
-              <div className="mt-4 rounded-xl border border-gold-primary/25 bg-gold-primary/[0.05] p-4">
+              <div className="mt-4 rounded-xl border border-line/25 bg-gold-primary/[0.05] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-display text-[15px] font-semibold text-text-primary">{shortLessonName(selectedLesson.id)}</span>
                   <Tag tone={STATUS_TONE[String(selectedLesson.status)] || "muted"}>{selectedLesson.status}</Tag>

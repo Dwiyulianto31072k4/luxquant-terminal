@@ -431,7 +431,7 @@ const SectorsTab = ({ q }) => {
                         </div>
                         <span className="text-text-primary text-sm truncate group-hover:text-gold-primary transition-colors">{s.name}</span>
                         {isLeader && (
-                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
+                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-line/25">
                             Leader
                           </span>
                         )}
@@ -483,7 +483,7 @@ const SectorsTab = ({ q }) => {
                       </div>
                       <span className="text-text-primary text-sm truncate flex-1">{s.name}</span>
                       {isLeader && (
-                        <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
+                        <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-line/25">
                           Leader
                         </span>
                       )}
@@ -738,7 +738,7 @@ const CoinsTab = ({ q }) => {
                           <CoinLogo pair={c.symbol} size={24} className="flex-shrink-0" />
                           <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>{c.symbol}</span>
                           {called && (
-                            <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                            <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-line/30">
                               Call
                             </span>
                           )}
@@ -768,7 +768,7 @@ const CoinsTab = ({ q }) => {
                       <td className="py-3 px-2 sm:px-3 text-right">
                         {c.turnover_tag && (
                           <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                            hi ? "text-gold-primary border-gold-primary/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
+                            hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
                           }`}>
                             {TURNOVER_LABEL[c.turnover_tag]}
                           </span>
@@ -804,7 +804,7 @@ const CoinsTab = ({ q }) => {
                         <CoinLogo pair={c.symbol} size={26} className="flex-shrink-0" />
                         <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>{c.symbol}</span>
                         {called && (
-                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-line/30">
                             Call
                           </span>
                         )}
@@ -830,7 +830,7 @@ const CoinsTab = ({ q }) => {
                         <div className="justify-self-end">
                           {c.turnover_tag && (
                             <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                              hi ? "text-gold-primary border-gold-primary/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
+                              hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
                             }`}>
                               {TURNOVER_LABEL[c.turnover_tag]}
                             </span>
@@ -939,7 +939,7 @@ export default function MoneyFlowPage() {
 
       {/* Header — eyebrow + title + description (Delistings parity) */}
       <div className="mb-5 max-w-3xl">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Terminal · Flow</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal · Flow</span>
         <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Money Flow</h1>
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Where capital is rotating — <span className="text-gold-primary/85 font-medium">sectors</span>, coins &amp; whale

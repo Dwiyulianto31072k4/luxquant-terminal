@@ -431,12 +431,12 @@ const TopPerformers = () => {
         <div
           role="status"
           aria-live="polite"
-          className={`pointer-events-none fixed inset-x-4 bottom-[92px] z-[9990] mx-auto max-w-[420px] rounded-2xl border border-gold-primary/30 bg-surface-secondary/95 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.42),0_0_24px_rgba(212,168,83,0.10)] backdrop-blur-xl transition-all duration-500 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[360px] ${
+          className={`pointer-events-none fixed inset-x-4 bottom-[92px] z-[9990] mx-auto max-w-[420px] rounded-2xl border border-line/30 bg-surface-secondary/95 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.42),0_0_24px_rgba(212,168,83,0.10)] backdrop-blur-xl transition-all duration-500 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[360px] ${
             isProofHintClosing ? 'translate-y-2 opacity-0' : 'animate-[proofHintIn_.35s_cubic-bezier(.16,1,.3,1)] opacity-100'
           }`}
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-gold-primary/25 bg-gold-primary/10 text-gold-primary">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-line/25 bg-gold-primary/10 text-gold-primary">
               <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
                 <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
               </svg>

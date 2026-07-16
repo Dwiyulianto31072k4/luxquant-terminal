@@ -124,7 +124,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
         ))}
       </div>
       <div className="min-w-0">
-        <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-gold-primary/80">Narrative · Coins</p>
+        <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">Narrative · Coins</p>
         <h2 className="text-base sm:text-lg font-semibold text-text-primary truncate">{sector?.name || "Sector"}</h2>
       </div>
       {sector?.mcap_change_24h != null && (
@@ -205,7 +205,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onOpenSignal?.(c); }}
                       title="Open LuxQuant signal"
-                      className="shrink-0 inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-colors"
+                      className="shrink-0 inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/25 transition-colors"
                     >
                       {isLoading ? <Spinner className="w-2.5 h-2.5" /> : null}
                       Call

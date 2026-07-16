@@ -63,7 +63,7 @@ function formatBasis(value, basis) {
 function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
   if (pageCount <= 1) return null;
   const btn =
-    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-line/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
   return (
     <div className="flex items-center justify-between gap-3 px-1 pt-1">
       <span className="font-mono text-[11px] text-text-muted">

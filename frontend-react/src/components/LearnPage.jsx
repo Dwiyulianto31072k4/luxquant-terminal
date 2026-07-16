@@ -63,7 +63,7 @@ function TermPage({ slug }) {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn", to: "/learn" }, { label: term.term }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Glossary</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Glossary</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">{term.term}</h1>
       {term.aka && <p className="mt-1 font-mono text-[12px] text-text-muted">Also known as: {term.aka}</p>}
 
@@ -85,7 +85,7 @@ function TermPage({ slug }) {
         </div>
       )}
 
-      <div className="mt-8 rounded-xl border border-gold-primary/20 bg-gold-primary/[0.04] p-5">
+      <div className="mt-8 rounded-xl border border-line/20 bg-gold-primary/[0.04] p-5">
         <p className="text-[15px] text-text-primary/80">See {term.term.toLowerCase()} live in the terminal.</p>
         <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-gold-primary/15 border border-gold-primary/40 px-4 py-2 text-[13px] font-medium text-gold-primary hover:bg-gold-primary/25 transition-colors">
           Open LuxQuant Money Flow →
@@ -133,7 +133,7 @@ function IndexPage() {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn" }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Learn · Glossary</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Learn · Glossary</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Crypto &amp; Quant Glossary</h1>
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Plain-English definitions of the concepts behind the LuxQuant Terminal — the same metrics you'll see across Money Flow, On-Chain, and Signals.
@@ -142,7 +142,7 @@ function IndexPage() {
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {GLOSSARY.map((t) => (
           <Link key={t.slug} to={`/learn/${t.slug}`}
-            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
+            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-white/[0.02] transition-colors">
             <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{t.term}</h2>
             <p className="mt-1.5 text-[13px] text-text-primary/55 leading-relaxed line-clamp-3">{t.short}</p>
           </Link>

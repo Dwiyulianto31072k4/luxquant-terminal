@@ -18,7 +18,7 @@ export default function FreeTierV2() {
 
       {/* Centered title (MEXC pattern) */}
       <div className="mb-16 text-center lg:mb-48">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/80">
+        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/60" />
           100% Free Tier
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/60" />

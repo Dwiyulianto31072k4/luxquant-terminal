@@ -120,7 +120,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
       ) : (
         <>
           {/* Available balance */}
-          <div className="mb-5 rounded-xl border border-gold-primary/12 bg-surface-raised p-4">
+          <div className="mb-5 rounded-xl border border-line/12 bg-surface-raised p-4">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">Available Balance</p>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xs text-text-muted">$</span>

@@ -35,7 +35,7 @@ function Spinner() {
 
 function StatTile({ label, value, accent }) {
   return (
-    <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-primary/25 hover:shadow-[0_10px_26px_rgba(0,0,0,0.5)]">
+    <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/25 hover:shadow-[0_10px_26px_rgba(0,0,0,0.5)]">
       <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
       <p className="mt-1.5 text-xl font-bold tabular-nums transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left lg:text-2xl" style={{ color: accent || "#fff" }}>{value}</p>
     </div>
@@ -128,7 +128,7 @@ export default function CoinSpotlight() {
     <section id="coin-spotlight" className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 lg:px-8 lg:py-24">
       {/* header */}
       <div className="mb-8 text-center lg:mb-10">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/80">
+        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/60" />
           Per-Coin Track Record
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/60" />
@@ -266,7 +266,7 @@ export default function CoinSpotlight() {
               {/* donut + time-to-TP */}
               <div className="mt-3 grid gap-3 lg:grid-cols-2">
                 {/* outcome donut */}
-                <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-primary/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+                <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
                   <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">Outcome distribution</p>
                   <div className="flex items-center gap-5">
                     <div className="relative h-32 w-32 flex-shrink-0">
@@ -307,7 +307,7 @@ export default function CoinSpotlight() {
                 </div>
 
                 {/* time to each TP */}
-                <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-primary/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+                <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
                   <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">Time to each TP</p>
                   <div className="space-y-2.5">
                     {ttp.map((t) => (

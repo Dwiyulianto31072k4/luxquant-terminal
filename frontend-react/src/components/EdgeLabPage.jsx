@@ -214,7 +214,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
           <button
             onClick={() => fetchData(days, sector)}
             disabled={loading}
-            className="px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50"
+            className="px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-line/30 hover:text-gold-primary transition disabled:opacity-50"
           >
             {loading ? "···" : "Refresh"}
           </button>

@@ -55,7 +55,7 @@ function DetailButton({ children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-accent/20 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent transition hover:border-accent/40 hover:bg-accent/15"
+      className="rounded-md border border-line/20 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent transition hover:border-accent/40 hover:bg-accent/15"
     >
       {children}
     </button>
@@ -258,7 +258,7 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
           <p className="mt-4 max-w-3xl text-sm leading-7 text-text-primary/55">
             {buildTraderSummary(tactical, rows, contract)}
           </p>
-          <div className="mt-5 rounded-2xl border border-accent/20 bg-accent/[0.055] p-4">
+          <div className="mt-5 rounded-2xl border border-line/20 bg-accent/[0.055] p-4">
             <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-accent">
               Altcoin exposure guide
             </div>
@@ -600,7 +600,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
               className={cx(
                 "group flex min-h-[64px] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                 active
-                  ? "border-accent/35 bg-accent/12 text-text-primary shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
+                  ? "border-line/35 bg-accent/12 text-text-primary shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
                   : "border-white/[0.06] bg-white/[0.018] text-text-primary/45 hover:border-white/[0.12] hover:bg-white/[0.045] hover:text-text-primary/75",
               )}
             >
@@ -608,7 +608,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
                 className={cx(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold",
                   active
-                    ? "border-accent/35 bg-accent/14 text-accent"
+                    ? "border-line/35 bg-accent/14 text-accent"
                     : "border-white/[0.08] bg-black/15 text-text-primary/35 group-hover:text-text-primary/65",
                 )}
               >

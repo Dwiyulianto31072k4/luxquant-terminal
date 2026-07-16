@@ -581,12 +581,12 @@ const DetailPane = ({ s, rank, total, allSignals, btc, btcSeries, opening, onOpe
           className={`w-full py-2.5 rounded-lg border text-[11px] font-mono uppercase tracking-[0.18em] transition flex items-center justify-center gap-2 ${
             opening
               ? "border-white/[0.08] text-text-primary/30 cursor-wait"
-              : "border-gold-primary/35 bg-gold-primary/[0.07] text-gold-primary hover:bg-gold-primary/[0.14]"
+              : "border-line/35 bg-gold-primary/[0.07] text-gold-primary hover:bg-gold-primary/[0.14]"
           }`}
         >
           {opening ? (
             <>
-              <span className="w-3.5 h-3.5 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+              <span className="w-3.5 h-3.5 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
               Opening
             </>
           ) : (

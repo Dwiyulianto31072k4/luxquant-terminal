@@ -212,11 +212,11 @@ const FilterChipsBar = ({ filters, onRemove, onClear, totalUnfiltered, totalFilt
   if (entries.length === 0) return null;
   const labels = { outcome: "Outcome", sector: "Sector", pattern: "Pattern", btc_trend: "BTC", side: "Side" };
   return (
-    <Card className="px-4 py-3 mb-5 bg-gold-primary/[0.04] border-gold-primary/20">
+    <Card className="px-4 py-3 mb-5 bg-gold-primary/[0.04] border-line/20">
       <div className="flex flex-wrap items-center gap-2">
         <Label className="text-gold-primary/70">Active Filters:</Label>
         {entries.map(([key, value]) => (
-          <button key={key} onClick={() => onRemove(key)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-gold-primary/10 border border-gold-primary/30 text-[11px] font-mono uppercase tracking-wider text-gold-primary hover:bg-gold-primary/20 transition group">
+          <button key={key} onClick={() => onRemove(key)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-gold-primary/10 border border-line/30 text-[11px] font-mono uppercase tracking-wider text-gold-primary hover:bg-gold-primary/20 transition group">
             <span className="text-gold-primary/60">{labels[key] || key}:</span>
             <span className="text-gold-primary">{value}</span>
             <span className="text-gold-primary/40 group-hover:text-gold-primary ml-1">✕</span>
@@ -276,7 +276,7 @@ const SmallSampleBadge = ({ n, threshold = 15 }) => {
 // ─── KPI Card ────────────────────────────────────────────────────
 
 const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
-  <div className={`relative rounded-xl bg-surface-raised border border-white/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`} onClick={onClick}>
+  <div className={`relative rounded-xl bg-surface-raised border border-white/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-line/25" : ""}`} onClick={onClick}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <Label>{label}</Label>
     <div className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${valueColor || "text-text-primary/95"}`}>{value}</div>
@@ -746,7 +746,7 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
             {sorted.map((p) => {
               const isActive = filters.pattern === p.pattern;
               return (
-                <tr key={p.pattern} onClick={() => addFilter("pattern", p.pattern)} className={`border-b border-white/[0.04] cursor-pointer transition ${isActive ? "bg-gold-primary/[0.08] border-gold-primary/20" : "hover:bg-white/[0.02]"}`}>
+                <tr key={p.pattern} onClick={() => addFilter("pattern", p.pattern)} className={`border-b border-white/[0.04] cursor-pointer transition ${isActive ? "bg-gold-primary/[0.08] border-line/20" : "hover:bg-white/[0.02]"}`}>
                   <td className={`px-4 py-2.5 font-mono text-sm ${isActive ? "text-gold-primary" : "text-text-primary/85"}`}>{p.pattern}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums text-text-primary/80">{p.count}</td>
                   <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.win_rate >= 75 ? "text-emerald-400" : p.win_rate >= 50 ? "text-text-primary/75" : "text-red-400"}`}>{p.win_rate.toFixed(1)}%</td>
@@ -971,7 +971,7 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
       {sectors.map((s) => {
         const isActive = filters.sector === s.sector;
         return (
-          <button key={s.sector} onClick={() => addFilter("sector", s.sector)} className={`text-left relative rounded-md bg-surface-raised border transition p-5 hover:border-gold-primary/30 ${isActive ? "border-gold-primary/40" : "border-white/[0.06]"}`}>
+          <button key={s.sector} onClick={() => addFilter("sector", s.sector)} className={`text-left relative rounded-md bg-surface-raised border transition p-5 hover:border-line/30 ${isActive ? "border-gold-primary/40" : "border-white/[0.06]"}`}>
             <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${sectorColor(s.sector)}88, transparent)` }} />
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-sm" style={{ background: sectorColor(s.sector) }} />
@@ -1231,7 +1231,7 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
               <tbody>{preview.map((s) => <SignalRow key={s.signal_id} s={s} onClick={onPickSignal} />)}</tbody>
             </table>
           </div>
-          {remaining > 0 && <div className="border-t border-white/[0.06] p-3 flex justify-center"><button onClick={onShowAll} className="px-4 py-2 rounded-sm text-[11px] font-mono uppercase tracking-wider text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/10 transition">Show all {signals.length} signals →</button></div>}
+          {remaining > 0 && <div className="border-t border-white/[0.06] p-3 flex justify-center"><button onClick={onShowAll} className="px-4 py-2 rounded-sm text-[11px] font-mono uppercase tracking-wider text-gold-primary border border-line/30 hover:bg-gold-primary/10 transition">Show all {signals.length} signals →</button></div>}
         </>
       )}
     </Card>
@@ -1358,7 +1358,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
           {/* v7: Edge Lab button (placeholder until Deliverable B) */}
           <button
             onClick={() => navigate("/daily-performance/edge-lab")}
-            className="px-3 py-2 rounded-md bg-gold-primary/[0.06] border border-gold-primary/30 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition flex items-center gap-2"
+            className="px-3 py-2 rounded-md bg-gold-primary/[0.06] border border-line/30 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition flex items-center gap-2"
             title="Multi-day analytics: pattern × BTC heatmap, EV, calendar WR"
           >
             <span>Open Edge Lab</span><span className="text-[8px]">→</span>
@@ -1368,7 +1368,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
             <Label>Date</Label>
             <input type="date" value={selectedDate} min={dateMin} max={dateMax} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-text-primary/85 font-mono tabular-nums text-sm focus:outline-none [color-scheme:dark]" />
           </div>
-          <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/60 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
+          <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/60 hover:border-line/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
         </div>
       </div>
 
@@ -1409,8 +1409,8 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
       {selectedSignal && <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />}
 
       {loadingSignal && (
-        <div className="fixed bottom-6 right-6 z-50 bg-surface-raised border border-gold-primary/30 rounded-md px-4 py-2 flex items-center gap-3">
-          <div className="w-3 h-3 border border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+        <div className="fixed bottom-6 right-6 z-50 bg-surface-raised border border-line/30 rounded-md px-4 py-2 flex items-center gap-3">
+          <div className="w-3 h-3 border border-line/30 border-t-gold-primary rounded-full animate-spin" />
           <span className="text-[11px] font-mono uppercase tracking-wider text-text-primary/70">Loading signal...</span>
         </div>
       )}

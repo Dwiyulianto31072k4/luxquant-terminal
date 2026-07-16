@@ -310,7 +310,7 @@ const ProfilePage = () => {
       {/* ═══ HEADER — Flowscan style ═══ */}
       <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/70 mb-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-2">
             Account
           </p>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
@@ -357,7 +357,7 @@ const ProfilePage = () => {
               <div className="flex flex-col items-center gap-2.5 w-full sm:w-auto sm:min-w-[110px]">
                 <div className="relative group">
                   <div onClick={handleAvatarClick}
-                    className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-gold-primary/20 hover:border-gold-primary/50 transition-all relative"
+                    className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-line/20 hover:border-gold-primary/50 transition-all relative"
                     style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.4)' }}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -438,7 +438,7 @@ const ProfilePage = () => {
           {/* DISPLAY PREFERENCES Card */}
           <Section
             title={t('profile.section_preferences', 'Display Preferences')}
-            badge={savingPreferences && <span className="font-mono text-[9px] uppercase tracking-wider text-gold-primary/70 flex items-center gap-1.5"><span className="w-2.5 h-2.5 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" /> Saving</span>}
+            badge={savingPreferences && <span className="font-mono text-[9px] uppercase tracking-wider text-gold-primary/70 flex items-center gap-1.5"><span className="w-2.5 h-2.5 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" /> Saving</span>}
           >
             <div className="p-4 sm:p-5">
               <p className="text-text-muted text-xs mb-4">
@@ -456,8 +456,8 @@ const ProfilePage = () => {
 
               {/* ═══ LIVE BTC PREVIEW — replaces static rows ═══ */}
               {showLocal && (
-                <div className="mt-4 rounded-md overflow-hidden border border-gold-primary/15" style={{ background: 'rgba(212,168,83,0.03)' }}>
-                  <div className="flex items-center justify-between px-3.5 py-2 border-b border-gold-primary/10 bg-gold-primary/[0.03]">
+                <div className="mt-4 rounded-md overflow-hidden border border-line/15" style={{ background: 'rgba(212,168,83,0.03)' }}>
+                  <div className="flex items-center justify-between px-3.5 py-2 border-b border-line/10 bg-gold-primary/[0.03]">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="font-mono text-[9px] uppercase tracking-wider text-gold-primary/80 font-semibold">
@@ -494,13 +494,13 @@ const ProfilePage = () => {
                       </>
                     ) : (
                       <div className="flex items-center gap-2 text-text-muted/50">
-                        <div className="w-3 h-3 border-2 border-gold-primary/20 border-t-gold-primary/60 rounded-full animate-spin" />
+                        <div className="w-3 h-3 border-2 border-line/20 border-t-gold-primary/60 rounded-full animate-spin" />
                         <span className="text-xs">Loading live price...</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="px-3.5 py-2 border-t border-gold-primary/10 bg-gold-primary/[0.02]">
+                  <div className="px-3.5 py-2 border-t border-line/10 bg-gold-primary/[0.02]">
                     <p className="text-text-muted/40 text-[9px] font-mono uppercase tracking-wider">
                       {t('profile.preview_note', 'Auto-refresh every 30s · Rates from CoinGecko')}
                     </p>
@@ -572,7 +572,7 @@ const Section = ({ title, badge, children }) => (
   <div className="overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.015]"
     style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.3)' }}>
     <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/70 font-semibold">
+      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-semibold">
         {title}
       </h2>
       {badge}

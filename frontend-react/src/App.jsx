@@ -238,7 +238,7 @@ function PremiumGate({ children }) {
             </span>
             <span className="h-px w-8 bg-gold-primary/40" />
           </div>
-          <div className="w-14 h-14 rounded-md bg-surface-raised border border-gold-primary/25 flex items-center justify-center mb-5 relative overflow-hidden">
+          <div className="w-14 h-14 rounded-md bg-surface-raised border border-line/25 flex items-center justify-center mb-5 relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
             <svg
               className="w-7 h-7 text-gold-primary"
@@ -264,7 +264,7 @@ function PremiumGate({ children }) {
           <div className="flex gap-2.5">
             <button
               onClick={() => navigate("/pricing")}
-              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 transition-colors"
+              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/20 transition-colors"
             >
               Lihat Harga
             </button>

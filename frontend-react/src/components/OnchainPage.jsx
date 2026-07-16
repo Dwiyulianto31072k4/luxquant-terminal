@@ -78,7 +78,7 @@ const computeWhaleThreshold = (alerts) => {
 
 // ── Semantic 3-tier badge system ──
 const typeStyle = (t) => {
-  const gold = "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
+  const gold = "bg-gold-primary/10 text-gold-primary border-line/25";
   const danger = "bg-red-500/10 text-red-400 border-red-500/25";
   const neutral = "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
 
@@ -598,7 +598,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       onClick={onClick}
       className={`group relative cursor-pointer transition-colors rounded-md border overflow-hidden ${
         isHighlight
-          ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-gold-primary/20 hover:border-gold-primary/40"
+          ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-line/20 hover:border-gold-primary/40"
           : "bg-surface-raised border-white/[0.06] hover:border-white/[0.12]"
       }`}
     >
@@ -918,7 +918,7 @@ const AlertModal = ({ alert, onClose }) => {
                 </span>
               )}
               {alert.token && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-gold-primary/10 text-gold-primary border-gold-primary/25 font-semibold">
+                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-gold-primary/10 text-gold-primary border-line/25 font-semibold">
                   ${alert.token}
                 </span>
               )}
@@ -1108,7 +1108,7 @@ const LoadingSkeleton = () => (
 const EmptyState = () => (
   <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
+    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-5 h-5 text-gold-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>

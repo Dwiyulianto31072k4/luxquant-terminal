@@ -171,7 +171,7 @@ function InputCard({ item }) {
 
 function StageNode({ icon, title, subtitle, dataWire, accent = false }) {
   return (
-    <div data-wire={dataWire} className={`relative flex min-h-[220px] w-full flex-col items-center justify-center px-5 text-center ${CARD} ${accent ? "border-gold-primary/25" : ""}`}>
+    <div data-wire={dataWire} className={`relative flex min-h-[220px] w-full flex-col items-center justify-center px-5 text-center ${CARD} ${accent ? "border-line/25" : ""}`}>
       <IconChip name={icon} size="h-14 w-14" ic="h-7 w-7" />
       <h3 className="mt-4 text-[13.5px] font-semibold uppercase tracking-[0.08em] text-text-primary">{title}</h3>
       <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">{subtitle}</p>
@@ -381,7 +381,7 @@ export default function Architecture() {
 
       {/* header */}
       <div className="mb-14 text-center lg:mb-20">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">
+        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
           <span className="h-px w-7 bg-gold-primary/40" />
           How It Works
           <span className="h-px w-7 bg-gold-primary/40" />
@@ -399,7 +399,7 @@ export default function Architecture() {
         <div ref={pipeRef} className="relative grid items-center gap-6 xl:gap-9" style={{ gridTemplateColumns: "minmax(280px,310px) minmax(150px,176px) minmax(250px,300px) minmax(340px,1fr)" }}>
           <PipelineWires geo={geo} />
           <div className="relative z-10 flex flex-col gap-3">
-            <p className="mb-1 ml-1 font-mono text-[10px] uppercase tracking-[0.29em] text-gold-primary/75">Live Market Data</p>
+            <p className="mb-1 ml-1 font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Live Market Data</p>
             {INPUTS.map((i) => <InputCard key={i.title} item={i} />)}
           </div>
           <div className="relative z-10"><StageNode icon="sanitizer" title="Data Sanitizer" subtitle="Sanitization" dataWire="sanitizer" /></div>
@@ -435,7 +435,7 @@ export default function Architecture() {
         </Step>
 
         <Step n={3} accent>
-          <div className={`flex items-center gap-3 p-3.5 ${CARD} border-gold-primary/25`}>
+          <div className={`flex items-center gap-3 p-3.5 ${CARD} border-line/25`}>
             <IconChip name="core" />
             <div>
               <p className="text-[13px] font-medium uppercase tracking-wide text-text-primary">Predictive Alpha</p>

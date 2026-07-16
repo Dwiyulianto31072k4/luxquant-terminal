@@ -192,13 +192,13 @@ export default function InstitutionalFlowRadar() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
+      <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
           <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -207,7 +207,7 @@ export default function InstitutionalFlowRadar() {
   // ── Error / no data ──
   if (error || !data || (!data.flows && !data.coinbase_premium)) {
     return (
-      <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
+      <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
           <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
@@ -216,7 +216,7 @@ export default function InstitutionalFlowRadar() {
           {error ? `Could not load flow data: ${error}` : "No flow data available."}
           <button
             onClick={fetchData}
-            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-gold-primary/30 text-gold-primary hover:bg-gold-primary/10 transition-colors"
+            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-gold-primary hover:bg-gold-primary/10 transition-colors"
           >
             Retry
           </button>
@@ -237,7 +237,7 @@ export default function InstitutionalFlowRadar() {
   const premiumPct = premium.premium_pct;
 
   return (
-    <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-6 border border-line/10">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
         <div className="flex items-center gap-3">
@@ -255,7 +255,7 @@ export default function InstitutionalFlowRadar() {
           <span className="text-[10px] text-text-muted font-mono">
             Last: {fmtDate(flows.last_date)}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-gold-primary/10 border-gold-primary/30 text-gold-primary">
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-gold-primary/10 border-line/30 text-gold-primary">
             Live
           </span>
         </div>

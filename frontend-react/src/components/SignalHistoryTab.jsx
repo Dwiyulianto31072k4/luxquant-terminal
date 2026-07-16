@@ -387,7 +387,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           <p className="text-text-primary/30 text-xs mb-4">{error}</p>
           <button
             onClick={() => fetchProfile(callLimit)}
-            className="px-4 py-2 bg-gold-primary/10 text-gold-primary text-xs font-semibold rounded-lg border border-gold-primary/20 hover:bg-gold-primary/20 transition-all"
+            className="px-4 py-2 bg-gold-primary/10 text-gold-primary text-xs font-semibold rounded-lg border border-line/20 hover:bg-gold-primary/20 transition-all"
           >
             Retry
           </button>
@@ -510,7 +510,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           <p className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
             {Ic.clipboard("w-3.5 h-3.5")} Past Calls
             {loading && (
-              <span className="inline-block w-3 h-3 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
             )}
           </p>
           <div className="flex items-center bg-surface-secondary rounded-lg p-0.5 border border-white/10">

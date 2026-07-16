@@ -123,7 +123,7 @@ const NotificationSettings = ({ t, navigate }) => {
     <div className="space-y-6 max-w-2xl">
       {/* Telegram link banner */}
       {!telegramLinked ? (
-        <div className="relative overflow-hidden rounded-md border border-gold-primary/20 bg-surface-raised p-4">
+        <div className="relative overflow-hidden rounded-md border border-line/20 bg-surface-raised p-4">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex-1 min-w-0">
@@ -138,7 +138,7 @@ const NotificationSettings = ({ t, navigate }) => {
             </div>
             <button
               onClick={() => navigate("/profile")}
-              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gold-primary/30 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/50 transition-all"
+              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-md border border-line/30 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/50 transition-all"
             >
               Link Telegram
             </button>

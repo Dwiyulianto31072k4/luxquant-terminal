@@ -32,7 +32,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
     if (s.includes("cointelegraph")) return { bg: "bg-cyan-500/15", text: "text-cyan-400", border: "border-cyan-500/20" };
     if (s.includes("decrypt")) return { bg: "bg-green-500/15", text: "text-green-400", border: "border-green-500/20" };
     if (s.includes("bitcoin")) return { bg: "bg-orange-500/15", text: "text-orange-400", border: "border-orange-500/20" };
-    return { bg: "bg-gold-primary/15", text: "text-gold-primary", border: "border-gold-primary/20" };
+    return { bg: "bg-gold-primary/15", text: "text-gold-primary", border: "border-line/20" };
   };
 
   const srcColor = getSourceColor(article.source);

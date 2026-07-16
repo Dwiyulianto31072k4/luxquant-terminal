@@ -105,7 +105,7 @@ export default function DelistingsPage() {
     <div className="w-full px-4 lg:px-8 py-6">
       {/* Header — deskripsi di bawah judul */}
       <div className="mb-5 max-w-3xl">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Terminal · Alerts</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal · Alerts</span>
         <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Exchange Delistings</h1>
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Live delisting announcements from Binance, Bybit &amp; OKX.{' '}
