@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import MoreMenuDropdown from "../../../MoreMenuDropdown";
+import ThemeToggle from "../../../ThemeToggle";
 
 const GOLD_BTN = {
   background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
@@ -185,8 +186,11 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             </div>
           </nav>
 
-          {/* Right: Language · Log In · Sign Up */}
+          {/* Right: Theme (admin) · Language · Log In · Sign Up */}
           <div className="hidden shrink-0 items-center gap-2 lg:flex 2xl:gap-3">
+            {/* Theme switch — renders only for admin staff while gated */}
+            <ThemeToggle />
+
             <button
               type="button"
               className="hidden items-center gap-1.5 whitespace-nowrap text-[13px] text-text-primary/65 transition-colors hover:text-text-primary 2xl:flex"

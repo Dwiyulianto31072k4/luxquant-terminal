@@ -264,12 +264,9 @@ body::-webkit-scrollbar,
   z-index: 0;
 }
 
-/* Dark theme: neutral, no warm maroon glow. A clean near-black canvas with a
-   whisper of cool light from the top so it doesn't read as flat. */
+/* Dark theme: flat solid near-black canvas (no glow). */
 [data-theme="dark"] .luxury-bg {
-  background:
-    radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.035) 0%, transparent 55%),
-    rgb(var(--surface));
+  background: rgb(var(--surface));
 }
 
 /* Bright theme: light neutral canvas (kept sane while Bright is hidden). */
@@ -289,9 +286,7 @@ body::-webkit-scrollbar,
     radial-gradient(ellipse at 50% 52%, rgba(212, 168, 83, 0.05) 0%, transparent 72%);
 }
 [data-theme="dark"] .lux-warm-page {
-  background:
-    radial-gradient(ellipse at 50% -8%, rgba(255, 255, 255, 0.035) 0%, transparent 55%),
-    radial-gradient(ellipse at 50% 52%, rgba(224, 178, 92, 0.05) 0%, transparent 72%);
+  background: rgb(var(--surface));
 }
 [data-theme="bright"] .lux-warm-page { background: transparent; }
 
@@ -309,9 +304,9 @@ body::-webkit-scrollbar,
 }
 [data-theme="bright"] .lux-warm-panel { background: rgb(var(--surface-raised)); }
 
-/* Small ambient red glow accent — neutral (cool white) in Dark, off in Bright. */
+/* Small ambient red glow accent — removed entirely in Dark (solid black taste). */
 .lux-warm-glow { background: radial-gradient(circle, rgba(139, 26, 26, 0.14), transparent 70%); }
-[data-theme="dark"] .lux-warm-glow { background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 70%); }
+[data-theme="dark"] .lux-warm-glow { background: transparent; }
 [data-theme="bright"] .lux-warm-glow { background: transparent; }
 
 /* ==========================================
