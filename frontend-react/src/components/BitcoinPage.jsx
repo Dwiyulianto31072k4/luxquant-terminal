@@ -147,7 +147,7 @@ const BitcoinPage = () => {
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-light text-text-primary tracking-tight">
+                <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
                   {t('btc.title')}
                 </h1>
                 <span className="px-2 py-0.5 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-gold-primary/25">

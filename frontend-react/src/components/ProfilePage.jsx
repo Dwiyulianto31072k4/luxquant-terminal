@@ -313,7 +313,7 @@ const ProfilePage = () => {
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/70 mb-2">
             Account
           </p>
-          <h1 className="text-xl sm:text-2xl font-light text-text-primary tracking-tight">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             {t('profile.title', 'Profile Settings')}
           </h1>
           <p className="text-text-muted text-xs sm:text-sm mt-1">

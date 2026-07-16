@@ -107,7 +107,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             </div>
             <div className="px-5 sm:px-8 py-6 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
-              <h1 className="text-xl sm:text-2xl font-bold text-text-primary mt-1 mb-2">{resource.title}</h1>
+              <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1 mb-2">{resource.title}</h1>
               <div className="text-xs text-text-muted mb-4 pb-4 border-b border-white/10">
                 {resource.author_name && <span>{resource.author_name} · </span>}{fmtDate(resource.published_at || resource.created_at)}
               </div>
@@ -127,7 +127,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             )}
             <article className="px-5 sm:px-10 py-8 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
-              <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2 mb-3 leading-tight">{resource.title}</h1>
+              <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-2 mb-3">{resource.title}</h1>
               <div className="flex items-center gap-2 text-xs text-text-muted mb-6 pb-6 border-b border-white/10">
                 {resource.author_name && <span className="text-text-secondary font-medium">{resource.author_name}</span>}
                 <span>·</span>

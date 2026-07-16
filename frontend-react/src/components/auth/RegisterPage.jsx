@@ -105,7 +105,7 @@ const RegisterPage = () => {
 
           {/* Heading */}
           <div className="mb-1 text-center lg:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{a('register_title')}</h1>
+            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{a('register_title')}</h1>
             <p className="text-sm" style={{ color: 'rgb(var(--fg-muted))' }}>{a('register_subtitle')}</p>
           </div>
 

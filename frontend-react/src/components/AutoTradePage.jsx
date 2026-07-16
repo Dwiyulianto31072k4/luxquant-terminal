@@ -798,7 +798,7 @@ export default function AutoTradePage() {
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             AutoTrade
           </h1>
           <p className="mt-1.5 font-mono text-sm text-text-muted">

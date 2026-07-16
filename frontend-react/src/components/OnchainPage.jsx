@@ -320,7 +320,7 @@ const OnchainPage = () => {
         <SectionHeader label="On-Chain Intelligence" />
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
+            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
               On-Chain Intelligence
             </h1>
             <p className="text-text-muted text-sm mt-1.5">

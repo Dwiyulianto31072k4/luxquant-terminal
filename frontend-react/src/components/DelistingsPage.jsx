@@ -106,7 +106,7 @@ export default function DelistingsPage() {
       {/* Header — deskripsi di bawah judul */}
       <div className="mb-5 max-w-3xl">
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Terminal · Alerts</span>
-        <h1 className="font-display text-2xl lg:text-3xl font-normal text-text-primary tracking-tight mt-1">Exchange Delistings</h1>
+        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Exchange Delistings</h1>
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Live delisting announcements from Binance, Bybit &amp; OKX.{' '}
           <span className="text-gold-primary/85 font-medium">Peak %</span> is the highest move a token made since the notice — the delist "relief pump" — not just the current price.

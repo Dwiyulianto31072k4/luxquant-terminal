@@ -137,7 +137,7 @@ export default function StatusAdminPage() {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl text-text-primary tracking-tight">Status — Incident Manager</h1>
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Status — Incident Manager</h1>
           <p className="text-[12px] text-text-muted mt-1">
             Post & update incidents shown on the public{" "}
             <a href="/status" target="_blank" rel="noreferrer" className="text-gold-primary hover:underline">/status</a> page.

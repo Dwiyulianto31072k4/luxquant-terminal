@@ -1350,7 +1350,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-display text-text-primary/95 tracking-tight">Daily Performance</h1>
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Daily Performance</h1>
           <p className="text-sm text-text-primary/45 mt-1">Interactive analytics · click any chart to filter · click any pair for detail</p>
         </div>
 

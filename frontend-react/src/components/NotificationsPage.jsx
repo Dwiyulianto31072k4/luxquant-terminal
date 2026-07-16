@@ -270,7 +270,7 @@ const NotificationsPage = () => {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
+            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
               {t("notifications.title") || "Notifications"}
             </h1>
             {view === "inbox" && unreadCount > 0 && (

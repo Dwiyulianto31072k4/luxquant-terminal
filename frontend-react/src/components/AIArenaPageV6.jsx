@@ -99,10 +99,10 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
 
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="min-w-[280px]">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-[40px] md:leading-[1.05]">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-tight text-text-primary">
             BTC Market Outlook
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
             Start with the 24h outlook for altcoin exposure, then check the projection,
             key levels, risk, and the longer backdrop in one flow.
           </p>

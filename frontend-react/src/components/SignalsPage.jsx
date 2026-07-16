@@ -917,7 +917,7 @@ const SignalsPage = () => {
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal Signals</span>
             <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
           </div>
-          <h1 className="font-display text-2xl lg:text-3xl font-normal text-text-primary tracking-tight">Potential Trades</h1>
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Potential Trades</h1>
           <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70 mt-1.5">
             Last 7 days
             <span className="mx-2 text-text-primary/30">·</span>

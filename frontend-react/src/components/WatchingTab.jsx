@@ -166,7 +166,7 @@ const WatchingTab = () => {
       <div className="space-y-4">
         <SectionHeader label="Watchlist" />
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">Watching</h1>
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Watching</h1>
           <p className="text-text-muted text-sm mt-1.5 font-mono">
             {counts.total} {counts.total === 1 ? "coin" : "coins"} watching
             <span className="text-text-muted/50"> · notify me when LuxQuant calls them</span>

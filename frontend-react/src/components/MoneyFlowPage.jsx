@@ -940,7 +940,7 @@ export default function MoneyFlowPage() {
       {/* Header — eyebrow + title + description (Delistings parity) */}
       <div className="mb-5 max-w-3xl">
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Terminal · Flow</span>
-        <h1 className="font-display text-2xl lg:text-3xl font-normal text-text-primary tracking-tight mt-1">Money Flow</h1>
+        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Money Flow</h1>
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Where capital is rotating — <span className="text-gold-primary/85 font-medium">sectors</span>, coins &amp; whale
           transactions. Track macro dominance, per-coin flow intensity, DEX buy/sell pressure and large on-chain moves in one place.

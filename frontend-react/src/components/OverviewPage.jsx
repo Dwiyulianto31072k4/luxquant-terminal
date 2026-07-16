@@ -200,7 +200,7 @@ const OverviewPage = () => {
 
       {/* SECTION HEADER — Market Overview (consistent w/ Top Gainers) */}
       <div className="min-w-0">
-        <h2 className="font-display text-2xl sm:text-[28px] font-bold text-text-primary leading-none tracking-tight">
+        <h2 className="font-display text-lg sm:text-xl font-semibold text-text-primary leading-none tracking-tight">
           {t('overview.title')}
         </h2>
       </div>

@@ -188,13 +188,10 @@ const TopPerformers = () => {
           {/* Header — no LIVE badge (exchanges don't do that on lists) */}
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2 sm:mb-4">
             <div className="min-w-0">
-              <h2
-                className="text-[18px] font-semibold tracking-tight text-text-primary sm:text-[22px]"
-                style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
-              >
+              <h2 className="font-display text-lg sm:text-xl font-semibold tracking-tight text-text-primary">
                 Top Gainers
               </h2>
-              <p className="mt-0.5 text-[11px] text-text-muted sm:text-[12px]">
+              <p className="mt-0.5 text-xs text-text-muted">
                 Best resolved calls · tap for proof
               </p>
             </div>

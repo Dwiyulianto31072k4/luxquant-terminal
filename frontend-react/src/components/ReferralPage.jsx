@@ -508,7 +508,7 @@ const ReferralPage = () => {
             <line x1="23" y1="11" x2="17" y2="11" />
           </svg>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: '#e8d9c7' }}>
+        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mb-3" style={{ color: '#e8d9c7' }}>
           Start Your Referral Program
         </h1>
         <p className="text-sm sm:text-base mb-8 max-w-md mx-auto" style={{ color: 'rgb(var(--fg-muted))' }}>

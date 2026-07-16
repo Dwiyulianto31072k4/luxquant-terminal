@@ -152,7 +152,7 @@ const PageHeader = ({ stats, onCleanup }) => (
         />
         User Directory
       </p>
-      <h1 className="text-2xl sm:text-[26px] font-light tracking-tight text-text-primary flex items-center gap-2.5">
+      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight flex items-center gap-2.5">
         <UsersIcon size={24} style={{ color: palette.gold[300] }} />
         User Management
       </h1>

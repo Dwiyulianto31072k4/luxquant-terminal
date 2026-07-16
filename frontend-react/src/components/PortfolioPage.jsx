@@ -107,7 +107,7 @@ export default function PortfolioPage() {
       <div>
         <div className="mb-1 flex items-center gap-3">
           <div className="h-6 w-1 rounded bg-gradient-to-b from-gold-light to-gold-dark" />
-          <h1 className="text-2xl font-display font-bold text-text-primary lg:text-3xl">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             Portfolio
           </h1>
         </div>

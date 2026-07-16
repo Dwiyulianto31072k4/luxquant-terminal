@@ -107,12 +107,12 @@ const BrandHeader = () => (
     />
     <div className="min-w-0">
       <p
-        className="text-[10px] uppercase tracking-[0.32em] font-semibold leading-none mb-2"
+        className="font-mono text-[10px] uppercase tracking-[0.25em] leading-none mb-2"
         style={{ color: tint(palette.gold[300], 0.6) }}
       >
         LuxQuant
       </p>
-      <h1 className="text-[26px] sm:text-[30px] font-light tracking-tight leading-none" style={{ letterSpacing: '-0.02em' }}>
+      <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-tight leading-none">
         <span className="text-text-primary">Management </span>
         <span
           style={{

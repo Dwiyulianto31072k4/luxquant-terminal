@@ -183,7 +183,7 @@ const AnalyzePage = () => {
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/70">
             Verified Track Record
           </span>
-          <h1 className="mt-1.5 text-[26px] lg:text-[34px] font-display text-text-primary/95 tracking-tight leading-[1.05]">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1.5">
             All-Time Performance
           </h1>
           <p className="text-sm text-text-primary/45 mt-2">
