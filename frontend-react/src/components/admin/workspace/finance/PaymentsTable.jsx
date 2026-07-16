@@ -57,7 +57,7 @@ const ManualBadge = ({ dense = false }) => (
     style={{
       background: 'rgba(212,168,83,0.10)',
       color: 'rgb(var(--accent))',
-      border: '1px solid rgba(212,168,83,0.28)',
+      border: '1px solid rgb(var(--line) / 0.28)',
     }}
     title="Manually recorded by admin"
   >
@@ -68,8 +68,8 @@ const ManualBadge = ({ dense = false }) => (
 
 const METHOD_BADGE = {
   binance_uid:   { label: 'Binance UID', color: 'rgb(var(--warn))' },
-  bank_transfer: { label: 'Bank',        color: '#60a5fa' },
-  other:         { label: 'Other',       color: '#a78bfa' },
+  bank_transfer: { label: 'Bank',        color: '#8a8a93' },
+  other:         { label: 'Other',       color: '#8a8a93' },
 };
 
 const MethodBadge = ({ method, dense = false }) => {
@@ -166,7 +166,7 @@ const TxHashCell = ({ hash, onCopy, dense = false }) => {
         className={`font-mono hover:underline truncate ${
           dense ? 'text-[10.5px]' : 'text-[11px]'
         }`}
-        style={{ color: '#60a5fa' }}
+        style={{ color: '#8a8a93' }}
       >
         {shortHash(hash)}
       </a>

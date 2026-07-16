@@ -522,7 +522,7 @@ export default function SignalsAnalytics() {
           value={filters.q}
           onChange={(e) => setF({ q: e.target.value })}
           placeholder={t("terminal.viz.searchPair")}
-          className="w-36 bg-surface-secondary border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+          className="w-36 bg-surface-secondary border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 font-mono"
         />
         <div className="flex gap-1">
           {["all", ...STATUS_ORDER].map((s) => (

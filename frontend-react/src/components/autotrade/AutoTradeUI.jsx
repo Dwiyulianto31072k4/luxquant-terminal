@@ -115,7 +115,7 @@ export function StatCard({
     <div
       className={`relative overflow-hidden rounded-md border bg-surface-raised p-4 lg:p-5 transition-all duration-200 hover:-translate-y-0.5 ${
         accent
-          ? "border-line/25 hover:border-gold-primary/40"
+          ? "border-line/25 hover:border-line/40"
           : "border-white/[0.06] hover:border-line/20"
       }`}
     >
@@ -306,7 +306,7 @@ export function Field({ label, hint, children }) {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-text-primary transition-colors focus:outline-none focus:border-gold-primary/40";
+  "w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-text-primary transition-colors focus:outline-none focus:border-line/40";
 
 export function Select({ value, onChange, options }) {
   return (

@@ -509,7 +509,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             <button
                               onClick={() => setHistPage((p) => Math.max(1, p - 1))}
                               disabled={page <= 1}
-                              className="px-2.5 py-1 rounded-md border border-line/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              className="px-2.5 py-1 rounded-md border border-line/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-line/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                             >
                               Prev
                             </button>
@@ -517,7 +517,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             <button
                               onClick={() => setHistPage((p) => Math.min(pages, p + 1))}
                               disabled={page >= pages}
-                              className="px-2.5 py-1 rounded-md border border-line/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              className="px-2.5 py-1 rounded-md border border-line/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-line/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                             >
                               Next
                             </button>

@@ -75,7 +75,6 @@ const SectionHeader = ({ label, small = false, suffix }) => (
     >
       {label}
     </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
     {suffix && (
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 shrink-0">
         {suffix}
@@ -799,7 +798,7 @@ export default function OrderBookPage() {
                 onClick={() => setSym(s.key)}
                 className={`px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
                     : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >

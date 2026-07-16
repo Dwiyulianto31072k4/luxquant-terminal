@@ -36,12 +36,12 @@ const formatDate = (dateStr) => {
 const PRIORITY_CONFIG = {
   urgent: { color: 'rgb(var(--neg))', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.3)' },
   high: { color: '#fb923c', bg: 'rgba(251,146,60,0.1)', border: 'rgba(251,146,60,0.3)' },
-  normal: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.22)' },
+  normal: { color: '#8a8a93', bg: 'rgba(138,138,147,0.08)', border: 'rgba(138,138,147,0.22)' },
   low: { color: 'rgb(var(--fg-muted))', bg: 'rgba(138,122,110,0.08)', border: 'rgba(138,122,110,0.22)' },
 };
 
 const CATEGORY_CONFIG = {
-  product: { label: 'Product', emoji: '⚙️', color: '#60a5fa' },
+  product: { label: 'Product', emoji: '⚙️', color: '#8a8a93' },
   marketing: { label: 'Marketing', emoji: '📣', color: 'rgb(var(--accent))' },
   ops: { label: 'Ops', emoji: '🔧', color: 'rgb(var(--pos))' },
   bug: { label: 'Bug', emoji: '🐛', color: 'rgb(var(--neg))' },
@@ -51,7 +51,7 @@ const CATEGORY_CONFIG = {
 
 const STATUS_COLUMNS = [
   { id: 'backlog', label: 'Backlog', color: 'rgb(var(--fg-muted))', Icon: ClockIcon },
-  { id: 'in_progress', label: 'In Progress', color: '#60a5fa', Icon: SparklesIcon },
+  { id: 'in_progress', label: 'In Progress', color: '#8a8a93', Icon: SparklesIcon },
   { id: 'done', label: 'Done', color: 'rgb(var(--pos))', Icon: CheckCircleIcon },
 ];
 
@@ -106,7 +106,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         <div className="flex items-center gap-1 flex-wrap mb-2">
           {todo.tags.map((tag, i) => (
             <span key={i} className="text-[9px] px-1.5 py-0.5 rounded font-mono"
-              style={{ background: 'rgba(212,168,83,0.05)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.15)' }}>
+              style={{ background: 'rgba(212,168,83,0.05)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.15)' }}>
               #{tag}
             </span>
           ))}
@@ -120,7 +120,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         <div className="flex items-center gap-1">
           {todo.status === 'backlog' && (
             <button onClick={() => onStatusChange(todo.id, 'in_progress')} title="Start" className="p-1 rounded transition-colors"
-              style={{ color: '#60a5fa', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}>
+              style={{ color: '#8a8a93', background: 'rgba(138,138,147,0.08)', border: '1px solid rgba(138,138,147,0.2)' }}>
               <SparklesIcon size={10} />
             </button>
           )}
@@ -137,7 +137,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
             </button>
           )}
           <button onClick={() => onEdit(todo)} title="Edit" className="p-1 rounded transition-colors"
-            style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+            style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgb(var(--line) / 0.2)' }}>
             <EditIcon size={10} />
           </button>
           <button onClick={() => onDelete(todo)} title="Delete" className="p-1 rounded transition-colors"
@@ -446,7 +446,7 @@ export const TodoTab = ({ onRefreshStats }) => {
             </p>
             <button onClick={hasFilters ? () => { setSearch(''); setCategoryFilter(''); setPriorityFilter(''); } : () => handleCreate()}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.28)' }}>
+              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.28)' }}>
               {hasFilters ? 'Reset filters' : <><PlusIcon size={11} /> Add first task</>}
             </button>
           </div>

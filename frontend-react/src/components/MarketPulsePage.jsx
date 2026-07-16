@@ -997,7 +997,7 @@ const ControlBar = ({
                 onClick={() => selectCoin(pair)}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-all border ${
                   isSelected
-                    ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-text-primary border-line/40"
                     : "bg-white/[0.03] text-text-muted/80 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
                 }`}
               >
@@ -1080,7 +1080,7 @@ const FilterPill = ({ active, onClick, label }) => (
     onClick={onClick}
     className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
       active
-        ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+        ? "bg-gold-primary/15 text-text-primary border-line/40"
         : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
     }`}
   >
@@ -1122,7 +1122,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
           {onOpenChart && (
             <button
               onClick={() => onOpenChart(pair)}
-              className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border border-line/30 text-gold-primary hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-medium uppercase tracking-[0.12em]"
+              className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border border-line/30 text-gold-primary hover:bg-gold-primary/10 hover:border-line/50 transition-all font-medium uppercase tracking-[0.12em]"
             >
               <IconChartLine className="h-3 w-3" />
               <span>Chart</span>
@@ -1480,7 +1480,7 @@ const FeedRow = ({
           {called && (
             <button
               onClick={(e) => { e.stopPropagation(); statusCtx?.openPair?.(event.pair); }}
-              className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-gold-primary/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
+              className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-line/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
               title="LuxQuant call — click for details"
             >
               <span className="w-1 h-1 rounded-full bg-gold-primary" /> Called
@@ -1545,7 +1545,7 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
         {called && (
           <button
             onClick={(e) => { e.stopPropagation(); statusCtx?.openPair?.(group.pair); }}
-            className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-gold-primary/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
+            className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-line/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
             title="LuxQuant call — click for details"
           >
             <span className="w-1 h-1 rounded-full bg-gold-primary" /> Called

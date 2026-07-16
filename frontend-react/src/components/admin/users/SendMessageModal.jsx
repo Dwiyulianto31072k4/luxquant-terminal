@@ -96,7 +96,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
                   style={{
                     background: "rgba(212,168,83,0.1)",
                     color: "rgb(var(--accent))",
-                    border: "1px solid rgba(212,168,83,0.25)",
+                    border: "1px solid rgb(var(--line) / 0.25)",
                   }}
                 >
                   {t.label}

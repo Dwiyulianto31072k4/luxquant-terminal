@@ -174,7 +174,7 @@ function PeriodFilterPopover({
         onClick={() => setFilterOpen((o) => !o)}
         className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors sm:w-auto ${
           eventId || customOn
-            ? "border-gold-primary/50 text-text-primary"
+            ? "border-line/50 text-text-primary"
             : "border-white/10 text-text-muted hover:border-white/25 hover:text-text-primary"
         }`}
       >
@@ -205,7 +205,7 @@ function PeriodFilterPopover({
                   setCustomStart("");
                   setCustomEnd("");
                 }}
-                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
+                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-white/20 focus:border-line/50"
               >
                 <option value="" className="bg-surface-secondary">All / none</option>
                 <optgroup label="Bull" className="bg-surface-secondary">
@@ -230,9 +230,7 @@ function PeriodFilterPopover({
             </div>
 
             <div className="my-2.5 flex items-center gap-2">
-              <span className="h-px flex-1 bg-white/10" />
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/30">or custom dates</span>
-              <span className="h-px flex-1 bg-white/10" />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-lg sm:border sm:border-white/10 sm:bg-white/[0.03] sm:px-2 sm:py-1.5">
@@ -282,7 +280,7 @@ function PeriodFilterPopover({
               <button
                 type="button"
                 onClick={() => setFilterOpen(false)}
-                className="flex-1 rounded-lg border border-gold-primary/40 bg-gold-primary/15 px-2 py-1.5 font-mono text-[10px] text-gold-primary transition-colors hover:bg-gold-primary/25"
+                className="flex-1 rounded-lg border border-line/40 bg-gold-primary/15 px-2 py-1.5 font-mono text-[10px] text-gold-primary transition-colors hover:bg-gold-primary/25"
               >
                 Done
               </button>
@@ -304,7 +302,7 @@ function InfoTip({ info }) {
         aria-label={`What is ${info.title}?`}
         onClick={() => setOpen((o) => !o)}
         onBlur={() => setOpen(false)}
-        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-white/25 font-mono text-[9px] font-bold leading-none text-text-muted transition-colors hover:border-gold-primary/70 hover:text-gold-primary"
+        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-white/25 font-mono text-[9px] font-bold leading-none text-text-muted transition-colors hover:border-line/70 hover:text-gold-primary"
       >
         i
       </button>
@@ -702,7 +700,7 @@ export default function Performance({ data }) {
                 title={tb.label}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-[12.5px] font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm ${
                   on
-                    ? "border-gold-primary/50 bg-gold-primary/[0.12] text-text-primary shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
+                    ? "border-line/50 bg-gold-primary/[0.12] text-text-primary shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
                     : "border-white/10 bg-white/[0.02] text-text-muted hover:border-white/25 hover:text-text-primary"
                 }`}
               >

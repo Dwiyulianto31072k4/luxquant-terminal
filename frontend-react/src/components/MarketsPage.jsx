@@ -105,12 +105,14 @@ const MarketsPage = () => {
     <div className="space-y-5">
       <Styles />
 
-      {/* ── PAGE TITLE — line-label-line ── */}
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-          {t('markets.global_overview')}
-        </span>
-        <span className="h-px flex-1 bg-white/[0.06]" />
+      {/* ── PAGE HEADER — standard h1 + subtitle ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+            Markets
+          </h1>
+          <p className="mt-2 text-sm text-text-secondary">{t('markets.global_overview')}</p>
+        </div>
         <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-50" />
@@ -1389,7 +1391,6 @@ const ErrorState = ({ error, onRetry, t }) => (
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
         Markets
       </span>
-      <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
     <div className="bg-surface-raised rounded-md p-8 border border-loss/25 text-center relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
@@ -1415,7 +1416,6 @@ const LoadingSkeleton = () => (
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
       <div className="skel w-40 h-3" />
-      <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
     <div className="bg-surface-raised rounded-md p-5 border border-white/[0.06]">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

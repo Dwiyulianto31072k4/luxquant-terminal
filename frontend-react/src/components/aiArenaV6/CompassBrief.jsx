@@ -55,7 +55,7 @@ function DetailButton({ children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-line/20 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent transition hover:border-accent/40 hover:bg-accent/15"
+      className="rounded-md border border-line/20 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent transition hover:border-line/40 hover:bg-accent/15"
     >
       {children}
     </button>

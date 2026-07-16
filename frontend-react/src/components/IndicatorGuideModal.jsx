@@ -107,7 +107,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
 
       <div
-        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-gold-primary/40 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
+        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-line/40 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-30 bg-surface" aria-hidden="true">

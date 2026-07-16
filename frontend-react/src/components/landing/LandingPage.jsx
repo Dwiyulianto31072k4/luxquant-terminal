@@ -1001,7 +1001,7 @@ export const LivePerformanceStats = ({ data }) => {
               key={idx}
               className={`relative overflow-hidden rounded-md p-3 lg:p-4 bg-surface-raised border transition-all ${
                 card.isAccent
-                  ? "border-line/25 group-hover:border-gold-primary/50"
+                  ? "border-line/25 group-hover:border-line/50"
                   : "border-white/[0.06] group-hover:border-line/20"
               }`}
             >

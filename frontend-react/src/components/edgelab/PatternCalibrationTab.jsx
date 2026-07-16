@@ -146,7 +146,7 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
           onClick={() => setTierFilter("all")}
           className={`px-3 py-1.5 rounded-md border text-[10px] font-mono uppercase tracking-wider transition ${
             tierFilter === "all"
-              ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
+              ? "border-line/40 bg-gold-primary/10 text-gold-primary"
               : "border-white/[0.08] text-text-primary/55 hover:text-text-primary"
           }`}
         >

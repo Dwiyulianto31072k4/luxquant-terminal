@@ -156,7 +156,7 @@ export default function CoinSpotlight() {
                     onClick={() => setSel(c.pair)}
                     className={`flex flex-shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 transition-all duration-200 hover:-translate-y-0.5 ${
                       on
-                        ? "border-gold-primary/50 bg-gold-primary/[0.12] shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
+                        ? "border-line/50 bg-gold-primary/[0.12] shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
                         : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.05]"
                     }`}
                   >
@@ -171,7 +171,7 @@ export default function CoinSpotlight() {
             <button
               onClick={() => railRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
               aria-label="Scroll coins"
-              className="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-surface-secondary text-text-muted shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all hover:scale-105 hover:border-gold-primary/50 hover:text-gold-primary"
+              className="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-surface-secondary text-text-muted shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all hover:scale-105 hover:border-line/50 hover:text-gold-primary"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

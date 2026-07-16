@@ -71,7 +71,7 @@ export const STATUS_CONFIG = {
   confirmed: { color: 'rgb(var(--pos))', label: 'Confirmed', bg: 'rgba(52,211,153,0.10)',  border: 'rgba(52,211,153,0.30)' },
   cancelled: { color: 'rgb(var(--fg-muted))', label: 'Cancelled', bg: 'rgba(138,122,110,0.10)', border: 'rgba(138,122,110,0.30)' },
   failed:    { color: 'rgb(var(--neg))', label: 'Failed',    bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.30)' },
-  expired:   { color: '#a78bfa', label: 'Expired',   bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.30)' },
+  expired:   { color: '#8a8a93', label: 'Expired',   bg: 'rgba(138,138,147,0.10)', border: 'rgba(138,138,147,0.30)' },
   refunded:  { color: '#fb923c', label: 'Refunded',  bg: 'rgba(251,146,60,0.10)',  border: 'rgba(251,146,60,0.30)' },
 };
 
@@ -94,9 +94,9 @@ const EXCHANGE_PALETTE = [
   '#f3ba2f', // amber (Binance-ish)
   '#3375bb', // blue
   '#34d399', // green
-  '#a78bfa', // violet
+  '#8a8a93', // violet
   '#fb923c', // orange
-  '#60a5fa', // sky
+  '#8a8a93', // sky
   '#f87171', // red
   '#d4a853', // gold
 ];

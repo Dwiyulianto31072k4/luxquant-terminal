@@ -48,7 +48,7 @@ const StatCard = ({ label, children }) => (
     className="rounded-xl p-4 sm:p-5"
     style={{
       background: "rgba(15,8,10,0.6)",
-      border: "1px solid rgba(212,168,83,0.06)",
+      border: "1px solid rgb(var(--line) / 0.06)",
     }}
   >
     <p
@@ -293,7 +293,7 @@ const PaymentPage = () => {
             className="rounded-2xl overflow-hidden"
             style={{
               background: "rgba(15,8,10,0.6)",
-              border: "1px solid rgba(212,168,83,0.08)",
+              border: "1px solid rgb(var(--line) / 0.08)",
             }}
           >
             <div
@@ -317,7 +317,7 @@ const PaymentPage = () => {
                 className="rounded-xl p-4 mb-3"
                 style={{
                   background: "rgba(10,5,6,0.6)",
-                  border: "1px solid rgba(212,168,83,0.06)",
+                  border: "1px solid rgb(var(--line) / 0.06)",
                 }}
               >
                 <div className="flex items-center justify-between mb-2.5">
@@ -334,7 +334,7 @@ const PaymentPage = () => {
                     style={{
                       background: "rgba(212,168,83,0.08)",
                       color: "rgb(var(--accent))",
-                      border: "1px solid rgba(212,168,83,0.15)",
+                      border: "1px solid rgb(var(--line) / 0.15)",
                     }}
                   >
                     {copied === "wallet"
@@ -352,7 +352,7 @@ const PaymentPage = () => {
                 className="rounded-xl p-4 mb-3"
                 style={{
                   background: "rgba(10,5,6,0.6)",
-                  border: "1px solid rgba(212,168,83,0.06)",
+                  border: "1px solid rgb(var(--line) / 0.06)",
                 }}
               >
                 <div className="flex items-center justify-between">
@@ -385,7 +385,7 @@ const PaymentPage = () => {
                     style={{
                       background: "rgba(212,168,83,0.08)",
                       color: "rgb(var(--accent))",
-                      border: "1px solid rgba(212,168,83,0.15)",
+                      border: "1px solid rgb(var(--line) / 0.15)",
                     }}
                   >
                     {copied === "amount"
@@ -436,7 +436,7 @@ const PaymentPage = () => {
             className="rounded-2xl overflow-hidden"
             style={{
               background: "rgba(15,8,10,0.6)",
-              border: "1px solid rgba(212,168,83,0.08)",
+              border: "1px solid rgb(var(--line) / 0.08)",
             }}
           >
             <div
@@ -479,7 +479,7 @@ const PaymentPage = () => {
                     className="w-full px-4 py-3.5 rounded-xl text-text-primary text-xs font-mono focus:outline-none transition-all"
                     style={{
                       background: "rgba(10,5,6,0.6)",
-                      border: "1px solid rgba(212,168,83,0.08)",
+                      border: "1px solid rgb(var(--line) / 0.08)",
                     }}
                     onFocus={(e) =>
                       (e.target.style.borderColor = "rgba(212,168,83,0.3)")
@@ -637,7 +637,7 @@ const PaymentPage = () => {
           className="rounded-2xl overflow-hidden mb-6"
           style={{
             background: "rgba(212,168,83,0.03)",
-            border: "1px solid rgba(212,168,83,0.1)",
+            border: "1px solid rgb(var(--line) / 0.1)",
           }}
         >
           <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -673,7 +673,7 @@ const PaymentPage = () => {
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02] flex-shrink-0"
               style={{
                 background: "rgba(212,168,83,0.08)",
-                border: "1px solid rgba(212,168,83,0.25)",
+                border: "1px solid rgb(var(--line) / 0.25)",
                 color: "rgb(var(--accent))",
               }}
             >

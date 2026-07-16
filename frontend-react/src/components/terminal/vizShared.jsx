@@ -199,7 +199,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
         onClick={() => setOpen((o) => !o)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors ${
           selected.length
-            ? "bg-gold-primary/20 border-gold-primary/45"
+            ? "bg-gold-primary/20 border-line/45"
             : "bg-surface-raised border-white/[0.1] hover:border-white/20"
         }`}
       >
@@ -292,7 +292,7 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
         onClick={onPick ? () => onPick(e.key) : undefined}
         className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm border font-mono text-[9px] uppercase tracking-wider transition-colors ${
           activeKey === e.key
-            ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
+            ? "border-line/40 bg-gold-primary/10 text-gold-primary"
             : "border-white/[0.06] text-text-muted hover:text-text-primary"
         }`}
       >

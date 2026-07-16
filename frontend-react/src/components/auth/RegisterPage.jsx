@@ -97,7 +97,7 @@ const RegisterPage = () => {
         <div className="relative z-10 w-full max-w-md px-5 py-5 sm:px-10 sm:py-10 rounded-[2rem] transition-all duration-500 mt-16 sm:mt-20 lg:mt-10 mb-6 sm:mb-8"
              style={{ 
                background: 'rgba(255, 255, 255, 0.02)', 
-               border: '1px solid rgba(212, 168, 83, 0.08)',
+               border: '1px solid rgb(var(--line) / 0.08)',
                backdropFilter: 'blur(20px)',
                WebkitBackdropFilter: 'blur(20px)',
                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
@@ -259,7 +259,7 @@ const MobileGlobeInner = () => {
     <div ref={ref} style={{ width: '100%', height: '100%' }}>
       {!ok && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <div style={{ width: 32, height: 32, border: '2px solid rgba(212,168,83,0.15)', borderTopColor: '#d4a853', borderRadius: '50%', animation: 'lq-spin 1s linear infinite' }} />
+          <div style={{ width: 32, height: 32, border: '2px solid rgb(var(--line) / 0.15)', borderTopColor: '#d4a853', borderRadius: '50%', animation: 'lq-spin 1s linear infinite' }} />
         </div>
       )}
       <style>{`@keyframes lq-spin { to { transform: rotate(360deg); } }`}</style>
@@ -315,7 +315,7 @@ const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
     {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>{label}</label>}
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
       className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
-      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
+      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgb(var(--line) / 0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
         e.target.style.boxShadow = '0 0 0 4px rgba(212,168,83,0.15)';
@@ -333,7 +333,7 @@ const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
   <div className="relative group">
     <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
       className="w-full px-4 py-3 sm:py-3.5 pr-12 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
-      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
+      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgb(var(--line) / 0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
         e.target.style.boxShadow = '0 0 0 4px rgba(212,168,83,0.15)';
@@ -379,7 +379,7 @@ const Divider = ({ text }) => (
 const SocialBtn = ({ icon, text }) => (
   <button type="button"
     className="w-full py-3 sm:py-3.5 rounded-2xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 shadow-sm"
-    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,83,0.15)', color: 'rgb(var(--fg-secondary))' }}
+    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgb(var(--line) / 0.15)', color: 'rgb(var(--fg-secondary))' }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; e.currentTarget.style.background = 'rgba(212,168,83,0.08)'; e.currentTarget.style.color = '#fff'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = '#b8a89a'; }}>
     {icon} <span>{text}</span>

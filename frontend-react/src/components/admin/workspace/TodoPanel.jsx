@@ -31,7 +31,7 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 };
 
 const CATEGORIES = [
-  { value: 'product', label: 'Product', Icon: GearIcon, color: '#60a5fa' },
+  { value: 'product', label: 'Product', Icon: GearIcon, color: '#8a8a93' },
   { value: 'marketing', label: 'Marketing', Icon: MegaphoneIcon, color: 'rgb(var(--accent))' },
   { value: 'ops', label: 'Ops', Icon: WrenchIcon, color: 'rgb(var(--pos))' },
   { value: 'bug', label: 'Bug', Icon: BugIcon, color: 'rgb(var(--neg))' },
@@ -42,13 +42,13 @@ const CATEGORIES = [
 const PRIORITIES = [
   { value: 'urgent', label: 'Urgent', color: 'rgb(var(--neg))' },
   { value: 'high', label: 'High', color: '#fb923c' },
-  { value: 'normal', label: 'Normal', color: '#60a5fa' },
+  { value: 'normal', label: 'Normal', color: '#8a8a93' },
   { value: 'low', label: 'Low', color: 'rgb(var(--fg-muted))' },
 ];
 
 const STATUSES = [
   { value: 'backlog', label: 'Backlog', color: 'rgb(var(--fg-muted))' },
-  { value: 'in_progress', label: 'In Progress', color: '#60a5fa' },
+  { value: 'in_progress', label: 'In Progress', color: '#8a8a93' },
   { value: 'done', label: 'Done', color: 'rgb(var(--pos))' },
   { value: 'cancelled', label: 'Cancelled', color: 'rgb(var(--fg-muted))' },
 ];
@@ -68,7 +68,7 @@ const TagsInput = ({ tags, onChange }) => {
   return (
     <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg p-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
       {tags.map((t) => (
-        <span key={t} className="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px]" style={{ background: 'rgba(212,168,83,0.08)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.22)' }}>
+        <span key={t} className="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px]" style={{ background: 'rgba(212,168,83,0.08)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.22)' }}>
           #{t}
           <button type="button" onClick={() => removeTag(t)} className="hover:text-red-400" style={{ color: 'rgb(var(--fg-muted))' }}><CloseIcon size={9} /></button>
         </span>

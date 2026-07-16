@@ -985,7 +985,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
             onClick={() => onChange(p)}
             className={`w-9 h-9 rounded-lg text-[11px] font-mono font-medium transition-all ${
               p === page
-                ? "bg-gold-primary/20 text-gold-primary border border-gold-primary/40"
+                ? "bg-gold-primary/20 text-gold-primary border border-line/40"
                 : "bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15"
             }`}
           >

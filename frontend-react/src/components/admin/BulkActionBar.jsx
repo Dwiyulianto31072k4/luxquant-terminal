@@ -112,7 +112,7 @@ export const BulkActionBar = ({
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2"
       style={{
         background: 'rgba(18,9,13,0.95)',
-        border: '1px solid rgba(212,168,83,0.3)',
+        border: '1px solid rgb(var(--line) / 0.3)',
         boxShadow:
           '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,168,83,0.15)',
       }}
@@ -127,7 +127,7 @@ export const BulkActionBar = ({
           style={{
             background: 'rgba(212,168,83,0.18)',
             color: 'rgb(var(--accent))',
-            border: '1px solid rgba(212,168,83,0.3)',
+            border: '1px solid rgb(var(--line) / 0.3)',
           }}
         >
           {selectedCount}
@@ -146,9 +146,9 @@ export const BulkActionBar = ({
         disabled={busy}
         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
         style={{
-          background: 'rgba(96,165,250,0.08)',
-          color: '#60a5fa',
-          border: '1px solid rgba(96,165,250,0.22)',
+          background: 'rgba(138,138,147,0.08)',
+          color: '#8a8a93',
+          border: '1px solid rgba(138,138,147,0.22)',
         }}
         title="Export selected users as CSV"
       >
@@ -181,7 +181,7 @@ export const BulkActionBar = ({
             className="absolute bottom-full mb-2 right-0 w-48 rounded-xl overflow-hidden shadow-2xl"
             style={{
               background: 'rgb(var(--surface-secondary))',
-              border: '1px solid rgba(212,168,83,0.25)',
+              border: '1px solid rgb(var(--line) / 0.25)',
             }}
           >
             {[
@@ -236,7 +236,7 @@ export const BulkActionBar = ({
             style={{
               background: 'rgba(212,168,83,0.08)',
               color: 'rgb(var(--accent))',
-              border: '1px solid rgba(212,168,83,0.22)',
+              border: '1px solid rgb(var(--line) / 0.22)',
             }}
             title="Send a template message to selected users"
           >
@@ -249,7 +249,7 @@ export const BulkActionBar = ({
               className="absolute bottom-full mb-2 right-0 w-64 rounded-xl overflow-hidden shadow-2xl"
               style={{
                 background: 'rgb(var(--surface-secondary))',
-                border: '1px solid rgba(212,168,83,0.25)',
+                border: '1px solid rgb(var(--line) / 0.25)',
               }}
             >
               <div

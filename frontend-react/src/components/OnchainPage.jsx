@@ -317,7 +317,6 @@ const OnchainPage = () => {
     <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
       {/* HEADER */}
       <div className="space-y-4">
-        <SectionHeader label="On-Chain Intelligence" />
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
@@ -365,7 +364,7 @@ const OnchainPage = () => {
                 onClick={() => handleTypeFilter(key)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
                     : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
@@ -393,7 +392,7 @@ const OnchainPage = () => {
                 onClick={() => handleMinUsd(value)}
                 className={`shrink-0 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
                     : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
@@ -424,14 +423,14 @@ const OnchainPage = () => {
               placeholder="Search title or raw text..."
               value={search}
               onChange={handleSearch}
-              className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
+              className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
             />
           </div>
 
           <select
             value={chainFilter}
             onChange={(e) => handleChain(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Chain: All</option>
             {(stats?.by_blockchain || []).slice(0, 12).map((c) => (
@@ -444,7 +443,7 @@ const OnchainPage = () => {
           <select
             value={sourceFilter}
             onChange={(e) => handleSource(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Source: All</option>
             {(stats?.by_source || []).map((s) => (
@@ -457,7 +456,7 @@ const OnchainPage = () => {
           <select
             value={tokenFilter}
             onChange={(e) => handleToken(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Token: All</option>
             {(stats?.by_token || []).slice(0, 15).map((t) => (
@@ -552,7 +551,6 @@ const SectionHeader = ({ label, small = false }) => (
     >
       {label}
     </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
   </div>
 );
 
@@ -597,7 +595,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       onClick={onClick}
       className={`group relative cursor-pointer transition-colors rounded-md border overflow-hidden ${
         isHighlight
-          ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-line/20 hover:border-gold-primary/40"
+          ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-line/20 hover:border-line/40"
           : "bg-surface-raised border-white/[0.06] hover:border-white/[0.12]"
       }`}
     >
@@ -1059,7 +1057,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
             onClick={() => onPageChange(p)}
             className={`min-w-[34px] h-8 px-2 rounded-md text-[11px] font-mono tabular-nums transition-all ${
               p === page
-                ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
+                ? "bg-gold-primary/15 text-gold-primary border border-line/40"
                 : "border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15]"
             }`}
           >

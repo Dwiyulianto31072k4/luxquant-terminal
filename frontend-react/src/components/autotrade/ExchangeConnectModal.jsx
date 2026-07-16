@@ -96,7 +96,7 @@ function SecretField({ label, value, onChange, placeholder }) {
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 pr-14 font-mono text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-gold-primary/40 focus:outline-none"
+          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 pr-14 font-mono text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-line/40 focus:outline-none"
         />
         <button
           type="button"
@@ -290,7 +290,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                       }))
                     }
                     placeholder="My Binance Account"
-                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-gold-primary/40 focus:outline-none"
+                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-line/40 focus:outline-none"
                   />
                 </div>
 

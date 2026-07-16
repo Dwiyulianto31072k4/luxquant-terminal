@@ -128,7 +128,7 @@ const TxStep = ({ txHash, setTxHash, verifying, verifyResult, verifyError, onVer
             {tx?.block != null && <Row label="Block" value={tx.block} mono />}
             {tx?.tx_hash && (
               <Row label="TX" value={
-                <a href={`https://bscscan.com/tx/${tx.tx_hash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono hover:underline" style={{ color: '#60a5fa' }}>
+                <a href={`https://bscscan.com/tx/${tx.tx_hash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono hover:underline" style={{ color: '#8a8a93' }}>
                   {tx.tx_hash.slice(0, 10)}…{tx.tx_hash.slice(-8)}<ExternalLinkIcon size={9} />
                 </a>
               } />
@@ -184,7 +184,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
         <>
           <input type="date" value={value} onChange={(e) => onChange(e.target.value)} max={new Date().toISOString().slice(0, 10)}
             className="w-full rounded-md px-2.5 py-1.5 font-mono text-xs text-text-primary focus:outline-none"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.25)', colorScheme: 'dark' }} />
+            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgb(var(--line) / 0.25)', colorScheme: 'dark' }} />
           {diffDays !== 0 && txDateStr && (
             <p className="mt-1.5 flex items-center gap-1 text-[10px]" style={{ color: 'rgb(var(--warn))' }}>
               <AlertTriangleIcon size={10} />
@@ -260,7 +260,7 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
           </div>
           {mode === 'existing' && suggested && !selectedUser && (
             <button onClick={() => setSelectedUser(suggested)} className="mb-3 w-full rounded-lg px-3 py-2.5 text-left transition-all hover:scale-[1.01]"
-              style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.22)' }}>
+              style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgb(var(--line) / 0.22)' }}>
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(212,168,83,0.14)', color: 'rgb(var(--accent))', boxShadow: 'inset 0 0 0 1px rgba(212,168,83,0.3)' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.5.4.8 1 .8 1.6v.7h6.4v-.7c0-.6.3-1.2.8-1.6A7 7 0 0 0 12 2z" /></svg>
@@ -555,7 +555,7 @@ export const ManualPaymentModal = ({ isOpen, onClose, onSuccess, preselectedUser
 
   const header = (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: 'rgba(212,168,83,0.1)', border: '1px solid rgba(212,168,83,0.22)' }}>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: 'rgba(212,168,83,0.1)', border: '1px solid rgb(var(--line) / 0.22)' }}>
         <StarIcon size={14} style={{ color: 'rgb(var(--accent))' }} />
       </div>
       <div className="min-w-0">

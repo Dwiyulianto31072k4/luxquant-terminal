@@ -65,13 +65,13 @@ const timeUntilDue = (dateStr) => {
 const PRIORITY_CONFIG = {
   urgent: { color: 'rgb(var(--neg))', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.3)' },
   high: { color: '#fb923c', bg: 'rgba(251,146,60,0.1)', border: 'rgba(251,146,60,0.3)' },
-  normal: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.22)' },
+  normal: { color: '#8a8a93', bg: 'rgba(138,138,147,0.08)', border: 'rgba(138,138,147,0.22)' },
   low: { color: 'rgb(var(--fg-muted))', bg: 'rgba(138,122,110,0.08)', border: 'rgba(138,122,110,0.22)' },
 };
 
 const STATUS_CONFIG = {
   pending: { color: 'rgb(var(--warn))', label: 'Pending' },
-  in_progress: { color: '#60a5fa', label: 'In Progress' },
+  in_progress: { color: '#8a8a93', label: 'In Progress' },
   done: { color: 'rgb(var(--pos))', label: 'Done' },
   cancelled: { color: 'rgb(var(--fg-muted))', label: 'Cancelled' },
 };
@@ -95,11 +95,11 @@ const SparkIcon = ({ size = 13 }) => (
 const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
   <div className="flex items-start justify-between gap-3 flex-wrap">
     <div className="flex items-start gap-3 min-w-0">
-      <IconBadge Icon={ClockIcon} color="#60a5fa" size={38} iconSize={18} />
+      <IconBadge Icon={ClockIcon} color="#8a8a93" size={38} iconSize={18} />
       <div className="min-w-0">
         <p
           className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-          style={{ color: 'rgba(96,165,250,0.7)' }}
+          style={{ color: 'rgba(138,138,147,0.7)' }}
         >
           Outreach Queue
         </p>
@@ -117,9 +117,9 @@ const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
         disabled={generating}
         title="Auto-create renewal & win-back follow-ups from the subscription lifecycle"
         className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
-        style={{ background: 'rgba(96,165,250,0.10)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.28)' }}
-        onMouseEnter={(e) => { if (!generating) e.currentTarget.style.background = 'rgba(96,165,250,0.18)'; }}
-        onMouseLeave={(e) => { if (!generating) e.currentTarget.style.background = 'rgba(96,165,250,0.10)'; }}
+        style={{ background: 'rgba(138,138,147,0.10)', color: '#8a8a93', border: '1px solid rgba(138,138,147,0.28)' }}
+        onMouseEnter={(e) => { if (!generating) e.currentTarget.style.background = 'rgba(138,138,147,0.18)'; }}
+        onMouseLeave={(e) => { if (!generating) e.currentTarget.style.background = 'rgba(138,138,147,0.10)'; }}
       >
         <SparkIcon size={13} />
         {generating ? 'Generating…' : 'Generate'}
@@ -238,7 +238,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
             {followup.user && (
               <span
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded font-mono"
-                style={{ background: 'rgba(96,165,250,0.06)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.18)' }}
+                style={{ background: 'rgba(138,138,147,0.06)', color: '#8a8a93', border: '1px solid rgba(138,138,147,0.18)' }}
               >
                 <UserIcon size={10} />@{followup.user.username}
               </span>
@@ -280,7 +280,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                       onClick={() => onStatusChange(followup.id, 'in_progress')}
                       title="Mark as in progress"
                       className="p-1.5 rounded-md transition-colors"
-                      style={{ color: '#60a5fa', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}
+                      style={{ color: '#8a8a93', background: 'rgba(138,138,147,0.08)', border: '1px solid rgba(138,138,147,0.2)' }}
                     >
                       <ClockIcon size={11} />
                     </button>
@@ -309,7 +309,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 onClick={() => onEdit(followup)}
                 title="Edit"
                 className="p-1.5 rounded-md transition-colors"
-                style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}
+                style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgb(var(--line) / 0.2)' }}
               >
                 <EditIcon size={11} />
               </button>
@@ -503,7 +503,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
       <FollowupHeader onCreate={handleCreate} onGenerate={handleGenerate} generating={generating} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <StatCard label="Open" value={counts.open} accent="#60a5fa" Icon={ClockIcon}
+        <StatCard label="Open" value={counts.open} accent="#8a8a93" Icon={ClockIcon}
           active={statusFilter === 'open'} onClick={() => setStatusFilter('open')} />
         <StatCard label="Overdue" value={counts.overdue} accent="#f87171" Icon={AlertTriangleIcon}
           active={statusFilter === 'overdue'} onClick={() => setStatusFilter('overdue')} alert={counts.overdue > 0} />
@@ -589,10 +589,10 @@ export const FollowupTab = ({ onRefreshStats }) => {
         <div className="relative text-center py-16 rounded-2xl overflow-hidden"
           style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.08)' }}>
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: 'rgba(96,165,250,0.08)', filter: 'blur(40px)' }} />
+            style={{ background: 'rgba(138,138,147,0.08)', filter: 'blur(40px)' }} />
           <div className="relative">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
-              style={{ background: 'rgba(96,165,250,0.10)', border: '1px solid rgba(96,165,250,0.22)', color: '#60a5fa' }}>
+              style={{ background: 'rgba(138,138,147,0.10)', border: '1px solid rgba(138,138,147,0.22)', color: '#8a8a93' }}>
               <ClockIcon size={20} />
             </div>
             <p className="text-sm font-semibold text-text-primary mb-1">
@@ -603,7 +603,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
             </p>
             <button onClick={hasFilters ? () => { setSearch(''); setStatusFilter('open'); setCategoryFilter(''); setPriorityFilter(''); } : handleCreate}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.28)' }}>
+              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.28)' }}>
               {hasFilters ? 'Reset filters' : <><PlusIcon size={11} /> Add first follow-up</>}
             </button>
           </div>

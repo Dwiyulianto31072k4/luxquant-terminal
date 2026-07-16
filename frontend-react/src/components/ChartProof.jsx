@@ -42,7 +42,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
     return (
       <>
         <div 
-          className="relative w-16 h-10 rounded-md overflow-hidden cursor-pointer group border border-line/20 hover:border-gold-primary/50 transition-all flex-shrink-0"
+          className="relative w-16 h-10 rounded-md overflow-hidden cursor-pointer group border border-line/20 hover:border-line/50 transition-all flex-shrink-0"
           onClick={(e) => { e.stopPropagation(); openLightbox(thumbUrl); }}
         >
           <img 

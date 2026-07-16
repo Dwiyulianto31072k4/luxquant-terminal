@@ -117,7 +117,7 @@ export function ApiKeysTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search user / email / key…"
-          className="px-3 py-1.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 sm:w-64"
+          className="px-3 py-1.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-line/40 sm:w-64"
         />
       </div>
 

@@ -430,7 +430,6 @@ const MacroCalendarPage = () => {
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               {isZh ? '宏观与加密新闻' : 'Macro & Crypto News'}
             </span>
-            <span className="h-px flex-1 bg-white/[0.06]" />
             <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-50" />

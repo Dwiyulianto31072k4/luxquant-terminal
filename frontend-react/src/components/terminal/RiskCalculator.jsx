@@ -112,7 +112,7 @@ export function RiskTab({ view, deriv }) {
     return { riskPerUnit, rr, riskUsd, units, posUsd, margin, breakevenWR, liq, slPastLiq, slValidSide, tgtValidSide, rewardUsd };
   }, [E, S, T, acct, rpct, lev, long]);
 
-  const inputCls = "w-full bg-surface-secondary border border-white/[0.12] rounded-md px-3 py-2 text-[13px] text-text-primary font-mono focus:outline-none focus:border-gold-primary/50";
+  const inputCls = "w-full bg-surface-secondary border border-white/[0.12] rounded-md px-3 py-2 text-[13px] text-text-primary font-mono focus:outline-none focus:border-line/50";
   const labelCls = "font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted mb-1 block";
 
   // R-ladder geometry (SL = 0R at one end, entry = 1R marker, target = rr)

@@ -111,7 +111,7 @@ const CashoutRow = ({ item, onUpdate }) => {
       className="rounded-xl overflow-hidden transition-all"
       style={{
         background: 'rgba(15,8,10,0.5)',
-        border: '1px solid rgba(212,168,83,0.06)',
+        border: '1px solid rgb(var(--line) / 0.06)',
       }}
     >
       {/* Main Row */}
@@ -299,7 +299,7 @@ const CashoutHistoryList = ({ items = [], onUpdate, onEmpty }) => {
           className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3"
           style={{
             background: 'rgba(212,168,83,0.06)',
-            border: '1px solid rgba(212,168,83,0.12)',
+            border: '1px solid rgb(var(--line) / 0.12)',
           }}
         >
           <svg

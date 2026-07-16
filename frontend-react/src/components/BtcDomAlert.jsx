@@ -136,7 +136,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
         className="group flex items-center justify-between gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors duration-200"
         style={{
           background: 'rgba(18, 12, 10, 0.55)',
-          border: '1px solid rgba(212,168,83,0.10)',
+          border: '1px solid rgb(var(--line) / 0.10)',
           borderLeft: `2px solid ${accent}55`,
         }}
       >
@@ -192,7 +192,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
           ───────────────────────────────────── */}
       {expanded && (
         <div className="mt-1.5 rounded-xl overflow-hidden bda-panel"
-          style={{ background: 'rgba(12, 8, 8, 0.92)', border: '1px solid rgba(212,168,83,0.10)' }}>
+          style={{ background: 'rgba(12, 8, 8, 0.92)', border: '1px solid rgb(var(--line) / 0.10)' }}>
 
           {/* faint top hairline accent */}
           <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${accent}40, transparent)` }} />

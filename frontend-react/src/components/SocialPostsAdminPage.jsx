@@ -213,7 +213,7 @@ const GenerationConsole = ({
             <div
               className={`mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center border ${
                 isRunning
-                  ? "bg-gold-primary/15 border-gold-primary/40"
+                  ? "bg-gold-primary/15 border-line/40"
                   : isError
                     ? "bg-red-500/15 border-red-500/40"
                     : isDone
@@ -430,7 +430,7 @@ const ImageCard = ({ post, onOpen }) => {
   return (
     <button
       onClick={() => onOpen(post)}
-      className="group relative rounded-lg overflow-hidden bg-black/30 border border-white/[0.08] hover:border-gold-primary/40 transition-colors text-left"
+      className="group relative rounded-lg overflow-hidden bg-black/30 border border-white/[0.08] hover:border-line/40 transition-colors text-left"
     >
       {post.image_url ? (
         <img
@@ -716,7 +716,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         className={`w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border transition-colors disabled:opacity-40 ${
           data.needs_materials
             ? "bg-white/[0.04] text-text-muted border-white/10"
-            : "bg-gold-primary text-black border-gold-primary/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
+            : "bg-gold-primary text-black border-line/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
         }`}
         title={data.needs_materials ? "Upload / confirm all materials first" : undefined}
       >

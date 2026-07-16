@@ -260,7 +260,7 @@ export default function CompassSnapshot({ className = "" }) {
         <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center">
           <Link
             to="/ai-arena?tab=read"
-            className="whitespace-nowrap rounded-md border border-line/30 bg-gold-primary/10 px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-gold-primary/50 hover:bg-gold-primary/15"
+            className="whitespace-nowrap rounded-md border border-line/30 bg-gold-primary/10 px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-line/50 hover:bg-gold-primary/15"
           >
             Full outlook →
           </Link>

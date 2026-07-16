@@ -110,7 +110,6 @@ const SectionHeader = ({ label, small = false }) => (
     >
       {label}
     </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
   </div>
 );
 
@@ -647,7 +646,7 @@ export default function WhaleAlertPage() {
                 onClick={() => setBlockchain(chain.key)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
                     : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
@@ -676,7 +675,7 @@ export default function WhaleAlertPage() {
                 onClick={() => setTransferType(type.key)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
                     : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
@@ -704,7 +703,7 @@ export default function WhaleAlertPage() {
                 onClick={() => setMinUsd(opt.value)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
                     : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
@@ -731,7 +730,7 @@ export default function WhaleAlertPage() {
                   {transactions.length} {t("whale.transactions") || "transactions"}
                 </span>
                 {refreshing && (
-                  <div className="w-2.5 h-2.5 border border-gold-primary/40 border-t-gold-primary rounded-full animate-spin" />
+                  <div className="w-2.5 h-2.5 border border-line/40 border-t-gold-primary rounded-full animate-spin" />
                 )}
               </div>
               {sources.length > 0 && (

@@ -84,7 +84,7 @@ export default function AccountsOverview({
         </div>
 
         {showWalletHint ? (
-          <div className="mt-4 rounded-md border-l-2 border-gold-primary/40 bg-gold-primary/[0.04] py-2.5 pl-3 pr-4">
+          <div className="mt-4 rounded-md border-l-2 border-line/40 bg-gold-primary/[0.04] py-2.5 pl-3 pr-4">
             <p className="text-sm text-gold-primary/85">
               Keys are valid but this wallet reads $0. AutoTrade trades the{" "}
               <span className="font-medium text-gold-primary">Futures</span>{" "}

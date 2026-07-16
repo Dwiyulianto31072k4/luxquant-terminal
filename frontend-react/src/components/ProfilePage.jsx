@@ -357,7 +357,7 @@ const ProfilePage = () => {
               <div className="flex flex-col items-center gap-2.5 w-full sm:w-auto sm:min-w-[110px]">
                 <div className="relative group">
                   <div onClick={handleAvatarClick}
-                    className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-line/20 hover:border-gold-primary/50 transition-all relative"
+                    className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-line/20 hover:border-line/50 transition-all relative"
                     style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.4)' }}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />

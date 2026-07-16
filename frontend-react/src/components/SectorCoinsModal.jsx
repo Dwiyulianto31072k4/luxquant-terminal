@@ -143,7 +143,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search coin…"
-          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-surface-secondary border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[12px] focus:border-gold-primary/40 focus:outline-none"
+          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-surface-secondary border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[12px] focus:border-line/40 focus:outline-none"
         />
         <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/70">
           {coins.length} coins{luxCount ? ` · ${luxCount} call` : ""}
@@ -183,7 +183,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                 title={`Open ${c.symbol} markets on CoinGecko`}
                 className={`group grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 items-center px-4 sm:px-5 py-2.5 cursor-pointer transition-colors ${
                   called
-                    ? "border-l-2 border-gold-primary/50 hover:bg-gold-primary/[0.06]"
+                    ? "border-l-2 border-line/50 hover:bg-gold-primary/[0.06]"
                     : "border-l-2 border-transparent hover:bg-white/[0.03]"
                 }`}
               >

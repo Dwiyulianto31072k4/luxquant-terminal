@@ -150,7 +150,7 @@ export const FinanceStatsGrid = ({
               ? formatUSDTCompact(stats.failed_value)
               : 'No failures'
           }
-          accent="#a78bfa"
+          accent="#8a8a93"
           Icon={XCircleIcon}
           active={statusFilter === 'failed'}
           onClick={() => onFilterToggle('failed')}
@@ -190,7 +190,7 @@ export const FinanceStatsGrid = ({
                 <InfoStat
                   label="Expired"
                   value={stats.expired_count.toLocaleString()}
-                  accent="#a78bfa"
+                  accent="#8a8a93"
                 />
               </>
             )}

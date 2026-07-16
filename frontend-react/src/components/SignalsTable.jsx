@@ -148,7 +148,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
                   }`}
                 >
                   <span className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
-                    active ? 'bg-gold-primary/20 border-gold-primary/50 text-gold-primary' : 'border-white/[0.15] text-transparent'
+                    active ? 'bg-gold-primary/20 border-line/50 text-gold-primary' : 'border-white/[0.15] text-transparent'
                   }`}>
                     <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="20 6 9 17 4 12" />
@@ -1251,8 +1251,8 @@ const SignalsTable = ({
                                   {showHint && (
                                     <div className="lq-verdict-hint absolute top-full left-1/2 -translate-x-1/2 mt-2 z-40 w-60 text-left">
                                       {/* arrow */}
-                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-surface-raised border-l border-t border-gold-primary/40" />
-                                      <div className="relative bg-surface-raised border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
+                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-surface-raised border-l border-t border-line/40" />
+                                      <div className="relative bg-surface-raised border border-line/40 rounded-lg shadow-2xl p-3 overflow-hidden">
                                         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
                                         <div className="flex items-center justify-between mb-1.5">
                                           <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary">👆 Click for detail</span>

@@ -298,7 +298,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
             onClick={() => handleSubmit(false)}
             disabled={loading}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'rgba(212,168,83,0.1)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.25)' }}
+            style={{ background: 'rgba(212,168,83,0.1)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.25)' }}
           >
             {loading ? '...' : 'Auto-generate'}
           </button>
@@ -499,7 +499,7 @@ const ReferralPage = () => {
       <div className="max-w-3xl mx-auto px-4 py-12 sm:py-20 text-center">
         <div
           className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6"
-          style={{ background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.25)' }}
+          style={{ background: 'rgba(212,168,83,0.12)', border: '1px solid rgb(var(--line) / 0.25)' }}
         >
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
             <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -568,7 +568,7 @@ const ReferralPage = () => {
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all"
               style={{
                 background: 'rgba(212,168,83,0.08)',
-                border: '1px solid rgba(212,168,83,0.2)',
+                border: '1px solid rgb(var(--line) / 0.2)',
                 color: 'rgb(var(--accent))',
               }}
             >
@@ -681,7 +681,7 @@ const ReferralPage = () => {
           className="rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
           style={{
             background: 'linear-gradient(135deg, rgba(212,168,83,0.06), rgba(212,168,83,0.02))',
-            border: '1px solid rgba(212,168,83,0.15)',
+            border: '1px solid rgb(var(--line) / 0.15)',
           }}
         >
           <div className="flex items-start gap-3 flex-1">

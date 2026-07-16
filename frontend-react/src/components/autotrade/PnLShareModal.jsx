@@ -180,7 +180,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
             className="relative overflow-hidden rounded-2xl"
             style={{
               background: "linear-gradient(145deg, #0b0908 0%, #1a1410 50%, #0b0908 100%)",
-              border: "1px solid rgba(212,168,83,0.3)",
+              border: "1px solid rgb(var(--line) / 0.3)",
               padding: "28px 24px",
               minHeight: "480px",
             }}
@@ -212,10 +212,10 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                   <h3 className="font-display text-xl font-bold leading-none text-text-primary">{data.pair}</h3>
                   <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `${sideColor}20`, color: sideColor, border: `1px solid ${sideColor}60` }}>{sideLabel}</span>
                   {data.market_type === "futures" && (
-                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "rgb(var(--accent))", border: "1px solid rgba(212,168,83,0.3)" }}>{data.leverage}x · {data.margin_mode === "cross" ? "CROSS" : "ISOLATED"}</span>
+                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "rgb(var(--accent))", border: "1px solid rgb(var(--line) / 0.3)" }}>{data.leverage}x · {data.margin_mode === "cross" ? "CROSS" : "ISOLATED"}</span>
                   )}
                   {data.market_type === "spot" && (
-                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "rgb(var(--accent))", border: "1px solid rgba(212,168,83,0.3)" }}>SPOT</span>
+                    <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "rgb(var(--accent))", border: "1px solid rgb(var(--line) / 0.3)" }}>SPOT</span>
                   )}
                 </div>
               </div>

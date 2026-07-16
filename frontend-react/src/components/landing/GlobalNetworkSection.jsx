@@ -330,7 +330,7 @@ export default function GlobalNetworkSection(){
             <GlobeRenderer containerWidth={cw} earthCanvas={ec}/>
           ):(
             <div style={{width:"100%",height:Math.round(cw*0.65),display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{width:32,height:32,border:"2px solid rgba(212,168,83,0.2)",borderTopColor:"#d4a853",borderRadius:"50%",animation:"globeSpin 1s linear infinite"}}/>
+              <div style={{width:32,height:32,border:"2px solid rgb(var(--line) / 0.2)",borderTopColor:"#d4a853",borderRadius:"50%",animation:"globeSpin 1s linear infinite"}}/>
             </div>
           )}
         </div>

@@ -59,8 +59,8 @@ export const palette = {
   red:    { 300: '#fca5a5', 400: '#f87171', 500: '#ef4444', 700: '#991b1b' },
   amber:  { 300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b', 700: '#92400e' },
   orange: { 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 700: '#9a3412' },
-  blue:   { 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 700: '#1e40af' },
-  purple: { 300: '#c4b5fd', 400: '#a78bfa', 500: '#8b5cf6', 700: '#5b21b6' },
+  blue:   { 300: '#93c5fd', 400: '#8a8a93', 500: '#3b82f6', 700: '#1e40af' },
+  purple: { 300: '#c4b5fd', 400: '#8a8a93', 500: '#8b5cf6', 700: '#5b21b6' },
   violet: { 400: '#a855f7', 500: '#9333ea' },
   teal:   { 400: '#2dd4bf', 500: '#14b8a6' },
 
@@ -145,23 +145,24 @@ export const semantic = {
     danger:  { color: palette.red[400],    bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.3)' },
     warning: { color: palette.amber[400],  bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.3)' },
     pending: { color: palette.amber[400],  bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.3)' },
-    info:    { color: palette.blue[400],   bg: 'rgba(96,165,250,0.1)',  border: 'rgba(96,165,250,0.3)' },
+    info:    { color: palette.blue[400],   bg: 'rgba(138,138,147,0.1)',  border: 'rgba(138,138,147,0.3)' },
     neutral: { color: 'rgb(var(--fg-muted))',           bg: 'rgba(138,122,110,0.1)', border: 'rgba(138,122,110,0.3)' },
     urgent:  { color: palette.orange[400], bg: 'rgba(251,146,60,0.1)',  border: 'rgba(251,146,60,0.3)' },
   },
   // accent palette for stat tiles
   accent: {
-    // Standard for decorative KPI chips: one muted monochrome voice.
-    // Coloured accents below are reserved for SEMANTIC states only
-    // (warning/orange, danger/red, success/green) — not decoration.
+    // STANDARD: decorative KPI chips are one muted monochrome voice —
+    // colour is reserved for SEMANTIC states only (danger/red,
+    // warning/orange+amber, success/green). blue/purple/teal/gold were
+    // decorative-only, so they now resolve to muted across every admin tab.
     muted:  '#8a8a93',
-    blue:   palette.blue[400],
+    blue:   '#8a8a93',
     green:  palette.green[400],
-    gold:   palette.gold[300],
-    purple: palette.violet[400],
+    gold:   '#8a8a93',
+    purple: '#8a8a93',
     orange: palette.orange[400],
     red:    palette.red[400],
-    teal:   palette.teal[400],
+    teal:   '#8a8a93',
     amber:  palette.amber[400],
   },
 };

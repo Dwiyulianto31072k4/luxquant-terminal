@@ -135,7 +135,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           📊 Detailed Journey
         </h4>
         <div className="bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl p-6 border border-line/30 text-center">
-          <div className="w-12 h-12 mx-auto rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-3">
+          <div className="w-12 h-12 mx-auto rounded-full bg-gold-primary/15 border-2 border-line/40 flex items-center justify-center mb-3">
             <span className="text-lg">🔒</span>
           </div>
           <h5 className="text-text-primary font-bold text-sm mb-1.5">Premium Detailed Journey</h5>
@@ -282,7 +282,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           {hasMore && (
             <button
               onClick={() => setShowAll(!showAll)}
-              className="mt-3 w-full py-2 text-[11px] text-gold-primary hover:bg-gold-primary/10 rounded-lg border border-line/20 hover:border-gold-primary/40 transition-all font-semibold"
+              className="mt-3 w-full py-2 text-[11px] text-gold-primary hover:bg-gold-primary/10 rounded-lg border border-line/20 hover:border-line/40 transition-all font-semibold"
             >
               {showAll
                 ? `▲ Show fewer events (${eventCount} total)`

@@ -26,7 +26,6 @@ const SectionHeader = ({ label, small = false }) => (
     >
       {label}
     </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
   </div>
 );
 
@@ -294,7 +293,7 @@ const NotificationsPage = () => {
           <button
             onClick={handleMarkAllRead}
             disabled={markingAll}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/40 disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-line/40 disabled:opacity-50 transition-all"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -363,7 +362,7 @@ const NotificationsPage = () => {
               <select
                 value={typeFilter || ""}
                 onChange={(e) => { setTypeFilter(e.target.value || null); setPage(1); }}
-                className="appearance-none cursor-pointer rounded-md border border-white/[0.08] bg-white/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-white/[0.15] hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-all"
+                className="appearance-none cursor-pointer rounded-md border border-white/[0.08] bg-white/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-white/[0.15] hover:text-text-primary focus:outline-none focus:border-line/40 transition-all"
               >
                 {typeFilters.map((f) => (
                   <option key={f.key || "all"} value={f.key || ""} className="bg-surface-raised text-text-primary">
@@ -390,7 +389,6 @@ const NotificationsPage = () => {
                     <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                       {catLabel}
                     </span>
-                    <span className="h-px flex-1 bg-white/[0.04]" />
                     <span className="font-mono text-[10px] tabular-nums text-text-muted/50">
                       {items.length}
                     </span>

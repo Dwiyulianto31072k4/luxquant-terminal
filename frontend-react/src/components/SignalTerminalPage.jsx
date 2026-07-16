@@ -414,7 +414,7 @@ function Enc({ label, value, onChange }) {
     <label className="flex items-center gap-2">
       <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface border border-white/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        className="appearance-none bg-surface border border-white/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-line/40 cursor-pointer">
         {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-surface">{m.lbl}</option>)}
       </select>
     </label>
@@ -424,13 +424,13 @@ function Enc({ label, value, onChange }) {
 // ── Filter bar ──
 function FilterBar({ filters, setF }) {
   const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-surface-hover border-gold-primary bg-gold-primary font-semibold" : "text-text-primary/55 border-white/[0.1] bg-surface-raised hover:border-white/20"}`;
-  const sel = "appearance-none bg-surface-raised border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
+  const sel = "appearance-none bg-surface-raised border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary/80 px-3 py-2 pr-7 focus:outline-none focus:border-line/40 cursor-pointer";
   return (
     <div className="sticky top-0 z-30 bg-surface-raised border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
       <div className="relative">
         <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-text-primary/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
         <input value={filters.searchPair} onChange={(e) => setF({ searchPair: e.target.value })} placeholder="Search pair…"
-          className="bg-surface border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary pl-8 pr-3 py-2 w-40 focus:outline-none focus:border-gold-primary/40" />
+          className="bg-surface border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary pl-8 pr-3 py-2 w-40 focus:outline-none focus:border-line/40" />
       </div>
       <select className={sel} value={filters.statusFilter} onChange={(e) => setF({ statusFilter: e.target.value })}>
         <option value="all">All Status</option><option value="open">Open</option><option value="tp1">TP1</option><option value="tp2">TP2</option><option value="tp3">TP3</option><option value="closed_win">TP4 / Win</option><option value="closed_loss">Loss</option>
@@ -785,7 +785,7 @@ function MetricPick({ label, value, onChange }) {
     <label className="flex items-center gap-1.5">
       <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface-raised border border-white/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        className="appearance-none bg-surface-raised border border-white/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-line/40 cursor-pointer">
         {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-surface">{m.lbl}</option>)}
       </select>
     </label>

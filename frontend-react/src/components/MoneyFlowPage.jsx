@@ -104,7 +104,6 @@ const SectionHeader = ({ label, right }) => (
     <span className="font-mono uppercase tracking-[0.25em] text-gold-primary/80 text-[11px] whitespace-nowrap">
       {label}
     </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
     {right}
   </div>
 );
@@ -233,7 +232,7 @@ const SearchBox = ({ value, onChange, placeholder = "Search…" }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none"
+      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-line/40 focus:outline-none"
     />
   </div>
 );
@@ -547,7 +546,7 @@ const FlowFilterChip = ({ active, gold, onClick, children }) => (
     className={`font-mono text-[10px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-md border transition-colors whitespace-nowrap ${
       active
         ? gold
-          ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+          ? "bg-gold-primary/15 text-gold-primary border-line/40"
           : "bg-white/[0.08] text-text-primary border-white/20"
         : "bg-white/[0.04] text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
     }`}

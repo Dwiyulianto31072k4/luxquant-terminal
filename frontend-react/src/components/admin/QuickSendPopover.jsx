@@ -144,7 +144,7 @@ export const QuickSendPopover = ({
           ? {}
           : {
               background: 'rgb(var(--surface-secondary))',
-              border: '1px solid rgba(212,168,83,0.25)',
+              border: '1px solid rgb(var(--line) / 0.25)',
               boxShadow:
                 '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08)',
             }
@@ -180,7 +180,7 @@ export const QuickSendPopover = ({
             style={{
               color: 'rgb(var(--accent))',
               background: 'rgba(212,168,83,0.08)',
-              border: '1px solid rgba(212,168,83,0.22)',
+              border: '1px solid rgb(var(--line) / 0.22)',
             }}
             title="Close (Esc)"
           >
@@ -328,7 +328,7 @@ export const QuickSendPopover = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[10px] hover:underline truncate ml-2 max-w-[40%] font-mono shrink-0"
-                  style={{ color: '#60a5fa' }}
+                  style={{ color: '#8a8a93' }}
                 >
                   <span className="truncate">
                     {rendered.deep_link.replace(/^https?:\/\//, '')}

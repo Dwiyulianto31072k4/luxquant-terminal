@@ -76,7 +76,7 @@ export default function InAppBrowserBanner() {
   return (
     <div
       role="alert"
-      className="fixed top-0 inset-x-0 z-[9999] bg-surface-raised border-b border-accent/40"
+      className="fixed top-0 inset-x-0 z-[9999] bg-surface-raised border-b border-line/40"
     >
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-start gap-3">
         <div className="flex-1 min-w-0">
@@ -92,7 +92,7 @@ export default function InAppBrowserBanner() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={copyLink}
-            className="text-xs font-medium px-3 py-1.5 rounded border border-accent/50 text-accent hover:bg-accent/10 transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded border border-line/50 text-accent hover:bg-accent/10 transition-colors"
           >
             {copied ? "Copied ✓" : "Copy link"}
           </button>

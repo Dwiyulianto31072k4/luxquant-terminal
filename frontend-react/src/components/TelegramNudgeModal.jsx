@@ -177,7 +177,7 @@ const TelegramNudgeModal = () => {
         className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
         style={{
           background: 'linear-gradient(160deg, #0d0405, #0a0506)',
-          border: '1px solid rgba(212,168,83,0.18)',
+          border: '1px solid rgb(var(--line) / 0.18)',
           boxShadow: '0 -20px 60px rgba(0,0,0,0.65)',
         }}
         onClick={(e) => e.stopPropagation()}

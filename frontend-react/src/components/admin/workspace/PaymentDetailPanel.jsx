@@ -852,7 +852,7 @@ export const PaymentDetailPanel = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[9.5px] uppercase tracking-wider font-semibold hover:underline"
-                  style={{ color: '#60a5fa' }}
+                  style={{ color: '#8a8a93' }}
                 >
                   BSCScan <ExternalLinkIcon size={9} />
                 </a>
@@ -935,9 +935,9 @@ export const PaymentDetailPanel = ({
                 onClick={() => setShowBscscan(!showBscscan)}
                 className="w-full px-3 py-2 rounded-lg text-[10px] uppercase tracking-wider font-semibold transition-colors text-left flex items-center justify-between"
                 style={{
-                  background: 'rgba(96,165,250,0.06)',
-                  color: '#60a5fa',
-                  border: '1px solid rgba(96,165,250,0.22)',
+                  background: 'rgba(138,138,147,0.06)',
+                  color: '#8a8a93',
+                  border: '1px solid rgba(138,138,147,0.22)',
                 }}
               >
                 <span>{showBscscan ? 'Hide' : 'Show'} raw BSCScan response</span>

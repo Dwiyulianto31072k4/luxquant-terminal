@@ -72,7 +72,7 @@ const AnnouncementModal = () => {
         className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)]"
         style={{
           background: 'linear-gradient(160deg, #0d0405, #0a0506)',
-          border: '1px solid rgba(212,168,83,0.18)',
+          border: '1px solid rgb(var(--line) / 0.18)',
           boxShadow: '0 -20px 60px rgba(0,0,0,0.65)',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -139,7 +139,7 @@ const AnnouncementModal = () => {
               style={{
                 background: 'linear-gradient(135deg, #d4a853, #b8893c)',
                 color: 'rgb(var(--surface))',
-                border: '1px solid rgba(212,168,83,0.3)',
+                border: '1px solid rgb(var(--line) / 0.3)',
               }}
             >
               {ann.cta_label}

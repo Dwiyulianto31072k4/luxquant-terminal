@@ -143,7 +143,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
           style={{
             background: 'rgba(212,168,83,0.10)',
             color: 'rgb(var(--accent))',
-            border: '1px solid rgba(212,168,83,0.28)',
+            border: '1px solid rgb(var(--line) / 0.28)',
           }}
         >
           Reset filters

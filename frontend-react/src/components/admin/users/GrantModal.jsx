@@ -65,7 +65,7 @@ const DateInput = ({ label, required, value, onChange, min, helper }) => (
       <CalendarIcon size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "rgb(var(--fg-muted))" }} />
       <input
         type="date" value={value} min={min} onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg py-2 pl-8 pr-3 font-mono text-xs text-text-primary outline-none focus:border-gold-primary/40"
+        className="w-full rounded-lg py-2 pl-8 pr-3 font-mono text-xs text-text-primary outline-none focus:border-line/40"
         style={{ background: "rgb(var(--surface-secondary))", border: `1px solid ${required ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`, colorScheme: "dark" }}
       />
     </div>
@@ -75,7 +75,7 @@ const DateInput = ({ label, required, value, onChange, min, helper }) => (
 
 // ── Preview card ──
 const PreviewCard = ({ start, end, days }) => (
-  <div className="relative overflow-hidden rounded-lg" style={{ background: "rgba(212,168,83,0.04)", border: "1px solid rgba(212,168,83,0.22)" }}>
+  <div className="relative overflow-hidden rounded-lg" style={{ background: "rgba(212,168,83,0.04)", border: "1px solid rgb(var(--line) / 0.22)" }}>
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(212,168,83,0.4), transparent)" }} />
     <div className="flex items-center justify-between px-3 py-1.5" style={{ background: "rgba(212,168,83,0.06)" }}>
       <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: GOLD }}>
@@ -153,7 +153,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
     <div className="flex items-start gap-3">
       <div className="relative shrink-0">
         <div className="absolute inset-0 rounded-full opacity-40 blur-md" style={{ background: GOLD }} />
-        <div className="relative flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "rgba(212,168,83,0.12)", border: "1px solid rgba(212,168,83,0.3)" }}>
+        <div className="relative flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "rgba(212,168,83,0.12)", border: "1px solid rgb(var(--line) / 0.3)" }}>
           <CrownIcon size={18} style={{ color: GOLD }} />
         </div>
       </div>
@@ -219,7 +219,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
           </label>
           <input
             value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Payment via BCA, promo code XYZ"
-            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary outline-none focus:border-gold-primary/40"
+            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary outline-none focus:border-line/40"
             style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgba(255,255,255,0.06)" }}
           />
         </div>

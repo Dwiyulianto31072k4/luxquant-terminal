@@ -53,10 +53,10 @@ const PLATFORMS = [
 ];
 
 const STATUSES = [
-  { value: 'planning', label: 'Planning', color: '#a78bfa' },
+  { value: 'planning', label: 'Planning', color: '#8a8a93' },
   { value: 'active', label: 'Active', color: 'rgb(var(--pos))' },
   { value: 'paused', label: 'Paused', color: 'rgb(var(--warn))' },
-  { value: 'completed', label: 'Completed', color: '#60a5fa' },
+  { value: 'completed', label: 'Completed', color: '#8a8a93' },
   { value: 'cancelled', label: 'Cancelled', color: 'rgb(var(--fg-muted))' },
 ];
 
@@ -228,7 +228,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               Line Items <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>({lineItems.length})</span>
             </label>
             <button type="button" onClick={() => setLineItems([...lineItems, { label: '', amount: 0, date: '', note: '' }])}
-              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.22)' }}>
+              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgb(var(--line) / 0.22)' }}>
               <PlusIcon size={10} /> Add Item
             </button>
           </div>
@@ -253,7 +253,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               Custom Fields <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>({metadata.length})</span>
             </label>
             <button type="button" onClick={() => setMetadata([...metadata, { key: '', value: '' }])}
-              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.22)' }}>
+              className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgb(var(--line) / 0.22)' }}>
               <PlusIcon size={10} /> Add Field
             </button>
           </div>

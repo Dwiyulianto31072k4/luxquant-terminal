@@ -32,7 +32,7 @@ export const InfoTip = ({ text, title, side = 'top', className = '' }) => {
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
         aria-label="More info"
         className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-mono leading-none transition-colors ${
-          open ? 'border-gold-primary/60 text-gold-primary bg-gold-primary/10' : 'border-text-muted/40 text-text-muted/70 hover:border-gold-primary/50 hover:text-gold-primary'
+          open ? 'border-line/60 text-gold-primary bg-gold-primary/10' : 'border-text-muted/40 text-text-muted/70 hover:border-line/50 hover:text-gold-primary'
         }`}
       >
         ?
@@ -42,7 +42,7 @@ export const InfoTip = ({ text, title, side = 'top', className = '' }) => {
           onClick={(e) => e.stopPropagation()}
           className={`absolute ${pos} left-1/2 -translate-x-1/2 z-[70] w-60 normal-case tracking-normal text-left cursor-default`}
         >
-          <span className="relative block bg-surface-raised border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
+          <span className="relative block bg-surface-raised border border-line/40 rounded-lg shadow-2xl p-3 overflow-hidden">
             <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
             {title && <span className="block font-mono text-[10px] uppercase tracking-wider text-gold-primary mb-1">{title}</span>}
             <span className="block font-mono text-[11px] leading-relaxed text-text-muted">{text}</span>
@@ -155,7 +155,7 @@ export const GuideModal = ({ onClose }) => {
           <div className="w-48 shrink-0 border-r border-white/[0.06] bg-white/[0.015] py-5 px-3 flex flex-col">
             <div className="px-2 mb-4">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gold-primary/50 text-gold-primary text-[9px] font-mono">?</span>
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-line/50 text-gold-primary text-[9px] font-mono">?</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary/80">{t('guide.button')}</span>
               </div>
             </div>

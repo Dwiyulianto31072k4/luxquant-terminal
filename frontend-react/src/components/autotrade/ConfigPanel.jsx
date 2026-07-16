@@ -26,7 +26,6 @@ const SectionLabel = ({ children, subtitle, step }) => (
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
         {children}
       </span>
-      <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
     </div>
     {subtitle && (
       <p className="text-[11px] font-mono text-text-muted/70 ml-9">{subtitle}</p>
@@ -86,7 +85,7 @@ const NumberField = ({ label, value, onChange, min, max, step = 1, suffix = "", 
       min={min}
       max={max}
       step={step}
-      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono tabular-nums focus:outline-none focus:border-gold-primary/40 transition-colors"
+      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono tabular-nums focus:outline-none focus:border-line/40 transition-colors"
     />
     {hint && (
       <p className="text-[10px] font-mono text-text-muted/60 mt-1.5 leading-relaxed">
@@ -104,7 +103,7 @@ const SelectField = ({ label, value, onChange, options, hint }) => (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value} className="bg-surface-raised text-text-primary">

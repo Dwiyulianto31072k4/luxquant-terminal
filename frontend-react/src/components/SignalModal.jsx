@@ -1292,7 +1292,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         <div className="p-2.5 space-y-2">
           <div className="lq-card lq-card--gold p-6 min-h-[280px] flex flex-col items-center justify-center text-center">
             {goldLine}
-            <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-line/40 flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary">
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -1381,7 +1381,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {/* ── DEEP ANALYSIS ── */}
         {signalDetail?.enrichment && (
           <button onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-line/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]">
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-line/25 hover:bg-gold-primary/20 hover:border-line/40 transition-all active:scale-[0.98]">
             {Ic.cpu("w-3.5 h-3.5")}<span>Deep Analysis</span>
           </button>
         )}
@@ -1615,7 +1615,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     onClick={() => setShowIndicatorGuide(true)}
     title="How to use indicator"
     aria-label="How to use indicator"
-    className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-gold-primary/40 text-gold-primary"
+    className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-line/40 text-gold-primary"
   >
     <svg className="w-2.5 h-2.5 relative z-10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
     <span className="relative z-10"><span className="sm:hidden">Indicator</span><span className="hidden sm:inline">How to use indicator</span></span>
@@ -1733,7 +1733,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-line/60 rounded-md transition-all ml-1"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
@@ -1744,7 +1744,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-line/60 rounded-md transition-all ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
@@ -1771,7 +1771,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         title={showIndicators ? "Hide indicators (MACD · RSI · BB)" : "Show indicators (MACD · RSI · BB)"}
                         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-semibold uppercase tracking-[0.12em] backdrop-blur-sm transition-all active:scale-[0.97] ${
                           showIndicators
-                            ? "bg-gold-primary/15 border-gold-primary/40 text-gold-primary hover:bg-gold-primary/25"
+                            ? "bg-gold-primary/15 border-line/40 text-gold-primary hover:bg-gold-primary/25"
                             : "bg-black/40 border-white/12 text-text-primary/50 hover:text-text-primary/80 hover:border-white/25"
                         }`}
                       >

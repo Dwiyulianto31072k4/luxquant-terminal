@@ -123,7 +123,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
               style={{
                 background: 'rgba(212,168,83,0.15)',
                 color: 'rgb(var(--accent))',
-                border: '1px solid rgba(212,168,83,0.25)',
+                border: '1px solid rgb(var(--line) / 0.25)',
               }}
             >
               ADMIN

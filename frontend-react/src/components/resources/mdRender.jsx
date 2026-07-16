@@ -81,7 +81,7 @@ export function renderRich(text) {
   const flushQuote = () => {
     if (quote) {
       blocks.push(
-        <blockquote key={k++} className="my-3 border-l-2 border-gold-primary/50 pl-4 text-text-muted italic">
+        <blockquote key={k++} className="my-3 border-l-2 border-line/50 pl-4 text-text-muted italic">
           {renderInline(quote.join(' '), `q${k}`)}
         </blockquote>
       );

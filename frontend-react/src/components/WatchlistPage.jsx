@@ -388,7 +388,7 @@ const WatchlistPage = () => {
                     onClick={() => setStatusFilter(key)}
                     className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                       active
-                        ? 'bg-gold-primary/15 text-gold-primary border-gold-primary/40'
+                        ? 'bg-gold-primary/15 text-gold-primary border-line/40'
                         : 'bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]'
                     }`}
                   >
@@ -417,14 +417,14 @@ const WatchlistPage = () => {
                   placeholder="Search by pair..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
+                  className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
                 />
               </div>
 
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value)}
-                className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+                className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.key} value={opt.key} className="bg-surface-raised text-text-primary">
@@ -575,7 +575,6 @@ const SectionHeader = ({ label, small = false }) => (
     >
       {label}
     </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
   </div>
 );
 
@@ -820,7 +819,6 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
             Targets
           </span>
-          <span className="h-px flex-1 bg-gold-primary/10" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {tpList.map((tp, i) => {

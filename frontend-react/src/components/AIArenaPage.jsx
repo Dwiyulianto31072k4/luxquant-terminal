@@ -450,7 +450,7 @@ function PriceChart({ activeTF, onTFChange }) {
       <div className="relative">
         {chartLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-card/60 z-10">
-            <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-gold-primary/40 border-t-gold-primary rounded-full animate-spin" /><span className="text-text-muted text-sm">Loading {activeTF}...</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-line/40 border-t-gold-primary rounded-full animate-spin" /><span className="text-text-muted text-sm">Loading {activeTF}...</span></div>
           </div>
         )}
         <div ref={containerRef} style={{ minHeight: 460 }} />

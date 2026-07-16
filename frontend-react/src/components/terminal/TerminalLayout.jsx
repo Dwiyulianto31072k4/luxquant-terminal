@@ -136,7 +136,6 @@ export default function TerminalLayout() {
                     <span className="font-mono text-[8.5px] uppercase tracking-[0.25em] text-text-muted/70">
                       {t(`terminal.viz.${g}`)}
                     </span>
-                    <span className="h-px flex-1 bg-white/[0.05]" />
                   </div>
                   <div className="space-y-0.5">
                     {items.map(([id, route]) => (

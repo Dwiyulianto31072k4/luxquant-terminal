@@ -121,7 +121,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                       <button
                         key={i}
                         onClick={() => send(s)}
-                        className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-text-primary/80 hover:border-gold-primary/40 hover:bg-gold-primary/[0.06] hover:text-text-primary transition-all"
+                        className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:bg-gold-primary/[0.06] hover:text-text-primary transition-all"
                       >
                         {s}
                       </button>
@@ -164,7 +164,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                   placeholder="Ask how to use this page…"
-                  className="flex-1 resize-none rounded-xl border border-white/10 bg-surface-raised px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-24 sm:text-[14px]"
+                  className="flex-1 resize-none rounded-xl border border-white/10 bg-surface-raised px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 max-h-24 sm:text-[14px]"
                 />
                 <button
                   onClick={() => send()}

@@ -1477,7 +1477,7 @@ const ApiKeysPage = () => {
       {/* ── Just-created key (once, full width) ── */}
       {justCreated && (
         <div
-          className="rounded-2xl p-5 border border-gold-primary/40 relative overflow-hidden"
+          className="rounded-2xl p-5 border border-line/40 relative overflow-hidden"
           style={{
             background:
               "linear-gradient(160deg, rgba(212,168,83,0.10), rgba(255,255,255,0.01))",
@@ -1568,7 +1568,7 @@ const ApiKeysPage = () => {
                 placeholder={t("apiKeys.name_placeholder")}
                 maxLength={60}
                 autoFocus
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-line/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
               />
               <button
                 onClick={handleCreate}

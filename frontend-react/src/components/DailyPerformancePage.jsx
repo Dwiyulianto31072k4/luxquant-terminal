@@ -971,7 +971,7 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
       {sectors.map((s) => {
         const isActive = filters.sector === s.sector;
         return (
-          <button key={s.sector} onClick={() => addFilter("sector", s.sector)} className={`text-left relative rounded-md bg-surface-raised border transition p-5 hover:border-line/30 ${isActive ? "border-gold-primary/40" : "border-white/[0.06]"}`}>
+          <button key={s.sector} onClick={() => addFilter("sector", s.sector)} className={`text-left relative rounded-md bg-surface-raised border transition p-5 hover:border-line/30 ${isActive ? "border-line/40" : "border-white/[0.06]"}`}>
             <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${sectorColor(s.sector)}88, transparent)` }} />
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-sm" style={{ background: sectorColor(s.sector) }} />
@@ -1358,7 +1358,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
           {/* v7: Edge Lab button (placeholder until Deliverable B) */}
           <button
             onClick={() => navigate("/daily-performance/edge-lab")}
-            className="px-3 py-2 rounded-md bg-gold-primary/[0.06] border border-line/30 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition flex items-center gap-2"
+            className="px-3 py-2 rounded-md bg-gold-primary/[0.06] border border-line/30 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/90 hover:bg-gold-primary/10 hover:border-line/50 transition flex items-center gap-2"
             title="Multi-day analytics: pattern × BTC heatmap, EV, calendar WR"
           >
             <span>Open Edge Lab</span><span className="text-[8px]">→</span>

@@ -40,10 +40,10 @@ const formatDate = (dateStr) => {
 };
 
 const STATUS_CONFIG = {
-  planning: { color: '#a78bfa', label: 'Planning', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)' },
+  planning: { color: '#8a8a93', label: 'Planning', bg: 'rgba(138,138,147,0.1)', border: 'rgba(138,138,147,0.3)' },
   active: { color: 'rgb(var(--pos))', label: 'Active', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)' },
   paused: { color: 'rgb(var(--warn))', label: 'Paused', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)' },
-  completed: { color: '#60a5fa', label: 'Completed', bg: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.3)' },
+  completed: { color: '#8a8a93', label: 'Completed', bg: 'rgba(138,138,147,0.1)', border: 'rgba(138,138,147,0.3)' },
   cancelled: { color: 'rgb(var(--fg-muted))', label: 'Cancelled', bg: 'rgba(107,92,82,0.1)', border: 'rgba(107,92,82,0.3)' },
 };
 
@@ -66,9 +66,9 @@ const PLATFORM_CONFIG = {
 const MarketingHeader = ({ onCreate }) => (
   <div className="flex items-start justify-between gap-3 flex-wrap">
     <div className="flex items-start gap-3 min-w-0">
-      <IconBadge Icon={SparklesIcon} color="#a78bfa" size={38} iconSize={18} />
+      <IconBadge Icon={SparklesIcon} color="#8a8a93" size={38} iconSize={18} />
       <div className="min-w-0">
-        <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold" style={{ color: 'rgba(167,139,250,0.7)' }}>
+        <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold" style={{ color: 'rgba(138,138,147,0.7)' }}>
           Growth & Spend
         </p>
         <h2 className="text-lg font-semibold text-text-primary tracking-tight">Marketing Budget</h2>
@@ -198,13 +198,13 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
         )}
         {lineItemCount > 0 && (
           <span className="px-2 py-0.5 rounded font-medium"
-            style={{ background: 'rgba(96,165,250,0.06)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.18)' }}>
+            style={{ background: 'rgba(138,138,147,0.06)', color: '#8a8a93', border: '1px solid rgba(138,138,147,0.18)' }}>
             {lineItemCount} line item{lineItemCount > 1 ? 's' : ''}
           </span>
         )}
         {metadataKeys > 0 && (
           <span className="px-2 py-0.5 rounded font-medium"
-            style={{ background: 'rgba(212,168,83,0.06)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.22)' }}>
+            style={{ background: 'rgba(212,168,83,0.06)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.22)' }}>
             {metadataKeys} custom field{metadataKeys > 1 ? 's' : ''}
           </span>
         )}
@@ -217,7 +217,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
         </p>
         <div className="flex items-center gap-1">
           <button onClick={() => onEdit(campaign)} title="Edit" className="p-1.5 rounded-md transition-colors"
-            style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
+            style={{ color: 'rgb(var(--accent))', background: 'rgba(212,168,83,0.08)', border: '1px solid rgb(var(--line) / 0.2)' }}>
             <EditIcon size={11} />
           </button>
           <button onClick={() => onDelete(campaign)} title="Delete" className="p-1.5 rounded-md transition-colors"
@@ -356,7 +356,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
       <MarketingHeader onCreate={handleCreate} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <StatCard label="Total Campaigns" value={campaigns.length} accent="#60a5fa" Icon={SparklesIcon} />
+        <StatCard label="Total Campaigns" value={campaigns.length} accent="#8a8a93" Icon={SparklesIcon} />
         <StatCard label="Active" value={activeCount} accent="#34d399" Icon={TrendingUpIcon} />
         <StatCard label="Total Budget" value={formatCurrency(totalBudget)} accent="#d4a853" />
         <StatCard label="Total Spent" value={formatCurrency(totalSpent)} accent={totalSpent > totalBudget ? '#f87171' : '#fb923c'} />
@@ -411,10 +411,10 @@ export const MarketingTab = ({ onRefreshStats }) => {
         <div className="relative text-center py-16 rounded-2xl overflow-hidden"
           style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.08)' }}>
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: 'rgba(167,139,250,0.08)', filter: 'blur(40px)' }} />
+            style={{ background: 'rgba(138,138,147,0.08)', filter: 'blur(40px)' }} />
           <div className="relative">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
-              style={{ background: 'rgba(167,139,250,0.10)', border: '1px solid rgba(167,139,250,0.22)', color: '#a78bfa' }}>
+              style={{ background: 'rgba(138,138,147,0.10)', border: '1px solid rgba(138,138,147,0.22)', color: '#8a8a93' }}>
               <SparklesIcon size={20} />
             </div>
             <p className="text-sm font-semibold text-text-primary mb-1">
@@ -425,7 +425,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
             </p>
             <button onClick={hasFilters ? () => { setSearch(''); setStatusFilter(''); setPlatformFilter(''); } : handleCreate}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgba(212,168,83,0.28)' }}>
+              style={{ background: 'rgba(212,168,83,0.10)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.28)' }}>
               {hasFilters ? 'Reset filters' : <><PlusIcon size={11} /> Create first campaign</>}
             </button>
           </div>

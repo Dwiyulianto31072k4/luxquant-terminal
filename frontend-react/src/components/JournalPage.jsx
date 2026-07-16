@@ -435,7 +435,7 @@ const JournalPage = () => {
           </button>
           <button
             onClick={() => { resetForm(); setActiveTab("entry"); }}
-            className="flex items-center gap-2 h-9 px-3.5 rounded-md border border-gold-primary/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+            className="flex items-center gap-2 h-9 px-3.5 rounded-md border border-line/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-line/60 transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
           >
             <IconPlus className="h-3.5 w-3.5" />
             <span>New Entry</span>
@@ -608,7 +608,7 @@ const HistoryEmptyState = ({ onNewEntry }) => (
       </div>
       <button
         onClick={onNewEntry}
-        className="flex items-center gap-2 mt-2 h-9 px-4 rounded-md border border-gold-primary/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all text-[11px] font-medium uppercase tracking-[0.14em]"
+        className="flex items-center gap-2 mt-2 h-9 px-4 rounded-md border border-line/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-line/60 transition-all text-[11px] font-medium uppercase tracking-[0.14em]"
       >
         <IconPlus className="h-3.5 w-3.5" />
         <span>Log your first trade</span>
@@ -841,7 +841,7 @@ const FilterBar = ({
               onClick={() => setFilterStatus(s.v)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
                 filterStatus === s.v
-                  ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+                  ? "bg-gold-primary/15 text-text-primary border-line/40"
                   : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
@@ -1325,7 +1325,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-line/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-gold-primary/40 hover:text-text-primary hover:bg-gold-primary/[0.06] transition-all"
+        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-line/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-line/40 hover:text-text-primary hover:bg-gold-primary/[0.06] transition-all"
       >
         <IconLink className="h-4 w-4 text-gold-primary/70 flex-shrink-0" />
         <span className="text-[12px] font-medium tracking-tight">Link LuxQuant Signal</span>
@@ -1596,7 +1596,7 @@ const PsychologySection = ({ form, updateEmotion }) => (
               onClick={() => updateEmotion("mood", form.emotions.mood === m ? "" : m)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center gap-1.5 ${
                 form.emotions.mood === m
-                  ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+                  ? "bg-gold-primary/15 text-text-primary border-line/40"
                   : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
@@ -1656,7 +1656,7 @@ const SliderField = ({ label, value, onChange, leftLabel, rightLabel, color = "e
 
 const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "gold", description }) => {
   const accentMap = {
-    gold: { active: "bg-gold-primary/15 text-text-primary border-gold-primary/40", count: "text-gold-primary" },
+    gold: { active: "bg-gold-primary/15 text-text-primary border-line/40", count: "text-gold-primary" },
     emerald: { active: "bg-emerald-500/12 text-emerald-200 border-emerald-500/40", count: "text-emerald-400" },
     red: { active: "bg-red-500/12 text-red-200 border-red-500/40", count: "text-red-400" },
   }[accent];
@@ -1721,7 +1721,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
         type="button"
         onClick={onSubmit}
         disabled={saving || !canSubmit}
-        className="flex items-center gap-2 h-9 px-5 rounded-md border border-gold-primary/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all text-[11px] font-medium uppercase tracking-[0.14em] disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 h-9 px-5 rounded-md border border-line/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-line/60 transition-all text-[11px] font-medium uppercase tracking-[0.14em] disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <IconCheck className="h-3.5 w-3.5" />
         <span>{saving ? "Saving…" : isEdit ? "Update Entry" : "Save Entry"}</span>

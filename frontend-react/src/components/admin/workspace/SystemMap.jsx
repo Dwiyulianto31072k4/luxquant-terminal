@@ -18,13 +18,13 @@ import 'reactflow/dist/style.css';
 import { workspaceApi } from '../../../services/workspaceApi';
 
 // ── palette / vocab (shared with the cards view) ──
-const C = { ok: '#34d399', down: '#f87171', warn: '#fbbf24', idle: '#8a7a6e', gold: '#d4a853', teal: '#2dd4bf', blue: '#60a5fa', purple: '#a78bfa' };
+const C = { ok: '#34d399', down: '#f87171', warn: '#fbbf24', idle: '#8a7a6e', gold: '#d4a853', teal: '#2dd4bf', blue: '#8a8a93', purple: '#8a8a93' };
 const EDGE = {
   depends: { c: '#8a7a6e', flow: false, label: 'depends on' },
-  db:      { c: '#60a5fa', flow: false, label: 'Postgres' },
+  db:      { c: '#8a8a93', flow: false, label: 'Postgres' },
   cache:   { c: '#f87171', flow: false, label: 'Redis' },
   poll:    { c: '#fbbf24', flow: true,  label: 'polls external' },
-  deliver: { c: '#a78bfa', flow: true,  label: 'delivers to' },
+  deliver: { c: '#8a8a93', flow: true,  label: 'delivers to' },
   proxy:   { c: '#34d399', flow: false, label: 'proxies' },
 };
 const CATCOLOR = { 'Core API': C.gold, 'AI Compass': C.purple, 'AutoTrade / Cryptobot': C.teal, 'Signals': C.blue, 'Market Data': C.blue, 'Distribution': C.purple, 'Discord': '#5865F2', 'News': C.warn, 'Infrastructure': C.ok, 'Other': C.idle };
@@ -388,7 +388,7 @@ const CSS = `
 /* node detail — centered modal (SignalModal-style) */
 .lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:lqfade .18s ease}
 @keyframes lqfade{from{opacity:0}to{opacity:1}}
-.lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#100b09,#0a0605);border:1px solid rgba(212,168,83,.22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+.lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#100b09,#0a0605);border:1px solid rgb(var(--line) / .22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
 @keyframes lqpop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
 .lqm-card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(212,168,83,.5),transparent);z-index:2}
 .lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0a0a0a;color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}

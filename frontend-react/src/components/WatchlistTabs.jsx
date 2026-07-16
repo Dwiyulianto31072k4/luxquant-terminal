@@ -48,7 +48,7 @@ const WatchlistTabs = () => {
                 onClick={() => setTab(tb.key)}
                 className={`shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all duration-200 ${
                   active
-                    ? "border-gold-primary/60 -translate-y-px"
+                    ? "border-line/60 -translate-y-px"
                     : "bg-white/[0.02] border-white/[0.07] hover:border-white/[0.15] hover:bg-white/[0.04]"
                 }`}
                 style={

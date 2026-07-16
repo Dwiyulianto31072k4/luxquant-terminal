@@ -44,7 +44,6 @@ const formatPrice = (price) => {
 const SectionHeader = ({ label }) => (
   <div className="flex items-center gap-3">
     <span className="font-mono uppercase tracking-[0.25em] text-gold-primary/80 text-[11px]">{label}</span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
   </div>
 );
 
@@ -193,7 +192,7 @@ const WatchingTab = () => {
               value={input}
               onChange={(e) => { setInput(e.target.value); setError(""); }}
               onKeyDown={handleKeyDown}
-              className="w-full pl-9 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono uppercase"
+              className="w-full pl-9 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono uppercase"
             />
           </div>
           <button

@@ -304,7 +304,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
             type="button"
             onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
             aria-label="Show more tabs"
-            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-secondary text-text-primary/70 transition hover:border-gold-primary/50 hover:text-gold-primary"
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-secondary text-text-primary/70 transition hover:border-line/50 hover:text-gold-primary"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5l7 7-7 7" />
@@ -476,7 +476,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                   onClick={() => setPage(pageNumber)}
                   className={`h-8 min-w-8 rounded-md border px-2 transition ${
                     pageNumber === page
-                      ? "border-gold-primary/40 bg-gold-primary/15 text-gold-primary"
+                      ? "border-line/40 bg-gold-primary/15 text-gold-primary"
                       : "border-white/[0.07] bg-black/20 text-text-primary/40 hover:border-white/[0.14] hover:text-text-primary/70"
                   }`}
                 >
@@ -643,7 +643,7 @@ function ReportPdfModal({ modal, onClose }) {
               <a
                 href={modal.url}
                 download={modal.filename || "compass-report.pdf"}
-                className="rounded-lg border border-line/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent/45 hover:bg-accent/15"
+                className="rounded-lg border border-line/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-line/45 hover:bg-accent/15"
               >
                 Download
               </a>

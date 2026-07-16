@@ -580,7 +580,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={t("terminal.viz.vsAdd")}
-                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 font-mono"
                 />
                 {searchOpts.length > 0 && (
                   <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-surface-secondary border border-line/20 shadow-xl p-1">

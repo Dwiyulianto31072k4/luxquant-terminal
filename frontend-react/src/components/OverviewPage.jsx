@@ -402,7 +402,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
                 href={`https://www.coingecko.com/en/categories/${cat.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] px-2 py-0.5 bg-gold-primary/10 text-gold-primary border border-line/20 hover:bg-gold-primary/15 hover:border-gold-primary/40 transition-all rounded-sm"
+                className="font-mono text-[10px] px-2 py-0.5 bg-gold-primary/10 text-gold-primary border border-line/20 hover:bg-gold-primary/15 hover:border-line/40 transition-all rounded-sm"
               >
                 {cat.name}
               </a>
@@ -417,7 +417,6 @@ const SectorPerformance = ({ categories, trending, t }) => {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-500/60" />
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">{t('overview.hot')}</p>
-            <span className="h-px flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent" />
           </div>
           <div className="space-y-0.5">
             {gainers.length > 0 ? gainers.map((cat, idx) => (
@@ -433,7 +432,6 @@ const SectorPerformance = ({ categories, trending, t }) => {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_8px] shadow-red-500/60" />
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-400">{t('overview.cool')}</p>
-            <span className="h-px flex-1 bg-gradient-to-r from-red-500/30 to-transparent" />
           </div>
           <div className="space-y-0.5">
             {losers.length > 0 ? losers.map((cat, idx) => (

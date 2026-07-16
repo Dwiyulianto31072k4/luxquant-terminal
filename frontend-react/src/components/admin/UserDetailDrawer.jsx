@@ -195,7 +195,7 @@ const UserHero = ({ user }) => (
           ? 'transparent'
           : 'rgba(212,168,83,0.12)',
         color: 'rgb(var(--accent))',
-        border: '1px solid rgba(212,168,83,0.22)',
+        border: '1px solid rgb(var(--line) / 0.22)',
       }}
     >
       {user.avatar_url ? (
@@ -230,7 +230,7 @@ const UserHero = ({ user }) => (
               user.role === 'admin'
                 ? 'rgba(168,85,247,0.12)'
                 : user.role === 'co_admin'
-                ? 'rgba(96,165,250,0.12)'
+                ? 'rgba(138,138,147,0.12)'
                 : user.role === 'founder'
                 ? 'rgba(251,191,36,0.12)'
                 : user.role === 'subscriber' || user.role === 'premium'
@@ -240,7 +240,7 @@ const UserHero = ({ user }) => (
               user.role === 'admin'
                 ? '#a855f7'
                 : user.role === 'co_admin'
-                ? '#60a5fa'
+                ? '#8a8a93'
                 : user.role === 'founder'
                 ? '#fbbf24'
                 : user.role === 'subscriber' || user.role === 'premium'
@@ -250,7 +250,7 @@ const UserHero = ({ user }) => (
               user.role === 'admin'
                 ? 'rgba(168,85,247,0.3)'
                 : user.role === 'co_admin'
-                ? 'rgba(96,165,250,0.3)'
+                ? 'rgba(138,138,147,0.3)'
                 : user.role === 'founder'
                 ? 'rgba(251,191,36,0.3)'
                 : user.role === 'subscriber' || user.role === 'premium'
@@ -289,7 +289,7 @@ const UserHero = ({ user }) => (
             style={{
               background: 'rgba(212,168,83,0.1)',
               color: 'rgb(var(--accent))',
-              border: '1px solid rgba(212,168,83,0.22)',
+              border: '1px solid rgb(var(--line) / 0.22)',
             }}
           >
             via {user.subscription_source}
@@ -906,7 +906,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               style={{
                 color: 'rgb(var(--accent))',
                 background: 'rgba(212,168,83,0.06)',
-                border: '1px solid rgba(212,168,83,0.22)',
+                border: '1px solid rgb(var(--line) / 0.22)',
               }}
             >
               <EditIcon size={11} />
@@ -968,7 +968,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             className="space-y-3 rounded-lg p-3"
             style={{
               background: 'rgba(212,168,83,0.04)',
-              border: '1px solid rgba(212,168,83,0.2)',
+              border: '1px solid rgb(var(--line) / 0.2)',
             }}
           >
             <div>
@@ -1177,7 +1177,7 @@ const PaymentsTab = ({ data }) => {
           className="relative overflow-hidden rounded-lg p-3"
           style={{
             background: 'rgba(212,168,83,0.04)',
-            border: '1px solid rgba(212,168,83,0.15)',
+            border: '1px solid rgb(var(--line) / 0.15)',
           }}
         >
           <div
@@ -1248,7 +1248,7 @@ const PaymentsTab = ({ data }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 hover:underline font-mono"
-                    style={{ color: '#60a5fa' }}
+                    style={{ color: '#8a8a93' }}
                   >
                     {p.tx_hash.slice(0, 8)}…{p.tx_hash.slice(-6)}
                     <ExternalLinkIcon size={10} />
@@ -1287,8 +1287,8 @@ const ReferralTab = ({ data }) => {
           <div
             className="rounded-lg p-3 flex items-center justify-between"
             style={{
-              background: 'rgba(96,165,250,0.04)',
-              border: '1px solid rgba(96,165,250,0.18)',
+              background: 'rgba(138,138,147,0.04)',
+              border: '1px solid rgba(138,138,147,0.18)',
             }}
           >
             <div className="min-w-0">
@@ -1305,9 +1305,9 @@ const ReferralTab = ({ data }) => {
             <span
               className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0"
               style={{
-                background: 'rgba(96,165,250,0.15)',
-                color: '#60a5fa',
-                border: '1px solid rgba(96,165,250,0.3)',
+                background: 'rgba(138,138,147,0.15)',
+                color: '#8a8a93',
+                border: '1px solid rgba(138,138,147,0.3)',
               }}
             >
               {as_referred.status}
@@ -1500,7 +1500,7 @@ export const UserDetailDrawer = ({
         className="w-full max-w-3xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 fade-in duration-200"
         style={{
           background: 'rgb(var(--surface-raised))',
-          border: '1px solid rgba(212,168,83,0.25)',
+          border: '1px solid rgb(var(--line) / 0.25)',
           boxShadow:
             '0 -20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
         }}
@@ -1529,7 +1529,7 @@ export const UserDetailDrawer = ({
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
               style={{
                 background: 'rgba(212,168,83,0.1)',
-                border: '1px solid rgba(212,168,83,0.22)',
+                border: '1px solid rgb(var(--line) / 0.22)',
               }}
             >
               <UserIcon size={14} style={{ color: 'rgb(var(--accent))' }} />
@@ -1555,7 +1555,7 @@ export const UserDetailDrawer = ({
             style={{
               color: 'rgb(var(--accent))',
               background: 'rgba(212,168,83,0.08)',
-              border: '1px solid rgba(212,168,83,0.22)',
+              border: '1px solid rgb(var(--line) / 0.22)',
             }}
             title="Close (Esc)"
             aria-label="Close modal"

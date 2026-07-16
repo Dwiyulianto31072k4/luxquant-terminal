@@ -732,7 +732,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
       onClick={() => setFilter(id)}
       className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition border ${
         filter === id
-          ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
+          ? "border-line/40 bg-gold-primary/10 text-gold-primary"
           : "border-white/[0.08] text-text-primary/45 hover:text-text-primary/80"
       }`}
     >

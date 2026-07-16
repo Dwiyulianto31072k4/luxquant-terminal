@@ -353,7 +353,7 @@ function Step({ n, accent = false, line = true, children }) {
   return (
     <li className="flex gap-4">
       <div className="flex flex-col items-center">
-        <span className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-surface-raised font-mono text-[13px] font-medium ${accent ? "border-gold-primary/40 text-gold-primary" : "border-white/15 text-text-primary/55"}`}>{n}</span>
+        <span className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-surface-raised font-mono text-[13px] font-medium ${accent ? "border-line/40 text-gold-primary" : "border-white/15 text-text-primary/55"}`}>{n}</span>
         {line && <span className="my-1.5 w-px flex-1 bg-white/10" />}
       </div>
       <div className="flex-1 pb-6">{children}</div>

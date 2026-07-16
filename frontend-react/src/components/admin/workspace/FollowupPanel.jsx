@@ -31,9 +31,9 @@ const UserPicker = ({ selectedUser, onChange }) => {
 
   if (selectedUser) {
     return (
-      <div className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.22)' }}>
+      <div className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: 'rgba(138,138,147,0.06)', border: '1px solid rgba(138,138,147,0.22)' }}>
         <div className="flex min-w-0 items-center gap-2">
-          <UserIcon size={12} style={{ color: '#60a5fa' }} />
+          <UserIcon size={12} style={{ color: '#8a8a93' }} />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-text-primary">@{selectedUser.username}</p>
             <p className="truncate font-mono text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>#{selectedUser.id}</p>
@@ -52,7 +52,7 @@ const UserPicker = ({ selectedUser, onChange }) => {
       <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} onFocus={() => setShowResults(true)} placeholder="Search user (min 2 chars)…"
         className="w-full rounded-lg py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
       {showResults && results.length > 0 && (
-        <div className="absolute left-0 right-0 z-10 mt-1 max-h-60 overflow-y-auto rounded-lg shadow-2xl" style={{ background: 'rgb(var(--surface-secondary))', border: '1px solid rgba(212,168,83,0.22)' }}>
+        <div className="absolute left-0 right-0 z-10 mt-1 max-h-60 overflow-y-auto rounded-lg shadow-2xl" style={{ background: 'rgb(var(--surface-secondary))', border: '1px solid rgb(var(--line) / 0.22)' }}>
           {results.map((u, i) => (
             <button key={u.id} type="button" onClick={() => { onChange(u); setSearch(''); setShowResults(false); }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-white/5" style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}>
@@ -94,8 +94,8 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 };
 
 const CATEGORIES = [
-  { value: 'renewal', label: 'Renewal', Icon: RenewalIcon, color: '#60a5fa' },
-  { value: 'winback', label: 'Win-back', Icon: RenewalIcon, color: '#a78bfa' },
+  { value: 'renewal', label: 'Renewal', Icon: RenewalIcon, color: '#8a8a93' },
+  { value: 'winback', label: 'Win-back', Icon: RenewalIcon, color: '#8a8a93' },
   { value: 'payment', label: 'Payment', Icon: PaymentCardIcon, color: 'rgb(var(--pos))' },
   { value: 'support', label: 'Support', Icon: SupportIcon, color: 'rgb(var(--warn))' },
   { value: 'general', label: 'General', Icon: NoteIcon, color: 'rgb(var(--fg-muted))' },
@@ -104,7 +104,7 @@ const CATEGORIES = [
 const PRIORITIES = [
   { value: 'urgent', label: 'Urgent', color: 'rgb(var(--neg))' },
   { value: 'high', label: 'High', color: '#fb923c' },
-  { value: 'normal', label: 'Normal', color: '#60a5fa' },
+  { value: 'normal', label: 'Normal', color: '#8a8a93' },
   { value: 'low', label: 'Low', color: 'rgb(var(--fg-muted))' },
 ];
 

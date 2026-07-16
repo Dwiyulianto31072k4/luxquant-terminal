@@ -76,7 +76,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
   const isValid = amountNum > 0 && amountNum <= availableBalance && telegram.length >= 5;
 
   const inputCls =
-    "w-full rounded-xl border border-white/[0.08] bg-surface-raised px-4 py-3.5 text-text-primary outline-none transition-colors focus:border-gold-primary/40 disabled:opacity-50";
+    "w-full rounded-xl border border-white/[0.08] bg-surface-raised px-4 py-3.5 text-text-primary outline-none transition-colors focus:border-line/40 disabled:opacity-50";
 
   const footer = (
     <div className="flex gap-3">

@@ -929,7 +929,6 @@ function AppShell({ children }) {
                   <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-loss/80">
                     Admin
                   </span>
-                  <span className="h-px flex-1 bg-white/[0.06]" />
                 </div>
                 <SidebarItem
                   active={isActive("/admin")}
@@ -957,7 +956,6 @@ function AppShell({ children }) {
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Navigation
               </span>
-              <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
 
             <SidebarItem
@@ -1220,7 +1218,6 @@ function AppShell({ children }) {
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Tools
               </span>
-              <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
 
             <SidebarItem
@@ -1290,7 +1287,6 @@ function AppShell({ children }) {
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Personal
               </span>
-              <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
 
             <SidebarItem
@@ -1390,8 +1386,8 @@ function AppShell({ children }) {
                     <div
                       className={`relative w-14 h-14 rounded-md flex items-center justify-center transition-all duration-300 ${
                         active
-                          ? "bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark border border-gold-primary/70 shadow-lg shadow-gold-primary/40"
-                          : "bg-surface-raised border border-gold-primary/40 group-hover:border-gold-primary/60"
+                          ? "bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark border border-line/70 shadow-lg shadow-gold-primary/40"
+                          : "bg-surface-raised border border-line/40 group-hover:border-line/60"
                       }`}
                     >
                       {/* Top hairline accent (Flowscan signature) */}

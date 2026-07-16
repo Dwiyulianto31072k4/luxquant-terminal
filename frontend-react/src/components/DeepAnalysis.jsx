@@ -619,7 +619,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                     <div className="relative">
                       <button
                         onClick={() => setShowCopyMenu(!showCopyMenu)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gold-primary/10 hover:bg-gold-primary/20 border border-line/30 hover:border-gold-primary/60 rounded-lg text-gold-primary text-[10px] sm:text-[11px] font-semibold transition-all"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gold-primary/10 hover:bg-gold-primary/20 border border-line/30 hover:border-line/60 rounded-lg text-gold-primary text-[10px] sm:text-[11px] font-semibold transition-all"
                       >
                         📋 Copy ▼
                       </button>

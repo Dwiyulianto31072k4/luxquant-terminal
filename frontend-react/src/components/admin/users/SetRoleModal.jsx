@@ -18,7 +18,7 @@ const ROLE_OPTIONS = [
     value: 'co_admin',
     label: ROLE_LABELS.co_admin,
     desc: 'View-only — open admin panel, no write/delete',
-    tone: '#60a5fa',
+    tone: '#8a8a93',
   },
   {
     value: 'founder',

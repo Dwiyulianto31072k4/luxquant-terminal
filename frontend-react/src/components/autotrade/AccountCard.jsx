@@ -240,7 +240,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           </button>
           <button
             onClick={() => onConfigure?.(account)}
-            className="flex-1 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-gold-primary/40 transition-all"
+            className="flex-1 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-line/40 transition-all"
           >
             Configure
           </button>

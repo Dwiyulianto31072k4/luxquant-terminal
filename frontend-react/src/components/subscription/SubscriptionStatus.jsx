@@ -39,7 +39,7 @@ const SubscriptionStatus = ({ compact = false }) => {
     if (sub?.is_subscribed) {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-              style={{ background: 'rgba(212, 168, 83, 0.15)', color: 'rgb(var(--accent))', border: '1px solid rgba(212, 168, 83, 0.3)' }}>
+              style={{ background: 'rgba(212, 168, 83, 0.15)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.3)' }}>
           PREMIUM
         </span>
       );
@@ -59,7 +59,7 @@ const SubscriptionStatus = ({ compact = false }) => {
   // Full card version (for profile/settings)
   return (
     <div className="rounded-xl p-4"
-         style={{ background: 'rgba(20, 10, 12, 0.6)', border: '1px solid rgba(212, 168, 83, 0.15)' }}>
+         style={{ background: 'rgba(20, 10, 12, 0.6)', border: '1px solid rgb(var(--line) / 0.15)' }}>
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-text-primary">Subscription</span>
         {sub?.tier === 'admin' ? (

@@ -152,7 +152,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
             type="button"
             aria-label={b.aria}
             onClick={b.fn}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-surface-secondary/90 text-[14px] text-gold-primary backdrop-blur transition hover:border-gold-primary/50 hover:bg-gold-primary/10 md:h-9 md:w-9 md:text-[15px]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-surface-secondary/90 text-[14px] text-gold-primary backdrop-blur transition hover:border-line/50 hover:bg-gold-primary/10 md:h-9 md:w-9 md:text-[15px]"
           >
             {b.label}
           </button>
@@ -428,7 +428,7 @@ export default function BrainPanel() {
                     onClick={() => setSelected(isSel ? null : lesson.id)}
                     className={`w-full rounded-xl border p-3.5 text-left transition ${
                       isSel
-                        ? "border-gold-primary/45 bg-gold-primary/[0.07]"
+                        ? "border-line/45 bg-gold-primary/[0.07]"
                         : "border-white/[0.05] bg-surface-secondary hover:border-white/[0.14]"
                     }`}
                   >

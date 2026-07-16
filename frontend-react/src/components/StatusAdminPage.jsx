@@ -38,7 +38,7 @@ const isClosed = (s) => s === "resolved" || s === "completed";
 const statusesFor = (impact) => (impact === "maintenance" ? MAINTENANCE_STATUSES : INCIDENT_STATUSES);
 
 const inputCls =
-  "w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-gold-primary/40";
+  "w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-line/40";
 const btnCls =
   "px-4 py-2 rounded-md font-mono text-[11px] uppercase tracking-wider transition-colors disabled:opacity-40";
 

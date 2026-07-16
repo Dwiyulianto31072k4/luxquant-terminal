@@ -158,7 +158,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
               .resource-prose li{margin:.3em 0}
               .resource-prose a{color:#d4a853;text-decoration:underline}
               .resource-prose img{max-width:100%;border-radius:12px;margin:1em 0}
-              .resource-prose blockquote{border-left:3px solid rgba(212,168,83,.5);padding-left:1em;margin:1em 0;color:#c9b59e;font-style:italic}
+              .resource-prose blockquote{border-left:3px solid rgb(var(--line) / .5);padding-left:1em;margin:1em 0;color:#c9b59e;font-style:italic}
               .resource-prose code{background:rgba(255,255,255,.08);padding:.1em .4em;border-radius:4px;font-size:.9em}
             `}</style>
           </div>

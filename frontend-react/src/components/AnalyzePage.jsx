@@ -597,14 +597,14 @@ const AnalyzePage = () => {
                   placeholder="BTC, ETH, SOL..."
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-gold-primary/40 transition-colors"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-line/40 transition-colors"
                 />
               </FilterField>
               <FilterField label={t("perf.status")} className="w-full sm:w-auto">
                 <select
                   value={sigStatus}
                   onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
                 >
                   <option value="all">{t("perf.all_status")}</option>
                   <option value="open">Not Hit</option>
@@ -619,7 +619,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigRisk}
                   onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
                 >
                   <option value="all">{t("perf.all_risk")}</option>
                   <option value="low">Low</option>
@@ -631,7 +631,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
                 >
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
@@ -1808,7 +1808,6 @@ const LoadingSkeleton = ({ t }) => (
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
       <div className="skel w-40 h-3" />
-      <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
       {[...Array(6)].map((_, i) => (

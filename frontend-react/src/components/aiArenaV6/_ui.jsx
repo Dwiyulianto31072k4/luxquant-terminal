@@ -503,7 +503,7 @@ export const GhostButton = ({ children, className = "", size = "md", ...rest }) 
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-gold-primary/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-line/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -578,7 +578,7 @@ export const Chip = ({ active, onClick, children }) => (
     onClick={onClick}
     className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
       active
-        ? "border-gold-primary/40 bg-gold-primary/15 text-gold-primary"
+        ? "border-line/40 bg-gold-primary/15 text-gold-primary"
         : "border-white/[0.07] bg-white/[0.02] text-text-muted/70 hover:border-white/[0.16] hover:text-text-primary"
     }`}
   >
