@@ -1581,19 +1581,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
-            {/* HEADER */}
-            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2 z-10">
+            {/* HEADER — exchange trade ticket style */}
+            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-[#0a0805] px-3 py-2.5 sm:px-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <CoinLogo pair={signal?.pair} size={28} />
                   <div className="min-w-0 flex-1">
                     {/* Baris 1: Pair name + status */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <h2 className="text-white font-display text-sm font-semibold truncate">
+                      <h2 className="truncate font-mono text-[15px] font-semibold text-white sm:text-base">
                         {signal?.pair}
                       </h2>
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold text-white flex-shrink-0 ${statusStyles[signal?.status?.toLowerCase()] || "bg-gray-500"}`}
+                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${statusStyles[signal?.status?.toLowerCase()] || "bg-gray-500"}`}
                       >
                         {signal?.status?.toUpperCase()}
                       </span>
@@ -1635,10 +1635,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
-                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-[#0a0a0a] text-white/80 border border-gold-primary/20 hover:text-white hover:border-gold-primary/50 transition-all mr-0.5 sm:mr-1"
+                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-white/65 transition hover:bg-white/[0.04] hover:text-white sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                   >
-                    <span className="hidden sm:inline">Explore on</span>
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <span className="hidden sm:inline">X</span>
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                   </a>
@@ -1663,7 +1663,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         window.location.href = "/journal";
                       }, 300);
                     }}
-                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all mr-0.5 sm:mr-1"
+                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-white/65 transition hover:bg-white/[0.04] hover:text-white sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                     title="Journal This Trade"
                   >
                     <svg
@@ -1924,20 +1924,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             </div>
                           </div>
                           {showInteractiveRight ? (
-                            <div className="lq-card relative bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full shadow-md">
+                            <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[300px]">
                               <div
                                 id="tv_chart_modal_side"
-                                className="absolute inset-0 w-full h-full"
+                                className="absolute inset-0 h-full w-full"
                               />
                             </div>
                           ) : (
-                            <div
-                              className={`lq-card ${isStopped ? "lq-card--red" : "lq-card--green"} relative group bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full shadow-md`}
-                            >
+                            <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[300px]">
                               <img
                                 src={afterImg}
                                 alt="Latest Chart"
-                                className="absolute inset-0 w-full h-full object-contain"
+                                className="absolute inset-0 h-full w-full object-contain"
                                 loading="lazy"
                                 onError={(e) => {
                                   if (rawAfterImg && e.target.src !== rawAfterImg) {
@@ -1946,31 +1944,23 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   }
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10">
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-3 pb-3 pt-10">
                                 <button
+                                  type="button"
                                   onClick={() => setShowTV(true)}
-                                  className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-md font-bold text-xs transition-colors border border-white/20 flex items-center gap-2"
+                                  className="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-md border border-white/15 bg-white/95 py-2 text-[12px] font-semibold text-[#0a0506] transition hover:bg-white active:scale-[0.99]"
                                 >
-                                  <span>Interactive Chart</span>
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                                    />
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
                                   </svg>
+                                  Click for live chart
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => setLightboxImg(afterImg)}
-                                  className="text-white/60 hover:text-white text-[10px] underline"
+                                  className="pointer-events-auto mt-1.5 w-full text-center text-[11px] text-white/55 hover:text-white/85"
                                 >
-                                  Fullscreen
+                                  Fullscreen screenshot
                                 </button>
                               </div>
                             </div>
@@ -1981,18 +1971,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Peak Price (FULL WIDTH) */}
                     {peakPrice && entryPrice > 0 && (
-                      <div className="lq-card lq-card--green bg-[#0d0d0d] p-4 flex flex-col sm:flex-row items-center justify-center gap-4 shadow-sm">
+                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-white/[0.06] bg-[#0c0a07] px-4 py-3 sm:flex-row sm:gap-4">
                         <div className="flex flex-col items-center sm:items-end">
-                          <span className="text-white text-xs sm:text-sm font-bold uppercase tracking-widest text-center sm:text-right">
-                            Highest Price After Called
+                          <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-right">
+                            Highest after call
                           </span>
                         </div>
-                        <div className="hidden sm:block h-6 w-px bg-white/10"></div>
+                        <div className="hidden h-5 w-px bg-white/10 sm:block" />
                         <div className="flex items-center gap-3">
-                          <span className="text-lg font-mono font-bold text-white">
+                          <span className="font-mono text-base font-semibold tabular-nums text-white sm:text-lg">
                             ${formatPrice(peakPrice)}
                           </span>
-                          <span className="text-sm font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20 font-mono">
+                          <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 font-mono text-[12px] font-semibold text-emerald-400">
                             {peakPricePct}%
                           </span>
                         </div>
@@ -2651,15 +2641,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         @keyframes lqShimmer { 0% { background-position: 200% 0; } 100% { background-position: -120% 0; } }
         @media (prefers-reduced-motion: reduce) { .lq-guide-btn { animation: none; } }
         .signal-modal-overlay { position: fixed; inset: 0; z-index: 200000; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
-        .signal-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(8px); }
+        .signal-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); }
         .signal-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
         .signal-modal-container > * { pointer-events: auto; }
         .signal-modal-content {
-          position: relative; width: 100%; max-width: 1400px;
+          position: relative; width: 100%; max-width: 1200px;
           height: min(92dvh, 100%); max-height: 92dvh;
-          background: #0c0a07;
-          border: none; border-top: 1px solid rgba(255,255,255,0.12);
-          border-radius: 1.5rem 1.5rem 0 0;
+          background: #0a0805;
+          border: none; border-top: 1px solid rgba(255,255,255,0.08);
+          border-radius: 1rem 1rem 0 0;
           display: flex; flex-direction: column; overflow: hidden;
           box-shadow: 0 -16px 48px rgba(0,0,0,0.55);
         }
@@ -2669,15 +2659,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           .signal-modal-container { align-items: center; padding: 12px; }
           .signal-modal-content {
             height: auto; max-height: calc(100vh - 24px);
-            border-radius: 16px;
-            border: 1px solid rgba(212,168,83,0.4);
-            background: #0a0506;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: #0a0805;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.55);
           }
         }
         @media(min-width:1024px) {
-          .signal-modal-container { padding: 20px; }
-          .signal-modal-content { max-height: 880px; }
+          .signal-modal-container { padding: 16px; }
+          .signal-modal-content { max-height: min(90dvh, 880px); }
         }
         @supports(height:100dvh) { .signal-modal-overlay { height: 100dvh; } }
 

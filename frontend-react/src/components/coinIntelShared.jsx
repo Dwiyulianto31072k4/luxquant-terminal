@@ -542,12 +542,12 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
         .cdm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); animation: cdmBI .25s ease-out; }
         .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
         .cdm-container > * { pointer-events: auto; }
-        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0506; border-top: 1px solid rgba(212,168,83,0.4); border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: cdmUp .32s cubic-bezier(.16,1,.3,1); box-shadow: 0 -20px 60px rgba(0,0,0,.65); }
+        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0805; border-top: 1px solid rgba(255,255,255,0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: cdmUp .32s cubic-bezier(.16,1,.3,1); box-shadow: 0 -16px 48px rgba(0,0,0,.55); }
 
         @media(min-width:640px) {
           .cdm-overlay { align-items: center; }
           .cdm-container { align-items: center; padding: 16px; }
-          .cdm-content { height: auto; min-height: 0; max-height: calc(100vh - 32px); border-radius: 16px; border: 1px solid rgba(212,168,83,0.4); box-shadow: 0 25px 50px rgba(0,0,0,.5), 0 0 40px rgba(212,168,83,.1); animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
+          .cdm-content { height: auto; min-height: 0; max-height: calc(100vh - 32px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 64px rgba(0,0,0,.55); animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
         }
         @media(min-width:1024px) {
           .cdm-container { padding: 24px; }

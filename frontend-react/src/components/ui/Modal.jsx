@@ -160,10 +160,10 @@ export default function Modal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={!animate ? { backdropFilter: "blur(6px)" } : undefined}
-        className={`lqm-card relative flex w-full flex-col overflow-hidden border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)] ${SIZES[size] || SIZES.md} ${
+        className={`lqm-card relative flex w-full flex-col overflow-hidden border border-white/[0.08] bg-[#0a0805] shadow-[0_24px_64px_rgba(0,0,0,0.55)] ${SIZES[size] || SIZES.md} ${
           placement === "bottom"
-            ? "lqm-sheet max-h-[min(92dvh,100%)] rounded-t-3xl border-b-0 sm:max-h-[calc(100dvh-4rem)] sm:rounded-2xl sm:border-b sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)] shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
-            : "max-h-[calc(100dvh-2rem)] rounded-2xl sm:max-h-[calc(100dvh-4rem)]"
+            ? "lqm-sheet max-h-[min(92dvh,100%)] rounded-t-xl border-b-0 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl sm:border-b shadow-[0_-16px_48px_rgba(0,0,0,0.55)]"
+            : "max-h-[calc(100dvh-2rem)] rounded-xl sm:max-h-[calc(100dvh-4rem)]"
         } ${className}`}
       >
         {placement === "bottom" ? (
