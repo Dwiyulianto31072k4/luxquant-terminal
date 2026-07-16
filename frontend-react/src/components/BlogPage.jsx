@@ -171,7 +171,7 @@ function IndexPage() {
       <div className="mt-7 space-y-3">
         {POSTS.map((p) => (
           <Link key={p.slug} to={`/blog/${p.slug}`}
-            className="group block rounded-xl border border-white/[0.07] bg-[#0a0805] p-5 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
+            className="group block rounded-xl border border-white/[0.07] bg-surface-raised p-5 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
             <p className="font-mono text-[11px] text-text-muted">{fmtDate(p.date)} · {p.readingTime} read</p>
             <h2 className="mt-1.5 text-[17px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{p.title}</h2>
             <p className="mt-1.5 text-[13.5px] text-text-primary/55 leading-relaxed">{p.excerpt}</p>

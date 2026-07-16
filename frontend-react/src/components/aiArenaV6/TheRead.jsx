@@ -172,7 +172,7 @@ export default function TheRead({ data }) {
             <div className="flex w-full shrink-0 flex-col items-center gap-3 md:w-auto">
               <StanceGauge value={conf} dir={tactical.direction} />
               {drivers.length > 0 && (
-                <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-white/[0.06] bg-[#140b0d] p-3.5">
+                <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-white/[0.06] bg-surface-secondary p-3.5">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted/60">Driver agreement</span>
                     <span className="font-mono text-[12px] tabular-nums text-text-primary/85">{aligned}/{drivers.length}</span>
@@ -213,7 +213,7 @@ export default function TheRead({ data }) {
                   const ev = r.evidence?.[0];
                   const why = r.rationale || ev?.note || null;
                   return (
-                    <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+                    <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[13px] font-semibold text-text-primary/90">{r.label}</span>
                         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
@@ -279,7 +279,7 @@ export default function TheRead({ data }) {
           <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             {drivers.map((r) => (
               (r.evidence?.length > 0) && (
-                <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+                <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-primary/80">{r.label}</span>
                     {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}
@@ -330,7 +330,7 @@ export default function TheRead({ data }) {
               {showRisks && (
                 <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                   {risks.map((rk, i) => (
-                    <div key={i} className="rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+                    <div key={i} className="rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
                         <span className="text-[13px] font-medium text-text-primary/90">{rk.title}</span>
                         <Tag tone={normDir(rk.severity) === "down" ? "down" : rk.severity === "high" ? "down" : rk.severity === "medium" ? "neutral" : "muted"}>

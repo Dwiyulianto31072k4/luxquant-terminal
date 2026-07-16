@@ -42,7 +42,7 @@ export const InfoTip = ({ text, title, side = 'top', className = '' }) => {
           onClick={(e) => e.stopPropagation()}
           className={`absolute ${pos} left-1/2 -translate-x-1/2 z-[70] w-60 normal-case tracking-normal text-left cursor-default`}
         >
-          <span className="relative block bg-[#0d0a07] border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
+          <span className="relative block bg-surface-raised border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
             <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
             {title && <span className="block font-mono text-[10px] uppercase tracking-wider text-gold-primary mb-1">{title}</span>}
             <span className="block font-mono text-[11px] leading-relaxed text-text-muted">{text}</span>
@@ -135,7 +135,7 @@ export const GuideModal = ({ onClose }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-[#0a0805] border-t border-gold-primary/25 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-gold-primary/25 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />

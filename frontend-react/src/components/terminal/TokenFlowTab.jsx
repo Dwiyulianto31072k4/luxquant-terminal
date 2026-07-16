@@ -41,7 +41,7 @@ function FlowRow({ r, max, color }) {
 function FlowColumn({ title, sub, rows, color }) {
   const max = rows.reduce((a, r) => Math.max(a, Math.abs(r.net_inflow_usd || 0)), 0);
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] p-3">
+    <div className="rounded-lg border border-white/[0.06] bg-surface-raised p-3">
       <div className="mb-2">
         <div className="text-[13px] text-text-primary/90">{title}</div>
         <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">{sub}</div>

@@ -287,7 +287,7 @@ export default function SignalTerminalPage() {
       {view === "treemap" && <MacroStrip macro={macro} sectors={sectors} model={model} />}
 
       {/* Main stage */}
-      <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-4 relative overflow-hidden">
+      <div className="rounded-2xl bg-surface-raised border border-white/[0.07] p-4 relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         {model.length === 0 ? (
           <div className="h-[360px] flex items-center justify-center font-mono text-xs text-text-primary/40">
@@ -352,8 +352,8 @@ function SignalDetailModal({ d, onClose, onFull }) {
   );
   return (
     <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-6" onClick={onClose}>
-      <div className="relative w-full max-w-[540px] max-h-[min(92dvh,100%)] overflow-auto rounded-t-3xl sm:rounded-2xl bg-[#0a0805] border-t border-gold-primary/25 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/60" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-[#0a0805]" aria-hidden="true">
+      <div className="relative w-full max-w-[540px] max-h-[min(92dvh,100%)] overflow-auto rounded-t-3xl sm:rounded-2xl bg-surface-raised border-t border-gold-primary/25 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/60" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-surface-raised" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
@@ -414,8 +414,8 @@ function Enc({ label, value, onChange }) {
     <label className="flex items-center gap-2">
       <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
-        {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-[#0a0506]">{m.lbl}</option>)}
+        className="appearance-none bg-surface border border-white/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-surface">{m.lbl}</option>)}
       </select>
     </label>
   );
@@ -423,14 +423,14 @@ function Enc({ label, value, onChange }) {
 
 // ── Filter bar ──
 function FilterBar({ filters, setF }) {
-  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-text-primary/55 border-white/[0.1] bg-[#0c0a07] hover:border-white/20"}`;
-  const sel = "appearance-none bg-[#0c0a07] border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
+  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-text-primary/55 border-white/[0.1] bg-surface-raised hover:border-white/20"}`;
+  const sel = "appearance-none bg-surface-raised border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
   return (
-    <div className="sticky top-0 z-30 bg-[#0a0806] border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
+    <div className="sticky top-0 z-30 bg-surface-raised border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
       <div className="relative">
         <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-text-primary/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
         <input value={filters.searchPair} onChange={(e) => setF({ searchPair: e.target.value })} placeholder="Search pair…"
-          className="bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary pl-8 pr-3 py-2 w-40 focus:outline-none focus:border-gold-primary/40" />
+          className="bg-surface border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary pl-8 pr-3 py-2 w-40 focus:outline-none focus:border-gold-primary/40" />
       </div>
       <select className={sel} value={filters.statusFilter} onChange={(e) => setF({ statusFilter: e.target.value })}>
         <option value="all">All Status</option><option value="open">Open</option><option value="tp1">TP1</option><option value="tp2">TP2</option><option value="tp3">TP3</option><option value="closed_win">TP4 / Win</option><option value="closed_loss">Loss</option>
@@ -468,7 +468,7 @@ function MacroStrip({ macro, sectors, model }) {
   const maxAbs = Math.max(...topSectors.map((s) => Math.abs(s.mcap_change_24h ?? 0)), 1);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-      <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] p-4">
+      <div className="relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] p-4">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="font-mono text-[10px] uppercase tracking-widest text-text-primary/50 mb-3">Dominance & Altseason</div>
         <div className="flex justify-around">
@@ -477,7 +477,7 @@ function MacroStrip({ macro, sectors, model }) {
           {gauge(macro?.altseason_index, "#d4af37", "Altseason")}
         </div>
       </div>
-      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.07] rounded-2xl p-4 lg:col-span-2">
+      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.07] rounded-2xl p-4 lg:col-span-2">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="font-mono text-[10px] uppercase tracking-widest text-text-primary/50 mb-3">Sector Rotation · Δ Market Cap 24h</div>
         <div className="space-y-1.5">
@@ -558,7 +558,7 @@ function BubbleTip({ active, payload, colorBy }) {
   const meta = STATUS_META[d.status] || (info ? STATUS_META[info.status] : null);
   const ago = info ? timeAgo(info.created) : null;
   return (
-    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{d.sym}</span>{meta && <span className="font-bold ml-auto" style={{ color: meta.color }}>{meta.label}</span>}</div>
       {ago && <div className="text-text-primary/45 mb-1">called {ago}</div>}
       <div className="text-text-primary/55">Win rate: <span className="text-text-primary/90">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</span></div>
@@ -704,10 +704,10 @@ function Matrix({ model, onPick }) {
       <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th className="sticky left-0 top-0 z-30 bg-[#0a0506] text-left font-mono text-[10px] uppercase tracking-wide text-text-primary/55 font-medium px-3 py-2.5">Pair</th>
+            <th className="sticky left-0 top-0 z-30 bg-surface text-left font-mono text-[10px] uppercase tracking-wide text-text-primary/55 font-medium px-3 py-2.5">Pair</th>
             {MX_COLS.map((k) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className="sticky top-0 z-20 bg-[#0a0506] font-mono text-[10px] uppercase tracking-wide text-text-primary/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
+                className="sticky top-0 z-20 bg-surface font-mono text-[10px] uppercase tracking-wide text-text-primary/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
                 {METRICS[k].lbl}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}
@@ -716,7 +716,7 @@ function Matrix({ model, onPick }) {
         <tbody>
           {rows.map((d) => (
             <tr key={d.signal_id}>
-              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[12px] font-bold text-text-primary px-3 py-1 cursor-pointer hover:text-gold-primary z-10">
+              <td onClick={() => onPick(d)} className="sticky left-0 bg-surface font-mono text-[12px] font-bold text-text-primary px-3 py-1 cursor-pointer hover:text-gold-primary z-10">
                 <span className="flex items-center gap-2"><CoinLogo pair={d.pair} size={20} /><span>{d.sym}</span></span>
               </td>
               {MX_COLS.map((k) => {
@@ -752,7 +752,7 @@ function SectorView({ model, colorBy, onPick }) {
         const list = [...groups[k]].sort((a, b) => (METRICS[colorBy].get(b) ?? 0) - (METRICS[colorBy].get(a) ?? 0));
         const mx = Math.max(...list.map((d) => Math.abs(METRICS[colorBy].get(d) ?? 0)), 1);
         return (
-          <div key={k} className="bg-[#0a0506] border border-white/[0.06] rounded-xl p-3">
+          <div key={k} className="bg-surface border border-white/[0.06] rounded-xl p-3">
             <div className="font-mono text-xs font-semibold text-text-primary mb-0.5">{k} risk</div>
             <div className="font-mono text-[9px] uppercase tracking-wide text-text-primary/35 mb-2">{list.length} signals</div>
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
@@ -785,8 +785,8 @@ function MetricPick({ label, value, onChange }) {
     <label className="flex items-center gap-1.5">
       <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-[#0c0a07] border border-white/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
-        {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-[#0a0506]">{m.lbl}</option>)}
+        className="appearance-none bg-surface-raised border border-white/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-surface">{m.lbl}</option>)}
       </select>
     </label>
   );
@@ -798,7 +798,7 @@ function ExploreView({ model, onPick }) {
   const [logX, setLogX] = useState(true);
   const [labels, setLabels] = useState(true);
   const mx = METRICS[xk], my = METRICS[yk];
-  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-text-primary/55 bg-[#0c0a07] border-white/[0.12] hover:border-white/25"}`;
+  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-text-primary/55 bg-surface-raised border-white/[0.12] hover:border-white/25"}`;
   return (
     <>
       <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -829,7 +829,7 @@ function Screener({ model, onPick }) {
   });
   const stColor = (s) => ({ open: "#60a5fa", tp1: "#34d399", tp2: "#34d399", tp3: "#34d399", closed_win: "#34d399", closed_loss: "#f87171" }[s] || "#9ca3af");
   return (
-    <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+    <div className="rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
       <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-center justify-between">
         <span className="text-[12.5px] text-text-primary/90">Signal Screener</span>
@@ -840,7 +840,7 @@ function Screener({ model, onPick }) {
           <thead>
             <tr>{SCR.map(([k, l], i) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 bg-[#0c0a07] font-medium text-[9px] uppercase tracking-wide text-text-primary/40 px-2 py-2 border-b border-white/[0.08] cursor-pointer hover:text-gold-primary whitespace-nowrap`}>
+                className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 bg-surface-raised font-medium text-[9px] uppercase tracking-wide text-text-primary/40 px-2 py-2 border-b border-white/[0.08] cursor-pointer hover:text-gold-primary whitespace-nowrap`}>
                 {l}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}</tr>

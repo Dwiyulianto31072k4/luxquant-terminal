@@ -76,7 +76,7 @@ export default function InAppBrowserBanner() {
   return (
     <div
       role="alert"
-      className="fixed top-0 inset-x-0 z-[9999] bg-[#0a0805] border-b border-[#c9a04e]/40"
+      className="fixed top-0 inset-x-0 z-[9999] bg-surface-raised border-b border-[#c9a04e]/40"
     >
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-start gap-3">
         <div className="flex-1 min-w-0">

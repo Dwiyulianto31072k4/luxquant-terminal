@@ -35,7 +35,7 @@ export default function FreeTierV2() {
           clipped (tucked into the panel), MEXC-style. The phone wrapper does
           the clipping: top reaches above the card, bottom ends at the card. */}
       <div className="relative mx-auto max-w-5xl">
-        <div className="relative rounded-3xl border border-white/[0.08] bg-[#0a0805] shadow-[0_18px_50px_rgba(0,0,0,0.5)]">
+        <div className="relative rounded-3xl border border-white/[0.08] bg-surface-raised shadow-[0_18px_50px_rgba(0,0,0,0.5)]">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
           {/* PHONE — mobile: sits inside the card, top peeking, bottom fades

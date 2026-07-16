@@ -263,7 +263,7 @@ export default function ModelCalibrationPanel({ data }) {
 
   return (
     <section className="min-w-0 mb-8">
-      <div className="min-w-0 rounded-xl border border-white/[0.06] bg-[#12090d]/80 p-4 md:p-5">
+      <div className="min-w-0 rounded-xl border border-white/[0.06] bg-surface-secondary/80 p-4 md:p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
           <div>
             <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451] mb-1">

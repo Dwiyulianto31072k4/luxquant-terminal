@@ -5,10 +5,11 @@
 
 import { useTheme } from '../context/ThemeContext';
 
+// Bright is temporarily hidden while Dark is being polished across all features.
+// Re-add { key: 'bright', label: 'Bright' } to expose it again.
 const OPTIONS = [
   { key: 'luxquant', label: 'Lux' },
   { key: 'dark', label: 'Dark' },
-  { key: 'bright', label: 'Bright' },
 ];
 
 export default function ThemeToggle() {

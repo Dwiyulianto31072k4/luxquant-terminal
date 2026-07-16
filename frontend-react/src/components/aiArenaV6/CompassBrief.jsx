@@ -8,7 +8,7 @@ import {
 } from "./constants";
 
 const card =
-  "rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]";
+  "rounded-2xl border border-white/[0.08] bg-surface-secondary/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]";
 const mutedCard = "rounded-xl border border-white/[0.06] bg-white/[0.025]";
 
 function cx(...classes) {
@@ -631,7 +631,7 @@ function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/75 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[min(92dvh,100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-white/10 sm:border bg-[#09090d] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl"
+        className="max-h-[min(92dvh,100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-white/10 sm:border bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">

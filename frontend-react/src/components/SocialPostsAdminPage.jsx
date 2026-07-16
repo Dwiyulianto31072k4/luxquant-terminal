@@ -756,7 +756,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
       </button>
 
       <div
-        className="relative flex flex-col md:flex-row w-full max-w-[880px] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-[#0c0a10] border-t border-white/10 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
+        className="relative flex flex-col md:flex-row w-full max-w-[880px] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-white/10 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute top-2.5 left-0 right-0 z-20 flex justify-center pointer-events-none sm:hidden" aria-hidden="true">
@@ -785,7 +785,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
         </div>
 
         {/* Right — IG-style caption column (flexes to remaining width) */}
-        <div className="flex-1 min-w-0 flex flex-col bg-[#0c0a10] border-t md:border-t-0 md:border-l border-white/10 min-h-0">
+        <div className="flex-1 min-w-0 flex flex-col bg-surface-raised border-t md:border-t-0 md:border-l border-white/10 min-h-0">
           {/* account header */}
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.08]">
             <img src={IG_AVATAR} alt="" className="w-8 h-8 rounded-full object-contain bg-white/5 p-1 flex-shrink-0" />

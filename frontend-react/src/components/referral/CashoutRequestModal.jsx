@@ -76,7 +76,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
   const isValid = amountNum > 0 && amountNum <= availableBalance && telegram.length >= 5;
 
   const inputCls =
-    "w-full rounded-xl border border-white/[0.08] bg-[#0d0b09] px-4 py-3.5 text-text-primary outline-none transition-colors focus:border-gold-primary/40 disabled:opacity-50";
+    "w-full rounded-xl border border-white/[0.08] bg-surface-raised px-4 py-3.5 text-text-primary outline-none transition-colors focus:border-gold-primary/40 disabled:opacity-50";
 
   const footer = (
     <div className="flex gap-3">
@@ -120,7 +120,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
       ) : (
         <>
           {/* Available balance */}
-          <div className="mb-5 rounded-xl border border-gold-primary/12 bg-[#0d0b09] p-4">
+          <div className="mb-5 rounded-xl border border-gold-primary/12 bg-surface-raised p-4">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">Available Balance</p>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xs text-text-muted">$</span>

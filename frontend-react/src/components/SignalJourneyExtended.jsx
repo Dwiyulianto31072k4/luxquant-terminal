@@ -109,7 +109,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
           📊 Detailed Journey
         </h4>
-        <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4 space-y-3 animate-pulse">
+        <div className="bg-surface-raised rounded-xl border border-white/5 p-4 space-y-3 animate-pulse">
           <div className="h-3 bg-white/5 rounded w-1/3" />
           <div className="grid grid-cols-3 gap-2">
             <div className="h-16 bg-white/5 rounded" />
@@ -162,7 +162,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
           📊 Detailed Journey
         </h4>
-        <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4 text-center">
+        <div className="bg-surface-raised rounded-xl border border-white/5 p-4 text-center">
           <p className="text-text-muted text-xs">
             Price-action data unavailable for this pair. Detailed journey requires kline data from Binance or Bybit.
           </p>
@@ -204,7 +204,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         {/* ════════════════════════════════════════ */}
         {/* SECTION 1: ENTRY PHASE                    */}
         {/* ════════════════════════════════════════ */}
-        <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4">
+        <div className="bg-surface-raised rounded-xl border border-white/5 p-4">
           <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mb-3">
             Entry Phase
           </p>
@@ -256,7 +256,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         {/* ════════════════════════════════════════ */}
         {/* SECTION 2: TIMELINE                       */}
         {/* ════════════════════════════════════════ */}
-        <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4">
+        <div className="bg-surface-raised rounded-xl border border-white/5 p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
               Price Action Timeline
@@ -295,7 +295,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         {/* SECTION 3: OUTCOME                        */}
         {/* ════════════════════════════════════════ */}
         {outcome && (
-          <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4">
+          <div className="bg-surface-raised rounded-xl border border-white/5 p-4">
             <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mb-3">
               Outcome
             </p>

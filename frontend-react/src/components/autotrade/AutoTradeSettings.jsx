@@ -49,7 +49,7 @@ export default function AutoTradeSettings({
 
   return (
     <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <aside className="h-fit rounded-md border border-white/[0.06] bg-[#0a0805] p-2 lg:sticky lg:top-24">
+      <aside className="h-fit rounded-md border border-white/[0.06] bg-surface-raised p-2 lg:sticky lg:top-24">
         <div className="px-3 pb-2 pt-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
             AutoTrade Settings

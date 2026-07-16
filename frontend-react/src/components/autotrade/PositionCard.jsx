@@ -52,7 +52,7 @@ export default function PositionCard({ order, onClosed }) {
   const canClose = ["filled", "partial", "placed"].includes(order.status);
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">
+    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">
       {/* Top hairline accent */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 

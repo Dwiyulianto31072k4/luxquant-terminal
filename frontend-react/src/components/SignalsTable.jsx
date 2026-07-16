@@ -113,7 +113,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -124,7 +124,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 z-50 bg-[#0a0805] border border-white/[0.1] rounded-md shadow-2xl overflow-hidden">
+        <div className="absolute right-0 mt-2 w-56 z-50 bg-surface-raised border border-white/[0.1] rounded-md shadow-2xl overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06]">
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary">Visible Columns</span>
@@ -668,7 +668,7 @@ const SignalsTable = ({
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
 
     return (
-      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-gold-primary/30">
+      <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-gold-primary/30">
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
         {/* COLLAPSED — overview, tap to expand */}
@@ -883,7 +883,7 @@ const SignalsTable = ({
     <div className="lqsk-group space-y-3">
       <ShimmerStyles />
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-4 border border-white/[0.06]">
+        <div key={i} className="bg-surface-raised rounded-md p-4 border border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white/[0.04] rounded-full" />
@@ -908,7 +908,7 @@ const SignalsTable = ({
         {loading ? (
           <MobileLoadingSkeleton />
         ) : signals?.length === 0 ? (
-          <div className="bg-[#0a0805] rounded-md p-8 border border-white/[0.06] text-center relative overflow-hidden">
+          <div className="bg-surface-raised rounded-md p-8 border border-white/[0.06] text-center relative overflow-hidden">
             <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
             <div className="flex flex-col items-center gap-3">
               <div className="w-14 h-14 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
@@ -1251,8 +1251,8 @@ const SignalsTable = ({
                                   {showHint && (
                                     <div className="lq-verdict-hint absolute top-full left-1/2 -translate-x-1/2 mt-2 z-40 w-60 text-left">
                                       {/* arrow */}
-                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-[#0d0a07] border-l border-t border-gold-primary/40" />
-                                      <div className="relative bg-[#0d0a07] border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
+                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-surface-raised border-l border-t border-gold-primary/40" />
+                                      <div className="relative bg-surface-raised border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
                                         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
                                         <div className="flex items-center justify-between mb-1.5">
                                           <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary">👆 Click for detail</span>
@@ -1383,7 +1383,7 @@ const SignalsTable = ({
 
       {showNotice && (
         <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-md z-[60] lq-notice-in">
-          <div className="relative flex items-start gap-3 bg-[#0a0805] border border-gold-primary/25 rounded-md p-4 pr-10 shadow-2xl overflow-hidden">
+          <div className="relative flex items-start gap-3 bg-surface-raised border border-gold-primary/25 rounded-md p-4 pr-10 shadow-2xl overflow-hidden">
             <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
             <span className="absolute left-0 inset-y-0 w-0.5 bg-gold-primary/50" />
             <div className="w-8 h-8 shrink-0 rounded-sm bg-gold-primary/[0.08] border border-gold-primary/20 flex items-center justify-center text-gold-primary/80">

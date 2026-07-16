@@ -78,7 +78,7 @@ export const DeviceShowcase = ({ compact = false, phone = true }) => {
         <div className="relative overflow-hidden rounded-[12px] bg-black ring-1 ring-white/[0.07]"
           style={{ boxShadow: '0 36px 80px rgba(0,0,0,0.6), 0 0 56px rgba(212,168,83,0.10)' }}>
           <div style={{ padding: compact ? 6 : 9 }}>
-            <div className="relative overflow-hidden rounded-[3px] bg-[#050302] ring-1 ring-white/[0.05]" style={{ aspectRatio: '16 / 10' }}>
+            <div className="relative overflow-hidden rounded-[3px] bg-surface ring-1 ring-white/[0.05]" style={{ aspectRatio: '16 / 10' }}>
               <img src={`/mockups/hero-mac-dashboard.png${v}`} alt="LuxQuant dashboard"
                 className="h-full w-full object-cover object-top" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
             </div>
@@ -105,7 +105,7 @@ export const DeviceShowcase = ({ compact = false, phone = true }) => {
         <div className="absolute z-30" style={{ right: compact ? '-3%' : '-4%', bottom: compact ? '4%' : '6%', width: compact ? '24%' : '25%', minWidth: 68, maxWidth: 150, animation: 'lq-float-p 5s ease-in-out infinite 0.8s' }}>
           <div className="relative overflow-hidden rounded-[1.5rem] bg-black p-[2px] ring-1 ring-white/10"
             style={{ boxShadow: '0 24px 50px rgba(0,0,0,0.85), 0 0 34px rgba(212,168,83,0.18)' }}>
-            <div className="relative overflow-hidden rounded-[1.35rem] bg-[#0a0506]" style={{ aspectRatio: '9 / 19.5' }}>
+            <div className="relative overflow-hidden rounded-[1.35rem] bg-surface" style={{ aspectRatio: '9 / 19.5' }}>
               <img src={`/mockup-hp.png${v}`} alt="LuxQuant mobile" className="absolute inset-0 h-full w-full object-cover"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               <div className="absolute left-1/2 top-[2.4%] z-20 -translate-x-1/2 rounded-full bg-black" style={{ width: '32%', aspectRatio: '3.4 / 1' }} />

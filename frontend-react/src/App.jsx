@@ -238,7 +238,7 @@ function PremiumGate({ children }) {
             </span>
             <span className="h-px w-8 bg-gold-primary/40" />
           </div>
-          <div className="w-14 h-14 rounded-md bg-[#0a0805] border border-gold-primary/25 flex items-center justify-center mb-5 relative overflow-hidden">
+          <div className="w-14 h-14 rounded-md bg-surface-raised border border-gold-primary/25 flex items-center justify-center mb-5 relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
             <svg
               className="w-7 h-7 text-gold-primary"
@@ -917,7 +917,7 @@ function AppShell({ children }) {
         />
       )}
       <div
-        className={`fixed top-14 left-0 bottom-16 w-72 z-50 bg-[#0a0506] backdrop-blur-xl border-r border-white/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed top-14 left-0 bottom-16 w-72 z-50 bg-surface backdrop-blur-xl border-r border-white/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -1393,7 +1393,7 @@ function AppShell({ children }) {
                       className={`relative w-14 h-14 rounded-md flex items-center justify-center transition-all duration-300 ${
                         active
                           ? "bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark border border-gold-primary/70 shadow-lg shadow-gold-primary/40"
-                          : "bg-[#0a0805] border border-gold-primary/40 group-hover:border-gold-primary/60"
+                          : "bg-surface-raised border border-gold-primary/40 group-hover:border-gold-primary/60"
                       }`}
                     >
                       {/* Top hairline accent (Flowscan signature) */}

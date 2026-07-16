@@ -528,7 +528,7 @@ const WrVsBtcTab = ({ onDrill }) => {
           <div
             ref={tooltipRef}
             style={{ display: "none" }}
-            className="absolute z-20 pointer-events-none px-3 py-2 rounded-lg border border-amber-400/20 bg-[#0a0805]/95 shadow-xl"
+            className="absolute z-20 pointer-events-none px-3 py-2 rounded-lg border border-amber-400/20 bg-surface-raised/95 shadow-xl"
           />
         </div>
 

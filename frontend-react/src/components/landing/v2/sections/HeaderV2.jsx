@@ -115,7 +115,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
         className={[
           "mx-auto w-full border transition-all duration-500 ease-out",
           scrolled
-            ? "mt-3 max-w-[1280px] rounded-full border-white/[0.08] bg-[#0a0506]/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+            ? "mt-3 max-w-[1280px] rounded-full border-white/[0.08] bg-surface/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl"
             : "mt-0 max-w-7xl rounded-none border-transparent bg-transparent",
         ].join(" ")}
       >
@@ -243,7 +243,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
       <div
         className={[
           "absolute left-3 right-3 top-full mt-2 overflow-hidden rounded-2xl",
-          "bg-[#0a0506]/95 backdrop-blur-3xl transition-all duration-500 ease-in-out",
+          "bg-surface/95 backdrop-blur-3xl transition-all duration-500 ease-in-out",
           mobileOpen
             ? "max-h-[82vh] border border-white/[0.08] opacity-100 shadow-2xl"
             : "max-h-0 border border-transparent opacity-0",

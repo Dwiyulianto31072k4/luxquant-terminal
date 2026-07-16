@@ -554,7 +554,7 @@ const LeadCard = ({ item, onSelect }) => {
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-md overflow-hidden bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
+      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-gold-primary/30 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}
     >
       <GoldEdges />
@@ -616,7 +616,7 @@ const SecondaryCard = ({ item, onSelect }) => {
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-md overflow-hidden bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
+      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
       style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
     >
       <GoldEdges />
@@ -683,7 +683,7 @@ const ListRow = ({ item, onSelect }) => {
         className="absolute left-0 inset-y-2.5 w-px opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.6), transparent)" }}
       />
-      <div className="relative w-[72px] h-[72px] rounded-md overflow-hidden flex-shrink-0 bg-[#0a0805] border border-white/[0.06]">
+      <div className="relative w-[72px] h-[72px] rounded-md overflow-hidden flex-shrink-0 bg-surface-raised border border-white/[0.06]">
         <RowThumb item={item} />
         {hasVideo && (
           <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1198,7 +1198,7 @@ const FilterChip = ({ active, onClick, children, color, icon }) => {
   return (
     <button
       onClick={onClick}
-      className={`${base} bg-[#17130d] border-white/[0.08] text-text-primary/65 hover:text-text-primary hover:border-white/20 hover:bg-[#211a11]`}
+      className={`${base} bg-surface-secondary border-white/[0.08] text-text-primary/65 hover:text-text-primary hover:border-white/20 hover:bg-surface-secondary`}
     >
       {icon && <Icon name={icon} style={{ color: accent }} className="w-3.5 h-3.5 opacity-90" />}
       {children}

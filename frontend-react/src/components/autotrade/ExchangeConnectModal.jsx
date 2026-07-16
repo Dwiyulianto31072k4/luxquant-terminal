@@ -189,7 +189,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative z-10 flex w-full max-w-[820px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-white/[0.08] bg-[#0a0805] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative z-10 flex w-full max-w-[820px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-white/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />

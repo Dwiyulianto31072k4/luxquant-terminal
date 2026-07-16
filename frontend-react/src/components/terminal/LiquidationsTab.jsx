@@ -85,7 +85,7 @@ function LiqTip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload || {};
   return (
-    <div className="rounded-md border border-white/10 bg-[#0c0a07]/95 px-3 py-2 text-[11px] shadow-xl">
+    <div className="rounded-md border border-white/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
       <div className="font-medium text-text-primary mb-1">{d.name}</div>
       <div className="font-mono text-text-muted">4H total: <span className="text-text-primary">{fmtMoney(d.size)}</span></div>
       <div className="font-mono" style={{ color: POS }}>shorts rekt: {fmtMoney(d.shorts)}</div>
@@ -184,7 +184,7 @@ export function LiquidationsTab({ view }) {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] p-2">
+        <div className="rounded-lg border border-white/[0.06] bg-surface-raised p-2">
           <ResponsiveContainer width="100%" height={400}>
             <Treemap
               data={nodes}

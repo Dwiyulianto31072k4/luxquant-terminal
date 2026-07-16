@@ -274,7 +274,7 @@ const MacroCalendarPage = () => {
       </div>
 
       {/* ── TYPE TABS — Flowscan filter pill ── */}
-      <div className="flex items-center gap-1 p-1 rounded-sm bg-[#0a0805] border border-white/[0.06] overflow-x-auto">
+      <div className="flex items-center gap-1 p-1 rounded-sm bg-surface-raised border border-white/[0.06] overflow-x-auto">
         {TABS.map(tab => {
           const active = activeTab === tab.key;
           const Icon = TAB_ICONS[tab.key];
@@ -316,7 +316,7 @@ const MacroCalendarPage = () => {
           </div>
 
           {nextHighImpact && (
-            <div className="lg:col-span-2 relative bg-[#0a0805] rounded-md border border-loss/25 p-3 overflow-hidden flex items-center gap-3">
+            <div className="lg:col-span-2 relative bg-surface-raised rounded-md border border-loss/25 p-3 overflow-hidden flex items-center gap-3">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
               <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-loss/10 border border-loss/25 flex-shrink-0">
                 <svg className="w-3.5 h-3.5 text-loss" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -382,7 +382,7 @@ const MacroCalendarPage = () => {
           {loading ? (
             <CalendarSkeleton />
           ) : error ? (
-            <div className="bg-[#0a0805] rounded-md border border-loss/25 p-8 text-center relative overflow-hidden">
+            <div className="bg-surface-raised rounded-md border border-loss/25 p-8 text-center relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
               <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-loss/10 border border-loss/25 flex items-center justify-center">
                 <svg className="w-5 h-5 text-loss" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
@@ -398,9 +398,9 @@ const MacroCalendarPage = () => {
               </button>
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-12 text-center relative overflow-hidden">
+            <div className="bg-surface-raised rounded-md border border-white/[0.06] p-12 text-center relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-              <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-[#120809] border border-white/[0.06] flex items-center justify-center">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-surface-secondary border border-white/[0.06] flex items-center justify-center">
                 <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
                   <path d="M16 2v4M8 2v4M3 10h18" />
@@ -450,7 +450,7 @@ const MacroCalendarPage = () => {
           {newsLoading ? (
             <NewsSkeleton />
           ) : news.length === 0 ? (
-            <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-6 text-center">
+            <div className="bg-surface-raised rounded-md border border-white/[0.06] p-6 text-center">
               <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
                 {isZh ? '暂无新闻' : 'No news available'}
               </p>
@@ -499,7 +499,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
   const cryptoCount = events.filter(e => e.type === 'crypto_event').length;
 
   return (
-    <div className={`bg-[#0a0805] rounded-md overflow-hidden border relative ${
+    <div className={`bg-surface-raised rounded-md overflow-hidden border relative ${
       isToday ? 'border-gold-primary/30' : 'border-white/[0.06]'
     }`}>
       {isToday && (
@@ -558,7 +558,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
       {expanded && (
         <div>
           {/* Desktop header */}
-          <div className="hidden sm:grid grid-cols-[64px_28px_1fr_90px_100px] gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60 border-t border-white/[0.04] bg-[#120809]">
+          <div className="hidden sm:grid grid-cols-[64px_28px_1fr_90px_100px] gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60 border-t border-white/[0.04] bg-surface-secondary">
             <span>{t('calendar.th_time')}</span>
             <span></span>
             <span>{t('calendar.th_event')}</span>
@@ -792,10 +792,10 @@ const NewsItem = ({ article }) => {
       href={article.link}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex gap-3 rounded-sm p-2.5 bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/25 hover:bg-white/[0.02] transition-all duration-200"
+      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-white/[0.06] hover:border-gold-primary/25 hover:bg-white/[0.02] transition-all duration-200"
     >
       {article.image && (
-        <div className="w-20 h-14 rounded-sm overflow-hidden shrink-0 bg-[#120809]">
+        <div className="w-20 h-14 rounded-sm overflow-hidden shrink-0 bg-surface-secondary">
           <img
             src={article.image}
             alt=""
@@ -839,7 +839,7 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
     default: "text-text-primary",
   };
   return (
-    <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-3 relative overflow-hidden">
+    <div className="bg-surface-raised rounded-md border border-white/[0.06] p-3 relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
       <div className="flex items-center justify-between mb-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
@@ -865,7 +865,7 @@ const CalendarSkeleton = () => (
   <div className="space-y-2.5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, di) => (
-      <div key={di} className="bg-[#0a0805] rounded-md overflow-hidden border border-white/[0.06]">
+      <div key={di} className="bg-surface-raised rounded-md overflow-hidden border border-white/[0.06]">
         <div className="px-4 py-3 flex items-center gap-3">
           <div className="skel w-3 h-3" />
           <div className="skel w-36 h-3" />
@@ -888,7 +888,7 @@ const NewsSkeleton = () => (
   <div className="space-y-2">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex gap-3 p-2.5 rounded-sm bg-[#0a0805] border border-white/[0.06]">
+      <div key={i} className="flex gap-3 p-2.5 rounded-sm bg-surface-raised border border-white/[0.06]">
         <div className="skel w-20 h-14" />
         <div className="flex-1 space-y-1.5 py-0.5">
           <div className="skel w-16 h-2.5" />

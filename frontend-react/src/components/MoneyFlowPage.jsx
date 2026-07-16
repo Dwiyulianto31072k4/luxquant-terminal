@@ -112,7 +112,7 @@ const SectionHeader = ({ label, right }) => (
 
 const Card = ({ children, className = "", glow = false }) => (
   <div
-    className={`relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-lg ${
+    className={`relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-lg ${
       glow ? "shadow-[0_0_40px_-12px_rgba(212,175,55,0.15)]" : ""
     } ${className}`}
   >
@@ -234,7 +234,7 @@ const SearchBox = ({ value, onChange, placeholder = "Search…" }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full pl-3 pr-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none"
+      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none"
     />
   </div>
 );

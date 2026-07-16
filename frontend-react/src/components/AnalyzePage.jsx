@@ -196,7 +196,7 @@ const AnalyzePage = () => {
         </div>
 
         {/* Time range — segmented control */}
-        <div className="inline-flex gap-0.5 p-0.5 bg-[#0a0805] rounded-lg border border-white/[0.06] self-start sm:self-auto shrink-0">
+        <div className="inline-flex gap-0.5 p-0.5 bg-surface-raised rounded-lg border border-white/[0.06] self-start sm:self-auto shrink-0">
           {timeRangeOptions.map((opt) => (
             <button
               key={opt.value}
@@ -255,7 +255,7 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── WIN RATE TREND ── */}
-      <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+      <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ const AnalyzePage = () => {
               </p>
             </div>
           </div>
-          <div className="flex gap-1 p-1 bg-[#120809] rounded-sm border border-white/[0.04]">
+          <div className="flex gap-1 p-1 bg-surface-secondary rounded-sm border border-white/[0.04]">
             {["daily", "weekly"].map((m) => (
               <button
                 key={m}
@@ -290,7 +290,7 @@ const AnalyzePage = () => {
 
       {/* ── OUTCOME & R:R ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconOutcome />
@@ -306,7 +306,7 @@ const AnalyzePage = () => {
           <OutcomeDistribution data={data.stats} t={t} />
         </div>
 
-        <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRR />
@@ -325,7 +325,7 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── RISK LEVEL ANALYSIS ── */}
-      <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+      <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="flex items-center gap-2 mb-4">
           <IconRisk />
@@ -453,7 +453,7 @@ const AnalyzePage = () => {
               };
               if (totalSig === 0) return null;
               return (
-                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-[#120809] border border-white/[0.04]">
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-surface-secondary border border-white/[0.04]">
                   <div className="w-full sm:w-64 h-1 rounded-sm overflow-hidden flex bg-white/[0.04] flex-shrink-0">
                     {data.risk_distribution.map((rd, i) => (
                       <div
@@ -495,7 +495,7 @@ const AnalyzePage = () => {
 
       {/* ── WIN RATE TREND BY RISK LEVEL ── */}
       {data.risk_trend && data.risk_trend.length > 0 && (
-        <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRiskTrend />
@@ -514,7 +514,7 @@ const AnalyzePage = () => {
 
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
-        <div className="bg-[#0b0907] rounded-xl border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="p-5 pb-0">
             <div className="flex items-center gap-2">
@@ -534,7 +534,7 @@ const AnalyzePage = () => {
       )}
 
       {/* ── FULL SIGNAL HISTORY ── */}
-      <div className="bg-[#0b0907] rounded-xl border border-white/[0.07] relative overflow-hidden">
+      <div className="bg-surface-raised rounded-xl border border-white/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
         <div className="p-5 pb-0">
@@ -600,14 +600,14 @@ const AnalyzePage = () => {
                   placeholder="BTC, ETH, SOL..."
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-gold-primary/40 transition-colors"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-gold-primary/40 transition-colors"
                 />
               </FilterField>
               <FilterField label={t("perf.status")} className="w-full sm:w-auto">
                 <select
                   value={sigStatus}
                   onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="all">{t("perf.all_status")}</option>
                   <option value="open">Not Hit</option>
@@ -622,7 +622,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigRisk}
                   onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="all">{t("perf.all_risk")}</option>
                   <option value="low">Low</option>
@@ -634,7 +634,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
@@ -644,7 +644,7 @@ const AnalyzePage = () => {
               </FilterField>
               <button
                 onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
-                className="px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm hover:border-gold-primary/30 transition-colors flex items-center gap-1.5"
+                className="px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm hover:border-gold-primary/30 transition-colors flex items-center gap-1.5"
               >
                 {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
                 <span className="font-mono text-[11px] uppercase tracking-wider">
@@ -740,7 +740,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
       className={`group relative rounded-md p-4 border transition-all overflow-hidden ${
         accent
           ? "bg-gradient-to-b from-gold-primary/[0.07] to-transparent border-gold-primary/25"
-          : "bg-[#0a0805] border-white/[0.06] hover:border-white/[0.13]"
+          : "bg-surface-raised border-white/[0.06] hover:border-white/[0.13]"
       }`}
     >
       {accent && (
@@ -1036,7 +1036,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
                 if (!d) return null;
                 const wrColor = d.winRate >= 70 ? "text-profit" : d.winRate >= 55 ? "text-gold-primary" : "text-loss";
                 return (
-                  <div className="bg-[#0a0506] border border-white/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                  <div className="bg-surface border border-white/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
                     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
                     <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-2 pb-2 border-b border-white/[0.04]">
                       {d.fullDate || label}
@@ -1235,7 +1235,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
               if (!active || !payload?.length) return null;
               const d = payload[0]?.payload;
               return (
-                <div className="bg-[#0a0506] border border-white/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                <div className="bg-surface border border-white/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
                   <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
                   <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-1.5">
                     {d?.fullDate || label}
@@ -1616,7 +1616,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
             <div
               key={i}
               onClick={() => onSelect(s)}
-              className="bg-[#0a0805] rounded-md p-3 border border-white/[0.06] active:border-gold-primary/25 transition-all cursor-pointer relative overflow-hidden"
+              className="bg-surface-raised rounded-md p-3 border border-white/[0.06] active:border-gold-primary/25 transition-all cursor-pointer relative overflow-hidden"
             >
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="flex items-center justify-between mb-2">
@@ -1816,19 +1816,19 @@ const LoadingSkeleton = ({ t }) => (
     </div>
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="rounded-sm p-4 bg-[#0a0805] border border-white/[0.06]">
+        <div key={i} className="rounded-sm p-4 bg-surface-raised border border-white/[0.06]">
           <div className="skel w-16 h-3 mb-2" />
           <div className="skel w-20 h-5" />
         </div>
       ))}
     </div>
-    <div className="bg-[#0a0805] rounded-md p-5 h-72 border border-white/[0.06]">
+    <div className="bg-surface-raised rounded-md p-5 h-72 border border-white/[0.06]">
       <div className="skel w-32 h-3 mb-2" />
       <div className="skel w-48 h-3" />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {[...Array(2)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-5 h-56 border border-white/[0.06]" />
+        <div key={i} className="bg-surface-raised rounded-md p-5 h-56 border border-white/[0.06]" />
       ))}
     </div>
   </div>

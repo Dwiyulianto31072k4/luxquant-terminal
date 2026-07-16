@@ -33,7 +33,7 @@ const symbolOf = (pair) =>
 const GainerCard = ({ item, onClick }) => (
   <button
     onClick={onClick}
-    className="relative text-left p-4 bg-[#0a0805] hover:bg-white/[0.025] transition-colors group w-full"
+    className="relative text-left p-4 bg-surface-raised hover:bg-white/[0.025] transition-colors group w-full"
   >
     {/* open affordance — diagonal arrow, brightens on hover */}
     <svg
@@ -71,7 +71,7 @@ const GainerCard = ({ item, onClick }) => (
 );
 
 const SkeletonCard = () => (
-  <div className="p-4 bg-[#0a0805] animate-pulse">
+  <div className="p-4 bg-surface-raised animate-pulse">
     <div className="flex items-center gap-2.5 mb-3">
       <div className="w-6 h-6 rounded-full bg-white/[0.06]" />
       <div className="flex-1 space-y-1.5">
@@ -310,7 +310,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
         </div>
 
         {/* ── RIGHT: tabbed card ── */}
-        <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] p-5 lg:p-7 overflow-hidden">
+        <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] p-5 lg:p-7 overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
           {/* header: tabs (Daily · Weekly · Custom) + More */}
@@ -351,7 +351,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                 {pickerOpen && (
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setPickerOpen(false)} />
-                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-white/12 bg-[#0c0d12] p-3 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-white/12 bg-surface-secondary p-3 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Pick a date range</span>
                         <button onClick={() => setPickerOpen(false)} className="text-text-muted transition-colors hover:text-text-primary">✕</button>

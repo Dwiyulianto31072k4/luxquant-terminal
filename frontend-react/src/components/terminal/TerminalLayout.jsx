@@ -84,7 +84,7 @@ export default function TerminalLayout() {
   };
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-white/[0.07] bg-[#0a0806] p-3 lg:p-4 shadow-2xl shadow-black/40">
+    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-3 lg:p-4 shadow-2xl shadow-black/40">
       {/* ── breadcrumb strip ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -127,7 +127,7 @@ export default function TerminalLayout() {
       <div className="flex gap-4 items-stretch lg:flex-1 lg:min-h-0">
         {/* ── Allium-style left sidebar ── */}
         <aside className="hidden lg:block w-[196px] shrink-0 lg:overflow-y-auto lg:pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
+          <div className="rounded-lg bg-surface-raised border border-white/[0.07] overflow-hidden">
             <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <nav className="p-2 space-y-3">
               {GROUPS.map(({ g, items }) => (

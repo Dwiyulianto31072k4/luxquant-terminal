@@ -132,7 +132,7 @@ export default function DelistingsPage() {
         </div>
         <div className="relative flex-shrink-0 w-36 sm:w-56 mb-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…"
-            className="w-full pl-3 pr-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none" />
+            className="w-full pl-3 pr-3 py-1.5 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none" />
         </div>
       </div>
 

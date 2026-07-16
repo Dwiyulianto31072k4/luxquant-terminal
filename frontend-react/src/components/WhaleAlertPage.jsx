@@ -147,7 +147,7 @@ const FlowStrip = ({ flows, t }) => {
   const netColor = netFlow > 0 ? "text-emerald-400" : netFlow < 0 ? "text-red-400" : "text-text-primary/70";
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -223,7 +223,7 @@ const FlowItem = ({ label, value, sublabel, tone, valueColor }) => {
 // STAT CARD — Flowscan-exact pattern
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">
@@ -320,7 +320,7 @@ const TransactionRow = ({ tx, isNew, t }) => {
 // SIDEBAR: BLOCKCHAIN BREAKDOWN
 // ════════════════════════════════════════════════════════════════
 const SidebarCard = ({ label, children }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="px-3.5 py-3 border-b border-white/[0.04]">
       <span className="text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-mono">
@@ -722,7 +722,7 @@ export default function WhaleAlertPage() {
         <div className="lg:col-span-9 space-y-3">
           <SectionHeader label="Live Transactions" small />
 
-          <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+          <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
             {/* Tx count header */}
@@ -800,7 +800,7 @@ export default function WhaleAlertPage() {
           {loading && (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4">
+                <div key={i} className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
                   <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
                   <div className="h-3 bg-white/[0.05] rounded w-1/2 mb-3 animate-pulse" />
                   <div className="space-y-2">

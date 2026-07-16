@@ -80,7 +80,7 @@ function LevelMeter({ spot, target, invalidation }) {
             <span className="mt-0.5 font-mono text-[12px] font-semibold tabular-nums leading-none" style={{ color: m.hex }}>
               {fmtUsd(m.price)}
             </span>
-            <span className="mt-[7px] h-[11px] w-[11px] rounded-full border-2 bg-[#0d0709]" style={{ borderColor: m.hex }} />
+            <span className="mt-[7px] h-[11px] w-[11px] rounded-full border-2 bg-surface-raised" style={{ borderColor: m.hex }} />
             <span className="mt-1 font-mono text-[9px] tabular-nums text-text-muted/60">{m.sub}</span>
           </div>
         ))}
@@ -100,7 +100,7 @@ function LevelMeter({ spot, target, invalidation }) {
           <span className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums leading-none text-text-primary">
             {fmtUsd(s)}
           </span>
-          <span className="mt-[6px] h-[13px] w-[13px] rounded-full border-2 border-white bg-[#0d0709] shadow-[0_0_10px_rgba(255,255,255,0.35)]" />
+          <span className="mt-[6px] h-[13px] w-[13px] rounded-full border-2 border-white bg-surface-raised shadow-[0_0_10px_rgba(255,255,255,0.35)]" />
         </div>
       </div>
     </div>
@@ -212,7 +212,7 @@ export default function CompassSnapshot({ className = "" }) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] ${className}`}
+      className={`relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] ${className}`}
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
@@ -316,7 +316,7 @@ export default function CompassSnapshot({ className = "" }) {
                   const ev = r.evidence?.[0];
                   const strengthPct = Math.round((Number(r._s.strength) || 0) * 100);
                   return (
-                    <div key={r.key} className="min-w-0 rounded-md border border-white/[0.05] bg-[#140b0d] px-2.5 py-2">
+                    <div key={r.key} className="min-w-0 rounded-md border border-white/[0.05] bg-surface-secondary px-2.5 py-2">
                       <div className="flex items-center justify-between gap-1">
                         <span className="truncate font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted/60">{r.label}</span>
                         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>{m.arrow}</span>

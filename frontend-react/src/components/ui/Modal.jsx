@@ -160,7 +160,7 @@ export default function Modal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={!animate ? { backdropFilter: "blur(6px)" } : undefined}
-        className={`lqm-card relative flex w-full flex-col overflow-hidden border border-white/[0.08] bg-[#0a0805] shadow-[0_24px_64px_rgba(0,0,0,0.55)] ${SIZES[size] || SIZES.md} ${
+        className={`lqm-card relative flex w-full flex-col overflow-hidden border border-white/[0.08] bg-surface-raised shadow-[0_24px_64px_rgba(0,0,0,0.55)] ${SIZES[size] || SIZES.md} ${
           placement === "bottom"
             ? "lqm-sheet max-h-[min(92dvh,100%)] rounded-t-xl border-b-0 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl sm:border-b shadow-[0_-16px_48px_rgba(0,0,0,0.55)]"
             : "max-h-[calc(100dvh-2rem)] rounded-xl sm:max-h-[calc(100dvh-4rem)]"
@@ -225,7 +225,7 @@ export default function Modal({
         {/* Footer sticky (prop) — safe-area so CTAs never sit under home indicator / bottom nav */}
         {footer ? (
           <div
-            className="flex-shrink-0 border-t border-white/[0.06] bg-[#0a0805] px-5 pt-3"
+            className="flex-shrink-0 border-t border-white/[0.06] bg-surface-raised px-5 pt-3"
             style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
           >
             {renderSlot(footer)}

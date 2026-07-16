@@ -430,8 +430,8 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-5xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.09] sm:border bg-[#0a0805] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-[#0a0805]" aria-hidden="true">
+      <div className="w-full max-w-5xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.09] sm:border bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-surface-raised" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         <div className="overflow-hidden">
@@ -466,10 +466,10 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
           </div>
 
           <div className="grid grid-cols-2 gap-px border-b border-white/[0.06] bg-white/[0.04] md:grid-cols-4">
-            <div className="bg-[#0a0805] p-4"><Metric label="Capital at entry" value={fmtUsd(position.entry_notional_usdt)} /></div>
-            <div className="bg-[#0a0805] p-4"><Metric label="Value now" value={fmtUsd(position.current_value_usdt)} /></div>
-            <div className="bg-[#0a0805] p-4"><Metric label="Quantity" value={fmtNum(position.quantity, 8)} /></div>
-            <div className="bg-[#0a0805] p-4"><Metric label="Unrealized PnL" value={`${fmtUsd(position.unrealized_pnl_usdt)} · ${fmtPct(position.unrealized_pnl_pct)}`} tone={Number(position.unrealized_pnl_usdt) >= 0 ? "good" : "bad"} /></div>
+            <div className="bg-surface-raised p-4"><Metric label="Capital at entry" value={fmtUsd(position.entry_notional_usdt)} /></div>
+            <div className="bg-surface-raised p-4"><Metric label="Value now" value={fmtUsd(position.current_value_usdt)} /></div>
+            <div className="bg-surface-raised p-4"><Metric label="Quantity" value={fmtNum(position.quantity, 8)} /></div>
+            <div className="bg-surface-raised p-4"><Metric label="Unrealized PnL" value={`${fmtUsd(position.unrealized_pnl_usdt)} · ${fmtPct(position.unrealized_pnl_pct)}`} tone={Number(position.unrealized_pnl_usdt) >= 0 ? "good" : "bad"} /></div>
           </div>
 
           <div className="grid gap-4 p-5 lg:grid-cols-2">
@@ -637,7 +637,7 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
   const matches = confirmation.trim().toUpperCase() === action.phrase;
   return (
     <div className="fixed inset-0 z-[100010] flex items-end justify-center sm:items-center bg-black/85 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-[#0a0805] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-surface-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex justify-center -mt-1 mb-3 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>

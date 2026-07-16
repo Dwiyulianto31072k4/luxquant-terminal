@@ -350,7 +350,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
   // ── Loading State ──
   if (loading && !profile) {
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 bg-[#0a0a0a]">
+      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 bg-surface-raised">
         <div className="max-w-4xl mx-auto">
           <div className="animate-pulse space-y-4">
             <div className="flex gap-3">
@@ -376,7 +376,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
   // ── Error State ──
   if (error && !profile) {
     return (
-      <div className="flex-1 flex items-center justify-center px-4 bg-[#0a0a0a]">
+      <div className="flex-1 flex items-center justify-center px-4 bg-surface-raised">
         <div className="text-center">
           <div className="flex justify-center mb-3 text-amber-400">
             {Ic.warn("w-8 h-8")}
@@ -413,7 +413,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
       : Ic.snowflake("w-3.5 h-3.5 text-sky-400");
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
+    <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-surface-raised">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-5 pb-4">
         {/* ── Header ── */}
         <div className="flex items-center gap-3">

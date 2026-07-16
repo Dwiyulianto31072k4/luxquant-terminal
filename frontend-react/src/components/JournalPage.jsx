@@ -444,7 +444,7 @@ const JournalPage = () => {
       </header>
 
       {/* ═══ TAB STRIP ═══ */}
-      <nav className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-1 grid grid-cols-3 gap-1">
+      <nav className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-1 grid grid-cols-3 gap-1">
         <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")} icon={<IconBook className="h-3.5 w-3.5" />} label="History" count={entries.length} />
         <TabButton active={activeTab === "entry"} onClick={() => { if (!editId) resetForm(); setActiveTab("entry"); }} icon={<IconPencil className="h-3.5 w-3.5" />} label={editId ? "Edit Entry" : "New Entry"} />
         <TabButton active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")} icon={<IconChart className="h-3.5 w-3.5" />} label="Analytics" />
@@ -552,7 +552,7 @@ const HistoryView = ({
   // ─── Loading ───
   if (loading) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 text-center">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 text-center">
         <div className="text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
           Loading journal…
         </div>
@@ -594,7 +594,7 @@ const HistoryView = ({
 
 // ── Empty state ──────────────────────────────────────────
 const HistoryEmptyState = ({ onNewEntry }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 sm:p-16 text-center">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 sm:p-16 text-center">
     <div className="relative z-10 flex flex-col items-center gap-4">
       <div className="w-14 h-14 rounded-md border border-gold-primary/20 bg-gold-primary/[0.06] flex items-center justify-center text-gold-primary/70">
         <IconBook className="h-6 w-6" />
@@ -635,7 +635,7 @@ const MetricStrip = ({ stats }) => {
   ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 divide-x divide-y sm:divide-y-0 divide-white/[0.04]">
         {cells.map((cell, i) => (
           <MetricCell key={i} {...cell} />
@@ -673,7 +673,7 @@ const EquityCurveCard = ({ points }) => {
   const hasData = points.length >= 2;
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
@@ -790,7 +790,7 @@ const FilterBar = ({
   ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10 p-3 flex flex-col gap-3">
         <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
           <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-gold-primary/30 focus-within:bg-white/[0.05]">
@@ -861,7 +861,7 @@ const FilterBar = ({
 const TradeTable = ({ entries, onEdit, onDelete }) => {
   if (entries.length === 0) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 flex flex-col items-center gap-3">
         <IconFilter className="h-6 w-6 text-text-muted/30" />
         <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
           No trades match your filters
@@ -871,7 +871,7 @@ const TradeTable = ({ entries, onEdit, onDelete }) => {
   }
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10">
         {/* DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
@@ -1077,7 +1077,7 @@ const CalendarHeatmap = ({ entries }) => {
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10 p-3.5">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -1333,7 +1333,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-2 rounded-md overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/60 bg-[#0a0805]">
+        <div className="absolute z-50 top-full left-0 right-0 mt-2 rounded-md overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/60 bg-surface-raised">
           <div className="p-2 border-b border-white/[0.06]">
             <label className="group flex h-9 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-gold-primary/30 focus-within:bg-white/[0.05]">
               <IconSearch className="h-3.5 w-3.5 text-text-muted/55 shrink-0" />
@@ -1411,7 +1411,7 @@ const LivePreviewBanner = ({ form, preview }) => {
     preview.pnl >= 0 ? "closed_win" : "closed_loss";
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-white/[0.04]">
         <PreviewCell label="P&L $" value={hasPnl ? fmtMoney(preview.pnl, { sign: true }) : "—"} accent={hasPnl ? (isPositive ? "emerald" : "red") : null} />
         <PreviewCell label="P&L %" value={preview.pct != null ? fmtPct(preview.pct, { sign: true }) : "—"} accent={preview.pct != null ? (preview.pct >= 0 ? "emerald" : "red") : null} />
@@ -1445,7 +1445,7 @@ const PreviewCell = ({ label, value, accent, isStatus, statusKey }) => {
 // ════════════════════════════════════════════════════════════════
 
 const FormCard = ({ title, icon, description, children }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
@@ -1696,7 +1696,7 @@ const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "g
 // ════════════════════════════════════════════════════════════════
 
 const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] sticky bottom-3 z-30 backdrop-blur-md">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] sticky bottom-3 z-30 backdrop-blur-md">
     <div className="relative z-10 p-3 flex items-center justify-between gap-2 flex-wrap">
       <div className="flex items-center gap-2">
         {onDelete && (
@@ -1737,7 +1737,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
 const AnalyticsView = ({ stats, insights, entries }) => {
   if (!stats) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-12 text-center">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-12 text-center">
         <div className="flex flex-col items-center gap-3">
           <IconChart className="h-7 w-7 text-text-muted/30" />
           <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
@@ -1839,7 +1839,7 @@ const AnalyticsHero = ({ stats, profitFactor, expectancy, closedCount }) => {
 const HeroCard = ({ label, value, sub, accent }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400", amber: "text-amber-400", white: "text-text-primary" };
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all hover:border-white/[0.10]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all hover:border-white/[0.10]">
       <div className="relative z-10 flex flex-col gap-1">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
         <span className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none mt-1 ${colorMap[accent] || "text-text-primary"}`}>{value}</span>
@@ -1918,7 +1918,7 @@ const PnlDistributionCard = ({ entries }) => {
   const max = Math.max(1, ...bins.counts);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">P&amp;L Distribution</h3>
@@ -1979,7 +1979,7 @@ const StrategyBreakdownCard = ({ stats }) => {
   const maxAbsPnl = Math.max(1, ...data.map((d) => Math.abs(d.pnl)));
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Strategy Performance</h3>
@@ -2043,7 +2043,7 @@ const MoodPerformanceCard = ({ stats }) => {
   }, [stats]);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Mood Impact</h3>
@@ -2109,7 +2109,7 @@ const DayOfWeekCard = ({ stats }) => {
   const hasAny = data.some((d) => d.pnl !== 0);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Day of Week</h3>
@@ -2187,7 +2187,7 @@ const StreaksRow = ({ stats }) => (
 const StreakCard = ({ label, value, sub, accent, icon }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4">
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>

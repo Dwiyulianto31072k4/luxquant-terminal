@@ -61,7 +61,7 @@ const Toggle = ({ label, hint, checked, onChange, disabled }) => (
       <span
         className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${
           checked
-            ? "translate-x-[20px] bg-[#0a0805]"
+            ? "translate-x-[20px] bg-surface-raised"
             : "translate-x-0.5 bg-white/40"
         }`}
       />
@@ -107,7 +107,7 @@ const SelectField = ({ label, value, onChange, options, hint }) => (
       className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
     >
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="bg-[#0a0805] text-text-primary">
+        <option key={opt.value} value={opt.value} className="bg-surface-raised text-text-primary">
           {opt.label}
         </option>
       ))}
@@ -172,7 +172,7 @@ export default function ConfigPanel({ account, onClose }) {
   // ── Loading ──
   if (!config) {
     return (
-      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
         <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
@@ -186,12 +186,12 @@ export default function ConfigPanel({ account, onClose }) {
   // RENDER
   // ════════════════════════════════════════
   return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
       {/* Top hairline */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
       {/* ── STICKY HEADER ── */}
-      <div className="sticky top-0 z-20 bg-[#0a0805]/95 backdrop-blur border-b border-white/[0.06] px-5 py-4">
+      <div className="sticky top-0 z-20 bg-surface-raised/95 backdrop-blur border-b border-white/[0.06] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-text-primary tracking-tight capitalize">
@@ -504,7 +504,7 @@ export default function ConfigPanel({ account, onClose }) {
         </section>
 
         {/* ── STICKY FOOTER ── */}
-        <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-[#0a0805]/95 backdrop-blur border-t border-white/[0.06] flex gap-2">
+        <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-surface-raised/95 backdrop-blur border-t border-white/[0.06] flex gap-2">
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2.5 rounded-md border border-white/[0.08] text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-all"

@@ -107,7 +107,7 @@ function FngBadge({ value, label }) {
     : value <= 55 ? "#fbbf24" : value <= 75 ? "#a3e635" : "#34d399";
   const pos = Math.max(2, Math.min(98, value));
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-3 flex items-center gap-4">
+    <div className="relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-3 flex items-center gap-4">
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-text-muted shrink-0">Fear &amp; Greed</span>
       <div className="relative flex-1 min-w-[120px]">
@@ -152,7 +152,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
   return (
     <button
       onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
-      className="group relative text-left rounded-2xl bg-[#0a0805] border border-white/[0.07] hover:border-gold-primary/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
+      className="group relative text-left rounded-2xl bg-surface-raised border border-white/[0.07] hover:border-gold-primary/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
@@ -334,7 +334,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
               <button
                 key={s.signal_id}
                 onClick={() => (openSignalRow ? openSignalRow(s) : openPair(s.pair))}
-                className="flex items-center gap-2 rounded-lg bg-[#0c0a07] border border-white/[0.08] hover:border-gold-primary/35 px-2.5 py-1.5 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-surface-raised border border-white/[0.08] hover:border-gold-primary/35 px-2.5 py-1.5 transition-colors"
               >
                 <CoinLogo pair={s.pair} size={18} />
                 <span className="font-mono text-[11px] text-text-primary/90">{s.pair}</span>
@@ -358,7 +358,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
 
       {/* card grid — bounded, scrolls inside */}
       {rankedCards.length === 0 ? (
-        <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed px-6">
+        <div className="rounded-lg bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed px-6">
           {t("terminal.viz.confEmpty")}
         </div>
       ) : (

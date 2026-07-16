@@ -213,7 +213,7 @@ export default function TerminalPreview() {
           {/* iMac body: black glass + silver chin */}
           <div className="relative overflow-hidden rounded-[12px] bg-black shadow-[0_40px_90px_rgba(0,0,0,0.6),0_0_70px_rgba(212,168,83,0.1)] ring-1 ring-white/[0.07] lg:rounded-[16px]">
             <div className="p-[7px] sm:p-[8px] lg:p-[11px]">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-[#050302] ring-1 ring-white/[0.05] lg:rounded-[3px]">
+              <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-surface ring-1 ring-white/[0.05] lg:rounded-[3px]">
                 {/* feature screenshots — cross-fade */}
                 {FEATURES.map((f, idx) => (
                   <img

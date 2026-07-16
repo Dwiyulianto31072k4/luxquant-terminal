@@ -210,7 +210,7 @@ const NotificationBell = () => {
               : "animate-in fade-in slide-in-from-top-2 duration-200"
           }`}
         >
-          <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.08] rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+          <div className="relative overflow-hidden bg-surface-raised border border-white/[0.08] rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
             {/* Top hairline */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 

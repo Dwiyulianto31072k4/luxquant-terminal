@@ -94,7 +94,7 @@ const IconGauge = ({ className = 'w-3.5 h-3.5' }) => (
 // ================================================================
 
 const CardShell = ({ children, className = '', hover = true }) => (
-  <div className={`relative bg-[#0a0805] rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-gold-primary/20 transition-colors' : ''} ${className}`}>
+  <div className={`relative bg-surface-raised rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-gold-primary/20 transition-colors' : ''} ${className}`}>
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
     {children}
   </div>
@@ -210,7 +210,7 @@ const OverviewPage = () => {
           <ShimmerStyles />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-[#0a0805] rounded-xl border border-white/[0.06] p-4 lg:p-5">
+              <div key={i} className="bg-surface-raised rounded-xl border border-white/[0.06] p-4 lg:p-5">
                 <div className="lqsk h-2.5 w-20 mb-3"></div>
                 <div className="h-px bg-white/[0.06] mb-3"></div>
                 <div className="lqsk h-7 w-28"></div>
@@ -600,7 +600,7 @@ const TriDown = ({ className = 'w-2 h-2' }) => (
 );
 
 const MetricCard = ({ label, value, change, icon }) => (
-  <div className="group bg-[#0a0805] flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.015] transition-colors">
+  <div className="group bg-surface-raised flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.015] transition-colors">
     <span className="w-8 h-8 flex items-center justify-center rounded-md bg-gold-primary/[0.08] text-gold-primary/80 flex-shrink-0 transition-transform group-hover:scale-110">{icon}</span>
     <div className="min-w-0">
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted leading-tight truncate">{label}</p>
@@ -660,7 +660,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
               key={i}
               src={url}
               alt=""
-              className="w-4 h-4 rounded-full border border-[#0a0805] bg-[#0a0805]"
+              className="w-4 h-4 rounded-full border border-[#0a0805] bg-surface-raised"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           ))}

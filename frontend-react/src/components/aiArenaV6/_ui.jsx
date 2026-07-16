@@ -2,8 +2,8 @@
 // ────────────────────────────────────────────────────────────────
 // Compass v2 — shared UI primitives for the BTC Compass (AI Research).
 // Design language: full-width research desk (exchange-grade).
-//   • Panel  : bg-[#0d0709], border-white/[0.07], rounded-xl, gold hairline top
-//   • Tile   : bg-[#140b0d], border-white/[0.05], rounded-lg
+//   • Panel  : bg-surface-raised, border-white/[0.07], rounded-xl, gold hairline top
+//   • Tile   : bg-surface-secondary, border-white/[0.05], rounded-lg
 //   • Numbers: font-mono tabular-nums
 //   • Semantics: profit #56c996 · loss #e07288 · gold #d4a853 (single accent)
 // Back-compat: every export that existed in v1 still exists here.
@@ -144,7 +144,7 @@ export const Card = ({ className = "", children, accent, hairline = true }) => {
     : "border-white/[0.07]";
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border ${border} bg-[#0d0709] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] ${className}`}
+      className={`relative overflow-hidden rounded-xl border ${border} bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] ${className}`}
     >
       {hairline && (
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
@@ -190,7 +190,7 @@ export const Tag = ({ children, tone = "muted", className = "" }) => {
 };
 
 export const Tile = ({ label, children, className = "" }) => (
-  <div className={`rounded-lg border border-white/[0.05] bg-[#140b0d] px-3.5 py-3 ${className}`}>
+  <div className={`rounded-lg border border-white/[0.05] bg-surface-secondary px-3.5 py-3 ${className}`}>
     {label && (
       <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">{label}</p>
     )}
@@ -241,7 +241,7 @@ export const highlightPrices = (text) => {
 // KPI stat card (used on audit + library headers).
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
   const tones = {
-    neutral: "border-white/[0.05] bg-[#140b0d]",
+    neutral: "border-white/[0.05] bg-surface-secondary",
     gold: "border-gold-primary/25 bg-gold-primary/[0.06]",
     up: "border-profit/20 bg-profit/[0.05]",
     down: "border-loss/20 bg-loss/[0.05]",
@@ -380,14 +380,14 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
           style={{ top: y(row.price) }}
         >
           <span
-            className="relative z-10 h-[19px] w-[19px] shrink-0 rounded-full border-2 bg-[#0d0709]"
+            className="relative z-10 h-[19px] w-[19px] shrink-0 rounded-full border-2 bg-surface-raised"
             style={{ borderColor: row.hex }}
           >
             {row.key === "spot" && (
               <span className="absolute inset-[3px] animate-pulse rounded-full" style={{ background: row.hex }} />
             )}
           </span>
-          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-white/[0.05] bg-[#140b0d] px-3 py-2">
+          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-white/[0.05] bg-surface-secondary px-3 py-2">
             <div className="min-w-0">
               <div className="font-mono text-[8.5px] uppercase tracking-[0.18em]" style={{ color: `${row.hex}99` }}>
                 {row.label}
@@ -410,7 +410,7 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
   const pct = Math.max(0, Math.min(100, Math.round((Number(strength) || 0) * 100)));
   const half = pct / 2; // % of half-track
   return (
-    <div className="rounded-lg border border-white/[0.05] bg-[#140b0d] px-3.5 py-3">
+    <div className="rounded-lg border border-white/[0.05] bg-surface-secondary px-3.5 py-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className="truncate text-[13px] font-medium text-text-primary/90">{label}</span>
         <span className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] ${meta.text}`}>

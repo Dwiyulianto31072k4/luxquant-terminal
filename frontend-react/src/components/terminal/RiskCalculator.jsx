@@ -112,7 +112,7 @@ export function RiskTab({ view, deriv }) {
     return { riskPerUnit, rr, riskUsd, units, posUsd, margin, breakevenWR, liq, slPastLiq, slValidSide, tgtValidSide, rewardUsd };
   }, [E, S, T, acct, rpct, lev, long]);
 
-  const inputCls = "w-full bg-[#15120d] border border-white/[0.12] rounded-md px-3 py-2 text-[13px] text-text-primary font-mono focus:outline-none focus:border-gold-primary/50";
+  const inputCls = "w-full bg-surface-secondary border border-white/[0.12] rounded-md px-3 py-2 text-[13px] text-text-primary font-mono focus:outline-none focus:border-gold-primary/50";
   const labelCls = "font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted mb-1 block";
 
   // R-ladder geometry (SL = 0R at one end, entry = 1R marker, target = rr)
@@ -131,7 +131,7 @@ export function RiskTab({ view, deriv }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
         {/* ── inputs ── */}
-        <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden p-4 space-y-3">
+        <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden p-4 space-y-3">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
           {/* signal prefill */}
@@ -139,7 +139,7 @@ export function RiskTab({ view, deriv }) {
             <label className={labelCls}>Prefill from a call</label>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={pair || "Search pair…"} className={inputCls} />
             {q && options.length > 0 && (
-              <div className="mt-1 rounded-md bg-[#120e08] border border-white/[0.1] max-h-52 overflow-auto">
+              <div className="mt-1 rounded-md bg-surface-secondary border border-white/[0.1] max-h-52 overflow-auto">
                 {options.map((s) => (
                   <button key={s.signal_id} onClick={() => prefill(s)} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-white/[0.05] text-left">
                     <CoinLogo pair={s.pair} size={16} />
@@ -151,7 +151,7 @@ export function RiskTab({ view, deriv }) {
             )}
           </div>
 
-          <div className="flex gap-1 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
+          <div className="flex gap-1 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
             {["long", "short"].map((sd) => (
               <button key={sd} onClick={() => setSide(sd)} className={`flex-1 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${side === sd ? (sd === "long" ? "bg-positive text-[#08160c] font-semibold" : "bg-negative text-[#180808] font-semibold") : "text-text-muted hover:text-text-primary"}`}>{sd}</button>
             ))}
@@ -175,7 +175,7 @@ export function RiskTab({ view, deriv }) {
         {/* ── outputs ── */}
         <div className="space-y-3">
           {!calc ? (
-            <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-20 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
+            <div className="rounded-2xl bg-surface-raised border border-white/[0.07] py-20 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
               Enter account, risk %, entry and stop-loss to size the trade.
             </div>
           ) : (
@@ -204,7 +204,7 @@ export function RiskTab({ view, deriv }) {
 
               {/* R-ladder visual */}
               {ladder && (
-                <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden p-4">
+                <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden p-4">
                   <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
                   <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Trade Ladder</div>
                   <div className="relative h-16 rounded-lg bg-white/[0.02] border border-white/[0.06]">
@@ -228,7 +228,7 @@ export function RiskTab({ view, deriv }) {
 
           {/* Correlation / concentration guard */}
           {selSig && similar && similar.list.length > 0 && (
-            <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden p-4">
+            <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden p-4">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
               <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Correlation &amp; Concentration</div>
               <div className="text-[11px] text-text-primary/70 mt-1 leading-relaxed">

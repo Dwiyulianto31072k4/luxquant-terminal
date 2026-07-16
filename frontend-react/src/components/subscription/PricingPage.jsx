@@ -50,7 +50,7 @@ function SkeletonCards() {
   return (
     <div className="mx-auto grid max-w-5xl gap-px overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.04] sm:grid-cols-2 lg:grid-cols-4">
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="h-[380px] animate-pulse bg-[#0a0805]/80" />
+        <div key={i} className="h-[380px] animate-pulse bg-surface-raised/80" />
       ))}
     </div>
   );

@@ -367,7 +367,7 @@ const NotificationsPage = () => {
                 className="appearance-none cursor-pointer rounded-md border border-white/[0.08] bg-white/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-white/[0.15] hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-all"
               >
                 {typeFilters.map((f) => (
-                  <option key={f.key || "all"} value={f.key || ""} className="bg-[#0a0805] text-text-primary">
+                  <option key={f.key || "all"} value={f.key || ""} className="bg-surface-raised text-text-primary">
                     {f.label}
                   </option>
                 ))}
@@ -551,7 +551,7 @@ const LoadingSkeleton = () => (
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
-        className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-start gap-3"
+        className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-start gap-3"
       >
         <div className="flex flex-col items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-white/[0.04]" />
@@ -567,7 +567,7 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = ({ t }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

@@ -30,7 +30,7 @@ function EdgeTip({ active, payload }) {
   const p = payload[0]?.payload?.d;
   if (!p) return null;
   return (
-    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg max-w-[250px]">
+    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg max-w-[250px]">
       <div className="text-text-primary mb-1">{nice(p.pattern)}</div>
       <div className="text-text-primary/60">Win rate: <span className="text-text-primary/90">{p.win_rate?.toFixed(1)}%</span></div>
       <div className="text-text-primary/60">Expected value: <span style={{ color: evColor(p.expected_value) }}>{p.expected_value == null ? "—" : (p.expected_value >= 0 ? "+" : "") + p.expected_value.toFixed(2) + "%/trade"}</span></div>
@@ -150,7 +150,7 @@ export function EdgeTab() {
     <>
       <SectionBand title={t("terminal.viz.tabEdge")} desc={t("terminal.viz.edgeDesc")} />
 
-      <div className="flex items-center gap-1 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5 w-fit">
+      <div className="flex items-center gap-1 rounded-md bg-surface-raised border border-white/[0.1] p-0.5 w-fit">
         <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.edgeLookback")}</span>
         {[7, 30, 90].map((dv) => (
           <button key={dv} onClick={() => setDays(dv)}
@@ -163,7 +163,7 @@ export function EdgeTab() {
       {loading ? (
         <Warming text={t("terminal.viz.edgeLoading")} />
       ) : pev.length === 0 ? (
-        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.edgeEmpty")}</div>
+        <div className="rounded-2xl bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.edgeEmpty")}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
@@ -175,12 +175,12 @@ export function EdgeTab() {
 
           {/* ── Edge Economics — the money math (all-time) ── */}
           {economics && (
-            <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+            <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
               <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-[12.5px] text-text-primary/90">Edge Economics</div>
-                  <div className="flex items-center gap-0.5 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
+                  <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
                     {[["7d", "7D"], ["30d", "30D"], ["ytd", "YTD"], ["all", "ALL"]].map(([v, lbl]) => (
                       <button key={v} onClick={() => setEconRange(v)}
                         className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-text-primary"}`}>
@@ -216,7 +216,7 @@ export function EdgeTab() {
             </div>
           )}
 
-          <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+          <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
             <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
               <div className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeMapTitle")}</div>
@@ -251,7 +251,7 @@ export function EdgeTab() {
           </div>
 
           {sel && (
-            <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+            <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
               <div className="px-4 py-2.5 border-b border-white/[0.06] flex items-center justify-between gap-3">
                 <span className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeDrillTitle")} <span className="text-gold-primary">{nice(sel)}</span></span>

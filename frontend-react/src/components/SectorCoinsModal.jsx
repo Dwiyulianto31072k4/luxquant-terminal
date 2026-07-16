@@ -138,12 +138,12 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" placement="bottom" padded={false} header={header}>
       {/* Toolbar: search + count */}
-      <div className="sticky top-0 z-10 bg-[#0a0805] flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-white/[0.06]">
+      <div className="sticky top-0 z-10 bg-surface-raised flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-white/[0.06]">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search coin…"
-          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-[#120c08] border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[12px] focus:border-gold-primary/40 focus:outline-none"
+          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-surface-secondary border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[12px] focus:border-gold-primary/40 focus:outline-none"
         />
         <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/70">
           {coins.length} coins{luxCount ? ` · ${luxCount} call` : ""}

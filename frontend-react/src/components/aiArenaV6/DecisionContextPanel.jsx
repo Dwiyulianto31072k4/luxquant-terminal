@@ -201,7 +201,7 @@ export default function DecisionContextPanel({ data }) {
   const changes = data.changes?.items || [];
 
   return (
-    <section className="min-w-0 rounded-2xl border border-[#f5c451]/15 bg-[#12090d]/90 p-4 md:p-6">
+    <section className="min-w-0 rounded-2xl border border-[#f5c451]/15 bg-surface-secondary/90 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]/75">

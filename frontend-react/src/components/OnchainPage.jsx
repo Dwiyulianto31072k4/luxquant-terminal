@@ -433,9 +433,9 @@ const OnchainPage = () => {
             onChange={(e) => handleChain(e.target.value)}
             className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0805] text-text-primary">Chain: All</option>
+            <option value="all" className="bg-surface-raised text-text-primary">Chain: All</option>
             {(stats?.by_blockchain || []).slice(0, 12).map((c) => (
-              <option key={c.blockchain} value={c.blockchain} className="bg-[#0a0805] text-text-primary">
+              <option key={c.blockchain} value={c.blockchain} className="bg-surface-raised text-text-primary">
                 {c.blockchain}
               </option>
             ))}
@@ -446,9 +446,9 @@ const OnchainPage = () => {
             onChange={(e) => handleSource(e.target.value)}
             className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0805] text-text-primary">Source: All</option>
+            <option value="all" className="bg-surface-raised text-text-primary">Source: All</option>
             {(stats?.by_source || []).map((s) => (
-              <option key={s.source} value={s.source} className="bg-[#0a0805] text-text-primary">
+              <option key={s.source} value={s.source} className="bg-surface-raised text-text-primary">
                 {s.source}
               </option>
             ))}
@@ -459,9 +459,9 @@ const OnchainPage = () => {
             onChange={(e) => handleToken(e.target.value)}
             className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0805] text-text-primary">Token: All</option>
+            <option value="all" className="bg-surface-raised text-text-primary">Token: All</option>
             {(stats?.by_token || []).slice(0, 15).map((t) => (
-              <option key={t.token} value={t.token} className="bg-[#0a0805] text-text-primary">
+              <option key={t.token} value={t.token} className="bg-surface-raised text-text-primary">
                 ${t.token}
               </option>
             ))}
@@ -562,7 +562,7 @@ const SectionHeader = ({ label, small = false }) => (
 // STAT CARD
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel, isLive, isGold }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
     <div className="relative z-10">
@@ -599,7 +599,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       className={`group relative cursor-pointer transition-colors rounded-md border overflow-hidden ${
         isHighlight
           ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-gold-primary/20 hover:border-gold-primary/40"
-          : "bg-[#0a0805] border-white/[0.06] hover:border-white/[0.12]"
+          : "bg-surface-raised border-white/[0.06] hover:border-white/[0.12]"
       }`}
     >
       {isHighlight && (
@@ -680,7 +680,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
 // SIDEBAR COMPONENTS
 // ════════════════════════════════════════════════════════════════
 const SidebarCard = ({ label, children }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="px-3.5 py-3 border-b border-white/[0.04]">
       <span className="text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-mono">
@@ -872,7 +872,7 @@ const AlertModal = ({ alert, onClose }) => {
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        className="relative w-full max-w-xl bg-[#0a0805] border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.65)] max-h-[min(92dvh,100%)] flex flex-col"
+        className="relative w-full max-w-xl bg-surface-raised border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.65)] max-h-[min(92dvh,100%)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
@@ -1089,7 +1089,7 @@ const LoadingSkeleton = () => (
     {[...Array(10)].map((_, i) => (
       <div
         key={i}
-        className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
+        className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
       >
         <div className="w-10 h-10 rounded bg-white/[0.03] shrink-0" />
         <div className="flex-1 space-y-2">
@@ -1106,7 +1106,7 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = () => (
-  <div className="relative bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
+  <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
       <svg className="w-5 h-5 text-gold-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">

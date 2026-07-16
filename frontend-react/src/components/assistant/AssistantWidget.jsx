@@ -84,9 +84,9 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
           <div className="hidden sm:block fixed inset-0 z-[9998] bg-black/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
 
           {/* Panel: mobile bottom sheet, desktop centered wide modal */}
-          <div className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold-primary/30 bg-[#0d0b09] shadow-[0_-8px_40px_rgba(0,0,0,0.5)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:h-[600px] sm:w-[760px] sm:max-w-[92vw] sm:-translate-x-1/2 sm:rounded-2xl sm:shadow-[0_25px_60px_rgba(0,0,0,0.55)] lg:w-[900px]">
+          <div className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-gold-primary/30 bg-surface-raised shadow-[0_-8px_40px_rgba(0,0,0,0.5)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:h-[600px] sm:w-[760px] sm:max-w-[92vw] sm:-translate-x-1/2 sm:rounded-2xl sm:shadow-[0_25px_60px_rgba(0,0,0,0.55)] lg:w-[900px]">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 bg-[#0a0a0a] px-4 py-3 sm:px-5">
+            <div className="flex items-center justify-between border-b border-white/10 bg-surface-raised px-4 py-3 sm:px-5">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold-primary/15 text-gold-primary">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z" /></svg>
@@ -156,7 +156,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
             </div>
 
             {/* Input */}
-            <div className="border-t border-white/10 bg-[#0a0a0a] p-3 pb-24 sm:px-6 sm:py-4 sm:pb-4">
+            <div className="border-t border-white/10 bg-surface-raised p-3 pb-24 sm:px-6 sm:py-4 sm:pb-4">
               <div className="flex items-end gap-2">
                 <textarea
                   rows={1}
@@ -164,7 +164,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                   placeholder="Ask how to use this page…"
-                  className="flex-1 resize-none rounded-xl border border-white/10 bg-[#0d0d0d] px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-24 sm:text-[14px]"
+                  className="flex-1 resize-none rounded-xl border border-white/10 bg-surface-raised px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-24 sm:text-[14px]"
                 />
                 <button
                   onClick={() => send()}

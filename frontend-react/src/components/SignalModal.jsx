@@ -1387,7 +1387,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         )}
 
         {/* ── TARGETS (grid tile / kotak) ── */}
-        <div className="lq-card lq-card--green bg-[#0c0b09] p-2">
+        <div className="lq-card lq-card--green bg-surface-raised p-2">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
           <p className="text-[9px] uppercase tracking-[0.14em] text-green-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
             {Ic.target("w-3 h-3")} {t("modal.targets")}
@@ -1417,7 +1417,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         {/* ── STOP LOSS (grid tile / kotak) ── */}
         {stops.length > 0 && (
-          <div className="lq-card lq-card--red bg-[#0c0909] p-2">
+          <div className="lq-card lq-card--red bg-surface-raised p-2">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
             <p className="text-[9px] uppercase tracking-[0.14em] text-red-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
               {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
@@ -1447,7 +1447,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           const countdown = formatCountdown(nextFundingMs);
           const fundingPos = funding > 0;
           return (
-            <div className="lq-card lq-card--gold bg-[#0d0b08]">
+            <div className="lq-card lq-card--gold bg-surface-raised">
               {goldLine}
               <div className="px-2.5 py-1.5 border-b border-white/[0.05] flex items-center gap-1.5">
                 <svg className="w-2.5 h-2.5 text-gold-primary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -1456,7 +1456,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
               {/* Funding + OI sebagai 2 tile kotak */}
               <div className="grid grid-cols-2 gap-px bg-white/[0.05]">
-                <div className="p-2.5 bg-[#0d0b08] transition-colors hover:bg-white/[0.03]">
+                <div className="p-2.5 bg-surface-raised transition-colors hover:bg-white/[0.03]">
                   <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1">Funding</p>
                   <p className={`text-[12px] font-mono font-bold leading-none ${fundingPos ? "text-red-400" : "text-green-400"}`}>
                     {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
@@ -1465,7 +1465,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · ${countdown}` : ""}
                   </p>
                 </div>
-                <div className="p-2.5 bg-[#0d0b08] transition-colors hover:bg-white/[0.03]">
+                <div className="p-2.5 bg-surface-raised transition-colors hover:bg-white/[0.03]">
                   <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1">Open Interest</p>
                   <p className="text-[12px] font-mono font-bold text-text-primary leading-none">{formatOiUsd(oiUsd)}</p>
                   {oiChange24h !== null && (
@@ -1515,7 +1515,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         {/* ── FALLBACK: live/derivatives data ke-block (geo) → saran VPN ── */}
         {!derivMetrics && liveBlocked && (
-          <div className="lq-card lq-card--gold bg-[#0d0b08]">
+          <div className="lq-card lq-card--gold bg-surface-raised">
             {goldLine}
             <div className="p-3 text-center">
               <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-gold-primary/30 bg-gold-primary/12">
@@ -1536,7 +1536,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         {/* ── META: volume / risk / cap ── */}
         {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
-          <div className="lq-card bg-[#0c0b09] p-2 space-y-1.5">
+          <div className="lq-card bg-surface-raised p-2 space-y-1.5">
             {signal?.volume_rank_num && (
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[9px] text-text-primary/40 uppercase tracking-wider flex items-center gap-1.5 min-w-0">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
@@ -1582,7 +1582,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </div>
 
             {/* HEADER — exchange trade ticket style */}
-            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-[#0a0805] px-3 py-2.5 sm:px-4">
+            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <CoinLogo pair={signal?.pair} size={28} />
@@ -1710,7 +1710,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                   <button
                     onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -1733,7 +1733,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
@@ -1744,7 +1744,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
@@ -1763,7 +1763,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               {/* TAB 1: CHART */}
               {activeTab === "chart" && (
                 <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-                  <div className="relative flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
+                  <div className="relative flex-1 min-w-0 min-h-0 bg-surface-raised">
                     {/* Floating control: toggle indikator (MACD/RSI/BB), di-remember per user */}
                     <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
                       <button
@@ -1787,10 +1787,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       className="w-full h-full"
                     />
                   </div>
-                  <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
+                  <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
                     {renderTargetsPanel("sidebar")}
                   </div>
-                  <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
+                  <div className="lg:hidden flex-shrink-0 bg-surface-raised border-t border-gold-primary/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
                     {renderTargetsPanel("bottom")}
                   </div>
                 </div>
@@ -1798,7 +1798,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
               {/* TAB 2: TRADE (REVISED) */}
               {activeTab === "trade" && (
-                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 custom-scrollbar bg-[#0a0a0a]">
+                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 custom-scrollbar bg-surface-raised">
                   <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
@@ -1808,7 +1808,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Gambar Before & After / TV */}
                     {!entryImg && !afterImg ? (
-                      <div className="lq-card w-full h-[350px] sm:h-[450px] bg-[#0d0d0d] relative shadow-lg">
+                      <div className="lq-card w-full h-[350px] sm:h-[450px] bg-surface-raised relative shadow-lg">
                         <div
                           id="tv_chart_modal_side"
                           className="absolute inset-0 w-full h-full"
@@ -1823,7 +1823,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               {t("modal.before_entry")}
                             </span>
                             {entryPrice > 0 && (
-                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center">
+                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-surface-raised px-2 py-1 rounded-md border border-white/5 flex items-center">
                                 Entry:{" "}
                                 <span className="text-text-primary ml-1">
                                   ${formatPrice(entryPrice)}
@@ -1833,7 +1833,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </div>
                           {entryImg ? (
                             <div
-                              className="lq-card relative group bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full cursor-zoom-in shadow-md"
+                              className="lq-card relative group bg-surface-raised h-[250px] sm:h-[300px] w-full cursor-zoom-in shadow-md"
                               onClick={() => setLightboxImg(entryImg)}
                             >
                               <img
@@ -1849,7 +1849,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               </div>
                             </div>
                           ) : (
-                            <div className="rounded-lg border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[250px] sm:h-[300px] w-full text-text-muted">
+                            <div className="rounded-lg border border-dashed border-white/10 bg-surface-raised flex flex-col items-center justify-center h-[250px] sm:h-[300px] w-full text-text-muted">
                               {Ic.clock("w-6 h-6 mb-2 opacity-60")}
                               <p className="text-xs">Waiting for Chart</p>
                             </div>
@@ -1859,7 +1859,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {/* SEPARATOR */}
                         <div className="hidden md:flex flex-col items-center justify-center w-8 shrink-0 relative mt-6">
                           <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/30 via-white/10 to-green-500/30 -translate-y-1/2 z-0" />
-                          <div className="relative z-10 bg-[#0a0a0a] border border-white/10 text-text-primary/50 w-7 h-7 rounded-full flex items-center justify-center">
+                          <div className="relative z-10 bg-surface-raised border border-white/10 text-text-primary/50 w-7 h-7 rounded-full flex items-center justify-center">
                             <svg
                               className="w-3.5 h-3.5"
                               fill="none"
@@ -1888,7 +1888,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               {showInteractiveRight && afterImg && (
                                 <button
                                   onClick={() => setShowTV(false)}
-                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-text-primary flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded-md border border-white/5 transition-colors"
+                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-text-primary flex items-center gap-1 bg-surface-raised hover:bg-white/5 px-2 py-1 rounded-md border border-white/5 transition-colors"
                                 >
                                   <svg
                                     className="w-3 h-3"
@@ -1907,7 +1907,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 </button>
                               )}
                               {lastPrice > 0 && (
-                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center gap-1">
+                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-surface-raised px-2 py-1 rounded-md border border-white/5 flex items-center gap-1">
                                   Last:{" "}
                                   <span className="text-text-primary">
                                     ${formatPrice(lastPrice)}
@@ -1924,7 +1924,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             </div>
                           </div>
                           {showInteractiveRight ? (
-                            <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[300px]">
+                            <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[300px]">
                               <div
                                 id="tv_chart_modal_side"
                                 className="absolute inset-0 h-full w-full"
@@ -1932,7 +1932,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             </div>
                           ) : (
                             <div>
-                              <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0c0a07] sm:h-[300px]">
+                              <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[300px]">
                                 <img
                                   src={afterImg}
                                   alt="Latest Chart"
@@ -1973,7 +1973,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Peak Price (FULL WIDTH) */}
                     {peakPrice && entryPrice > 0 && (
-                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-white/[0.06] bg-[#0c0a07] px-4 py-3 sm:flex-row sm:gap-4">
+                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-white/[0.06] bg-surface-raised px-4 py-3 sm:flex-row sm:gap-4">
                         <div className="flex flex-col items-center sm:items-end">
                           <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-right">
                             Highest after call
@@ -1996,7 +1996,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
                         {Ic.clock("w-4 h-4")} Signal Journey
                       </h4>
-                      <div className="lq-card bg-[#0d0d0d] p-4 w-full">
+                      <div className="lq-card bg-surface-raised p-4 w-full">
                         <div className="flex flex-col">
                           {timeline.map((ev, i) => {
                             const isLast = i === timeline.length - 1;
@@ -2100,7 +2100,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
               {/* TAB 3: RESEARCH */}
               {activeTab === "research" && (
-                <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
+                <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-surface-raised">
                   <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-3 sm:mb-5">
                       <h3 className="text-base sm:text-lg font-display text-text-primary mb-1">

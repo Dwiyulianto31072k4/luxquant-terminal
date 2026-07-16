@@ -196,7 +196,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
             </div>
 
             {/* ── HEADER (sticky) ── */}
-            <div className="flex-shrink-0 relative bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3.5 z-10">
+            <div className="flex-shrink-0 relative bg-surface-raised border-b border-gold-primary/30 px-4 py-3.5 z-10">
               {/* verdict-colored accent line (semantic) */}
               <div className="absolute top-0 inset-x-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${vc}, transparent)`, opacity: 0.7 }} />
               <div className="flex items-center gap-3 pr-10">
@@ -222,7 +222,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               </div>
               <button
                 onClick={handleClose}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all"
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -473,7 +473,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
                       <div className="overflow-x-auto cdm-scroll">
                         <table className="w-full text-left border-collapse min-w-[500px]">
-                          <thead className="bg-[#0a0a0a] border-b border-gold-primary/15">
+                          <thead className="bg-surface-raised border-b border-gold-primary/15">
                             <tr>
                               {['Date','LuxQuant WR','Entry','Result','P/L'].map(h => (
                                 <th key={h} className="px-4 py-3 text-[8px] uppercase tracking-widest text-gold-primary font-semibold">{h}</th>
@@ -501,7 +501,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       </div>
                       {/* Pagination controls */}
                       {pages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gold-primary/10 bg-[#0a0a0a]">
+                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gold-primary/10 bg-surface-raised">
                           <span className="font-mono text-[10px] text-text-muted">
                             {start + 1}–{Math.min(start + HIST_PER_PAGE, total)} of {total}
                           </span>

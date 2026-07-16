@@ -45,7 +45,7 @@ function RsiTip({ active, payload, tf }) {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{sym(d.pair)}</span></div>
       <div className="text-text-primary/60">RSI(14 · {tf}): <span className="text-text-primary/90">{d.y.toFixed(1)}</span></div>
       {d.pctb != null && <div className="text-text-primary/60">%B: <span className="text-text-primary/90">{d.pctb.toFixed(0)}</span> <span className="text-text-primary/40">{d.pctb >= 100 ? "above upper band" : d.pctb <= 0 ? "below lower band" : "in band"}</span></div>}
@@ -92,7 +92,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
           {RSI_TFS.map((f) => (
             <button key={f} onClick={() => setTf(f)}
-              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-[#0a0805] text-text-primary/60 border-white/10 hover:text-text-primary hover:border-white/25"}`}>
+              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-surface-raised text-text-primary/60 border-white/10 hover:text-text-primary hover:border-white/25"}`}>
               {f}{f === "4h" ? "★" : ""}
             </button>
           ))}
@@ -104,7 +104,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
         <Kpi label="Oversold ≤30" value={os} desc="Beaten down — bounce watch." tone={os ? "text-positive" : undefined} />
         <Kpi label="Instruments" value={rs.length} desc="Called pairs with RSI." />
       </div>
-      <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+      <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="p-3" style={{ height: 540, touchAction: "none", cursor: "grab" }}
           ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
@@ -156,7 +156,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
     return (
       <>
         <SectionBand title="ATR Levels" desc="How much of the expected daily range each call has already used." />
-        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Warming up — range/ATR fills in after the next worker sweep.</div>
+        <div className="rounded-2xl bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Warming up — range/ATR fills in after the next worker sweep.</div>
       </>
     );
   }
@@ -171,7 +171,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
         <Kpi label="Freshest" value={data[data.length - 1] ? `${data[data.length - 1].exh.toFixed(0)}%` : "—"} desc={data[data.length - 1] ? sym(data[data.length - 1].pair) : "—"} tone="text-positive" />
         <Kpi label="Instruments" value={data.length} desc="Called pairs with range + ATR." />
       </div>
-      <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+      <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="px-4 py-2 flex items-center gap-3 border-b border-white/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
           <span className="w-24">pair</span><span className="flex-1">exhaustion (100% = full expected day)</span><span className="w-14 text-right">used</span>
@@ -231,7 +231,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
           <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
           {RSI_TFS.map((f) => (
             <button key={f} onClick={() => setTf(f)}
-              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-[#0a0805] text-text-primary/60 border-white/10 hover:text-text-primary hover:border-white/25"}`}>
+              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-surface-raised text-text-primary/60 border-white/10 hover:text-text-primary hover:border-white/25"}`}>
               {f}{f === "4h" ? "★" : ""}
             </button>
           ))}
@@ -244,9 +244,9 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
         <Kpi label="Instruments" value={data.length} desc="Called pairs with band width." />
       </div>
       {!data.length ? (
-        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Warming up — band width fills in after the next worker sweep.</div>
+        <div className="rounded-2xl bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Warming up — band width fills in after the next worker sweep.</div>
       ) : (
-        <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+        <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
           <div className="px-4 py-2 flex items-center gap-3 border-b border-white/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
             <span className="w-24">pair</span><span className="flex-1">coiling (full bar = tightest range)</span><span className="w-14 text-right">bw %ile</span>
@@ -292,7 +292,7 @@ function FlowTip({ active, payload }) {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{sym(d.pair)}</span></div>
       <div className="text-text-primary/60">CVD 1h: <span className={d.y >= 0 ? "text-positive" : "text-negative"}>{fmtUsd(d.y)}</span></div>
       <div className="text-text-primary/60">Price 24h: <span className={d.x >= 0 ? "text-positive" : "text-negative"}>{d.x.toFixed(1)}%</span></div>
@@ -345,7 +345,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
   const accum = rowsD.filter((r) => r.x < 0 && r.y > 0).sort((a, b) => b.y - a.y).slice(0, 6);
 
   if (cvd?.warming) return <Warming text="Warming up — order flow streams in after the trade-feed connects." />;
-  if (!rowsD.length) return (<><SectionBand title="Order Flow (CVD)" desc="Cumulative volume delta vs price. Streaming in…" /><div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Waiting for the trade feed…</div></>);
+  if (!rowsD.length) return (<><SectionBand title="Order Flow (CVD)" desc="Cumulative volume delta vs price. Streaming in…" /><div className="rounded-2xl bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Waiting for the trade feed…</div></>);
 
   const Dot = (props) => {
     const { cx, cy, payload } = props;
@@ -368,7 +368,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         <Kpi label="Accumulation" value={accum.length} desc="Down on rising CVD — bounce watch." tone={accum.length ? "text-positive" : undefined} />
         <Kpi label="Instruments" value={rowsD.length} desc="Called pairs with live flow." />
       </div>
-      <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+      <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="p-3" style={{ height: 520, touchAction: "none", cursor: "grab" }}
           ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
@@ -387,7 +387,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         </div>
       </div>
       <div className="grid md:grid-cols-2 gap-2">
-        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+        <div className="rounded-2xl bg-surface-raised border border-white/[0.07] p-3">
           <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">Distribution — up but sold into</div>
           {distrib.length ? distrib.map((d) => (
             <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center justify-between py-1 group">
@@ -396,7 +396,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
             </button>
           )) : <div className="font-mono text-[10px] text-text-muted py-2">None right now.</div>}
         </div>
-        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+        <div className="rounded-2xl bg-surface-raised border border-white/[0.07] p-3">
           <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">Accumulation — down but bought</div>
           {accum.length ? accum.map((d) => (
             <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center justify-between py-1 group">
@@ -411,7 +411,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         <>
           <SectionBand title="Order Book Pressure" desc="Passive intent from the live Binance book: resting bids vs asks (top-20 levels). Bid-stacked = buyers defending below; ask-stacked = sellers capping above. Pairs with aggressive CVD are the strongest reads." />
           <div className="grid md:grid-cols-2 gap-2">
-            <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+            <div className="rounded-2xl bg-surface-raised border border-white/[0.07] p-3">
               <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">Bid-stacked — support below</div>
               {bidStacked.map((d) => (
                 <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
@@ -421,7 +421,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
                 </button>
               ))}
             </div>
-            <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+            <div className="rounded-2xl bg-surface-raised border border-white/[0.07] p-3">
               <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">Ask-stacked — resistance above</div>
               {askStacked.map((d) => (
                 <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">

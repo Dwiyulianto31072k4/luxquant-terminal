@@ -1074,9 +1074,9 @@ const SignalsPage = () => {
                   <select
                     value={flowCount}
                     onChange={(e) => setFlowCount(Number(e.target.value))}
-                    className="appearance-none pl-2 pr-6 py-1 bg-[#0a0506] border border-white/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-gold-primary/40 cursor-pointer"
+                    className="appearance-none pl-2 pr-6 py-1 bg-surface border border-white/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-gold-primary/40 cursor-pointer"
                   >
-                    {[10, 20, 30, 50].map((n) => <option key={n} value={n} className="bg-[#0a0506]">Top {n}</option>)}
+                    {[10, 20, 30, 50].map((n) => <option key={n} value={n} className="bg-surface">Top {n}</option>)}
                   </select>
                   <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-primary/50">
                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
@@ -1169,7 +1169,7 @@ const SignalsPage = () => {
       })()}
 
       {/* FILTER CONSOLE */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 relative overflow-hidden">
+      <div className="bg-surface-raised rounded-md border border-white/[0.06] p-4 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-3">
@@ -1251,17 +1251,17 @@ const SignalsPage = () => {
               placeholder="Search pair (e.g. BTC, ETH, SOL)..."
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-[#0a0506] border border-white/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
             />
           </div>
           <div className="relative flex-shrink-0">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="pl-3 pr-8 py-2 bg-[#0a0506] border border-white/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
+              className="pl-3 pr-8 py-2 bg-surface border border-white/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
+                <option key={opt.value} value={opt.value} className="bg-surface">{opt.label}</option>
               ))}
             </select>
             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-primary/70 pointer-events-none">
@@ -1270,7 +1270,7 @@ const SignalsPage = () => {
           </div>
           <button
             onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
           >
             {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
             <span className="hidden sm:inline">{getOrderLabel()}</span>
@@ -1559,7 +1559,7 @@ const SignalsPage = () => {
 
       {/* ERROR / TABLE */}
       {error && (
-        <div className="bg-[#0a0805] rounded-md p-6 border border-red-500/30 text-center relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md p-6 border border-red-500/30 text-center relative overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-red-500/[0.06] border border-red-500/20 flex items-center justify-center text-red-400">

@@ -189,7 +189,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
 
       {!collapsed && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-[#0f080a] border border-white/[0.05] rounded-xl p-4 shadow-sm">
+          <div className="bg-surface-raised border border-white/[0.05] rounded-xl p-4 shadow-sm">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">LuxQuant Winrate (Last 7 Days)</p>
 
@@ -209,7 +209,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-[#0f080a] rounded-xl border border-green-500/20 shadow-lg overflow-hidden flex flex-col">
+            <div className="bg-surface-raised rounded-xl border border-green-500/20 shadow-lg overflow-hidden flex flex-col">
               <div className="flex items-center gap-3 px-4 py-3 border-b border-green-500/20 bg-gradient-to-r from-green-500/10 to-transparent">
                 <div className="w-1 h-4 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
                 <h4 className="text-green-400 text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">Worth It</h4>
@@ -222,7 +222,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
               </div>
             </div>
 
-            <div className="bg-[#0f080a] rounded-xl border border-red-500/20 shadow-lg overflow-hidden flex flex-col">
+            <div className="bg-surface-raised rounded-xl border border-red-500/20 shadow-lg overflow-hidden flex flex-col">
               <div className="flex items-center gap-3 px-4 py-3 border-b border-red-500/20 bg-gradient-to-r from-red-500/10 to-transparent">
                 <div className="w-1 h-4 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
                 <h4 className="text-red-400 text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">Avoid</h4>

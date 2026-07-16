@@ -140,7 +140,7 @@ const FactRow = ({ label, value, subtle = false }) => (
 );
 
 const Section = ({ title, children }) => (
-  <div className="bg-[#0d0d0d] rounded-lg border border-white/5 p-3 space-y-1 h-full">
+  <div className="bg-surface-raised rounded-lg border border-white/5 p-3 space-y-1 h-full">
     <p className="text-[9px] text-gold-primary/60 uppercase tracking-wider font-semibold mb-2">{title}</p>
     {children}
   </div>
@@ -198,7 +198,7 @@ const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {stats.map((s, i) => (
-          <div key={i} className="bg-[#0d0d0d]/70 rounded-lg border border-white/5 px-2.5 py-2">
+          <div key={i} className="bg-surface-raised/70 rounded-lg border border-white/5 px-2.5 py-2">
             <p className="text-[8px] uppercase tracking-wider text-text-muted">{s.label}</p>
             <p className={`text-sm font-mono font-bold leading-tight ${s.color}`}>{s.value}</p>
             {s.sub && <p className="text-[8px] text-text-primary/40 truncate">{s.sub}</p>}
@@ -598,7 +598,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
             </div>
 
             {/* HEADER */}
-            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-[#0a0805] px-3 py-2.5 sm:px-4">
+            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <CoinLogo pair={pair} size={30} />
@@ -624,7 +624,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                         📋 Copy ▼
                       </button>
                       {showCopyMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-[#0d0d0d] border border-gold-primary/30 rounded-lg shadow-xl overflow-hidden z-20 min-w-[180px]">
+                        <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-gold-primary/30 rounded-lg shadow-xl overflow-hidden z-20 min-w-[180px]">
                           {COPY_OPTIONS.map((opt) => (
                             <button
                               key={opt.id}
@@ -646,7 +646,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
                   <button
                     onClick={handleClose}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -658,7 +658,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
             {/* Tabs */}
             {v3Data && (
-              <div className="flex flex-shrink-0 border-b border-white/5 bg-[#0d0d0d]">
+              <div className="flex flex-shrink-0 border-b border-white/5 bg-surface-raised">
                 {TABS.map((tab) => (
                   <button
                     key={tab.id}
@@ -677,7 +677,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
             {/* Snapshot selector (Entry vs Live) */}
             {v3Data && v3Data.live_snapshot && v3Data.live_updated_at && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-[#080808] border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center gap-2 px-4 py-2 bg-surface-raised border-b border-white/5 flex-shrink-0">
                 <button
                   onClick={() => setShowLive(false)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition ${
@@ -698,7 +698,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
             )}
 
             {/* Body */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-surface-raised">
               <div className="max-w-6xl mx-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
                 {loading && (
                   <div className="space-y-4 py-2" role="status" aria-label="Loading analysis">
@@ -765,7 +765,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                             <p className="text-text-muted text-[10px]">No history yet</p>
                           )}
                           {history.map((entry, i) => (
-                            <div key={i} className="bg-[#0d0d0d] rounded border border-white/5 p-2">
+                            <div key={i} className="bg-surface-raised rounded border border-white/5 p-2">
                               <p className="text-[9px] text-text-muted mb-1">
                                 {new Date(entry.recorded_at).toLocaleString()}
                               </p>

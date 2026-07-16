@@ -92,7 +92,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
   const brand = EXCHANGE_BRANDING[account.exchange_id] || { color: "#d4a853", logo: null };
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">
+    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">
       {/* Top hairline accent */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -147,7 +147,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
             <span
               className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${
                 isEnabled
-                  ? "translate-x-[20px] bg-[#0a0805]"
+                  ? "translate-x-[20px] bg-surface-raised"
                   : "translate-x-0.5 bg-white/40"
               }`}
             />

@@ -622,7 +622,7 @@ const MarketPulsePageInner = () => {
             aria-expanded={sidebarOpen}
             aria-label="Show side panel"
             title="Show side panel"
-            className="mp-sidebar-rail group relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md hover:border-gold-primary/30 transition-colors"
+            className="mp-sidebar-rail group relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-gold-primary/30 transition-colors"
           >
             <span className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
               <IconChevronsLeft className="h-3.5 w-3.5" />
@@ -663,7 +663,7 @@ export default MarketPulsePage;
 const PulseTape = ({ items, onSelect }) => {
   const tape = [...items, ...items];
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0a0805] to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#0a0805] to-transparent z-10 pointer-events-none" />
       <div className="flex gap-8 py-2.5 animate-pulse-tape whitespace-nowrap relative z-0">
@@ -711,7 +711,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
     adRatio == null ? "—" : adRatio === Infinity ? "∞" : adRatio.toFixed(2);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] px-4 py-3">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] px-4 py-3">
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
         {/* Verdict */}
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -759,7 +759,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
 // ════════════════════════════════════════════════════════
 
 const StatCardShell = ({ children }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-white/[0.10] hover:bg-[#150a0c]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-white/[0.10] hover:bg-surface-secondary">
     <div className="relative z-10 h-full flex flex-col">{children}</div>
   </div>
 );
@@ -940,7 +940,7 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(biggest.pair)}
-      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-gold-primary/30 hover:bg-[#150a0c] cursor-pointer"
+      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-gold-primary/30 hover:bg-surface-secondary cursor-pointer"
     >
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between mb-1.5">
@@ -984,7 +984,7 @@ const ControlBar = ({
   timeframeFilter, setTimeframeFilter,
   coinDetail, timeAgo, openChartModal,
 }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
     <div className="relative z-10 p-4 flex flex-col gap-3">
       {/* Row 1: Search + active coin pills */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
@@ -1158,7 +1158,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
 const DetailStat = ({ label, value, accent }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
   return (
-    <div className="bg-[#120809] rounded-md p-2.5 text-center border border-white/[0.04]">
+    <div className="bg-surface-secondary rounded-md p-2.5 text-center border border-white/[0.04]">
       <p className={`text-sm font-mono font-medium tabular-nums leading-none ${colorMap[accent] || "text-text-primary"}`}>
         {value}
       </p>
@@ -1345,7 +1345,7 @@ const ActivityFeedPanel = ({
       ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)] mp-feed-card">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)] mp-feed-card">
       {/* Header strip */}
       <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.015] flex-shrink-0 relative z-10 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -1718,7 +1718,7 @@ function HeatTreemap({ data, height, onPick }) {
     const d = payload[0]?.payload || {};
     if (!d.name) return null;
     return (
-      <div className="rounded-md border border-white/10 bg-[#0c0a07]/95 px-3 py-2 text-[11px] shadow-xl">
+      <div className="rounded-md border border-white/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
         <div className="font-medium text-text-primary mb-0.5">{stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}</div>
         <div className="font-mono" style={{ color: d.isBull ? "#6ee7b7" : "#fca5a5" }}>{d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%</div>
         <div className="font-mono text-text-muted">{d.eventCount} events</div>
@@ -1818,7 +1818,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
           aria-label="Heatmap expanded"
         >
           <div
-            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-white/10 bg-[#0c0a07] p-4 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-[#0b0907] sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
+            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-white/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-gold-primary/25 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-1 flex justify-center sm:hidden" aria-hidden="true">
@@ -1862,7 +1862,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
 // ════════════════════════════════════════════════════════
 
 const PanelShell = ({ children, className = "" }) => (
-  <div className={`relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-3.5 ${className}`}>
+  <div className={`relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-3.5 ${className}`}>
     <div className="relative z-10 h-full flex flex-col">{children}</div>
   </div>
 );
@@ -2343,11 +2343,11 @@ const CoinChartModal = ({ pair, onClose }) => {
     >
       {/* Mobile: bottom sheet (Top Gainers Filters grammar). Desktop: centered panel. */}
       <div
-        className={`relative flex w-full max-w-[1180px] flex-col overflow-hidden bg-[#0c0a07] shadow-[0_-12px_40px_rgba(0,0,0,0.55)] min-h-0 ${
+        className={`relative flex w-full max-w-[1180px] flex-col overflow-hidden bg-surface-raised shadow-[0_-12px_40px_rgba(0,0,0,0.55)] min-h-0 ${
           isClosing
             ? "animate-[mpsheet-out_.2s_ease-in_forwards] sm:animate-[mppanel-out_.18s_ease-in_forwards]"
             : "animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
-        } h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-white/10 sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-[#0a0805] sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8)]`}
+        } h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-white/10 sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-surface-raised sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8)]`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grab handle — mobile only */}
@@ -2437,7 +2437,7 @@ const CoinChartModal = ({ pair, onClose }) => {
         </div>
 
         {/* Chart — Flowscan chart-surface bg */}
-        <div className="relative flex-1 min-h-0 min-w-0 bg-[#0a0506] border-y border-white/[0.04] shadow-[inset_0_2px_6px_-2px_rgba(0,0,0,0.4)]">
+        <div className="relative flex-1 min-h-0 min-w-0 bg-surface border-y border-white/[0.04] shadow-[inset_0_2px_6px_-2px_rgba(0,0,0,0.4)]">
           <div ref={tvContainerRef} className="w-full h-full" />
         </div>
 
@@ -2487,7 +2487,7 @@ const CoinChartModal = ({ pair, onClose }) => {
 // ════════════════════════════════════════════════════════
 
 const MetricCellShell = ({ label, children }) => (
-  <div className="bg-[#120809] rounded-sm px-2.5 py-2 border border-white/[0.05] min-h-[64px] flex flex-col justify-between">
+  <div className="bg-surface-secondary rounded-sm px-2.5 py-2 border border-white/[0.05] min-h-[64px] flex flex-col justify-between">
     <p className="text-text-muted/55 text-[9px] uppercase tracking-[0.18em] font-mono">
       {label}
     </p>

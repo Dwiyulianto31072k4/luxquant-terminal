@@ -110,7 +110,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
 
         {/* exchange-style segmented ticker bar + compact refresh */}
         <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-          <div className="flex flex-1 items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709] sm:flex-none">
+          <div className="flex flex-1 items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised sm:flex-none">
             {Number.isFinite(btcPrice) && btcPrice > 0 && (
               <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">BTC / USDT</div>
@@ -264,7 +264,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
   }, [activeTab]);
 
   return (
-    <nav className="sticky top-0 z-40 -mx-4 border-b border-white/[0.07] bg-[#0a0506]/92 backdrop-blur-md md:-mx-6 xl:-mx-10">
+    <nav className="sticky top-0 z-40 -mx-4 border-b border-white/[0.07] bg-surface/92 backdrop-blur-md md:-mx-6 xl:-mx-10">
       <div className="relative">
         <div
           ref={scrollRef}
@@ -309,7 +309,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
             type="button"
             onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
             aria-label="Show more tabs"
-            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#160d10] text-text-primary/70 transition hover:border-gold-primary/50 hover:text-gold-primary"
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-secondary text-text-primary/70 transition hover:border-gold-primary/50 hover:text-gold-primary"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5l7 7-7 7" />
@@ -323,7 +323,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
 
 function ChartPanel({ report }) {
   return (
-    <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] md:p-5">
+    <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] md:p-5">
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -406,7 +406,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   if (!archive) {
     return (
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
+      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
           Report library
@@ -423,7 +423,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
+      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
         <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="border-b border-white/[0.06] p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -439,7 +439,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
-              <div className="rounded-sm border border-white/[0.04] bg-[#120809] px-3 py-2">
+              <div className="rounded-sm border border-white/[0.04] bg-surface-secondary px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Reports</div>
                 <div className="mt-1 text-text-primary/80">{items.length}</div>
               </div>
@@ -447,7 +447,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">PDF ready</div>
                 <div className="mt-1 text-profit">{readyCount}</div>
               </div>
-              <div className="rounded-sm border border-white/[0.04] bg-[#120809] px-3 py-2">
+              <div className="rounded-sm border border-white/[0.04] bg-surface-secondary px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Latest</div>
                 <div className="mt-1 text-text-primary/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
               </div>
@@ -515,7 +515,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
             return (
               <article
                 key={item.report_id}
-                className={`group relative overflow-hidden rounded-sm border border-white/[0.06] bg-[#120809] p-4 transition ${ringClass} hover:bg-[#d4a853]/[0.035]`}
+                className={`group relative overflow-hidden rounded-sm border border-white/[0.06] bg-surface-secondary p-4 transition ${ringClass} hover:bg-[#d4a853]/[0.035]`}
               >
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/45 to-transparent opacity-60" />
                 <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#d4a853]/10 blur-3xl transition group-hover:bg-[#d4a853]/15" />
@@ -606,7 +606,7 @@ function ReportPdfModal({ modal, onClose }) {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center overflow-hidden bg-[#020102]/88 p-0 text-text-primary backdrop-blur-2xl sm:p-3 lg:p-5"
+      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center overflow-hidden bg-surface-raised/88 p-0 text-text-primary backdrop-blur-2xl sm:p-3 lg:p-5"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
@@ -614,11 +614,11 @@ function ReportPdfModal({ modal, onClose }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
 
-      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-[#d4a853]/20 bg-[#070507]/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
+      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-[#d4a853]/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
-        <header className="shrink-0 border-b border-white/[0.08] bg-[#0b0709]/98 px-3 py-2.5 md:px-4">
+        <header className="shrink-0 border-b border-white/[0.08] bg-surface-raised/98 px-3 py-2.5 md:px-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -664,7 +664,7 @@ function ReportPdfModal({ modal, onClose }) {
         </header>
 
         <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,17vw,286px)_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#090608]/92 p-2.5 lg:block">
+          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-surface-raised/92 p-2.5 lg:block">
             <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
               <div className="rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
@@ -825,8 +825,8 @@ function CompassPdfViewer({ url, title }) {
   const zoomIn = () => setZoom((value) => Math.min(1.45, Number((value + 0.1).toFixed(2))));
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.10] bg-[#0b090b] shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-[#100c0f]/95 px-3 py-2 md:px-4">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.10] bg-surface-raised shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-surface-raised/95 px-3 py-2 md:px-4">
         <div className="min-w-0">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
             Fit reader
@@ -990,12 +990,12 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
   }, [pdf, pageNumber, availableWidth, zoom]);
 
   return (
-    <article className="mx-auto overflow-hidden rounded-xl border border-white/[0.10] bg-[#060506] shadow-[0_22px_90px_rgba(0,0,0,0.55)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
-      <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d090c] px-3 py-2 font-mono text-[10px] text-text-primary/35">
+    <article className="mx-auto overflow-hidden rounded-xl border border-white/[0.10] bg-surface-raised shadow-[0_22px_90px_rgba(0,0,0,0.55)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
+      <div className="flex items-center justify-between border-b border-white/[0.06] bg-surface-raised px-3 py-2 font-mono text-[10px] text-text-primary/35">
         <span>Page {pageNumber}</span>
         <span>{pageNumber} / {pageCount}</span>
       </div>
-      <div className="relative bg-[#050405]">
+      <div className="relative bg-surface-raised">
         {!pageSize && !error && (
           <div className="flex h-[520px] items-center justify-center text-[10px] font-mono uppercase tracking-[0.18em] text-text-primary/25">
             Rendering page

@@ -159,7 +159,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             </p>
           </div>
           {/* landing-style win-rate donut */}
-          <div className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-[#140b0d] px-5 py-3">
+          <div className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-surface-secondary px-5 py-3">
             <Donut
               size={118}
               thickness={11}
@@ -317,7 +317,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           return (
             <div
               key={item.projection_id || item.report_id}
-              className="rounded-xl border border-white/[0.06] bg-[#140b0d] p-3.5"
+              className="rounded-xl border border-white/[0.06] bg-surface-secondary p-3.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">

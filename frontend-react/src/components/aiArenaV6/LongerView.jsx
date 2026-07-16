@@ -82,7 +82,7 @@ const RowMetrics = ({ rows, horizon = "72h" }) => (
   <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
     {rows.map((r) => (
       (r.evidence?.length > 0) && (
-        <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+        <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
           <div className="mb-2 flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-primary/80">{r.label}</span>
             {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}

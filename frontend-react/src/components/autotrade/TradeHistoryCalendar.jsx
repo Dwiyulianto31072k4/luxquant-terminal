@@ -87,7 +87,7 @@ function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
 function ChartTooltip({ active, payload, label, basis }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md border border-white/[0.08] bg-[#11100d] px-3 py-2 shadow-xl">
+    <div className="rounded-md border border-white/[0.08] bg-surface-raised px-3 py-2 shadow-xl">
       <p className="font-mono text-[10px] text-text-muted">{label}</p>
       <p className={`mt-1 font-mono text-sm ${pnlClass(payload[0]?.value)}`}>
         {formatBasis(payload[0]?.value, basis)}
@@ -105,8 +105,8 @@ function TradeDetailModal({ trade, onClose, basis }) {
 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-4xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.08] sm:border bg-[#0a0805] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-[#0a0805]" aria-hidden="true">
+      <div className="w-full max-w-4xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.08] sm:border bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-surface-raised" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         <div className="overflow-hidden">
@@ -179,7 +179,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
 
 function ModalMetric({ label, value, tone = "text-text-primary", compact = false }) {
   return (
-    <div className={compact ? "" : "bg-[#0a0805] p-4"}>
+    <div className={compact ? "" : "bg-surface-raised p-4"}>
       <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/60">{label}</p>
       <p className={`mt-1 break-words font-mono text-sm ${tone}`}>{value ?? "—"}</p>
     </div>

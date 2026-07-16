@@ -142,7 +142,7 @@ function IndexPage() {
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {GLOSSARY.map((t) => (
           <Link key={t.slug} to={`/learn/${t.slug}`}
-            className="group rounded-xl border border-white/[0.07] bg-[#0a0805] p-4 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
+            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
             <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{t.term}</h2>
             <p className="mt-1.5 text-[13px] text-text-primary/55 leading-relaxed line-clamp-3">{t.short}</p>
           </Link>

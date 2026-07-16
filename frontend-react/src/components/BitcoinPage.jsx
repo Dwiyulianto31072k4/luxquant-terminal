@@ -134,11 +134,11 @@ const BitcoinPage = () => {
       </div>
 
       {/* ── HERO ── */}
-      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden">
+      <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="relative flex flex-wrap items-center justify-between gap-5 p-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center bg-[#120809] border border-white/[0.06]">
+            <div className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center bg-surface-secondary border border-white/[0.06]">
               <img
                 src="https://assets.coingecko.com/coins/images/1/standard/bitcoin.png"
                 alt="Bitcoin"
@@ -202,7 +202,7 @@ const BitcoinPage = () => {
       {/* ── SUPPLY / ATH / FEAR & GREED ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Supply */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconSupply />
@@ -245,7 +245,7 @@ const BitcoinPage = () => {
         </div>
 
         {/* ATH */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconAth />
@@ -272,7 +272,7 @@ const BitcoinPage = () => {
         </div>
 
         {/* Fear & Greed */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconGauge />
@@ -333,7 +333,7 @@ const BitcoinPage = () => {
       </div>
 
       {/* ── BTC CHART (TradingView) ── */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
+      <div className="bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden relative">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
         <BtcTradingViewChart t={t} />
       </div>
@@ -341,7 +341,7 @@ const BitcoinPage = () => {
       {/* ── TECHNICAL + NETWORK/ONCHAIN ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Technical Analysis */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-start justify-between mb-4 gap-3">
             <div className="flex items-center gap-2">
@@ -387,7 +387,7 @@ const BitcoinPage = () => {
                       return (
                         <div
                           key={tf}
-                          className="bg-[#120809] rounded-sm p-3 text-center border border-white/[0.04]"
+                          className="bg-surface-secondary rounded-sm p-3 text-center border border-white/[0.04]"
                         >
                           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {tf}
@@ -400,7 +400,7 @@ const BitcoinPage = () => {
                       ? "border-profit/25 bg-profit/[0.04]"
                       : over
                         ? "border-loss/25 bg-loss/[0.04]"
-                        : "border-white/[0.04] bg-[#120809]";
+                        : "border-white/[0.04] bg-surface-secondary";
                     return (
                       <div
                         key={tf}
@@ -432,7 +432,7 @@ const BitcoinPage = () => {
                       return (
                         <div
                           key={tf}
-                          className="bg-[#120809] rounded-sm p-3 text-center border border-white/[0.04]"
+                          className="bg-surface-secondary rounded-sm p-3 text-center border border-white/[0.04]"
                         >
                           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {tf}
@@ -473,14 +473,14 @@ const BitcoinPage = () => {
                     pos = technical.timeframes?.["4h"]?.bb_position;
                   if (!bb)
                     return (
-                      <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
+                      <div className="bg-surface-secondary rounded-sm p-3.5 border border-white/[0.04]">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                           BB Loading...
                         </span>
                       </div>
                     );
                   return (
-                    <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
+                    <div className="bg-surface-secondary rounded-sm p-3.5 border border-white/[0.04]">
                       <SectionLabel>Bollinger (4H)</SectionLabel>
                       <div className="space-y-1.5 text-[11px] font-mono mt-2.5 tabular-nums">
                         <div className="flex justify-between">
@@ -521,7 +521,7 @@ const BitcoinPage = () => {
                     technical.timeframes?.["4h"];
                   if (!ema?.ema50)
                     return (
-                      <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
+                      <div className="bg-surface-secondary rounded-sm p-3.5 border border-white/[0.04]">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                           EMA Loading...
                         </span>
@@ -602,7 +602,7 @@ const BitcoinPage = () => {
         {/* Right column */}
         <div className="space-y-3">
           {/* Network Health */}
-          <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+          <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <div className="flex items-center gap-2 mb-1">
               <IconNetwork />
@@ -647,7 +647,7 @@ const BitcoinPage = () => {
                       ].map((f) => (
                         <div
                           key={f.l}
-                          className="bg-[#120809] rounded-sm p-2.5 text-center border border-white/[0.04]"
+                          className="bg-surface-secondary rounded-sm p-2.5 text-center border border-white/[0.04]"
                         >
                           <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
                             {f.l}
@@ -661,7 +661,7 @@ const BitcoinPage = () => {
                   </div>
                 )}
                 {network.difficulty_adjustment && (
-                  <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
+                  <div className="bg-surface-secondary rounded-sm p-3.5 border border-white/[0.04]">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                         {t('btc.next_adj')}
@@ -700,7 +700,7 @@ const BitcoinPage = () => {
           </div>
 
           {/* On-Chain */}
-          <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+          <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <div className="flex items-center gap-2 mb-1">
               <IconOnchain />
@@ -778,7 +778,7 @@ const BitcoinPage = () => {
       </div>
 
       {/* ── NEWS ── */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+      <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="flex items-start justify-between mb-4 gap-3">
           <div className="flex items-center gap-2">
@@ -820,7 +820,7 @@ const BitcoinPage = () => {
                         onClick={() => openArticle(i)}
                         className="group cursor-pointer"
                       >
-                        <div className="bg-[#120809] rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
+                        <div className="bg-surface-secondary rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
                           {a.image ? (
                             <div className="w-full overflow-hidden bg-black/40 flex items-center justify-center">
                               <img
@@ -833,7 +833,7 @@ const BitcoinPage = () => {
                               />
                             </div>
                           ) : (
-                            <div className="w-full aspect-video bg-[#0a0805] flex items-center justify-center border-b border-white/[0.04]">
+                            <div className="w-full aspect-video bg-surface-raised flex items-center justify-center border-b border-white/[0.04]">
                               <IconBtcLarge />
                             </div>
                           )}
@@ -866,7 +866,7 @@ const BitcoinPage = () => {
                       onClick={() => openArticle(2 + newsPage * NEWS_PER_PAGE + i)}
                       className="group cursor-pointer"
                     >
-                      <div className="flex gap-3 bg-[#120809] rounded-sm overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
+                      <div className="flex gap-3 bg-surface-secondary rounded-sm overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
                         {a.image ? (
                           <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
                             <img
@@ -875,12 +875,12 @@ const BitcoinPage = () => {
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               onError={(e) => {
                                 e.target.parentElement.innerHTML =
-                                  '<div class="w-full h-full bg-[#0a0805] flex items-center justify-center"><span class="font-mono text-base text-gold-primary/30">₿</span></div>';
+                                  '<div class="w-full h-full bg-surface-raised flex items-center justify-center"><span class="font-mono text-base text-gold-primary/30">₿</span></div>';
                               }}
                             />
                           </div>
                         ) : (
-                          <div className="w-20 h-20 flex-shrink-0 bg-[#0a0805] flex items-center justify-center">
+                          <div className="w-20 h-20 flex-shrink-0 bg-surface-raised flex items-center justify-center">
                             <span className="font-mono text-base text-gold-primary/30">₿</span>
                           </div>
                         )}
@@ -1036,7 +1036,7 @@ const BtcTradingViewChart = ({ t }) => {
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between px-5 py-3.5 bg-[#0a0506] border-b border-white/[0.06]">
+      <div className="flex items-center justify-between px-5 py-3.5 bg-surface border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-sm overflow-hidden flex-shrink-0 border border-white/[0.06]">
             <img
@@ -1064,7 +1064,7 @@ const BtcTradingViewChart = ({ t }) => {
           </span>
         </div>
       </div>
-      <div ref={chartRef} className="w-full h-[560px] bg-[#0a0805]" />
+      <div ref={chartRef} className="w-full h-[560px] bg-surface-raised" />
     </div>
   );
 };
@@ -1094,7 +1094,7 @@ const PriceBadge = ({ label, value }) => {
 };
 
 const MetricCard = ({ label, value, iconType }) => (
-  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 relative overflow-hidden hover:-translate-y-0.5 hover:border-gold-primary/25 transition-all duration-200">
+  <div className="bg-surface-raised rounded-md border border-white/[0.06] p-4 relative overflow-hidden hover:-translate-y-0.5 hover:border-gold-primary/25 transition-all duration-200">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="flex items-center justify-between mb-2">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80">
@@ -1112,7 +1112,7 @@ const MetricCard = ({ label, value, iconType }) => (
 );
 
 const MiniStat = ({ label, value }) => (
-  <div className="bg-[#120809] rounded-sm p-2.5 border border-white/[0.04]">
+  <div className="bg-surface-secondary rounded-sm p-2.5 border border-white/[0.04]">
     <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
       {label}
     </p>
@@ -1129,7 +1129,7 @@ const OnChainCard = ({
   hint,
   hintColor = "text-text-muted",
 }) => (
-  <div className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+  <div className="bg-surface-secondary rounded-sm p-3 border border-white/[0.04]">
     <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1.5">
       {label}
     </p>
@@ -1181,7 +1181,7 @@ const ErrorState = ({ error, onRetry, t }) => (
       </span>
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
-    <div className="bg-[#0a0805] rounded-md p-8 border border-loss/25 text-center relative overflow-hidden">
+    <div className="bg-surface-raised rounded-md p-8 border border-loss/25 text-center relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
       <div className="w-12 h-12 mx-auto mb-4 rounded-md bg-loss/10 flex items-center justify-center border border-loss/25">
         <svg className="w-6 h-6 text-loss" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1210,7 +1210,7 @@ const LoadingSkeleton = () => (
       <div className="skel w-32 h-3" />
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
-    <div className="bg-[#0a0805] rounded-md p-6 border border-white/[0.06]">
+    <div className="bg-surface-raised rounded-md p-6 border border-white/[0.06]">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <div className="skel w-12 h-12 rounded-md" />
@@ -1227,7 +1227,7 @@ const LoadingSkeleton = () => (
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-4 border border-white/[0.06]">
+        <div key={i} className="bg-surface-raised rounded-md p-4 border border-white/[0.06]">
           <div className="skel w-20 h-3 mb-3" />
           <div className="skel w-28 h-5" />
         </div>
@@ -1235,7 +1235,7 @@ const LoadingSkeleton = () => (
     </div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-5 h-36 border border-white/[0.06]">
+        <div key={i} className="bg-surface-raised rounded-md p-5 h-36 border border-white/[0.06]">
           <div className="skel w-16 h-3 mb-3" />
           <div className="skel w-full h-6 mb-2" />
           <div className="skel w-3/4 h-3" />
@@ -1243,8 +1243,8 @@ const LoadingSkeleton = () => (
       ))}
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-      <div className="bg-[#0a0805] rounded-md p-5 h-80 border border-white/[0.06]" />
-      <div className="bg-[#0a0805] rounded-md p-5 h-80 border border-white/[0.06]" />
+      <div className="bg-surface-raised rounded-md p-5 h-80 border border-white/[0.06]" />
+      <div className="bg-surface-raised rounded-md p-5 h-80 border border-white/[0.06]" />
     </div>
   </div>
 );

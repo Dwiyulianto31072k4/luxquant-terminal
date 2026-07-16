@@ -89,7 +89,7 @@ export function SectionHeader({ label, hint, right }) {
 export function Card({ children, className = "", hover = false, padded = true }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] ${
+      className={`relative overflow-hidden rounded-md border border-white/[0.06] bg-surface-raised ${
         padded ? "p-4 lg:p-5" : ""
       } ${
         hover
@@ -115,7 +115,7 @@ export function StatCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-md border bg-[#0a0805] p-4 lg:p-5 transition-all duration-200 hover:-translate-y-0.5 ${
+      className={`relative overflow-hidden rounded-md border bg-surface-raised p-4 lg:p-5 transition-all duration-200 hover:-translate-y-0.5 ${
         accent
           ? "border-gold-primary/25 hover:border-gold-primary/40"
           : "border-white/[0.06] hover:border-gold-primary/20"
@@ -318,7 +318,7 @@ export function Select({ value, onChange, options }) {
       className={INPUT_CLASS}
     >
       {options.map((option) => (
-        <option key={option.value} value={option.value} className="bg-[#0a0805]">
+        <option key={option.value} value={option.value} className="bg-surface-raised">
           {option.label}
         </option>
       ))}

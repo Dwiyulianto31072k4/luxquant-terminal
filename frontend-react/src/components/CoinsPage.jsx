@@ -149,7 +149,7 @@ function CoinsIndex() {
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {COINS.map((c) => (
           <Link key={c.slug} to={`/coins/${c.slug}`}
-            className="group rounded-xl border border-white/[0.07] bg-[#0a0805] p-4 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
+            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-gold-primary/30 hover:bg-white/[0.02] transition-colors">
             <div className="flex items-baseline gap-2">
               <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{c.name}</h2>
               <span className="font-mono text-[12px] text-text-muted">{c.symbol}</span>

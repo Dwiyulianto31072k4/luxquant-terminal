@@ -199,7 +199,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
 
       {/* ── Live liquidation tape (Bybit WS) ── */}
       {liq && !liq.warming ? (
-        <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+        <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
           <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
             <div className="text-[12.5px] text-text-primary/90">Liquidations · live</div>
@@ -583,7 +583,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
                 />
                 {searchOpts.length > 0 && (
-                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-[#120809] border border-gold-primary/20 shadow-xl p-1">
+                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-surface-secondary border border-gold-primary/20 shadow-xl p-1">
                     {searchOpts.map((p) => (
                       <button
                         key={p}

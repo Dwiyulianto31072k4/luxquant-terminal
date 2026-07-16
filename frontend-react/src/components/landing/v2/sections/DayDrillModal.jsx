@@ -188,7 +188,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-6">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-[ddFade_.2s_ease-out]" onClick={onClose} />
       {/* Mobile bottom sheet · desktop centered */}
-      <div className="relative z-10 flex max-h-[min(92dvh,100%)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border-t border-white/10 bg-[#0c0a07] shadow-[0_-16px_48px_rgba(0,0,0,0.55)] animate-[ddSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:max-h-[90vh] sm:rounded-2xl sm:border sm:border-white/12 sm:bg-[#0a0b0f] sm:shadow-[0_30px_80px_rgba(0,0,0,0.7)] sm:animate-none">
+      <div className="relative z-10 flex max-h-[min(92dvh,100%)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border-t border-white/10 bg-surface-raised shadow-[0_-16px_48px_rgba(0,0,0,0.55)] animate-[ddSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:max-h-[90vh] sm:rounded-2xl sm:border sm:border-white/12 sm:bg-surface-raised sm:shadow-[0_30px_80px_rgba(0,0,0,0.7)] sm:animate-none">
         <div className="flex justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/20" />
         </div>

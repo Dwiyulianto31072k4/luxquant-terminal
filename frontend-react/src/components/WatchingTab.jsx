@@ -50,7 +50,7 @@ const SectionHeader = ({ label }) => (
 );
 
 const StatCard = ({ label, value, sublabel, isGold }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">{label}</div>
@@ -241,7 +241,7 @@ const WatchingTab = () => {
         ) : items.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+          <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
             <div className="divide-y divide-white/[0.04]">
               {items.map((item) => (
@@ -336,7 +336,7 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
 const ListSkeleton = () => (
   <div className="space-y-1.5">
     {[...Array(4)].map((_, i) => (
-      <div key={i} className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3">
+      <div key={i} className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-white/[0.04] animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
           <div className="h-3 bg-white/[0.05] rounded w-1/4 animate-pulse" />
@@ -349,7 +349,7 @@ const ListSkeleton = () => (
 );
 
 const EmptyState = () => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

@@ -123,7 +123,7 @@ const NotificationSettings = ({ t, navigate }) => {
     <div className="space-y-6 max-w-2xl">
       {/* Telegram link banner */}
       {!telegramLinked ? (
-        <div className="relative overflow-hidden rounded-md border border-gold-primary/20 bg-[#0a0805] p-4">
+        <div className="relative overflow-hidden rounded-md border border-gold-primary/20 bg-surface-raised p-4">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex-1 min-w-0">

@@ -149,7 +149,7 @@ export const StatusTag = ({ status }) => {
 
 // solid landing-page surface + gold top hairline (matches Track Record cards)
 export const SectionBand = ({ title, desc }) => (
-  <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0805] px-4 py-3.5">
+  <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised px-4 py-3.5">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
     <div className="text-[14px] text-text-primary/95">{title}</div>
     {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
@@ -157,7 +157,7 @@ export const SectionBand = ({ title, desc }) => (
 );
 
 export const Kpi = ({ label, value, desc, tone }) => (
-  <div className="group relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-gold-primary/25">
+  <div className="group relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-gold-primary/25">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
     <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
     <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-text-primary/95"}`}>{value}</div>
@@ -171,7 +171,7 @@ export const Chip = ({ active, onClick, children }) => (
     className={`shrink-0 px-2.5 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider border transition-colors ${
       active
         ? "bg-gold-primary text-[#17110a] border-gold-primary font-semibold shadow-sm shadow-gold-primary/20"
-        : "bg-[#0c0a07] text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
+        : "bg-surface-raised text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
     }`}
   >
     {children}
@@ -200,7 +200,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors ${
           selected.length
             ? "bg-gold-primary/20 border-gold-primary/45"
-            : "bg-[#0c0a07] border-white/[0.1] hover:border-white/20"
+            : "bg-surface-raised border-white/[0.1] hover:border-white/20"
         }`}
       >
         <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{label}</span>
@@ -225,7 +225,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute z-40 mt-1 left-0 min-w-[180px] max-h-64 overflow-y-auto rounded-md bg-[#120809] border border-gold-primary/20 shadow-xl p-1.5">
+          <div className="absolute z-40 mt-1 left-0 min-w-[180px] max-h-64 overflow-y-auto rounded-md bg-surface-secondary border border-gold-primary/20 shadow-xl p-1.5">
             {selected.length > 0 && (
               <button
                 onClick={() => onChange([])}
@@ -250,7 +250,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
 export const DarkTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       {label != null && <div className="text-text-primary/50 mb-1">{label}</div>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
@@ -272,7 +272,7 @@ export function ScatterTip({ active, payload, xLabel = "x", yLabel = "y" }) {
   const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af" }) : null;
   const ago = info ? timeAgo(info.created) : null;
   return (
-    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+    <div className="rounded-md bg-surface-secondary border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="text-text-primary mb-0.5 flex items-center gap-2">
         <span>{p.pair}</span>
         {meta && <span className="font-bold" style={{ color: meta.color }}>{meta.label}</span>}
@@ -336,7 +336,7 @@ export function XCard({ title, desc, render, zoom, hint }) {
   );
   return (
     <>
-      <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+      <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -357,7 +357,7 @@ export function XCard({ title, desc, render, zoom, hint }) {
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex flex-col w-[94vw] max-w-[1600px] h-full max-h-[calc(100vh-5.5rem)] rounded-2xl bg-[#0a0805] border border-gold-primary/25 shadow-2xl shadow-black/60 overflow-hidden"
+            className="relative flex flex-col w-[94vw] max-w-[1600px] h-full max-h-[calc(100vh-5.5rem)] rounded-2xl bg-surface-raised border border-gold-primary/25 shadow-2xl shadow-black/60 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />

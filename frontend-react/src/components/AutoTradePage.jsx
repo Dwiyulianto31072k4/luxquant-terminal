@@ -133,7 +133,7 @@ function MobileSectionPicker({ tabs, value, onChange }) {
       {open ? (
         <div
           role="listbox"
-          className="absolute left-0 right-0 z-30 mt-1.5 overflow-hidden rounded-md border border-gold-primary/20 bg-[#0c0908] shadow-2xl"
+          className="absolute left-0 right-0 z-30 mt-1.5 overflow-hidden rounded-md border border-gold-primary/20 bg-surface-raised shadow-2xl"
         >
           {tabs.map((item) => {
             const on = item.id === value;
@@ -515,7 +515,7 @@ function LoadingState() {
       {[1, 2, 3].map((item) => (
         <div
           key={item}
-          className="rounded-md border border-white/[0.06] bg-[#0a0805] p-5"
+          className="rounded-md border border-white/[0.06] bg-surface-raised p-5"
         >
           <div className="h-3 w-24 rounded bg-white/[0.05]" />
           <div className="mt-4 h-8 w-2/3 rounded bg-white/[0.06]" />

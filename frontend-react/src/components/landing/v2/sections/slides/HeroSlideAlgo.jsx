@@ -16,7 +16,7 @@ const hideOnError = (event) => {
 
 function ScreenFallback({ size = "h-12 w-12", opacity = "opacity-20" }) {
   return (
-    <div className="absolute inset-0 z-0 flex items-center justify-center bg-[#0a0506]">
+    <div className="absolute inset-0 z-0 flex items-center justify-center bg-surface">
       <img
         src="/logo.png"
         alt=""

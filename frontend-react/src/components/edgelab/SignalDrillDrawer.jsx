@@ -394,7 +394,7 @@ const PeakField = ({ signals, selectedId }) => {
           if (sel) {
             return (
               <div key={s.signal_id} className="absolute z-10 -translate-x-1/2 -translate-y-1/2" style={{ left, top: "50%" }}>
-                <div className="w-[11px] h-[11px] rounded-full border-[2px] border-gold-primary bg-[#0a0805]" />
+                <div className="w-[11px] h-[11px] rounded-full border-[2px] border-gold-primary bg-surface-raised" />
                 <div className="absolute left-1/2 -translate-x-1/2 -top-[18px] text-[9px] font-mono tabular-nums text-gold-primary whitespace-nowrap">
                   {fmtPeak(s.peak_pct)}
                 </div>
@@ -747,7 +747,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-[88vh] bg-[#0a0805] border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-[88vh] bg-surface-raised border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>

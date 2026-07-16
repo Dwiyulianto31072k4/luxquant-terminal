@@ -71,7 +71,7 @@ function RegimeGauge({ macro, pairFc, deriv }) {
   );
 
   return (
-    <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden p-4">
+    <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden p-4">
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       <div className="flex items-end justify-between mb-3">
         <div>
@@ -517,12 +517,12 @@ export default function SignalsAnalytics() {
   return (
     <div className="space-y-3">
       {/* ── filter row + live BTC + freshness — sticky & solid (Allium) ── */}
-      <div className="sticky top-0 z-30 flex items-center gap-2 flex-wrap bg-[#0a0806] border-b border-white/[0.07] px-1 py-2 -mx-0.5 rounded-b-md">
+      <div className="sticky top-0 z-30 flex items-center gap-2 flex-wrap bg-surface-raised border-b border-white/[0.07] px-1 py-2 -mx-0.5 rounded-b-md">
         <input
           value={filters.q}
           onChange={(e) => setF({ q: e.target.value })}
           placeholder={t("terminal.viz.searchPair")}
-          className="w-36 bg-[#15120d] border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+          className="w-36 bg-surface-secondary border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
         />
         <div className="flex gap-1">
           {["all", ...STATUS_ORDER].map((s) => (
@@ -533,7 +533,7 @@ export default function SignalsAnalytics() {
         </div>
         <span className="h-4 w-px bg-white/[0.08]" />
         {/* multi-day window — toggle any of the last 7 days (0 = today) */}
-        <div className="flex items-center gap-0.5 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
+        <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
           <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const on = dayBuckets.includes(d);
@@ -605,7 +605,7 @@ export default function SignalsAnalytics() {
 
       {/* ── loading / error (only when nothing hydrated) ── */}
       {loading && !data && (
-        <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] py-24 flex flex-col items-center gap-3">
+        <div className="rounded-lg bg-surface-raised border border-white/[0.07] py-24 flex flex-col items-center gap-3">
           <div className="w-6 h-6 border border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.loading")}</span>
         </div>

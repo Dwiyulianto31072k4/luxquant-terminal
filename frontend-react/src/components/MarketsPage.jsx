@@ -122,7 +122,7 @@ const MarketsPage = () => {
       </div>
 
       {/* ── GLOBAL MARKET BAR ── */}
-      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden">
+      <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="relative p-5">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -154,7 +154,7 @@ const MarketsPage = () => {
       </div>
 
       {/* ── HEATMAP ── */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+      <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <SectionHeader
           title={t('markets.heatmap')}
@@ -170,7 +170,7 @@ const MarketsPage = () => {
 
       {/* ── TRENDING & CATEGORIES ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <SectionHeader
             title={t('markets.trending')}
@@ -182,7 +182,7 @@ const MarketsPage = () => {
               {trending.coins.map((c, i) => (
                 <div
                   key={c.id}
-                  className="flex items-center gap-3 p-2.5 rounded-sm bg-[#120809] border border-white/[0.04] hover:border-gold-primary/20 hover:bg-white/[0.02] transition-all group"
+                  className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-secondary border border-white/[0.04] hover:border-gold-primary/20 hover:bg-white/[0.02] transition-all group"
                 >
                   <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
                     {String(i + 1).padStart(2, '0')}
@@ -209,7 +209,7 @@ const MarketsPage = () => {
           )}
         </div>
 
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <SectionHeader
             title={t('markets.top_categories')}
@@ -221,7 +221,7 @@ const MarketsPage = () => {
               {(Array.isArray(categories) ? categories : []).slice(0, 8).map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-3 p-2.5 rounded-sm bg-[#120809] border border-white/[0.04]"
+                  className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-secondary border border-white/[0.04]"
                 >
                   <div className="flex gap-1 flex-shrink-0">
                     {cat.top_3_coins?.map((img, j) => (
@@ -251,7 +251,7 @@ const MarketsPage = () => {
       </div>
 
       {/* ── CRYPTO NEWS ── */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+      <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <SectionHeader title={t('markets.news_title')} subtitle={t('markets.news_sub')} icon="news" />
         {news?.articles?.length > 0 ? (() => {
@@ -271,7 +271,7 @@ const MarketsPage = () => {
                     onClick={() => setSelectedArticle(a)}
                     className="group cursor-pointer"
                   >
-                    <div className="bg-[#120809] rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
+                    <div className="bg-surface-secondary rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
                       {a.image && (
                         <div className="h-40 overflow-hidden">
                           <img
@@ -305,7 +305,7 @@ const MarketsPage = () => {
                     className="flex items-center gap-3 py-2 px-2.5 rounded-sm hover:bg-white/[0.02] transition-colors group cursor-pointer"
                   >
                     {a.image ? (
-                      <div className="w-16 h-12 rounded-sm overflow-hidden flex-shrink-0 bg-[#120809]">
+                      <div className="w-16 h-12 rounded-sm overflow-hidden flex-shrink-0 bg-surface-secondary">
                         <img
                           src={a.image}
                           alt=""
@@ -314,7 +314,7 @@ const MarketsPage = () => {
                         />
                       </div>
                     ) : (
-                      <div className="w-16 h-12 rounded-sm bg-[#120809] flex-shrink-0 flex items-center justify-center border border-white/[0.04]">
+                      <div className="w-16 h-12 rounded-sm bg-surface-secondary flex-shrink-0 flex items-center justify-center border border-white/[0.04]">
                         <IconNewsSmall />
                       </div>
                     )}
@@ -392,7 +392,7 @@ const MarketsPage = () => {
       {/* ── DERIVATIVES + LIQUIDATIONS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Derivatives */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <SectionHeader
             title={t('markets.derivatives')}
@@ -506,7 +506,7 @@ const MarketsPage = () => {
         </div>
 
         {/* Liquidations */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <SectionHeader
             title={t('markets.liquidations')}
@@ -517,7 +517,7 @@ const MarketsPage = () => {
             <div className="mt-4">
               {/* Summary 3 boxes */}
               <div className="grid grid-cols-3 gap-2.5 mb-4">
-                <div className="bg-[#120809] rounded-sm p-3 text-center border border-white/[0.04]">
+                <div className="bg-surface-secondary rounded-sm p-3 text-center border border-white/[0.04]">
                   <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                     {t('markets.total')}
                   </p>
@@ -608,7 +608,7 @@ const MarketsPage = () => {
 
       {/* ── DEFI + MACRO ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <SectionHeader
             title={t('markets.defi_overview')}
@@ -661,7 +661,7 @@ const MarketsPage = () => {
                   {defi.protocols?.slice(0, 6).map(p => (
                     <div
                       key={p.name}
-                      className="bg-[#120809] rounded-sm p-2.5 border border-white/[0.04] flex items-center gap-2.5"
+                      className="bg-surface-secondary rounded-sm p-2.5 border border-white/[0.04] flex items-center gap-2.5"
                     >
                       {p.logo && (
                         <img
@@ -691,7 +691,7 @@ const MarketsPage = () => {
         </div>
 
         {/* Stablecoins + ETF */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <SectionHeader
             title={t('markets.macro_stable')}
@@ -746,7 +746,7 @@ const MarketsPage = () => {
                     <EtfCard label={t('markets.eth_etf')} data={etfFlows.eth} t={t} />
                   </div>
                 ) : (
-                  <div className="bg-[#120809] rounded-sm p-4 border border-white/[0.04] text-center">
+                  <div className="bg-surface-secondary rounded-sm p-4 border border-white/[0.04] text-center">
                     <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
                       {etfFlows?.error === 'SoSoValue API key not configured'
                         ? t('markets.etf_key_err')
@@ -761,7 +761,7 @@ const MarketsPage = () => {
       </div>
 
       {/* ── COIN TABLE ── */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+      <div className="bg-surface-raised rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
           <SectionHeader title={t('markets.all_coins')} subtitle={t('markets.top_100')} icon="coins" />
@@ -1030,7 +1030,7 @@ const IconNewsSmall = () => (
    ────────────────────────────────────────────────────────────── */
 
 const GlobalStat = ({ label, value, change, accent }) => (
-  <div className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+  <div className="bg-surface-secondary rounded-sm p-3 border border-white/[0.04]">
     <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">{label}</p>
     <div className="h-px bg-white/[0.04] my-2" />
     <p className={`font-mono text-sm font-light tabular-nums tracking-tight ${accent || 'text-text-primary'}`}>
@@ -1058,7 +1058,7 @@ const FearGreedMini = ({ value, label, t }) => {
     : v <= 75 ? 'text-profit/80'
     : 'text-profit';
   return (
-    <div className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+    <div className="bg-surface-secondary rounded-sm p-3 border border-white/[0.04]">
       <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
         {t('markets.fear_greed')}
       </p>
@@ -1119,7 +1119,7 @@ const PctText = ({ value }) => {
 
 const EtfCard = ({ label, data, t }) => {
   if (!data || !data.records?.length) return (
-    <div className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+    <div className="bg-surface-secondary rounded-sm p-3 border border-white/[0.04]">
       <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</p>
       <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted/70 mt-2">
         {t('markets.no_data')}
@@ -1130,7 +1130,7 @@ const EtfCard = ({ label, data, t }) => {
   const flow = latest?.netFlow;
   const pos = flow >= 0;
   return (
-    <div className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+    <div className="bg-surface-secondary rounded-sm p-3 border border-white/[0.04]">
       <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</p>
       <p className={`font-mono text-sm font-light tabular-nums mt-1.5 ${pos ? 'text-profit' : 'text-loss'}`}>
         {pos ? '+' : ''}{flow != null ? `$${fmtLarge(Math.abs(flow))}` : '-'}
@@ -1200,7 +1200,7 @@ const HeatmapGrid = ({ coins }) => {
   return (
     <div
       ref={containerRef}
-      className="relative mt-4 rounded-sm overflow-hidden bg-[#0a0506]"
+      className="relative mt-4 rounded-sm overflow-hidden bg-surface"
       style={{ height: dims.h || 320 }}
     >
       {rects.map((r) => {
@@ -1247,7 +1247,7 @@ const HeatmapGrid = ({ coins }) => {
               </span>
             )}
 
-            <div className="heatmap-tooltip opacity-0 group-hover:opacity-100 pointer-events-none absolute z-50 -top-16 left-1/2 -translate-x-1/2 bg-[#0a0506] border border-white/[0.06] rounded-sm px-3 py-2 whitespace-nowrap shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+            <div className="heatmap-tooltip opacity-0 group-hover:opacity-100 pointer-events-none absolute z-50 -top-16 left-1/2 -translate-x-1/2 bg-surface border border-white/[0.06] rounded-sm px-3 py-2 whitespace-nowrap shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="flex items-center gap-2">
                 {r.image && <img src={r.image} alt="" className="w-4 h-4 rounded-full" />}
@@ -1393,7 +1393,7 @@ const ErrorState = ({ error, onRetry, t }) => (
       </span>
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
-    <div className="bg-[#0a0805] rounded-md p-8 border border-loss/25 text-center relative overflow-hidden">
+    <div className="bg-surface-raised rounded-md p-8 border border-loss/25 text-center relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
       <div className="w-12 h-12 mx-auto mb-4 rounded-md bg-loss/10 flex items-center justify-center border border-loss/25">
         <svg className="w-6 h-6 text-loss" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1420,17 +1420,17 @@ const LoadingSkeleton = () => (
       <div className="skel w-40 h-3" />
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
-    <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06]">
+    <div className="bg-surface-raised rounded-md p-5 border border-white/[0.06]">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+          <div key={i} className="bg-surface-secondary rounded-sm p-3 border border-white/[0.04]">
             <div className="skel w-16 h-3 mb-2" />
             <div className="skel w-20 h-4" />
           </div>
         ))}
       </div>
     </div>
-    <div className="bg-[#0a0805] rounded-md p-5 h-56 border border-white/[0.06]">
+    <div className="bg-surface-raised rounded-md p-5 h-56 border border-white/[0.06]">
       <div className="skel w-32 h-4 mb-4" />
       <div className="flex flex-wrap gap-1">
         {[...Array(20)].map((_, i) => (
@@ -1440,7 +1440,7 @@ const LoadingSkeleton = () => (
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {[...Array(2)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-5 h-72 border border-white/[0.06]">
+        <div key={i} className="bg-surface-raised rounded-md p-5 h-72 border border-white/[0.06]">
           <div className="skel w-28 h-4 mb-4" />
           {[...Array(5)].map((_, j) => (
             <div key={j} className="skel w-full h-7 mb-2" />
@@ -1450,7 +1450,7 @@ const LoadingSkeleton = () => (
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {[...Array(2)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-5 h-80 border border-white/[0.06]">
+        <div key={i} className="bg-surface-raised rounded-md p-5 h-80 border border-white/[0.06]">
           <div className="skel w-24 h-4 mb-4" />
           {[...Array(6)].map((_, j) => (
             <div key={j} className="skel w-full h-6 mb-2" />
@@ -1458,7 +1458,7 @@ const LoadingSkeleton = () => (
         </div>
       ))}
     </div>
-    <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06]">
+    <div className="bg-surface-raised rounded-md p-5 border border-white/[0.06]">
       <div className="skel w-24 h-4 mb-5" />
       {[...Array(8)].map((_, i) => (
         <div key={i} className="skel w-full h-9 mb-2" />

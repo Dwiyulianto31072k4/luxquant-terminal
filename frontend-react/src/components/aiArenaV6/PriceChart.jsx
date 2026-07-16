@@ -529,7 +529,7 @@ export default function PriceChart({ report }) {
 
         <div
           ref={containerRef}
-          className="w-full overflow-hidden rounded-md border border-white/[0.04] bg-[#0a0506]"
+          className="w-full overflow-hidden rounded-md border border-white/[0.04] bg-surface"
           style={{ height: "clamp(420px, 58vh, 640px)" }}
         />
 
@@ -658,7 +658,7 @@ function ProjectionPanel({ projection, lastPrice }) {
 
 function ProjectionStat({ label, value, hint, tone }) {
   return (
-    <div className="rounded-sm border border-white/[0.04] bg-[#120809] p-3">
+    <div className="rounded-sm border border-white/[0.04] bg-surface-secondary p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{label}</div>
       <div className="mt-1 font-mono text-lg font-semibold text-text-primary/90" style={{ color: tone ? directionColor(tone) : undefined }}>
         {value}
@@ -695,7 +695,7 @@ function ChartReadPanel({ read }) {
   if (!read) return null;
   const toneColor = directionColor(read.direction);
   return (
-    <section className="relative mt-4 overflow-hidden rounded-md border border-gold-primary/15 bg-[#0a0805] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <section className="relative mt-4 overflow-hidden rounded-md border border-gold-primary/15 bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
         <div className="max-w-4xl">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
@@ -788,7 +788,7 @@ function ReasonRow({ item }) {
 
 function MetricExplain({ metric }) {
   return (
-    <div className="rounded-sm border border-white/[0.04] bg-[#120809] p-3">
+    <div className="rounded-sm border border-white/[0.04] bg-surface-secondary p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{metric.label}</div>
       <div className="mt-1 font-mono text-sm font-semibold text-text-primary/90">{metric.value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#d4a853]/75">{metric.state}</div>

@@ -554,7 +554,7 @@ export default function ConfigurationStudio({
       </Card>
 
       {/* ── Save bar ── */}
-      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-lg border border-gold-primary/20 bg-[#0a0805]/95 px-4 py-3 shadow-2xl backdrop-blur">
+      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-lg border border-gold-primary/20 bg-surface-raised/95 px-4 py-3 shadow-2xl backdrop-blur">
         <div>
           <p
             className={`text-xs font-semibold ${

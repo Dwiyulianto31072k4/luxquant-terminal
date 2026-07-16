@@ -39,7 +39,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
         <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
@@ -52,7 +52,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
   // ── Empty ──
   if (orders.length === 0) {
     return (
-      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <p className="text-text-primary text-sm font-medium mb-1">No trade history yet</p>
         <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
@@ -63,7 +63,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
   }
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
       {/* ════════════════════════════════════ */}

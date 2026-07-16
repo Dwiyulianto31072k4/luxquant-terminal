@@ -41,7 +41,7 @@
 .edge-fade-r { position: relative; }
 .edge-fade-r::after {
   content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 56px;
-  background: linear-gradient(to right, transparent, #0a0503 92%);
+  background: linear-gradient(to right, transparent, rgb(var(--surface)) 92%);
   pointer-events: none; z-index: 2;
 }
 
@@ -258,6 +258,21 @@ body::-webkit-scrollbar,
     );
   pointer-events: none;
   z-index: 0;
+}
+
+/* Dark theme: neutral, no warm maroon glow. A clean near-black canvas with a
+   whisper of cool light from the top so it doesn't read as flat. */
+[data-theme="dark"] .luxury-bg {
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.035) 0%, transparent 55%),
+    rgb(var(--surface));
+}
+
+/* Bright theme: light neutral canvas (kept sane while Bright is hidden). */
+[data-theme="bright"] .luxury-bg {
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(0, 0, 0, 0.03) 0%, transparent 55%),
+    rgb(var(--surface));
 }
 
 /* ==========================================

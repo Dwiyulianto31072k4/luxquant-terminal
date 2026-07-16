@@ -427,7 +427,7 @@ const WatchlistPage = () => {
                 className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
               >
                 {SORT_OPTIONS.map(opt => (
-                  <option key={opt.key} value={opt.key} className="bg-[#0a0805] text-text-primary">
+                  <option key={opt.key} value={opt.key} className="bg-surface-raised text-text-primary">
                     Sort: {opt.label}
                   </option>
                 ))}
@@ -476,7 +476,7 @@ const WatchlistPage = () => {
             {filteredWatchlist.length === 0 ? (
               <NoMatch />
             ) : (
-              <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+              <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
                 <div className="overflow-x-auto">
@@ -585,7 +585,7 @@ const SectionHeader = ({ label, small = false }) => (
 // STAT CARD
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel, isLive, isGold, isDanger }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="flex items-center justify-between mb-2">
@@ -829,7 +829,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
             return (
               <div
                 key={i}
-                className="relative overflow-hidden bg-[#0a0805] border border-gold-primary/15 rounded-md p-3"
+                className="relative overflow-hidden bg-surface-raised border border-gold-primary/15 rounded-md p-3"
               >
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary/60 mb-1">
@@ -854,7 +854,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
       {/* Stop Loss */}
       {item.stop1 && (
-        <div className="relative overflow-hidden bg-[#0a0805] border border-red-500/15 rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
             Stop Loss
@@ -875,7 +875,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
 
       {/* Stop Loss 2 (if exists) */}
       {item.stop2 && (
-        <div className="relative overflow-hidden bg-[#0a0805] border border-red-500/15 rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
             Stop Loss 2
@@ -896,7 +896,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
 
       {/* Volume */}
       {currentVol ? (
-        <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
             24H Volume
           </p>
@@ -905,7 +905,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           </p>
         </div>
       ) : item.volume_rank_num && item.volume_rank_den ? (
-        <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
             Volume Rank
           </p>
@@ -955,7 +955,7 @@ const MobileCard = ({
   return (
     <div
       onClick={onClick}
-      className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 cursor-pointer transition-all hover:border-white/[0.12] active:bg-white/[0.02]"
+      className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-3.5 cursor-pointer transition-all hover:border-white/[0.12] active:bg-white/[0.02]"
     >
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -1098,7 +1098,7 @@ const LoadingSkeleton = () => (
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
-        className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
+        className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
       >
         <div className="w-8 h-8 rounded bg-white/[0.03] shrink-0" />
         <div className="flex-1 space-y-2">
@@ -1115,7 +1115,7 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = ({ onBrowse }) => (
-  <div className="relative bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
+  <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1140,7 +1140,7 @@ const EmptyState = ({ onBrowse }) => (
 );
 
 const NoMatch = () => (
-  <div className="relative bg-[#0a0805] border border-white/[0.06] rounded-md p-8 text-center">
+  <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-8 text-center">
     <p className="text-text-muted text-sm font-mono uppercase tracking-[0.15em]">
       No matching signals
     </p>

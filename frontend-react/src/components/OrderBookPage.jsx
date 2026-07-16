@@ -101,7 +101,7 @@ const ImbalanceStrip = ({ imb }) => {
   );
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -371,7 +371,7 @@ const WallsCard = ({ walls, total, type }) => {
 // DERIVATIVES CARD (base wrapper)
 // ════════════════════════════════════════════════════════════════
 const DerivCard = ({ label, value, children, headerRight }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative">
       <div className="flex items-center justify-between mb-2">
@@ -632,7 +632,7 @@ const OICard = ({ data }) => {
 // SKELETON
 // ════════════════════════════════════════════════════════════════
 const SkeletonCard = ({ label }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4">
+  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
     <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-3">
       {label}
@@ -856,7 +856,7 @@ export default function OrderBookPage() {
                 small
                 suffix={data.total_levels ? `${data.total_levels} levels` : null}
               />
-              <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+              <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                 <DepthChart depth={depth} t={t} />
               </div>
@@ -867,7 +867,7 @@ export default function OrderBookPage() {
               {/* S/R Levels */}
               <div>
                 <SectionHeader label="Support / Resistance" small />
-                <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 mt-3">
+                <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 mt-3">
                   <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                   <SRLevels sr={sr} t={t} />
                 </div>
@@ -877,7 +877,7 @@ export default function OrderBookPage() {
               <div>
                 <SectionHeader label="Liquidity Walls" small />
                 <div className="grid grid-cols-1 gap-3 mt-3">
-                  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4">
+                  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
                     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
                     <WallsCard
                       walls={walls.buy}
@@ -885,7 +885,7 @@ export default function OrderBookPage() {
                       type="buy"
                     />
                   </div>
-                  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4">
+                  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
                     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-400/30 to-transparent" />
                     <WallsCard
                       walls={walls.sell}

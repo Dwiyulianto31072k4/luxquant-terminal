@@ -100,7 +100,7 @@ Could you please help me complete the payment? Thanks!`;
     <Modal isOpen={isOpen} onClose={onClose} size="md" padded={false} header={header} footer={footer}>
       <div className="px-6 py-4 sm:px-7">
         {/* Plan summary */}
-        <div className="relative mb-4 overflow-hidden rounded-xl border border-gold-primary/10 bg-[#0d0b09] px-4 py-3">
+        <div className="relative mb-4 overflow-hidden rounded-xl border border-gold-primary/10 bg-surface-raised px-4 py-3">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(212,168,83,0.25), transparent)" }} />
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -140,7 +140,7 @@ Could you please help me complete the payment? Thanks!`;
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={9}
-          className="w-full resize-none rounded-xl border border-gold-primary/10 bg-[#0d0b09] px-4 py-3 font-mono text-[12px] leading-relaxed text-text-primary outline-none transition-colors focus:border-gold-primary/30"
+          className="w-full resize-none rounded-xl border border-gold-primary/10 bg-surface-raised px-4 py-3 font-mono text-[12px] leading-relaxed text-text-primary outline-none transition-colors focus:border-gold-primary/30"
           style={{ minHeight: "180px", maxHeight: "260px" }}
         />
         <p className="mt-2 text-[10px] text-text-muted">

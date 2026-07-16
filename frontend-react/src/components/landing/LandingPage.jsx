@@ -288,7 +288,7 @@ const TestimonialsCarousel = () => {
                     : "opacity-0 translate-x-8 pointer-events-none"
                 }`}
               >
-                <div className="relative h-full bg-[#0a0805] rounded-md border border-white/10 p-6 lg:p-8 overflow-hidden">
+                <div className="relative h-full bg-surface-raised rounded-md border border-white/10 p-6 lg:p-8 overflow-hidden">
                   {/* Hairline gold accent on top */}
                   <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
 
@@ -447,7 +447,7 @@ const FAQ_DATA = [
 
 const FAQItem = ({ q, a, isOpen, onClick }) => (
   <div
-    className={`bg-[#0a0805] border rounded-md overflow-hidden mb-2 transition-all duration-300 ${
+    className={`bg-surface-raised border rounded-md overflow-hidden mb-2 transition-all duration-300 ${
       isOpen ? "border-gold-primary/30" : "border-white/[0.06] hover:border-white/[0.12]"
     }`}
   >
@@ -608,13 +608,13 @@ const TelegramPromo = ({ gainers }) => {
 
           <div className="relative w-[240px] lg:w-[280px] aspect-[9/19.5] z-10 group">
             {/* Phone bezel */}
-            <div className="absolute inset-0 bg-[#050302] border-[6px] lg:border-[8px] border-[#1a1a1a] rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+            <div className="absolute inset-0 bg-surface border-[6px] lg:border-[8px] border-[#1a1a1a] rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
               {/* Dynamic island */}
               <div className="absolute top-0 inset-x-0 z-30">
-                <div className="w-[35%] h-[16px] lg:h-[20px] bg-[#1a1a1a] mx-auto rounded-b-xl lg:rounded-b-2xl" />
+                <div className="w-[35%] h-[16px] lg:h-[20px] bg-surface-secondary mx-auto rounded-b-xl lg:rounded-b-2xl" />
               </div>
               {/* Screen */}
-              <div className="absolute inset-[2px] rounded-[2.2rem] lg:rounded-[2.8rem] overflow-hidden bg-[#050302]">
+              <div className="absolute inset-[2px] rounded-[2.2rem] lg:rounded-[2.8rem] overflow-hidden bg-surface">
                 <img
                   src="/telegram-ss.png?v=2"
                   alt="LuxQuant Telegram Channel Content"
@@ -848,7 +848,7 @@ const LandingWinRateChart = ({ data }) => {
                 payload[0]?.payload;
               if (!d) return null;
               return (
-                <div className="bg-[#0a0805]/95 backdrop-blur-md border border-gold-primary/30 rounded-xl p-3 shadow-xl">
+                <div className="bg-surface-raised/95 backdrop-blur-md border border-gold-primary/30 rounded-xl p-3 shadow-xl">
                   <p className="text-gold-primary text-xs font-bold mb-1">
                     {d.fullDate}
                   </p>
@@ -1005,7 +1005,7 @@ export const LivePerformanceStats = ({ data }) => {
           {statCards.map((card, idx) => (
             <div
               key={idx}
-              className={`relative overflow-hidden rounded-md p-3 lg:p-4 bg-[#0a0805] border transition-all ${
+              className={`relative overflow-hidden rounded-md p-3 lg:p-4 bg-surface-raised border transition-all ${
                 card.isAccent
                   ? "border-gold-primary/25 group-hover:border-gold-primary/50"
                   : "border-white/[0.06] group-hover:border-gold-primary/20"
@@ -1036,7 +1036,7 @@ export const LivePerformanceStats = ({ data }) => {
         {/* Performance Trend Chart (2/3) */}
         <div
           onClick={goPerf}
-          className="lg:col-span-2 relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
+          className="lg:col-span-2 relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <div className="flex justify-between items-start">
@@ -1060,7 +1060,7 @@ export const LivePerformanceStats = ({ data }) => {
         {/* Outcome Distribution (1/3) — flat segmented Hydromancer-style */}
         <div
           onClick={goPerf}
-          className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
+          className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <h3 className="text-text-primary font-semibold text-base lg:text-lg mb-1 tracking-tight">
@@ -1141,7 +1141,7 @@ export const LivePerformanceStats = ({ data }) => {
           ════════════════════════════════════════ */}
       <div
         onClick={goPerf}
-        className="relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all mb-4 cursor-pointer"
+        className="relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-white/10 hover:border-gold-primary/30 transition-all mb-4 cursor-pointer"
       >
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-5 gap-3">
@@ -1498,7 +1498,7 @@ const LandingPage = () => {
       <TickerBar />
 
       <header
-        className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? "bg-[#0a0506]/85 backdrop-blur-xl border-b border-gold-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]" : "bg-transparent"}`}
+        className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? "bg-surface/85 backdrop-blur-xl border-b border-gold-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]" : "bg-transparent"}`}
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
@@ -1588,7 +1588,7 @@ const LandingPage = () => {
         </div>
 
         <div
-          className={`lg:hidden absolute top-full left-0 w-full bg-[#0a0506]/95 backdrop-blur-3xl overflow-hidden transition-all duration-500 ease-in-out ${mobileMenuOpen ? "max-h-[400px] opacity-100 border-b border-gold-primary/20 shadow-2xl" : "max-h-0 opacity-0"}`}
+          className={`lg:hidden absolute top-full left-0 w-full bg-surface/95 backdrop-blur-3xl overflow-hidden transition-all duration-500 ease-in-out ${mobileMenuOpen ? "max-h-[400px] opacity-100 border-b border-gold-primary/20 shadow-2xl" : "max-h-0 opacity-0"}`}
         >
           <div className="px-6 py-6 space-y-2">
             {[
@@ -1767,9 +1767,9 @@ const LandingPage = () => {
                 }}
                 className="w-full relative z-10"
               >
-                <div className="relative w-full aspect-[16/10] bg-[#0a0805] rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-[#2a2a2a] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
+                <div className="relative w-full aspect-[16/10] bg-surface-raised rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-[#2a2a2a] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
                   <div className="absolute inset-0 border border-black rounded-t-lg lg:rounded-t-3xl overflow-hidden bg-bg-primary">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[12%] h-[10px] lg:h-[18px] bg-[#0a0805] rounded-b-sm lg:rounded-b-md z-30 flex justify-center items-center">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[12%] h-[10px] lg:h-[18px] bg-surface-raised rounded-b-sm lg:rounded-b-md z-30 flex justify-center items-center">
                       <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-white/10" />
                     </div>
                     <img
@@ -1780,7 +1780,7 @@ const LandingPage = () => {
                         e.target.style.display = "none";
                       }}
                     />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface -z-10">
                       <img
                         src="/logo.png"
                         alt=""
@@ -1813,7 +1813,7 @@ const LandingPage = () => {
                           e.target.style.display = "none";
                         }}
                       />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface -z-10">
                         <img
                           src="/logo.png"
                           alt=""
@@ -1960,7 +1960,7 @@ const LandingPage = () => {
             ].map((node, i) => (
               <div
                 key={i}
-                className="group bg-[#0a0805] backdrop-blur-md border border-white/5 hover:border-gold-primary/30 p-4 rounded-md transition-all duration-300 relative overflow-hidden"
+                className="group bg-surface-raised backdrop-blur-md border border-white/5 hover:border-gold-primary/30 p-4 rounded-md transition-all duration-300 relative overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gold-primary/20 group-hover:bg-gold-primary transition-colors" />
                 <span className="text-gold-primary/60 font-mono text-[9px] mb-1 block">
@@ -1983,7 +1983,7 @@ const LandingPage = () => {
             />
           </div>
 
-          <div className="w-[120px] xl:w-[140px] bg-[#050302] border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
+          <div className="w-[120px] xl:w-[140px] bg-surface border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             <svg
               className="w-6 h-6 text-text-primary/50 mb-3"
@@ -2019,7 +2019,7 @@ const LandingPage = () => {
 
             {/* Core engine box — pulse + scanline retained */}
             <div
-              className="relative w-40 h-40 xl:w-48 xl:h-48 bg-[#0a0805] rounded-md border-[1.5px] border-white/10 flex flex-col items-center justify-center overflow-hidden"
+              className="relative w-40 h-40 xl:w-48 xl:h-48 bg-surface-raised rounded-md border-[1.5px] border-white/10 flex flex-col items-center justify-center overflow-hidden"
               style={{ animation: "core-pulse 4s ease-in-out infinite" }}
             >
               <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay" />
@@ -2058,7 +2058,7 @@ const LandingPage = () => {
             />
           </div>
 
-          <div className="w-[120px] xl:w-[140px] bg-[#050302] border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
+          <div className="w-[120px] xl:w-[140px] bg-surface border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
             <svg
               className="w-6 h-6 text-gold-primary/70 mb-3"
@@ -2091,7 +2091,7 @@ const LandingPage = () => {
           </div>
 
           <div className="relative w-[240px] xl:w-[280px] flex-shrink-0 z-20">
-            <div className="bg-[#0a0805] rounded-md border border-gold-primary/20 p-5 relative overflow-hidden">
+            <div className="bg-surface-raised rounded-md border border-gold-primary/20 p-5 relative overflow-hidden">
               {/* Subtle hairline highlight on top */}
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
               <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
@@ -2149,7 +2149,7 @@ const LandingPage = () => {
             ].map((node, i) => (
               <div
                 key={i}
-                className="bg-[#0a0805] border border-white/10 rounded-lg p-3 text-center shadow-lg"
+                className="bg-surface-raised border border-white/10 rounded-lg p-3 text-center shadow-lg"
               >
                 <span className="text-gold-primary/60 font-mono text-[7px] mb-1 block">
                   {node.id}
@@ -2171,7 +2171,7 @@ const LandingPage = () => {
             />
           </div>
 
-          <div className="w-[160px] bg-[#050302] border border-white/10 rounded-md flex flex-col items-center justify-center p-3 relative z-20">
+          <div className="w-[160px] bg-surface border border-white/10 rounded-md flex flex-col items-center justify-center p-3 relative z-20">
             <svg
               className="w-5 h-5 text-text-primary/50 mb-1.5"
               fill="none"
@@ -2202,7 +2202,7 @@ const LandingPage = () => {
           <div className="relative w-48 h-48 flex items-center justify-center z-20 my-4">
             <div className="absolute w-[200px] h-[200px] rounded-md border border-gold-primary/10" />
             <div
-              className="relative w-32 h-32 bg-[#0a0805] rounded-md border border-white/20 flex flex-col items-center justify-center"
+              className="relative w-32 h-32 bg-surface-raised rounded-md border border-white/20 flex flex-col items-center justify-center"
               style={{ animation: "core-pulse 4s ease-in-out infinite" }}
             >
               <svg
@@ -2233,7 +2233,7 @@ const LandingPage = () => {
             />
           </div>
 
-          <div className="w-[160px] bg-[#050302] border border-white/10 rounded-md flex items-center justify-center gap-3 p-3 relative z-20">
+          <div className="w-[160px] bg-surface border border-white/10 rounded-md flex items-center justify-center gap-3 p-3 relative z-20">
             <svg
               className="w-5 h-5 text-gold-primary/70"
               fill="none"
@@ -2266,7 +2266,7 @@ const LandingPage = () => {
             />
           </div>
 
-          <div className="bg-[#0a0805] rounded-md border border-gold-primary/20 p-4 w-full max-w-[320px] relative z-20 overflow-hidden">
+          <div className="bg-surface-raised rounded-md border border-gold-primary/20 p-4 w-full max-w-[320px] relative z-20 overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
             <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
               <div className="flex items-center gap-2">
@@ -2456,7 +2456,7 @@ const LandingPage = () => {
                   href="https://t.me/LuxQuantSignal"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-gold-primary/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-[#229ED9]/10 border border-[#229ED9]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#229ED9]/20 transition-colors">
                     <svg className="w-4 h-4 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
@@ -2477,7 +2477,7 @@ const LandingPage = () => {
                   href="https://x.com/luxquantcrypto"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-gold-primary/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/10 transition-colors">
                     <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">
@@ -2498,7 +2498,7 @@ const LandingPage = () => {
                   href="https://instagram.com/luxquant.tw"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-gold-primary/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#833AB4]/20 via-[#FD1D1D]/20 to-[#FCB045]/20 border border-[#FD1D1D]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[#833AB4]/30 group-hover:via-[#FD1D1D]/30 group-hover:to-[#FCB045]/30 transition-colors">
                     <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">

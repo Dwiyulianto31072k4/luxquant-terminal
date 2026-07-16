@@ -187,7 +187,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
               (coinData.key_features && coinData.key_features.length > 0)) && (
               <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
                 {coinData.use_cases && coinData.use_cases.length > 0 && (
-                  <div className="h-full rounded-xl border border-gold-primary/15 bg-[#0d0b09] p-3 sm:p-4">
+                  <div className="h-full rounded-xl border border-gold-primary/15 bg-surface-raised p-3 sm:p-4">
                     <SectionHead d={IC.bulb}>Use Cases</SectionHead>
                     <ul className="space-y-1.5">
                       {coinData.use_cases.map((uc, i) => (
@@ -200,7 +200,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
                   </div>
                 )}
                 {coinData.key_features && coinData.key_features.length > 0 && (
-                  <div className="h-full rounded-xl border border-gold-primary/15 bg-[#0d0b09] p-3 sm:p-4">
+                  <div className="h-full rounded-xl border border-gold-primary/15 bg-surface-raised p-3 sm:p-4">
                     <SectionHead d={IC.gear}>Key Features</SectionHead>
                     <ul className="space-y-1.5">
                       {coinData.key_features.map((kf, i) => (
@@ -217,7 +217,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
 
             {/* Utility Breakdown */}
             {coinData.utility_details && Object.keys(coinData.utility_details).length > 0 && (
-              <div className="rounded-xl border border-gold-primary/15 bg-[#0d0b09] p-3 sm:p-4">
+              <div className="rounded-xl border border-gold-primary/15 bg-surface-raised p-3 sm:p-4">
                 <SectionHead d={IC.tool}>Utility Breakdown</SectionHead>
                 <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                   {Object.entries(coinData.utility_details).map(([key, value]) => (
@@ -261,7 +261,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
             </div>
 
             {/* Disclaimer */}
-            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-[#0d0b09] p-3">
+            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-surface-raised p-3">
               <span className="mt-px text-gold-primary/60"><Icon d={IC.bulb} className="h-3.5 w-3.5" /></span>
               <p className="text-[9px] leading-relaxed text-text-muted sm:text-[10px]">
                 This categorization is for educational purposes only and is automatically generated. Each user should make their own decisions based on personal values, risk tolerance, and applicable regulations. Categorization is not financial, legal, or religious advice.

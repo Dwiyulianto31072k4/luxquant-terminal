@@ -146,7 +146,7 @@ function pearson(xs, ys) {
 
 function Card({ className = "", children }) {
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0805] p-5 transition-all duration-300 hover:border-gold-primary/25 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${className}`}>
+    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised p-5 transition-all duration-300 hover:border-gold-primary/25 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${className}`}>
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       {children}
     </div>
@@ -192,7 +192,7 @@ function PeriodFilterPopover({
           {/* Fixed on mobile so Card overflow + right-0 never shove the panel off-screen.
               Desktop: anchor under the button. */}
           <div
-            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-white/12 bg-[#0c0d12] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.7)] sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
+            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-white/12 bg-surface-secondary p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.7)] sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
             role="dialog"
             aria-label="Market period filter"
           >
@@ -207,20 +207,20 @@ function PeriodFilterPopover({
                 }}
                 className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
               >
-                <option value="" className="bg-[#0c0d12]">All / none</option>
-                <optgroup label="Bull" className="bg-[#0c0d12]">
+                <option value="" className="bg-surface-secondary">All / none</option>
+                <optgroup label="Bull" className="bg-surface-secondary">
                   {EVENTS.filter((e) => e.cat === "bull").map((e) => (
-                    <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>
+                    <option key={e.id} value={e.id} className="bg-surface-secondary">{e.label}</option>
                   ))}
                 </optgroup>
-                <optgroup label="Bear" className="bg-[#0c0d12]">
+                <optgroup label="Bear" className="bg-surface-secondary">
                   {EVENTS.filter((e) => e.cat === "bear").map((e) => (
-                    <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>
+                    <option key={e.id} value={e.id} className="bg-surface-secondary">{e.label}</option>
                   ))}
                 </optgroup>
-                <optgroup label="Black-swan event" className="bg-[#0c0d12]">
+                <optgroup label="Black-swan event" className="bg-surface-secondary">
                   {EVENTS.filter((e) => e.cat === "event").map((e) => (
-                    <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>
+                    <option key={e.id} value={e.id} className="bg-surface-secondary">{e.label}</option>
                   ))}
                 </optgroup>
               </select>
@@ -309,7 +309,7 @@ function InfoTip({ info }) {
         i
       </button>
       {open && (
-        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-white/15 bg-[#0c0d12]/[0.98] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-md">
+        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-white/15 bg-surface-secondary/[0.98] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-md">
           <p className="mb-1.5 text-[11px] font-semibold text-text-primary">{info.title}</p>
           {info.lines.map((ln, i) => (
             <p key={i} className="mb-1.5 text-[11px] leading-snug text-text-primary/60 last:mb-0">{ln}</p>
@@ -798,7 +798,7 @@ export default function Performance({ data }) {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-white/15 bg-[#0c0d12]/95 p-2.5 backdrop-blur-md">
+                      <div className="rounded-lg border border-white/15 bg-surface-secondary/95 p-2.5 backdrop-blur-md">
                         <p className="text-[11px] font-semibold text-text-primary">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</p>
                         <p className="mt-1 text-[12px]" style={{ color: C.gold }}>{pct(d.wr)} win rate <span className="text-text-muted">· {d.closed} closed</span></p>
                         {showBtc && d.c != null && (

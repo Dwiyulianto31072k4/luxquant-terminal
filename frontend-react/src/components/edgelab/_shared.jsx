@@ -45,7 +45,7 @@ export const WR_LEGEND = [
 
 // ─── Panel chrome ────────────────────────────────────────────────
 export const Panel = ({ children, className = "", title, meta, pad = true }) => (
-  <div className={`relative rounded-lg bg-[#0c0a07] border border-white/[0.07] ${className}`}>
+  <div className={`relative rounded-lg bg-surface-raised border border-white/[0.07] ${className}`}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/35 to-transparent" />
     {title && (
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.05]">

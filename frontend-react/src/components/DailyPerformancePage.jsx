@@ -88,7 +88,7 @@ const fmtPct = (v, d = 2) => {
 // ─── Reusable Card / Label / Section ─────────────────────────────
 
 const Card = ({ children, className = "" }) => (
-  <div className={`relative rounded-xl bg-[#0b0907] border border-white/[0.07] ${className}`}>
+  <div className={`relative rounded-xl bg-surface-raised border border-white/[0.07] ${className}`}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     {children}
   </div>
@@ -276,7 +276,7 @@ const SmallSampleBadge = ({ n, threshold = 15 }) => {
 // ─── KPI Card ────────────────────────────────────────────────────
 
 const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
-  <div className={`relative rounded-xl bg-[#0b0907] border border-white/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`} onClick={onClick}>
+  <div className={`relative rounded-xl bg-surface-raised border border-white/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`} onClick={onClick}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <Label>{label}</Label>
     <div className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${valueColor || "text-text-primary/95"}`}>{value}</div>
@@ -848,7 +848,7 @@ const CorrelationTab = ({ signals, correlationSummary }) => {
           <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">{sum.coverage} signals enriched</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className={`rounded-md border p-4 transition ${decoupledWins ? "border-emerald-500/30 bg-emerald-500/[0.04]" : "border-white/[0.06] bg-[#0a0805]"}`}>
+          <div className={`rounded-md border p-4 transition ${decoupledWins ? "border-emerald-500/30 bg-emerald-500/[0.04]" : "border-white/[0.06] bg-surface-raised"}`}>
             <div className="flex items-center justify-between mb-3">
               <Label className={decoupledWins ? "text-emerald-400/80" : ""}>Decoupled</Label>
               <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">{dec.total} signal{dec.total !== 1 ? "s" : ""}</span>
@@ -861,7 +861,7 @@ const CorrelationTab = ({ signals, correlationSummary }) => {
             <div className="mt-3 h-1.5 bg-white/[0.04] rounded-sm overflow-hidden"><div className="h-full bg-emerald-400/70 transition-all duration-700" style={{ width: `${dec.win_rate || 0}%` }} /></div>
             <div className="mt-3 text-[10px] text-text-primary/40 leading-relaxed">Coins trading independently of BTC — low correlation, beta near zero</div>
           </div>
-          <div className={`rounded-md border p-4 transition ${coupledWins ? "border-emerald-500/30 bg-emerald-500/[0.04]" : "border-white/[0.06] bg-[#0a0805]"}`}>
+          <div className={`rounded-md border p-4 transition ${coupledWins ? "border-emerald-500/30 bg-emerald-500/[0.04]" : "border-white/[0.06] bg-surface-raised"}`}>
             <div className="flex items-center justify-between mb-3">
               <Label className={coupledWins ? "text-emerald-400/80" : ""}>Coupled</Label>
               <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">{cou.total} signal{cou.total !== 1 ? "s" : ""}</span>
@@ -971,7 +971,7 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
       {sectors.map((s) => {
         const isActive = filters.sector === s.sector;
         return (
-          <button key={s.sector} onClick={() => addFilter("sector", s.sector)} className={`text-left relative rounded-md bg-[#0a0805] border transition p-5 hover:border-gold-primary/30 ${isActive ? "border-gold-primary/40" : "border-white/[0.06]"}`}>
+          <button key={s.sector} onClick={() => addFilter("sector", s.sector)} className={`text-left relative rounded-md bg-surface-raised border transition p-5 hover:border-gold-primary/30 ${isActive ? "border-gold-primary/40" : "border-white/[0.06]"}`}>
             <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${sectorColor(s.sector)}88, transparent)` }} />
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-sm" style={{ background: sectorColor(s.sector) }} />
@@ -1244,7 +1244,7 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4" onClick={onClose}>
-      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-2xl bg-[#0a0805] border-t border-white/[0.08] sm:border flex flex-col shadow-[0_-20px_60px_rgba(0,0,0,0.65)]" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-2xl bg-surface-raised border-t border-white/[0.08] sm:border flex flex-col shadow-[0_-20px_60px_rgba(0,0,0,0.65)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
@@ -1255,7 +1255,7 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
         </div>
         <div className="flex-1 overflow-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-[#0a0805] z-10"><tr className="border-b border-white/[0.06]">
+            <thead className="sticky top-0 bg-surface-raised z-10"><tr className="border-b border-white/[0.06]">
               <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Pair</th>
               <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Outcome</th>
               <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Sector</th>
@@ -1364,11 +1364,11 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
             <span>Open Edge Lab</span><span className="text-[8px]">→</span>
           </button>
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#0a0805] border border-white/[0.08]">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08]">
             <Label>Date</Label>
             <input type="date" value={selectedDate} min={dateMin} max={dateMax} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-text-primary/85 font-mono tabular-nums text-sm focus:outline-none [color-scheme:dark]" />
           </div>
-          <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-[#0a0805] border border-white/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/60 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
+          <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/60 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
         </div>
       </div>
 
@@ -1380,8 +1380,8 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
       {loading && !data && (
         <div className="space-y-4">
-          <div className="h-64 rounded-xl bg-[#0b0907] border border-white/[0.07] animate-pulse" />
-          <div className="grid grid-cols-5 gap-3">{[...Array(5)].map((_, i) => <div key={i} className="h-20 rounded-xl bg-[#0b0907] border border-white/[0.07] animate-pulse" />)}</div>
+          <div className="h-64 rounded-xl bg-surface-raised border border-white/[0.07] animate-pulse" />
+          <div className="grid grid-cols-5 gap-3">{[...Array(5)].map((_, i) => <div key={i} className="h-20 rounded-xl bg-surface-raised border border-white/[0.07] animate-pulse" />)}</div>
         </div>
       )}
 
@@ -1409,7 +1409,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
       {selectedSignal && <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />}
 
       {loadingSignal && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0a0805] border border-gold-primary/30 rounded-md px-4 py-2 flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-surface-raised border border-gold-primary/30 rounded-md px-4 py-2 flex items-center gap-3">
           <div className="w-3 h-3 border border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
           <span className="text-[11px] font-mono uppercase tracking-wider text-text-primary/70">Loading signal...</span>
         </div>

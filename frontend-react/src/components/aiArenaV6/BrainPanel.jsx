@@ -152,7 +152,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
             type="button"
             aria-label={b.aria}
             onClick={b.fn}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-[#140b0d]/90 text-[14px] text-gold-primary backdrop-blur transition hover:border-gold-primary/50 hover:bg-gold-primary/10 md:h-9 md:w-9 md:text-[15px]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-surface-secondary/90 text-[14px] text-gold-primary backdrop-blur transition hover:border-gold-primary/50 hover:bg-gold-primary/10 md:h-9 md:w-9 md:text-[15px]"
           >
             {b.label}
           </button>
@@ -167,7 +167,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-lg border border-white/[0.05] bg-[#0a0506] active:cursor-grabbing sm:h-[420px] md:h-auto"
+        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-lg border border-white/[0.05] bg-surface active:cursor-grabbing sm:h-[420px] md:h-auto"
         style={{ minHeight: 300 }}
         role="img"
         aria-label="Interactive Compass brain graph"
@@ -289,7 +289,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
       {/* tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-20 max-w-[260px] rounded-lg border border-gold-primary/25 bg-[#140b0d]/95 px-3 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur"
+          className="pointer-events-none absolute z-20 max-w-[260px] rounded-lg border border-gold-primary/25 bg-surface-secondary/95 px-3 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur"
           style={{ left: Math.min(tooltip.x, (wrapRef.current?.clientWidth || 400) - 270), top: tooltip.y }}
         >
           {tooltip.lines.map((line, i) => (
@@ -429,7 +429,7 @@ export default function BrainPanel() {
                     className={`w-full rounded-xl border p-3.5 text-left transition ${
                       isSel
                         ? "border-gold-primary/45 bg-gold-primary/[0.07]"
-                        : "border-white/[0.05] bg-[#140b0d] hover:border-white/[0.14]"
+                        : "border-white/[0.05] bg-surface-secondary hover:border-white/[0.14]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -465,7 +465,7 @@ export default function BrainPanel() {
               <SectionHeader label="Recent postmortems" />
               <div className="space-y-2">
                 {postmortems.slice(0, 6).map((pm) => (
-                  <div key={pm.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-[#140b0d] px-3 py-2.5">
+                  <div key={pm.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-surface-secondary px-3 py-2.5">
                     <div className="min-w-0">
                       <div className="truncate font-mono text-[11px] text-text-primary/75">{pm.id}</div>
                       <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/60">
