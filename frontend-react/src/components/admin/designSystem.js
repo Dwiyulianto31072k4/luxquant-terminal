@@ -151,6 +151,10 @@ export const semantic = {
   },
   // accent palette for stat tiles
   accent: {
+    // Standard for decorative KPI chips: one muted monochrome voice.
+    // Coloured accents below are reserved for SEMANTIC states only
+    // (warning/orange, danger/red, success/green) — not decoration.
+    muted:  '#8a8a93',
     blue:   palette.blue[400],
     green:  palette.green[400],
     gold:   palette.gold[300],

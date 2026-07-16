@@ -196,6 +196,16 @@ const OverviewPage = () => {
         path="/home"
         keywords="crypto market overview, live crypto data, market analytics, luxquant"
       />
+      {/* PAGE HEADER — same voice as every other page (h1 + subtitle) */}
+      <div>
+        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+          Home
+        </h1>
+        <p className="mt-2 text-sm text-text-secondary">
+          Top calls, market state, and today&apos;s highlights in one view.
+        </p>
+      </div>
+
       <TopPerformers />
 
       {/* SECTION HEADER — Market Overview (consistent w/ Top Gainers) */}

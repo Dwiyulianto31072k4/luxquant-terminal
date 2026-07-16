@@ -247,17 +247,10 @@ const MacroCalendarPage = () => {
   return (
     <div className="space-y-5">
 
-      {/* ── PAGE TITLE — line-label-line ── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="h-px w-8 bg-gold-primary/40" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-          {t('calendar.title')}
-        </span>
-        <span className="h-px flex-1 bg-white/[0.06]" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
-          Economic Events
-        </span>
-      </div>
+      {/* ── PAGE TITLE — standard h1 ── */}
+      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+        {t('calendar.title')}
+      </h1>
 
       {/* ── Subtitle + Refresh ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

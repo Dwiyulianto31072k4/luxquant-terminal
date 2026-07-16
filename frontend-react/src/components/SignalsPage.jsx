@@ -123,9 +123,7 @@ const Icon = {
 // ================================================================
 const SectionHeader = ({ label, hint }) => (
   <div className="flex items-center gap-3 mb-4">
-    <span className="h-px w-8 bg-gold-primary/40" />
     <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{label}</span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
     {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/50">{hint}</span>}
   </div>
 );
@@ -912,11 +910,6 @@ const SignalsPage = () => {
       {/* PAGE HEADER — reworded: feature name is the H1, "last 7 days" is the descriptor */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="h-px w-8 bg-gold-primary/40" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal Signals</span>
-            <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
-          </div>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Potential Trades</h1>
           <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70 mt-1.5">
             Last 7 days

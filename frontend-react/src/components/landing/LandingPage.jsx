@@ -241,11 +241,9 @@ const TestimonialsCarousel = () => {
       {/* Header — line-label-line pattern */}
       <div className="text-center mb-10 lg:mb-12">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <span className="h-px w-8 bg-gold-primary/40" />
           <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
             Verified Voices
           </span>
-          <span className="h-px w-8 bg-gold-primary/40" />
         </div>
         <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4 tracking-tight">
           Trusted by{" "}
@@ -550,11 +548,9 @@ const TelegramPromo = ({ gainers }) => {
         <div className="flex-1 text-center lg:text-left">
           {/* Section label — line-label-line pattern */}
           <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
-            <span className="h-px w-8 bg-gold-primary/40" />
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               100% Free Tier
             </span>
-            <span className="h-px w-8 bg-gold-primary/40" />
           </div>
 
           <h2 className="font-display text-4xl lg:text-5xl font-bold text-text-primary mb-6 leading-tight tracking-tight">
@@ -967,12 +963,10 @@ export const LivePerformanceStats = ({ data }) => {
           ════════════════════════════════════════ */}
       <div className="text-center mb-10">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <span className="h-px w-8 bg-gold-primary/40" />
           <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 flex items-center gap-2">
             <span className="text-base leading-none">🇹🇼</span>
             Built in Taiwan · Running Since 2023
           </span>
-          <span className="h-px w-8 bg-gold-primary/40" />
         </div>
         <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4 tracking-tight">
           Transparent &{" "}
@@ -1657,11 +1651,9 @@ const LandingPage = () => {
               className="flex items-center gap-3 mb-6 lg:mb-8 self-center lg:self-start"
               style={{ animation: "heroCardFadeIn 0.8s ease-out 0.1s both" }}
             >
-              <span className="h-px w-8 bg-gold-primary/40" />
               <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                 The Quantitative Terminal
               </span>
-              <span className="h-px w-8 bg-gold-primary/40" />
             </div>
 
             <h1
@@ -1857,11 +1849,9 @@ const LandingPage = () => {
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[80%] h-40 bg-gold-primary/10 blur-[120px] pointer-events-none rounded-full" />
         <div className="text-center mb-8 relative z-10">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="h-px w-8 bg-gold-primary/40" />
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               Live Track Record
             </span>
-            <span className="h-px w-8 bg-gold-primary/40" />
           </div>
           <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-6 tracking-tight">
             Recent Winner{" "}
@@ -1913,11 +1903,9 @@ const LandingPage = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[600px] bg-gold-primary/[0.03] rounded-[100%] blur-[120px] pointer-events-none -z-10" />
         <div className="text-center mb-12 lg:mb-20 relative z-10">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="h-px w-8 bg-gold-primary/40" />
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               System Pipeline
             </span>
-            <span className="h-px w-8 bg-gold-primary/40" />
           </div>
           <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4 tracking-tight">
             Quantitative{" "}

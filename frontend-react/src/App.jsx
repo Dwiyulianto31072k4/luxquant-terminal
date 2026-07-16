@@ -232,11 +232,9 @@ function PremiumGate({ children }) {
       <>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex items-center gap-3 mb-6">
-            <span className="h-px w-8 bg-gold-primary/40" />
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               Premium Feature
             </span>
-            <span className="h-px w-8 bg-gold-primary/40" />
           </div>
           <div className="w-14 h-14 rounded-md bg-surface-raised border border-line/25 flex items-center justify-center mb-5 relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />

@@ -101,7 +101,6 @@ const FLOW_LABEL = { net_buying: "Net Buying", net_selling: "Net Selling", balan
 // ═══════════════════════════════════════════
 const SectionHeader = ({ label, right }) => (
   <div className="flex items-center gap-3">
-    <span className="h-px w-8 bg-gold-primary/40" />
     <span className="font-mono uppercase tracking-[0.25em] text-gold-primary/80 text-[11px] whitespace-nowrap">
       {label}
     </span>

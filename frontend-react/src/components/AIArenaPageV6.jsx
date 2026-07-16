@@ -77,11 +77,6 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
   return (
     <header className="space-y-5">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="h-px w-8 shrink-0 bg-gold-primary/40" />
-        <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 sm:tracking-[0.25em]">
-          BTC Compass · AI Research
-        </span>
-        <span className="hidden h-px flex-1 bg-white/[0.06] sm:block" />
         <span
           className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] ${
             healthy

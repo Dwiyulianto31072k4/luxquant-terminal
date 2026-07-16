@@ -39,7 +39,7 @@ export const UsersStatGrid = ({ stats, filters, defaults, onFilter }) => {
         label="Total Users"
         value={stats?.total_users}
         Icon={UsersIcon}
-        accent="blue"
+        accent="muted"
         active={onFilter ? !anySegment : false}
         onClick={onFilter ? () => apply({}) : undefined}
       />
@@ -47,7 +47,7 @@ export const UsersStatGrid = ({ stats, filters, defaults, onFilter }) => {
         label="Subscribers"
         value={stats?.active_subscribers}
         Icon={CrownIcon}
-        accent="green"
+        accent="muted"
         sub={stats?.lifetime_subscribers ? `${stats.lifetime_subscribers} lifetime` : undefined}
         active={role === 'subscriber' && !plan && !filters?.exSubscriber}
         onClick={onFilter ? () => apply({ role: 'subscriber' }) : undefined}
@@ -56,7 +56,7 @@ export const UsersStatGrid = ({ stats, filters, defaults, onFilter }) => {
         label="Free Users"
         value={stats?.free_users}
         Icon={UserIcon}
-        accent="gold"
+        accent="muted"
         active={role === 'free'}
         onClick={onFilter ? () => apply({ role: 'free' }) : undefined}
       />
@@ -64,7 +64,7 @@ export const UsersStatGrid = ({ stats, filters, defaults, onFilter }) => {
         label="Admins"
         value={stats?.admin_count}
         Icon={ShieldIcon}
-        accent="purple"
+        accent="muted"
         active={role === 'admin'}
         onClick={onFilter ? () => apply({ role: 'admin' }) : undefined}
       />
@@ -81,7 +81,7 @@ export const UsersStatGrid = ({ stats, filters, defaults, onFilter }) => {
         label="New This Month"
         value={stats?.new_users_30d}
         Icon={TrendingUpIcon}
-        accent="blue"
+        accent="muted"
         sub="Last 30 days"
         // No dedicated backend filter — drill-down = newest-first directory
         onClick={onFilter ? () => apply({ sortBy: 'created_at', sortOrder: 'desc' }) : undefined}

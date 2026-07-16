@@ -19,7 +19,6 @@ const PAGE_SIZE = 20;
 // ════════════════════════════════════════════════════════════════
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
-    <span className="h-px w-8 bg-gold-primary/40" />
     <span
       className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
         small ? "text-[10px]" : "text-[11px]"

@@ -121,18 +121,6 @@ const BitcoinPage = () => {
 
   return (
     <div className="space-y-5">
-      {/* ── PAGE TITLE — line-label-line Flowscan pattern ── */}
-      <div className="flex items-center gap-3">
-        <span className="h-px w-8 bg-gold-primary/40" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-          Asset Overview
-        </span>
-        <span className="h-px flex-1 bg-white/[0.06]" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
-          BTC · Rank #{data.marketCapRank}
-        </span>
-      </div>
-
       {/* ── HERO ── */}
       <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
@@ -1175,7 +1163,6 @@ const EmptyState = ({ text }) => (
 const ErrorState = ({ error, onRetry, t }) => (
   <div className="space-y-5">
     <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
         Asset Overview
       </span>
@@ -1206,7 +1193,6 @@ const LoadingSkeleton = () => (
   <div className="space-y-5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
       <div className="skel w-32 h-3" />
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>

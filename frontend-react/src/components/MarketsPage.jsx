@@ -107,7 +107,6 @@ const MarketsPage = () => {
 
       {/* ── PAGE TITLE — line-label-line ── */}
       <div className="flex items-center gap-3">
-        <span className="h-px w-8 bg-gold-primary/40" />
         <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
           {t('markets.global_overview')}
         </span>
@@ -1387,7 +1386,6 @@ const EmptyState = ({ text }) => (
 const ErrorState = ({ error, onRetry, t }) => (
   <div className="space-y-5">
     <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
         Markets
       </span>
@@ -1416,7 +1414,6 @@ const LoadingSkeleton = () => (
   <div className="space-y-5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
       <div className="skel w-40 h-3" />
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>

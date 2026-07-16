@@ -180,9 +180,6 @@ const AnalyzePage = () => {
       {/* ── PAGE HEADER — eyebrow + title + tagline, with integrated time range ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-            Verified Track Record
-          </span>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1.5">
             All-Time Performance
           </h1>
@@ -1810,7 +1807,6 @@ const LoadingSkeleton = ({ t }) => (
   <div className="space-y-5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
       <div className="skel w-40 h-3" />
       <span className="h-px flex-1 bg-white/[0.06]" />
     </div>

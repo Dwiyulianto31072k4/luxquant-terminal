@@ -68,11 +68,9 @@ export function fmtTime(value) {
 export function SectionHeader({ label, hint, right }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 whitespace-nowrap">
         {label}
       </span>
-      <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
       {hint ? (
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted whitespace-nowrap">
           {hint}

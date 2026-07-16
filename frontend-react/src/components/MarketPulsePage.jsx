@@ -469,11 +469,6 @@ const MarketPulsePageInner = () => {
       {/* ═══ PAGE HEADER (Flowscan: gradient title + subtitle + live pill) ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-            <span className="h-px w-8 bg-gold-primary/40" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Live Market Activity</span>
-            <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
-          </div>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             Market Pulse
           </h1>

@@ -43,7 +43,6 @@ const formatPrice = (price) => {
 // ── shared header bits (match WatchlistPage) ──
 const SectionHeader = ({ label }) => (
   <div className="flex items-center gap-3">
-    <span className="h-px w-8 bg-gold-primary/40" />
     <span className="font-mono uppercase tracking-[0.25em] text-gold-primary/80 text-[11px]">{label}</span>
     <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
   </div>
