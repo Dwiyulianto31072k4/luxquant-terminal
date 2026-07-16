@@ -195,7 +195,15 @@ function RequireAuth({ children }) {
 
 function RequireAdmin({ children }) {
   const { user } = useAuth();
-  if (!user || user.role !== "admin") return <Navigate to="/home" replace />;
+  // admin + co_admin + founder can open admin routes (view-only staff still need access)
+  const allowed =
+    user &&
+    (user.role === "admin" ||
+      user.role === "co_admin" ||
+      user.role === "founder" ||
+      user.is_admin_staff === true ||
+      user.is_admin === true);
+  if (!allowed) return <Navigate to="/home" replace />;
   return children;
 }
 
@@ -206,8 +214,11 @@ function PremiumGate({ children }) {
   const isPremium =
     user &&
     (user.role === "admin" ||
+      user.role === "co_admin" ||
+      user.role === "founder" ||
       user.role === "premium" ||
       user.role === "subscriber" ||
+      user.is_admin_staff === true ||
       user.is_admin);
 
   useEffect(() => {
@@ -518,11 +529,20 @@ function AppShell({ children }) {
   const isPremiumUser = () =>
     user &&
     (user.role === "admin" ||
+      user.role === "co_admin" ||
+      user.role === "founder" ||
       user.role === "premium" ||
       user.role === "subscriber" ||
+      user.is_admin_staff === true ||
       user.is_admin);
   const isActive = (path) => location.pathname === path;
-  const isAdmin = user?.role === "admin";
+  // Staff (admin / co_admin / founder) see admin nav; mutations gated per-page
+  const isAdmin =
+    user?.role === "admin" ||
+    user?.role === "co_admin" ||
+    user?.role === "founder" ||
+    user?.is_admin_staff === true ||
+    user?.is_admin === true;
 
   // Footer — exchange-style: shown on all content pages, EXCEPT viewport-locked
   // "terminal" views (live trade UI / fullscreen chat) and internal admin tooling.

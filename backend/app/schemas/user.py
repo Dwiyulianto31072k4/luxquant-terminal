@@ -106,13 +106,21 @@ class GrantSubscription(BaseModel):
 
 
 class UpdateUserRole(BaseModel):
-    """Admin update user role"""
+    """Full admin assigns platform / staff role.
+
+    Staff:
+      - admin     → full write access to admin panel
+      - co_admin  → view-only admin panel
+      - founder   → view-only admin panel (same as co_admin)
+    Members:
+      - free / subscriber
+    """
     role: str
 
     @field_validator('role')
     @classmethod
     def role_valid(cls, v):
-        valid = ['free', 'subscriber', 'admin']
+        valid = ['free', 'subscriber', 'admin', 'co_admin', 'founder']
         if v not in valid:
             raise ValueError(f'Role harus salah satu dari: {", ".join(valid)}')
         return v
@@ -203,6 +211,11 @@ class UserResponse(BaseModel):
     telegram_in_group: Optional[bool] = False
     telegram_grace_until: Optional[datetime] = None
     has_active_access: Optional[bool] = None
+
+    # Staff capability flags (from User properties)
+    is_admin: Optional[bool] = None
+    is_admin_staff: Optional[bool] = None
+    is_admin_view_only: Optional[bool] = None
 
     # Referral v2
     referred_by: Optional[int] = None

@@ -333,7 +333,11 @@ const ProfilePage = () => {
       {/* ═══ KPI STRIP — Account info as horizontal metrics ═══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6">
         <KpiCard label="Role" value={user?.role ? user.role.toUpperCase() : 'FREE'} accent={
-          user?.role === 'admin' ? 'purple' : user?.role === 'subscriber' ? 'green' : 'muted'
+          user?.role === 'admin' || user?.role === 'co_admin' || user?.role === 'founder'
+            ? 'purple'
+            : user?.role === 'subscriber' || user?.role === 'premium'
+            ? 'green'
+            : 'muted'
         } />
         <KpiCard label="Login Via" value={(user?.auth_provider || 'local').charAt(0).toUpperCase() + (user?.auth_provider || 'local').slice(1)} />
         <KpiCard label="Logins" value={user?.login_count != null ? String(user.login_count) : '—'} mono />

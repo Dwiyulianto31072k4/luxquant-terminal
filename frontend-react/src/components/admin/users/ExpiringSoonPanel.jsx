@@ -100,19 +100,21 @@ export const ExpiringSoonPanel = ({ expiringUsers, onExtend, onDm }) => {
                       DM
                     </button>
                   )}
-                  <button
-                    onClick={() => onExtend(u)}
-                    className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
-                    style={{
-                      background: tint(palette.green[400], 0.1),
-                      color: palette.green[400],
-                      border: `1px solid ${tint(palette.green[400], 0.25)}`,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = tint(palette.green[400], 0.18); }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = tint(palette.green[400], 0.1); }}
-                  >
-                    Extend
-                  </button>
+                  {onExtend && (
+                    <button
+                      onClick={() => onExtend(u)}
+                      className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
+                      style={{
+                        background: tint(palette.green[400], 0.1),
+                        color: palette.green[400],
+                        border: `1px solid ${tint(palette.green[400], 0.25)}`,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = tint(palette.green[400], 0.18); }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = tint(palette.green[400], 0.1); }}
+                    >
+                      Extend
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -91,9 +91,15 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    # Staff roles that can open the admin panel.
+    # - admin: full write access
+    # - co_admin / founder: view-only (no mutations)
+    STAFF_ROLES = ('admin', 'co_admin', 'founder')
+    VIEW_ONLY_STAFF_ROLES = ('co_admin', 'founder')
+
     @property
     def is_premium(self) -> bool:
-        if self.role == 'admin':
+        if self.role in self.STAFF_ROLES:
             return True
         if self.role != 'premium':
             return False
@@ -104,12 +110,12 @@ class User(Base):
 
     @property
     def has_active_access(self) -> bool:
-        """True jika punya akses VIP aktif (admin / lifetime / belum expired).
+        """True jika punya akses VIP aktif (staff / lifetime / belum expired).
 
         Beda dengan is_premium: ini menerima role 'premium' MAUPUN 'subscriber'
         supaya konsisten dengan user lama yang rolenya masih 'subscriber'.
         """
-        if self.role == 'admin':
+        if self.role in self.STAFF_ROLES:
             return True
         if self.role in ('premium', 'subscriber'):
             if self.subscription_expires_at is None:
@@ -120,7 +126,18 @@ class User(Base):
 
     @property
     def is_admin(self) -> bool:
+        """Full admin — all write actions allowed."""
         return self.role == 'admin'
+
+    @property
+    def is_admin_staff(self) -> bool:
+        """Can open admin panel (admin + view-only staff)."""
+        return self.role in self.STAFF_ROLES
+
+    @property
+    def is_admin_view_only(self) -> bool:
+        """Staff with read-only admin access (co_admin / founder)."""
+        return self.role in self.VIEW_ONLY_STAFF_ROLES
 
     @property
     def has_credit(self) -> bool:

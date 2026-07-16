@@ -85,7 +85,11 @@ const TelegramNudgeModal = () => {
   // ── derive current condition (reuse VipGroupCard logic) ──
   const hasAccess =
     user?.has_active_access ??
-    (user?.role === 'admin' || user?.role === 'premium' || user?.role === 'subscriber');
+    (user?.role === 'admin' ||
+      user?.role === 'co_admin' ||
+      user?.role === 'founder' ||
+      user?.role === 'premium' ||
+      user?.role === 'subscriber');
   const telegramLinked = !!user?.telegram_id;
   const inGroup = !!user?.telegram_in_group;
 
@@ -93,8 +97,10 @@ const TelegramNudgeModal = () => {
   if (hasAccess && !inGroup) {
     neededStage = !telegramLinked ? 'link' : 'join';
   }
-  // admin never needs the nudge
-  if (user?.role === 'admin') neededStage = null;
+  // staff never needs the nudge
+  if (user?.role === 'admin' || user?.role === 'co_admin' || user?.role === 'founder') {
+    neededStage = null;
+  }
 
   // ── decide to show, after initial delay ──
   useEffect(() => {

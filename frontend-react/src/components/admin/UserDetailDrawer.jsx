@@ -229,19 +229,31 @@ const UserHero = ({ user }) => (
             background:
               user.role === 'admin'
                 ? 'rgba(168,85,247,0.12)'
-                : user.role === 'subscriber'
+                : user.role === 'co_admin'
+                ? 'rgba(96,165,250,0.12)'
+                : user.role === 'founder'
+                ? 'rgba(251,191,36,0.12)'
+                : user.role === 'subscriber' || user.role === 'premium'
                 ? 'rgba(52,211,153,0.12)'
                 : 'rgba(107,92,82,0.12)',
             color:
               user.role === 'admin'
                 ? '#a855f7'
-                : user.role === 'subscriber'
+                : user.role === 'co_admin'
+                ? '#60a5fa'
+                : user.role === 'founder'
+                ? '#fbbf24'
+                : user.role === 'subscriber' || user.role === 'premium'
                 ? '#34d399'
                 : '#8a7a6e',
             border: `1px solid ${
               user.role === 'admin'
                 ? 'rgba(168,85,247,0.3)'
-                : user.role === 'subscriber'
+                : user.role === 'co_admin'
+                ? 'rgba(96,165,250,0.3)'
+                : user.role === 'founder'
+                ? 'rgba(251,191,36,0.3)'
+                : user.role === 'subscriber' || user.role === 'premium'
                 ? 'rgba(52,211,153,0.3)'
                 : 'rgba(107,92,82,0.3)'
             }`,
@@ -393,7 +405,7 @@ const ActivityPulse = ({ userId }) => {
    ════════════════════════════════════════ */
 
 const hasActiveAccess = (user) => {
-  if (user.role === 'admin') return true;
+  if (['admin', 'co_admin', 'founder'].includes(user.role)) return true;
   if (!['premium', 'subscriber'].includes(user.role)) return false;
   if (!user.subscription_expires_at) return true; // lifetime
   return new Date(user.subscription_expires_at) > new Date();
@@ -478,7 +490,7 @@ const SignalCell = ({ label, value, good }) => (
   </div>
 );
 
-const VipDiagnostic = ({ user, onInvited, onToast }) => {
+const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
   const [busy, setBusy] = useState(false);
   const [inviteLink, setInviteLink] = useState(null);
   const d = computeVipDiagnosis(user);
@@ -551,7 +563,7 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
         </div>
         <div className="text-[12px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{d.detail}</div>
 
-        {d.action === 'invite' && !inviteLink && (
+        {canWrite && d.action === 'invite' && !inviteLink && (
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleFollowup} disabled={fuBusy}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
@@ -565,7 +577,12 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
             </button>
           </div>
         )}
-        {d.action === 'email_link_tg' && (
+        {!canWrite && d.action && (
+          <p className="text-[11px]" style={{ color: '#6b5c52' }}>
+            View-only — invite / follow-up actions are disabled.
+          </p>
+        )}
+        {canWrite && d.action === 'email_link_tg' && (
           <button onClick={handleCopyLinkTgMsg}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
             style={{ background: `${d.color}24`, color: d.color, border: `1px solid ${d.color}4d`, cursor: 'pointer' }}>
@@ -725,13 +742,38 @@ const FollowupTimeline = ({ userId }) => {
   );
 };
 
-const OverviewTab = ({ data, onUserUpdated, onToast }) => {
+const OverviewTab = ({ data, onUserUpdated, onToast, canWrite = true, canManageRoles = false, onSetRole }) => {
   const { user } = data;
   return (
     <div className="space-y-6">
       <UserHero user={user} />
 
-      <VipDiagnostic user={user} onInvited={onUserUpdated} onToast={onToast} />
+      {canManageRoles && onSetRole && (
+        <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5"
+          style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.22)' }}>
+          <div>
+            <p className="text-[11px] font-semibold text-white/90">Staff / member role</p>
+            <p className="text-[10px]" style={{ color: '#8a7a6e' }}>
+              Current: <span className="uppercase font-bold tracking-wider text-white/70">{user.role}</span>
+              {' · '}admin full · co_admin/founder view-only
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSetRole(user)}
+            className="shrink-0 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+            style={{
+              background: 'rgba(168,85,247,0.16)',
+              color: '#c4b5fd',
+              border: '1px solid rgba(168,85,247,0.35)',
+            }}
+          >
+            Set role
+          </button>
+        </div>
+      )}
+
+      <VipDiagnostic user={user} onInvited={onUserUpdated} onToast={onToast} canWrite={canWrite} />
 
       <Section title="Account Info" Icon={UserIcon}>
         <div className="grid grid-cols-2 gap-2">
@@ -798,7 +840,7 @@ const OverviewTab = ({ data, onUserUpdated, onToast }) => {
    Tab 2: Contact (channels + edit + admin notes)
    ════════════════════════════════════════ */
 
-const ContactTab = ({ data, onContactUpdate }) => {
+const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
   const { user, reach, enriched_by_user } = data;
 
   const [editing, setEditing] = useState(false);
@@ -857,7 +899,7 @@ const ContactTab = ({ data, onContactUpdate }) => {
         title="Contact Channels"
         Icon={BroadcastIcon}
         action={
-          !editing && (
+          canWrite && !editing && (
             <button
               onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-amber-500/10"
@@ -1330,12 +1372,22 @@ const ReferralTab = ({ data }) => {
    Tab 5: Outreach
    ════════════════════════════════════════ */
 
-const OutreachTab = ({ data, templates }) => {
+const OutreachTab = ({ data, templates, canWrite = true }) => {
   const { user, reach } = data;
   const hasAnyChannel =
     reach.telegram.available ||
     reach.discord.available ||
     reach.email.available;
+
+  if (!canWrite) {
+    return (
+      <EmptyState
+        Icon={BroadcastIcon}
+        title="View-only"
+        hint="Outreach send actions are disabled for co-admin / founder."
+      />
+    );
+  }
 
   if (!hasAnyChannel) {
     return (
@@ -1383,6 +1435,9 @@ export const UserDetailDrawer = ({
   onUserUpdated,
   onToast,
   templates,
+  canWrite = true,
+  canManageRoles = false,
+  onSetRole,
 }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1425,6 +1480,7 @@ export const UserDetailDrawer = ({
   }, []);
 
   const handleContactUpdate = async (payload) => {
+    if (!canWrite) throw new Error('View-only staff cannot edit contact');
     const result = await adminApi.updateUserContact(userId, payload);
     await fetchData();
     if (onUserUpdated) onUserUpdated(result.user);
@@ -1592,18 +1648,22 @@ export const UserDetailDrawer = ({
                   data={data}
                   onUserUpdated={() => { fetchData(); onUserUpdated && onUserUpdated(); }}
                   onToast={onToast}
+                  canWrite={canWrite}
+                  canManageRoles={canManageRoles}
+                  onSetRole={onSetRole}
                 />
               )}
               {activeTab === 'contact' && (
                 <ContactTab
                   data={data}
                   onContactUpdate={handleContactUpdate}
+                  canWrite={canWrite}
                 />
               )}
               {activeTab === 'payments' && <PaymentsTab data={data} />}
               {activeTab === 'referral' && <ReferralTab data={data} />}
               {activeTab === 'outreach' && (
-                <OutreachTab data={data} templates={templates} />
+                <OutreachTab data={data} templates={templates} canWrite={canWrite} />
               )}
             </>
           )}

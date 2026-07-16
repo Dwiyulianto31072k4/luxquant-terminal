@@ -66,8 +66,8 @@ def is_role_protected(user: User, current_provider: Optional[str] = None) -> boo
         False → role boleh di-evaluate ulang berdasarkan provider signal
                 (tapi ingat: resolver tetap PROMOTE-ONLY, gak akan downgrade)
     """
-    # Admin: selalu protected
-    if user.role == "admin":
+    # Staff (admin / co_admin / founder): selalu protected dari OAuth re-resolve
+    if user.role in getattr(User, "STAFF_ROLES", ("admin", "co_admin", "founder")):
         return True
 
     # Free user atau no source: ga ada yang perlu di-protect

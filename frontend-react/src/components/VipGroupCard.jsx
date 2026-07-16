@@ -40,7 +40,13 @@ const VipGroupCard = ({ onToast }) => {
   const [loading, setLoading] = useState(false);
   const [joined, setJoined] = useState(false);
 
-  const hasAccess = user?.has_active_access ?? (user?.role === 'admin' || user?.role === 'premium' || user?.role === 'subscriber');
+  const hasAccess = user?.has_active_access ?? (
+    user?.role === 'admin' ||
+    user?.role === 'co_admin' ||
+    user?.role === 'founder' ||
+    user?.role === 'premium' ||
+    user?.role === 'subscriber'
+  );
   const telegramLinked = !!user?.telegram_id;
   const inGroup = !!user?.telegram_in_group || joined;
   const graceUntil = user?.telegram_grace_until ? new Date(user.telegram_grace_until) : null;

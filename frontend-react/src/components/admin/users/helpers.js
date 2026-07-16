@@ -69,7 +69,9 @@ export const isReachable = (u) =>
 
 export const subscriptionStatus = (user) => {
   if (user.role === 'admin') return { type: 'admin', label: 'Admin' };
-  if (user.role !== 'subscriber') return { type: 'free', label: '—' };
+  if (user.role === 'co_admin') return { type: 'co_admin', label: 'Co-Admin' };
+  if (user.role === 'founder') return { type: 'founder', label: 'Founder' };
+  if (user.role !== 'subscriber' && user.role !== 'premium') return { type: 'free', label: '—' };
   if (!user.subscription_expires_at)
     return { type: 'lifetime', label: 'Lifetime' };
   const days = daysUntil(user.subscription_expires_at);

@@ -103,7 +103,9 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: null, label: 'All Roles' },
                 { value: 'free', label: 'Free' },
                 { value: 'subscriber', label: 'Subscriber' },
-                { value: 'admin', label: 'Admin' },
+                { value: 'admin', label: 'Admin (full)' },
+                { value: 'co_admin', label: 'Co-Admin (view)' },
+                { value: 'founder', label: 'Founder (view)' },
               ]}
             />
             <Select

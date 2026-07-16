@@ -20,6 +20,7 @@ import {
   SendIcon,
   CheckCircleIcon,
   UsersIcon,
+  ShieldIcon,
 } from '../Icons';
 import {
   formatDate,
@@ -35,13 +36,15 @@ const SubscriptionPill = ({ user }) => {
   const s = subscriptionStatus(user);
   const map = {
     admin:    { color: palette.violet[400], label: '∞ Admin' },
+    co_admin: { color: palette.blue[400], label: 'View Co-Admin' },
+    founder:  { color: palette.amber[400], label: 'View Founder' },
     free:     { color: '#4a3f39', label: '—' },
     lifetime: { color: palette.amber[400], label: 'Lifetime' },
     expired:  { color: palette.red[400], label: 'Expired' },
     expiring: { color: palette.orange[400], label: s.label },
     active:   { color: palette.green[400], label: s.label },
   };
-  const cfg = map[s.type];
+  const cfg = map[s.type] || map.free;
   return (
     <span
       className="text-[10px] font-semibold tabular-nums"
@@ -52,19 +55,44 @@ const SubscriptionPill = ({ user }) => {
   );
 };
 
-const RoleChip = ({ role }) => {
+const RoleChip = ({ role, onClick }) => {
   const map = {
-    admin: { color: palette.violet[400], bg: tint(palette.violet[400], 0.12), border: tint(palette.violet[400], 0.3) },
-    subscriber: { color: palette.green[400], bg: tint(palette.green[400], 0.12), border: tint(palette.green[400], 0.3) },
-    free: { color: '#8a7a6e', bg: 'rgba(107,92,82,0.12)', border: 'rgba(107,92,82,0.3)' },
+    admin: { color: palette.violet[400], bg: tint(palette.violet[400], 0.12), border: tint(palette.violet[400], 0.3), label: 'admin' },
+    co_admin: { color: palette.blue[400], bg: tint(palette.blue[400], 0.12), border: tint(palette.blue[400], 0.3), label: 'co-admin' },
+    founder: { color: palette.amber[400], bg: tint(palette.amber[400], 0.12), border: tint(palette.amber[400], 0.3), label: 'founder' },
+    subscriber: { color: palette.green[400], bg: tint(palette.green[400], 0.12), border: tint(palette.green[400], 0.3), label: 'subscriber' },
+    premium: { color: palette.green[400], bg: tint(palette.green[400], 0.12), border: tint(palette.green[400], 0.3), label: 'premium' },
+    free: { color: '#8a7a6e', bg: 'rgba(107,92,82,0.12)', border: 'rgba(107,92,82,0.3)', label: 'free' },
   };
   const c = map[role] || map.free;
+  const className =
+    'text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded inline-flex items-center gap-1';
+  const style = {
+    background: c.bg,
+    color: c.color,
+    border: `1px solid ${c.border}`,
+    cursor: onClick ? 'pointer' : 'default',
+  };
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        title="Change role (admin / co-admin / founder / member)"
+        className={`${className} hover:opacity-90`}
+        style={style}
+      >
+        {c.label}
+        <span className="text-[8px] opacity-70">✎</span>
+      </button>
+    );
+  }
   return (
-    <span
-      className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded"
-      style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}` }}
-    >
-      {role}
+    <span className={className} style={style}>
+      {c.label}
     </span>
   );
 };
@@ -159,21 +187,50 @@ const RowActionButton = ({ Icon, tone, title, onClick }) => (
   </button>
 );
 
-const RowActions = ({ user, onView, onGrant, onRevoke, onToggleActive, onSendMessage }) => (
+const STAFF_ROLES = new Set(['admin', 'co_admin', 'founder']);
+
+const RowActions = ({
+  user,
+  canWrite = true,
+  canManageRoles = false,
+  onView,
+  onGrant,
+  onRevoke,
+  onToggleActive,
+  onSendMessage,
+  onSetRole,
+}) => (
   <div className="flex items-center justify-end gap-1">
     <RowActionButton Icon={EyeIcon} tone={palette.blue[400]} title="View Details" onClick={onView} />
-    {user.telegram_id && onSendMessage && (
+    {canManageRoles && onSetRole && (
+      <button
+        type="button"
+        onClick={onSetRole}
+        title="Set role: Admin / Co-Admin / Founder / Subscriber / Free"
+        className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider"
+        style={{
+          color: palette.violet[400],
+          background: tint(palette.violet[400], 0.1),
+          border: `1px solid ${tint(palette.violet[400], 0.3)}`,
+          transition: motion.base,
+        }}
+      >
+        <ShieldIcon size={11} />
+        Role
+      </button>
+    )}
+    {canWrite && user.telegram_id && onSendMessage && (
       <RowActionButton Icon={SendIcon} tone={palette.teal[400]} title="Send message via bot" onClick={onSendMessage} />
     )}
-    {user.role !== 'admin' && (
+    {canWrite && !STAFF_ROLES.has(user.role) && (
       <>
         <RowActionButton
           Icon={PlusIcon}
           tone={palette.green[400]}
-          title="Grant Subscription"
+          title="Grant Subscription (paid access only — not staff role)"
           onClick={onGrant}
         />
-        {user.role === 'subscriber' && (
+        {(user.role === 'subscriber' || user.role === 'premium') && (
           <RowActionButton
             Icon={MinusIcon}
             tone={palette.red[400]}
@@ -202,11 +259,14 @@ const DesktopTable = ({
   allVisibleSelected,
   toggleSelect,
   toggleSelectAll,
+  canWrite = true,
+  canManageRoles = false,
   onView,
   onGrant,
   onRevoke,
   onToggleActive,
   onSendMessage,
+  onSetRole,
 }) => (
   <table className="w-full text-sm">
     <thead>
@@ -268,7 +328,10 @@ const DesktopTable = ({
               <ContactBadgeRow user={u} />
             </td>
             <td className="px-3 py-2.5">
-              <RoleChip role={u.role} />
+              <RoleChip
+                role={u.role}
+                onClick={canManageRoles && onSetRole ? () => onSetRole(u) : undefined}
+              />
             </td>
             <td className="px-3 py-2.5 hidden md:table-cell">
               <SubscriptionPill user={u} />
@@ -293,11 +356,14 @@ const DesktopTable = ({
             <td className="px-3 py-2.5">
               <RowActions
                 user={u}
+                canWrite={canWrite}
+                canManageRoles={canManageRoles}
                 onView={() => onView(u.id)}
                 onGrant={() => onGrant(u)}
                 onRevoke={() => onRevoke(u.id, u.username)}
                 onToggleActive={() => onToggleActive(u.id, u.username, u.is_active)}
                 onSendMessage={() => onSendMessage && onSendMessage(u)}
+                onSetRole={() => onSetRole && onSetRole(u)}
               />
             </td>
           </tr>
@@ -315,11 +381,14 @@ const MobileCardStack = ({
   users,
   selectedIds,
   toggleSelect,
+  canWrite = true,
+  canManageRoles = false,
   onView,
   onGrant,
   onRevoke,
   onToggleActive,
   onSendMessage,
+  onSetRole,
 }) => (
   <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
     {users.map((u) => {
@@ -344,7 +413,10 @@ const MobileCardStack = ({
             <div className="flex-1 min-w-0">
               <UserCell user={u} onClick={() => onView(u.id)} />
             </div>
-            <RoleChip role={u.role} />
+            <RoleChip
+              role={u.role}
+              onClick={canManageRoles && onSetRole ? () => onSetRole(u) : undefined}
+            />
           </div>
 
           {/* Mid row — contact + subscription */}
@@ -368,10 +440,14 @@ const MobileCardStack = ({
             </span>
             <RowActions
               user={u}
+              canWrite={canWrite}
+              canManageRoles={canManageRoles}
               onView={() => onView(u.id)}
               onGrant={() => onGrant(u)}
               onRevoke={() => onRevoke(u.id, u.username)}
               onToggleActive={() => onToggleActive(u.id, u.username, u.is_active)}
+              onSendMessage={() => onSendMessage && onSendMessage(u)}
+              onSetRole={() => onSetRole && onSetRole(u)}
             />
           </div>
         </div>
@@ -390,11 +466,14 @@ export const UsersTable = ({
   selectedIds,
   toggleSelect,
   toggleSelectAll,
+  canWrite = true,
+  canManageRoles = false,
   onView,
   onGrant,
   onRevoke,
   onToggleActive,
   onSendMessage,
+  onSetRole,
   onResetFilters,
 }) => {
   const allVisibleSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
@@ -443,11 +522,14 @@ export const UsersTable = ({
               allVisibleSelected={allVisibleSelected}
               toggleSelect={toggleSelect}
               toggleSelectAll={toggleSelectAll}
+              canWrite={canWrite}
+              canManageRoles={canManageRoles}
               onView={onView}
               onGrant={onGrant}
               onRevoke={onRevoke}
               onToggleActive={onToggleActive}
               onSendMessage={onSendMessage}
+              onSetRole={onSetRole}
             />
           </div>
           <div className="md:hidden">
@@ -455,11 +537,14 @@ export const UsersTable = ({
               users={users}
               selectedIds={selectedIds}
               toggleSelect={toggleSelect}
+              canWrite={canWrite}
+              canManageRoles={canManageRoles}
               onView={onView}
               onGrant={onGrant}
               onRevoke={onRevoke}
               onToggleActive={onToggleActive}
               onSendMessage={onSendMessage}
+              onSetRole={onSetRole}
             />
           </div>
         </>

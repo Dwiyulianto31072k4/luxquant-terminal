@@ -68,6 +68,13 @@ export const adminApi = {
     return response.data;
   },
 
+  // Assign staff/member role (full admin only)
+  // role: free | subscriber | co_admin | founder | admin
+  setUserRole: async (userId, role) => {
+    const response = await api.post(`/api/v1/admin/users/${userId}/set-role`, { role });
+    return response.data;
+  },
+
   // Get expiring subscriptions
   getExpiringSubscriptions: async (days = 7) => {
     const response = await api.get('/api/v1/admin/expiring-subscriptions', {

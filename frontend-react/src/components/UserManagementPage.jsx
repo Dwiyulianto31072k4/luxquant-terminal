@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminApi } from '../services/adminApi';
 import { useAuth } from '../context/AuthContext';
+import { isAdminFull, isAdminStaff, isAdminViewOnly, isStaffRole } from '../utils/roles';
 
 // Domain sub-components
 import { UsersStatGrid } from './admin/users/UsersStatGrid';
@@ -21,6 +22,7 @@ import { UsersPagination } from './admin/users/UsersPagination';
 import { GrantModal } from './admin/users/GrantModal';
 import { SendMessageModal } from './admin/users/SendMessageModal';
 import { ConfirmModal } from './admin/users/ConfirmModal';
+import { SetRoleModal } from './admin/users/SetRoleModal';
 import { OpsQueueBar } from './admin/users/OpsQueueBar';
 
 // Shared admin pieces
@@ -83,9 +85,27 @@ const AccessGuard = () => (
           <ShieldIcon size={28} style={{ color: palette.red[400], opacity: 0.8 }} />
         </div>
       </div>
-      <h2 className="text-lg font-bold text-white mb-1.5 tracking-tight">Admin Only</h2>
+      <h2 className="text-lg font-bold text-white mb-1.5 tracking-tight">Staff Only</h2>
       <p className="text-xs" style={{ color: '#6b5c52' }}>
-        This page is restricted to administrators.
+        This page is restricted to admin, co-admin, and founder roles.
+      </p>
+    </div>
+  </div>
+);
+
+const ViewOnlyBanner = () => (
+  <div
+    className="rounded-lg px-3.5 py-2.5 flex items-start gap-2.5"
+    style={{
+      background: 'rgba(96,165,250,0.08)',
+      border: '1px solid rgba(96,165,250,0.25)',
+    }}
+  >
+    <ShieldIcon size={14} style={{ color: '#60a5fa', marginTop: 2, flexShrink: 0 }} />
+    <div>
+      <p className="text-[12px] font-semibold text-white/90">View-only access</p>
+      <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
+        As co-admin / founder you can browse users and stats, but grant, revoke, ban, send, and role changes are disabled.
       </p>
     </div>
   </div>
@@ -140,7 +160,7 @@ const PageHeader = ({ stats, onCleanup }) => (
         Manage members, subscriptions, contact enrichment, and outreach.
       </p>
     </div>
-    {stats?.expired_not_downgraded > 0 && (
+    {onCleanup && stats?.expired_not_downgraded > 0 && (
       <CleanupButton count={stats.expired_not_downgraded} onClick={onCleanup} />
     )}
   </div>
@@ -152,6 +172,9 @@ const PageHeader = ({ stats, onCleanup }) => (
 
 const UserManagementPage = () => {
   const { user: currentUser } = useAuth();
+  const canWrite = isAdminFull(currentUser);
+  const canManageRoles = isAdminFull(currentUser);
+  const viewOnly = isAdminViewOnly(currentUser);
 
   // ── Data ──
   const [stats, setStats] = useState(null);
@@ -173,6 +196,7 @@ const UserManagementPage = () => {
   // ── Modals ──
   const [grantModal, setGrantModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [roleModal, setRoleModal] = useState(null);
   const [drawerUserId, setDrawerUserId] = useState(null);
   const [sendMsgUser, setSendMsgUser] = useState(null);
   const [toast, setToast] = useState(null);
@@ -367,6 +391,19 @@ const UserManagementPage = () => {
     }
   };
 
+  // ── Set staff / member role (full admin only) ──
+  const handleSetRole = async (userId, role) => {
+    try {
+      const result = await adminApi.setUserRole(userId, role);
+      showToast(result.message || `Role updated to ${role}`);
+      fetchUsers();
+      fetchStats();
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to set role', 'error');
+      throw err;
+    }
+  };
+
   // ── Bulk actions ──
   const handleBulkExport = () => {
     const filename = `users_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -375,7 +412,7 @@ const UserManagementPage = () => {
   };
 
   const handleBulkGrant = async (duration) => {
-    const targets = selectedUsers.filter((u) => u.role !== 'admin');
+    const targets = selectedUsers.filter((u) => !isStaffRole(u.role));
     if (targets.length === 0) {
       showToast('No eligible users (admins are skipped)', 'error');
       return;
@@ -442,7 +479,7 @@ const UserManagementPage = () => {
   };
 
   // ── Guard ──
-  if (currentUser?.role !== 'admin') return <AccessGuard />;
+  if (!isAdminStaff(currentUser)) return <AccessGuard />;
 
   // ── Render ──
   // ERP layout zones:
@@ -460,7 +497,9 @@ const UserManagementPage = () => {
       )}
 
       {/* ── Zone 1: Command ── */}
-      <PageHeader stats={stats} onCleanup={handleCleanup} />
+      <PageHeader stats={stats} onCleanup={canWrite ? handleCleanup : undefined} />
+
+      {viewOnly && <ViewOnlyBanner />}
 
       <UsersStatGrid
         stats={stats}
@@ -484,8 +523,8 @@ const UserManagementPage = () => {
 
       <ExpiringSoonPanel
         expiringUsers={expiringUsers}
-        onExtend={(u) => setGrantModal(u)}
-        onDm={(u) => setSendMsgUser(u)}
+        onExtend={canWrite ? (u) => setGrantModal(u) : undefined}
+        onDm={canWrite ? (u) => setSendMsgUser(u) : undefined}
       />
 
       <ContactReachPanel
@@ -539,11 +578,14 @@ const UserManagementPage = () => {
             selectedIds={selectedIds}
             toggleSelect={toggleSelect}
             toggleSelectAll={toggleSelectAll}
+            canWrite={canWrite}
+            canManageRoles={canManageRoles}
             onView={(id) => setDrawerUserId(id)}
             onGrant={(u) => setGrantModal(u)}
             onRevoke={handleRevoke}
             onToggleActive={handleToggleActive}
             onSendMessage={(u) => setSendMsgUser(u)}
+            onSetRole={(u) => setRoleModal(u)}
             onResetFilters={() => setFilters(DEFAULT_FILTERS)}
           />
           <UsersPagination
@@ -555,32 +597,41 @@ const UserManagementPage = () => {
         </div>
       </div>
 
-      {/* Floating bulk action bar */}
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        selectedUsers={selectedUsers}
-        onClear={() => setSelectedIds(new Set())}
-        onBulkGrant={handleBulkGrant}
-        onBulkRevoke={handleBulkRevoke}
-        onBulkExport={handleBulkExport}
-        onBulkSendTemplate={handleBulkSendTemplate}
-        templates={templates}
-        onRequestConfirm={setConfirmModal}
-      />
+      {/* Floating bulk action bar — write actions only for full admin */}
+      {canWrite && (
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          selectedUsers={selectedUsers}
+          onClear={() => setSelectedIds(new Set())}
+          onBulkGrant={handleBulkGrant}
+          onBulkRevoke={handleBulkRevoke}
+          onBulkExport={handleBulkExport}
+          onBulkSendTemplate={handleBulkSendTemplate}
+          templates={templates}
+          onRequestConfirm={setConfirmModal}
+        />
+      )}
 
       {/* Modals */}
-      {grantModal && (
+      {grantModal && canWrite && (
         <GrantModal
           user={grantModal}
           onClose={() => setGrantModal(null)}
           onGrant={handleGrant}
         />
       )}
-      {sendMsgUser && (
+      {sendMsgUser && canWrite && (
         <SendMessageModal
           user={sendMsgUser}
           onClose={() => setSendMsgUser(null)}
           onSend={handleSendMessage}
+        />
+      )}
+      {roleModal && canManageRoles && (
+        <SetRoleModal
+          user={roleModal}
+          onClose={() => setRoleModal(null)}
+          onSetRole={handleSetRole}
         />
       )}
       {confirmModal && (
@@ -600,6 +651,9 @@ const UserManagementPage = () => {
           onUserUpdated={() => { fetchUsers(); fetchContactStats(); fetchStats(); }}
           onToast={showToast}
           templates={templates}
+          canWrite={canWrite}
+          canManageRoles={canManageRoles}
+          onSetRole={canManageRoles ? (u) => setRoleModal(u) : undefined}
         />
       )}
     </div>

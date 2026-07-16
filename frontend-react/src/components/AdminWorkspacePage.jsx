@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { workspaceApi } from '../services/workspaceApi';
 import { financeApi } from '../services/financeApi';
+import { isAdminStaff, isAdminViewOnly } from '../utils/roles';
 
 // Tab content
 import UserManagementPage from './UserManagementPage';
@@ -244,7 +245,7 @@ const AccessGuard = () => (
       </div>
       <h2 className="text-lg font-bold text-white mb-1.5 tracking-tight">Restricted Area</h2>
       <p className="text-xs" style={{ color: '#6b5c52' }}>
-        LuxQuant Management System is reserved for administrators. If you believe this is an error, reach out to your team lead.
+        LuxQuant Management System is reserved for admin, co-admin, and founder. If you believe this is an error, reach out to your team lead.
       </p>
     </div>
   </div>
@@ -322,8 +323,9 @@ const AdminWorkspacePage = () => {
     system: servicesSummary?.down || null,
   }), [stats, financeStats, servicesSummary]);
 
-  if (currentUser?.role !== 'admin') return <AccessGuard />;
+  if (!isAdminStaff(currentUser)) return <AccessGuard />;
 
+  const viewOnly = isAdminViewOnly(currentUser);
   const activeTabDef = TAB_BY_ID[activeTab] || TABS[0];
 
   return (
@@ -336,6 +338,26 @@ const AdminWorkspacePage = () => {
           <PulseStrip stats={stats} financeStats={financeStats} servicesSummary={servicesSummary} onJumpTo={changeTab} />
         </div>
       </div>
+
+      {viewOnly && (
+        <div
+          className="mb-4 rounded-lg px-3.5 py-2.5 flex items-start gap-2.5"
+          style={{
+            background: 'rgba(96,165,250,0.08)',
+            border: '1px solid rgba(96,165,250,0.25)',
+          }}
+        >
+          <ShieldIcon size={14} style={{ color: '#60a5fa', marginTop: 2, flexShrink: 0 }} />
+          <div>
+            <p className="text-[12px] font-semibold text-white/90">
+              View-only mode ({currentUser?.role === 'founder' ? 'Founder' : 'Co-Admin'})
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
+              You can browse all management tabs. Create, edit, delete, grant, and send actions are blocked by the server.
+            </p>
+          </div>
+        </div>
+      )}
 
       <p className="text-[12px] mb-6" style={{ color: tint(palette.warm[100], 0.4), letterSpacing: '0.01em' }}>
         Unified operations workspace

@@ -72,7 +72,7 @@ const UserMenu = () => {
     const role = user?.role || 'free';
     const expiresAt = user?.subscription_expires_at;
 
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'co_admin' || role === 'founder') {
       return { plan: t('userMenu.plan_admin'), status: 'active', expires_at: null, days_left: null };
     }
 

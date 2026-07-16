@@ -28,13 +28,14 @@ from app.core.database import get_db
 from app.models.user import User
 from app.models.subscription import SubscriptionPlan, Payment
 from app.models.legacy_member import LegacyMember
-from app.api.deps import get_admin_user
+from app.api.deps import get_admin_user, get_full_admin_user
 from app.schemas.user import (
     AdminUserResponse,
     AdminContactUpdate,
     TemplateRenderRequest,
     TemplateRenderResponse,
     GrantSubscription,
+    UpdateUserRole,
     MessageResponse,
 )
 from app.schemas.subscription import PlanResponse, PlanUpdate
@@ -94,7 +95,10 @@ async def get_admin_stats(
         User.is_active == True
     ).scalar()
 
-    admin_count = db.query(func.count(User.id)).filter(User.role == 'admin').scalar()
+    # Full admin + view-only staff (co_admin / founder)
+    admin_count = db.query(func.count(User.id)).filter(
+        User.role.in_(list(User.STAFF_ROLES))
+    ).scalar()
 
     # Expiring soon (dalam 7 hari)
     expiring_soon = db.query(func.count(User.id)).filter(
@@ -384,9 +388,9 @@ async def list_users(
 
     # ── Anomaly filter (DB-vs-reality drift detection) ──
     # active access (SQL form of User.has_active_access):
-    #   role=admin, OR role in (premium, subscriber) with null/future expiry
+    #   staff roles, OR role in (premium, subscriber) with null/future expiry
     _active_access = or_(
-        User.role == "admin",
+        User.role.in_(list(User.STAFF_ROLES)),
         and_(
             User.role.in_(["premium", "subscriber"]),
             or_(
@@ -532,8 +536,11 @@ async def grant_subscription(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.role == 'admin':
-        raise HTTPException(status_code=400, detail="Admin already has full access")
+    if user.role in User.STAFF_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail="Staff roles already have full platform access; change role instead",
+        )
 
     now = datetime.now(timezone.utc)
 
@@ -614,8 +621,11 @@ async def revoke_subscription(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.role == 'admin':
-        raise HTTPException(status_code=400, detail="Cannot revoke an admin")
+    if user.role in User.STAFF_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot revoke a staff role; demote via set-role instead",
+        )
 
     if user.role == 'free':
         raise HTTPException(status_code=400, detail="User is already free")
@@ -949,8 +959,8 @@ async def toggle_user_active(
     if user.id == admin.id:
         raise HTTPException(status_code=400, detail="You can't ban yourself")
 
-    if user.role == 'admin':
-        raise HTTPException(status_code=400, detail="You can't ban another admin")
+    if user.role in User.STAFF_ROLES:
+        raise HTTPException(status_code=400, detail="You can't ban staff members")
 
     user.is_active = not user.is_active
     db.commit()
@@ -962,6 +972,98 @@ async def toggle_user_active(
         "success": True,
         "message": f"User {user.username} sekarang {status_text}",
         "user": AdminUserResponse.model_validate(user)
+    }
+
+
+# ════════════════════════════════════════════
+# 7b. Set staff / member role (full admin only)
+# ════════════════════════════════════════════
+
+@router.post("/users/{user_id}/set-role")
+async def set_user_role(
+    user_id: int,
+    data: UpdateUserRole,
+    admin: User = Depends(get_full_admin_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Assign platform role. Full admin only.
+
+    - admin: full write access to management system
+    - co_admin / founder: view-only management access
+    - subscriber / free: normal member roles
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_role = data.role
+    old_role = user.role
+
+    if old_role == new_role:
+        return {
+            "success": True,
+            "message": f"{user.username} already has role {new_role}",
+            "user": AdminUserResponse.model_validate(user),
+        }
+
+    # Protect last full admin from self-demotion
+    if user.id == admin.id and new_role != "admin":
+        other_admins = (
+            db.query(func.count(User.id))
+            .filter(User.role == "admin", User.id != admin.id, User.is_active == True)
+            .scalar()
+        )
+        if not other_admins:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot demote yourself — you are the last full admin",
+            )
+
+    # Protect last full admin when demoting another admin
+    if old_role == "admin" and new_role != "admin":
+        other_admins = (
+            db.query(func.count(User.id))
+            .filter(User.role == "admin", User.id != user.id, User.is_active == True)
+            .scalar()
+        )
+        if not other_admins:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot demote the last full admin",
+            )
+
+    now = datetime.now(timezone.utc)
+    user.role = new_role
+
+    if new_role in User.STAFF_ROLES:
+        # Staff: unlimited platform access; protect from OAuth role re-resolve
+        user.subscription_expires_at = None
+        user.subscription_source = "admin"
+        user.subscription_granted_by = admin.id
+        user.subscription_granted_at = now
+        user.subscription_note = f"Role set to {new_role} by admin (ID:{admin.id})"
+    elif new_role == "subscriber":
+        # Promote to subscriber without expiry → lifetime grant
+        if user.subscription_expires_at is None and old_role not in ("subscriber", "premium"):
+            user.subscription_source = "lifetime"
+        elif user.subscription_source is None:
+            user.subscription_source = "admin"
+        user.subscription_granted_by = admin.id
+        user.subscription_granted_at = now
+        user.subscription_note = f"Role set to subscriber by admin (ID:{admin.id})"
+    elif new_role == "free":
+        user.subscription_expires_at = None
+        user.subscription_source = None
+        user.subscription_note = f"Role set to free by admin (ID:{admin.id}) on {now.strftime('%Y-%m-%d %H:%M')}"
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "success": True,
+        "message": f"Role {user.username}: {old_role} → {new_role}",
+        "user": AdminUserResponse.model_validate(user),
     }
 
 
