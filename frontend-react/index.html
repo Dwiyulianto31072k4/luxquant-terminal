@@ -12,7 +12,9 @@
       (function () {
         try {
           var t = localStorage.getItem('lq-theme');
-          var ok = ['luxquant', 'dark', 'bright'];
+          // Only luxquant/dark are selectable right now; migrate anything else
+          // (e.g. a leftover 'bright') to the default so no one is stuck.
+          var ok = ['luxquant', 'dark'];
           document.documentElement.dataset.theme = ok.indexOf(t) > -1 ? t : 'luxquant';
         } catch (e) {
           document.documentElement.dataset.theme = 'luxquant';

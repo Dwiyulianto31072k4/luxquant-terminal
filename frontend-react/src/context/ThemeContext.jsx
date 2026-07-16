@@ -13,7 +13,12 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import { isAdminStaff } from '../utils/roles';
 
+// THEMES = valid CSS themes; SELECTABLE = what a user may actually switch to.
+// Bright is temporarily NOT selectable while Dark is polished. Anyone whose
+// stored theme is a non-selectable one (e.g. a leftover 'bright') is migrated
+// back to the default so they can never get stuck in a hidden theme.
 const THEMES = ['luxquant', 'dark', 'bright'];
+const SELECTABLE_THEMES = ['luxquant', 'dark'];
 const DEFAULT_THEME = 'luxquant';
 const STORAGE_KEY = 'lq-theme';
 
@@ -32,7 +37,9 @@ export const useTheme = () => {
 function readStored() {
   try {
     const t = localStorage.getItem(STORAGE_KEY);
-    return THEMES.includes(t) ? t : null;
+    // Only honour a stored theme that is still selectable — this migrates any
+    // leftover 'bright' (or unknown) value back to the default.
+    return SELECTABLE_THEMES.includes(t) ? t : null;
   } catch {
     return null;
   }
@@ -63,7 +70,7 @@ export const ThemeProvider = ({ children }) => {
   const setTheme = useCallback(
     (next) => {
       if (!canSwitchTheme) return; // hard gate — members cannot switch
-      if (!THEMES.includes(next)) return;
+      if (!SELECTABLE_THEMES.includes(next)) return;
       setThemeState(next);
     },
     [canSwitchTheme]
@@ -72,7 +79,7 @@ export const ThemeProvider = ({ children }) => {
   const value = {
     theme: effectiveTheme,
     setTheme,
-    themes: THEMES,
+    themes: SELECTABLE_THEMES,
     canSwitchTheme,
   };
 
