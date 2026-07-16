@@ -104,7 +104,7 @@ const UserCell = ({ user, onClick }) => (
   >
     <Avatar src={user.avatar_url} name={user.username} size="sm" />
     <div className="min-w-0">
-      <p className="text-xs font-medium text-white truncate flex items-center gap-1.5">
+      <p className="text-xs font-medium text-text-primary truncate flex items-center gap-1.5">
         {user.username}
         <ProviderIcon provider={user.auth_provider} size={11} />
         {!user.is_active && (

@@ -122,7 +122,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-white font-semibold text-sm capitalize">{account.exchange_id}</h3>
+                <h3 className="text-text-primary font-semibold text-sm capitalize">{account.exchange_id}</h3>
                 {account.is_testnet && (
                   <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-red-500/10 text-red-400 border-red-500/25">
                     Testnet
@@ -158,11 +158,11 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">Mode</p>
-            <p className="text-white font-mono text-xs capitalize tabular-nums">{account.trading_mode}</p>
+            <p className="text-text-primary font-mono text-xs capitalize tabular-nums">{account.trading_mode}</p>
           </div>
           <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">API Key</p>
-            <p className="text-white font-mono text-[11px] tabular-nums truncate">{account.api_key_masked || "••••"}</p>
+            <p className="text-text-primary font-mono text-[11px] tabular-nums truncate">{account.api_key_masked || "••••"}</p>
           </div>
           <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">Status</p>
@@ -199,16 +199,16 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           <div className="relative overflow-hidden bg-white/[0.02] border border-white/[0.06] rounded p-3.5">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
             <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1.5">Total USD</p>
-            <p className="text-2xl font-mono tabular-nums text-white">{fmtUsd(totalBalance)}</p>
+            <p className="text-2xl font-mono tabular-nums text-text-primary">{fmtUsd(totalBalance)}</p>
 
             <div className="flex gap-4 mt-2.5 text-[10px] font-mono">
               <div className="flex items-center gap-1.5">
                 <span className="text-text-muted/70 uppercase tracking-wider">Spot</span>
-                <span className="text-white/80 tabular-nums">{fmtUsd(balance?.spot?.total_usd || 0)}</span>
+                <span className="text-text-primary/80 tabular-nums">{fmtUsd(balance?.spot?.total_usd || 0)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-text-muted/70 uppercase tracking-wider">Futures</span>
-                <span className="text-white/80 tabular-nums">{fmtUsd(balance?.futures?.total_usd || 0)}</span>
+                <span className="text-text-primary/80 tabular-nums">{fmtUsd(balance?.futures?.total_usd || 0)}</span>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           <button
             onClick={handleTest}
             disabled={loading.test}
-            className="flex-1 px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-50 transition-all"
+            className="flex-1 px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-50 transition-all"
           >
             {loading.test ? "Testing…" : "Test"}
           </button>

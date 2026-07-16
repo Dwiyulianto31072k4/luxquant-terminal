@@ -133,11 +133,11 @@ export default function CoinSpotlight() {
           Per-Coin Track Record
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/60" />
         </span>
-        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-white lg:text-[2.6rem]">
+        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Track any coin{" "}
           <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">we've called.</span>
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/55 lg:text-base">
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           Pick a coin — or search any pair — to see its full, timestamped call history.
         </p>
       </div>
@@ -161,7 +161,7 @@ export default function CoinSpotlight() {
                     }`}
                   >
                     <CoinLogo pair={c.pair} size={20} />
-                    <span className={`text-[12px] font-semibold ${on ? "text-white" : "text-text-muted"}`}>{sym(c.pair)}</span>
+                    <span className={`text-[12px] font-semibold ${on ? "text-text-primary" : "text-text-muted"}`}>{sym(c.pair)}</span>
                   </button>
                 );
               })}
@@ -189,10 +189,10 @@ export default function CoinSpotlight() {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitSearch()}
                 placeholder="Search coin…"
-                className="min-w-0 flex-1 bg-transparent font-mono text-[12px] uppercase text-white placeholder:normal-case placeholder:text-text-muted/70 outline-none"
+                className="min-w-0 flex-1 bg-transparent font-mono text-[12px] uppercase text-text-primary placeholder:normal-case placeholder:text-text-muted/70 outline-none"
               />
               {query && (
-                <button onClick={() => setQuery("")} className="text-text-muted hover:text-white" aria-label="Clear">✕</button>
+                <button onClick={() => setQuery("")} className="text-text-muted hover:text-text-primary" aria-label="Clear">✕</button>
               )}
             </div>
 
@@ -207,14 +207,14 @@ export default function CoinSpotlight() {
                       className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.06]"
                     >
                       <CoinLogo pair={c.pair} size={20} />
-                      <span className="text-[12px] font-semibold text-white">{sym(c.pair)}<span className="ml-1 font-mono text-[9px] text-text-muted">USDT</span></span>
+                      <span className="text-[12px] font-semibold text-text-primary">{sym(c.pair)}<span className="ml-1 font-mono text-[9px] text-text-muted">USDT</span></span>
                       {c.win_rate != null && <span className="ml-auto font-mono text-[10px]" style={{ color: "#4ade80" }}>{pct(c.win_rate)}</span>}
                     </button>
                   ))
                 ) : (
                   <button
                     onClick={submitSearch}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-white/[0.06] hover:text-white"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
                   >
                     Try “{query.toUpperCase().replace(/USDT$/, "")}USDT” →
                   </button>
@@ -231,7 +231,7 @@ export default function CoinSpotlight() {
           ) : !ok ? (
             <div className="flex min-h-[180px] flex-col items-center justify-center gap-2 text-center">
               <CoinLogo pair={sel} size={34} />
-              <p className="text-[13px] font-semibold text-white">{sym(sel)}USDT</p>
+              <p className="text-[13px] font-semibold text-text-primary">{sym(sel)}USDT</p>
               <p className="max-w-xs text-[12px] text-text-muted">
                 Not enough calls on this coin yet to build a track record. Try another coin.
               </p>
@@ -242,7 +242,7 @@ export default function CoinSpotlight() {
               <div className="mb-5 flex flex-wrap items-center gap-3">
                 <CoinLogo pair={sel} size={40} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[17px] font-bold text-white">
+                  <p className="text-[17px] font-bold text-text-primary">
                     {sym(sel)}<span className="ml-1 font-mono text-[11px] text-text-muted">USDT</span>
                     {coinMeta?.sector && <span className="ml-2 font-mono text-[9px] uppercase tracking-wider text-gold-primary/70">{coinMeta.sector}</span>}
                   </p>
@@ -278,7 +278,7 @@ export default function CoinSpotlight() {
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-base font-bold tabular-nums text-white">{totalClosed}</span>
+                        <span className="text-base font-bold tabular-nums text-text-primary">{totalClosed}</span>
                         <span className="font-mono text-[8px] uppercase tracking-wider text-text-muted">closed</span>
                       </div>
                     </div>
@@ -295,7 +295,7 @@ export default function CoinSpotlight() {
                           <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: o.color }} />
                           <span className="w-7 font-mono text-[11px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>{o.label === "TP4" ? "TP4+" : o.label}</span>
                           <span className="flex-1 text-right font-mono text-[11px] tabular-nums" style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}>{signedPct(o.avg)}</span>
-                          <span className="w-9 text-right font-mono text-[11px] tabular-nums text-white">{o.count}</span>
+                          <span className="w-9 text-right font-mono text-[11px] tabular-nums text-text-primary">{o.count}</span>
                           <span className="w-8 text-right font-mono text-[9px] text-text-muted">{totalClosed ? ((o.count / totalClosed) * 100).toFixed(0) : 0}%</span>
                         </div>
                       ))}
@@ -314,7 +314,7 @@ export default function CoinSpotlight() {
                       <div key={t.tp}>
                         <div className="mb-1 flex items-center justify-between">
                           <span className="font-mono text-[11px] font-bold" style={{ color: C.gold }}>{t.tp}</span>
-                          <span className="font-mono text-[12px] font-semibold tabular-nums text-white">{t.avg_human || "—"}</span>
+                          <span className="font-mono text-[12px] font-semibold tabular-nums text-text-primary">{t.avg_human || "—"}</span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-black/40" style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.55)" }}>
                           <div
@@ -330,7 +330,7 @@ export default function CoinSpotlight() {
                     ))}
                   </div>
                   <p className="mt-3 border-t border-white/[0.06] pt-2.5 font-mono text-[10px] text-text-muted">
-                    smooth entry <span className="text-white">{pct(entry.smooth_entry_rate_pct)}</span> · time in profit <span className="text-white">{pct(risk.avg_time_in_profit_pct)}</span>
+                    smooth entry <span className="text-text-primary">{pct(entry.smooth_entry_rate_pct)}</span> · time in profit <span className="text-text-primary">{pct(risk.avg_time_in_profit_pct)}</span>
                   </p>
                 </div>
               </div>

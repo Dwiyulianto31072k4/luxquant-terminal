@@ -184,7 +184,7 @@ const NotificationBell = () => {
       {/* ── Bell Button ── */}
       <button
         onClick={handleToggle}
-        className="relative w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-white/[0.04] hover:border-white/[0.08] border border-transparent transition-all"
+        className="relative w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/[0.04] hover:border-white/[0.08] border border-transparent transition-all"
         title={t("notifications.title") || "Notifications"}
       >
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,7 +217,7 @@ const NotificationBell = () => {
             {/* ── Header ── */}
             <div className="relative flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
               <div className="flex items-center gap-2">
-                <h3 className="text-white text-sm font-semibold tracking-tight">
+                <h3 className="text-text-primary text-sm font-semibold tracking-tight">
                   {t("notifications.title") || "Notifications"}
                 </h3>
                 {unreadCount > 0 && (
@@ -297,7 +297,7 @@ const PreviewRow = ({ notif, onClick, formatTimeAgo }) => {
         <div className="flex items-start justify-between gap-1.5">
           <p
             className={`text-[12px] font-medium leading-tight truncate ${
-              isUnread ? "text-white" : "text-text-secondary"
+              isUnread ? "text-text-primary" : "text-text-secondary"
             }`}
           >
             {notif.title}

@@ -83,11 +83,11 @@ const SourceTable = ({ bySource }) => {
       {bySource.map((s) => (
         <div key={s.source} className="flex items-center gap-3">
           <div className="w-28 shrink-0 min-w-0">
-            <p className="text-[11.5px] font-medium text-white truncate">{SOURCE_LABEL[s.source] || s.source}</p>
+            <p className="text-[11.5px] font-medium text-text-primary truncate">{SOURCE_LABEL[s.source] || s.source}</p>
             <p className="text-[9px]" style={{ color: '#6b5c52' }}>{num(s.users)} users</p>
           </div>
           <Bar3D pct={(s.revenue / maxRev) * 100} heightClass="h-2" />
-          <span className="w-16 text-right text-[12px] font-bold tabular-nums text-white">{usd(s.revenue)}</span>
+          <span className="w-16 text-right text-[12px] font-bold tabular-nums text-text-primary">{usd(s.revenue)}</span>
         </div>
       ))}
     </div>
@@ -103,7 +103,7 @@ const ReferralTable = ({ referral }) => {
         <div key={r.username + i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
           <span className="w-4 text-[11px] font-bold tabular-nums text-center" style={{ color: i < 3 ? palette.gold[300] : 'rgba(255,255,255,0.35)' }}>{i + 1}</span>
           <Avatar name={r.username} tone={palette.gold[300]} size="xs" />
-          <span className="flex-1 text-[12px] font-medium text-white truncate">@{r.username}</span>
+          <span className="flex-1 text-[12px] font-medium text-text-primary truncate">@{r.username}</span>
           <span className="text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.55)' }}>{num(r.referred)} ref</span>
           <span className="w-16 text-right text-[11px] font-semibold tabular-nums" style={{ color: palette.green[400] }}>{usd2(r.commission)}</span>
         </div>
@@ -125,7 +125,7 @@ const ChurnRisk = ({ risk }) => {
           <div className="flex items-center gap-2.5 min-w-0">
             <Avatar name={u.username} tone={palette.red[400]} size="sm" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-white truncate">@{u.username}</p>
+              <p className="text-xs font-medium text-text-primary truncate">@{u.username}</p>
               <p className="text-[10px]" style={{ color: '#6b5c52' }}>Renews {fmtDate(u.expires_at)}</p>
             </div>
           </div>
@@ -148,7 +148,7 @@ const Panel = ({ title, sub, children, right, className = '' }) => (
   <Surface variant="premium" hover={false} padding="p-5" className={className}>
     <div className="flex items-start justify-between gap-3 mb-4">
       <div>
-        <h3 className="text-[14px] font-semibold text-white tracking-tight">{title}</h3>
+        <h3 className="text-[14px] font-semibold text-text-primary tracking-tight">{title}</h3>
         {sub && <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>{sub}</p>}
       </div>
       {right}
@@ -199,7 +199,7 @@ export const GrowthTab = () => {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="mb-2"><Eyebrow>Business Intelligence</Eyebrow></div>
-          <h2 className="text-lg font-semibold text-white tracking-tight">Growth &amp; Revenue</h2>
+          <h2 className="text-lg font-semibold text-text-primary tracking-tight">Growth &amp; Revenue</h2>
           <p className="text-[11px] mt-0.5 max-w-lg" style={{ color: '#8a7a6e' }}>
             Revenue, recurring run-rate, churn, and where your paying members come from.
           </p>

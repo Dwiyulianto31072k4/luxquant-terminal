@@ -113,7 +113,7 @@ const BrandHeader = () => (
         LuxQuant
       </p>
       <h1 className="text-[26px] sm:text-[30px] font-light tracking-tight leading-none" style={{ letterSpacing: '-0.02em' }}>
-        <span className="text-white">Management </span>
+        <span className="text-text-primary">Management </span>
         <span
           style={{
             background: gradient.goldText,
@@ -243,7 +243,7 @@ const AccessGuard = () => (
           <ShieldIcon size={36} style={{ color: palette.red[400], opacity: 0.8 }} />
         </div>
       </div>
-      <h2 className="text-lg font-bold text-white mb-1.5 tracking-tight">Restricted Area</h2>
+      <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Restricted Area</h2>
       <p className="text-xs" style={{ color: '#6b5c52' }}>
         LuxQuant Management System is reserved for admin, co-admin, and founder. If you believe this is an error, reach out to your team lead.
       </p>
@@ -349,7 +349,7 @@ const AdminWorkspacePage = () => {
         >
           <ShieldIcon size={14} style={{ color: '#60a5fa', marginTop: 2, flexShrink: 0 }} />
           <div>
-            <p className="text-[12px] font-semibold text-white/90">
+            <p className="text-[12px] font-semibold text-text-primary/90">
               View-only mode ({currentUser?.role === 'founder' ? 'Founder' : 'Co-Admin'})
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
@@ -369,7 +369,7 @@ const AdminWorkspacePage = () => {
       {/* active tab descriptor */}
       <div className="hidden sm:flex items-center gap-2 mb-5">
         <activeTabDef.Icon size={13} style={{ color: activeTabDef.accent }} />
-        <span className="text-[11px] uppercase font-semibold tracking-[0.08em] text-white/80">{activeTabDef.label}</span>
+        <span className="text-[11px] uppercase font-semibold tracking-[0.08em] text-text-primary/80">{activeTabDef.label}</span>
         <span className="inline-block w-1 h-1 rounded-full" style={{ background: tint(palette.warm[400], 0.5) }} />
         <span className="text-[10.5px]" style={{ color: tint(palette.warm[400], 0.85), letterSpacing: '0.03em' }}>{activeTabDef.description}</span>
       </div>

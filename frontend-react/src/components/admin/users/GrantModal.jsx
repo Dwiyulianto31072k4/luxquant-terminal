@@ -58,14 +58,14 @@ const DurationOption = ({ Icon, label, desc, selected, onClick }) => (
 // ── Date input ──
 const DateInput = ({ label, required, value, onChange, min, helper }) => (
   <div>
-    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/45">
+    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-text-primary/45">
       {label}{required && <span style={{ color: GOLD }}> *</span>}
     </label>
     <div className="relative">
       <CalendarIcon size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#6b5c52" }} />
       <input
         type="date" value={value} min={min} onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg py-2 pl-8 pr-3 font-mono text-xs text-white outline-none focus:border-gold-primary/40"
+        className="w-full rounded-lg py-2 pl-8 pr-3 font-mono text-xs text-text-primary outline-none focus:border-gold-primary/40"
         style={{ background: "#0d0b09", border: `1px solid ${required ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`, colorScheme: "dark" }}
       />
     </div>
@@ -88,12 +88,12 @@ const PreviewCard = ({ start, end, days }) => (
     <div className="flex items-center justify-between px-3 py-2.5 text-[11px]">
       <div className="text-left">
         <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted">Starts</p>
-        <p className="font-medium tabular-nums text-white">{start || "Today"}</p>
+        <p className="font-medium tabular-nums text-text-primary">{start || "Today"}</p>
       </div>
       <ArrowRightIcon size={12} style={{ color: "#6b5c52" }} />
       <div className="text-right">
         <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted">Ends</p>
-        <p className="font-medium tabular-nums text-white">{end}</p>
+        <p className="font-medium tabular-nums text-text-primary">{end}</p>
       </div>
     </div>
   </div>
@@ -158,11 +158,11 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
         </div>
       </div>
       <div className="min-w-0 flex-1">
-        <h3 className="text-base font-bold tracking-tight text-white">Grant Subscription</h3>
+        <h3 className="text-base font-bold tracking-tight text-text-primary">Grant Subscription</h3>
         <div className="mt-0.5 flex items-center gap-2">
           <Avatar name={user.username} size="xs" />
           <span className="text-[11px] text-text-muted">
-            <span className="font-medium text-white">{user.username}</span>
+            <span className="font-medium text-text-primary">{user.username}</span>
             {user.role === "subscriber" && user.subscription_expires_at && (
               <span className="ml-1.5 text-[10px] text-amber-400">· extends existing</span>
             )}
@@ -194,7 +194,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
           <>
             <DateInput label="Start date" value={startDate} onChange={setStartDate} helper={!startDate ? "Leave empty to start today" : undefined} />
             <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/45">Duration</label>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-text-primary/45">Duration</label>
               <div className="grid grid-cols-3 gap-2">
                 {durations.map((opt) => (
                   <DurationOption key={opt.value} {...opt} selected={duration === opt.value} onClick={() => setDuration(opt.value)} />
@@ -214,12 +214,12 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
         {preview && <PreviewCard {...preview} />}
 
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/45">
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-text-primary/45">
             Note <span className="lowercase tracking-normal text-text-muted">(optional)</span>
           </label>
           <input
             value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Payment via BCA, promo code XYZ"
-            className="w-full rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-gold-primary/40"
+            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary outline-none focus:border-gold-primary/40"
             style={{ background: "#0d0b09", border: "1px solid rgba(255,255,255,0.06)" }}
           />
         </div>

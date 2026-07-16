@@ -118,10 +118,10 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
               <div key={mo.key} className="flex-1 min-w-[300px]">
                 {/* month header */}
                 <div className="flex items-baseline justify-between mb-2.5 px-0.5">
-                  <span className="text-sm font-display text-white/90 tracking-tight">{mo.label}</span>
+                  <span className="text-sm font-display text-text-primary/90 tracking-tight">{mo.label}</span>
                   {agg?.total > 0 && (
-                    <span className="text-[10px] font-mono tabular-nums text-white/40">
-                      <span className={agg.wr >= 60 ? "text-emerald-400/80" : agg.wr >= 50 ? "text-white/55" : "text-red-400/80"}>
+                    <span className="text-[10px] font-mono tabular-nums text-text-primary/40">
+                      <span className={agg.wr >= 60 ? "text-emerald-400/80" : agg.wr >= 50 ? "text-text-primary/55" : "text-red-400/80"}>
                         {agg.wr.toFixed(0)}%
                       </span>{" "}
                       · {agg.wins}/{agg.total}
@@ -132,7 +132,7 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
                 {/* dow header */}
                 <div className="grid grid-cols-7 gap-1 mb-1">
                   {DOW_LABELS.map((d, i) => (
-                    <div key={i} className="text-center text-[9px] font-mono uppercase tracking-wider text-white/25">{d}</div>
+                    <div key={i} className="text-center text-[9px] font-mono uppercase tracking-wider text-text-primary/25">{d}</div>
                   ))}
                 </div>
 
@@ -175,15 +175,15 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
                         } ${cell.isToday ? "ring-1 ring-gold-primary/70" : ""}`}
                         style={{ background: bg, opacity: cell.inRange ? 1 : 0.25 }}
                       >
-                        <span className="absolute top-1 left-1.5 text-[9px] font-mono tabular-nums text-white/35 leading-none">
+                        <span className="absolute top-1 left-1.5 text-[9px] font-mono tabular-nums text-text-primary/35 leading-none">
                           {cell.day}
                         </span>
                         {has ? (
                           <>
-                            <span className={`font-mono tabular-nums text-[15px] leading-none mt-1 ${wr >= 50 ? "text-white/95" : "text-white/90"}`}>
+                            <span className={`font-mono tabular-nums text-[15px] leading-none mt-1 ${wr >= 50 ? "text-text-primary/95" : "text-text-primary/90"}`}>
                               {wr?.toFixed(0)}%
                             </span>
-                            <span className="text-[9px] font-mono tabular-nums text-white/45 mt-1 leading-none">
+                            <span className="text-[9px] font-mono tabular-nums text-text-primary/45 mt-1 leading-none">
                               {e.wins}/{e.total}
                             </span>
                           </>
@@ -198,14 +198,14 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
         </div>
 
         {/* legend */}
-        <div className="mt-5 pt-3.5 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-white/40">
+        <div className="mt-5 pt-3.5 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
           {WR_LEGEND.map((s, i) => (
             <span key={i} className="inline-flex items-center gap-1">
               <span className="w-3.5 h-3 rounded-[2px] border border-white/10" style={{ background: s.c }} />
               {s.l}
             </span>
           ))}
-          <span className="ml-2 text-white/25 normal-case tracking-normal">· click a day to drill into its signals</span>
+          <span className="ml-2 text-text-primary/25 normal-case tracking-normal">· click a day to drill into its signals</span>
         </div>
       </Panel>
     </div>

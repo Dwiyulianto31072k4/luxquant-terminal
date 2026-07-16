@@ -18,8 +18,8 @@ function renderInline(text, keyBase = 'i') {
   while ((m = INLINE_RE.exec(text))) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     const key = `${keyBase}-${i++}`;
-    if (m[2] !== undefined) nodes.push(<strong key={key} className="font-semibold text-white">{m[2]}</strong>);
-    else if (m[3] !== undefined) nodes.push(<strong key={key} className="font-semibold text-white">{m[3]}</strong>);
+    if (m[2] !== undefined) nodes.push(<strong key={key} className="font-semibold text-text-primary">{m[2]}</strong>);
+    else if (m[3] !== undefined) nodes.push(<strong key={key} className="font-semibold text-text-primary">{m[3]}</strong>);
     else if (m[4] !== undefined) nodes.push(<em key={key}>{m[4]}</em>);
     else if (m[5] !== undefined) nodes.push(<em key={key}>{m[5]}</em>);
     else if (m[6] !== undefined) nodes.push(<code key={key} className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[.85em] text-gold-primary/90">{m[6]}</code>);
@@ -44,12 +44,12 @@ function renderInline(text, keyBase = 'i') {
 }
 
 const HEADING_CLS = {
-  1: 'text-2xl font-bold text-white mt-6 mb-2',
-  2: 'text-xl font-bold text-white mt-5 mb-2',
-  3: 'text-lg font-semibold text-white mt-4 mb-1.5',
-  4: 'text-base font-semibold text-white mt-3 mb-1.5',
-  5: 'text-sm font-semibold text-white mt-3 mb-1',
-  6: 'text-sm font-semibold text-white/80 mt-3 mb-1',
+  1: 'text-2xl font-bold text-text-primary mt-6 mb-2',
+  2: 'text-xl font-bold text-text-primary mt-5 mb-2',
+  3: 'text-lg font-semibold text-text-primary mt-4 mb-1.5',
+  4: 'text-base font-semibold text-text-primary mt-3 mb-1.5',
+  5: 'text-sm font-semibold text-text-primary mt-3 mb-1',
+  6: 'text-sm font-semibold text-text-primary/80 mt-3 mb-1',
 };
 
 // ── Block parsing ──

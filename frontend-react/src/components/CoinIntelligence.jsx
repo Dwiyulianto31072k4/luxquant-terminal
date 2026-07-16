@@ -74,7 +74,7 @@ const CoinRow = ({ coin, rank, verdict, onClick }) => {
       <CoinLogo pair={coin.pair} size={28} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="font-mono font-bold text-[13px] text-white tracking-wide">{coin.pair.replace('USDT','')}</span>
+          <span className="font-mono font-bold text-[13px] text-text-primary tracking-wide">{coin.pair.replace('USDT','')}</span>
           {coin.anomaly_flags?.slice(0,2).map((f,i) => (
             <span key={i} className="text-[6px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider" style={{ background:SEV[f.severity]?.bg, color:SEV[f.severity]?.text, border:`1px solid ${SEV[f.severity]?.border}30` }}>{f.tag}</span>
           ))}
@@ -173,7 +173,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setCollapsed(!collapsed)}>
           <div className="w-8 h-[3px] bg-gradient-to-r from-[#d4a853] to-transparent rounded-full shadow-[0_0_8px_rgba(212,168,83,0.5)]" />
           <div className="flex items-center gap-3">
-            <h3 className="text-white text-base font-bold tracking-wide group-hover:text-[#d4a853] transition-colors">Coin Intelligence</h3>
+            <h3 className="text-text-primary text-base font-bold tracking-wide group-hover:text-[#d4a853] transition-colors">Coin Intelligence</h3>
             <span className="text-[9px] font-mono text-[#d4a853] bg-[#d4a853]/10 px-2.5 py-1 rounded-md border border-[#d4a853]/20 shadow-inner">{dateLabel}</span>
             <div className="flex gap-1.5">
               {avoid.length > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm" style={{ background:SEV.danger.bg, color:SEV.danger.text, border:`1px solid ${SEV.danger.border}30` }}>{avoid.length} Avoid</span>}

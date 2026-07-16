@@ -65,7 +65,7 @@ export const ExpiringSoonPanel = ({ expiringUsers, onExtend, onDm }) => {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Avatar name={u.username} tone={urgency} size="sm" />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{u.username}</p>
+                    <p className="text-xs font-medium text-text-primary truncate">{u.username}</p>
                     <p className="text-[10px] truncate font-mono" style={{ color: '#6b5c52' }}>
                       {u.email}
                     </p>

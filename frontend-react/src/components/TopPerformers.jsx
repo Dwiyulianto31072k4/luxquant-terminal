@@ -175,7 +175,7 @@ const TopPerformers = () => {
 
   // Uniform rank — same style for every position (exchange list density)
   const rankBadge = (rank) => (
-    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-[11px] tabular-nums text-white/35 sm:h-6 sm:w-6 sm:text-[12px]">
+    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-[11px] tabular-nums text-text-primary/35 sm:h-6 sm:w-6 sm:text-[12px]">
       {rank}
     </span>
   );
@@ -189,7 +189,7 @@ const TopPerformers = () => {
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2 sm:mb-4">
             <div className="min-w-0">
               <h2
-                className="text-[18px] font-semibold tracking-tight text-white sm:text-[22px]"
+                className="text-[18px] font-semibold tracking-tight text-text-primary sm:text-[22px]"
                 style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
               >
                 Top Gainers
@@ -220,7 +220,7 @@ const TopPerformers = () => {
                       type="button"
                       onClick={() => setCategory(c.key)}
                       className={`relative min-w-0 px-0.5 pb-2 pt-1 text-center text-[11px] font-medium transition sm:text-[12px] ${
-                        on ? "text-white" : "text-text-muted hover:text-white/80"
+                        on ? "text-text-primary" : "text-text-muted hover:text-text-primary/80"
                       }`}
                     >
                       <span className="block truncate sm:hidden">{c.short}</span>
@@ -243,8 +243,8 @@ const TopPerformers = () => {
                       onClick={() => handlePresetClick(key)}
                       className={`min-w-0 rounded-[5px] py-1.5 text-center font-mono text-[10px] font-medium tracking-wide transition sm:text-[11px] ${
                         on
-                          ? "bg-white/[0.1] text-white"
-                          : "text-text-muted hover:text-white/75"
+                          ? "bg-white/[0.1] text-text-primary"
+                          : "text-text-muted hover:text-text-primary/75"
                       }`}
                     >
                       {short}
@@ -261,7 +261,7 @@ const TopPerformers = () => {
                       type="date"
                       value={customFrom}
                       onChange={(e) => setCustomFrom(e.target.value)}
-                      className="w-full min-w-0 rounded-md border border-white/10 bg-[#0a0805] px-2 py-1.5 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                      className="w-full min-w-0 rounded-md border border-white/10 bg-[#0a0805] px-2 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
                     />
                   </label>
                   <label className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-1.5">
@@ -270,7 +270,7 @@ const TopPerformers = () => {
                       type="date"
                       value={customTo}
                       onChange={(e) => setCustomTo(e.target.value)}
-                      className="w-full min-w-0 rounded-md border border-white/10 bg-[#0a0805] px-2 py-1.5 font-mono text-[11px] text-white [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                      className="w-full min-w-0 rounded-md border border-white/10 bg-[#0a0805] px-2 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
                     />
                   </label>
                   <button
@@ -288,23 +288,23 @@ const TopPerformers = () => {
 
           {data && (!data.top_gainers || data.top_gainers.length === 0) && (
             <div className="py-12 text-center">
-              <p className="text-[13px] text-white/35">{t("top.no_tp")}</p>
+              <p className="text-[13px] text-text-primary/35">{t("top.no_tp")}</p>
             </div>
           )}
 
           {data && data.top_gainers?.length > 0 && (
             <div className={loading ? "opacity-50 transition-opacity" : ""}>
               <div className="hidden border-b border-white/[0.06] px-1 pb-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_1fr_1.1fr_0.85fr_6.5rem] sm:gap-3">
-                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-white/30">#</span>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-white/30">Pair</span>
-                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-white/30">
+                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-primary/30">#</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-text-primary/30">Pair</span>
+                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-text-primary/30">
                   {t("top.first_entry") || "Entry"}
                 </span>
-                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-white/30">Path</span>
-                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-white/30">
+                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-primary/30">Path</span>
+                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-text-primary/30">
                   {t("top.duration") || "Time"}
                 </span>
-                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-white/30">Change</span>
+                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-text-primary/30">Change</span>
               </div>
 
               <div className="divide-y divide-white/[0.04]">
@@ -332,19 +332,19 @@ const TopPerformers = () => {
                           <CoinLogo pair={cleanPair(item.pair)} size={28} />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="truncate font-mono text-[14px] font-semibold text-white group-hover:text-gold-primary/90">
+                              <span className="truncate font-mono text-[14px] font-semibold text-text-primary group-hover:text-gold-primary/90">
                                 {coinSymbol(item.pair)}
                               </span>
-                              <span className="shrink-0 text-[11px] text-white/25">USDT</span>
+                              <span className="shrink-0 text-[11px] text-text-primary/25">USDT</span>
                               {item.signal_count > 1 && (
-                                <span className="shrink-0 rounded bg-white/[0.06] px-1 py-px font-mono text-[9px] text-white/45">
+                                <span className="shrink-0 rounded bg-white/[0.06] px-1 py-px font-mono text-[9px] text-text-primary/45">
                                   ×{item.signal_count}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="text-right font-mono text-[12px] tabular-nums text-white/45">
+                        <div className="text-right font-mono text-[12px] tabular-nums text-text-primary/45">
                           ${formatPrice(item.entry)}
                         </div>
                         <div className="flex justify-center px-1">
@@ -352,7 +352,7 @@ const TopPerformers = () => {
                             <SinceCallSpark item={item} />
                           </div>
                         </div>
-                        <div className="text-right font-mono text-[11px] tabular-nums text-white/35">
+                        <div className="text-right font-mono text-[11px] tabular-nums text-text-primary/35">
                           {item.duration_display}
                         </div>
                         <div className="flex flex-col items-end gap-0.5">
@@ -365,7 +365,7 @@ const TopPerformers = () => {
                             {formatGainDisplay(item.gain_pct)}
                           </span>
                           {item.tp_price > 0 && (
-                            <span className="font-mono text-[9px] tabular-nums text-white/25">
+                            <span className="font-mono text-[9px] tabular-nums text-text-primary/25">
                               ${formatPrice(item.tp_price)}
                             </span>
                           )}
@@ -377,18 +377,18 @@ const TopPerformers = () => {
                         <CoinLogo pair={cleanPair(item.pair)} size={32} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="truncate font-mono text-[14px] font-semibold text-white">
+                            <span className="truncate font-mono text-[14px] font-semibold text-text-primary">
                               {coinSymbol(item.pair)}
                             </span>
                             {item.signal_count > 1 && (
-                              <span className="rounded bg-white/[0.06] px-1 font-mono text-[9px] text-white/40">
+                              <span className="rounded bg-white/[0.06] px-1 font-mono text-[9px] text-text-primary/40">
                                 ×{item.signal_count}
                               </span>
                             )}
                           </div>
-                          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-white/35">
+                          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-text-primary/35">
                             <span>${formatPrice(item.entry)}</span>
-                            <span className="text-white/15">·</span>
+                            <span className="text-text-primary/15">·</span>
                             <span>{item.duration_display}</span>
                           </div>
                         </div>
@@ -413,7 +413,7 @@ const TopPerformers = () => {
 
               {displayed.length === 0 && (
                 <div className="py-10 text-center">
-                  <p className="text-[13px] text-white/35">{t("top.no_data")}</p>
+                  <p className="text-[13px] text-text-primary/35">{t("top.no_data")}</p>
                 </div>
               )}
             </div>
@@ -446,7 +446,7 @@ const TopPerformers = () => {
             </span>
             <div className="min-w-0">
               <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-gold-primary">Call proof</p>
-              <p className="mt-0.5 text-[12px] leading-snug text-white/84">Tap any listed coin to view the original call proof.</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-text-primary/84">Tap any listed coin to view the original call proof.</p>
             </div>
           </div>
         </div>
@@ -659,14 +659,14 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
           <CoinLogo pair={pair} size={28} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="truncate font-mono text-[15px] font-semibold text-white sm:text-base">{pair}</h2>
+              <h2 className="truncate font-mono text-[15px] font-semibold text-text-primary sm:text-base">{pair}</h2>
               {status && (
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${sColor(status)}`}>
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-text-primary ${sColor(status)}`}>
                   {sLabel(status)}
                 </span>
               )}
               {detail?.risk_level && (
-                <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-white/50">
+                <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-text-primary/50">
                   {detail.risk_level}
                 </span>
               )}
@@ -680,7 +680,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               href={xUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-white/60 transition hover:bg-white/[0.04] hover:text-white sm:px-2.5"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-white/[0.04] hover:text-text-primary sm:px-2.5"
               title="View on X"
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
@@ -690,7 +690,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               <button
                 type="button"
                 onClick={() => onOpenHistory(item)}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-white/60 transition hover:bg-white/[0.04] hover:text-white sm:px-2.5"
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-white/[0.04] hover:text-text-primary sm:px-2.5"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span className="hidden sm:inline">History</span>
@@ -698,7 +698,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             ) : (
               <a
                 href={historyHref}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-white/60 transition hover:bg-white/[0.04] hover:text-white sm:px-2.5"
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-white/[0.04] hover:text-text-primary sm:px-2.5"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span className="hidden sm:inline">History</span>
@@ -707,7 +707,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             <button
               type="button"
               onClick={handleClose}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-white/45 transition hover:bg-white/[0.04] hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-text-primary/45 transition hover:bg-white/[0.04] hover:text-text-primary"
               aria-label="Close"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -721,7 +721,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               type="button"
               onClick={() => onNavigate(currentIndex - 1)}
               disabled={currentIndex <= 0}
-              className="rounded-md px-2 py-1 text-[11px] text-white/50 disabled:opacity-25 hover:text-white"
+              className="rounded-md px-2 py-1 text-[11px] text-text-primary/50 disabled:opacity-25 hover:text-text-primary"
             >
               ‹
             </button>
@@ -732,7 +732,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                   type="button"
                   onClick={() => onNavigate(i)}
                   className={`h-6 min-w-[1.5rem] rounded px-1 font-mono text-[10px] tabular-nums ${
-                    i === currentIndex ? "bg-white/15 text-white" : "text-white/35 hover:text-white/70"
+                    i === currentIndex ? "bg-white/15 text-text-primary" : "text-text-primary/35 hover:text-text-primary/70"
                   }`}
                 >
                   {i + 1}
@@ -743,7 +743,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               type="button"
               onClick={() => onNavigate(currentIndex + 1)}
               disabled={currentIndex >= total - 1}
-              className="rounded-md px-2 py-1 text-[11px] text-white/50 disabled:opacity-25 hover:text-white"
+              className="rounded-md px-2 py-1 text-[11px] text-text-primary/50 disabled:opacity-25 hover:text-text-primary"
             >
               ›
             </button>
@@ -757,7 +757,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             </div>
           ) : detail?.is_redacted ? (
             <div className="mx-auto max-w-sm py-12 text-center">
-              <p className="text-[15px] font-semibold text-white">Premium live signal</p>
+              <p className="text-[15px] font-semibold text-text-primary">Premium live signal</p>
               <p className="mt-2 text-[13px] text-text-muted">
                 Subscribe to view entry, targets, charts, and journey while the trade is open.
               </p>
@@ -775,13 +775,13 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Entry</p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-white">
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {detail.entry > 0 ? `$${formatPrice(detail.entry)}` : "—"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Peak</p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-white">
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {peakPrice ? `$${formatPrice(peakPrice)}` : "—"}
                     {peakPrice && detail.entry > 0 && (
                       <span className="ml-1.5 text-[11px] text-emerald-400">
@@ -792,7 +792,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                 </div>
                 <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">{t("top.duration")}</p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold text-white">
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold text-text-primary">
                     {detail.updates?.length > 0
                       ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at)
                       : "Active"}
@@ -827,11 +827,11 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                   <div className="grid gap-2 md:grid-cols-2 md:gap-3">
                     <div className="min-w-0">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-text-primary/45">
                           {t("top.before")}
                         </span>
                         {detail?.entry > 0 && (
-                          <span className="font-mono text-[10px] tabular-nums text-white/50">
+                          <span className="font-mono text-[10px] tabular-nums text-text-primary/50">
                             ${formatPrice(detail.entry)}
                           </span>
                         )}
@@ -860,13 +860,13 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             <button
                               type="button"
                               onClick={() => setShowTV(false)}
-                              className="text-[10px] text-text-muted hover:text-white"
+                              className="text-[10px] text-text-muted hover:text-text-primary"
                             >
                               {t("top.back_img")}
                             </button>
                           )}
                           {detail?.updates?.length > 0 && (
-                            <span className="font-mono text-[10px] tabular-nums text-white/50">
+                            <span className="font-mono text-[10px] tabular-nums text-text-primary/50">
                               ${formatPrice(detail.updates[detail.updates.length - 1].price)}
                               {detail.entry > 0 && detail.updates[detail.updates.length - 1].price > 0 && (
                                 <span className={`ml-1 ${isStopped ? "text-loss" : "text-emerald-400"}`}>
@@ -906,7 +906,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             <button
                               type="button"
                               onClick={() => setShowTV(true)}
-                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-white/85 transition hover:bg-white/[0.1] hover:text-white active:scale-[0.99]"
+                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-text-primary/85 transition hover:bg-white/[0.1] hover:text-text-primary active:scale-[0.99]"
                             >
                               <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
@@ -916,7 +916,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             <button
                               type="button"
                               onClick={() => setLightboxImg(afterImg)}
-                              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-white/50 transition hover:text-white/80"
+                              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-text-primary/50 transition hover:text-text-primary/80"
                             >
                               Full
                             </button>
@@ -941,7 +941,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                       return (
                         <div key={i} className="flex gap-2.5">
                           <div className="flex flex-col items-center">
-                            <div className={`flex h-7 w-7 items-center justify-center rounded-full text-white ${c.dot}`}>
+                            <div className={`flex h-7 w-7 items-center justify-center rounded-full text-text-primary ${c.dot}`}>
                               {i === 0 ? (
                                 <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
                               ) : ev.isSL ? (
@@ -955,7 +955,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                           <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-2.5"}`}>
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className={`text-[12px] font-semibold ${c.text}`}>{ev.label}</span>
-                              <span className="font-mono text-[9px] text-white/40">{ev.time}</span>
+                              <span className="font-mono text-[9px] text-text-primary/40">{ev.time}</span>
                             </div>
                             {ev.sub && <p className="text-[10px] text-text-muted">{ev.sub}</p>}
                             {ev.detail && (
@@ -978,7 +978,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             {!isLast && (
                               <div className="absolute left-1/2 top-[14px] h-px w-full bg-white/10" />
                             )}
-                            <div className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-white ${c.dot}`}>
+                            <div className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-text-primary ${c.dot}`}>
                               {i === 0 ? (
                                 <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
                               ) : ev.isSL ? (
@@ -989,7 +989,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             </div>
                             <div className="mt-2 w-full px-1 text-center">
                               <p className={`truncate text-[10px] font-semibold ${c.text}`}>{ev.label}</p>
-                              <p className="font-mono text-[9px] text-white/40">{ev.time}</p>
+                              <p className="font-mono text-[9px] text-text-primary/40">{ev.time}</p>
                               {ev.detail && (
                                 <p className={`truncate font-mono text-[9px] ${ev.isSL ? "text-loss" : "text-emerald-400"}`}>
                                   {ev.detail}
@@ -1076,7 +1076,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
   return createPortal(modalContent, document.body);
 };
 
-const StatBlock = ({ label, value, valueClass = "text-white" }) => (
+const StatBlock = ({ label, value, valueClass = "text-text-primary" }) => (
   <div className="flex flex-col items-center justify-center rounded-lg border border-white/[0.06] bg-[#0c0a07] px-2 py-2.5 text-center">
     <span className="mb-1 font-mono text-[9px] uppercase tracking-wider text-text-muted">{label}</span>
     <span className={`font-mono text-[12px] font-semibold sm:text-[13px] ${valueClass}`}>{value}</span>

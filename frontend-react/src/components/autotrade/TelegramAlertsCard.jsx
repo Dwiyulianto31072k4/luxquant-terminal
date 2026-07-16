@@ -66,7 +66,7 @@ export default function TelegramAlertsCard({ status, loadError = "", onUpdated }
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#29a9ea]">
                 Notification Channel
               </p>
-              <h2 className="mt-0.5 text-lg font-semibold text-white">
+              <h2 className="mt-0.5 text-lg font-semibold text-text-primary">
                 Telegram alerts
               </h2>
               <StatusDot tone={telegram.linked ? "good" : "warn"}>

@@ -62,7 +62,7 @@ export const ConfirmModal = ({
       <div className="flex items-start gap-3">
         {danger ? <DangerIcon /> : null}
         <div className="min-w-0 flex-1">
-          <h3 className="mb-1.5 text-base font-bold tracking-tight text-white">
+          <h3 className="mb-1.5 text-base font-bold tracking-tight text-text-primary">
             {title}
           </h3>
           <p className="whitespace-pre-line text-xs text-text-muted">

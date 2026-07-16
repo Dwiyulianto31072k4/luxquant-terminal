@@ -101,7 +101,7 @@ function ScenarioCard({ scenario }) {
             {style.icon}
           </span>
           <h3
-            className="text-base text-white/90 leading-tight"
+            className="text-base text-text-primary/90 leading-tight"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -127,7 +127,7 @@ function ScenarioCard({ scenario }) {
       {/* Threshold (the trigger condition) */}
       {scenario.threshold && (
         <div className="mb-3">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
             Trigger
           </div>
           <div
@@ -146,10 +146,10 @@ function ScenarioCard({ scenario }) {
       {/* Why it matters */}
       {scenario.why_matters && (
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
             Why it matters
           </div>
-          <p className="text-xs text-white/70 leading-relaxed">
+          <p className="text-xs text-text-primary/70 leading-relaxed">
             {scenario.why_matters}
           </p>
         </div>
@@ -166,7 +166,7 @@ export default function RiskWatch({ riskScenarios }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-white/90 mb-4"
+          className="text-2xl text-text-primary/90 mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -176,7 +176,7 @@ export default function RiskWatch({ riskScenarios }) {
           Risk Watch
         </h2>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
-          <p className="text-white/40 text-sm italic">
+          <p className="text-text-primary/40 text-sm italic">
             No specific risk scenarios identified
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function RiskWatch({ riskScenarios }) {
       <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-baseline gap-3">
           <h2
-            className="text-2xl text-white/90"
+            className="text-2xl text-text-primary/90"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -216,7 +216,7 @@ export default function RiskWatch({ riskScenarios }) {
           >
             Risk Watch
           </h2>
-          <span className="text-xs font-mono text-white/40">
+          <span className="text-xs font-mono text-text-primary/40">
             What would invalidate the verdict
           </span>
         </div>
@@ -233,7 +233,7 @@ export default function RiskWatch({ riskScenarios }) {
             </span>
           )}
           {severityCounts.low > 0 && (
-            <span className="text-white/50">
+            <span className="text-text-primary/50">
               • {severityCounts.low} low
             </span>
           )}
@@ -248,7 +248,7 @@ export default function RiskWatch({ riskScenarios }) {
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-white/30 font-mono leading-relaxed">
+      <p className="mt-3 text-[11px] text-text-primary/30 font-mono leading-relaxed">
         Risk scenarios are AI's own pre-mortem — what would have to change for
         the current verdict to be wrong. Useful for proactive monitoring.
       </p>

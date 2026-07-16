@@ -30,9 +30,9 @@ const EMPTY = {
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
 const inputCls =
-  'w-full px-3 py-2 rounded-md bg-white/[0.03] border border-white/[0.08] text-white text-xs ' +
-  'placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-colors';
-const labelCls = 'block text-[10px] uppercase tracking-wider text-white/40 font-mono mb-1.5';
+  'w-full px-3 py-2 rounded-md bg-white/[0.03] border border-white/[0.08] text-text-primary text-xs ' +
+  'placeholder:text-text-primary/30 focus:outline-none focus:border-white/20 transition-colors';
+const labelCls = 'block text-[10px] uppercase tracking-wider text-text-primary/40 font-mono mb-1.5';
 
 export const AnnouncementsTab = () => {
   const [items, setItems] = useState([]);
@@ -122,7 +122,7 @@ export const AnnouncementsTab = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SectionHeader title={editing === 'new' ? 'New Announcement' : `Edit Announcement #${editing}`} />
-          <button onClick={cancel} className="p-1.5 rounded-md hover:bg-white/[0.06] text-white/50 hover:text-white transition-colors">
+          <button onClick={cancel} className="p-1.5 rounded-md hover:bg-white/[0.06] text-text-primary/50 hover:text-text-primary transition-colors">
             <CloseIcon size={16} />
           </button>
         </div>
@@ -149,7 +149,7 @@ export const AnnouncementsTab = () => {
             <label className={labelCls}>Image (optional)</label>
             <div className="flex items-center gap-2">
               <input className={inputCls} value={form.image_url} onChange={(e) => set('image_url', e.target.value)} placeholder="Paste image URL or upload →" />
-              <label className="shrink-0 px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.08] text-white/70 text-[10px] uppercase tracking-wider font-mono cursor-pointer hover:bg-white/[0.07] transition-colors">
+              <label className="shrink-0 px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.08] text-text-primary/70 text-[10px] uppercase tracking-wider font-mono cursor-pointer hover:bg-white/[0.07] transition-colors">
                 {uploading ? '...' : 'Upload'}
                 <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
               </label>
@@ -232,7 +232,7 @@ export const AnnouncementsTab = () => {
               {saving ? 'Saving...' : (editing === 'new' ? 'Create' : 'Save changes')}
             </button>
             <button onClick={cancel}
-              className="px-4 py-2 rounded-md text-[11px] uppercase tracking-wider font-mono text-white/50 hover:text-white transition-colors">
+              className="px-4 py-2 rounded-md text-[11px] uppercase tracking-wider font-mono text-text-primary/50 hover:text-text-primary transition-colors">
               Cancel
             </button>
           </div>
@@ -266,17 +266,17 @@ export const AnnouncementsTab = () => {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <Surface className="p-8 text-center text-white/40 text-xs">No announcements yet. Click “New” to create one.</Surface>
+        <Surface className="p-8 text-center text-text-primary/40 text-xs">No announcements yet. Click “New” to create one.</Surface>
       ) : (
         <div className="space-y-2">
           {items.map((a) => (
             <Surface key={a.id} className="p-3.5 flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium truncate">{a.title}</span>
+                  <span className="text-text-primary text-sm font-medium truncate">{a.title}</span>
                   <StatusBadge status={a.status} label={a.status} />
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-white/40">
+                <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-text-primary/40">
                   <span>{AUDIENCES.find((x) => x.value === a.audience)?.label || a.audience}</span>
                   <span>·</span>
                   <span>{a.view_count || 0} seen</span>
@@ -285,10 +285,10 @@ export const AnnouncementsTab = () => {
                   {a.ends_at && <><span>·</span><span>ends {fmtDate(a.ends_at)}</span></>}
                 </div>
               </div>
-              <button onClick={() => openEdit(a)} className="p-1.5 rounded-md hover:bg-white/[0.06] text-white/50 hover:text-white transition-colors">
+              <button onClick={() => openEdit(a)} className="p-1.5 rounded-md hover:bg-white/[0.06] text-text-primary/50 hover:text-text-primary transition-colors">
                 <EditIcon size={14} />
               </button>
-              <button onClick={() => del(a.id)} className="p-1.5 rounded-md hover:bg-white/[0.06] text-white/50 hover:text-red-400 transition-colors">
+              <button onClick={() => del(a.id)} className="p-1.5 rounded-md hover:bg-white/[0.06] text-text-primary/50 hover:text-red-400 transition-colors">
                 <TrashIcon size={14} />
               </button>
             </Surface>

@@ -76,7 +76,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
   const isValid = amountNum > 0 && amountNum <= availableBalance && telegram.length >= 5;
 
   const inputCls =
-    "w-full rounded-xl border border-white/[0.08] bg-[#0d0b09] px-4 py-3.5 text-white outline-none transition-colors focus:border-gold-primary/40 disabled:opacity-50";
+    "w-full rounded-xl border border-white/[0.08] bg-[#0d0b09] px-4 py-3.5 text-text-primary outline-none transition-colors focus:border-gold-primary/40 disabled:opacity-50";
 
   const footer = (
     <div className="flex gap-3">
@@ -167,7 +167,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-[11px] leading-relaxed text-text-secondary">
-              <span className="font-semibold text-white/90">Hard reserve:</span> your balance is reserved immediately on submit. You can cancel while it’s pending, and it’s refunded if the admin rejects it.
+              <span className="font-semibold text-text-primary/90">Hard reserve:</span> your balance is reserved immediately on submit. You can cancel while it’s pending, and it’s refunded if the admin rejects it.
             </p>
           </div>
 

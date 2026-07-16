@@ -171,7 +171,7 @@ export default function HeroSlideAlgo() {
     <div className="flex w-full flex-col items-center text-center">
       {/* Headline — white + gold accent (matches other sections) */}
       <h1
-        className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-white text-[2.05rem] sm:text-[2.8rem] lg:whitespace-nowrap lg:text-[3.2rem] xl:text-[3.8rem]"
+        className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-text-primary text-[2.05rem] sm:text-[2.8rem] lg:whitespace-nowrap lg:text-[3.2rem] xl:text-[3.8rem]"
         style={{ textShadow: "0 2px 30px rgba(0,0,0,0.35)" }}
       >
         Data Meets{" "}
@@ -180,7 +180,7 @@ export default function HeroSlideAlgo() {
         </span>
       </h1>
 
-      <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/60 sm:mt-5 sm:text-base lg:text-lg">
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base lg:text-lg">
         One live intelligence layer for market structure, flow, momentum,
         and risk.
       </p>

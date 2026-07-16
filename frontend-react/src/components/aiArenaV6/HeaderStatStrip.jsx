@@ -73,7 +73,7 @@ const confluenceColor = (strength) => {
   if (s === "MODERATE") return "text-amber-300";
   if (s === "WEAK") return "text-orange-400";
   if (s === "MIXED") return "text-text-muted";
-  return "text-white";
+  return "text-text-primary";
 };
 
 // ── Critique decision ────────────────────────────────
@@ -171,7 +171,7 @@ function useLiveBtcPrice() {
 }
 
 // ── Stat Cell ────────────────────────────────────────
-const StatCell = ({ label, value, sublabel, valueClass = "text-white", mono = true, livePulse = false }) => (
+const StatCell = ({ label, value, sublabel, valueClass = "text-text-primary", mono = true, livePulse = false }) => (
   <div className="flex flex-col gap-0.5 min-w-0">
     <div className="text-[8.5px] uppercase tracking-[0.15em] text-text-muted font-bold leading-tight flex items-center gap-1.5">
       {label}

@@ -117,7 +117,7 @@ export default function TheRead({ data }) {
               {isFinite(genSecs) ? ` · ${genSecs < 60 ? `${genSecs.toFixed(0)}s` : `${(genSecs / 60).toFixed(1)}m`} run` : ""}
             </span>
           </div>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-white/80">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-text-primary/80">
             {whatChanged
               ? whatChanged
               : `The stance stays ${dir.label.toLowerCase()}${
@@ -154,14 +154,14 @@ export default function TheRead({ data }) {
                   </span>
                 </div>
               </div>
-              <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.9] text-white/90">
-                <span className="font-semibold text-white">The full picture: </span>
+              <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.9] text-text-primary/90">
+                <span className="font-semibold text-text-primary">The full picture: </span>
                 BTC trades at <Hi tone="white"><Num>{fmtUsd(btc)}</Num></Hi>. The 24-hour read is{" "}
                 <Hi tone={dir.k === "down" ? "down" : dir.k === "flat" ? "gold" : "up"}>
                   {dir.label.toLowerCase()}{isFinite(conf) ? ` · ${conf}%` : ""}
                 </Hi>
                 {drivers.length ? <>, driven mainly by {drivers.slice(0, 2).map((r, i) => (
-                  <span key={r.key}>{i > 0 ? " and " : " "}<span className="text-white">{r.label.toLowerCase()}</span> ({readable(rowScore(r).direction).toLowerCase()})</span>
+                  <span key={r.key}>{i > 0 ? " and " : " "}<span className="text-text-primary">{r.label.toLowerCase()}</span> ({readable(rowScore(r).direction).toLowerCase()})</span>
                 ))}</> : null}
                 {target ? <>. The path points toward <Hi tone="up"><Num>{fmtUsd(target)}</Num></Hi></> : null}
                 {invalidation ? <>, with the read breaking below <Hi tone="down"><Num>{fmtUsd(invalidation)}</Num></Hi></> : null}.
@@ -175,7 +175,7 @@ export default function TheRead({ data }) {
                 <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-white/[0.06] bg-[#140b0d] p-3.5">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted/60">Driver agreement</span>
-                    <span className="font-mono text-[12px] tabular-nums text-white/85">{aligned}/{drivers.length}</span>
+                    <span className="font-mono text-[12px] tabular-nums text-text-primary/85">{aligned}/{drivers.length}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[12px] tabular-nums">
                     <div className="rounded-md border border-profit/15 bg-profit/[0.07] py-1.5">
@@ -215,7 +215,7 @@ export default function TheRead({ data }) {
                   return (
                     <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[13px] font-semibold text-white/90">{r.label}</span>
+                        <span className="truncate text-[13px] font-semibold text-text-primary/90">{r.label}</span>
                         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
                           {m.arrow} {m.label} · {strengthPct}%
                         </span>
@@ -224,8 +224,8 @@ export default function TheRead({ data }) {
                       {/* the actual number behind the call */}
                       {ev ? (
                         <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-white/[0.05] bg-black/25 px-2.5 py-1.5">
-                          <span className="truncate text-[11.5px] text-white/60">{ev.metric}</span>
-                          <Num className="shrink-0 text-[12.5px] text-white">{ev.value ?? "—"}</Num>
+                          <span className="truncate text-[11.5px] text-text-primary/60">{ev.metric}</span>
+                          <Num className="shrink-0 text-[12.5px] text-text-primary">{ev.value ?? "—"}</Num>
                         </div>
                       ) : null}
 
@@ -287,8 +287,8 @@ export default function TheRead({ data }) {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                     {r.evidence.slice(0, 6).map((it, i) => (
                       <div key={i} className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[12px] text-white/65">{it.metric}</span>
-                        <Num className="text-[12px] text-white/90">{it.value ?? "—"}</Num>
+                        <span className="truncate text-[12px] text-text-primary/65">{it.metric}</span>
+                        <Num className="text-[12px] text-text-primary/90">{it.value ?? "—"}</Num>
                       </div>
                     ))}
                   </div>
@@ -332,13 +332,13 @@ export default function TheRead({ data }) {
                   {risks.map((rk, i) => (
                     <div key={i} className="rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[13px] font-medium text-white/90">{rk.title}</span>
+                        <span className="text-[13px] font-medium text-text-primary/90">{rk.title}</span>
                         <Tag tone={normDir(rk.severity) === "down" ? "down" : rk.severity === "high" ? "down" : rk.severity === "medium" ? "neutral" : "muted"}>
                           {rk.severity || "watch"}
                         </Tag>
                       </div>
                       {rk.threshold ? (
-                        <p className="rounded-md border border-white/[0.06] bg-black/25 px-2.5 py-1.5 font-mono text-[11px] text-white/70">
+                        <p className="rounded-md border border-white/[0.06] bg-black/25 px-2.5 py-1.5 font-mono text-[11px] text-text-primary/70">
                           {rk.threshold}
                         </p>
                       ) : null}
@@ -364,7 +364,7 @@ export default function TheRead({ data }) {
               <LevelRail spot={btc} target={target} invalidation={invalidation} dir={tactical.direction} />
             ) : (
               <div className="grid gap-2.5">
-                <Tile label="Price now"><Num className="text-[16px] text-white">{fmtUsd(btc)}</Num></Tile>
+                <Tile label="Price now"><Num className="text-[16px] text-text-primary">{fmtUsd(btc)}</Num></Tile>
                 <Tile label="Target (first touch)">
                   <Num className="text-[16px] text-profit">{fmtUsd(target)}</Num>
                   {target ? <p className="mt-0.5 font-mono text-[10.5px] text-text-muted">{pctFromSpot(target)}</p> : null}
@@ -399,7 +399,7 @@ export default function TheRead({ data }) {
                 .slice(0, 3)
                 .map((z, i) => (
                   <Tile key={i} label={readable(z.kind)}>
-                    <Num className="text-[14px] text-white">
+                    <Num className="text-[14px] text-text-primary">
                       {fmtUsd(z.price_low)}
                       {z.price_high ? <span className="text-text-muted"> – {fmtUsd(z.price_high)}</span> : null}
                     </Num>

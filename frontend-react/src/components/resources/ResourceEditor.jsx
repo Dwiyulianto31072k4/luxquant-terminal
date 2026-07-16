@@ -29,7 +29,7 @@ const TB = ({ onClick, title, children, active }) => (
     title={title}
     onMouseDown={(e) => { e.preventDefault(); onClick(); }}
     className={`min-w-[30px] h-8 px-2 rounded-md text-xs font-semibold transition-colors ${
-      active ? 'bg-gold-primary/25 text-gold-primary' : 'text-text-secondary hover:bg-white/10 hover:text-white'
+      active ? 'bg-gold-primary/25 text-gold-primary' : 'text-text-secondary hover:bg-white/10 hover:text-text-primary'
     }`}
   >
     {children}
@@ -117,7 +117,7 @@ const Field = ({ label, children, required }) => (
 );
 
 const inputCls =
-  'w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors';
+  'w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors';
 
 const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
   const isEdit = !!resource;
@@ -240,10 +240,10 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
         </div>
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gold-primary/10 bg-bg-secondary/95 backdrop-blur">
-          <h3 className="text-white font-semibold text-base">
+          <h3 className="text-text-primary font-semibold text-base">
             {isEdit ? 'Edit Resource' : 'New Resource'}
           </h3>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-white/5 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -264,7 +264,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                     : 'bg-bg-card border-white/5 hover:border-gold-primary/20'
                 }`}
               >
-                <div className={`text-sm font-bold ${type === tt.id ? 'text-gold-primary' : 'text-white'}`}>{tt.label}</div>
+                <div className={`text-sm font-bold ${type === tt.id ? 'text-gold-primary' : 'text-text-primary'}`}>{tt.label}</div>
                 <div className="text-[10px] text-text-muted mt-0.5 leading-tight">{tt.hint}</div>
               </button>
             ))}
@@ -302,7 +302,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   )}
                   <div className="px-3 py-2">
                     <p className="text-[10px] text-gold-primary uppercase tracking-wider font-bold">{provider || 'preview'}</p>
-                    <p className="text-sm text-white font-medium truncate">{title || 'Untitled'}</p>
+                    <p className="text-sm text-text-primary font-medium truncate">{title || 'Untitled'}</p>
                     {authorName && <p className="text-[11px] text-text-muted">{authorName}</p>}
                   </div>
                 </div>
@@ -334,7 +334,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                     type="button"
                     onClick={() => setContentFormat(f)}
                     className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                      contentFormat === f ? 'bg-gold-primary/20 text-gold-primary' : 'bg-bg-card text-text-muted hover:text-white'
+                      contentFormat === f ? 'bg-gold-primary/20 text-gold-primary' : 'bg-bg-card text-text-muted hover:text-text-primary'
                     }`}
                   >
                     {f === 'html' ? 'Rich text' : 'Markdown'}
@@ -365,7 +365,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
+                  <p className="text-text-primary text-sm font-medium truncate">
                     {pdfFile ? pdfFile.name : (isEdit && resource?.pdf_path ? `Current: ${resource.pdf_path}` : 'Choose PDF file')}
                   </p>
                   <p className="text-text-muted text-[10px]">{pdfFile ? `${(pdfFile.size / 1048576).toFixed(2)} MB` : 'PDF only'}</p>
@@ -387,7 +387,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   <option value="General">General</option>
                   {categories.filter((c) => c !== 'General').map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="+ new" className="w-24 bg-bg-card border border-gold-primary/15 rounded-xl px-3 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40" />
+                <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="+ new" className="w-24 bg-bg-card border border-gold-primary/15 rounded-xl px-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40" />
               </div>
             </Field>
             <Field label="Tags (comma separated)">
@@ -427,7 +427,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   type="button"
                   onClick={() => setStatusVal(s)}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-colors ${
-                    statusVal === s ? (s === 'published' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400') : 'text-text-muted hover:text-white'
+                    statusVal === s ? (s === 'published' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400') : 'text-text-muted hover:text-text-primary'
                   }`}
                 >
                   {s}
@@ -443,7 +443,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-white transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">
               Cancel
             </button>
             <button

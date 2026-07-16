@@ -420,7 +420,7 @@ const JournalPage = () => {
           </h1>
           <p className="text-sm text-text-muted/70 mt-2">
             Track, analyze, and improve your trading edge ·{" "}
-            <span className="text-white/80 font-mono tabular-nums">{entries.length}</span> entries logged
+            <span className="text-text-primary/80 font-mono tabular-nums">{entries.length}</span> entries logged
           </p>
         </div>
 
@@ -428,7 +428,7 @@ const JournalPage = () => {
           <button
             onClick={handleExport}
             disabled={entries.length === 0}
-            className="flex items-center gap-2 h-9 px-3 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/85 hover:text-white hover:border-white/[0.14] hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+            className="flex items-center gap-2 h-9 px-3 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/85 hover:text-text-primary hover:border-white/[0.14] hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
           >
             <IconDownload className="h-3.5 w-3.5" />
             <span>Export Excel</span>
@@ -494,7 +494,7 @@ const TabButton = ({ active, onClick, icon, label, count }) => (
   <button
     onClick={onClick}
     className={`relative flex items-center justify-center gap-2 h-10 rounded-sm text-[11px] font-medium uppercase tracking-[0.14em] transition-all ${
-      active ? "bg-gold-primary/12 text-white border border-gold-primary/30" : "text-text-muted/65 hover:text-white border border-transparent hover:bg-white/[0.02]"
+      active ? "bg-gold-primary/12 text-text-primary border border-gold-primary/30" : "text-text-muted/65 hover:text-text-primary border border-transparent hover:bg-white/[0.02]"
     }`}
   >
     {icon}
@@ -600,7 +600,7 @@ const HistoryEmptyState = ({ onNewEntry }) => (
         <IconBook className="h-6 w-6" />
       </div>
       <div className="space-y-1.5">
-        <h3 className="text-base font-semibold text-white tracking-tight">Your logbook is empty</h3>
+        <h3 className="text-base font-semibold text-text-primary tracking-tight">Your logbook is empty</h3>
         <p className="text-[12px] text-text-muted/60 max-w-md mx-auto leading-relaxed">
           Every trade you log builds your edge. Start with one entry — track entry, exit, mood, and outcome.
           AI Coach insights unlock at 3 entries.
@@ -647,7 +647,7 @@ const MetricStrip = ({ stats }) => {
 
 const MetricCell = ({ label, value, accent }) => {
   const colorMap = {
-    white: "text-white",
+    white: "text-text-primary",
     blue: "text-blue-300",
     emerald: "text-emerald-400",
     red: "text-red-400",
@@ -655,7 +655,7 @@ const MetricCell = ({ label, value, accent }) => {
   return (
     <div className="px-3 py-3 flex flex-col gap-1.5 min-w-0">
       <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
-      <span className={`text-base sm:text-[17px] font-light tabular-nums tracking-tight truncate ${colorMap[accent] || "text-white"}`}>
+      <span className={`text-base sm:text-[17px] font-light tabular-nums tracking-tight truncate ${colorMap[accent] || "text-text-primary"}`}>
         {value}
       </span>
     </div>
@@ -695,12 +695,12 @@ const EquityCurveCard = ({ points }) => {
             <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
               <div className="flex flex-col items-end">
                 <span className="text-[9px] uppercase tracking-[0.18em] text-text-muted/55">Peak</span>
-                <span className="text-white/85 mt-0.5">{fmtMoney(peakEq)}</span>
+                <span className="text-text-primary/85 mt-0.5">{fmtMoney(peakEq)}</span>
               </div>
               <div className="w-px h-7 bg-white/[0.08]" />
               <div className="flex flex-col items-end">
                 <span className="text-[9px] uppercase tracking-[0.18em] text-text-muted/55">Drawdown</span>
-                <span className={`mt-0.5 ${drawdown < -1 ? "text-red-400" : "text-white/85"}`}>{fmtPct(drawdown, { sign: true })}</span>
+                <span className={`mt-0.5 ${drawdown < -1 ? "text-red-400" : "text-text-primary/85"}`}>{fmtPct(drawdown, { sign: true })}</span>
               </div>
             </div>
           )}
@@ -800,7 +800,7 @@ const FilterBar = ({
               placeholder="Search pair..."
               value={filterPair}
               onChange={(e) => setFilterPair(e.target.value)}
-              className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-white"
+              className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-text-primary"
             />
           </label>
 
@@ -841,8 +841,8 @@ const FilterBar = ({
               onClick={() => setFilterStatus(s.v)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
                 filterStatus === s.v
-                  ? "bg-gold-primary/15 text-white border-gold-primary/40"
-                  : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-white"
+                  ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+                  : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
               {s.l}
@@ -933,7 +933,7 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-2">
           <CoinLogo pair={entry.pair} size={22} />
-          <span className="text-[12px] font-medium text-white tracking-tight">{stripQuote(entry.pair)}</span>
+          <span className="text-[12px] font-medium text-text-primary tracking-tight">{stripQuote(entry.pair)}</span>
           {entry.signal_id && (
             <span className="text-[8.5px] font-mono uppercase tracking-wider text-gold-primary/70 bg-gold-primary/[0.08] border border-gold-primary/20 rounded-sm px-1 py-px">sig</span>
           )}
@@ -945,11 +945,11 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
           {entry.direction?.toUpperCase()}
         </span>
       </td>
-      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-white/85 text-right">${fmtPrice(entry.actual_entry)}</td>
-      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-white/85 text-right">
+      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/85 text-right">${fmtPrice(entry.actual_entry)}</td>
+      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/85 text-right">
         {entry.actual_exit != null ? `$${fmtPrice(entry.actual_exit)}` : <span className="text-text-muted/40">—</span>}
       </td>
-      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-white/65 text-right">{entry.leverage || 1}×</td>
+      <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/65 text-right">{entry.leverage || 1}×</td>
       <td className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-emerald-400" : "text-red-400"}`}>
         {isOpen || entry.pnl_usd == null ? "—" : fmtMoney(entry.pnl_usd, { sign: true })}
       </td>
@@ -993,7 +993,7 @@ const MobileCard = ({ entry, onEdit }) => {
           <CoinLogo pair={entry.pair} size={26} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-medium text-white tracking-tight">{stripQuote(entry.pair)}</span>
+              <span className="text-[13px] font-medium text-text-primary tracking-tight">{stripQuote(entry.pair)}</span>
               <span className={`inline-flex items-center gap-0.5 text-[9px] font-mono font-medium uppercase tracking-[0.12em] ${isLong ? "text-emerald-400" : "text-red-400"}`}>
                 {isLong ? <IconUpTri /> : <IconDownTri />}
                 {entry.direction?.toUpperCase()}
@@ -1021,7 +1021,7 @@ const MobileStat = ({ label, value, accent, dim }) => {
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
       <span className="text-[8.5px] uppercase tracking-[0.15em] text-text-muted/45 font-semibold">{label}</span>
-      <span className={`truncate font-medium ${dim ? "text-text-muted/40" : colorMap[accent] || "text-white/85"}`}>{value}</span>
+      <span className={`truncate font-medium ${dim ? "text-text-muted/40" : colorMap[accent] || "text-text-primary/85"}`}>{value}</span>
     </div>
   );
 };
@@ -1096,11 +1096,11 @@ const CalendarHeatmap = ({ entries }) => {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={goPrev} className="w-6 h-6 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-white hover:border-white/[0.14] transition-colors flex items-center justify-center">
+            <button onClick={goPrev} className="w-6 h-6 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-text-primary hover:border-white/[0.14] transition-colors flex items-center justify-center">
               <IconChevL className="h-3 w-3" />
             </button>
-            <button onClick={goToday} className="h-6 px-2 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-white hover:border-white/[0.14] transition-colors text-[9px] font-medium uppercase tracking-[0.15em]">Today</button>
-            <button onClick={goNext} className="w-6 h-6 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-white hover:border-white/[0.14] transition-colors flex items-center justify-center">
+            <button onClick={goToday} className="h-6 px-2 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-text-primary hover:border-white/[0.14] transition-colors text-[9px] font-medium uppercase tracking-[0.15em]">Today</button>
+            <button onClick={goNext} className="w-6 h-6 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-text-primary hover:border-white/[0.14] transition-colors flex items-center justify-center">
               <IconChevR className="h-3 w-3" />
             </button>
           </div>
@@ -1302,7 +1302,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
             <div className="min-w-0">
               <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-gold-primary/70">Linked to LuxQuant Signal</div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[13px] font-medium text-white tracking-tight">{lk?.pair || "Signal"}</span>
+                <span className="text-[13px] font-medium text-text-primary tracking-tight">{lk?.pair || "Signal"}</span>
                 <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted/55">
                   {lk?.status?.toUpperCase()} · {fmtTime(lk?.created_at)}
                 </span>
@@ -1325,7 +1325,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-gold-primary/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-gold-primary/40 hover:text-white hover:bg-gold-primary/[0.06] transition-all"
+        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-gold-primary/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-gold-primary/40 hover:text-text-primary hover:bg-gold-primary/[0.06] transition-all"
       >
         <IconLink className="h-4 w-4 text-gold-primary/70 flex-shrink-0" />
         <span className="text-[12px] font-medium tracking-tight">Link LuxQuant Signal</span>
@@ -1343,7 +1343,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 autoFocus
-                className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-white"
+                className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-text-primary"
               />
             </label>
           </div>
@@ -1362,7 +1362,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
                   <CoinLogo pair={sig.pair} size={26} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-medium text-white tracking-tight">{sig.pair}</span>
+                      <span className="text-[12px] font-medium text-text-primary tracking-tight">{sig.pair}</span>
                       {sig.risk_level && (
                         <span className={`text-[8.5px] font-mono font-medium uppercase tracking-[0.12em] px-1 py-px rounded-sm border ${
                           sig.risk_level?.toLowerCase().startsWith("low") ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/25"
@@ -1387,7 +1387,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
           <div className="p-2 border-t border-white/[0.06]">
             <button
               onClick={() => setOpen(false)}
-              className="w-full h-7 text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/55 hover:text-white transition-colors"
+              className="w-full h-7 text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/55 hover:text-text-primary transition-colors"
             >
               Cancel
             </button>
@@ -1423,7 +1423,7 @@ const LivePreviewBanner = ({ form, preview }) => {
 };
 
 const PreviewCell = ({ label, value, accent, isStatus, statusKey }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400", white: "text-white/85" };
+  const colorMap = { emerald: "text-emerald-400", red: "text-red-400", white: "text-text-primary/85" };
   return (
     <div className="px-3 py-3 flex flex-col gap-1.5 min-w-0">
       <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
@@ -1432,7 +1432,7 @@ const PreviewCell = ({ label, value, accent, isStatus, statusKey }) => {
           {value}
         </span>
       ) : (
-        <span className={`text-base sm:text-[17px] font-light tabular-nums tracking-tight truncate ${colorMap[accent] || "text-white/85"}`}>
+        <span className={`text-base sm:text-[17px] font-light tabular-nums tracking-tight truncate ${colorMap[accent] || "text-text-primary/85"}`}>
           {value}
         </span>
       )}
@@ -1450,7 +1450,7 @@ const FormCard = ({ title, icon, description, children }) => (
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
           {icon && <span className="text-gold-primary/70">{icon}</span>}
-          <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.18em]">{title}</h3>
+          <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">{title}</h3>
         </div>
         {description && <p className="text-[10.5px] text-text-muted/55 leading-relaxed">{description}</p>}
       </div>
@@ -1543,7 +1543,7 @@ const DirectionButton = ({ active, onClick, type }) => {
       className={`h-9 rounded-md text-[11px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center justify-center gap-1.5 ${
         active
           ? isLong ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40" : "bg-red-500/15 text-red-300 border-red-500/40"
-          : "bg-white/[0.03] text-text-muted/55 border-white/[0.06] hover:border-white/[0.14] hover:text-white"
+          : "bg-white/[0.03] text-text-muted/55 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
       }`}
     >
       {isLong ? <IconUpTri /> : <IconDownTri />}
@@ -1596,8 +1596,8 @@ const PsychologySection = ({ form, updateEmotion }) => (
               onClick={() => updateEmotion("mood", form.emotions.mood === m ? "" : m)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center gap-1.5 ${
                 form.emotions.mood === m
-                  ? "bg-gold-primary/15 text-white border-gold-primary/40"
-                  : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-white"
+                  ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+                  : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
               <span className="font-mono text-[11px] leading-none">{MOOD_GLYPH[m]}</span>
@@ -1623,7 +1623,7 @@ const SliderField = ({ label, value, onChange, leftLabel, rightLabel, color = "e
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
-        <span className="text-sm font-light tabular-nums text-white tracking-tight">{v}</span>
+        <span className="text-sm font-light tabular-nums text-text-primary tracking-tight">{v}</span>
       </div>
       <div className="relative h-7 flex items-center">
         <div className="absolute inset-x-0 h-1.5 rounded-full bg-white/[0.04] border border-white/[0.04]" />
@@ -1656,7 +1656,7 @@ const SliderField = ({ label, value, onChange, leftLabel, rightLabel, color = "e
 
 const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "gold", description }) => {
   const accentMap = {
-    gold: { active: "bg-gold-primary/15 text-white border-gold-primary/40", count: "text-gold-primary" },
+    gold: { active: "bg-gold-primary/15 text-text-primary border-gold-primary/40", count: "text-gold-primary" },
     emerald: { active: "bg-emerald-500/12 text-emerald-200 border-emerald-500/40", count: "text-emerald-400" },
     red: { active: "bg-red-500/12 text-red-200 border-red-500/40", count: "text-red-400" },
   }[accent];
@@ -1678,7 +1678,7 @@ const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "g
               type="button"
               onClick={() => onToggle(opt)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium tracking-tight transition-all border flex items-center gap-1.5 ${
-                active ? accentMap.active : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-white"
+                active ? accentMap.active : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
               {active && <IconCheck className="h-2.5 w-2.5" />}
@@ -1712,7 +1712,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center h-9 px-3 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/85 hover:text-white hover:border-white/[0.14] hover:bg-white/[0.05] transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+          className="flex items-center h-9 px-3 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/85 hover:text-text-primary hover:border-white/[0.14] hover:bg-white/[0.05] transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
         >
           Cancel
         </button>
@@ -1837,12 +1837,12 @@ const AnalyticsHero = ({ stats, profitFactor, expectancy, closedCount }) => {
 };
 
 const HeroCard = ({ label, value, sub, accent }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400", amber: "text-amber-400", white: "text-white" };
+  const colorMap = { emerald: "text-emerald-400", red: "text-red-400", amber: "text-amber-400", white: "text-text-primary" };
   return (
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all hover:border-white/[0.10]">
       <div className="relative z-10 flex flex-col gap-1">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
-        <span className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none mt-1 ${colorMap[accent] || "text-white"}`}>{value}</span>
+        <span className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none mt-1 ${colorMap[accent] || "text-text-primary"}`}>{value}</span>
         <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted/45 mt-1.5">{sub}</span>
       </div>
     </div>
@@ -1859,7 +1859,7 @@ const AICoachCard = ({ insights, stats, closedCount }) => (
         </span>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.18em]">AI Coach Insights</h3>
+            <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">AI Coach Insights</h3>
             {insights?.source === "gemini" && (
               <span className="text-[8.5px] font-mono uppercase tracking-[0.12em] text-gold-primary bg-gold-primary/[0.1] border border-gold-primary/20 px-1.5 py-px rounded-sm">
                 Gemini
@@ -1876,7 +1876,7 @@ const AICoachCard = ({ insights, stats, closedCount }) => (
         <div className="px-3 py-3 bg-white/[0.02] border border-white/[0.04] rounded-md">
           <p className="text-[11.5px] text-text-muted/65 leading-relaxed">
             {closedCount < 3 ? (
-              <>Log <span className="text-white font-medium">{Math.max(0, 3 - closedCount)}</span> more closed trades to generate insights. Keep journaling — patterns emerge with data.</>
+              <>Log <span className="text-text-primary font-medium">{Math.max(0, 3 - closedCount)}</span> more closed trades to generate insights. Keep journaling — patterns emerge with data.</>
             ) : (
               <>No insights available right now. Try refreshing analytics later.</>
             )}
@@ -1889,7 +1889,7 @@ const AICoachCard = ({ insights, stats, closedCount }) => (
               <span className="flex-shrink-0 mt-0.5 text-gold-primary/80">
                 <IconSparkles className="h-3.5 w-3.5" />
               </span>
-              <p className="text-[11.5px] text-white/85 leading-relaxed flex-1">{text}</p>
+              <p className="text-[11.5px] text-text-primary/85 leading-relaxed flex-1">{text}</p>
             </div>
           ))}
         </div>
@@ -1921,7 +1921,7 @@ const PnlDistributionCard = ({ entries }) => {
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.18em]">P&amp;L Distribution</h3>
+          <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">P&amp;L Distribution</h3>
           <span className="text-[9.5px] font-mono uppercase tracking-[0.15em] text-text-muted/45">% return per trade</span>
         </div>
 
@@ -1982,7 +1982,7 @@ const StrategyBreakdownCard = ({ stats }) => {
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.18em]">Strategy Performance</h3>
+          <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Strategy Performance</h3>
           <span className="text-[9.5px] font-mono uppercase tracking-[0.15em] text-text-muted/45">win rate by strategy</span>
         </div>
 
@@ -1999,7 +1999,7 @@ const StrategyBreakdownCard = ({ stats }) => {
                 <div key={i}>
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[11px] font-medium text-white truncate tracking-tight">{row.name}</span>
+                      <span className="text-[11px] font-medium text-text-primary truncate tracking-tight">{row.name}</span>
                       <span className="text-[9px] font-mono tabular-nums text-text-muted/50">
                         {row.wins}W / {row.losses}L
                       </span>
@@ -2046,7 +2046,7 @@ const MoodPerformanceCard = ({ stats }) => {
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.18em]">Mood Impact</h3>
+          <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Mood Impact</h3>
           <span className="text-[9.5px] font-mono uppercase tracking-[0.15em] text-text-muted/45">win rate by emotion</span>
         </div>
 
@@ -2068,7 +2068,7 @@ const MoodPerformanceCard = ({ stats }) => {
                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-sm bg-white/[0.04] text-[11px] font-mono text-text-muted/85 leading-none">
                         {MOOD_GLYPH[row.name]}
                       </span>
-                      <span className="text-[11px] font-medium text-white tracking-tight">{row.name}</span>
+                      <span className="text-[11px] font-medium text-text-primary tracking-tight">{row.name}</span>
                       <span className="text-[9px] font-mono tabular-nums text-text-muted/45">
                         {row.hasData ? `${row.count}×` : "—"}
                       </span>
@@ -2112,7 +2112,7 @@ const DayOfWeekCard = ({ stats }) => {
     <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.18em]">Day of Week</h3>
+          <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Day of Week</h3>
           <span className="text-[9.5px] font-mono uppercase tracking-[0.15em] text-text-muted/45">P&amp;L by weekday</span>
         </div>
 
@@ -2193,7 +2193,7 @@ const StreakCard = ({ label, value, sub, accent, icon }) => {
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
           <span className={colorMap[accent] || "text-text-muted/45"}>{icon}</span>
         </div>
-        <p className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none ${colorMap[accent] || "text-white"}`}>{value}</p>
+        <p className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none ${colorMap[accent] || "text-text-primary"}`}>{value}</p>
         {sub && <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted/45 mt-1.5">{sub}</p>}
       </div>
     </div>

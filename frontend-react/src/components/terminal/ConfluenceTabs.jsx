@@ -160,7 +160,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
       <div className="px-4 pt-4 flex items-center gap-3">
         <CoinLogo pair={s.pair} size={30} />
         <div className="min-w-0">
-          <div className="font-mono text-[15px] text-white/95 leading-none truncate">{s.pair}</div>
+          <div className="font-mono text-[15px] text-text-primary/95 leading-none truncate">{s.pair}</div>
           <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-text-muted truncate">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dirColor }} />
             <span className="truncate">{sub}</span>
@@ -194,7 +194,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
 
       {/* key reasons — quiet, dot-separated (no pills) */}
       {reasons.length > 0 && (
-        <div className="px-4 mt-2.5 text-[11.5px] text-white/65 leading-relaxed">
+        <div className="px-4 mt-2.5 text-[11.5px] text-text-primary/65 leading-relaxed">
           {reasons.map(nice).join("  ·  ")}
         </div>
       )}
@@ -325,7 +325,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
         <div className="rounded-lg border border-gold-primary/20 bg-gradient-to-b from-gold-primary/[0.06] to-transparent overflow-hidden">
           <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <div className="px-4 py-2.5 flex items-baseline justify-between gap-3">
-            <span className="text-[12.5px] text-white/95">{t("terminal.viz.coiledTitle")}</span>
+            <span className="text-[12.5px] text-text-primary/95">{t("terminal.viz.coiledTitle")}</span>
             <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">{coiled.length} {t("terminal.viz.coiledUnit")}</span>
           </div>
           <div className="px-4 pb-1 -mt-1 text-[10.5px] text-text-muted leading-relaxed">{t("terminal.viz.coiledDesc")}</div>
@@ -337,7 +337,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
                 className="flex items-center gap-2 rounded-lg bg-[#0c0a07] border border-white/[0.08] hover:border-gold-primary/35 px-2.5 py-1.5 transition-colors"
               >
                 <CoinLogo pair={s.pair} size={18} />
-                <span className="font-mono text-[11px] text-white/90">{s.pair}</span>
+                <span className="font-mono text-[11px] text-text-primary/90">{s.pair}</span>
                 {golden && <span className="px-1 rounded-sm bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase tracking-wider">golden</span>}
                 {!golden && htf && <span className="px-1 rounded-sm bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase tracking-wider">htf</span>}
                 <span className={`font-mono text-[10.5px] tabular-nums ${fc >= 0 ? "text-positive" : "text-negative"}`}>{fmtPct(fc)}</span>

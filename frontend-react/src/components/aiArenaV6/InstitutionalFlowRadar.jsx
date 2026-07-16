@@ -195,7 +195,7 @@ export default function InstitutionalFlowRadar() {
       <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
-          <h2 className="font-display text-xl text-white">Institutional Flow Radar</h2>
+          <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
@@ -210,7 +210,7 @@ export default function InstitutionalFlowRadar() {
       <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
-          <h2 className="font-display text-xl text-white">Institutional Flow Radar</h2>
+          <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="text-text-muted text-sm py-4">
           {error ? `Could not load flow data: ${error}` : "No flow data available."}
@@ -243,7 +243,7 @@ export default function InstitutionalFlowRadar() {
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
           <div>
-            <h2 className="font-display text-xl text-white leading-tight">
+            <h2 className="font-display text-xl text-text-primary leading-tight">
               Institutional Flow Radar
             </h2>
             <p className="text-text-muted text-[11px] mt-0.5 tracking-wide">

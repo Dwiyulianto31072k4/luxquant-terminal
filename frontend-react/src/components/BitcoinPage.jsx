@@ -147,7 +147,7 @@ const BitcoinPage = () => {
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-light text-white tracking-tight">
+                <h1 className="text-2xl font-light text-text-primary tracking-tight">
                   {t('btc.title')}
                 </h1>
                 <span className="px-2 py-0.5 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-gold-primary/25">
@@ -160,7 +160,7 @@ const BitcoinPage = () => {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-4xl lg:text-5xl font-mono font-light text-white tabular-nums leading-none">
+            <p className="text-4xl lg:text-5xl font-mono font-light text-text-primary tabular-nums leading-none">
               ${data.price?.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
@@ -213,7 +213,7 @@ const BitcoinPage = () => {
               <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                 {t('btc.circulating')}
               </span>
-              <span className="text-white font-mono text-base font-light tabular-nums">
+              <span className="text-text-primary font-mono text-base font-light tabular-nums">
                 {(data.circulatingSupply / 1e6).toFixed(2)}M
               </span>
             </div>
@@ -222,7 +222,7 @@ const BitcoinPage = () => {
               <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                 {t('btc.max_supply')}
               </span>
-              <span className="text-white font-mono text-base font-light tabular-nums">
+              <span className="text-text-primary font-mono text-base font-light tabular-nums">
                 21M
               </span>
             </div>
@@ -251,7 +251,7 @@ const BitcoinPage = () => {
             <IconAth />
             <SectionLabel>{t('btc.ath')}</SectionLabel>
           </div>
-          <p className="text-3xl font-mono font-light text-white tabular-nums tracking-tight">
+          <p className="text-3xl font-mono font-light text-text-primary tabular-nums tracking-tight">
             ${data.ath?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
           <div className="flex items-center gap-2 mt-3">
@@ -347,7 +347,7 @@ const BitcoinPage = () => {
             <div className="flex items-center gap-2">
               <IconChart />
               <div>
-                <h3 className="text-sm font-normal text-white tracking-tight">
+                <h3 className="text-sm font-normal text-text-primary tracking-tight">
                   {t('btc.tech_analysis')}
                 </h3>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -395,7 +395,7 @@ const BitcoinPage = () => {
                         </div>
                       );
                     const rsi = d.rsi, over = rsi >= 70, under = rsi <= 30;
-                    const colorClass = under ? "text-profit" : over ? "text-loss" : "text-white";
+                    const colorClass = under ? "text-profit" : over ? "text-loss" : "text-text-primary";
                     const borderClass = under
                       ? "border-profit/25 bg-profit/[0.04]"
                       : over
@@ -485,15 +485,15 @@ const BitcoinPage = () => {
                       <div className="space-y-1.5 text-[11px] font-mono mt-2.5 tabular-nums">
                         <div className="flex justify-between">
                           <span className="text-text-muted uppercase tracking-wider text-[10px]">{t('btc.upper')}</span>
-                          <span className="text-white">${fmtNum(bb.upper)}</span>
+                          <span className="text-text-primary">${fmtNum(bb.upper)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted uppercase tracking-wider text-[10px]">{t('btc.mid')}</span>
-                          <span className="text-white">${fmtNum(bb.middle)}</span>
+                          <span className="text-text-primary">${fmtNum(bb.middle)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted uppercase tracking-wider text-[10px]">{t('btc.lower')}</span>
-                          <span className="text-white">${fmtNum(bb.lower)}</span>
+                          <span className="text-text-primary">${fmtNum(bb.lower)}</span>
                         </div>
                       </div>
                       <div
@@ -540,11 +540,11 @@ const BitcoinPage = () => {
                       <div className="space-y-1.5 text-[11px] font-mono mt-2.5 tabular-nums">
                         <div className="flex justify-between">
                           <span className="text-text-muted uppercase tracking-wider text-[10px]">EMA 50</span>
-                          <span className="text-white">${fmtNum(ema.ema50)}</span>
+                          <span className="text-text-primary">${fmtNum(ema.ema50)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted uppercase tracking-wider text-[10px]">EMA 200</span>
-                          <span className="text-white">${fmtNum(ema.ema200)}</span>
+                          <span className="text-text-primary">${fmtNum(ema.ema200)}</span>
                         </div>
                       </div>
                       <div
@@ -606,7 +606,7 @@ const BitcoinPage = () => {
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <div className="flex items-center gap-2 mb-1">
               <IconNetwork />
-              <h3 className="text-sm font-normal text-white tracking-tight">
+              <h3 className="text-sm font-normal text-text-primary tracking-tight">
                 {t('btc.net_health')}
               </h3>
             </div>
@@ -652,7 +652,7 @@ const BitcoinPage = () => {
                           <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
                             {f.l}
                           </p>
-                          <p className="font-mono text-sm font-light text-white tabular-nums mt-1">
+                          <p className="font-mono text-sm font-light text-text-primary tabular-nums mt-1">
                             {f.v}
                           </p>
                         </div>
@@ -704,7 +704,7 @@ const BitcoinPage = () => {
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <div className="flex items-center gap-2 mb-1">
               <IconOnchain />
-              <h3 className="text-sm font-normal text-white tracking-tight">
+              <h3 className="text-sm font-normal text-text-primary tracking-tight">
                 {t('btc.onchain')}
               </h3>
             </div>
@@ -784,7 +784,7 @@ const BitcoinPage = () => {
           <div className="flex items-center gap-2">
             <IconNews />
             <div>
-              <h3 className="text-sm font-normal text-white tracking-tight">
+              <h3 className="text-sm font-normal text-text-primary tracking-tight">
                 {t('btc.latest_news')}
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -838,7 +838,7 @@ const BitcoinPage = () => {
                             </div>
                           )}
                           <div className="p-4">
-                            <p className="text-white text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
+                            <p className="text-text-primary text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
                               {a.title}
                             </p>
                             <p className="text-text-muted text-[12px] mt-2 line-clamp-2 leading-relaxed">
@@ -885,7 +885,7 @@ const BitcoinPage = () => {
                           </div>
                         )}
                         <div className="py-2.5 pr-3 flex flex-col justify-center min-w-0">
-                          <p className="text-white text-[12px] group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
+                          <p className="text-text-primary text-[12px] group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
                             {a.title}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1.5 font-mono text-[10px] uppercase tracking-wider">
@@ -907,7 +907,7 @@ const BitcoinPage = () => {
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                         newsPage === 0
                           ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
-                          : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                          : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
                       }`}
                     >
                       <IconChevronLeft />
@@ -920,8 +920,8 @@ const BitcoinPage = () => {
                           onClick={() => setNewsPage(i)}
                           className={`w-7 h-7 rounded-sm font-mono text-[10px] tabular-nums transition-colors ${
                             i === newsPage
-                              ? "bg-white/10 text-white border border-white/[0.08]"
-                              : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06]"
+                              ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                              : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06]"
                           }`}
                         >
                           {i + 1}
@@ -936,7 +936,7 @@ const BitcoinPage = () => {
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                         newsPage === totalPages - 1
                           ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
-                          : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                          : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
                       }`}
                     >
                       {t('btc.next')}
@@ -1046,7 +1046,7 @@ const BtcTradingViewChart = ({ t }) => {
             />
           </div>
           <div>
-            <h3 className="text-white text-sm font-normal tracking-tight">
+            <h3 className="text-text-primary text-sm font-normal tracking-tight">
               BTC/USDT {t('btc.perp')}
             </h3>
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -1105,7 +1105,7 @@ const MetricCard = ({ label, value, iconType }) => (
       </div>
     </div>
     <div className="h-px bg-white/[0.04] mb-2.5" />
-    <p className="font-mono text-base font-light text-white tabular-nums tracking-tight">
+    <p className="font-mono text-base font-light text-text-primary tabular-nums tracking-tight">
       {value}
     </p>
   </div>
@@ -1116,7 +1116,7 @@ const MiniStat = ({ label, value }) => (
     <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
       {label}
     </p>
-    <p className="font-mono text-sm font-light text-white tabular-nums mt-1">
+    <p className="font-mono text-sm font-light text-text-primary tabular-nums mt-1">
       {value || "-"}
     </p>
   </div>
@@ -1133,7 +1133,7 @@ const OnChainCard = ({
     <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1.5">
       {label}
     </p>
-    <p className="font-mono text-base font-light text-white tabular-nums">
+    <p className="font-mono text-base font-light text-text-primary tabular-nums">
       {value ?? "-"}
     </p>
     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap font-mono text-[10px] uppercase tracking-wider">

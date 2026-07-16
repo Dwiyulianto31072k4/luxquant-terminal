@@ -104,7 +104,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
     <div className="flex min-w-0 items-center gap-2.5">
       <CoinLogo pair={pair} size={30} />
       <div className="min-w-0">
-        <h2 className="truncate text-sm font-bold text-white sm:text-base">
+        <h2 className="truncate text-sm font-bold text-text-primary sm:text-base">
           {coinData?.base_symbol || pair}
           {coinData?.coingecko_id && (
             <span className="ml-2 text-[10px] font-normal text-text-muted">({coinData.coingecko_id})</span>
@@ -145,7 +145,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
             <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gold-primary/10 text-gold-primary ring-1 ring-gold-primary/25">
               <Icon d={IC.clock} className="h-5 w-5" />
             </span>
-            <p className="mb-1 text-sm font-semibold text-white">Categorization pending</p>
+            <p className="mb-1 text-sm font-semibold text-text-primary">Categorization pending</p>
             <p className="text-xs text-text-muted">This coin is queued for categorization. Check back soon.</p>
           </div>
         )}
@@ -160,7 +160,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
                   <span>{meta.label}</span>
                 </span>
                 {coinData.sector && (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold capitalize text-white/80">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold capitalize text-text-primary/80">
                     {coinData.sector}
                   </span>
                 )}
@@ -178,7 +178,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
                 )}
               </div>
               {coinData.summary && (
-                <p className="text-xs leading-relaxed text-white/85 sm:text-sm">{coinData.summary}</p>
+                <p className="text-xs leading-relaxed text-text-primary/85 sm:text-sm">{coinData.summary}</p>
               )}
             </div>
 

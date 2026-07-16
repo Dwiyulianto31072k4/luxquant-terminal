@@ -24,7 +24,7 @@ function Stat({ label, val, tone }) {
       <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/75">
         {label}
       </span>
-      <span className={`min-w-0 truncate text-right font-mono text-[12px] font-semibold tabular-nums ${tone || "text-white"}`}>
+      <span className={`min-w-0 truncate text-right font-mono text-[12px] font-semibold tabular-nums ${tone || "text-text-primary"}`}>
         {val}
       </span>
     </div>
@@ -132,7 +132,7 @@ export default function GlobalSignalModalHost() {
         <div className="flex items-center gap-3">
           <CoinLogo pair={pair} size={32} />
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-semibold text-white">{sym}</div>
+            <div className="text-[15px] font-semibold text-text-primary">{sym}</div>
             <div className="font-mono text-[10px] text-text-muted">{pair}</div>
           </div>
           <button
@@ -175,9 +175,9 @@ export default function GlobalSignalModalHost() {
       {
         label: "Peak Reached",
         val: s.peak_pct == null ? "—" : fmtPct0(s.peak_pct),
-        tone: s.peak_pct == null ? "text-white" : s.peak_pct >= 0 ? "text-positive" : "text-negative",
+        tone: s.peak_pct == null ? "text-text-primary" : s.peak_pct >= 0 ? "text-positive" : "text-negative",
       },
-      { label: "Entry", val: s.entry ? fmtPrice(s.entry) : "—", tone: "text-white" },
+      { label: "Entry", val: s.entry ? fmtPrice(s.entry) : "—", tone: "text-text-primary" },
       {
         label: "vs Call VWAP",
         val: s.vs_avwap_pct != null ? fmtPct0(s.vs_avwap_pct) : "—",
@@ -189,8 +189,8 @@ export default function GlobalSignalModalHost() {
               : "text-negative",
       },
     ];
-    if (s.beta_30d != null) stats.push({ label: "Beta 30d", val: Number(s.beta_30d).toFixed(2), tone: "text-white" });
-    if (calledAbs) stats.push({ label: "Called At", val: new Date(info.created).toLocaleDateString(), tone: "text-white" });
+    if (s.beta_30d != null) stats.push({ label: "Beta 30d", val: Number(s.beta_30d).toFixed(2), tone: "text-text-primary" });
+    if (calledAbs) stats.push({ label: "Called At", val: new Date(info.created).toLocaleDateString(), tone: "text-text-primary" });
     if (info.n > 1) stats.push({ label: "Active Calls", val: String(info.n), tone: "text-gold-primary" });
 
     body = (
@@ -199,7 +199,7 @@ export default function GlobalSignalModalHost() {
           <CoinLogo pair={pair} size={34} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[16px] font-semibold leading-none text-white">{sym}</span>
+              <span className="text-[16px] font-semibold leading-none text-text-primary">{sym}</span>
               <span className="font-mono text-[10px] text-text-muted">{pair}</span>
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
@@ -210,14 +210,14 @@ export default function GlobalSignalModalHost() {
                       ? "border-positive/40 text-positive"
                       : dir === "BEARISH"
                         ? "border-negative/40 text-negative"
-                        : "border-white/15 text-white/60"
+                        : "border-white/15 text-text-primary/60"
                   }`}
                 >
                   {dir}
                 </span>
               )}
               {risk && (
-                <span className="rounded border border-white/15 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-white/55">
+                <span className="rounded border border-white/15 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-text-primary/55">
                   {risk} risk
                 </span>
               )}
@@ -247,7 +247,7 @@ export default function GlobalSignalModalHost() {
           </span>
           <span className="ml-auto text-right">
             <span className="block font-mono text-[7.5px] uppercase tracking-[0.15em] text-text-muted/70">called</span>
-            <span className="font-mono text-[12px] text-white/90" title={calledAbs || ""}>
+            <span className="font-mono text-[12px] text-text-primary/90" title={calledAbs || ""}>
               {ago || "—"}
             </span>
           </span>
@@ -273,7 +273,7 @@ export default function GlobalSignalModalHost() {
         <button
           type="button"
           onClick={close}
-          className="rounded-xl border border-white/15 px-4 py-3.5 text-[13px] font-medium text-white/75 active:scale-[0.99]"
+          className="rounded-xl border border-white/15 px-4 py-3.5 text-[13px] font-medium text-text-primary/75 active:scale-[0.99]"
         >
           Close
         </button>

@@ -1212,14 +1212,14 @@ export default function GlobalReach() {
             <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/55" />
           </span>
 
-          <h2 className="mt-5 text-[2rem] font-bold leading-[1.08] tracking-tight text-white sm:text-[2.8rem] lg:text-[3.3rem]">
+          <h2 className="mt-5 text-[2rem] font-bold leading-[1.08] tracking-tight text-text-primary sm:text-[2.8rem] lg:text-[3.3rem]">
             Precision Intelligence,{" "}
             <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
               Serving Globally.
             </span>
           </h2>
 
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-white/45 sm:text-base">
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-text-primary/45 sm:text-base">
             A quantitative engine built in Taiwan, running non-stop to read
             what moves the market — and constantly evolving to deliver exactly
             what our users need, wherever they are.

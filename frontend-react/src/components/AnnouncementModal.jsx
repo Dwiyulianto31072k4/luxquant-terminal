@@ -84,7 +84,7 @@ const AnnouncementModal = () => {
         {/* close */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-white/70 hover:text-white bg-black/30 hover:bg-black/50 transition-colors"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-primary/70 hover:text-text-primary bg-black/30 hover:bg-black/50 transition-colors"
           aria-label="Close"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@ const AnnouncementModal = () => {
           <div className="p-6 pt-4">
             {/* title */}
             <h3
-              className="text-white text-lg font-semibold leading-snug"
+              className="text-text-primary text-lg font-semibold leading-snug"
               style={{ fontFamily: '"Playfair Display", serif' }}
             >
               {ann.title}

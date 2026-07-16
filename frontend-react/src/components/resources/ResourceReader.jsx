@@ -61,7 +61,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gold-primary/10 bg-bg-primary/50 flex-shrink-0">
-          <button onClick={onClose} className="p-2 -ml-1 text-text-muted hover:text-white hover:bg-white/5 rounded-xl transition-all flex items-center gap-2">
+          <button onClick={onClose} className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-xl transition-all flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -107,7 +107,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             </div>
             <div className="px-5 sm:px-8 py-6 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
-              <h1 className="text-xl sm:text-2xl font-bold text-white mt-1 mb-2">{resource.title}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-text-primary mt-1 mb-2">{resource.title}</h1>
               <div className="text-xs text-text-muted mb-4 pb-4 border-b border-white/10">
                 {resource.author_name && <span>{resource.author_name} · </span>}{fmtDate(resource.published_at || resource.created_at)}
               </div>
@@ -127,7 +127,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             )}
             <article className="px-5 sm:px-10 py-8 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 mb-3 leading-tight">{resource.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2 mb-3 leading-tight">{resource.title}</h1>
               <div className="flex items-center gap-2 text-xs text-text-muted mb-6 pb-6 border-b border-white/10">
                 {resource.author_name && <span className="text-text-secondary font-medium">{resource.author_name}</span>}
                 <span>·</span>

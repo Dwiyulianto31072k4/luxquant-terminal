@@ -84,7 +84,7 @@ const transferTypeStyle = (type) => {
     return "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
   if (type === "exchange_to_exchange")
     return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
-  return "bg-white/[0.04] text-white/70 border-white/[0.08]";
+  return "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
 };
 
 const transferTypeLabel = (type) => {
@@ -135,7 +135,7 @@ const FlowStrip = ({ flows, t }) => {
     ? "text-emerald-400"
     : isBearish
     ? "text-red-400"
-    : "text-white/80";
+    : "text-text-primary/80";
 
   const sentimentDot = isBullish
     ? "bg-emerald-400"
@@ -144,7 +144,7 @@ const FlowStrip = ({ flows, t }) => {
     : "bg-white/40";
 
   const netFlow = flows.net_flow_usd || 0;
-  const netColor = netFlow > 0 ? "text-emerald-400" : netFlow < 0 ? "text-red-400" : "text-white/70";
+  const netColor = netFlow > 0 ? "text-emerald-400" : netFlow < 0 ? "text-red-400" : "text-text-primary/70";
 
   return (
     <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
@@ -204,8 +204,8 @@ const FlowItem = ({ label, value, sublabel, tone, valueColor }) => {
   const color = valueColor || {
     positive: "text-emerald-400",
     danger: "text-red-400",
-    neutral: "text-white",
-  }[tone] || "text-white";
+    neutral: "text-text-primary",
+  }[tone] || "text-text-primary";
 
   return (
     <div className="flex items-center gap-2 font-mono text-[11px]">
@@ -229,7 +229,7 @@ const StatCard = ({ label, value, sublabel }) => (
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">
         {label}
       </div>
-      <div className="text-xl sm:text-2xl font-mono tabular-nums text-white mb-1.5 truncate">
+      <div className="text-xl sm:text-2xl font-mono tabular-nums text-text-primary mb-1.5 truncate">
         {value}
       </div>
       {sublabel && (
@@ -274,7 +274,7 @@ const TransactionRow = ({ tx, isNew, t }) => {
         {/* Middle: amount + type + flow */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-gold-primary" : "text-white"}`}>
+            <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-gold-primary" : "text-text-primary"}`}>
               {tx.format_amount || formatAmount(tx.amount)} {tx.symbol}
             </span>
             <span
@@ -292,7 +292,7 @@ const TransactionRow = ({ tx, isNew, t }) => {
 
         {/* Right: USD + time */}
         <div className="shrink-0 flex flex-col items-end gap-0.5">
-          <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-gold-primary" : "text-white"}`}>
+          <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-gold-primary" : "text-text-primary"}`}>
             {tx.format_amount_usd || formatUSD(tx.amount_usd)}
           </span>
           <span className="font-mono text-[10px] text-text-muted/60 tabular-nums uppercase tracking-wider">
@@ -355,7 +355,7 @@ const SidebarBlockchains = ({ byBlockchain }) => {
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className="flex items-center gap-2 text-xs text-white">
+                <span className="flex items-center gap-2 text-xs text-text-primary">
                   <span className={`w-1.5 h-1.5 rounded-full ${chainDot(chain)}`} />
                   <span className="font-mono">{data.symbol || chain.slice(0, 4).toUpperCase()}</span>
                 </span>
@@ -409,7 +409,7 @@ const SidebarTopWallets = ({ label, wallets, t }) => {
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span
-                  className={`text-xs truncate ${isLabeled ? "text-white font-medium" : "text-text-muted/70 font-mono"}`}
+                  className={`text-xs truncate ${isLabeled ? "text-text-primary font-medium" : "text-text-muted/70 font-mono"}`}
                   title={w.owner}
                 >
                   {w.owner || t("whale.unknown") || "unknown"}
@@ -458,7 +458,7 @@ const EmptyState = ({ message, hint }) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
     </div>
-    <p className="text-white text-sm font-medium mb-1">{message}</p>
+    <p className="text-text-primary text-sm font-medium mb-1">{message}</p>
     {hint && (
       <p className="text-text-muted text-[10px] font-mono uppercase tracking-[0.15em]">
         {hint}
@@ -561,7 +561,7 @@ export default function WhaleAlertPage() {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
             {t("whale.title") || "Whale Alert"}
           </h1>
           <p className="text-text-muted text-sm mt-1.5 font-mono">
@@ -575,7 +575,7 @@ export default function WhaleAlertPage() {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${
               autoRefresh
                 ? "bg-emerald-500/[0.08] border-emerald-500/25 text-emerald-400"
-                : "bg-white/[0.03] border-white/[0.06] text-text-muted hover:text-white hover:border-white/[0.12]"
+                : "bg-white/[0.03] border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.12]"
             }`}
           >
             <span
@@ -589,7 +589,7 @@ export default function WhaleAlertPage() {
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted hover:text-white hover:border-white/[0.12] disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted hover:text-text-primary hover:border-white/[0.12] disabled:opacity-50 transition-all"
           >
             <svg
               className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`}
@@ -649,7 +649,7 @@ export default function WhaleAlertPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
                 <span className="inline-flex items-center gap-1.5">
@@ -678,7 +678,7 @@ export default function WhaleAlertPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
                 {type.label}
@@ -706,7 +706,7 @@ export default function WhaleAlertPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
                 {opt.label}

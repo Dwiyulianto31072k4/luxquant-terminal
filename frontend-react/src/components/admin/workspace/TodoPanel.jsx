@@ -74,7 +74,7 @@ const TagsInput = ({ tags, onChange }) => {
         </span>
       ))}
       <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} onBlur={() => addTag(input)}
-        placeholder={tags.length === 0 ? 'Type a tag + Enter (e.g. frontend, v2)' : ''} className="min-w-[120px] flex-1 bg-transparent px-1 text-xs text-white focus:outline-none" />
+        placeholder={tags.length === 0 ? 'Type a tag + Enter (e.g. frontend, v2)' : ''} className="min-w-[120px] flex-1 bg-transparent px-1 text-xs text-text-primary focus:outline-none" />
     </div>
   );
 };
@@ -143,12 +143,12 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
       <div className="space-y-4">
         <Field label="Title" required>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Implement AI Arena v6 frontend" maxLength={200}
-            className="w-full rounded-lg px-3 py-2 text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
         </Field>
 
         <Field label="Description" hint="(optional)">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Detail, context, acceptance criteria…"
-            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
         </Field>
 
         <Field label="Category">
@@ -179,7 +179,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
 
         <Field label="Due Date" hint="(optional)">
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            className="w-full rounded-lg px-3 py-2 font-mono text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+            className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
         </Field>
 
         <Field label="Tags" hint="(Enter or comma to add)">

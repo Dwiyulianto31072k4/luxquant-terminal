@@ -103,7 +103,7 @@ const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
         >
           Outreach Queue
         </p>
-        <h2 className="text-lg font-semibold text-white tracking-tight">
+        <h2 className="text-lg font-semibold text-text-primary tracking-tight">
           Follow-up Queue
         </h2>
         <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
@@ -522,13 +522,13 @@ export const FollowupTab = ({ onRefreshStats }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title or note…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none"
+            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none"
             style={fieldStyle(!!search)}
           />
         </div>
 
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer"
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
           style={fieldStyle(statusFilter !== 'open')}>
           <option value="open">Open (Pending + In Progress)</option>
           <option value="overdue">Overdue Only</option>
@@ -540,7 +540,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         </select>
 
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer"
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
           style={fieldStyle(!!categoryFilter)}>
           <option value="">All Categories</option>
           <option value="renewal">🔄 Renewal</option>
@@ -551,7 +551,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         </select>
 
         <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer"
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
           style={fieldStyle(!!priorityFilter)}>
           <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -595,7 +595,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
               style={{ background: 'rgba(96,165,250,0.10)', border: '1px solid rgba(96,165,250,0.22)', color: '#60a5fa' }}>
               <ClockIcon size={20} />
             </div>
-            <p className="text-sm font-semibold text-white mb-1">
+            <p className="text-sm font-semibold text-text-primary mb-1">
               {hasFilters ? 'No follow-ups match these filters' : 'No follow-ups yet'}
             </p>
             <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>

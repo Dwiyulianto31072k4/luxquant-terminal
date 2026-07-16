@@ -127,7 +127,7 @@ function TimeframeCard({ screen }) {
             {screen.timeframe}
           </div>
           {meta.metaphor && (
-            <div className="text-[10px] font-mono uppercase tracking-wider text-white/40 mt-0.5">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mt-0.5">
               {meta.metaphor}
             </div>
           )}
@@ -155,12 +155,12 @@ function TimeframeCard({ screen }) {
 
       {/* Note */}
       {screen.note && (
-        <p className="text-xs text-white/65 leading-relaxed">{screen.note}</p>
+        <p className="text-xs text-text-primary/65 leading-relaxed">{screen.note}</p>
       )}
 
       {/* Bottom metaphor */}
       {meta.desc && (
-        <p className="text-[10px] font-mono uppercase tracking-wider text-white/30 mt-3 pt-3 border-t border-white/5">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30 mt-3 pt-3 border-t border-white/5">
           {meta.desc}
         </p>
       )}
@@ -176,7 +176,7 @@ export default function TripleScreen({ tripleScreen }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-white/90 mb-4"
+          className="text-2xl text-text-primary/90 mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -186,7 +186,7 @@ export default function TripleScreen({ tripleScreen }) {
           Triple Screen
         </h2>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
-          <p className="text-white/40 text-sm italic">
+          <p className="text-text-primary/40 text-sm italic">
             No multi-timeframe data available
           </p>
         </div>
@@ -208,7 +208,7 @@ export default function TripleScreen({ tripleScreen }) {
       <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-baseline gap-3">
           <h2
-            className="text-2xl text-white/90"
+            className="text-2xl text-text-primary/90"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
@@ -217,7 +217,7 @@ export default function TripleScreen({ tripleScreen }) {
           >
             Triple Screen
           </h2>
-          <span className="text-xs font-mono text-white/40">
+          <span className="text-xs font-mono text-text-primary/40">
             Tide · Wave · Ripple
           </span>
         </div>
@@ -241,7 +241,7 @@ export default function TripleScreen({ tripleScreen }) {
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-white/30 font-mono">
+      <p className="mt-3 text-[11px] text-text-primary/30 font-mono">
         Multi-timeframe alignment helps gauge whether short-term setups agree
         with the dominant trend
       </p>

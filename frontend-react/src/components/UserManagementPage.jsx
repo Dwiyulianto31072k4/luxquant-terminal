@@ -85,7 +85,7 @@ const AccessGuard = () => (
           <ShieldIcon size={28} style={{ color: palette.red[400], opacity: 0.8 }} />
         </div>
       </div>
-      <h2 className="text-lg font-bold text-white mb-1.5 tracking-tight">Staff Only</h2>
+      <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Staff Only</h2>
       <p className="text-xs" style={{ color: '#6b5c52' }}>
         This page is restricted to admin, co-admin, and founder roles.
       </p>
@@ -103,7 +103,7 @@ const ViewOnlyBanner = () => (
   >
     <ShieldIcon size={14} style={{ color: '#60a5fa', marginTop: 2, flexShrink: 0 }} />
     <div>
-      <p className="text-[12px] font-semibold text-white/90">View-only access</p>
+      <p className="text-[12px] font-semibold text-text-primary/90">View-only access</p>
       <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
         As co-admin / founder you can browse users and stats, but grant, revoke, ban, send, and role changes are disabled.
       </p>
@@ -152,7 +152,7 @@ const PageHeader = ({ stats, onCleanup }) => (
         />
         User Directory
       </p>
-      <h1 className="text-2xl sm:text-[26px] font-light tracking-tight text-white flex items-center gap-2.5">
+      <h1 className="text-2xl sm:text-[26px] font-light tracking-tight text-text-primary flex items-center gap-2.5">
         <UsersIcon size={24} style={{ color: palette.gold[300] }} />
         User Management
       </h1>

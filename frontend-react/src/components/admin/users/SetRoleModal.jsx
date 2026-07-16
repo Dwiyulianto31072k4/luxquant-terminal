@@ -72,13 +72,13 @@ export const SetRoleModal = ({ user, onClose, onSetRole }) => {
         <div className="flex items-center gap-3">
           <Avatar src={user?.avatar_url} name={user?.username} size="md" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
+            <p className="text-sm font-semibold text-text-primary truncate">{user?.username}</p>
             <p className="text-[11px] font-mono truncate" style={{ color: '#6b5c52' }}>
               {user?.email}
             </p>
             <p className="text-[10px] mt-0.5" style={{ color: '#8a7a6e' }}>
               Current:{' '}
-              <span className="font-semibold uppercase tracking-wider text-white/70">
+              <span className="font-semibold uppercase tracking-wider text-text-primary/70">
                 {ROLE_LABELS[user?.role] || user?.role}
               </span>
               {isStaffRole(user?.role) ? ' · staff' : ''}

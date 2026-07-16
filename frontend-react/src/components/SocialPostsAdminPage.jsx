@@ -126,7 +126,7 @@ const CostBar = ({ cost }) => {
         {cards.map((c, i) => (
           <div key={i} className="rounded-lg bg-black/25 border border-white/[0.08] px-3 py-2.5">
             <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-text-muted">{c.label}</p>
-            <p className="text-white text-[16px] font-semibold mt-0.5">{c.value}</p>
+            <p className="text-text-primary text-[16px] font-semibold mt-0.5">{c.value}</p>
             {c.sub && <p className="text-[10px] text-text-muted/70 mt-0.5">{c.sub}</p>}
           </div>
         ))}
@@ -232,7 +232,7 @@ const GenerationConsole = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-white text-[15px] font-semibold tracking-tight">
+                <h2 className="text-text-primary text-[15px] font-semibold tracking-tight">
                   Generate Console
                 </h2>
                 {isRunning && (
@@ -268,7 +268,7 @@ const GenerationConsole = ({
                 onChange={(e) => setNewsId(e.target.value)}
                 disabled={isRunning || starting}
                 placeholder="News ID (optional)"
-                className="w-32 sm:w-36 px-3 py-2 bg-transparent text-white text-[12px] placeholder:text-text-muted/50 focus:outline-none disabled:opacity-50"
+                className="w-32 sm:w-36 px-3 py-2 bg-transparent text-text-primary text-[12px] placeholder:text-text-muted/50 focus:outline-none disabled:opacity-50"
               />
               <div className="w-px self-stretch bg-white/[0.08]" />
               <select
@@ -299,7 +299,7 @@ const GenerationConsole = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
-                  <p className="text-[12px] text-white font-medium truncate">
+                  <p className="text-[12px] text-text-primary font-medium truncate">
                     {job?.message || job?.step_label || (isRunning ? "Working…" : "—")}
                   </p>
                   <p className="text-[10px] font-mono text-text-muted mt-0.5">
@@ -362,11 +362,11 @@ const GenerationConsole = ({
                     <span
                       className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 text-[8px] font-bold ${
                         failed
-                          ? "bg-red-500 text-white"
+                          ? "bg-red-500 text-text-primary"
                           : active
                             ? "bg-gold-primary text-black"
                             : done
-                              ? "bg-green-500 text-white"
+                              ? "bg-green-500 text-text-primary"
                               : "bg-white/10 text-text-muted"
                       }`}
                     >
@@ -591,7 +591,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       {(primaryName || (data.story_orgs || []).length > 0) && (
         <p className="text-[10px] font-mono text-text-muted leading-relaxed">
           Brands required:{" "}
-          <span className="text-white">
+          <span className="text-text-primary">
             {(data.story_orgs || [])
               .map((o) => o?.name)
               .filter(Boolean)
@@ -600,7 +600,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
           {data.featured_person ? (
             <>
               {" "}
-              · Face: <span className="text-white">{data.featured_person}</span>
+              · Face: <span className="text-text-primary">{data.featured_person}</span>
             </>
           ) : null}
         </p>
@@ -636,7 +636,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-[12px] text-white font-medium truncate">{item.name}</p>
+                    <p className="text-[12px] text-text-primary font-medium truncate">{item.name}</p>
                     <span className="text-text-muted font-mono text-[9px] uppercase">
                       {item.kind}
                     </span>
@@ -686,7 +686,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                       type="button"
                       disabled={!!busy}
                       onClick={() => confirmAsset(item)}
-                      className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-white/15 text-text-muted hover:text-white hover:border-white/25 disabled:opacity-40"
+                      className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-white/15 text-text-muted hover:text-text-primary hover:border-white/25 disabled:opacity-40"
                     >
                       {busy === `confirm:${item.name}` ? "…" : "Confirm library file"}
                     </button>
@@ -749,7 +749,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
     >
       <button
         onClick={onClose}
-        className="absolute top-3 right-4 sm:top-4 sm:right-6 text-white/80 hover:text-white text-2xl leading-none z-10"
+        className="absolute top-3 right-4 sm:top-4 sm:right-6 text-text-primary/80 hover:text-text-primary text-2xl leading-none z-10"
         aria-label="Close"
       >
         ✕
@@ -790,7 +790,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.08]">
             <img src={IG_AVATAR} alt="" className="w-8 h-8 rounded-full object-contain bg-white/5 p-1 flex-shrink-0" />
             <div className="flex items-center gap-1 min-w-0 mr-auto">
-              <span className="text-white text-[13px] font-semibold truncate">{IG_HANDLE}</span>
+              <span className="text-text-primary text-[13px] font-semibold truncate">{IG_HANDLE}</span>
               <VerifiedTick />
             </div>
             <StatusBadge status={post.status} />
@@ -799,7 +799,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           {/* caption body (scrolls) */}
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3.5 space-y-3">
             <div className="text-[13px] leading-relaxed text-text-secondary/90 whitespace-pre-line break-words">
-              <span className="text-white font-semibold mr-1.5">{IG_HANDLE}</span>
+              <span className="text-text-primary font-semibold mr-1.5">{IG_HANDLE}</span>
               {post.caption}
             </div>
 
@@ -807,7 +807,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
               <div>
                 <button
                   onClick={() => setShowPrompt((v) => !v)}
-                  className="text-[10px] font-mono text-text-muted hover:text-white transition-colors"
+                  className="text-[10px] font-mono text-text-muted hover:text-text-primary transition-colors"
                 >
                   {showPrompt ? "▾ hide image prompt" : "▸ image prompt"}
                 </button>
@@ -1057,7 +1057,7 @@ const SocialPostsAdminPage = () => {
     <div className="w-full px-4 sm:px-6 py-6">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div>
-          <h1 className="text-white text-xl font-semibold tracking-tight">Social Posts</h1>
+          <h1 className="text-text-primary text-xl font-semibold tracking-tight">Social Posts</h1>
           <p className="text-text-muted text-[12px] mt-0.5">
             AI-generated drafts — click a card for the Instagram-style preview.
           </p>
@@ -1090,8 +1090,8 @@ const SocialPostsAdminPage = () => {
             onClick={() => setStatus(tab.key)}
             className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors border ${
               status === tab.key
-                ? "bg-white/[0.08] text-white border-white/15"
-                : "bg-transparent text-text-muted border-transparent hover:text-white"
+                ? "bg-white/[0.08] text-text-primary border-white/15"
+                : "bg-transparent text-text-muted border-transparent hover:text-text-primary"
             }`}
           >
             {tab.label}
@@ -1099,7 +1099,7 @@ const SocialPostsAdminPage = () => {
         ))}
         <button
           onClick={load}
-          className="ml-auto px-3 py-1.5 rounded-lg text-[12px] text-text-muted hover:text-white border border-white/[0.08] transition-colors"
+          className="ml-auto px-3 py-1.5 rounded-lg text-[12px] text-text-muted hover:text-text-primary border border-white/[0.08] transition-colors"
         >
           ↻ Refresh
         </button>

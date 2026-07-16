@@ -151,7 +151,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
             </span>
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold tracking-wide text-white leading-tight">BTC Dominance Index Warning</p>
+            <p className="text-[12px] font-semibold tracking-wide text-text-primary leading-tight">BTC Dominance Index Warning</p>
             <p className="text-[10px] uppercase tracking-[0.18em] text-text-muted/70 leading-tight mt-0.5">Macro Market Condition</p>
           </div>
         </div>
@@ -160,7 +160,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
         <div className="hidden md:flex items-center gap-4 text-[10px] text-text-muted ml-auto mr-2">
           <span className="flex items-center gap-1.5">
             <span className="text-text-muted/50 uppercase tracking-wider text-[9px]">Called</span>
-            <strong className="text-white/90 font-mono font-medium">{formatExactTime(btcdomSignal.created_at)}</strong>
+            <strong className="text-text-primary/90 font-mono font-medium">{formatExactTime(btcdomSignal.created_at)}</strong>
             <span className="text-text-muted/40">· {formatTimeAgo(btcdomSignal.created_at)}</span>
           </span>
           {btcdomSignal.last_update_at && (
@@ -208,7 +208,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                   <div className="flex items-center gap-3">
                     <CoinLogo pair="BTCUSDT" size={38} />
                     <div>
-                      <h4 className="text-white text-[15px] font-bold tracking-tight leading-none">BTCDOMUSDT</h4>
+                      <h4 className="text-text-primary text-[15px] font-bold tracking-tight leading-none">BTCDOMUSDT</h4>
                       <p className="text-text-muted/70 text-[10px] uppercase tracking-[0.16em] mt-1">Dominance Index</p>
                     </div>
                   </div>
@@ -216,7 +216,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                     <a href="https://www.binance.com/en/support/faq/what-is-bitcoin-dominance-btcdom-e3b1ab97a3e24df4b0e41a469ccf7a21"
                       target="_blank" rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-text-muted hover:text-white hover:border-white/15 transition-all text-[9px] font-medium uppercase tracking-wider">
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-text-muted hover:text-text-primary hover:border-white/15 transition-all text-[9px] font-medium uppercase tracking-wider">
                       Learn {Icon.external('w-2.5 h-2.5')}
                     </a>
                     <button
@@ -233,7 +233,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                   style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', '--d': '90ms' }}>
                   <div className="flex-1 px-4 py-3">
                     <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Entry</p>
-                    <p className="text-white font-mono text-[15px] font-semibold leading-none">{formatPrice(btcdomSignal.entry)}</p>
+                    <p className="text-text-primary font-mono text-[15px] font-semibold leading-none">{formatPrice(btcdomSignal.entry)}</p>
                   </div>
                   <div className="w-px bg-white/[0.06]" />
                   <div className="flex-1 px-4 py-3">
@@ -261,7 +261,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                             <div className={`w-2 h-2 rounded-full ring-4 ring-[#0c0808] transition-all ${tp.hit ? 'bg-green-400' : 'bg-gray-700'}`}
                               style={tp.hit ? { boxShadow: '0 0 6px #4ade80' } : undefined} />
                             <span className={`text-[9px] font-semibold tracking-wide ${tp.hit ? 'text-green-400' : 'text-gray-600'}`}>{tp.label}</span>
-                            <span className={`text-[8px] font-mono ${tp.hit ? 'text-white/70' : 'text-text-muted/35'}`}>{formatPrice(tp.value)}</span>
+                            <span className={`text-[8px] font-mono ${tp.hit ? 'text-text-primary/70' : 'text-text-muted/35'}`}>{formatPrice(tp.value)}</span>
                           </div>
                         ))}
                       </div>
@@ -282,7 +282,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                 {/* Hero statement — the focus, via size + space (not loud color) */}
                 <div className="relative pl-4">
                   <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ background: `${accent}80` }} />
-                  <p className="text-white text-[14px] font-semibold leading-snug">
+                  <p className="text-text-primary text-[14px] font-semibold leading-snug">
                     If <span className="font-mono" style={{ color: accent }}>$BTCDOM</span> is rising,
                     <br className="hidden sm:block" /> <span className="text-red-400">sell your altcoins.</span>
                   </p>
@@ -299,7 +299,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                       {Icon.shield('w-3.5 h-3.5')}
                     </div>
                     <div>
-                      <p className="text-white/90 text-[10px] font-bold uppercase tracking-[0.14em] leading-none mb-1.5">Risk Management</p>
+                      <p className="text-text-primary/90 text-[10px] font-bold uppercase tracking-[0.14em] leading-none mb-1.5">Risk Management</p>
                       <p className="text-text-muted/80 text-[10px] leading-relaxed">Reduce position sizes drastically. Keep capital in liquid funds (USDT).</p>
                     </div>
                   </div>

@@ -40,7 +40,7 @@ export const SidePanel = ({
         </span>
       )}
       <div className="min-w-0">
-        <h2 className="text-sm font-bold leading-tight tracking-tight text-white">
+        <h2 className="text-sm font-bold leading-tight tracking-tight text-text-primary">
           {title}
         </h2>
         {subtitle && (

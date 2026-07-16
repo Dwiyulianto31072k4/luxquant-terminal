@@ -103,7 +103,7 @@ const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
         >
           Activity & Growth
         </p>
-        <h2 className="text-lg font-semibold text-white tracking-tight">
+        <h2 className="text-lg font-semibold text-text-primary tracking-tight">
           Growth Dashboard
         </h2>
         <p className="text-[11px] mt-0.5 max-w-md" style={{ color: palette.warm[400] }}>
@@ -158,7 +158,7 @@ const FeatureFunnel = ({ funnel, loading }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUpIcon size={14} style={{ color: palette.teal[400] }} />
-          <h3 className="text-sm font-semibold text-white tracking-tight">
+          <h3 className="text-sm font-semibold text-text-primary tracking-tight">
             Feature Reach
           </h3>
           <span className="text-[10px]" style={{ color: palette.warm[500] }}>
@@ -182,7 +182,7 @@ const FeatureFunnel = ({ funnel, loading }) => {
             return (
               <div key={f.feature}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[12px] font-medium text-white">
+                  <span className="text-[12px] font-medium text-text-primary">
                     {featureLabel(f.feature)}
                   </span>
                   <span className="text-[10px] tabular-nums" style={{ color: palette.warm[400] }}>
@@ -306,7 +306,7 @@ const HotLeadsPanel = ({ data, loading }) => {
     <Surface variant="premium" hover={false} padding="p-5" className="h-full">
       <div className="flex items-center gap-2 mb-1">
         <FlameIcon size={14} style={{ color: palette.orange[400] }} />
-        <h3 className="text-sm font-semibold text-white tracking-tight">Hot Leads</h3>
+        <h3 className="text-sm font-semibold text-text-primary tracking-tight">Hot Leads</h3>
       </div>
       <p className="text-[11px] mb-4" style={{ color: palette.warm[500] }}>
         Engaged free users — prime upgrade targets.
@@ -334,7 +334,7 @@ const HotLeadsPanel = ({ data, loading }) => {
               <Avatar src={u.avatar_url} name={u.username} size="sm" tone={palette.orange[400]} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-white truncate">
+                  <span className="text-[12px] font-semibold text-text-primary truncate">
                     @{u.username}
                   </span>
                   <span className="text-[9px]" style={{ color: palette.warm[500] }}>
@@ -402,7 +402,7 @@ const AtRiskPanel = ({ data, loading }) => {
     <Surface variant="premium" hover={false} padding="p-5" className="h-full">
       <div className="flex items-center gap-2 mb-1">
         <AlertTriangleIcon size={14} style={{ color: palette.red[400] }} />
-        <h3 className="text-sm font-semibold text-white tracking-tight">At-Risk Subscribers</h3>
+        <h3 className="text-sm font-semibold text-text-primary tracking-tight">At-Risk Subscribers</h3>
       </div>
       <p className="text-[11px] mb-4" style={{ color: palette.warm[500] }}>
         Active subscribers gone quiet — re-engage before they churn.
@@ -430,7 +430,7 @@ const AtRiskPanel = ({ data, loading }) => {
               <Avatar src={u.avatar_url} name={u.username} size="sm" tone={palette.red[400]} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[12px] font-semibold text-white truncate">
+                  <span className="text-[12px] font-semibold text-text-primary truncate">
                     @{u.username}
                   </span>
                   <RiskTag item={u} />
@@ -476,7 +476,7 @@ const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
     <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
       <div className="flex items-center gap-2">
         <ActivityIcon size={14} style={{ color: palette.teal[400] }} />
-        <h3 className="text-sm font-semibold text-white tracking-tight">Live Activity</h3>
+        <h3 className="text-sm font-semibold text-text-primary tracking-tight">Live Activity</h3>
         {lastHour != null && (
           <span
             className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full"
@@ -525,7 +525,7 @@ const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
             <div key={e.id} className="flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-white/[0.02]">
               <Avatar src={e.avatar_url} name={e.username} size="xs" tone={accent} />
               <div className="min-w-0 flex-1 text-[11.5px]">
-                <span className="font-medium text-white truncate">{e.username || `#${e.user_id}`}</span>
+                <span className="font-medium text-text-primary truncate">{e.username || `#${e.user_id}`}</span>
                 <span style={{ color: palette.warm[500] }}> · </span>
                 <span style={{ color: accent }}>{featureLabel(e.feature)}</span>
               </div>
@@ -560,7 +560,7 @@ const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindo
     <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
       <div className="flex items-center gap-2">
         <FlameIcon size={14} style={{ color: palette.orange[400] }} />
-        <h3 className="text-sm font-semibold text-white tracking-tight">Most Active Users</h3>
+        <h3 className="text-sm font-semibold text-text-primary tracking-tight">Most Active Users</h3>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1">
@@ -612,11 +612,11 @@ const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindo
               <div key={u.user_id} className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 items-center px-2 py-1.5 rounded-md hover:bg-white/[0.02]">
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar src={u.avatar_url} name={u.username} size="xs" tone={accent} />
-                  <span className="text-[11.5px] font-medium text-white truncate">{u.username || `#${u.user_id}`}</span>
+                  <span className="text-[11.5px] font-medium text-text-primary truncate">{u.username || `#${u.user_id}`}</span>
                 </div>
                 <span className="text-[10.5px] tabular-nums" style={{ color: palette.warm[300] }}>{relativeTime(u.last_seen)}</span>
                 <span className="text-[10.5px] truncate" style={{ color: accent }}>{u.last_feature ? featureLabel(u.last_feature) : '—'}</span>
-                <span className="text-[11px] tabular-nums text-right text-white">{u.event_count}</span>
+                <span className="text-[11px] tabular-nums text-right text-text-primary">{u.event_count}</span>
               </div>
             );
           })}
@@ -757,9 +757,9 @@ export const ActivityTab = () => {
               <ClockIcon size={11} style={{ color: palette.teal[400] }} />
               Signups:
             </span>
-            <span><strong className="text-white tabular-nums">{overview.signups_today}</strong> today</span>
-            <span><strong className="text-white tabular-nums">{overview.signups_7d}</strong> this week</span>
-            <span><strong className="text-white tabular-nums">{overview.signups_30d}</strong> this month</span>
+            <span><strong className="text-text-primary tabular-nums">{overview.signups_today}</strong> today</span>
+            <span><strong className="text-text-primary tabular-nums">{overview.signups_7d}</strong> this week</span>
+            <span><strong className="text-text-primary tabular-nums">{overview.signups_30d}</strong> this month</span>
             <span className="ml-auto" style={{ color: palette.warm[500] }}>
               <strong className="tabular-nums" style={{ color: palette.warm[300] }}>{overview.total_users}</strong> total users
             </span>

@@ -256,7 +256,7 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
     const [color1, color2] = getGradientForSymbol(symbol);
     logo = (
       <div
-        className={`rounded-full flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0 ${className}`}
+        className={`rounded-full flex items-center justify-center text-text-primary font-bold shadow-lg flex-shrink-0 ${className}`}
         style={{
           width: size, height: size, fontSize: size * 0.38,
           background: `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`,

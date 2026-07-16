@@ -138,8 +138,8 @@ const SignalJourneyExtended = ({ signalId }) => {
           <div className="w-12 h-12 mx-auto rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-3">
             <span className="text-lg">🔒</span>
           </div>
-          <h5 className="text-white font-bold text-sm mb-1.5">Premium Detailed Journey</h5>
-          <p className="text-white/60 text-xs leading-relaxed max-w-md mx-auto mb-3">
+          <h5 className="text-text-primary font-bold text-sm mb-1.5">Premium Detailed Journey</h5>
+          <p className="text-text-primary/60 text-xs leading-relaxed max-w-md mx-auto mb-3">
             {data.message || "Detailed journey for recent signals is available to subscribers."}
           </p>
           <button
@@ -236,7 +236,7 @@ const SignalJourneyExtended = ({ signalId }) => {
             <StatCell
               label="Time to TP1"
               value={entry_stats?.time_to_tp1_human || "—"}
-              valueColor="text-white"
+              valueColor="text-text-primary"
               sublabel={
                 entry_stats?.time_to_tp1_seconds
                   ? `${entry_stats.time_to_tp1_seconds.toLocaleString()}s elapsed`
@@ -302,7 +302,7 @@ const SignalJourneyExtended = ({ signalId }) => {
 
             {/* Summary sentence */}
             {outcome.summary_sentence && (
-              <p className="text-white/80 text-xs sm:text-sm leading-relaxed mb-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+              <p className="text-text-primary/80 text-xs sm:text-sm leading-relaxed mb-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
                 {outcome.summary_sentence}
               </p>
             )}
@@ -337,7 +337,7 @@ const SignalJourneyExtended = ({ signalId }) => {
                     <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold">
                       Time in Profit
                     </span>
-                    <span className="text-[11px] text-white font-mono font-bold">
+                    <span className="text-[11px] text-text-primary font-mono font-bold">
                       {Number(outcome.pct_time_above_entry).toFixed(1)}%
                     </span>
                   </div>
@@ -380,7 +380,7 @@ const SignalJourneyExtended = ({ signalId }) => {
 // Sub-components
 // ────────────────────────────────────────────────────────────
 
-const StatCell = ({ label, value, valueColor = "text-white", sublabel }) => (
+const StatCell = ({ label, value, valueColor = "text-text-primary", sublabel }) => (
   <div className="px-3 py-2.5 bg-white/[0.02] rounded-lg border border-white/5">
     <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-1">
       {label}

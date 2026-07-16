@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 /* ──────────────────────────────────────────────────────────────
    Header — Flowscan-blended Web3-minimal reskin
@@ -65,7 +66,7 @@ const Header = ({ activeTab, setActiveTab }) => {
                     LQ
                   </span>
                 </div>
-                <h1 className="text-[15px] font-normal text-white tracking-tight group-hover:text-gold-primary transition-colors">
+                <h1 className="text-[15px] font-normal text-text-primary tracking-tight group-hover:text-gold-primary transition-colors">
                   LuxQuant
                 </h1>
               </a>
@@ -80,8 +81,8 @@ const Header = ({ activeTab, setActiveTab }) => {
                       onClick={() => setActiveTab(item.key)}
                       className={`relative px-3 py-1.5 text-[13px] transition-colors ${
                         active
-                          ? 'text-white'
-                          : 'text-text-secondary hover:text-white'
+                          ? 'text-text-primary'
+                          : 'text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       {item.label}
@@ -97,6 +98,9 @@ const Header = ({ activeTab, setActiveTab }) => {
 
             {/* ─── KANAN: LIVE + Time + Search ─── */}
             <div className="flex items-center gap-3">
+              {/* Theme preview switch — admin-only while feature is gated */}
+              <ThemeToggle />
+
               {/* LIVE indicator — static LED + soft glow (no animate-ping) */}
               <div className="hidden sm:flex items-center gap-2">
                 <span className="relative flex h-1.5 w-1.5">
@@ -115,7 +119,7 @@ const Header = ({ activeTab, setActiveTab }) => {
 
               {/* Search button — Flowscan ⌘K pattern */}
               <button
-                className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] text-text-muted hover:text-white transition-colors"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] text-text-muted hover:text-text-primary transition-colors"
                 aria-label="Search"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -158,7 +162,7 @@ const Header = ({ activeTab, setActiveTab }) => {
                 <Icon active={active} />
                 <span
                   className={`font-mono text-[9px] uppercase tracking-wider transition-colors ${
-                    active ? 'text-gold-primary' : 'text-text-muted group-hover:text-white'
+                    active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-primary'
                   }`}
                 >
                   {item.label}
@@ -188,7 +192,7 @@ const Header = ({ activeTab, setActiveTab }) => {
 function IconHome({ active }) {
   return (
     <svg
-      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-white'}`}
+      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-primary'}`}
       viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
     >
       <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -200,7 +204,7 @@ function IconHome({ active }) {
 function IconPulse({ active }) {
   return (
     <svg
-      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-white'}`}
+      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-primary'}`}
       viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
     >
       <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
@@ -211,7 +215,7 @@ function IconPulse({ active }) {
 function IconTrade({ active }) {
   return (
     <svg
-      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-white'}`}
+      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-primary'}`}
       viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
     >
       <path d="M3 17l6-6 4 4 8-8" />
@@ -223,7 +227,7 @@ function IconTrade({ active }) {
 function IconArena({ active }) {
   return (
     <svg
-      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-white'}`}
+      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-primary'}`}
       viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
     >
       <path d="M12 2a3 3 0 0 0-3 3c0 1.3.9 2.4 2 2.8V10H7a3 3 0 0 0-3 3v1a3 3 0 0 0 2.5 3v3a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-3a3 3 0 0 0 2.5-3v-1a3 3 0 0 0-3-3h-4V7.8c1.1-.4 2-1.5 2-2.8a3 3 0 0 0-3-3Z" />
@@ -236,7 +240,7 @@ function IconArena({ active }) {
 function IconMarket({ active }) {
   return (
     <svg
-      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-white'}`}
+      className={`w-4 h-4 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-primary'}`}
       viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
     >
       <rect x="3" y="3" width="8" height="8" />

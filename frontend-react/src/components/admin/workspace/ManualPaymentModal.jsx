@@ -57,7 +57,7 @@ const Field = ({ label, hint, error, children }) => (
 const TextInput = ({ value, onChange, placeholder, mono, disabled, autoFocus }) => (
   <input
     type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} autoFocus={autoFocus}
-    className={`w-full rounded-md px-2.5 py-2 text-xs text-white focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${mono ? 'font-mono tabular-nums' : ''}`}
+    className={`w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${mono ? 'font-mono tabular-nums' : ''}`}
     style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}
   />
 );
@@ -183,7 +183,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
       ) : (
         <>
           <input type="date" value={value} onChange={(e) => onChange(e.target.value)} max={new Date().toISOString().slice(0, 10)}
-            className="w-full rounded-md px-2.5 py-1.5 font-mono text-xs text-white focus:outline-none"
+            className="w-full rounded-md px-2.5 py-1.5 font-mono text-xs text-text-primary focus:outline-none"
             style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.25)', colorScheme: 'dark' }} />
           {diffDays !== 0 && txDateStr && (
             <p className="mt-1.5 flex items-center gap-1 text-[10px]" style={{ color: '#fbbf24' }}>
@@ -266,7 +266,7 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.5.4.8 1 .8 1.6v.7h6.4v-.7c0-.6.3-1.2.8-1.6A7 7 0 0 0 12 2z" /></svg>
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-semibold text-white">Link to @{suggested.username}?</p>
+                  <p className="truncate text-[11px] font-semibold text-text-primary">Link to @{suggested.username}?</p>
                   <p className="text-[10px]" style={{ color: '#8a7a6e' }}>This wallet previously paid for them.</p>
                 </div>
               </div>
@@ -279,7 +279,7 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
                   <div className="relative">
                     <SearchIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b5c52' }} />
                     <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search username, email, or telegram…"
-                      className="w-full rounded-md py-2 pl-9 pr-3 text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                      className="w-full rounded-md py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
                   </div>
                   {searching && <p className="text-[10px]" style={{ color: '#6b5c52' }}>Searching…</p>}
                   {!searching && results.length > 0 && (
@@ -289,7 +289,7 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
                           style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}>
                           <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(212,168,83,0.12)', color: '#d4a853' }}>{u.username[0].toUpperCase()}</span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[11.5px] font-semibold text-white">@{u.username}<span className="ml-1 text-[9px] font-normal" style={{ color: '#6b5c52' }}>#{u.id}</span></p>
+                            <p className="truncate text-[11.5px] font-semibold text-text-primary">@{u.username}<span className="ml-1 text-[9px] font-normal" style={{ color: '#6b5c52' }}>#{u.id}</span></p>
                             <p className="truncate text-[10px]" style={{ color: '#8a7a6e' }}>{u.email}</p>
                           </div>
                           <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
@@ -327,7 +327,7 @@ const SelectedUserCard = ({ user, onClear }) => (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold" style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}>{user.username[0].toUpperCase()}</span>
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-1.5">
-        <p className="truncate text-[12px] font-semibold text-white">@{user.username}</p>
+        <p className="truncate text-[12px] font-semibold text-text-primary">@{user.username}</p>
         <CheckCircleIcon size={11} style={{ color: '#34d399' }} />
       </div>
       <p className="truncate text-[10px]" style={{ color: '#8a7a6e' }}>{user.email} · #{user.id} · {user.role}</p>
@@ -383,7 +383,7 @@ const NoteStep = ({ locked, note, setNote }) => {
       {!locked && (
         <Field label="Reason / context" hint={`Min ${NOTE_MIN_CHARS} chars. Why is this being recorded manually?`}>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="User contacted on Telegram, paid directly to wallet before invoice was generated…"
-            className="w-full resize-none rounded-md px-2.5 py-2 text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full resize-none rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
           <p className="mt-1 text-right text-[9.5px] tabular-nums" style={{ color: complete ? '#34d399' : 'rgba(255,255,255,0.4)' }}>{note.length} / {NOTE_MIN_CHARS}+</p>
         </Field>
       )}
@@ -437,7 +437,7 @@ const OffchainStep = ({ method, offAmount, setOffAmount, idrAmount, setIdrAmount
       </Field>
       <Field label="Payment date (optional)" hint="Leave blank = today">
         <input type="date" value={paymentDateOverride || ''} onChange={(e) => setPaymentDateOverride(e.target.value)}
-          className="w-full rounded-md px-2.5 py-2 text-xs text-white focus:outline-none focus:ring-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+          className="w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
       </Field>
     </div>
   </div>
@@ -559,7 +559,7 @@ export const ManualPaymentModal = ({ isOpen, onClose, onSuccess, preselectedUser
         <StarIcon size={14} style={{ color: '#d4a853' }} />
       </div>
       <div className="min-w-0">
-        <h2 className="text-sm font-bold leading-tight tracking-tight text-white">Record Manual Payment</h2>
+        <h2 className="text-sm font-bold leading-tight tracking-tight text-text-primary">Record Manual Payment</h2>
         <p className="text-[10px] leading-tight" style={{ color: '#6b5c52' }}>For users who paid out-of-band (Telegram support, etc.)</p>
       </div>
     </div>

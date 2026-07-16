@@ -79,10 +79,10 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
   if (!brief) {
     return (
       <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
-        <div className="text-sm text-white/40 font-mono uppercase tracking-wider mb-2">
+        <div className="text-sm text-text-primary/40 font-mono uppercase tracking-wider mb-2">
           {title}
         </div>
-        <div className="text-white/30 text-sm italic">No data</div>
+        <div className="text-text-primary/30 text-sm italic">No data</div>
       </div>
     );
   }
@@ -100,7 +100,7 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
         <div className="flex items-center gap-2">
           <span className="text-xl">{icon}</span>
           <Tooltip termKey={termKey}>
-            <span className="text-xs text-white/50 font-mono uppercase tracking-wider cursor-help border-b border-dotted border-white/20">
+            <span className="text-xs text-text-primary/50 font-mono uppercase tracking-wider cursor-help border-b border-dotted border-white/20">
               {title}
             </span>
           </Tooltip>
@@ -119,7 +119,7 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
       {strengthPct !== null && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-[10px] font-mono mb-1">
-            <span className="text-white/40 uppercase tracking-wider">
+            <span className="text-text-primary/40 uppercase tracking-wider">
               Strength
             </span>
             <span style={{ color: accent }}>{strengthPct}%</span>
@@ -137,7 +137,7 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
       )}
 
       {/* Headline (1 sentence narrative) */}
-      <p className="text-sm text-white/85 leading-relaxed mb-3 min-h-[2.5rem]">
+      <p className="text-sm text-text-primary/85 leading-relaxed mb-3 min-h-[2.5rem]">
         {brief.headline || "—"}
       </p>
 
@@ -147,7 +147,7 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
           {brief.key_points.slice(0, 3).map((point, idx) => (
             <li
               key={idx}
-              className="text-xs text-white/65 font-mono pl-3 relative leading-relaxed"
+              className="text-xs text-text-primary/65 font-mono pl-3 relative leading-relaxed"
             >
               <span
                 className="absolute left-0 top-1.5 w-1 h-1 rounded-full"
@@ -165,7 +165,7 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
           {brief.notable_metrics.slice(0, 2).map((metric, idx) => (
             <span
               key={idx}
-              className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/5 text-white/50"
+              className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/5 text-text-primary/50"
             >
               {metric}
             </span>
@@ -203,7 +203,7 @@ function ConfluenceBanner({ summary }) {
           {summary.label}
         </span>
         <Tooltip termKey="confluence">
-          <span className="text-xs text-white/60 font-mono cursor-help border-b border-dotted border-white/20">
+          <span className="text-xs text-text-primary/60 font-mono cursor-help border-b border-dotted border-white/20">
             Cross-layer confluence
           </span>
         </Tooltip>
@@ -212,15 +212,15 @@ function ConfluenceBanner({ summary }) {
       <div className="flex items-center gap-3 text-xs font-mono">
         <span className="flex items-center gap-1">
           <span className="text-emerald-400">↑</span>
-          <span className="text-white/70">{summary.up}</span>
+          <span className="text-text-primary/70">{summary.up}</span>
         </span>
         <span className="flex items-center gap-1">
           <span className="text-red-400">↓</span>
-          <span className="text-white/70">{summary.down}</span>
+          <span className="text-text-primary/70">{summary.down}</span>
         </span>
         <span className="flex items-center gap-1">
-          <span className="text-white/40">→</span>
-          <span className="text-white/70">{summary.side}</span>
+          <span className="text-text-primary/40">→</span>
+          <span className="text-text-primary/70">{summary.side}</span>
         </span>
       </div>
     </div>
@@ -238,7 +238,7 @@ export default function ThreeLayerConfluence({ layerBriefs, overallSetup }) {
       {/* Section heading */}
       <div className="flex items-baseline justify-between mb-4">
         <h2
-          className="text-2xl text-white/90"
+          className="text-2xl text-text-primary/90"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -248,7 +248,7 @@ export default function ThreeLayerConfluence({ layerBriefs, overallSetup }) {
           Three-Layer Confluence
         </h2>
         <Tooltip termKey="confluence">
-          <span className="text-xs text-white/40 font-mono cursor-help border-b border-dotted border-white/20">
+          <span className="text-xs text-text-primary/40 font-mono cursor-help border-b border-dotted border-white/20">
             What is this?
           </span>
         </Tooltip>
@@ -285,17 +285,17 @@ export default function ThreeLayerConfluence({ layerBriefs, overallSetup }) {
       {/* Overall setup narrative */}
       {overallSetup && (
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
             Overall Setup
           </div>
-          <p className="text-sm text-white/75 leading-relaxed">
+          <p className="text-sm text-text-primary/75 leading-relaxed">
             {overallSetup}
           </p>
         </div>
       )}
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-white/30 font-mono">
+      <p className="mt-3 text-[11px] text-text-primary/30 font-mono">
         Compressed by LuxQuant AI from 23 raw indicators
       </p>
     </section>

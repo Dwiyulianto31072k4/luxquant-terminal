@@ -247,7 +247,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[13px] font-semibold text-white">
+              <span className="text-[13px] font-semibold text-text-primary">
                 Payment gap queue
               </span>
               <span
@@ -412,7 +412,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                           className="w-1.5 h-1.5 rounded-full shrink-0"
                           style={{ background: st.color }}
                         />
-                        <span className="text-[12.5px] font-semibold text-white truncate">
+                        <span className="text-[12.5px] font-semibold text-text-primary truncate">
                           {u.username || u.email || `user #${u.user_id}`}
                         </span>
                         <span

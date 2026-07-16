@@ -273,10 +273,10 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
 
       {/* Heading — only overlaps video dissolve when blendWithHero */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
-        <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-white">
+        <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-text-primary">
           Real calls. Real peaks.
         </h2>
-        <p className="mt-3 text-sm sm:text-[15px] text-white/55 max-w-lg mx-auto leading-relaxed">
+        <p className="mt-3 text-sm sm:text-[15px] text-text-primary/55 max-w-lg mx-auto leading-relaxed">
           Every card is an actual LuxQuant call, from entry to peak, exactly as it played out.
         </p>
       </div>
@@ -338,15 +338,15 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
                   <div className="rwm-meta">
                     <div className="flex items-center gap-2 flex-wrap">
                       <CoinLogo pair={w.pair} size={22} />
-                      <span className="text-white text-[15px] font-semibold tracking-tight">${sym}</span>
+                      <span className="text-text-primary text-[15px] font-semibold tracking-tight">${sym}</span>
                       {(date || ago) && (
-                        <span className="text-[11.5px] font-mono tabular-nums text-white/40">
+                        <span className="text-[11.5px] font-mono tabular-nums text-text-primary/40">
                           {date}{ago ? ` · ${ago}` : ""}
                         </span>
                       )}
                     </div>
 
-                    <p className="mt-2.5 text-[13.5px] leading-[1.7] text-white/65">
+                    <p className="mt-2.5 text-[13.5px] leading-[1.7] text-text-primary/65">
                       {caption}{" "}
                       <span className="rwm-proof">
                         View proof

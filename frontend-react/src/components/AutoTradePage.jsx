@@ -202,7 +202,7 @@ function SideNav({ tabs, value, onChange }) {
             ) : null}
             <span
               className={`font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
-                on ? "" : "text-text-muted group-hover:text-white"
+                on ? "" : "text-text-muted group-hover:text-text-primary"
               }`}
               style={on ? { color: "#ecd6a3" } : undefined}
             >
@@ -341,7 +341,7 @@ function AutoTradeControlCenter({
               </span>
               <StatusBadge tone={state.tone}>{state.eyebrow}</StatusBadge>
             </div>
-            <h2 className="mt-0.5 truncate text-sm font-semibold text-white sm:text-base">
+            <h2 className="mt-0.5 truncate text-sm font-semibold text-text-primary sm:text-base">
               {state.title}
             </h2>
           </div>
@@ -429,7 +429,7 @@ function AutoTradeOverview({
               {binance?.key_status === "valid" ? "Connected" : "Check required"}
             </StatusBadge>
           </div>
-          <h3 className="mt-4 text-base font-semibold text-white">
+          <h3 className="mt-4 text-base font-semibold text-text-primary">
             {binance?.label || "Binance account"}
           </h3>
           <p className="mt-1 text-xs leading-5 text-text-muted">
@@ -459,7 +459,7 @@ function AutoTradeOverview({
                 : "Not linked"}
             </StatusBadge>
           </div>
-          <h3 className="mt-4 text-base font-semibold text-white">
+          <h3 className="mt-4 text-base font-semibold text-text-primary">
             Telegram notifications
           </h3>
           <p className="mt-1 text-xs leading-5 text-text-muted">
@@ -483,7 +483,7 @@ function AutoTradeOverview({
             </span>
             <StatusBadge tone="good">Live rules</StatusBadge>
           </div>
-          <h3 className="mt-4 text-base font-semibold text-white">
+          <h3 className="mt-4 text-base font-semibold text-text-primary">
             Trading policy
           </h3>
           <p className="mt-1 text-xs leading-5 text-text-muted">
@@ -533,7 +533,7 @@ function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary">
           AutoTrade Setup
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-white">
+        <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
           {title}
         </h2>
         <p className="text-sm leading-6 text-text-muted">{body}</p>
@@ -798,7 +798,7 @@ export default function AutoTradePage() {
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
             AutoTrade
           </h1>
           <p className="mt-1.5 font-mono text-sm text-text-muted">

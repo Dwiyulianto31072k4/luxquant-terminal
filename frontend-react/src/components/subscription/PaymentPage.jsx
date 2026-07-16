@@ -187,7 +187,7 @@ const PaymentPage = () => {
               </span>
             </div>
             <h1
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary tracking-tight leading-tight"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Complete Your Payment
@@ -195,7 +195,7 @@ const PaymentPage = () => {
             <p className="text-sm mt-2" style={{ color: "#8a7a6e" }}>
               <span style={{ color: "#d4a853" }}>{planLabel}</span>
               <span className="mx-2" style={{ color: "#534a42" }}>·</span>
-              <span className="font-mono font-semibold text-white">
+              <span className="font-mono font-semibold text-text-primary">
                 {amount || "?"} USDT
               </span>
             </p>
@@ -233,7 +233,7 @@ const PaymentPage = () => {
           <StatCard label="Amount Due">
             <div className="flex items-baseline gap-2">
               <span
-                className="text-2xl sm:text-3xl font-bold text-white"
+                className="text-2xl sm:text-3xl font-bold text-text-primary"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {amount || "—"}
@@ -251,7 +251,7 @@ const PaymentPage = () => {
             <div className="flex items-center gap-2.5">
               <UsdtIcon size={26} />
               <div>
-                <div className="text-sm font-bold text-white">USDT</div>
+                <div className="text-sm font-bold text-text-primary">USDT</div>
                 <div className="text-[10px]" style={{ color: "#6b5c52" }}>
                   Tether USD
                 </div>
@@ -263,7 +263,7 @@ const PaymentPage = () => {
             <div className="flex items-center gap-2.5">
               <BNBIcon size={26} />
               <div>
-                <div className="text-sm font-bold text-white">BSC</div>
+                <div className="text-sm font-bold text-text-primary">BSC</div>
                 <div className="text-[10px]" style={{ color: "#6b5c52" }}>
                   BEP-20
                 </div>
@@ -306,7 +306,7 @@ const PaymentPage = () => {
             <div className="p-5 sm:p-7">
               <SectionLabel label="Transfer Details" />
               <h2
-                className="text-lg sm:text-xl font-bold text-white mb-5 tracking-tight"
+                className="text-lg sm:text-xl font-bold text-text-primary mb-5 tracking-tight"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 Send USDT to wallet
@@ -342,7 +342,7 @@ const PaymentPage = () => {
                       : t("payment.copy")}
                   </button>
                 </div>
-                <p className="text-sm font-mono text-white/90 break-all leading-relaxed select-all">
+                <p className="text-sm font-mono text-text-primary/90 break-all leading-relaxed select-all">
                   {walletAddress || "—"}
                 </p>
               </div>
@@ -365,7 +365,7 @@ const PaymentPage = () => {
                     </p>
                     <div className="flex items-baseline gap-2">
                       <span
-                        className="text-2xl font-bold text-white"
+                        className="text-2xl font-bold text-text-primary"
                         style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                       >
                         {amount || "—"}
@@ -421,7 +421,7 @@ const PaymentPage = () => {
                   className="text-[11px] leading-relaxed"
                   style={{ color: "#a09080" }}
                 >
-                  <span className="font-semibold text-white/90">
+                  <span className="font-semibold text-text-primary/90">
                     Only send USDT via BSC (BEP-20).
                   </span>{" "}
                   Sending other tokens or using other networks (ERC-20, TRC-20)
@@ -449,7 +449,7 @@ const PaymentPage = () => {
             <div className="p-5 sm:p-7">
               <SectionLabel label="Verify Payment" />
               <h2
-                className="text-lg sm:text-xl font-bold text-white mb-5 tracking-tight"
+                className="text-lg sm:text-xl font-bold text-text-primary mb-5 tracking-tight"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 Submit transaction hash
@@ -476,7 +476,7 @@ const PaymentPage = () => {
                     value={txHash}
                     onChange={(e) => setTxHash(e.target.value)}
                     placeholder="0x..."
-                    className="w-full px-4 py-3.5 rounded-xl text-white text-xs font-mono focus:outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-xl text-text-primary text-xs font-mono focus:outline-none transition-all"
                     style={{
                       background: "rgba(10,5,6,0.6)",
                       border: "1px solid rgba(212,168,83,0.08)",
@@ -656,7 +656,7 @@ const PaymentPage = () => {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-white mb-1">
+                <h4 className="text-sm font-bold text-text-primary mb-1">
                   Prefer manual assistance?
                 </h4>
                 <p
@@ -700,7 +700,7 @@ const PaymentPage = () => {
           </p>
           <button
             onClick={() => navigate("/pricing")}
-            className="text-xs transition-colors hover:text-white"
+            className="text-xs transition-colors hover:text-text-primary"
             style={{ color: "#534a42" }}
           >
             ← Back to pricing

@@ -313,7 +313,7 @@ const ProfilePage = () => {
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/70 mb-2">
             Account
           </p>
-          <h1 className="text-xl sm:text-2xl font-light text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-light text-text-primary tracking-tight">
             {t('profile.title', 'Profile Settings')}
           </h1>
           <p className="text-text-muted text-xs sm:text-sm mt-1">
@@ -371,8 +371,8 @@ const ProfilePage = () => {
                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
-                          <span className="text-white text-[9px] font-mono uppercase tracking-wider">Edit</span>
+                          <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                          <span className="text-text-primary text-[9px] font-mono uppercase tracking-wider">Edit</span>
                         </>
                       )}
                     </div>
@@ -403,7 +403,7 @@ const ProfilePage = () => {
                     <div className="flex-1 relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/50 text-sm font-mono">@</span>
                       <input type="text" value={username} onChange={handleUsernameChange} maxLength={50}
-                        className="w-full pl-8 pr-3 py-2.5 rounded-md text-sm text-white font-mono focus:outline-none transition-all"
+                        className="w-full pl-8 pr-3 py-2.5 rounded-md text-sm text-text-primary font-mono focus:outline-none transition-all"
                         style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${usernameError ? 'rgba(248,113,113,0.4)' : usernameChanged ? 'rgba(212,168,83,0.3)' : 'rgba(255,255,255,0.06)'}` }} />
                     </div>
                     <button onClick={handleSaveUsername} disabled={!usernameChanged || saving || !!usernameError}
@@ -475,7 +475,7 @@ const ProfilePage = () => {
                     {btcPrice ? (
                       <>
                         <div className="flex items-baseline gap-3 flex-wrap">
-                          <span className="font-mono text-2xl sm:text-3xl font-light text-white tabular-nums">
+                          <span className="font-mono text-2xl sm:text-3xl font-light text-text-primary tabular-nums">
                             ${btcPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                           </span>
                           <span className="text-text-muted/40 text-base">≈</span>
@@ -586,7 +586,7 @@ const KpiCard = ({ label, value, accent = 'default', mono = false }) => {
     purple: 'text-purple-300',
     green: 'text-emerald-300',
     muted: 'text-zinc-400',
-    default: 'text-white',
+    default: 'text-text-primary',
   };
   return (
     <div className="rounded-md border border-white/[0.06] bg-white/[0.015] px-3 py-2.5 sm:px-4 sm:py-3"
@@ -608,7 +608,7 @@ const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink,
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-white text-xs font-medium">{name}</p>
+        <p className="text-text-primary text-xs font-medium">{name}</p>
         {linked ? (
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-1 h-1 rounded-full bg-emerald-400 flex-shrink-0" />
@@ -631,7 +631,7 @@ const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink,
           className={`px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 ${
             replaceMode
               ? 'text-amber-400/80 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-500/35'
-              : 'text-white border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+              : 'text-text-primary border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
           }`}>
           {linking ? <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mx-2" /> : linkLabel}
         </button>

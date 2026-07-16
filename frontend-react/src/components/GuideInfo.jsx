@@ -56,7 +56,7 @@ export const InfoTip = ({ text, title, side = 'top', className = '' }) => {
 // content row
 const Row = ({ title, desc, warn }) => (
   <div className="py-3.5 border-b border-white/[0.06] last:border-0">
-    {title && <p className="font-mono text-[11px] uppercase tracking-wider text-white mb-1.5">{title}</p>}
+    {title && <p className="font-mono text-[11px] uppercase tracking-wider text-text-primary mb-1.5">{title}</p>}
     <p className="font-mono text-[12px] leading-relaxed text-text-muted normal-case tracking-normal">{desc}</p>
     {warn && (
       <p className="font-mono text-[11px] leading-relaxed text-amber-400/90 normal-case tracking-normal mt-2 pl-2.5 border-l-2 border-amber-400/40">{warn}</p>
@@ -145,7 +145,7 @@ export const GuideModal = ({ onClose }) => {
         <button
           onClick={onClose}
           aria-label={t('guide.close')}
-          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-md text-text-muted/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-md text-text-muted/60 hover:text-text-primary hover:bg-white/[0.06] transition-colors"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -169,7 +169,7 @@ export const GuideModal = ({ onClose }) => {
                     className={`text-left px-3 py-2.5 rounded-md font-mono text-[11px] tracking-wide transition-all ${
                       on
                         ? 'bg-gold-primary/10 border border-gold-primary/30 text-gold-primary'
-                        : 'border border-transparent text-text-muted hover:text-white hover:bg-white/[0.04]'
+                        : 'border border-transparent text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
                     }`}
                   >
                     {s.label}
@@ -187,7 +187,7 @@ export const GuideModal = ({ onClose }) => {
           {/* RIGHT: content */}
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="px-6 pt-6 pb-4 border-b border-white/[0.06]">
-              <h2 className="font-display text-2xl text-white tracking-tight">
+              <h2 className="font-display text-2xl text-text-primary tracking-tight">
                 {sections.find((s) => s.id === active)?.label}
               </h2>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1">{t('guide.subtitle')}</p>

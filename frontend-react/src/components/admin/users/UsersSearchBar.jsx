@@ -17,7 +17,7 @@ export const UsersSearchBar = ({ search, onSearchChange, total, selectedCount })
       className="flex-1"
     />
     <div className="text-[10px] whitespace-nowrap tabular-nums" style={{ color: '#6b5c52' }}>
-      <span className="text-white font-bold">{total}</span> user{total !== 1 ? 's' : ''}
+      <span className="text-text-primary font-bold">{total}</span> user{total !== 1 ? 's' : ''}
       {selectedCount > 0 && (
         <span style={{ color: palette.gold[300] }}> · {selectedCount} selected</span>
       )}

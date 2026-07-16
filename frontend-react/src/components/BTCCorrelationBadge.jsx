@@ -87,7 +87,7 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
   // Flag icon (prioritize the most important)
   const flag = is_extended    ? Ic.flame("w-3 h-3 text-orange-400") :
                is_decoupled   ? Ic.zap("w-3 h-3 text-purple-400")   :
-                                Ic.bars("w-3 h-3 text-white/60");
+                                Ic.bars("w-3 h-3 text-text-primary/60");
 
   const fmtNum = (n, digits = 2) =>
     n == null ? "—" : (n >= 0 ? "+" : "") + Number(n).toFixed(digits);
@@ -99,13 +99,13 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
       title="View full BTC correlation analysis"
     >
       <span className="flex items-center">{flag}</span>
-      <span className="text-[9px] text-white/60 uppercase tracking-wider font-medium">BTC</span>
+      <span className="text-[9px] text-text-primary/60 uppercase tracking-wider font-medium">BTC</span>
       <span className={`text-[10px] font-bold font-mono ${scoreColor}`}>{score ?? "—"}</span>
-      <span className="text-[8px] text-white/30">·</span>
-      <span className="text-[9px] text-white/70 font-mono">ρ{fmtNum(corr)}</span>
-      <span className="text-[9px] text-white/70 font-mono">β{fmtNum(beta)}</span>
+      <span className="text-[8px] text-text-primary/30">·</span>
+      <span className="text-[9px] text-text-primary/70 font-mono">ρ{fmtNum(corr)}</span>
+      <span className="text-[9px] text-text-primary/70 font-mono">β{fmtNum(beta)}</span>
       <svg
-        className="w-2.5 h-2.5 text-white/40 group-hover:text-white/70 transition-colors"
+        className="w-2.5 h-2.5 text-text-primary/40 group-hover:text-text-primary/70 transition-colors"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

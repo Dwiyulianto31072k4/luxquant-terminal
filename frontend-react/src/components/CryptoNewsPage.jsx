@@ -436,7 +436,7 @@ const NewsModal = ({ item, onClose }) => {
       {/* Body */}
       <div className="p-5 space-y-4">
         <h2
-          className="text-white text-lg sm:text-2xl leading-tight"
+          className="text-text-primary text-lg sm:text-2xl leading-tight"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
         >
           {item.title}
@@ -455,7 +455,7 @@ const NewsModal = ({ item, onClose }) => {
           </div>
         ) : summary ? (
           <div className="space-y-2">
-            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
+            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
               <span className="w-1 h-3 rounded-full" style={{ background: color }} />
               Summary
             </h3>
@@ -475,7 +475,7 @@ const NewsModal = ({ item, onClose }) => {
 
         {fullText && fullText !== summary && (
           <div className="space-y-2">
-            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
+            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
               <span className="w-1 h-3 rounded-full" style={{ background: color }} />
               Article Preview
             </h3>
@@ -530,7 +530,7 @@ const PulseTicker = ({ items, onSelect }) => {
             <span className="text-text-muted font-mono text-[10px] uppercase">
               {shortDomain(item.domain)}
             </span>
-            <span className="text-white/70 group-hover/item:text-gold-primary transition-colors max-w-[420px] truncate">
+            <span className="text-text-primary/70 group-hover/item:text-gold-primary transition-colors max-w-[420px] truncate">
               {item.title}
             </span>
             <span className="text-text-muted/60 text-[10px] font-mono">{timeAgo(item.created_at)}</span>
@@ -575,7 +575,7 @@ const LeadCard = ({ item, onSelect }) => {
         {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="flex items-center justify-center w-12 h-12 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
-              <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
@@ -587,7 +587,7 @@ const LeadCard = ({ item, onSelect }) => {
       <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center gap-2.5">
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/85">Lead Story</span>
         <h2
-          className="text-white text-lg sm:text-xl lg:text-2xl leading-tight group-hover:text-gold-primary transition-colors line-clamp-3"
+          className="text-text-primary text-lg sm:text-xl lg:text-2xl leading-tight group-hover:text-gold-primary transition-colors line-clamp-3"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
         >
           {item.title}
@@ -639,7 +639,7 @@ const SecondaryCard = ({ item, onSelect }) => {
         {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
-              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
@@ -649,7 +649,7 @@ const SecondaryCard = ({ item, onSelect }) => {
 
       <div className="p-3 flex flex-col gap-1.5 flex-1">
         <h4
-          className="text-white text-[13px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
+          className="text-text-primary text-[13px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
           title={item.title}
         >
@@ -688,7 +688,7 @@ const ListRow = ({ item, onSelect }) => {
         {hasVideo && (
           <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-black/55 border border-white/30">
-              <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
@@ -697,7 +697,7 @@ const ListRow = ({ item, onSelect }) => {
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <h4
-          className="text-white text-[12.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
+          className="text-text-primary text-[12.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
           title={item.title}
         >
@@ -732,7 +732,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
           />
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em]">Trending Now</h3>
+            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Trending Now</h3>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {trending.trending.slice(0, 14).map((t, i) => (
@@ -742,7 +742,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                 className={`px-2 py-1 rounded text-[10px] font-mono transition-all hover:scale-[1.04] ${
                   i < 3
                     ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/30"
-                    : "bg-white/[0.04] text-text-muted border border-white/5 hover:text-white hover:border-white/15"
+                    : "bg-white/[0.04] text-text-muted border border-white/5 hover:text-text-primary hover:border-white/15"
                 }`}
               >
                 {i < 3 && (
@@ -765,7 +765,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em]">Top Sources</h3>
+            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Top Sources</h3>
           </div>
           <div className="space-y-2.5">
             {topDomains.map((d) => {
@@ -778,7 +778,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                         className="w-1.5 h-1.5 rounded-full"
                         style={{ background: color, boxShadow: `0 0 4px ${color}` }}
                       />
-                      <span className="text-[11px] text-text-secondary truncate group-hover:text-white transition-colors">
+                      <span className="text-[11px] text-text-secondary truncate group-hover:text-text-primary transition-colors">
                         {d.domain}
                       </span>
                     </div>
@@ -804,7 +804,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em]">Activity</h3>
+            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Activity</h3>
           </div>
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
@@ -819,7 +819,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                 <div className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
                   {s.l}
                 </div>
-                <div className="text-white font-mono font-bold tabular-nums text-[15px] mt-0.5">
+                <div className="text-text-primary font-mono font-bold tabular-nums text-[15px] mt-0.5">
                   {s.v}
                 </div>
               </div>
@@ -908,7 +908,7 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-1 h-3.5 rounded-full bg-gold-primary flex-shrink-0" />
-          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/85 group-hover:text-white transition-colors">
+          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-text-primary/85 group-hover:text-text-primary transition-colors">
             Market Insights
           </span>
           <span className="hidden sm:inline text-[9px] font-mono text-text-muted/70 truncate">
@@ -970,7 +970,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-white/[0.03] border border-white/5 text-text-muted hover:text-white hover:border-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         ← Prev
       </button>
@@ -986,7 +986,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
             className={`w-9 h-9 rounded-lg text-[11px] font-mono font-medium transition-all ${
               p === page
                 ? "bg-gold-primary/20 text-gold-primary border border-gold-primary/40"
-                : "bg-white/[0.03] border border-white/5 text-text-muted hover:text-white hover:border-white/15"
+                : "bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15"
             }`}
           >
             {p}
@@ -996,7 +996,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-white/[0.03] border border-white/5 text-text-muted hover:text-white hover:border-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         Next →
       </button>
@@ -1198,7 +1198,7 @@ const FilterChip = ({ active, onClick, children, color, icon }) => {
   return (
     <button
       onClick={onClick}
-      className={`${base} bg-[#17130d] border-white/[0.08] text-white/65 hover:text-white hover:border-white/20 hover:bg-[#211a11]`}
+      className={`${base} bg-[#17130d] border-white/[0.08] text-text-primary/65 hover:text-text-primary hover:border-white/20 hover:bg-[#211a11]`}
     >
       {icon && <Icon name={icon} style={{ color: accent }} className="w-3.5 h-3.5 opacity-90" />}
       {children}
@@ -1264,12 +1264,12 @@ const FilterBar = ({
             value={searchInput}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search news, topics, sources…"
-            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-white text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/30 focus:bg-black/30 transition-all"
+            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-text-primary text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/30 focus:bg-black/30 transition-all"
           />
           {searchInput && (
             <button
               onClick={onClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted/60 hover:text-white hover:bg-white/5 transition-all"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted/60 hover:text-text-primary hover:bg-white/5 transition-all"
               title="Clear search"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1532,7 +1532,7 @@ const CryptoNewsPage = () => {
       {/* HEADER */}
       <header className="pb-3 border-b border-white/5">
         <h1
-          className="text-3xl sm:text-4xl text-white"
+          className="text-3xl sm:text-4xl text-text-primary"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 600,
@@ -1572,7 +1572,7 @@ const CryptoNewsPage = () => {
             <span className="text-3xl opacity-30">🔍</span>
           </div>
           <p
-            className="text-white text-base mb-1"
+            className="text-text-primary text-base mb-1"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
             No results found

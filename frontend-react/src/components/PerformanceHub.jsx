@@ -204,8 +204,8 @@ const PerformanceHub = () => {
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/90 truncate">
             Performance
           </span>
-          <span className="text-white/20">·</span>
-          <span className="text-[13px] text-white/90 truncate">{activeItem.label}</span>
+          <span className="text-text-primary/20">·</span>
+          <span className="text-[13px] text-text-primary/90 truncate">{activeItem.label}</span>
         </div>
         <div className="hidden lg:block font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/70">
           {group.note}
@@ -223,7 +223,7 @@ const PerformanceHub = () => {
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
                 on
                   ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
-                  : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-white"
+                  : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary"
               }`}
             >
               <TabIcon id={item.id} />
@@ -257,7 +257,7 @@ const PerformanceHub = () => {
                           className={`relative w-full flex items-center pl-3 pr-2 py-2 rounded-md text-left text-[12.5px] transition-colors ${
                             on
                               ? "bg-white/[0.04] text-gold-primary"
-                              : "text-white/85 hover:bg-white/[0.04] hover:text-white"
+                              : "text-text-primary/85 hover:bg-white/[0.04] hover:text-text-primary"
                           }`}
                         >
                           {on && (
@@ -268,7 +268,7 @@ const PerformanceHub = () => {
                           )}
                           <span className={`flex items-center gap-2.5 ${on ? "text-gold-primary" : "text-gold-primary/45"}`}>
                             <TabIcon id={item.id} />
-                            <span className={on ? "text-gold-primary" : "text-white/85"}>{item.label}</span>
+                            <span className={on ? "text-gold-primary" : "text-text-primary/85"}>{item.label}</span>
                           </span>
                         </button>
                       );

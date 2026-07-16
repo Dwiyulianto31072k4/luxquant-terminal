@@ -104,7 +104,7 @@ export function renderMarkdown(text, onLink) {
     if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushPara(); flushList(); blocks.push(<div key={k++} className="my-1 h-px bg-white/10" />); continue; }
 
     const h = t.match(/^(#{1,6})\s+(.*)$/);
-    if (h) { flushPara(); flushList(); blocks.push(<p key={k++} className="mt-1 font-semibold text-white">{renderInline(h[2], onLink)}</p>); continue; }
+    if (h) { flushPara(); flushList(); blocks.push(<p key={k++} className="mt-1 font-semibold text-text-primary">{renderInline(h[2], onLink)}</p>); continue; }
 
     const ol = t.match(/^\d+[.)]\s+(.*)$/);
     const ul = t.match(/^[-*]\s+(.*)$/);

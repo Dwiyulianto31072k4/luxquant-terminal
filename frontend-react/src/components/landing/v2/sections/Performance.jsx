@@ -174,8 +174,8 @@ function PeriodFilterPopover({
         onClick={() => setFilterOpen((o) => !o)}
         className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors sm:w-auto ${
           eventId || customOn
-            ? "border-gold-primary/50 text-white"
-            : "border-white/10 text-text-muted hover:border-white/25 hover:text-white"
+            ? "border-gold-primary/50 text-text-primary"
+            : "border-white/10 text-text-muted hover:border-white/25 hover:text-text-primary"
         }`}
       >
         <span className="max-w-[140px] truncate sm:max-w-[110px]">
@@ -205,7 +205,7 @@ function PeriodFilterPopover({
                   setCustomStart("");
                   setCustomEnd("");
                 }}
-                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-white outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
+                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
               >
                 <option value="" className="bg-[#0c0d12]">All / none</option>
                 <optgroup label="Bull" className="bg-[#0c0d12]">
@@ -231,7 +231,7 @@ function PeriodFilterPopover({
 
             <div className="my-2.5 flex items-center gap-2">
               <span className="h-px flex-1 bg-white/10" />
-              <span className="font-mono text-[9px] uppercase tracking-wider text-white/30">or custom dates</span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/30">or custom dates</span>
               <span className="h-px flex-1 bg-white/10" />
             </div>
 
@@ -246,7 +246,7 @@ function PeriodFilterPopover({
                     setCustomStart(e.target.value);
                     setEventId(null);
                   }}
-                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-white outline-none [color-scheme:dark] sm:text-[11px]"
+                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-text-primary outline-none [color-scheme:dark] sm:text-[11px]"
                 />
               </label>
               <span className="hidden font-mono text-[10px] text-text-muted sm:inline">→</span>
@@ -260,7 +260,7 @@ function PeriodFilterPopover({
                     setCustomEnd(e.target.value);
                     setEventId(null);
                   }}
-                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-white outline-none [color-scheme:dark] sm:text-[11px]"
+                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-text-primary outline-none [color-scheme:dark] sm:text-[11px]"
                 />
               </label>
             </div>
@@ -274,7 +274,7 @@ function PeriodFilterPopover({
                     setCustomStart("");
                     setCustomEnd("");
                   }}
-                  className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
+                  className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-text-primary"
                 >
                   Clear
                 </button>
@@ -310,9 +310,9 @@ function InfoTip({ info }) {
       </button>
       {open && (
         <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-white/15 bg-[#0c0d12]/[0.98] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-md">
-          <p className="mb-1.5 text-[11px] font-semibold text-white">{info.title}</p>
+          <p className="mb-1.5 text-[11px] font-semibold text-text-primary">{info.title}</p>
           {info.lines.map((ln, i) => (
-            <p key={i} className="mb-1.5 text-[11px] leading-snug text-white/60 last:mb-0">{ln}</p>
+            <p key={i} className="mb-1.5 text-[11px] leading-snug text-text-primary/60 last:mb-0">{ln}</p>
           ))}
         </div>
       )}
@@ -324,7 +324,7 @@ function CardHead({ title, sub, right, info }) {
   return (
     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-white">
+        <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-text-primary">
           {title}
           <InfoTip info={info} />
         </h3>
@@ -403,7 +403,7 @@ function Seg({ items, value, onChange }) {
         <button
           key={it}
           onClick={() => onChange(it)}
-          className={`rounded-md px-2.5 py-1 transition-colors ${value === it ? "text-[#0a0506]" : "text-text-muted hover:text-white"}`}
+          className={`rounded-md px-2.5 py-1 transition-colors ${value === it ? "text-[#0a0506]" : "text-text-muted hover:text-text-primary"}`}
           style={value === it ? { background: C.gold } : {}}
         >
           {it}
@@ -559,11 +559,11 @@ export default function Performance({ data }) {
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/60" />
           Verified Track Record
         </span>
-        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-white lg:text-[2.9rem]">
+        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.9rem]">
           An edge you can{" "}
           <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">audit.</span>
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/55 lg:text-base">
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           Every signal recorded since day one — no hidden trades, no
           cherry-picking. {stats ? nfmt(stats.total_signals) : "—"} signals on
           record, each outcome publicly verifiable.
@@ -638,7 +638,7 @@ export default function Performance({ data }) {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-bold tabular-nums text-white">{pct((outcome.slice(0, 4).reduce((s, o) => s + o.count, 0) / outcomeTotal) * 100)}</span>
+                  <span className="text-lg font-bold tabular-nums text-text-primary">{pct((outcome.slice(0, 4).reduce((s, o) => s + o.count, 0) / outcomeTotal) * 100)}</span>
                   <span className="font-mono text-[8px] uppercase tracking-wider text-text-muted">reach TP</span>
                 </div>
               </div>
@@ -664,7 +664,7 @@ export default function Performance({ data }) {
                       <span className="text-right font-mono text-[12px] tabular-nums" style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}>
                         {o.avg == null ? "—" : signed(o.avg)}
                       </span>
-                      <span className="text-right font-mono text-[12px] tabular-nums text-white">{nfmt(o.count)}</span>
+                      <span className="text-right font-mono text-[12px] tabular-nums text-text-primary">{nfmt(o.count)}</span>
                       <span
                         className="min-w-[2.5rem] text-right font-mono text-[11px] font-semibold tabular-nums sm:text-[10px]"
                         style={{ color: o.label === "SL" ? C.loss : C.gold }}
@@ -678,7 +678,7 @@ export default function Performance({ data }) {
               </div>
             </div>
             <p className="mt-3 border-t border-white/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
-              Avg P/L · TP1–TP3 = actual target gains · <span className="text-white">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
+              Avg P/L · TP1–TP3 = actual target gains · <span className="text-text-primary">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
             </p>
             </>
           ) : (
@@ -702,8 +702,8 @@ export default function Performance({ data }) {
                 title={tb.label}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-[12.5px] font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm ${
                   on
-                    ? "border-gold-primary/50 bg-gold-primary/[0.12] text-white shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
-                    : "border-white/10 bg-white/[0.02] text-text-muted hover:border-white/25 hover:text-white"
+                    ? "border-gold-primary/50 bg-gold-primary/[0.12] text-text-primary shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
+                    : "border-white/10 bg-white/[0.02] text-text-muted hover:border-white/25 hover:text-text-primary"
                 }`}
               >
                 <TabIcon id={tb.id} className={`h-[15px] w-[15px] flex-shrink-0 ${on ? "text-gold-primary" : ""}`} />
@@ -747,14 +747,14 @@ export default function Performance({ data }) {
         />
 
         {customOn && (
-          <p className="mb-3 text-[11px] leading-snug text-white/45">
+          <p className="mb-3 text-[11px] leading-snug text-text-primary/45">
             <span className="font-semibold text-gold-primary">Custom range</span>{" "}
             · {trendData.length} day{trendData.length === 1 ? "" : "s"} of signals in this window.
           </p>
         )}
 
         {activeEvent && (
-          <p className="mb-3 text-[11px] leading-snug text-white/45">
+          <p className="mb-3 text-[11px] leading-snug text-text-primary/45">
             <span className="font-semibold" style={{ color: EV_COLOR[activeEvent.cat] }}>
               {new Date(activeEvent.start).toLocaleDateString("en", { month: "short", day: "numeric", year: "2-digit" })} – {activeEvent.ongoing ? "now" : new Date(activeEvent.end).toLocaleDateString("en", { month: "short", day: "numeric", year: "2-digit" })}
             </span>{" "}
@@ -764,7 +764,7 @@ export default function Performance({ data }) {
 
         {/* range stats */}
         <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1.5 font-mono text-[11px]">
-          <span className="text-text-muted">WR <b className="text-white" style={{ color: C.gold }}>{pct(wrAvg)}</b></span>
+          <span className="text-text-muted">WR <b className="text-text-primary" style={{ color: C.gold }}>{pct(wrAvg)}</b></span>
           {showBtc && btcDelta != null && (
             <span className="text-text-muted">BTC <b style={{ color: btcDelta >= 0 ? C.win : C.loss }}>{signed(btcDelta)}</b> over range</span>
           )}
@@ -799,7 +799,7 @@ export default function Performance({ data }) {
                     const d = payload[0].payload;
                     return (
                       <div className="rounded-lg border border-white/15 bg-[#0c0d12]/95 p-2.5 backdrop-blur-md">
-                        <p className="text-[11px] font-semibold text-white">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</p>
+                        <p className="text-[11px] font-semibold text-text-primary">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</p>
                         <p className="mt-1 text-[12px]" style={{ color: C.gold }}>{pct(d.wr)} win rate <span className="text-text-muted">· {d.closed} closed</span></p>
                         {showBtc && d.c != null && (
                           <>
@@ -838,12 +838,12 @@ export default function Performance({ data }) {
         {showBtc && corr != null && (
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/[0.06] pt-4 font-mono text-[11px]">
             <span className="text-text-muted">
-              On BTC <span style={{ color: C.win }}>up</span> days WR <b className="text-white">{pct(upWR)}</b>
+              On BTC <span style={{ color: C.win }}>up</span> days WR <b className="text-text-primary">{pct(upWR)}</b>
             </span>
             <span className="text-text-muted">
-              On BTC <span style={{ color: C.loss }}>down</span> days WR <b className="text-white">{pct(downWR)}</b>
+              On BTC <span style={{ color: C.loss }}>down</span> days WR <b className="text-text-primary">{pct(downWR)}</b>
             </span>
-            <span className="text-white/40">
+            <span className="text-text-primary/40">
               {Math.abs(upWR - downWR) < 8 ? "Edge holds in both directions." : `${signed(upWR - downWR)} swing — co-moves with BTC.`}
             </span>
           </div>
@@ -862,7 +862,7 @@ export default function Performance({ data }) {
                 return (
                   <div key={p.pattern}>
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <span className="truncate font-mono text-[11px] uppercase tracking-wide text-white">{niceName(p.pattern)}</span>
+                      <span className="truncate font-mono text-[11px] uppercase tracking-wide text-text-primary">{niceName(p.pattern)}</span>
                       <span className="font-mono text-[13px] font-bold tabular-nums" style={{ color: C.gold }}>+{p.expected_value.toFixed(1)}%</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -892,7 +892,7 @@ export default function Performance({ data }) {
                 <div key={t.tp}>
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-mono text-[12px] font-bold" style={{ color: C.gold }}>{t.tp}</span>
-                    <span className="font-mono text-[13px] font-semibold tabular-nums text-white">{t.avg_human}</span>
+                    <span className="font-mono text-[13px] font-semibold tabular-nums text-text-primary">{t.avg_human}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Bar3D pct={(t.avg_seconds / maxSec) * 100} />
@@ -902,7 +902,7 @@ export default function Performance({ data }) {
               ))}
               {timing?.peak_potential && (
                 <p className="mt-1 border-t border-white/[0.06] pt-3 font-mono text-[10px] text-text-muted">
-                  avg peak excursion <span style={{ color: C.gold }}>{bigPct(timing.peak_potential.avg_peak_excursion_pct)}</span> · time in profit <span className="text-white">{pct(timing.risk_profile?.avg_time_in_profit_pct)}</span>
+                  avg peak excursion <span style={{ color: C.gold }}>{bigPct(timing.peak_potential.avg_peak_excursion_pct)}</span> · time in profit <span className="text-text-primary">{pct(timing.risk_profile?.avg_time_in_profit_pct)}</span>
                 </p>
               )}
             </div>
@@ -922,7 +922,7 @@ export default function Performance({ data }) {
               <div key={c.pair} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] px-3.5 py-2.5 transition-colors hover:border-gold-primary/25">
                 <CoinLogo pair={c.pair} size={30} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-white">
+                  <p className="text-[13px] font-semibold text-text-primary">
                     {sym(c.pair)}
                     <span className="ml-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">{c.sector}</span>
                   </p>
@@ -945,8 +945,8 @@ export default function Performance({ data }) {
 
       {/* footer CTA */}
       <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gold-primary/15 bg-gold-primary/[0.04] p-5 sm:flex-row">
-        <p className="text-sm text-white/60">
-          <span className="font-semibold text-white">Every trade on record.</span> Pattern reliability, expected value, timing & per-coin breakdowns — all live.
+        <p className="text-sm text-text-primary/60">
+          <span className="font-semibold text-text-primary">Every trade on record.</span> Pattern reliability, expected value, timing & per-coin breakdowns — all live.
         </p>
         <button
           onClick={() => navigate("/performance")}

@@ -159,10 +159,10 @@ function InputCard({ item }) {
     <div className={`group relative flex items-center gap-3 p-3.5 transition-colors duration-200 hover:border-white/20 ${CARD}`}>
       <IconChip name={item.icon} size="h-11 w-11" ic="h-[20px] w-[20px]" />
       <div className="min-w-0">
-        <h4 className="text-[12.5px] font-semibold uppercase tracking-wide text-white">{item.title}</h4>
+        <h4 className="text-[12.5px] font-semibold uppercase tracking-wide text-text-primary">{item.title}</h4>
         <p className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-text-muted">{item.desc}</p>
       </div>
-      <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-white/25" />
+      <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-text-primary/25" />
       {/* wire anchor — endpoint of the animated connector */}
       <span data-wire="in" aria-hidden="true" className="absolute -right-[5px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-gold-primary/85" />
     </div>
@@ -173,7 +173,7 @@ function StageNode({ icon, title, subtitle, dataWire, accent = false }) {
   return (
     <div data-wire={dataWire} className={`relative flex min-h-[220px] w-full flex-col items-center justify-center px-5 text-center ${CARD} ${accent ? "border-gold-primary/25" : ""}`}>
       <IconChip name={icon} size="h-14 w-14" ic="h-7 w-7" />
-      <h3 className="mt-4 text-[13.5px] font-semibold uppercase tracking-[0.08em] text-white">{title}</h3>
+      <h3 className="mt-4 text-[13.5px] font-semibold uppercase tracking-[0.08em] text-text-primary">{title}</h3>
       <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">{subtitle}</p>
     </div>
   );
@@ -184,17 +184,17 @@ function TerminalPanel() {
     <div className={`w-full p-5 ${CARD}`}>
       <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-4">
         <img src="/logo.png" alt="" className="h-6 w-6 rounded" onError={hideOnError} />
-        <span className="text-[13px] font-semibold tracking-[0.13em] text-white">LUXQUANT TERMINAL</span>
+        <span className="text-[13px] font-semibold tracking-[0.13em] text-text-primary">LUXQUANT TERMINAL</span>
       </div>
       <div className="mt-3 divide-y divide-white/[0.05]">
         {FEATURES.map((f) => (
           <div key={f.t} data-wire="out" className="group flex items-center gap-3 py-2.5">
             <IconChip name={f.icon} size="h-9 w-9" ic="h-[18px] w-[18px]" />
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-white">{f.t}</p>
+              <p className="text-[13px] font-medium text-text-primary">{f.t}</p>
               <p className="truncate text-[11px] text-text-muted">{f.s}</p>
             </div>
-            <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-white/25 transition-colors group-hover:text-gold-primary/70" />
+            <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-text-primary/25 transition-colors group-hover:text-gold-primary/70" />
           </div>
         ))}
       </div>
@@ -353,7 +353,7 @@ function Step({ n, accent = false, line = true, children }) {
   return (
     <li className="flex gap-4">
       <div className="flex flex-col items-center">
-        <span className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-[#0d0b09] font-mono text-[13px] font-medium ${accent ? "border-gold-primary/40 text-gold-primary" : "border-white/15 text-white/55"}`}>{n}</span>
+        <span className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-[#0d0b09] font-mono text-[13px] font-medium ${accent ? "border-gold-primary/40 text-gold-primary" : "border-white/15 text-text-primary/55"}`}>{n}</span>
         {line && <span className="my-1.5 w-px flex-1 bg-white/10" />}
       </div>
       <div className="flex-1 pb-6">{children}</div>
@@ -386,10 +386,10 @@ export default function Architecture() {
           How It Works
           <span className="h-px w-7 bg-gold-primary/40" />
         </span>
-        <h2 className="mt-5 text-3xl font-bold tracking-tight text-white lg:text-5xl">
+        <h2 className="mt-5 text-3xl font-bold tracking-tight text-text-primary lg:text-5xl">
           From market data to <span className="text-gold-primary">your terminal</span>
         </h2>
-        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-white/55 lg:text-base">
+        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           A 24/7 quant engine turns live market data into precise calls — and a complete trading terminal you can act on.
         </p>
       </div>
@@ -412,12 +412,12 @@ export default function Architecture() {
       <ol className="mx-auto max-w-md lg:hidden">
         <Step n={1}>
           <div className={`p-4 ${CARD}`}>
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-white">Live Market Data</p>
+            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-text-primary">Live Market Data</p>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
               {INPUTS.map((i) => (
                 <div key={i.title} className="flex items-center gap-2">
                   <Icon name={i.icon} className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-[11px] leading-tight text-white/75">{i.title}</span>
+                  <span className="text-[11px] leading-tight text-text-primary/75">{i.title}</span>
                 </div>
               ))}
             </div>
@@ -428,7 +428,7 @@ export default function Architecture() {
           <div className={`flex items-center gap-3 p-3.5 ${CARD}`}>
             <IconChip name="sanitizer" />
             <div>
-              <p className="text-[13px] font-medium uppercase tracking-wide text-white">Data Sanitizer</p>
+              <p className="text-[13px] font-medium uppercase tracking-wide text-text-primary">Data Sanitizer</p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Sanitization</p>
             </div>
           </div>
@@ -438,7 +438,7 @@ export default function Architecture() {
           <div className={`flex items-center gap-3 p-3.5 ${CARD} border-gold-primary/25`}>
             <IconChip name="core" />
             <div>
-              <p className="text-[13px] font-medium uppercase tracking-wide text-white">Predictive Alpha</p>
+              <p className="text-[13px] font-medium uppercase tracking-wide text-text-primary">Predictive Alpha</p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Quant Engine</p>
             </div>
           </div>
@@ -448,13 +448,13 @@ export default function Architecture() {
           <div className={`p-4 ${CARD}`}>
             <div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-3">
               <img src="/logo.png" alt="" className="h-5 w-5 rounded" onError={hideOnError} />
-              <span className="text-[12px] font-medium uppercase tracking-wide text-white">LuxQuant Terminal</span>
+              <span className="text-[12px] font-medium uppercase tracking-wide text-text-primary">LuxQuant Terminal</span>
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-3">
               {FEATURES.map((f) => (
                 <div key={f.t} className="flex items-center gap-2">
                   <Icon name={f.icon} className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-[11px] leading-tight text-white/75">{f.t}</span>
+                  <span className="text-[11px] leading-tight text-text-primary/75">{f.t}</span>
                 </div>
               ))}
             </div>

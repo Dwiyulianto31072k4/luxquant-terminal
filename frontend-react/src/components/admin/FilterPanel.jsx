@@ -45,7 +45,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
       >
         <div className="flex items-center gap-2.5">
           <FilterIcon size={14} style={{ color: activeCount > 0 ? palette.gold[300] : '#8a7a6e' }} />
-          <span className="text-xs font-semibold text-white tracking-tight">Filters</span>
+          <span className="text-xs font-semibold text-text-primary tracking-tight">Filters</span>
           {activeCount > 0 && (
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums"

@@ -90,7 +90,7 @@ const RegisterPage = () => {
         {/* LOGO MOBILE */}
         <div className="lg:hidden absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2.5 z-30">
           <img src="/logo.png" alt="LuxQuant" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
-          <span className="text-white font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>LuxQuant</span>
+          <span className="text-text-primary font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>LuxQuant</span>
         </div>
 
         {/* GLASSMORPHISM WRAPPER */}
@@ -105,7 +105,7 @@ const RegisterPage = () => {
 
           {/* Heading */}
           <div className="mb-1 text-center lg:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{a('register_title')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{a('register_title')}</h1>
             <p className="text-sm" style={{ color: '#8a7a6e' }}>{a('register_subtitle')}</p>
           </div>
 
@@ -314,7 +314,7 @@ const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
   <div>
     {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{label}</label>}
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
-      className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
+      className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
       style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
@@ -332,7 +332,7 @@ const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
 const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
   <div className="relative group">
     <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
-      className="w-full px-4 py-3 sm:py-3.5 pr-12 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
+      className="w-full px-4 py-3 sm:py-3.5 pr-12 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
       style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 

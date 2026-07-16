@@ -140,11 +140,11 @@ function ZoneCard({ zone, currentPrice }) {
             color: "rgba(255,255,255,0.9)",
           }}
         >
-          {formatPrice(low)} <span className="text-white/40">–</span>{" "}
+          {formatPrice(low)} <span className="text-text-primary/40">–</span>{" "}
           {formatPrice(high)}
         </div>
         {distanceLabel && (
-          <div className="text-[11px] font-mono text-white/40 mt-1">
+          <div className="text-[11px] font-mono text-text-primary/40 mt-1">
             {distanceLabel}
           </div>
         )}
@@ -152,7 +152,7 @@ function ZoneCard({ zone, currentPrice }) {
 
       {/* Why */}
       {zone.why && (
-        <p className="text-xs text-white/65 leading-relaxed mb-2">
+        <p className="text-xs text-text-primary/65 leading-relaxed mb-2">
           {zone.why}
         </p>
       )}
@@ -164,7 +164,7 @@ function ZoneCard({ zone, currentPrice }) {
           style={{ borderColor: "rgba(255,255,255,0.05)" }}
         >
           <span className="text-[10px] mt-0.5">💧</span>
-          <p className="text-[11px] text-white/55 leading-relaxed font-mono">
+          <p className="text-[11px] text-text-primary/55 leading-relaxed font-mono">
             {zone.liquidity_note}
           </p>
         </div>
@@ -272,7 +272,7 @@ export default function ZonesToWatch({ zones, currentPrice }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-white/90 mb-4"
+          className="text-2xl text-text-primary/90 mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -282,7 +282,7 @@ export default function ZonesToWatch({ zones, currentPrice }) {
           Zones to Watch
         </h2>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
-          <p className="text-white/40 text-sm italic">No zones defined</p>
+          <p className="text-text-primary/40 text-sm italic">No zones defined</p>
         </div>
       </section>
     );
@@ -299,7 +299,7 @@ export default function ZonesToWatch({ zones, currentPrice }) {
       {/* Header */}
       <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
         <h2
-          className="text-2xl text-white/90"
+          className="text-2xl text-text-primary/90"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -308,7 +308,7 @@ export default function ZonesToWatch({ zones, currentPrice }) {
         >
           Zones to Watch
         </h2>
-        <span className="text-xs font-mono text-white/40 uppercase tracking-wider">
+        <span className="text-xs font-mono text-text-primary/40 uppercase tracking-wider">
           Demand · Fair · Supply
         </span>
       </div>
@@ -327,7 +327,7 @@ export default function ZonesToWatch({ zones, currentPrice }) {
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-white/30 font-mono leading-relaxed">
+      <p className="mt-3 text-[11px] text-text-primary/30 font-mono leading-relaxed">
         Zones are descriptive price areas where historical activity has
         clustered, not trade signals. Not financial advice.
       </p>

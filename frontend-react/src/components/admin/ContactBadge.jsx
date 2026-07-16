@@ -155,7 +155,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
             </span>
           )}
         </div>
-        <p className="text-xs text-white truncate font-mono tabular-nums">{value}</p>
+        <p className="text-xs text-text-primary truncate font-mono tabular-nums">{value}</p>
       </div>
       <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
         {deepLink && (

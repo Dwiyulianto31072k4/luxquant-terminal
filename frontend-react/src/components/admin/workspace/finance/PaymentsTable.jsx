@@ -266,7 +266,7 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       <div className="col-span-3 min-w-0 flex items-center gap-2.5">
         <Avatar name={payment.user?.username} size="sm" />
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-white truncate">
+          <p className="text-[12px] font-semibold text-text-primary truncate">
             @{payment.user?.username || 'unknown'}
           </p>
           <p className="text-[10px] truncate" style={{ color: '#6b5c52' }}>
@@ -277,7 +277,7 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
 
       {/* Plan + amount */}
       <div className="col-span-2 min-w-0">
-        <p className="text-[11.5px] font-semibold text-white truncate">
+        <p className="text-[11.5px] font-semibold text-text-primary truncate">
           {payment.plan?.name || `Plan #${payment.plan_id}`}
         </p>
         <p
@@ -393,7 +393,7 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       <div className="flex items-center gap-2.5">
         <Avatar name={payment.user?.username} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-white truncate">
+          <p className="text-[13px] font-semibold text-text-primary truncate">
             @{payment.user?.username || 'unknown'}
           </p>
           <p className="text-[10px]" style={{ color: '#6b5c52' }}>

@@ -104,7 +104,7 @@ const CardHead = ({ icon, label, right }) => (
   <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between gap-3 flex-wrap">
     <div className="flex items-center gap-2.5 min-w-0">
       <span className="w-6 h-6 flex items-center justify-center rounded-md bg-gold-primary/[0.08] text-gold-primary/80 flex-shrink-0">{icon}</span>
-      <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white truncate">{label}</h3>
+      <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary truncate">{label}</h3>
     </div>
     {right}
   </div>
@@ -200,7 +200,7 @@ const OverviewPage = () => {
 
       {/* SECTION HEADER — Market Overview (consistent w/ Top Gainers) */}
       <div className="min-w-0">
-        <h2 className="font-display text-2xl sm:text-[28px] font-bold text-white leading-none tracking-tight">
+        <h2 className="font-display text-2xl sm:text-[28px] font-bold text-text-primary leading-none tracking-tight">
           {t('overview.title')}
         </h2>
       </div>
@@ -273,11 +273,11 @@ const OverviewPage = () => {
                     <div className="pt-3 border-t border-white/[0.06] space-y-2.5">
                       <div className="flex justify-between items-center">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.alt_mcap')}</span>
-                        <span className="text-white font-mono text-sm tabular-nums">{formatLargeNumber(data.altcoinMarketCap)}</span>
+                        <span className="text-text-primary font-mono text-sm tabular-nums">{formatLargeNumber(data.altcoinMarketCap)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.eth_btc')}</span>
-                        <span className="text-white font-mono text-sm tabular-nums">{data.ethBtcRatio?.toFixed(5)}</span>
+                        <span className="text-text-primary font-mono text-sm tabular-nums">{data.ethBtcRatio?.toFixed(5)}</span>
                       </div>
                     </div>
                   </div>
@@ -465,7 +465,7 @@ const DerivativesPulseCard = ({ data, t }) => {
               return (
                 <div key={sym}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-xs text-white font-semibold">{sym}</span>
+                    <span className="font-mono text-xs text-text-primary font-semibold">{sym}</span>
                     <span className={`font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${netLong ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>
                       {netLong ? 'Net Long' : 'Net Short'}
                     </span>
@@ -506,7 +506,7 @@ const DerivativesPulseCard = ({ data, t }) => {
               <div className="space-y-1">
                 {(funding.most_long || []).slice(0, 3).map((f, i) => (
                   <div key={`l${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-sm">
-                    <span className="font-mono text-white">{f.symbol}</span>
+                    <span className="font-mono text-text-primary">{f.symbol}</span>
                     <span className="font-mono text-emerald-400 tabular-nums">+{f.rate_pct}%</span>
                   </div>
                 ))}
@@ -514,7 +514,7 @@ const DerivativesPulseCard = ({ data, t }) => {
               <div className="space-y-1">
                 {(funding.most_short || []).slice(0, 3).map((f, i) => (
                   <div key={`s${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-red-500/[0.06] border border-red-500/20 rounded-sm">
-                    <span className="font-mono text-white">{f.symbol}</span>
+                    <span className="font-mono text-text-primary">{f.symbol}</span>
                     <span className="font-mono text-red-400 tabular-nums">{f.rate_pct}%</span>
                   </div>
                 ))}
@@ -557,7 +557,7 @@ const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
   <div>
     <div className="flex justify-between items-baseline mb-1.5">
       <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</span>
-      <span className="text-white font-mono text-sm tabular-nums">{value}</span>
+      <span className="text-text-primary font-mono text-sm tabular-nums">{value}</span>
     </div>
     <div className="h-1.5 bg-white/[0.04] overflow-hidden rounded-full">
       <div
@@ -605,7 +605,7 @@ const MetricCard = ({ label, value, change, icon }) => (
     <div className="min-w-0">
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted leading-tight truncate">{label}</p>
       <div className="flex items-baseline gap-2 mt-1.5">
-        <p className="font-mono text-lg lg:text-xl font-semibold text-white tabular-nums leading-none">{value}</p>
+        <p className="font-mono text-lg lg:text-xl font-semibold text-text-primary tabular-nums leading-none">{value}</p>
         {change !== undefined && (
           <span className={`font-mono text-[10px] tabular-nums inline-flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
             {change >= 0 ? <TriUp /> : <TriDown />}{change >= 0 ? '+' : ''}{change?.toFixed(2)}%
@@ -627,12 +627,12 @@ const CoinRow = ({ coin, rank, isLoser }) => (
         onError={(e) => { e.target.style.display = 'none'; }}
       />
       <div className="min-w-0">
-        <p className="font-mono text-sm text-white group-hover:text-gold-primary transition-colors">{coin.symbol.toUpperCase()}</p>
+        <p className="font-mono text-sm text-text-primary group-hover:text-gold-primary transition-colors">{coin.symbol.toUpperCase()}</p>
         <p className="text-text-muted text-[10px] hidden sm:block truncate max-w-[140px]">{coin.name}</p>
       </div>
     </div>
     <div className="text-right flex-shrink-0">
-      <p className="font-mono text-sm text-white tabular-nums">${coin.current_price?.toLocaleString()}</p>
+      <p className="font-mono text-sm text-text-primary tabular-nums">${coin.current_price?.toLocaleString()}</p>
       <p className={`font-mono text-[11px] tabular-nums ${isLoser ? 'text-red-400' : 'text-emerald-400'}`}>
         {(coin.price_change_percentage_24h || 0) >= 0 ? '+' : ''}{(coin.price_change_percentage_24h || 0).toFixed(2)}%
       </p>
@@ -665,7 +665,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
             />
           ))}
         </div>
-        <span className="text-white text-sm truncate group-hover:text-gold-primary transition-colors">{cat.name}</span>
+        <span className="text-text-primary text-sm truncate group-hover:text-gold-primary transition-colors">{cat.name}</span>
       </div>
       <div className="relative flex items-center gap-3 flex-shrink-0">
         <span className="font-mono text-[10px] text-text-muted tabular-nums hidden sm:inline">

@@ -54,7 +54,7 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
       <InsightBand items={insights} />
 
       <Methodology title="How to read this">
-        Win rate by the hour (UTC) and weekday a signal was <span className="text-white/85">created</span>. Rows are
+        Win rate by the hour (UTC) and weekday a signal was <span className="text-text-primary/85">created</span>. Rows are
         days, columns are hours. <span className="text-gold-primary/70">Click any cell</span> to open the signals in
         that window. Bright green = strong entry timing, red = avoid; faint cells have fewer than 5 signals.
       </Methodology>
@@ -66,7 +66,7 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
             <div className="grid items-end mb-1.5" style={{ gridTemplateColumns: GRID_COLS, gap: 4 }}>
               <div />
               {HOURS.map((h) => (
-                <div key={h} className="text-center text-[9px] font-mono tabular-nums text-white/35 leading-none">
+                <div key={h} className="text-center text-[9px] font-mono tabular-nums text-text-primary/35 leading-none">
                   {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                 </div>
               ))}
@@ -76,7 +76,7 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
             <div className="flex flex-col" style={{ gap: 4 }}>
               {DOW_NAMES.map((name, dow) => (
                 <div key={dow} className="grid items-center" style={{ gridTemplateColumns: GRID_COLS, gap: 4 }}>
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-white/45 text-right pr-2 leading-none">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/45 text-right pr-2 leading-none">
                     {name}
                   </div>
                   {HOURS.map((hour) => {
@@ -120,10 +120,10 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
                       >
                         {total >= 5 && wr != null && (
                           <>
-                            <span className="font-mono tabular-nums text-[13px] text-white/95 leading-none">
+                            <span className="font-mono tabular-nums text-[13px] text-text-primary/95 leading-none">
                               {wr.toFixed(0)}
                             </span>
-                            <span className="font-mono tabular-nums text-[8px] text-white/45 leading-none mt-0.5">
+                            <span className="font-mono tabular-nums text-[8px] text-text-primary/45 leading-none mt-0.5">
                               {cell.count}
                             </span>
                           </>
@@ -138,14 +138,14 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
         </div>
 
         {/* legend */}
-        <div className="mt-5 pt-3.5 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-white/40">
+        <div className="mt-5 pt-3.5 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
           {WR_LEGEND.map((s, i) => (
             <span key={i} className="inline-flex items-center gap-1">
               <span className="w-3.5 h-3 rounded-[2px] border border-white/10" style={{ background: s.c }} />
               {s.l}
             </span>
           ))}
-          <span className="ml-2 text-white/25 normal-case tracking-normal">· big number = WR%, small = signals · shown when n ≥ 5 · click to drill</span>
+          <span className="ml-2 text-text-primary/25 normal-case tracking-normal">· big number = WR%, small = signals · shown when n ≥ 5 · click to drill</span>
         </div>
       </Panel>
     </div>

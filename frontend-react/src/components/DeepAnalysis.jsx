@@ -96,7 +96,7 @@ const dirPillClass = (dir) => {
 
 const fngColor = (val) => {
   const n = Number(val);
-  if (isNaN(n)) return 'text-white';
+  if (isNaN(n)) return 'text-text-primary';
   if (n <= 25) return 'text-red-400';
   if (n >= 75) return 'text-green-400';
   return 'text-yellow-400';
@@ -116,7 +116,7 @@ const Tag = ({ name, important = false }) => {
     if (tag.includes('GOLDEN_SETUP') || tag.includes('FVG_NEAR') || tag.includes('OB_NEAR') || tag.includes('HARMONIC_ALIGNED') || tag.includes('ALT_SEASON')) return 'bg-purple-500/15 text-purple-400 border-purple-500/30';
     if (tag.includes('RANGING') || tag.includes('NEUTRAL') || tag.includes('NORMAL') || tag.includes('UNKNOWN') || tag.includes('FLAT')) return 'bg-gray-500/15 text-gray-400 border-gray-500/30';
     if (tag.includes('FNG_EXTREME') || tag.includes('LIQ_VERY_LOW') || tag.includes('RISK_OFF')) return 'bg-red-500/10 text-red-300 border-red-500/20';
-    return 'bg-white/5 text-white/70 border-white/10';
+    return 'bg-white/5 text-text-primary/70 border-white/10';
   };
 
   return (
@@ -135,7 +135,7 @@ const Tag = ({ name, important = false }) => {
 const FactRow = ({ label, value, subtle = false }) => (
   <div className="flex items-center justify-between py-1 border-b border-white/5 last:border-b-0">
     <span className="text-[10px] text-text-muted uppercase tracking-wider">{label}</span>
-    <span className={`text-[11px] font-mono ${subtle ? 'text-white/60' : 'text-white'}`}>{value}</span>
+    <span className={`text-[11px] font-mono ${subtle ? 'text-text-primary/60' : 'text-text-primary'}`}>{value}</span>
   </div>
 );
 
@@ -167,14 +167,14 @@ const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
     .slice(0, 6);
 
   const btcChange = ctx.btc?.price_change_pct;
-  const btcColor = btcChange == null ? 'text-white' : Number(btcChange) >= 0 ? 'text-green-400' : 'text-red-400';
+  const btcColor = btcChange == null ? 'text-text-primary' : Number(btcChange) >= 0 ? 'text-green-400' : 'text-red-400';
 
   const stats = [
-    { label: 'H1 RSI', value: formatNum(h1.momentum?.rsi, 1), sub: h1.momentum?.rsi_state, color: 'text-white' },
-    { label: 'H1 ADX', value: formatNum(h1.trend?.adx, 1), sub: h1.trend?.trend_strength, color: 'text-white' },
+    { label: 'H1 RSI', value: formatNum(h1.momentum?.rsi, 1), sub: h1.momentum?.rsi_state, color: 'text-text-primary' },
+    { label: 'H1 ADX', value: formatNum(h1.trend?.adx, 1), sub: h1.trend?.trend_strength, color: 'text-text-primary' },
     { label: 'BTC 24h', value: formatPct(btcChange), sub: `dom ${formatNum(ctx.btc?.dominance, 1)}%`, color: btcColor },
     { label: 'Fear & Greed', value: ctx.fng?.value ?? '—', sub: ctx.fng?.classification, color: fngColor(ctx.fng?.value) },
-    { label: 'Volatility', value: ctx.environment?.volatility_regime || '?', sub: `ATR P${formatNum(ctx.environment?.atr_percentile_h4, 0)}`, color: 'text-white' },
+    { label: 'Volatility', value: ctx.environment?.volatility_regime || '?', sub: `ATR P${formatNum(ctx.environment?.atr_percentile_h4, 0)}`, color: 'text-text-primary' },
   ];
 
   return (
@@ -201,7 +201,7 @@ const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
           <div key={i} className="bg-[#0d0d0d]/70 rounded-lg border border-white/5 px-2.5 py-2">
             <p className="text-[8px] uppercase tracking-wider text-text-muted">{s.label}</p>
             <p className={`text-sm font-mono font-bold leading-tight ${s.color}`}>{s.value}</p>
-            {s.sub && <p className="text-[8px] text-white/40 truncate">{s.sub}</p>}
+            {s.sub && <p className="text-[8px] text-text-primary/40 truncate">{s.sub}</p>}
           </div>
         ))}
       </div>
@@ -604,7 +604,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                   <CoinLogo pair={pair} size={30} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-white font-display text-sm font-semibold truncate">{pair}</h2>
+                      <h2 className="text-text-primary font-display text-sm font-semibold truncate">{pair}</h2>
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0 ${dirPillClass(signalDir)}`}>
                         {signalDir}
                       </span>
@@ -629,7 +629,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                             <button
                               key={opt.id}
                               onClick={() => handleCopy(opt.id)}
-                              className="block w-full text-left px-3 py-2 text-[11px] text-white hover:bg-gold-primary/10 transition"
+                              className="block w-full text-left px-3 py-2 text-[11px] text-text-primary hover:bg-gold-primary/10 transition"
                             >
                               {opt.label}
                             </button>
@@ -646,7 +646,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
                   <button
                     onClick={handleClose}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -666,7 +666,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                     className={`flex-1 px-3 py-2 text-[11px] font-semibold transition border-b-2 ${
                       activeTab === tab.id
                         ? 'border-gold-primary text-gold-primary'
-                        : 'border-transparent text-text-muted hover:text-white'
+                        : 'border-transparent text-text-muted hover:text-text-primary'
                     }`}
                   >
                     {tab.label}
@@ -681,7 +681,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                 <button
                   onClick={() => setShowLive(false)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition ${
-                    !showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-white'
+                    !showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-text-primary'
                   }`}
                 >
                   Entry snapshot
@@ -689,7 +689,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                 <button
                   onClick={() => setShowLive(true)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition ${
-                    showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-white'
+                    showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-text-primary'
                   }`}
                 >
                   Live ({timeAgo(v3Data.live_updated_at)})

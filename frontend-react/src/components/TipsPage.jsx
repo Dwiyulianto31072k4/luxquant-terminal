@@ -104,7 +104,7 @@ const TipsPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h2 className="font-display text-2xl font-semibold text-white">{t('tips.title')}</h2>
+          <h2 className="font-display text-2xl font-semibold text-text-primary">{t('tips.title')}</h2>
           <span className="px-2 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded">
             {tips.length} {t('tips.modules')}
           </span>
@@ -139,7 +139,7 @@ const TipsPage = () => {
                 placeholder={t('tips.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-bg-card border border-gold-primary/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors"
+                className="w-full bg-bg-card border border-gold-primary/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors"
               />
             </div>
           </form>
@@ -151,7 +151,7 @@ const TipsPage = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeCategory === 'all'
                   ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30'
-                  : 'bg-bg-card text-text-muted border border-white/5 hover:text-white hover:border-gold-primary/20'
+                  : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-gold-primary/20'
               }`}
             >
               {t('tips.all')}
@@ -163,7 +163,7 @@ const TipsPage = () => {
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeCategory === cat
                     ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30'
-                    : 'bg-bg-card text-text-muted border border-white/5 hover:text-white hover:border-gold-primary/20'
+                    : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-gold-primary/20'
                 }`}
               >
                 {cat === 'General' ? t('tips.general') : cat}
@@ -260,7 +260,7 @@ const TipsPage = () => {
 
                 {/* Content */}
                 <div className="p-4">
-                  <h3 className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
+                  <h3 className="text-text-primary font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
                     {tip.title}
                   </h3>
                   {tip.description && (
@@ -322,12 +322,12 @@ const TipsPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
-            <h3 className="text-white font-semibold text-center mb-2">{t('tips.del_confirm_title')}</h3>
+            <h3 className="text-text-primary font-semibold text-center mb-2">{t('tips.del_confirm_title')}</h3>
             <p className="text-text-muted text-sm text-center mb-5">{t('tips.del_confirm_desc')}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-white transition-colors"
+                className="flex-1 py-2.5 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors"
               >
                 {t('tips.cancel')}
               </button>
@@ -404,7 +404,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onClose}
-              className="p-2 -ml-1 text-text-muted hover:text-white hover:bg-white/5 rounded-xl transition-all flex items-center gap-2"
+              className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-xl transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -418,7 +418,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
               </svg>
             </div>
             <div className="min-w-0">
-              <h3 className="text-white font-semibold text-sm truncate">{tip.title}</h3>
+              <h3 className="text-text-primary font-semibold text-sm truncate">{tip.title}</h3>
               <p className="text-text-muted text-[10px]">{tip.category === 'General' ? t('tips.general') : tip.category}</p>
             </div>
           </div>
@@ -553,10 +553,10 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gold-primary/10">
-          <h3 className="text-white font-semibold text-base">
+          <h3 className="text-text-primary font-semibold text-base">
             {isEdit ? t('tips.edit_module_title') : t('tips.upload_new_title')}
           </h3>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-white/5 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -571,7 +571,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('tips.form_title_ph')}
-              className="w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors"
+              className="w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors"
               required
             />
           </div>
@@ -583,7 +583,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('tips.form_desc_ph')}
               rows={3}
-              className="w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors resize-none"
+              className="w-full bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors resize-none"
             />
           </div>
 
@@ -593,7 +593,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
               <select
                 value={category}
                 onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }}
-                className="flex-1 bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-gold-primary/40 transition-colors"
+                className="flex-1 bg-bg-card border border-gold-primary/15 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors"
               >
                 <option value="General">{t('tips.general')}</option>
                 {categories.map(c => (
@@ -605,7 +605,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder={t('tips.or_new')}
-                className="w-28 bg-bg-card border border-gold-primary/15 rounded-xl px-3 py-3 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors"
+                className="w-28 bg-bg-card border border-gold-primary/15 rounded-xl px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors"
               />
             </div>
           </div>
@@ -621,7 +621,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
                 </svg>
               </div>
               <div className="min-w-0">
-                <p className="text-white text-sm font-medium truncate">
+                <p className="text-text-primary text-sm font-medium truncate">
                   {pdfFile ? pdfFile.name : isEdit ? `${t('tips.current_pdf')} ${tip.pdf_path}` : t('tips.choose_pdf')}
                 </p>
                 <p className="text-text-muted text-[10px]">
@@ -647,7 +647,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
+                  <p className="text-text-primary text-sm font-medium truncate">
                     {coverFile ? coverFile.name : t('tips.choose_cover')}
                   </p>
                   <p className="text-text-muted text-[10px]">{t('tips.cover_req')}</p>
@@ -677,7 +677,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-white transition-colors"
+              className="flex-1 py-3 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors"
             >
               {t('tips.cancel')}
             </button>

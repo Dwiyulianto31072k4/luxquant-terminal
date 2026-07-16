@@ -127,7 +127,7 @@ const NotificationSettings = ({ t, navigate }) => {
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white mb-1">
+              <p className="text-sm font-semibold text-text-primary mb-1">
                 Connect Telegram to receive alerts there
               </p>
               <p className="text-xs text-text-muted leading-relaxed">

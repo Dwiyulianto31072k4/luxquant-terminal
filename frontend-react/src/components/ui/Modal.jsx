@@ -183,7 +183,7 @@ export default function Modal({
           <button
             onClick={requestClose}
             aria-label="Close"
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-white"
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -204,7 +204,7 @@ export default function Modal({
             {(icon || title) ? (
               <div className={`flex items-center gap-3 ${eyebrow ? "mt-3" : ""}`}>
                 {icon ? <span className="flex-shrink-0">{icon}</span> : null}
-                {title ? <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2> : null}
+                {title ? <h2 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h2> : null}
               </div>
             ) : null}
             {subtitle ? <p className="mt-2 text-sm leading-6 text-text-muted">{subtitle}</p> : null}

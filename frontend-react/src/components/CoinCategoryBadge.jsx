@@ -215,7 +215,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
 
       {/* Pill 2: Sector (subtle, secondary) */}
       {sectorLabel && (
-        <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-white/[0.04] text-white/60 border-white/10">
+        <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-white/[0.04] text-text-primary/60 border-white/10">
           {sectorLabel}
         </span>
       )}

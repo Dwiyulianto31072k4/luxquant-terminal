@@ -27,26 +27,26 @@ const formatPct = (val, withSign = true) => {
 
 const SectionHeader = ({ icon, title, sample }) => (
   <div className="flex items-center justify-between mb-2">
-    <p className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-wider font-medium flex items-center gap-1.5">
+    <p className="text-text-primary/40 text-[9px] sm:text-[10px] uppercase tracking-wider font-medium flex items-center gap-1.5">
       <span>{icon}</span>
       <span>{title}</span>
     </p>
     {sample !== undefined && sample !== null && (
-      <span className="text-[9px] text-white/30 font-mono">n={sample}</span>
+      <span className="text-[9px] text-text-primary/30 font-mono">n={sample}</span>
     )}
   </div>
 );
 
-const StatPill = ({ label, value, valueColor = "text-white", sublabel }) => (
+const StatPill = ({ label, value, valueColor = "text-text-primary", sublabel }) => (
   <div className="flex-1 min-w-[100px] bg-white/[0.02] border border-white/5 rounded-lg px-2.5 py-2">
-    <p className="text-[9px] text-white/40 uppercase tracking-wider font-medium mb-0.5">
+    <p className="text-[9px] text-text-primary/40 uppercase tracking-wider font-medium mb-0.5">
       {label}
     </p>
     <p className={`text-sm sm:text-base font-bold font-mono ${valueColor}`}>
       {value}
     </p>
     {sublabel && (
-      <p className="text-[9px] text-white/40 mt-0.5">{sublabel}</p>
+      <p className="text-[9px] text-text-primary/40 mt-0.5">{sublabel}</p>
     )}
   </div>
 );
@@ -57,7 +57,7 @@ const Cell = ({ children, className = "" }) => (
 );
 
 const TableHeader = ({ children, className = "" }) => (
-  <th className={`px-2 py-1.5 text-[9px] text-white/40 uppercase tracking-wider font-medium text-left ${className}`}>
+  <th className={`px-2 py-1.5 text-[9px] text-text-primary/40 uppercase tracking-wider font-medium text-left ${className}`}>
     {children}
   </th>
 );
@@ -117,11 +117,11 @@ const JourneyInsightsSection = ({ pair }) => {
     if (data.reason === "insufficient_data") {
       return (
         <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
-          <p className="text-white/40 text-[10px] uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
+          <p className="text-text-primary/40 text-[10px] uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
             <span>📊</span>
             <span>Behavior Insights</span>
           </p>
-          <p className="text-white/40 text-xs">
+          <p className="text-text-primary/40 text-xs">
             Need at least {data.min_required} signals to surface patterns.
             Currently {data.sample_size} available.
           </p>
@@ -182,7 +182,7 @@ const JourneyInsightsSection = ({ pair }) => {
           <StatPill
             label="Avg Time to TP1"
             value={entry_behavior?.avg_time_to_tp1_human || "—"}
-            valueColor="text-white"
+            valueColor="text-text-primary"
             sublabel="from entry"
           />
           <StatPill
@@ -214,10 +214,10 @@ const JourneyInsightsSection = ({ pair }) => {
               {time_to_each_tp?.map((row) => (
                 <tr key={row.tp} className="border-b border-white/[0.03] last:border-0">
                   <Cell>
-                    <span className="text-[11px] font-bold text-white">{row.tp}</span>
+                    <span className="text-[11px] font-bold text-text-primary">{row.tp}</span>
                   </Cell>
                   <Cell>
-                    <span className="text-[11px] font-mono text-white">
+                    <span className="text-[11px] font-mono text-text-primary">
                       {row.avg_human || "—"}
                     </span>
                   </Cell>
@@ -232,7 +232,7 @@ const JourneyInsightsSection = ({ pair }) => {
                     </span>
                   </Cell>
                   <Cell className="text-right">
-                    <span className="text-[10px] font-mono text-white/40">
+                    <span className="text-[10px] font-mono text-text-primary/40">
                       {row.sample_size}
                     </span>
                   </Cell>
@@ -262,20 +262,20 @@ const JourneyInsightsSection = ({ pair }) => {
               {drawdown_before_each_tp?.map((row) => (
                 <tr key={row.phase} className="border-b border-white/[0.03] last:border-0">
                   <Cell>
-                    <span className="text-[11px] font-medium text-white/80">{row.phase}</span>
+                    <span className="text-[11px] font-medium text-text-primary/80">{row.phase}</span>
                   </Cell>
                   <Cell>
-                    <span className={`text-[11px] font-mono ${row.avg_dd_pct < 0 ? "text-red-400" : "text-white/40"}`}>
+                    <span className={`text-[11px] font-mono ${row.avg_dd_pct < 0 ? "text-red-400" : "text-text-primary/40"}`}>
                       {row.avg_dd_pct !== null ? formatPct(row.avg_dd_pct) : "—"}
                     </span>
                   </Cell>
                   <Cell>
-                    <span className={`text-[11px] font-mono ${row.worst_dd_pct < 0 ? "text-red-500" : "text-white/40"}`}>
+                    <span className={`text-[11px] font-mono ${row.worst_dd_pct < 0 ? "text-red-500" : "text-text-primary/40"}`}>
                       {row.worst_dd_pct !== null ? formatPct(row.worst_dd_pct) : "—"}
                     </span>
                   </Cell>
                   <Cell className="text-right">
-                    <span className="text-[10px] font-mono text-white/40">
+                    <span className="text-[10px] font-mono text-text-primary/40">
                       {row.sample_size}
                     </span>
                   </Cell>
@@ -284,7 +284,7 @@ const JourneyInsightsSection = ({ pair }) => {
             </tbody>
           </table>
         </div>
-        <p className="text-[9px] text-white/30 mt-2">
+        <p className="text-[9px] text-text-primary/30 mt-2">
           DD = how far price dipped during each phase (negative = adverse from trader perspective)
         </p>
       </div>
@@ -325,7 +325,7 @@ const JourneyInsightsSection = ({ pair }) => {
                 return (
                   <tr key={row.tp} className="border-b border-white/[0.03] last:border-0">
                     <Cell>
-                      <span className={`text-[11px] font-bold ${isSL ? "text-red-300" : "text-white"}`}>{row.tp}</span>
+                      <span className={`text-[11px] font-bold ${isSL ? "text-red-300" : "text-text-primary"}`}>{row.tp}</span>
                     </Cell>
                     <Cell>
                       <div className="flex items-center gap-2">
@@ -341,7 +341,7 @@ const JourneyInsightsSection = ({ pair }) => {
                       </div>
                     </Cell>
                     <Cell>
-                      <span className="text-[11px] font-mono text-white/60">
+                      <span className="text-[11px] font-mono text-text-primary/60">
                         {row.hit_count}/{row.total_count}
                       </span>
                     </Cell>

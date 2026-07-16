@@ -78,7 +78,7 @@ export const ContactReachPanel = ({
       >
         <div className="flex items-center gap-2 min-w-0">
           <BroadcastIcon size={14} style={{ color: palette.gold[300] }} />
-          <h3 className="text-xs font-bold text-white tracking-tight">Contact Reach</h3>
+          <h3 className="text-xs font-bold text-text-primary tracking-tight">Contact Reach</h3>
           <span
             className="text-[10px] tabular-nums px-1.5 py-0.5 rounded-full"
             style={{

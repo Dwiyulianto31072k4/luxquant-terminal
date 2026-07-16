@@ -82,11 +82,11 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: d.color }}
             />
-            <span className="text-[10px] text-white/70">{d.label}</span>
-            <span className="text-[10px] font-mono font-semibold text-white">
+            <span className="text-[10px] text-text-primary/70">{d.label}</span>
+            <span className="text-[10px] font-mono font-semibold text-text-primary">
               {d.value}
             </span>
-            <span className="text-[9px] text-white/40">
+            <span className="text-[9px] text-text-primary/40">
               ({((d.value / total) * 100).toFixed(0)}%)
             </span>
           </div>
@@ -99,18 +99,18 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
 // ════════════════════════════════════════
 // Stat Card
 // ════════════════════════════════════════
-const StatCard = ({ label, value, sub, color = "text-white", icon }) => (
+const StatCard = ({ label, value, sub, color = "text-text-primary", icon }) => (
   <div className="bg-[#111]/80 rounded-lg p-2.5 border border-white/5 flex-1 min-w-[100px]">
     <div className="flex items-center gap-1.5 mb-1">
       {icon && <span className="text-xs">{icon}</span>}
-      <p className="text-[9px] text-white/40 uppercase tracking-wider font-medium">
+      <p className="text-[9px] text-text-primary/40 uppercase tracking-wider font-medium">
         {label}
       </p>
     </div>
     <p className={`text-base sm:text-lg font-bold font-mono ${color}`}>
       {value}
     </p>
-    {sub && <p className="text-[9px] text-white/50 mt-0.5">{sub}</p>}
+    {sub && <p className="text-[9px] text-text-primary/50 mt-0.5">{sub}</p>}
   </div>
 );
 
@@ -155,7 +155,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
   const style = outcomeStyles[outcome] || {
     bg: "bg-white/[0.02]",
     border: "border-white/5",
-    text: "text-white/50",
+    text: "text-text-primary/50",
     badge: "bg-gray-500",
   };
   const isOpen = !outcome;
@@ -197,7 +197,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
       {/* Top Row: Date + Outcome + Gain */}
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[10px] text-white/50 font-mono">
+          <span className="text-[10px] text-text-primary/50 font-mono">
             {formatDate(call.created_at)}
           </span>
           {isCurrentSignal && (
@@ -208,7 +208,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {call.duration && (
-            <span className="text-[9px] text-white/30 font-mono flex items-center gap-0.5">
+            <span className="text-[9px] text-text-primary/30 font-mono flex items-center gap-0.5">
               {Ic.clock("w-2.5 h-2.5")} {call.duration}
             </span>
           )}
@@ -218,7 +218,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
             </span>
           ) : (
             <span
-              className={`text-[9px] px-1.5 py-0.5 rounded font-bold text-white ${style.badge}`}
+              className={`text-[9px] px-1.5 py-0.5 rounded font-bold text-text-primary ${style.badge}`}
             >
               {outcome?.toUpperCase()}
             </span>
@@ -237,8 +237,8 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
       {/* Bottom Row: Entry + Targets + Risk */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <span className="text-[9px] text-white/30">Entry</span>
-          <span className="text-[10px] font-mono text-white/80">
+          <span className="text-[9px] text-text-primary/30">Entry</span>
+          <span className="text-[10px] font-mono text-text-primary/80">
             ${formatPrice(call.entry)}
           </span>
         </div>
@@ -257,7 +257,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
           </span>
         )}
         {call.market_cap && (
-          <span className="text-[8px] text-white/25 font-mono">
+          <span className="text-[8px] text-text-primary/25 font-mono">
             {call.market_cap}
           </span>
         )}
@@ -381,10 +381,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           <div className="flex justify-center mb-3 text-amber-400">
             {Ic.warn("w-8 h-8")}
           </div>
-          <p className="text-white/60 text-sm mb-2">
+          <p className="text-text-primary/60 text-sm mb-2">
             Failed to load history for {coinSymbol}
           </p>
-          <p className="text-white/30 text-xs mb-4">{error}</p>
+          <p className="text-text-primary/30 text-xs mb-4">{error}</p>
           <button
             onClick={() => fetchProfile(callLimit)}
             className="px-4 py-2 bg-gold-primary/10 text-gold-primary text-xs font-semibold rounded-lg border border-gold-primary/20 hover:bg-gold-primary/20 transition-all"
@@ -419,10 +419,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         <div className="flex items-center gap-3">
           <CoinLogo pair={pair} size={32} />
           <div>
-            <h3 className="text-white font-display text-sm sm:text-base font-semibold">
+            <h3 className="text-text-primary font-display text-sm sm:text-base font-semibold">
               {coinSymbol} Signal History
             </h3>
-            <p className="text-white/40 text-[10px] sm:text-xs">
+            <p className="text-text-primary/40 text-[10px] sm:text-xs">
               {stats.total_signals} total signals · Since{" "}
               {stats.first_signal
                 ? new Date(stats.first_signal).toLocaleDateString("en-GB", {
@@ -444,7 +444,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             sub={`${stats.closed_trades} closed trades`}
           />
           <StatCard
-            icon={Ic.bars("w-3.5 h-3.5 text-white/50")}
+            icon={Ic.bars("w-3.5 h-3.5 text-text-primary/50")}
             label="Total Signals"
             value={stats.total_signals}
             sub={
@@ -466,7 +466,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
                 ? "text-green-400"
                 : stats.avg_gain_pct < 0
                   ? "text-red-400"
-                  : "text-white/60"
+                  : "text-text-primary/60"
             }
             sub={
               stats.best_gain_pct != null && stats.worst_loss_pct != null
@@ -478,7 +478,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             icon={streakIcon}
             label="Current Streak"
             value={stats.streak ? `${stats.streak} ${stats.streak_type}` : "-"}
-            color={stats.streak ? streakColor : "text-white/40"}
+            color={stats.streak ? streakColor : "text-text-primary/40"}
             sub={(() => {
               const rd = stats.risk_distribution;
               if (!rd) return null;
@@ -494,7 +494,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
 
         {/* ── TP Breakdown ── */}
         <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
-          <p className="text-white/40 text-[9px] uppercase tracking-wider font-medium mb-3 flex items-center gap-1.5">
+          <p className="text-text-primary/40 text-[9px] uppercase tracking-wider font-medium mb-3 flex items-center gap-1.5">
             {Ic.target("w-3 h-3")} Outcome Distribution
           </p>
           <TpDonutChart
@@ -522,7 +522,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
       ${
         callLimit === (n === "All" ? 9999 : n)
           ? "bg-gold-primary text-black"
-          : "text-white/40 hover:text-white/70 hover:bg-white/5"
+          : "text-text-primary/40 hover:text-text-primary/70 hover:bg-white/5"
       }`}
               >
                 {n}
@@ -535,10 +535,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         <div className="space-y-2">
           {past_calls.length === 0 ? (
             <div className="text-center py-8">
-              <div className="flex justify-center mb-2 text-white/30">
+              <div className="flex justify-center mb-2 text-text-primary/30">
                 {Ic.inbox("w-7 h-7")}
               </div>
-              <p className="text-white/40 text-xs">
+              <p className="text-text-primary/40 text-xs">
                 No other signals found for {coinSymbol}
               </p>
             </div>
@@ -589,13 +589,13 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
                       ? "Average Performer"
                       : "Underperformer"}
                 </p>
-                <p className="text-[10px] sm:text-[11px] text-white/50 leading-relaxed">
+                <p className="text-[10px] sm:text-[11px] text-text-primary/50 leading-relaxed">
                   {coinSymbol} has a{" "}
-                  <span className="text-white/80 font-semibold">
+                  <span className="text-text-primary/80 font-semibold">
                     {stats.win_rate}%
                   </span>{" "}
                   win rate across{" "}
-                  <span className="text-white/80 font-semibold">
+                  <span className="text-text-primary/80 font-semibold">
                     {stats.closed_trades}
                   </span>{" "}
                   closed trades.
@@ -603,7 +603,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
                     <>
                       {" "}
                       Average R:R is{" "}
-                      <span className="text-white/80 font-semibold">
+                      <span className="text-text-primary/80 font-semibold">
                         1:{stats.avg_rr}
                       </span>
                       .

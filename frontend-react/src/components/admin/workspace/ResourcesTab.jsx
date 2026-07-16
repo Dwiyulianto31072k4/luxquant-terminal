@@ -134,14 +134,14 @@ export const ResourcesTab = () => {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/30">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search resources…"
-            className="w-full rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none"
+            className="w-full rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-white/30 focus:outline-none"
             style={{ background: surface.sunken.bg, border: `1px solid ${surface.sunken.border}` }}
           />
         </div>
@@ -176,7 +176,7 @@ export const ResourcesTab = () => {
             <thead>
               <tr className="text-left" style={{ background: surface.raised.bg }}>
                 {['Resource', 'Type', 'Category', 'Status', 'Featured', 'Date', ''].map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40 whitespace-nowrap">{h}</th>
+                  <th key={i} className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-text-primary/40 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -188,7 +188,7 @@ export const ResourcesTab = () => {
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-white/40 text-sm">No resources match this view.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-text-primary/40 text-sm">No resources match this view.</td></tr>
               ) : (
                 filtered.map((r) => {
                   const tm = TYPE_META[r.type] || TYPE_META.article;
@@ -201,13 +201,13 @@ export const ResourcesTab = () => {
                             {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : null}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-white font-medium truncate">{r.title}</div>
-                            {r.author_name && <div className="text-[11px] text-white/40 truncate">{r.author_name}</div>}
+                            <div className="text-text-primary font-medium truncate">{r.title}</div>
+                            {r.author_name && <div className="text-[11px] text-text-primary/40 truncate">{r.author_name}</div>}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3"><Pill color={tm.color}>{tm.label}</Pill></td>
-                      <td className="px-4 py-3 text-white/60 whitespace-nowrap">{r.category}</td>
+                      <td className="px-4 py-3 text-text-primary/60 whitespace-nowrap">{r.category}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => togglePublish(r)} disabled={busy} title="Toggle publish">
                           <Pill color={r.status === 'published' ? palette.green[400] : palette.amber[400]}>
@@ -220,7 +220,7 @@ export const ResourcesTab = () => {
                           {r.is_featured ? '★' : '☆'}
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-white/40 text-xs whitespace-nowrap">{fmtDate(r.published_at || r.created_at)}</td>
+                      <td className="px-4 py-3 text-text-primary/40 text-xs whitespace-nowrap">{fmtDate(r.published_at || r.created_at)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <button onClick={() => setEditing(r)} className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-500/10" title="Edit">
@@ -255,10 +255,10 @@ export const ResourcesTab = () => {
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
               <div className="h-1 w-10 rounded-full bg-white/25" />
             </div>
-            <h3 className="text-white font-semibold text-center mb-2">Delete resource?</h3>
-            <p className="text-white/50 text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
+            <h3 className="text-text-primary font-semibold text-center mb-2">Delete resource?</h3>
+            <p className="text-text-primary/50 text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-text-primary/70 hover:text-text-primary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-2.5 rounded-xl text-sm font-bold" style={{ background: tint(palette.red[400], 0.2), color: palette.red[400], border: `1px solid ${tint(palette.red[400], 0.3)}` }}>Delete</button>
             </div>
           </div>

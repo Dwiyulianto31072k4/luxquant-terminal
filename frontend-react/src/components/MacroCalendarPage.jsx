@@ -266,7 +266,7 @@ const MacroCalendarPage = () => {
         </p>
         <button
           onClick={loadEvents}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-text-muted hover:text-white font-mono text-[10px] uppercase tracking-wider transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-text-muted hover:text-text-primary font-mono text-[10px] uppercase tracking-wider transition-colors"
         >
           <IconRefresh />
           {t('calendar.refresh')}
@@ -287,8 +287,8 @@ const MacroCalendarPage = () => {
               onClick={() => setActiveTab(tab.key)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap ${
                 active
-                  ? "bg-white/10 text-white border border-white/[0.08]"
-                  : "text-text-muted hover:text-white border border-transparent hover:bg-white/[0.03]"
+                  ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                  : "text-text-muted hover:text-text-primary border border-transparent hover:bg-white/[0.03]"
               }`}
             >
               <Icon active={active} />
@@ -328,7 +328,7 @@ const MacroCalendarPage = () => {
                 <p className="font-mono text-[9px] uppercase tracking-wider text-loss/80 mb-0.5">
                   {isZh ? '下个高影响' : 'Next High Impact'}
                 </p>
-                <p className="text-white text-[12px] truncate">{getTitle(nextHighImpact)}</p>
+                <p className="text-text-primary text-[12px] truncate">{getTitle(nextHighImpact)}</p>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
                   {nextHighImpact.type === 'macro' ? FLAG[nextHighImpact.country] : ''}{' '}
                   <span className="tabular-nums">{nextHighImpact.symbol || nextHighImpact.country} · {fmtTime(nextHighImpact.date)}</span>
@@ -357,8 +357,8 @@ const MacroCalendarPage = () => {
                 onClick={() => setSelectedImpact(impact)}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   active
-                    ? "bg-white/10 text-white border border-white/[0.08]"
-                    : "bg-white/[0.03] text-text-muted hover:text-white hover:bg-white/[0.06] border border-white/[0.04]"
+                    ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                    : "bg-white/[0.03] text-text-muted hover:text-text-primary hover:bg-white/[0.06] border border-white/[0.04]"
                 }`}
               >
                 {cfg && (
@@ -521,13 +521,13 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
             Today
           </span>
         )}
-        <span className="text-white text-[12px] whitespace-nowrap">
+        <span className="text-text-primary text-[12px] whitespace-nowrap">
           {weekday && (
             <span className={`font-mono uppercase tracking-wider mr-1.5 ${isToday ? 'text-gold-primary' : 'text-text-muted/70'}`}>
               {weekday},
             </span>
           )}
-          <span className="text-white">{dateLabel}</span>
+          <span className="text-text-primary">{dateLabel}</span>
         </span>
         <div className="flex-1" />
         <div className="flex items-center gap-1.5 shrink-0">
@@ -686,7 +686,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
             style={{ background: impactCfg.dot }}
           />
           {/* Title */}
-          <p className={`text-[12px] truncate ${isPast ? 'text-text-muted/40' : 'text-white'}`}>
+          <p className={`text-[12px] truncate ${isPast ? 'text-text-muted/40' : 'text-text-primary'}`}>
             {getTitle(event)}
           </p>
           {/* Symbol */}
@@ -728,7 +728,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
                 style={{ background: impactCfg.dot }}
               />
             </div>
-            <p className={`text-[12px] leading-snug ${isPast ? 'text-text-muted/40' : 'text-white'}`}>
+            <p className={`text-[12px] leading-snug ${isPast ? 'text-text-muted/40' : 'text-text-primary'}`}>
               {getTitle(event)}
             </p>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap font-mono tabular-nums">
@@ -836,7 +836,7 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
     profit: "text-profit",
     loss: "text-loss",
     gold: "text-gold-primary",
-    default: "text-white",
+    default: "text-text-primary",
   };
   return (
     <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-3 relative overflow-hidden">

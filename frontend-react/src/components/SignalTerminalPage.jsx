@@ -290,7 +290,7 @@ export default function SignalTerminalPage() {
       <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-4 relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         {model.length === 0 ? (
-          <div className="h-[360px] flex items-center justify-center font-mono text-xs text-white/40">
+          <div className="h-[360px] flex items-center justify-center font-mono text-xs text-text-primary/40">
             {loading ? "Loading signals…" : "No signals match the current filters."}
           </div>
         ) : view === "treemap" ? (
@@ -309,8 +309,8 @@ export default function SignalTerminalPage() {
       {/* Screener */}
       <Screener model={model} onPick={pick} />
 
-      <p className="font-mono text-[10px] text-white/30 leading-relaxed border-t border-white/[0.06] pt-3">
-        Filters mirror Potential Trades (shared <span className="text-white/50">signalFilters</span> util). Live data via Binance Futures proxy.
+      <p className="font-mono text-[10px] text-text-primary/30 leading-relaxed border-t border-white/[0.06] pt-3">
+        Filters mirror Potential Trades (shared <span className="text-text-primary/50">signalFilters</span> util). Live data via Binance Futures proxy.
         Derivative panels (funding heatmap, open interest, long/short) light up once the per-pair fapi endpoints are extended (Tier 2).
       </p>
     </div>
@@ -343,11 +343,11 @@ const ST_META = {
 function SignalDetailModal({ d, onClose, onFull }) {
   if (!d) return null;
   const st = ST_META[d.status] || { label: (d.status || "—").toUpperCase(), color: "#9ca3af", desc: "" };
-  const sign = (v) => (v == null ? "text-white/90" : v >= 0 ? "text-positive" : "text-negative");
+  const sign = (v) => (v == null ? "text-text-primary/90" : v >= 0 ? "text-positive" : "text-negative");
   const Stat = ({ label, val, tone }) => (
     <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-3 py-2.5">
       <div className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
-      <div className={`font-mono tabular-nums text-[15px] mt-1 ${tone || "text-white/90"}`}>{val}</div>
+      <div className={`font-mono tabular-nums text-[15px] mt-1 ${tone || "text-text-primary/90"}`}>{val}</div>
     </div>
   );
   return (
@@ -362,15 +362,15 @@ function SignalDetailModal({ d, onClose, onFull }) {
           <CoinLogo pair={d.pair} size={38} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[18px] text-white font-semibold leading-none">{d.sym}</span>
+              <span className="text-[18px] text-text-primary font-semibold leading-none">{d.sym}</span>
               <span className="font-mono text-[11px] text-text-muted">{d.pair}</span>
             </div>
             <div className="mt-1.5 flex items-center gap-1.5">
-              {d.risk && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-white/15 text-white/60">{d.risk} risk</span>}
+              {d.risk && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-white/15 text-text-primary/60">{d.risk} risk</span>}
               {d.decoupled && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-gold-primary/30 text-gold-primary">btc-decoupled</span>}
             </div>
           </div>
-          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-white hover:border-white/25">✕</button>
+          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-text-primary hover:border-white/25">✕</button>
         </div>
 
         {/* status banner */}
@@ -401,7 +401,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
 
         <div className="px-5 py-4 mt-4 border-t border-white/[0.06] flex items-center gap-2">
           <button onClick={onFull} className="flex-1 rounded-xl bg-gold-primary text-[#17110a] font-semibold text-[13px] py-2.5 hover:brightness-105 transition-colors">Open full signal →</button>
-          <button onClick={onClose} className="rounded-xl border border-white/12 text-white/70 text-[13px] px-4 py-2.5 hover:border-white/25 transition-colors">Close</button>
+          <button onClick={onClose} className="rounded-xl border border-white/12 text-text-primary/70 text-[13px] px-4 py-2.5 hover:border-white/25 transition-colors">Close</button>
         </div>
       </div>
     </div>
@@ -412,9 +412,9 @@ function SignalDetailModal({ d, onClose, onFull }) {
 function Enc({ label, value, onChange }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-white/35">{label}</span>
+      <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-[11px] text-white/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        className="appearance-none bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
         {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-[#0a0506]">{m.lbl}</option>)}
       </select>
     </label>
@@ -423,14 +423,14 @@ function Enc({ label, value, onChange }) {
 
 // ── Filter bar ──
 function FilterBar({ filters, setF }) {
-  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-white/55 border-white/[0.1] bg-[#0c0a07] hover:border-white/20"}`;
-  const sel = "appearance-none bg-[#0c0a07] border border-white/[0.1] rounded-lg font-mono text-xs text-white/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
+  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-text-primary/55 border-white/[0.1] bg-[#0c0a07] hover:border-white/20"}`;
+  const sel = "appearance-none bg-[#0c0a07] border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
   return (
     <div className="sticky top-0 z-30 bg-[#0a0806] border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
       <div className="relative">
-        <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-white/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+        <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-text-primary/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
         <input value={filters.searchPair} onChange={(e) => setF({ searchPair: e.target.value })} placeholder="Search pair…"
-          className="bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-xs text-white pl-8 pr-3 py-2 w-40 focus:outline-none focus:border-gold-primary/40" />
+          className="bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-xs text-text-primary pl-8 pr-3 py-2 w-40 focus:outline-none focus:border-gold-primary/40" />
       </div>
       <select className={sel} value={filters.statusFilter} onChange={(e) => setF({ statusFilter: e.target.value })}>
         <option value="all">All Status</option><option value="open">Open</option><option value="tp1">TP1</option><option value="tp2">TP2</option><option value="tp3">TP3</option><option value="closed_win">TP4 / Win</option><option value="closed_loss">Loss</option>
@@ -444,7 +444,7 @@ function FilterBar({ filters, setF }) {
       <div className={chip(filters.verdictFilter === "worth_it")} onClick={() => setF({ verdictFilter: filters.verdictFilter === "worth_it" ? "all" : "worth_it" })}>✓ Worth It</div>
       <div className={chip(filters.verdictFilter === "avoid")} onClick={() => setF({ verdictFilter: filters.verdictFilter === "avoid" ? "all" : "avoid" })}>⛔ Avoid</div>
       <div className="flex-1" />
-      <button onClick={() => setF({ ...DEFAULT_FILTERS })} className="font-mono text-[10px] uppercase tracking-wide text-white/50 hover:text-red-400 px-2 py-2">✕ Reset</button>
+      <button onClick={() => setF({ ...DEFAULT_FILTERS })} className="font-mono text-[10px] uppercase tracking-wide text-text-primary/50 hover:text-red-400 px-2 py-2">✕ Reset</button>
     </div>
   );
 }
@@ -460,7 +460,7 @@ function MacroStrip({ macro, sectors, model }) {
           <circle cx="28" cy="28" r={R} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 28 28)" />
           <text x="28" y="32" textAnchor="middle" fontFamily="monospace" fontSize="12" fontWeight="700" fill="#fff">{v == null ? "—" : v.toFixed(0)}</text>
         </svg>
-        <div className="font-mono text-[9px] uppercase tracking-widest text-white/35 mt-0.5">{lbl}</div>
+        <div className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35 mt-0.5">{lbl}</div>
       </div>
     );
   };
@@ -470,7 +470,7 @@ function MacroStrip({ macro, sectors, model }) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
       <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] p-4">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-        <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-3">Dominance & Altseason</div>
+        <div className="font-mono text-[10px] uppercase tracking-widest text-text-primary/50 mb-3">Dominance & Altseason</div>
         <div className="flex justify-around">
           {gauge(macro?.btc_dominance, "#F7931A", "BTC Dom")}
           {gauge(macro?.eth_dominance, "#627EEA", "ETH Dom")}
@@ -479,14 +479,14 @@ function MacroStrip({ macro, sectors, model }) {
       </div>
       <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.07] rounded-2xl p-4 lg:col-span-2">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-        <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-3">Sector Rotation · Δ Market Cap 24h</div>
+        <div className="font-mono text-[10px] uppercase tracking-widest text-text-primary/50 mb-3">Sector Rotation · Δ Market Cap 24h</div>
         <div className="space-y-1.5">
-          {topSectors.length === 0 && <div className="font-mono text-[11px] text-white/30">No sector snapshot yet.</div>}
+          {topSectors.length === 0 && <div className="font-mono text-[11px] text-text-primary/30">No sector snapshot yet.</div>}
           {topSectors.map((s) => {
             const c = s.mcap_change_24h ?? 0;
             return (
               <div key={s.category_id || s.name} className="flex items-center gap-2">
-                <span className="font-mono text-[11px] text-white/70 w-32 flex items-center gap-1.5"><SectorGlyph sector={s.name} /><span className="truncate">{s.name}</span></span>
+                <span className="font-mono text-[11px] text-text-primary/70 w-32 flex items-center gap-1.5"><SectorGlyph sector={s.name} /><span className="truncate">{s.name}</span></span>
                 <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
                   <div className="h-full rounded" style={{ width: `${(Math.abs(c) / maxAbs) * 100}%`, background: c >= 0 ? "linear-gradient(90deg,#059669,#34d399)" : "linear-gradient(90deg,#dc2626,#f87171)" }} />
                 </div>
@@ -533,9 +533,9 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
             <div className="absolute inset-0 p-1.5 flex flex-col justify-between">
               <div className="flex items-center gap-1 min-w-0">
                 {big && <CoinLogo pair={d.pair} size={Math.min(18, Math.max(12, fs))} />}
-                {showLabel && <div className="font-mono font-bold leading-none text-white truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{d.sym}</div>}
+                {showLabel && <div className="font-mono font-bold leading-none text-text-primary truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{d.sym}</div>}
               </div>
-              {big && <div className="font-mono leading-none text-white/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
+              {big && <div className="font-mono leading-none text-text-primary/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
             </div>
           </div>
         );
@@ -559,12 +559,12 @@ function BubbleTip({ active, payload, colorBy }) {
   const ago = info ? timeAgo(info.created) : null;
   return (
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
-      <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{d.sym}</span>{meta && <span className="font-bold ml-auto" style={{ color: meta.color }}>{meta.label}</span>}</div>
-      {ago && <div className="text-white/45 mb-1">called {ago}</div>}
-      <div className="text-white/55">Win rate: <span className="text-white/90">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</span></div>
-      <div className="text-white/55">Vol/MCap: <span className="text-white/90">{(d.flow_intensity * 100).toFixed(2)}%</span></div>
-      <div className="text-white/55">MCap: <span className="text-white/90">${shortNum(d.market_cap)}</span></div>
-      <div className="text-white/55">{METRICS[colorBy].lbl}: <span className="text-white/90">{METRICS[colorBy].get(d) == null ? "—" : METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</span></div>
+      <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-text-primary">{d.sym}</span>{meta && <span className="font-bold ml-auto" style={{ color: meta.color }}>{meta.label}</span>}</div>
+      {ago && <div className="text-text-primary/45 mb-1">called {ago}</div>}
+      <div className="text-text-primary/55">Win rate: <span className="text-text-primary/90">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</span></div>
+      <div className="text-text-primary/55">Vol/MCap: <span className="text-text-primary/90">{(d.flow_intensity * 100).toFixed(2)}%</span></div>
+      <div className="text-text-primary/55">MCap: <span className="text-text-primary/90">${shortNum(d.market_cap)}</span></div>
+      <div className="text-text-primary/55">{METRICS[colorBy].lbl}: <span className="text-text-primary/90">{METRICS[colorBy].get(d) == null ? "—" : METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</span></div>
     </div>
   );
 }
@@ -602,7 +602,7 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
   const [y0, y1] = pts.length ? niceDomain(ys, false) : [0, 1];
   const z = useZoom(x0, x1, y0, y1); // free pan + unlimited zoom (hook must stay unconditional)
   if (!pts.length)
-    return <div style={{ height }} className="flex items-center justify-center font-mono text-[11px] text-white/30">No data for these axes.</div>;
+    return <div style={{ height }} className="flex items-center justify-center font-mono text-[11px] text-text-primary/30">No data for these axes.</div>;
 
   const xsS = xs.slice().sort((a, b) => a - b), ysS = ys.slice().sort((a, b) => a - b);
   const xMed = quantile(xsS, 0.5), yMed = quantile(ysS, 0.5);
@@ -670,10 +670,10 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
       </ResponsiveContainer>
       {quadrants && (
         <>
-          <span className="pointer-events-none absolute top-2 right-8 font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[0]}</span>
-          <span className="pointer-events-none absolute top-2 left-[72px] font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[1]}</span>
-          <span className="pointer-events-none absolute bottom-[42px] left-[72px] font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[2]}</span>
-          <span className="pointer-events-none absolute bottom-[42px] right-8 font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[3]}</span>
+          <span className="pointer-events-none absolute top-2 right-8 font-mono text-[8px] uppercase tracking-wider text-text-primary/20">{quadrants[0]}</span>
+          <span className="pointer-events-none absolute top-2 left-[72px] font-mono text-[8px] uppercase tracking-wider text-text-primary/20">{quadrants[1]}</span>
+          <span className="pointer-events-none absolute bottom-[42px] left-[72px] font-mono text-[8px] uppercase tracking-wider text-text-primary/20">{quadrants[2]}</span>
+          <span className="pointer-events-none absolute bottom-[42px] right-8 font-mono text-[8px] uppercase tracking-wider text-text-primary/20">{quadrants[3]}</span>
         </>
       )}
     </div>
@@ -704,10 +704,10 @@ function Matrix({ model, onPick }) {
       <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th className="sticky left-0 top-0 z-30 bg-[#0a0506] text-left font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-3 py-2.5">Pair</th>
+            <th className="sticky left-0 top-0 z-30 bg-[#0a0506] text-left font-mono text-[10px] uppercase tracking-wide text-text-primary/55 font-medium px-3 py-2.5">Pair</th>
             {MX_COLS.map((k) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className="sticky top-0 z-20 bg-[#0a0506] font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
+                className="sticky top-0 z-20 bg-[#0a0506] font-mono text-[10px] uppercase tracking-wide text-text-primary/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
                 {METRICS[k].lbl}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}
@@ -716,7 +716,7 @@ function Matrix({ model, onPick }) {
         <tbody>
           {rows.map((d) => (
             <tr key={d.signal_id}>
-              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[12px] font-bold text-white px-3 py-1 cursor-pointer hover:text-gold-primary z-10">
+              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[12px] font-bold text-text-primary px-3 py-1 cursor-pointer hover:text-gold-primary z-10">
                 <span className="flex items-center gap-2"><CoinLogo pair={d.pair} size={20} /><span>{d.sym}</span></span>
               </td>
               {MX_COLS.map((k) => {
@@ -753,8 +753,8 @@ function SectorView({ model, colorBy, onPick }) {
         const mx = Math.max(...list.map((d) => Math.abs(METRICS[colorBy].get(d) ?? 0)), 1);
         return (
           <div key={k} className="bg-[#0a0506] border border-white/[0.06] rounded-xl p-3">
-            <div className="font-mono text-xs font-semibold text-white mb-0.5">{k} risk</div>
-            <div className="font-mono text-[9px] uppercase tracking-wide text-white/35 mb-2">{list.length} signals</div>
+            <div className="font-mono text-xs font-semibold text-text-primary mb-0.5">{k} risk</div>
+            <div className="font-mono text-[9px] uppercase tracking-wide text-text-primary/35 mb-2">{list.length} signals</div>
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
               {list.map((d) => {
                 const v = METRICS[colorBy].get(d) ?? 0;
@@ -762,12 +762,12 @@ function SectorView({ model, colorBy, onPick }) {
                   <div key={d.signal_id} onClick={() => onPick(d)} className="flex items-center gap-2 cursor-pointer group">
                     <span className="flex items-center gap-1.5 w-20 shrink-0">
                       <CoinLogo pair={d.pair} size={15} />
-                      <span className="font-mono text-[11px] text-white/70 group-hover:text-gold-primary truncate">{d.sym}</span>
+                      <span className="font-mono text-[11px] text-text-primary/70 group-hover:text-gold-primary truncate">{d.sym}</span>
                     </span>
                     <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
                       <div className="h-full rounded" style={{ width: `${(Math.abs(v) / mx) * 100}%`, background: colorByMetric(d, colorBy, model) }} />
                     </div>
-                    <span className="font-mono text-[10px] w-14 text-right text-white/70">{METRICS[colorBy].fmt(v)}</span>
+                    <span className="font-mono text-[10px] w-14 text-right text-text-primary/70">{METRICS[colorBy].fmt(v)}</span>
                   </div>
                 );
               })}
@@ -783,9 +783,9 @@ function SectorView({ model, colorBy, onPick }) {
 function MetricPick({ label, value, onChange }) {
   return (
     <label className="flex items-center gap-1.5">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-white/35">{label}</span>
+      <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-[#0c0a07] border border-white/[0.12] rounded-md font-mono text-[11px] text-white/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        className="appearance-none bg-[#0c0a07] border border-white/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
         {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-[#0a0506]">{m.lbl}</option>)}
       </select>
     </label>
@@ -798,7 +798,7 @@ function ExploreView({ model, onPick }) {
   const [logX, setLogX] = useState(true);
   const [labels, setLabels] = useState(true);
   const mx = METRICS[xk], my = METRICS[yk];
-  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-white/55 bg-[#0c0a07] border-white/[0.12] hover:border-white/25"}`;
+  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-text-primary/55 bg-[#0c0a07] border-white/[0.12] hover:border-white/25"}`;
   return (
     <>
       <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -832,7 +832,7 @@ function Screener({ model, onPick }) {
     <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
       <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-center justify-between">
-        <span className="text-[12.5px] text-white/90">Signal Screener</span>
+        <span className="text-[12.5px] text-text-primary/90">Signal Screener</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{model.length} pairs</span>
       </div>
       <div className="overflow-auto max-h-[440px] px-2 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
@@ -840,7 +840,7 @@ function Screener({ model, onPick }) {
           <thead>
             <tr>{SCR.map(([k, l], i) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 bg-[#0c0a07] font-medium text-[9px] uppercase tracking-wide text-white/40 px-2 py-2 border-b border-white/[0.08] cursor-pointer hover:text-gold-primary whitespace-nowrap`}>
+                className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 bg-[#0c0a07] font-medium text-[9px] uppercase tracking-wide text-text-primary/40 px-2 py-2 border-b border-white/[0.08] cursor-pointer hover:text-gold-primary whitespace-nowrap`}>
                 {l}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}</tr>
@@ -851,17 +851,17 @@ function Screener({ model, onPick }) {
                 <td className="text-left px-2 py-1.5 border-b border-white/[0.04]">
                   <span className="flex items-center gap-1.5">
                     <CoinLogo pair={d.pair} size={16} />
-                    <span className="font-bold text-white">{d.sym}</span>
+                    <span className="font-bold text-text-primary">{d.sym}</span>
                   </span>
                 </td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]"><span className="px-1.5 py-0.5 rounded text-[9px] uppercase" style={{ color: stColor(d.status), border: `1px solid ${stColor(d.status)}` }}>{d.status}</span></td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.price_change_24h >= 0 ? "#34d399" : "#f87171" }}>{d.price_change_24h >= 0 ? "+" : ""}{d.price_change_24h.toFixed(1)}%</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.from_call == null ? "#8a8478" : d.from_call >= 0 ? "#34d399" : "#f87171" }}>{d.from_call == null ? "—" : (d.from_call >= 0 ? "+" : "") + d.from_call.toFixed(1) + "%"}</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-gold-primary">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</td>
-                <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-white/80">{(d.flow_intensity * 100).toFixed(1)}%</td>
-                <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-white/80">{d.btc_align ?? "—"}</td>
+                <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-text-primary/80">{(d.flow_intensity * 100).toFixed(1)}%</td>
+                <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-text-primary/80">{d.btc_align ?? "—"}</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-emerald-400/90">+{d.max_target.toFixed(0)}%</td>
-                <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-white/80">${shortNum(d.market_cap)}</td>
+                <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-text-primary/80">${shortNum(d.market_cap)}</td>
               </tr>
             ))}
           </tbody>

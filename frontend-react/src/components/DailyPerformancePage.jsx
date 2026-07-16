@@ -95,7 +95,7 @@ const Card = ({ children, className = "" }) => (
 );
 
 const Label = ({ children, className = "" }) => (
-  <div className={`text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 ${className}`}>
+  <div className={`text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 ${className}`}>
     {children}
   </div>
 );
@@ -132,12 +132,12 @@ const WinLossDonut = ({ wins, losses, size = 220, stroke = 18 }) => {
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="font-mono tabular-nums text-white leading-none" style={{ fontSize: size * 0.2 }}>{wr.toFixed(1)}%</div>
-        <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/50 mt-1.5">win rate</div>
+        <div className="font-mono tabular-nums text-text-primary leading-none" style={{ fontSize: size * 0.2 }}>{wr.toFixed(1)}%</div>
+        <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/50 mt-1.5">win rate</div>
         {total > 0 && (
           <div className="flex items-center gap-2 mt-2 font-mono tabular-nums text-[11px]">
             <span className="text-emerald-400">{wins}W</span>
-            <span className="text-white/20">/</span>
+            <span className="text-text-primary/20">/</span>
             <span className="text-red-400">{losses}L</span>
           </div>
         )}
@@ -169,8 +169,8 @@ const SegmentedDonut = ({ segments, size = 160, stroke = 16, centerLabel, center
         {arcs}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <div className="font-mono tabular-nums text-white" style={{ fontSize: size * 0.22 }}>{centerLabel}</div>
-        {centerSublabel && <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-white/45 mt-0.5">{centerSublabel}</div>}
+        <div className="font-mono tabular-nums text-text-primary" style={{ fontSize: size * 0.22 }}>{centerLabel}</div>
+        {centerSublabel && <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-text-primary/45 mt-0.5">{centerSublabel}</div>}
       </div>
     </div>
   );
@@ -189,10 +189,10 @@ const HBar = ({ rows, height = 8, onRowClick, activeFilter }) => {
         return (
           <div key={i} className={`${clickable ? "cursor-pointer group" : ""} ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-2 px-2 -my-1 py-1" : ""}`} onClick={() => clickable && onRowClick(r.label)}>
             <div className="flex justify-between items-baseline mb-1.5">
-              <span className={`text-[12px] font-mono uppercase tracking-wider ${isActive ? "text-gold-primary" : "text-white/75 group-hover:text-white"}`}>{r.label}</span>
+              <span className={`text-[12px] font-mono uppercase tracking-wider ${isActive ? "text-gold-primary" : "text-text-primary/75 group-hover:text-text-primary"}`}>{r.label}</span>
               <span className="flex items-center gap-2">
-                {r.sublabel && <span className="text-[10px] font-mono tabular-nums text-white/40">{r.sublabel}</span>}
-                <span className={`text-xs font-mono tabular-nums min-w-[3rem] text-right ${isActive ? "text-gold-primary" : "text-white/85"}`}>{r.value}</span>
+                {r.sublabel && <span className="text-[10px] font-mono tabular-nums text-text-primary/40">{r.sublabel}</span>}
+                <span className={`text-xs font-mono tabular-nums min-w-[3rem] text-right ${isActive ? "text-gold-primary" : "text-text-primary/85"}`}>{r.value}</span>
               </span>
             </div>
             <div className="bg-white/[0.04] rounded-sm overflow-hidden" style={{ height }}>
@@ -223,10 +223,10 @@ const FilterChipsBar = ({ filters, onRemove, onClear, totalUnfiltered, totalFilt
           </button>
         ))}
         <span className="ml-auto flex items-center gap-3 text-[11px] font-mono">
-          <span className="text-white/40">
-            {totalUnfiltered}<span className="text-white/30 mx-1">→</span><span className="text-gold-primary tabular-nums">{totalFiltered}</span><span className="text-white/30 ml-1">signals</span>
+          <span className="text-text-primary/40">
+            {totalUnfiltered}<span className="text-text-primary/30 mx-1">→</span><span className="text-gold-primary tabular-nums">{totalFiltered}</span><span className="text-text-primary/30 ml-1">signals</span>
           </span>
-          <button onClick={onClear} className="px-2 py-0.5 rounded-sm border border-white/[0.08] text-white/50 hover:text-white hover:border-white/20 text-[10px] uppercase tracking-wider transition">Clear All</button>
+          <button onClick={onClear} className="px-2 py-0.5 rounded-sm border border-white/[0.08] text-text-primary/50 hover:text-text-primary hover:border-white/20 text-[10px] uppercase tracking-wider transition">Clear All</button>
         </span>
       </div>
     </Card>
@@ -244,16 +244,16 @@ const CoverageBanner = ({ coverage, total, dailyRegime, hasFilters }) => {
     <Card className="px-4 py-3 mb-5 border-amber-500/20 bg-amber-500/[0.03]">
       <div className="flex items-start gap-3">
         <span className="text-amber-400 mt-0.5">⚠</span>
-        <div className="flex-1 text-xs text-white/75">
+        <div className="flex-1 text-xs text-text-primary/75">
           {isPreV3 ? (
             <>
               <span className="text-amber-300 font-mono uppercase tracking-wider text-[10px]">Limited enrichment data</span>
-              <div className="mt-1 text-white/55">BTC context, patterns, and per-signal tags unavailable for this date — enrichment v3.0 launched 2026-05-14. Win rate and sector breakdown remain accurate.</div>
+              <div className="mt-1 text-text-primary/55">BTC context, patterns, and per-signal tags unavailable for this date — enrichment v3.0 launched 2026-05-14. Win rate and sector breakdown remain accurate.</div>
             </>
           ) : (
             <>
               <span className="text-amber-300 font-mono uppercase tracking-wider text-[10px]">Sparse enrichment ({coverage}/{total} signals · {pct.toFixed(0)}%)</span>
-              <div className="mt-1 text-white/55">BTC context and pattern analysis based on partial sample.</div>
+              <div className="mt-1 text-text-primary/55">BTC context and pattern analysis based on partial sample.</div>
             </>
           )}
         </div>
@@ -279,8 +279,8 @@ const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
   <div className={`relative rounded-xl bg-[#0b0907] border border-white/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`} onClick={onClick}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <Label>{label}</Label>
-    <div className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${valueColor || "text-white/95"}`}>{value}</div>
-    <div className={`text-[10px] tracking-[0.15em] font-mono uppercase mt-1 ${subColor || "text-white/40"}`}>{sub}</div>
+    <div className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${valueColor || "text-text-primary/95"}`}>{value}</div>
+    <div className={`text-[10px] tracking-[0.15em] font-mono uppercase mt-1 ${subColor || "text-text-primary/40"}`}>{sub}</div>
   </div>
 );
 
@@ -294,9 +294,9 @@ const HeroSection = ({ signals, totalUnfiltered, summary, correlationSummary, se
 
   const regimeBadge = {
     strong: { bg: "bg-emerald-500/15", border: "border-emerald-500/30", text: "text-emerald-300", dot: WIN_COLOR },
-    neutral: { bg: "bg-white/[0.06]", border: "border-white/[0.12]", text: "text-white/75", dot: "rgba(255,255,255,0.5)" },
+    neutral: { bg: "bg-white/[0.06]", border: "border-white/[0.12]", text: "text-text-primary/75", dot: "rgba(255,255,255,0.5)" },
     weak: { bg: "bg-red-500/15", border: "border-red-500/30", text: "text-red-300", dot: LOSS_COLOR },
-    no_data: { bg: "bg-white/[0.04]", border: "border-white/[0.08]", text: "text-white/40", dot: "rgba(255,255,255,0.2)" },
+    no_data: { bg: "bg-white/[0.04]", border: "border-white/[0.08]", text: "text-text-primary/40", dot: "rgba(255,255,255,0.2)" },
   };
   const regime = wr >= 75 ? "strong" : wr >= 50 ? "neutral" : total > 0 ? "weak" : "no_data";
   const rb = regimeBadge[regime];
@@ -338,13 +338,13 @@ const HeroSection = ({ signals, totalUnfiltered, summary, correlationSummary, se
           </span>
         </div>
         {total > 0 && (
-          <div className="mt-3 text-[11px] font-mono tabular-nums text-white/55">
+          <div className="mt-3 text-[11px] font-mono tabular-nums text-text-primary/55">
             {total} {hasFilters ? "filtered" : "resolved"}
             {summary?.delta_vs_yesterday !== undefined && summary?.delta_vs_yesterday !== 0 && !hasFilters && (
               <>
-                <span className="text-white/20 mx-2">·</span>
+                <span className="text-text-primary/20 mx-2">·</span>
                 <span className={summary.delta_vs_yesterday > 0 ? "text-emerald-400" : "text-red-400"}>{summary.delta_vs_yesterday > 0 ? "▲" : "▼"} {Math.abs(summary.delta_vs_yesterday).toFixed(2)}</span>
-                <span className="text-white/30 ml-1">vs yesterday</span>
+                <span className="text-text-primary/30 ml-1">vs yesterday</span>
               </>
             )}
           </div>
@@ -353,17 +353,17 @@ const HeroSection = ({ signals, totalUnfiltered, summary, correlationSummary, se
 
       <Card className="lg:col-span-7 p-6">
         <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70 mb-4">· Daily Story {hasFilters ? "(filtered)" : ""} ·</div>
-        <p className="text-base text-white/85 leading-relaxed">
+        <p className="text-base text-text-primary/85 leading-relaxed">
           {hasFilters ? (
             <>
-              <span className="font-mono tabular-nums text-gold-primary text-lg">{total}</span> of {totalUnfiltered} signals match current filters with <span className="font-mono tabular-nums text-white">{fmtPct(wr, 2)}</span> win rate
-              {total > 0 && (<>, avg peak <span className={`font-mono ${avgPeak > 0 ? "text-emerald-400" : avgPeak < 0 ? "text-red-400" : "text-white/60"}`}>{avgPeak > 0 ? "+" : ""}{avgPeak.toFixed(2)}%</span></>)}.
+              <span className="font-mono tabular-nums text-gold-primary text-lg">{total}</span> of {totalUnfiltered} signals match current filters with <span className="font-mono tabular-nums text-text-primary">{fmtPct(wr, 2)}</span> win rate
+              {total > 0 && (<>, avg peak <span className={`font-mono ${avgPeak > 0 ? "text-emerald-400" : avgPeak < 0 ? "text-red-400" : "text-text-primary/60"}`}>{avgPeak > 0 ? "+" : ""}{avgPeak.toFixed(2)}%</span></>)}.
             </>
           ) : (
             <>
-              <span className="font-mono tabular-nums text-gold-primary text-lg">{summary?.total_resolved ?? 0}</span> signals resolved with <span className="font-mono tabular-nums text-white">{fmtPct(summary?.win_rate, 2)}</span> win rate
+              <span className="font-mono tabular-nums text-gold-primary text-lg">{summary?.total_resolved ?? 0}</span> signals resolved with <span className="font-mono tabular-nums text-text-primary">{fmtPct(summary?.win_rate, 2)}</span> win rate
               {summary?.delta_vs_yesterday !== 0 && (
-                <span className="text-white/60">, <span className={summary?.delta_vs_yesterday > 0 ? "text-emerald-400" : "text-red-400"}>{summary?.delta_vs_yesterday > 0 ? "+" : ""}{(summary?.delta_vs_yesterday || 0).toFixed(2)}</span> vs yesterday</span>
+                <span className="text-text-primary/60">, <span className={summary?.delta_vs_yesterday > 0 ? "text-emerald-400" : "text-red-400"}>{summary?.delta_vs_yesterday > 0 ? "+" : ""}{(summary?.delta_vs_yesterday || 0).toFixed(2)}</span> vs yesterday</span>
               )}.
             </>
           )}
@@ -373,58 +373,58 @@ const HeroSection = ({ signals, totalUnfiltered, summary, correlationSummary, se
           {topSector && (
             <div className="flex items-start gap-3">
               <span className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: sectorColor(topSector.sector) }} />
-              <div className="text-sm text-white/70">
-                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/45 mr-2">Best sector</span>
-                <span className="font-mono uppercase tracking-wider text-white/90">{topSector.sector}</span>
-                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">{topSector.wins}/{topSector.total} ({fmtPct((topSector.wins / topSector.total) * 100, 0)})</span>
+              <div className="text-sm text-text-primary/70">
+                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/45 mr-2">Best sector</span>
+                <span className="font-mono uppercase tracking-wider text-text-primary/90">{topSector.sector}</span>
+                <span className="text-text-primary/50 ml-2 font-mono tabular-nums text-xs">{topSector.wins}/{topSector.total} ({fmtPct((topSector.wins / topSector.total) * 100, 0)})</span>
               </div>
             </div>
           )}
           {!hasFilters && summary?.btc_trend_mode && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-white/50 mt-2 flex-shrink-0" />
-              <div className="text-sm text-white/70">
-                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/45 mr-2">BTC context</span>
-                <span className="font-mono uppercase tracking-wider text-white/90">{summary.btc_trend_mode}</span>
-                {summary.btc_dom_trend_mode && <span className="text-white/40 ml-2 text-xs">· DOM {summary.btc_dom_trend_mode}</span>}
-                {summary.fear_greed_avg !== null && summary.fear_greed_avg !== undefined && <span className="text-white/40 ml-2 text-xs">· F&amp;G {summary.fear_greed_avg} {summary.fear_greed_label}</span>}
+              <div className="text-sm text-text-primary/70">
+                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/45 mr-2">BTC context</span>
+                <span className="font-mono uppercase tracking-wider text-text-primary/90">{summary.btc_trend_mode}</span>
+                {summary.btc_dom_trend_mode && <span className="text-text-primary/40 ml-2 text-xs">· DOM {summary.btc_dom_trend_mode}</span>}
+                {summary.fear_greed_avg !== null && summary.fear_greed_avg !== undefined && <span className="text-text-primary/40 ml-2 text-xs">· F&amp;G {summary.fear_greed_avg} {summary.fear_greed_label}</span>}
               </div>
             </div>
           )}
           {!hasFilters && !summary?.btc_trend_mode && summary?.daily_regime && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70 mt-2 flex-shrink-0" />
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-text-primary/70">
                 <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-amber-400/70 mr-2">Daily regime (fallback)</span>
-                <span className="font-mono uppercase tracking-wider text-white/90">{summary.daily_regime.regime}</span>
-                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">{summary.daily_regime.wins}/{summary.daily_regime.total_closed} · {fmtPct(summary.daily_regime.win_rate, 1)}</span>
+                <span className="font-mono uppercase tracking-wider text-text-primary/90">{summary.daily_regime.regime}</span>
+                <span className="text-text-primary/50 ml-2 font-mono tabular-nums text-xs">{summary.daily_regime.wins}/{summary.daily_regime.total_closed} · {fmtPct(summary.daily_regime.win_rate, 1)}</span>
               </div>
             </div>
           )}
           {hasEnrichment && topPattern && topPattern.count >= 2 && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-gold-primary mt-2 flex-shrink-0" />
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-text-primary/70">
                 <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/70 mr-2">Top flag</span>
-                <span className="font-mono text-white/90">{topPattern.tag}</span>
-                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">in {topPattern.count} signals</span>
+                <span className="font-mono text-text-primary/90">{topPattern.tag}</span>
+                <span className="text-text-primary/50 ml-2 font-mono tabular-nums text-xs">in {topPattern.count} signals</span>
               </div>
             </div>
           )}
           {hasCorrelationInsight && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: corrAdvantage > 0 ? "#10b981" : "#f59e0b" }} />
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-text-primary/70">
                 <span className="text-[10px] tracking-[0.2em] font-mono uppercase mr-2" style={{ color: corrAdvantage > 0 ? "rgba(16,185,129,0.7)" : "rgba(245,158,11,0.7)" }}>Correlation edge</span>
-                <span className="font-mono uppercase tracking-wider text-white/90">{corrAdvantage > 0 ? "Decoupled" : "Coupled"}</span>
-                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">outperformed by <span className={corrAdvantage > 0 ? "text-emerald-400" : "text-amber-400"}>+{Math.abs(corrAdvantage).toFixed(1)}%</span></span>
+                <span className="font-mono uppercase tracking-wider text-text-primary/90">{corrAdvantage > 0 ? "Decoupled" : "Coupled"}</span>
+                <span className="text-text-primary/50 ml-2 font-mono tabular-nums text-xs">outperformed by <span className={corrAdvantage > 0 ? "text-emerald-400" : "text-amber-400"}>+{Math.abs(corrAdvantage).toFixed(1)}%</span></span>
               </div>
             </div>
           )}
           {!hasEnrichment && !hasFilters && total > 0 && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-2 flex-shrink-0" />
-              <div className="text-xs text-white/40 italic">Pattern analysis unavailable — signals on this date predate v3.0 enrichment</div>
+              <div className="text-xs text-text-primary/40 italic">Pattern analysis unavailable — signals on this date predate v3.0 enrichment</div>
             </div>
           )}
         </div>
@@ -458,10 +458,10 @@ const KpiRow = ({ signals }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       <KpiCard label="Resolved" value={total} sub="signals" />
-      <KpiCard label="Hit Rate" value={total ? `${wins}/${total}` : "—"} sub={total ? fmtPct((wins / total) * 100, 1) : "—"} subColor={total ? wins / total >= 0.75 ? "text-emerald-400" : wins / total >= 0.5 ? "text-white/60" : "text-red-400" : "text-white/40"} />
+      <KpiCard label="Hit Rate" value={total ? `${wins}/${total}` : "—"} sub={total ? fmtPct((wins / total) * 100, 1) : "—"} subColor={total ? wins / total >= 0.75 ? "text-emerald-400" : wins / total >= 0.5 ? "text-text-primary/60" : "text-red-400" : "text-text-primary/40"} />
       <KpiCard label="Best Pair" value={bestPeak?.pair || "—"} sub={bestPeak?.peak_pct !== null && bestPeak?.peak_pct !== undefined ? `+${bestPeak.peak_pct.toFixed(2)}%` : "—"} subColor="text-emerald-400" />
-      <KpiCard label="Avg Peak" value={total ? `${avgPeak >= 0 ? "+" : ""}${avgPeak.toFixed(2)}%` : "—"} sub="across filtered" valueColor={avgPeak > 0 ? "text-emerald-400" : avgPeak < 0 ? "text-red-400" : "text-white/95"} />
-      <KpiCard label="Decoupled" value={hasAnyEnrichment ? decoupled : "—"} sub={hasAnyEnrichment ? `${coveragePct}% enriched` : "no enrichment"} subColor={hasAnyEnrichment ? "text-white/40" : "text-amber-400/60"} />
+      <KpiCard label="Avg Peak" value={total ? `${avgPeak >= 0 ? "+" : ""}${avgPeak.toFixed(2)}%` : "—"} sub="across filtered" valueColor={avgPeak > 0 ? "text-emerald-400" : avgPeak < 0 ? "text-red-400" : "text-text-primary/95"} />
+      <KpiCard label="Decoupled" value={hasAnyEnrichment ? decoupled : "—"} sub={hasAnyEnrichment ? `${coveragePct}% enriched` : "no enrichment"} subColor={hasAnyEnrichment ? "text-text-primary/40" : "text-amber-400/60"} />
     </div>
   );
 };
@@ -481,7 +481,7 @@ const TabSwitcher = ({ active, onChange }) => (
     {TAB_ITEMS.map((t) => {
       const isActive = active === t.id;
       return (
-        <button key={t.id} onClick={() => onChange(t.id)} className={`relative px-4 py-3 text-[12px] font-mono uppercase tracking-wider transition whitespace-nowrap ${isActive ? "text-gold-primary" : "text-white/40 hover:text-white/70"}`}>
+        <button key={t.id} onClick={() => onChange(t.id)} className={`relative px-4 py-3 text-[12px] font-mono uppercase tracking-wider transition whitespace-nowrap ${isActive ? "text-gold-primary" : "text-text-primary/40 hover:text-text-primary/70"}`}>
           {t.label}
           {isActive && <span className="absolute bottom-0 inset-x-3 h-[2px] bg-gold-primary" />}
         </button>
@@ -494,18 +494,18 @@ const TabSwitcher = ({ active, onChange }) => (
 
 const FngGauge = ({ value, label }) => {
   if (value === null || value === undefined) return null;
-  const color = value < 25 ? "text-red-400" : value < 45 ? "text-orange-400" : value < 55 ? "text-white/80" : value < 75 ? "text-emerald-400/85" : "text-emerald-400";
+  const color = value < 25 ? "text-red-400" : value < 45 ? "text-orange-400" : value < 55 ? "text-text-primary/80" : value < 75 ? "text-emerald-400/85" : "text-emerald-400";
   return (
     <div className="pt-3 border-t border-white/[0.05]">
       <Label className="mb-1.5">Fear &amp; Greed</Label>
       <div className="flex items-baseline gap-3">
-        <span className="font-mono tabular-nums text-2xl text-white/95">{value}</span>
+        <span className="font-mono tabular-nums text-2xl text-text-primary/95">{value}</span>
         <span className={`text-[11px] font-mono uppercase tracking-wider ${color}`}>{label || "—"}</span>
       </div>
       <div className="mt-2 h-1.5 bg-gradient-to-r from-red-500 via-orange-400 via-yellow-400 to-emerald-400 rounded-sm relative">
         <div className="absolute -top-0.5 w-1 h-2.5 bg-white shadow-md" style={{ left: `calc(${value}% - 2px)` }} />
       </div>
-      <div className="flex justify-between text-[9px] font-mono uppercase tracking-wider text-white/30 mt-1">
+      <div className="flex justify-between text-[9px] font-mono uppercase tracking-wider text-text-primary/30 mt-1">
         <span>0</span><span>50</span><span>100</span>
       </div>
     </div>
@@ -545,7 +545,7 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
     <Card className="p-5">
       <div className="flex justify-between items-center mb-4">
         <Label>BTC Context</Label>
-        {showInteractiveDonut && <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click to filter</div>}
+        {showInteractiveDonut && <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">click to filter</div>}
       </div>
       {showInteractiveDonut && (
         <div className="flex items-center gap-6">
@@ -557,9 +557,9 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
               return (
                 <button key={s.key} onClick={() => addFilter("btc_trend", s.key)} className={`w-full flex items-center gap-3 text-left transition ${s.value === 0 ? "opacity-30 pointer-events-none" : "hover:opacity-90"} ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-1 px-1" : ""}`}>
                   <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: s.color }} />
-                  <span className={`text-[11px] font-mono uppercase tracking-wider w-16 ${isActive ? "text-gold-primary" : "text-white/65"}`}>{s.label}</span>
+                  <span className={`text-[11px] font-mono uppercase tracking-wider w-16 ${isActive ? "text-gold-primary" : "text-text-primary/65"}`}>{s.label}</span>
                   <div className="flex-1 h-1 bg-white/[0.04] rounded-sm overflow-hidden"><div className="h-full transition-all duration-700" style={{ width: `${pct}%`, background: s.color }} /></div>
-                  <span className="font-mono tabular-nums text-xs text-white/75 w-8 text-right">{s.value}</span>
+                  <span className="font-mono tabular-nums text-xs text-text-primary/75 w-8 text-right">{s.value}</span>
                 </button>
               );
             })}
@@ -574,19 +574,19 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
                 <Label className="mb-1.5">BTC Trend</Label>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full" style={{ background: btcMode === "BULLISH" ? OUTCOME_COLORS.tp3 : btcMode === "BEARISH" ? OUTCOME_COLORS.sl : "rgba(255,255,255,0.5)" }} />
-                  <span className="font-mono uppercase tracking-wider text-base text-white/90">{btcMode}</span>
+                  <span className="font-mono uppercase tracking-wider text-base text-text-primary/90">{btcMode}</span>
                 </div>
               </div>
             )}
             {btcDomMode && (
               <div>
                 <Label className="mb-1.5">BTC.D Trend</Label>
-                <div className="font-mono uppercase tracking-wider text-base text-white/90">{btcDomMode}</div>
+                <div className="font-mono uppercase tracking-wider text-base text-text-primary/90">{btcDomMode}</div>
               </div>
             )}
           </div>
           <FngGauge value={fng} label={fngLabel} />
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/30 pt-1">Aggregate mode · {detail?.enrichment_coverage || 0} of {detail?.enrichment_total || 0} signals enriched</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30 pt-1">Aggregate mode · {detail?.enrichment_coverage || 0} of {detail?.enrichment_total || 0} signals enriched</div>
         </div>
       )}
       {showRegimeFallback && (
@@ -595,7 +595,7 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
             <span className="text-amber-400/70 text-lg">ℹ</span>
             <div className="flex-1 text-xs">
               <div className="text-amber-300 font-mono uppercase tracking-wider text-[10px] mb-1">Limited data — using daily regime fallback</div>
-              <div className="text-white/60">BTC context unavailable for this date (pre-v3.0 enrichment).</div>
+              <div className="text-text-primary/60">BTC context unavailable for this date (pre-v3.0 enrichment).</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -603,18 +603,18 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
               <Label className="mb-1.5">Daily Regime</Label>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ background: dailyRegime.regime === "strong" ? WIN_COLOR : dailyRegime.regime === "weak" ? LOSS_COLOR : "rgba(255,255,255,0.5)" }} />
-                <span className="font-mono uppercase tracking-wider text-base text-white/90">{dailyRegime.regime}</span>
+                <span className="font-mono uppercase tracking-wider text-base text-text-primary/90">{dailyRegime.regime}</span>
               </div>
             </div>
             <div>
               <Label className="mb-1.5">Regime WR</Label>
-              <div className="font-mono tabular-nums text-base text-white/90">{dailyRegime.win_rate?.toFixed(1)}%</div>
-              <div className="text-[10px] font-mono tabular-nums text-white/40 mt-0.5">{dailyRegime.wins}/{dailyRegime.total_closed} closed</div>
+              <div className="font-mono tabular-nums text-base text-text-primary/90">{dailyRegime.win_rate?.toFixed(1)}%</div>
+              <div className="text-[10px] font-mono tabular-nums text-text-primary/40 mt-0.5">{dailyRegime.wins}/{dailyRegime.total_closed} closed</div>
             </div>
           </div>
         </div>
       )}
-      {showEmpty && <div className="text-xs font-mono text-white/30 py-8 text-center uppercase tracking-wider">No BTC context available</div>}
+      {showEmpty && <div className="text-xs font-mono text-text-primary/30 py-8 text-center uppercase tracking-wider">No BTC context available</div>}
     </Card>
   );
 };
@@ -646,14 +646,14 @@ const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
     }
     return Object.values(m).map((s) => ({ ...s, win_rate: s.total ? (s.wins / s.total) * 100 : 0 })).sort((a, b) => b.total - a.total);
   }, [signals]);
-  if (!signals?.length) return <Card className="p-10 text-center"><div className="text-white/30 text-sm font-mono uppercase tracking-wider">No signals match current filters</div></Card>;
+  if (!signals?.length) return <Card className="p-10 text-center"><div className="text-text-primary/30 text-sm font-mono uppercase tracking-wider">No signals match current filters</div></Card>;
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="p-5">
           <div className="flex justify-between items-center mb-4">
             <Label>Outcome Distribution</Label>
-            <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click to filter</div>
+            <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">click to filter</div>
           </div>
           <div className="flex items-center gap-6">
             <SegmentedDonut segments={outcomes} size={140} stroke={14} centerLabel={winSegmentTotal} centerSublabel="wins" onSegmentClick={(s) => addFilter("outcome", s.key)} />
@@ -664,9 +664,9 @@ const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
                 return (
                   <button key={o.key} onClick={() => addFilter("outcome", o.key)} className={`w-full flex items-center gap-3 text-left transition ${o.value === 0 ? "opacity-30 pointer-events-none" : "hover:opacity-90"} ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-1 px-1" : ""}`}>
                     <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: o.color }} />
-                    <span className={`text-[11px] font-mono uppercase tracking-wider w-8 ${isActive ? "text-gold-primary" : "text-white/65"}`}>{o.label}</span>
+                    <span className={`text-[11px] font-mono uppercase tracking-wider w-8 ${isActive ? "text-gold-primary" : "text-text-primary/65"}`}>{o.label}</span>
                     <div className="flex-1 h-1 bg-white/[0.04] rounded-sm overflow-hidden"><div className="h-full transition-all duration-700" style={{ width: `${pct}%`, background: o.color }} /></div>
-                    <span className="font-mono tabular-nums text-xs text-white/75 w-8 text-right">{o.value}</span>
+                    <span className="font-mono tabular-nums text-xs text-text-primary/75 w-8 text-right">{o.value}</span>
                   </button>
                 );
               })}
@@ -678,7 +678,7 @@ const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
       <Card className="p-5">
         <div className="flex justify-between items-center mb-4">
           <Label>Sector Quick Glance</Label>
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click bar to filter</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">click bar to filter</div>
         </div>
         <HBar rows={sectors.map((s) => ({ label: s.sector, value: s.total, sublabel: `${s.wins}/${s.total} · ${fmtPct(s.win_rate, 0)}`, color: sectorColor(s.sector) }))} onRowClick={(n) => addFilter("sector", n)} activeFilter={filters.sector} />
       </Card>
@@ -715,27 +715,27 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
   const SortHeader = ({ id, label, className = "" }) => {
     const isActive = sortBy === id;
     return (
-      <th onClick={() => toggleSort(id)} className={`px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase font-normal cursor-pointer hover:text-white transition ${isActive ? "text-gold-primary" : "text-white/40"} ${className}`}>
+      <th onClick={() => toggleSort(id)} className={`px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase font-normal cursor-pointer hover:text-text-primary transition ${isActive ? "text-gold-primary" : "text-text-primary/40"} ${className}`}>
         <span className="inline-flex items-center gap-1">{label}{isActive && <span className="text-[8px]">{sortDir === "desc" ? "▼" : "▲"}</span>}</span>
       </th>
     );
   };
   if (sorted.length === 0) return (
     <Card className="p-10 text-center">
-      <div className="text-white/30 text-sm font-mono uppercase tracking-wider">No pattern data available</div>
-      <div className="text-white/20 text-xs font-mono mt-2 normal-case">Signals on this date don't have v3.0 enrichment tags</div>
+      <div className="text-text-primary/30 text-sm font-mono uppercase tracking-wider">No pattern data available</div>
+      <div className="text-text-primary/20 text-xs font-mono mt-2 normal-case">Signals on this date don't have v3.0 enrichment tags</div>
     </Card>
   );
   return (
     <Card className="overflow-hidden">
       <div className="p-4 border-b border-white/[0.06] flex justify-between items-center">
         <Label>Pattern Performance — sorted by {sortBy.replace("_", " ")}</Label>
-        <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click column to sort · click row to filter</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">click column to sort · click row to filter</div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-white/[0.06]">
-            <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Pattern</th>
+            <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Pattern</th>
             <SortHeader id="count" label="Count" className="text-right" />
             <SortHeader id="win_rate" label="WR %" className="text-right" />
             <SortHeader id="avg_peak" label="Avg Peak" className="text-right" />
@@ -747,12 +747,12 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
               const isActive = filters.pattern === p.pattern;
               return (
                 <tr key={p.pattern} onClick={() => addFilter("pattern", p.pattern)} className={`border-b border-white/[0.04] cursor-pointer transition ${isActive ? "bg-gold-primary/[0.08] border-gold-primary/20" : "hover:bg-white/[0.02]"}`}>
-                  <td className={`px-4 py-2.5 font-mono text-sm ${isActive ? "text-gold-primary" : "text-white/85"}`}>{p.pattern}</td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums text-white/80">{p.count}</td>
-                  <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.win_rate >= 75 ? "text-emerald-400" : p.win_rate >= 50 ? "text-white/75" : "text-red-400"}`}>{p.win_rate.toFixed(1)}%</td>
-                  <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.avg_peak > 0 ? "text-emerald-400" : p.avg_peak < 0 ? "text-red-400" : "text-white/40"}`}>{p.avg_peak > 0 ? "+" : ""}{p.avg_peak.toFixed(2)}%</td>
-                  <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.total_peak > 0 ? "text-emerald-400/80" : p.total_peak < 0 ? "text-red-400/80" : "text-white/40"}`}>{p.total_peak > 0 ? "+" : ""}{p.total_peak.toFixed(2)}%</td>
-                  <td className="px-4 py-2.5 text-right"><span className={`text-xs font-mono ${isActive ? "text-gold-primary" : "text-white/30"}`}>{isActive ? "● filtered" : "→"}</span></td>
+                  <td className={`px-4 py-2.5 font-mono text-sm ${isActive ? "text-gold-primary" : "text-text-primary/85"}`}>{p.pattern}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums text-text-primary/80">{p.count}</td>
+                  <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.win_rate >= 75 ? "text-emerald-400" : p.win_rate >= 50 ? "text-text-primary/75" : "text-red-400"}`}>{p.win_rate.toFixed(1)}%</td>
+                  <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.avg_peak > 0 ? "text-emerald-400" : p.avg_peak < 0 ? "text-red-400" : "text-text-primary/40"}`}>{p.avg_peak > 0 ? "+" : ""}{p.avg_peak.toFixed(2)}%</td>
+                  <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${p.total_peak > 0 ? "text-emerald-400/80" : p.total_peak < 0 ? "text-red-400/80" : "text-text-primary/40"}`}>{p.total_peak > 0 ? "+" : ""}{p.total_peak.toFixed(2)}%</td>
+                  <td className="px-4 py-2.5 text-right"><span className={`text-xs font-mono ${isActive ? "text-gold-primary" : "text-text-primary/30"}`}>{isActive ? "● filtered" : "→"}</span></td>
                 </tr>
               );
             })}
@@ -766,7 +766,7 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
 // ─── BetaScatter ─────────────────────────────────────────────────
 
 const BetaScatter = ({ signals }) => {
-  if (!signals.length) return <div className="text-white/30 text-sm font-mono uppercase tracking-wider text-center py-8">Not enough data to plot</div>;
+  if (!signals.length) return <div className="text-text-primary/30 text-sm font-mono uppercase tracking-wider text-center py-8">Not enough data to plot</div>;
   const betas = signals.map((s) => s.correlation.beta_30d);
   const peaks = signals.map((s) => s.peak_pct);
   const minBeta = Math.min(...betas, 0), maxBeta = Math.max(...betas, 1.5);
@@ -806,7 +806,7 @@ const BetaScatter = ({ signals }) => {
       </svg>
       <div className="mt-4 pt-4 border-t border-white/[0.05] flex items-center justify-center gap-4 flex-wrap">
         {Object.entries(OUTCOME_COLORS).map(([key, color]) => (
-          <span key={key} className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-white/50">
+          <span key={key} className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-primary/50">
             <span className="w-2.5 h-2.5 rounded-full" style={{ background: color, opacity: 0.7 }} />{key}
           </span>
         ))}
@@ -817,9 +817,9 @@ const BetaScatter = ({ signals }) => {
 
 const AverageStat = ({ label, value, suffix = "", hint, digits = 2 }) => (
   <div className="rounded-sm bg-white/[0.02] border border-white/[0.05] px-3 py-2.5">
-    <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-white/40 mb-1">{label}</div>
-    <div className="font-mono tabular-nums text-lg text-white/90">{value === null || value === undefined ? "—" : `${value.toFixed(digits)}${suffix}`}</div>
-    <div className="text-[9px] font-mono text-white/30 mt-0.5">{hint}</div>
+    <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-text-primary/40 mb-1">{label}</div>
+    <div className="font-mono tabular-nums text-lg text-text-primary/90">{value === null || value === undefined ? "—" : `${value.toFixed(digits)}${suffix}`}</div>
+    <div className="text-[9px] font-mono text-text-primary/30 mt-0.5">{hint}</div>
   </div>
 );
 
@@ -828,8 +828,8 @@ const AverageStat = ({ label, value, suffix = "", hint, digits = 2 }) => (
 const CorrelationTab = ({ signals, correlationSummary }) => {
   if (!correlationSummary || correlationSummary.coverage === 0) return (
     <Card className="p-10 text-center">
-      <div className="text-white/40 text-sm font-mono uppercase tracking-wider">No correlation data available</div>
-      <div className="text-white/30 text-xs font-mono mt-2 normal-case">Signals predate the v2.0 BTC correlation worker (launched 2026-05-14)</div>
+      <div className="text-text-primary/40 text-sm font-mono uppercase tracking-wider">No correlation data available</div>
+      <div className="text-text-primary/30 text-xs font-mono mt-2 normal-case">Signals predate the v2.0 BTC correlation worker (launched 2026-05-14)</div>
     </Card>
   );
   const sum = correlationSummary;
@@ -845,40 +845,40 @@ const CorrelationTab = ({ signals, correlationSummary }) => {
       <Card className="p-5">
         <div className="flex justify-between items-center mb-5">
           <Label>Decoupled vs Coupled — Performance Comparison</Label>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">{sum.coverage} signals enriched</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">{sum.coverage} signals enriched</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className={`rounded-md border p-4 transition ${decoupledWins ? "border-emerald-500/30 bg-emerald-500/[0.04]" : "border-white/[0.06] bg-[#0a0805]"}`}>
             <div className="flex items-center justify-between mb-3">
               <Label className={decoupledWins ? "text-emerald-400/80" : ""}>Decoupled</Label>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">{dec.total} signal{dec.total !== 1 ? "s" : ""}</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">{dec.total} signal{dec.total !== 1 ? "s" : ""}</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-mono tabular-nums ${dec.win_rate === null ? "text-white/30" : dec.win_rate >= 70 ? "text-emerald-400" : dec.win_rate >= 50 ? "text-white/90" : "text-red-400"}`}>{dec.win_rate === null ? "—" : `${dec.win_rate.toFixed(1)}%`}</span>
-              <span className="text-xs text-white/40 font-mono">win rate</span>
+              <span className={`text-3xl font-mono tabular-nums ${dec.win_rate === null ? "text-text-primary/30" : dec.win_rate >= 70 ? "text-emerald-400" : dec.win_rate >= 50 ? "text-text-primary/90" : "text-red-400"}`}>{dec.win_rate === null ? "—" : `${dec.win_rate.toFixed(1)}%`}</span>
+              <span className="text-xs text-text-primary/40 font-mono">win rate</span>
             </div>
-            <div className="mt-2 text-[11px] font-mono tabular-nums text-white/50">{dec.wins}W / {dec.total - dec.wins}L</div>
+            <div className="mt-2 text-[11px] font-mono tabular-nums text-text-primary/50">{dec.wins}W / {dec.total - dec.wins}L</div>
             <div className="mt-3 h-1.5 bg-white/[0.04] rounded-sm overflow-hidden"><div className="h-full bg-emerald-400/70 transition-all duration-700" style={{ width: `${dec.win_rate || 0}%` }} /></div>
-            <div className="mt-3 text-[10px] text-white/40 leading-relaxed">Coins trading independently of BTC — low correlation, beta near zero</div>
+            <div className="mt-3 text-[10px] text-text-primary/40 leading-relaxed">Coins trading independently of BTC — low correlation, beta near zero</div>
           </div>
           <div className={`rounded-md border p-4 transition ${coupledWins ? "border-emerald-500/30 bg-emerald-500/[0.04]" : "border-white/[0.06] bg-[#0a0805]"}`}>
             <div className="flex items-center justify-between mb-3">
               <Label className={coupledWins ? "text-emerald-400/80" : ""}>Coupled</Label>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">{cou.total} signal{cou.total !== 1 ? "s" : ""}</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">{cou.total} signal{cou.total !== 1 ? "s" : ""}</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-mono tabular-nums ${cou.win_rate === null ? "text-white/30" : cou.win_rate >= 70 ? "text-emerald-400" : cou.win_rate >= 50 ? "text-white/90" : "text-red-400"}`}>{cou.win_rate === null ? "—" : `${cou.win_rate.toFixed(1)}%`}</span>
-              <span className="text-xs text-white/40 font-mono">win rate</span>
+              <span className={`text-3xl font-mono tabular-nums ${cou.win_rate === null ? "text-text-primary/30" : cou.win_rate >= 70 ? "text-emerald-400" : cou.win_rate >= 50 ? "text-text-primary/90" : "text-red-400"}`}>{cou.win_rate === null ? "—" : `${cou.win_rate.toFixed(1)}%`}</span>
+              <span className="text-xs text-text-primary/40 font-mono">win rate</span>
             </div>
-            <div className="mt-2 text-[11px] font-mono tabular-nums text-white/50">{cou.wins}W / {cou.total - cou.wins}L</div>
+            <div className="mt-2 text-[11px] font-mono tabular-nums text-text-primary/50">{cou.wins}W / {cou.total - cou.wins}L</div>
             <div className="mt-3 h-1.5 bg-white/[0.04] rounded-sm overflow-hidden"><div className="h-full bg-emerald-400/70 transition-all duration-700" style={{ width: `${cou.win_rate || 0}%` }} /></div>
-            <div className="mt-3 text-[10px] text-white/40 leading-relaxed">Coins moving with BTC — standard correlation, beta close to 1</div>
+            <div className="mt-3 text-[10px] text-text-primary/40 leading-relaxed">Coins moving with BTC — standard correlation, beta close to 1</div>
           </div>
         </div>
         {adv !== null && (
           <div className={`mt-4 px-4 py-3 rounded-md flex items-center justify-between border ${Math.abs(adv) >= 10 ? decoupledWins ? "bg-emerald-500/[0.06] border-emerald-500/20" : "bg-amber-500/[0.06] border-amber-500/20" : "bg-white/[0.02] border-white/[0.06]"}`}>
-            <div className="text-xs text-white/70">
-              {Math.abs(adv) < 1 ? (<><span className="font-mono uppercase tracking-wider text-[10px] text-white/40 mr-2">Insight</span>No meaningful difference between decoupled and coupled today</>) : (<><span className="font-mono uppercase tracking-wider text-[10px] text-white/40 mr-2">Today's edge</span>{decoupledWins ? "Decoupled" : "Coupled"} coins outperformed by <span className={`font-mono tabular-nums ${decoupledWins ? "text-emerald-400" : "text-amber-400"}`}>{Math.abs(adv).toFixed(2)}%</span></>)}
+            <div className="text-xs text-text-primary/70">
+              {Math.abs(adv) < 1 ? (<><span className="font-mono uppercase tracking-wider text-[10px] text-text-primary/40 mr-2">Insight</span>No meaningful difference between decoupled and coupled today</>) : (<><span className="font-mono uppercase tracking-wider text-[10px] text-text-primary/40 mr-2">Today's edge</span>{decoupledWins ? "Decoupled" : "Coupled"} coins outperformed by <span className={`font-mono tabular-nums ${decoupledWins ? "text-emerald-400" : "text-amber-400"}`}>{Math.abs(adv).toFixed(2)}%</span></>)}
             </div>
           </div>
         )}
@@ -893,48 +893,48 @@ const CorrelationTab = ({ signals, correlationSummary }) => {
               return (
                 <div key={r.key}>
                   <div className="flex justify-between items-baseline mb-1.5">
-                    <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-sm" style={{ background: color }} /><span className="text-[11px] font-mono uppercase tracking-wider text-white/65">{r.label}</span></span>
-                    <span className="font-mono tabular-nums text-xs text-white/75">{r.count} <span className="text-white/30">({pct.toFixed(0)}%)</span></span>
+                    <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-sm" style={{ background: color }} /><span className="text-[11px] font-mono uppercase tracking-wider text-text-primary/65">{r.label}</span></span>
+                    <span className="font-mono tabular-nums text-xs text-text-primary/75">{r.count} <span className="text-text-primary/30">({pct.toFixed(0)}%)</span></span>
                   </div>
                   <div className="h-1.5 bg-white/[0.04] rounded-sm overflow-hidden"><div className="h-full transition-all duration-700" style={{ width: `${pct}%`, background: color, opacity: 0.75 }} /></div>
                 </div>
               );
             })}
           </div>
-          <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">Risk level inferred from BTC correlation strength, beta volatility, and downside exposure</div>
+          <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-text-primary/35 leading-relaxed">Risk level inferred from BTC correlation strength, beta volatility, and downside exposure</div>
         </Card>
         <Card className="p-5">
           <div className="flex justify-between items-baseline mb-4">
             <Label>BTC Lead/Lag</Label>
-            {sum.lead_lag.avg_hours !== null && <span className="text-[10px] font-mono tabular-nums text-white/40">avg {sum.lead_lag.avg_hours > 0 ? "+" : ""}{sum.lead_lag.avg_hours.toFixed(1)}h</span>}
+            {sum.lead_lag.avg_hours !== null && <span className="text-[10px] font-mono tabular-nums text-text-primary/40">avg {sum.lead_lag.avg_hours > 0 ? "+" : ""}{sum.lead_lag.avg_hours.toFixed(1)}h</span>}
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             <div className="text-center px-2 py-3 rounded-sm bg-white/[0.02] border border-white/[0.05]">
               <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/70 mb-1">↑ Leads</div>
-              <div className="font-mono tabular-nums text-2xl text-white/90">{sum.lead_lag.leads}</div>
-              <div className="text-[9px] font-mono text-white/30 mt-1">moves first</div>
+              <div className="font-mono tabular-nums text-2xl text-text-primary/90">{sum.lead_lag.leads}</div>
+              <div className="text-[9px] font-mono text-text-primary/30 mt-1">moves first</div>
             </div>
             <div className="text-center px-2 py-3 rounded-sm bg-white/[0.02] border border-white/[0.05]">
-              <div className="text-[9px] font-mono uppercase tracking-wider text-white/50 mb-1">◌ Sync</div>
-              <div className="font-mono tabular-nums text-2xl text-white/90">{sum.lead_lag.sync}</div>
-              <div className="text-[9px] font-mono text-white/30 mt-1">moves with</div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-text-primary/50 mb-1">◌ Sync</div>
+              <div className="font-mono tabular-nums text-2xl text-text-primary/90">{sum.lead_lag.sync}</div>
+              <div className="text-[9px] font-mono text-text-primary/30 mt-1">moves with</div>
             </div>
             <div className="text-center px-2 py-3 rounded-sm bg-white/[0.02] border border-white/[0.05]">
               <div className="text-[9px] font-mono uppercase tracking-wider text-red-400/70 mb-1">↓ Lags</div>
-              <div className="font-mono tabular-nums text-2xl text-white/90">{sum.lead_lag.lags}</div>
-              <div className="text-[9px] font-mono text-white/30 mt-1">moves after</div>
+              <div className="font-mono tabular-nums text-2xl text-text-primary/90">{sum.lead_lag.lags}</div>
+              <div className="text-[9px] font-mono text-text-primary/30 mt-1">moves after</div>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">Coins that lag BTC tend to follow — entry timing tip: wait for BTC confirmation</div>
+          <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-text-primary/35 leading-relaxed">Coins that lag BTC tend to follow — entry timing tip: wait for BTC confirmation</div>
         </Card>
       </div>
       <Card className="p-5">
         <div className="flex justify-between items-center mb-4">
           <Label>Beta × Peak — Risk vs Reward</Label>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">{validSignals.length} signals plotted · colored by outcome</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">{validSignals.length} signals plotted · colored by outcome</span>
         </div>
         <BetaScatter signals={validSignals} />
-        <div className="mt-3 text-[10px] text-white/35 text-center font-mono">Right side = higher beta (moves more than BTC). Up = larger peak gain.</div>
+        <div className="mt-3 text-[10px] text-text-primary/35 text-center font-mono">Right side = higher beta (moves more than BTC). Up = larger peak gain.</div>
       </Card>
       <Card className="p-4">
         <Label className="mb-3">Aggregate Averages</Label>
@@ -965,7 +965,7 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
     }
     return Object.values(m).map((m) => ({ ...m, win_rate: m.total ? (m.wins / m.total) * 100 : 0, avg_peak: m.peaks.length ? m.peaks.reduce((a, b) => a + b, 0) / m.peaks.length : 0, max_peak: m.peaks.length ? Math.max(...m.peaks) : 0 })).sort((a, b) => b.total - a.total);
   }, [signals]);
-  if (!sectors.length) return <Card className="p-10 text-center"><div className="text-white/30 text-sm font-mono uppercase tracking-wider">No sector data</div></Card>;
+  if (!sectors.length) return <Card className="p-10 text-center"><div className="text-text-primary/30 text-sm font-mono uppercase tracking-wider">No sector data</div></Card>;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
       {sectors.map((s) => {
@@ -975,20 +975,20 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
             <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${sectorColor(s.sector)}88, transparent)` }} />
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-sm" style={{ background: sectorColor(s.sector) }} />
-              <span className="font-mono uppercase tracking-wider text-sm text-white/90">{s.sector}</span>
+              <span className="font-mono uppercase tracking-wider text-sm text-text-primary/90">{s.sector}</span>
               {isActive && <span className="text-[9px] text-gold-primary ml-auto">● FILTER</span>}
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <div><Label>Signals</Label><div className="font-mono tabular-nums text-lg text-white/90 mt-1">{s.total}</div></div>
-              <div><Label>Win Rate</Label><div className={`font-mono tabular-nums text-lg mt-1 ${s.win_rate >= 75 ? "text-emerald-400" : s.win_rate >= 50 ? "text-white/85" : "text-red-400"}`}>{s.win_rate.toFixed(0)}%</div></div>
-              <div><Label>Avg Peak</Label><div className={`font-mono tabular-nums text-sm mt-1 ${s.avg_peak > 0 ? "text-emerald-400/85" : s.avg_peak < 0 ? "text-red-400/85" : "text-white/50"}`}>{s.avg_peak > 0 ? "+" : ""}{s.avg_peak.toFixed(2)}%</div></div>
+              <div><Label>Signals</Label><div className="font-mono tabular-nums text-lg text-text-primary/90 mt-1">{s.total}</div></div>
+              <div><Label>Win Rate</Label><div className={`font-mono tabular-nums text-lg mt-1 ${s.win_rate >= 75 ? "text-emerald-400" : s.win_rate >= 50 ? "text-text-primary/85" : "text-red-400"}`}>{s.win_rate.toFixed(0)}%</div></div>
+              <div><Label>Avg Peak</Label><div className={`font-mono tabular-nums text-sm mt-1 ${s.avg_peak > 0 ? "text-emerald-400/85" : s.avg_peak < 0 ? "text-red-400/85" : "text-text-primary/50"}`}>{s.avg_peak > 0 ? "+" : ""}{s.avg_peak.toFixed(2)}%</div></div>
               <div><Label>Max Peak</Label><div className="font-mono tabular-nums text-sm text-emerald-400/85 mt-1">{s.max_peak > 0 ? "+" : ""}{s.max_peak.toFixed(2)}%</div></div>
             </div>
             <div className="h-1.5 rounded-sm overflow-hidden bg-white/[0.04] flex">
               <div className="h-full bg-emerald-400/60" style={{ width: `${(s.wins / s.total) * 100}%` }} title={`${s.wins} wins`} />
               <div className="h-full bg-red-400/60" style={{ width: `${(s.losses / s.total) * 100}%` }} title={`${s.losses} losses`} />
             </div>
-            <div className="flex justify-between text-[10px] font-mono tabular-nums text-white/40 mt-1.5"><span>{s.wins}W</span><span>{s.losses}L</span></div>
+            <div className="flex justify-between text-[10px] font-mono tabular-nums text-text-primary/40 mt-1.5"><span>{s.wins}W</span><span>{s.losses}L</span></div>
           </button>
         );
       })}
@@ -1029,13 +1029,13 @@ const LossAutopsy = ({ signals }) => {
   if (analysis.losers === 0) return (
     <Card className="p-5">
       <div className="flex justify-between items-center mb-4"><Label>Loss Autopsy</Label><span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/70">zero losses today</span></div>
-      <div className="py-8 text-center"><div className="text-emerald-400/80 text-base font-mono mb-1">No SL hits today ✓</div><div className="text-white/40 text-xs font-mono">Clean session — all resolved signals reached at least TP1</div></div>
+      <div className="py-8 text-center"><div className="text-emerald-400/80 text-base font-mono mb-1">No SL hits today ✓</div><div className="text-text-primary/40 text-xs font-mono">Clean session — all resolved signals reached at least TP1</div></div>
     </Card>
   );
   if (!analysis.coverageOk) return (
     <Card className="p-5">
-      <div className="flex justify-between items-center mb-4"><Label>Loss Autopsy</Label><span className="text-[10px] font-mono uppercase tracking-wider text-white/40">{analysis.losers} loss{analysis.losers !== 1 ? "es" : ""}</span></div>
-      <div className="py-6 text-center text-white/35 text-xs font-mono">Losers on this date have no enrichment tags — pre-v3.0 signals</div>
+      <div className="flex justify-between items-center mb-4"><Label>Loss Autopsy</Label><span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">{analysis.losers} loss{analysis.losers !== 1 ? "es" : ""}</span></div>
+      <div className="py-6 text-center text-text-primary/35 text-xs font-mono">Losers on this date have no enrichment tags — pre-v3.0 signals</div>
     </Card>
   );
   const top = analysis.tagStats.filter((s) => s.inLosers > 0).slice(0, 6);
@@ -1044,9 +1044,9 @@ const LossAutopsy = ({ signals }) => {
     <Card className="p-5">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2"><Label>Loss Autopsy</Label><SmallSampleBadge n={analysis.losers} threshold={5} /></div>
-        <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">{analysis.losers} loss{analysis.losers !== 1 ? "es" : ""} · {analysis.winners} win{analysis.winners !== 1 ? "s" : ""}</span>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">{analysis.losers} loss{analysis.losers !== 1 ? "es" : ""} · {analysis.winners} win{analysis.winners !== 1 ? "s" : ""}</span>
       </div>
-      <div className="text-xs text-white/55 mb-4 leading-relaxed">Tags most frequently associated with stopped-out signals today, compared with their frequency in winners.</div>
+      <div className="text-xs text-text-primary/55 mb-4 leading-relaxed">Tags most frequently associated with stopped-out signals today, compared with their frequency in winners.</div>
       <div className="space-y-3">
         {top.map((s) => {
           const barPct = (s.loserFreq / maxFreq) * 100;
@@ -1055,11 +1055,11 @@ const LossAutopsy = ({ signals }) => {
             <div key={s.tag}>
               <div className="flex justify-between items-baseline mb-1 gap-3 flex-wrap">
                 <span className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-white/85">{s.tag}</span>
+                  <span className="text-xs font-mono text-text-primary/85">{s.tag}</span>
                   {isBad && <span className="text-[9px] font-mono uppercase tracking-wider text-red-400/80 bg-red-500/10 border border-red-500/20 rounded-sm px-1.5 py-0.5">bad signal</span>}
                   {isGood && <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 rounded-sm px-1.5 py-0.5">good signal</span>}
                 </span>
-                <span className="font-mono tabular-nums text-[10px] text-white/50">{s.inLosers}/{analysis.losers} losers ({s.loserFreq.toFixed(0)}%)<span className="text-white/30 mx-1.5">vs</span>{s.inWinners}/{analysis.winners} winners ({s.winnerFreq.toFixed(0)}%)</span>
+                <span className="font-mono tabular-nums text-[10px] text-text-primary/50">{s.inLosers}/{analysis.losers} losers ({s.loserFreq.toFixed(0)}%)<span className="text-text-primary/30 mx-1.5">vs</span>{s.inWinners}/{analysis.winners} winners ({s.winnerFreq.toFixed(0)}%)</span>
               </div>
               <div className="h-1.5 bg-white/[0.04] rounded-sm overflow-hidden flex"><div className="h-full bg-red-400/60 transition-all duration-700" style={{ width: `${barPct}%` }} /></div>
             </div>
@@ -1091,35 +1091,35 @@ const SetupCombinations = ({ signals }) => {
     return { all: arr, best, worst };
   }, [signals]);
   const hasEnrichment = signals.some((s) => (s.important_tags || []).length > 0);
-  if (!hasEnrichment) return <Card className="p-5"><Label>Today's Best/Worst Setups</Label><div className="mt-6 py-6 text-center text-white/35 text-xs font-mono">No pattern tags available — signals on this date predate v3.0 enrichment</div></Card>;
-  if (combos.best.length === 0 && combos.worst.length === 0) return <Card className="p-5"><Label>Today's Best/Worst Setups</Label><div className="mt-6 py-6 text-center text-white/35 text-xs font-mono normal-case leading-relaxed">No setup combinations have ≥2 signals with consistent outcomes today.<br /><span className="text-white/25">Mixed results — no clear winning or losing combos.</span></div></Card>;
+  if (!hasEnrichment) return <Card className="p-5"><Label>Today's Best/Worst Setups</Label><div className="mt-6 py-6 text-center text-text-primary/35 text-xs font-mono">No pattern tags available — signals on this date predate v3.0 enrichment</div></Card>;
+  if (combos.best.length === 0 && combos.worst.length === 0) return <Card className="p-5"><Label>Today's Best/Worst Setups</Label><div className="mt-6 py-6 text-center text-text-primary/35 text-xs font-mono normal-case leading-relaxed">No setup combinations have ≥2 signals with consistent outcomes today.<br /><span className="text-text-primary/25">Mixed results — no clear winning or losing combos.</span></div></Card>;
   const Row = ({ c, kind }) => (
     <div className={`flex items-center gap-3 px-3 py-2.5 rounded-sm border ${kind === "best" ? "bg-emerald-500/[0.05] border-emerald-500/20" : "bg-red-500/[0.05] border-red-500/20"}`}>
       <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: sectorColor(c.sector) }} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5 flex-wrap"><span className="text-[11px] font-mono uppercase tracking-wider text-white/85">{c.sector}</span><span className="text-white/25 text-[10px]">+</span><span className="text-[11px] font-mono text-white/85 break-all">{c.pattern}</span></div>
-        <div className="text-[10px] font-mono tabular-nums text-white/45">{c.wins}W / {c.losses}L · avg <span className={c.avg_peak > 0 ? "text-emerald-400/80" : "text-red-400/80"}>{c.avg_peak > 0 ? "+" : ""}{c.avg_peak.toFixed(2)}%</span></div>
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap"><span className="text-[11px] font-mono uppercase tracking-wider text-text-primary/85">{c.sector}</span><span className="text-text-primary/25 text-[10px]">+</span><span className="text-[11px] font-mono text-text-primary/85 break-all">{c.pattern}</span></div>
+        <div className="text-[10px] font-mono tabular-nums text-text-primary/45">{c.wins}W / {c.losses}L · avg <span className={c.avg_peak > 0 ? "text-emerald-400/80" : "text-red-400/80"}>{c.avg_peak > 0 ? "+" : ""}{c.avg_peak.toFixed(2)}%</span></div>
       </div>
       <div className="text-right flex-shrink-0">
         <div className={`font-mono tabular-nums text-base ${kind === "best" ? "text-emerald-400" : "text-red-400"}`}>{c.win_rate.toFixed(0)}%</div>
-        <div className="text-[9px] font-mono tabular-nums text-white/40">{c.total} signal{c.total !== 1 ? "s" : ""}</div>
+        <div className="text-[9px] font-mono tabular-nums text-text-primary/40">{c.total} signal{c.total !== 1 ? "s" : ""}</div>
       </div>
     </div>
   );
   return (
     <Card className="p-5">
-      <div className="flex justify-between items-center mb-4"><Label>Today's Best/Worst Setups</Label><span className="text-[10px] font-mono uppercase tracking-wider text-white/30">sector × pattern combos</span></div>
+      <div className="flex justify-between items-center mb-4"><Label>Today's Best/Worst Setups</Label><span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">sector × pattern combos</span></div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/70 mb-2.5">⚡ Winning combos</div>
-          {combos.best.length === 0 ? <div className="text-[11px] font-mono text-white/30 italic py-3">No combos with ≥75% win rate today</div> : <div className="space-y-2">{combos.best.slice(0, 5).map((c) => <Row key={c.key} c={c} kind="best" />)}</div>}
+          {combos.best.length === 0 ? <div className="text-[11px] font-mono text-text-primary/30 italic py-3">No combos with ≥75% win rate today</div> : <div className="space-y-2">{combos.best.slice(0, 5).map((c) => <Row key={c.key} c={c} kind="best" />)}</div>}
         </div>
         <div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-red-400/70 mb-2.5">⚠ Losing combos</div>
-          {combos.worst.length === 0 ? <div className="text-[11px] font-mono text-white/30 italic py-3">No combos with ≤25% win rate today</div> : <div className="space-y-2">{combos.worst.slice(0, 5).map((c) => <Row key={c.key} c={c} kind="worst" />)}</div>}
+          {combos.worst.length === 0 ? <div className="text-[11px] font-mono text-text-primary/30 italic py-3">No combos with ≤25% win rate today</div> : <div className="space-y-2">{combos.worst.slice(0, 5).map((c) => <Row key={c.key} c={c} kind="worst" />)}</div>}
         </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">Combos with ≥2 signals and ≥75% / ≤25% win rate. Dominant pattern picked alphabetically per signal.</div>
+      <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-text-primary/35 leading-relaxed">Combos with ≥2 signals and ≥75% / ≤25% win rate. Dominant pattern picked alphabetically per signal.</div>
     </Card>
   );
 };
@@ -1134,38 +1134,38 @@ const PatternByOutcomeMatrix = ({ signals }) => {
     }
     return Object.values(map).filter((m) => m.total >= 2).sort((a, b) => b.total - a.total).slice(0, 8);
   }, [signals]);
-  if (matrix.length === 0) return <Card className="p-5"><Label>Pattern × Outcome Distribution</Label><div className="mt-6 py-6 text-center text-white/35 text-xs font-mono">No patterns with ≥2 signals today</div></Card>;
+  if (matrix.length === 0) return <Card className="p-5"><Label>Pattern × Outcome Distribution</Label><div className="mt-6 py-6 text-center text-text-primary/35 text-xs font-mono">No patterns with ≥2 signals today</div></Card>;
   return (
     <Card className="p-5 overflow-hidden">
-      <div className="flex justify-between items-center mb-4"><Label>Pattern × Outcome Distribution</Label><span className="text-[10px] font-mono uppercase tracking-wider text-white/30">top {matrix.length} patterns</span></div>
+      <div className="flex justify-between items-center mb-4"><Label>Pattern × Outcome Distribution</Label><span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">top {matrix.length} patterns</span></div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-white/[0.06]">
-            <th className="text-left px-2 py-2 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Pattern</th>
+            <th className="text-left px-2 py-2 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Pattern</th>
             {["tp4", "tp3", "tp2", "tp1", "sl"].map((o) => <th key={o} className="text-center px-2 py-2 text-[10px] tracking-[0.2em] font-mono uppercase font-normal" style={{ color: OUTCOME_COLORS[o] }}>{o.toUpperCase()}</th>)}
-            <th className="text-right px-2 py-2 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Total</th>
+            <th className="text-right px-2 py-2 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Total</th>
           </tr></thead>
           <tbody>
             {matrix.map((m) => (
               <tr key={m.tag} className="border-b border-white/[0.03]">
-                <td className="px-2 py-2 font-mono text-xs text-white/85">{m.tag}</td>
+                <td className="px-2 py-2 font-mono text-xs text-text-primary/85">{m.tag}</td>
                 {["tp4", "tp3", "tp2", "tp1", "sl"].map((o) => {
                   const v = m[o], pct = m.total ? (v / m.total) * 100 : 0;
-                  return <td key={o} className="px-2 py-2 text-center">{v > 0 ? <div className="inline-flex items-center justify-center w-7 h-7 rounded-sm font-mono tabular-nums text-xs text-white/90" style={{ background: OUTCOME_COLORS[o], opacity: 0.35 + (pct / 100) * 0.55 }}>{v}</div> : <span className="text-white/15 text-xs">·</span>}</td>;
+                  return <td key={o} className="px-2 py-2 text-center">{v > 0 ? <div className="inline-flex items-center justify-center w-7 h-7 rounded-sm font-mono tabular-nums text-xs text-text-primary/90" style={{ background: OUTCOME_COLORS[o], opacity: 0.35 + (pct / 100) * 0.55 }}>{v}</div> : <span className="text-text-primary/15 text-xs">·</span>}</td>;
                 })}
-                <td className="px-2 py-2 text-right font-mono tabular-nums text-xs text-white/60">{m.total}</td>
+                <td className="px-2 py-2 text-right font-mono tabular-nums text-xs text-text-primary/60">{m.total}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="mt-3 pt-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">Color intensity = % of signals with that pattern ending in that outcome. Patterns with ≥2 signals only.</div>
+      <div className="mt-3 pt-3 border-t border-white/[0.05] text-[10px] text-text-primary/35 leading-relaxed">Color intensity = % of signals with that pattern ending in that outcome. Patterns with ≥2 signals only.</div>
     </Card>
   );
 };
 
 const TodaysEdgeTab = ({ signals }) => {
-  if (!signals?.length) return <Card className="p-10 text-center"><div className="text-white/30 text-sm font-mono uppercase tracking-wider">No signals to analyze</div></Card>;
+  if (!signals?.length) return <Card className="p-10 text-center"><div className="text-text-primary/30 text-sm font-mono uppercase tracking-wider">No signals to analyze</div></Card>;
   return (
     <div className="space-y-5">
       <LossAutopsy signals={signals} />
@@ -1180,13 +1180,13 @@ const TodaysEdgeTab = ({ signals }) => {
 const SignalRow = ({ s, onClick }) => {
   const peakPos = (s.peak_pct ?? 0) > 0, peakNeg = (s.peak_pct ?? 0) < 0;
   const outcomeChip = (o) => {
-    if (!o) return { cls: "bg-white/[0.04] text-white/50 border-white/[0.08]", label: "—" };
+    if (!o) return { cls: "bg-white/[0.04] text-text-primary/50 border-white/[0.08]", label: "—" };
     if (o === "sl") return { cls: "bg-red-500/15 text-red-300 border-red-500/30", label: "SL" };
     if (o === "tp4") return { cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "TP4" };
     if (o === "tp3") return { cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25", label: "TP3" };
     if (o === "tp2") return { cls: "bg-emerald-500/8 text-emerald-400/85 border-emerald-500/20", label: "TP2" };
     if (o === "tp1") return { cls: "bg-emerald-500/5 text-emerald-400/75 border-emerald-500/15", label: "TP1" };
-    return { cls: "bg-white/[0.04] text-white/50 border-white/[0.08]", label: o.toUpperCase() };
+    return { cls: "bg-white/[0.04] text-text-primary/50 border-white/[0.08]", label: o.toUpperCase() };
   };
   const ot = outcomeChip(s.outcome);
   return (
@@ -1194,14 +1194,14 @@ const SignalRow = ({ s, onClick }) => {
       <td className="px-4 py-2.5">
         <span className="inline-flex items-center gap-2">
           <CoinLogo pair={s.pair} size={18} />
-          <span className="font-mono text-sm text-white/90">{coinSym(s.pair)}</span>
+          <span className="font-mono text-sm text-text-primary/90">{coinSym(s.pair)}</span>
         </span>
       </td>
       <td className="px-3 py-2.5"><span className={`inline-flex px-2 py-0.5 rounded-sm border text-[10px] font-mono tracking-wider ${ot.cls}`}>{ot.label}</span></td>
-      <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: sectorColor(s.sector) }} /><span className="text-[11px] font-mono uppercase tracking-wider text-white/55">{s.sector || "—"}</span></span></td>
-      <td className="px-3 py-2.5">{s.signal_direction === "BULLISH" ? <span className="text-emerald-400 text-xs font-mono">↑ LONG</span> : s.signal_direction === "BEARISH" ? <span className="text-red-400 text-xs font-mono">↓ SHORT</span> : <span className="text-white/20 text-xs">—</span>}</td>
-      <td className={`px-3 py-2.5 text-right font-mono tabular-nums text-sm ${peakPos ? "text-emerald-400" : peakNeg ? "text-red-400" : "text-white/40"}`}>{s.peak_pct !== null && s.peak_pct !== undefined ? `${peakPos ? "+" : ""}${s.peak_pct.toFixed(2)}%` : "—"}</td>
-      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-white/40 text-xs">{s.outcome_at ? new Date(s.outcome_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) : "—"}</td>
+      <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: sectorColor(s.sector) }} /><span className="text-[11px] font-mono uppercase tracking-wider text-text-primary/55">{s.sector || "—"}</span></span></td>
+      <td className="px-3 py-2.5">{s.signal_direction === "BULLISH" ? <span className="text-emerald-400 text-xs font-mono">↑ LONG</span> : s.signal_direction === "BEARISH" ? <span className="text-red-400 text-xs font-mono">↓ SHORT</span> : <span className="text-text-primary/20 text-xs">—</span>}</td>
+      <td className={`px-3 py-2.5 text-right font-mono tabular-nums text-sm ${peakPos ? "text-emerald-400" : peakNeg ? "text-red-400" : "text-text-primary/40"}`}>{s.peak_pct !== null && s.peak_pct !== undefined ? `${peakPos ? "+" : ""}${s.peak_pct.toFixed(2)}%` : "—"}</td>
+      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-text-primary/40 text-xs">{s.outcome_at ? new Date(s.outcome_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) : "—"}</td>
     </tr>
   );
 };
@@ -1213,20 +1213,20 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
   const remaining = signals.length - preview.length;
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-white/[0.06]"><Label>Top Signals · {signals.length} matching</Label><div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click any row to view detail</div></div>
+      <div className="flex items-center justify-between p-4 border-b border-white/[0.06]"><Label>Top Signals · {signals.length} matching</Label><div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30">click any row to view detail</div></div>
       {preview.length === 0 ? (
-        <div className="p-10 text-center text-white/30 text-sm font-mono uppercase tracking-wider">No signals match current filters</div>
+        <div className="p-10 text-center text-text-primary/30 text-sm font-mono uppercase tracking-wider">No signals match current filters</div>
       ) : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-white/[0.06]">
-                <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Pair</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Outcome</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Sector</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Side</th>
-                <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Peak %</th>
-                <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Hit At</th>
+                <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Pair</th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Outcome</th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Sector</th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Side</th>
+                <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Peak %</th>
+                <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Hit At</th>
               </tr></thead>
               <tbody>{preview.map((s) => <SignalRow key={s.signal_id} s={s} onClick={onPickSignal} />)}</tbody>
             </table>
@@ -1250,18 +1250,18 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
         </div>
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-          <div><div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70">· All Filtered Signals ·</div><div className="text-lg text-white/90 mt-0.5">{signals?.length || 0} signals</div></div>
-          <button onClick={onClose} className="w-8 h-8 rounded-sm border border-white/[0.08] text-white/60 hover:text-white hover:border-white/20 transition flex items-center justify-center">✕</button>
+          <div><div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70">· All Filtered Signals ·</div><div className="text-lg text-text-primary/90 mt-0.5">{signals?.length || 0} signals</div></div>
+          <button onClick={onClose} className="w-8 h-8 rounded-sm border border-white/[0.08] text-text-primary/60 hover:text-text-primary hover:border-white/20 transition flex items-center justify-center">✕</button>
         </div>
         <div className="flex-1 overflow-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-[#0a0805] z-10"><tr className="border-b border-white/[0.06]">
-              <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Pair</th>
-              <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Outcome</th>
-              <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Sector</th>
-              <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Side</th>
-              <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Peak %</th>
-              <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Hit At</th>
+              <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Pair</th>
+              <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Outcome</th>
+              <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Sector</th>
+              <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Side</th>
+              <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Peak %</th>
+              <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40 font-normal">Hit At</th>
             </tr></thead>
             <tbody>{signals?.map((s) => <SignalRow key={s.signal_id} s={s} onClick={(sig) => { onPickSignal(sig); onClose(); }} />)}</tbody>
           </table>
@@ -1350,8 +1350,8 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-display text-white/95 tracking-tight">Daily Performance</h1>
-          <p className="text-sm text-white/45 mt-1">Interactive analytics · click any chart to filter · click any pair for detail</p>
+          <h1 className="text-2xl lg:text-3xl font-display text-text-primary/95 tracking-tight">Daily Performance</h1>
+          <p className="text-sm text-text-primary/45 mt-1">Interactive analytics · click any chart to filter · click any pair for detail</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -1366,9 +1366,9 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#0a0805] border border-white/[0.08]">
             <Label>Date</Label>
-            <input type="date" value={selectedDate} min={dateMin} max={dateMax} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-white/85 font-mono tabular-nums text-sm focus:outline-none [color-scheme:dark]" />
+            <input type="date" value={selectedDate} min={dateMin} max={dateMax} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-text-primary/85 font-mono tabular-nums text-sm focus:outline-none [color-scheme:dark]" />
           </div>
-          <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-[#0a0805] border border-white/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-white/60 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
+          <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-[#0a0805] border border-white/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/60 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
         </div>
       </div>
 
@@ -1411,7 +1411,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
       {loadingSignal && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#0a0805] border border-gold-primary/30 rounded-md px-4 py-2 flex items-center gap-3">
           <div className="w-3 h-3 border border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
-          <span className="text-[11px] font-mono uppercase tracking-wider text-white/70">Loading signal...</span>
+          <span className="text-[11px] font-mono uppercase tracking-wider text-text-primary/70">Loading signal...</span>
         </div>
       )}
     </div>

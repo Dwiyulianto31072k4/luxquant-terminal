@@ -1,19 +1,39 @@
 /** @type {import('tailwindcss').Config} */
+// Reference a semantic CSS-var channel while preserving Tailwind opacity
+// modifiers: `bg-surface/70` → rgb(var(--surface) / 0.7).
+const withAlpha = (v) => `rgb(var(${v}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
+        // Core families now reference semantic CSS-var channels (see index.css)
+        // via rgb(var(--x) / <alpha-value>) so opacity modifiers (/70, /40) keep
+        // working AND the colours follow the active theme. Luxquant channel
+        // values equal the previous hex, so the default look is unchanged.
         bg: {
-          primary: "#0a0506",
-          secondary: "#120809",
-          card: "rgba(20, 8, 10, 0.8)",
-          hover: "rgba(30, 12, 15, 0.9)",
+          primary: withAlpha("--surface"),
+          secondary: withAlpha("--surface-secondary"),
+          card: "rgb(var(--surface-raised) / 0.8)",
+          hover: "rgb(var(--surface-hover) / 0.9)",
         },
         gold: {
-          primary: "#d4a853",
-          light: "#f0d890",
-          dark: "#8b6914",
+          primary: withAlpha("--accent"),
+          light: withAlpha("--accent-light"),
+          dark: withAlpha("--accent-dark"),
+        },
+        // New semantic aliases (preferred names going forward)
+        surface: {
+          DEFAULT: withAlpha("--surface"),
+          secondary: withAlpha("--surface-secondary"),
+          raised: withAlpha("--surface-raised"),
+          hover: withAlpha("--surface-hover"),
+        },
+        accent: {
+          DEFAULT: withAlpha("--accent"),
+          light: withAlpha("--accent-light"),
+          dark: withAlpha("--accent-dark"),
         },
         red: {
           primary: "#8b1a1a",
@@ -21,16 +41,17 @@ export default {
           dark: "#2a0a0a",
         },
         text: {
-          primary: "#ffffff",
-          secondary: "#b8a89a",
+          primary: withAlpha("--fg"),
+          secondary: withAlpha("--fg-secondary"),
           // Bumped from #6b5c52 (3.16:1 — failed WCAG AA) to #a59585 (6.98:1).
           // Same warm gold-gray, now readable; opacity variants (/70 ≈ 3.85:1)
           // also lift above the old base. Theme/gold/bg unchanged.
-          muted: "#a59585",
+          muted: withAlpha("--fg-muted"),
         },
-        positive: "#4ade80",
-        negative: "#f87171",
-        warning: "#fbbf24",
+        positive: withAlpha("--pos"),
+        negative: withAlpha("--neg"),
+        warning: withAlpha("--warn"),
+        "brand-telegram": withAlpha("--tg"),
         // Flowscan semantic pair — used as text-profit / bg-loss/10 etc.
         // across AI Research. Previously referenced but never defined,
         // which silently stripped all green/red semantics from the UI.

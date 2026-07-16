@@ -120,11 +120,11 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
               {I.chart("w-5 h-5")}
             </div>
             <div className="min-w-0">
-              <h2 className="text-white font-display text-base sm:text-lg font-bold truncate">Reading the Chart</h2>
+              <h2 className="text-text-primary font-display text-base sm:text-lg font-bold truncate">Reading the Chart</h2>
               <p className="text-text-muted text-[11px] sm:text-xs truncate">MACD · RSI · Bollinger Bands — how this confluence works</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0">
             {I.close()}
           </button>
         </div>
@@ -149,7 +149,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
                 <div className="flex items-start justify-between mb-2.5 gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-gold-primary flex-shrink-0">{ind.icon("w-4 h-4")}</span>
-                    <h3 className="text-white font-bold text-sm truncate">{ind.name}</h3>
+                    <h3 className="text-text-primary font-bold text-sm truncate">{ind.name}</h3>
                   </div>
                   <span className="text-[9px] font-mono text-gold-primary/80 bg-gold-primary/10 px-1.5 py-0.5 rounded-[3px] border border-gold-primary/20 whitespace-nowrap flex-shrink-0">{ind.setting}</span>
                 </div>
@@ -178,7 +178,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
                 <div key={i} className="flex gap-3 bg-[#0a0506]/60 border border-gold-primary/10 rounded-lg p-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-primary/15 border border-gold-primary/30 text-gold-primary text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
                   <div>
-                    <p className="text-white text-xs font-semibold mb-0.5">{s.t}</p>
+                    <p className="text-text-primary text-xs font-semibold mb-0.5">{s.t}</p>
                     <p className="text-text-muted text-[11px] leading-relaxed">{s.d}</p>
                   </div>
                 </div>
@@ -191,22 +191,22 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
             <div className="bg-[#0d0d0d] border border-white/[0.06] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-gold-primary">{I.clock("w-4 h-4")}</span>
-                <h3 className="text-white font-bold text-sm">Timeframe</h3>
+                <h3 className="text-text-primary font-bold text-sm">Timeframe</h3>
               </div>
               <p className="text-text-secondary text-[11px] sm:text-xs leading-relaxed">
                 This chart defaults to <Tag tone="gold">4H</Tag> — the sweet spot for swing setups: low noise, reliable confluence.{" "}
-                <span className="text-white/70">1H</span> works for intraday; <span className="text-white/70">5m–15m</span> is faster but noisier.
+                <span className="text-text-primary/70">1H</span> works for intraday; <span className="text-text-primary/70">5m–15m</span> is faster but noisier.
                 Checking the same setup across two timeframes filters out even more false signals.
               </p>
             </div>
             <div className="bg-red-500/[0.04] border border-red-500/15 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-red-400">{I.shield("w-4 h-4")}</span>
-                <h3 className="text-white font-bold text-sm">A Note on Reality</h3>
+                <h3 className="text-text-primary font-bold text-sm">A Note on Reality</h3>
               </div>
               <p className="text-text-muted text-[11px] sm:text-xs leading-relaxed">
                 These are probability filters, not a crystal ball. They lag price, fire false signals in choppy markets, and no setup wins every time.
-                LuxQuant surfaces the data — <span className="text-white/70">the decision is always yours.</span>
+                LuxQuant surfaces the data — <span className="text-text-primary/70">the decision is always yours.</span>
               </p>
             </div>
           </div>

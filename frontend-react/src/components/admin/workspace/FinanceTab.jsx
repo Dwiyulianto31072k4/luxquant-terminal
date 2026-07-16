@@ -47,7 +47,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
           >
             Revenue Operations
           </p>
-          <h2 className="text-lg font-semibold text-white tracking-tight">
+          <h2 className="text-lg font-semibold text-text-primary tracking-tight">
             Finance Hub
           </h2>
           <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
@@ -128,7 +128,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
       >
         <TrendingUpIcon size={20} />
       </div>
-      <p className="text-sm font-semibold text-white mb-1">
+      <p className="text-sm font-semibold text-text-primary mb-1">
         {hasFilters ? 'No payments match these filters' : 'No payments yet'}
       </p>
       <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>

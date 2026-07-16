@@ -188,7 +188,7 @@ const TelegramNudgeModal = () => {
         {/* close */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted/60 hover:text-text-primary hover:bg-white/[0.06] transition-colors"
           aria-label="Close"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,7 +206,7 @@ const TelegramNudgeModal = () => {
           </div>
 
           {/* title */}
-          <h3 className="text-white text-lg font-semibold leading-snug" style={{ fontFamily: '"Playfair Display", serif' }}>
+          <h3 className="text-text-primary text-lg font-semibold leading-snug" style={{ fontFamily: '"Playfair Display", serif' }}>
             {isLink
               ? t('nudge.link_title', 'Get notified — never miss a move')
               : t('nudge.join_title', "One step left — join to get notified")}
@@ -222,7 +222,7 @@ const TelegramNudgeModal = () => {
             {benefits.map((b, i) => (
               <div key={i} className="flex items-start gap-2">
                 <CheckIcon />
-                <p className="text-white/80 text-[11px] leading-relaxed">{b}</p>
+                <p className="text-text-primary/80 text-[11px] leading-relaxed">{b}</p>
               </div>
             ))}
           </div>

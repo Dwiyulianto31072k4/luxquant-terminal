@@ -82,7 +82,7 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose, z
       <CoinLogo pair={pair} size={30} />
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h2 className="truncate text-sm font-semibold text-white">{pair}</h2>
+          <h2 className="truncate text-sm font-semibold text-text-primary">{pair}</h2>
           <span className="flex-shrink-0 rounded border border-gold-primary/30 bg-gold-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-gold-primary">
             vs BTC
           </span>
@@ -128,7 +128,7 @@ function ErrorState({ message }) {
       <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gold-primary/10 text-gold-primary ring-1 ring-gold-primary/25">
         <Icon d={IC.clock} className="h-5 w-5" />
       </span>
-      <p className="mb-1 text-sm font-medium text-white">Analysis Pending</p>
+      <p className="mb-1 text-sm font-medium text-text-primary">Analysis Pending</p>
       <p className="max-w-xs text-xs text-text-muted">{message}</p>
     </div>
   );
@@ -165,7 +165,7 @@ function AnalysisBody({ data }) {
       {interpretation?.summary && (
         <div className="rounded-lg border border-white/5 bg-[#0d0b09] p-3">
           <p className="mb-1.5 text-[9px] font-medium uppercase tracking-wider text-text-muted">Summary</p>
-          <p className="text-xs leading-relaxed text-white/85">{interpretation.summary}</p>
+          <p className="text-xs leading-relaxed text-text-primary/85">{interpretation.summary}</p>
         </div>
       )}
 
@@ -223,7 +223,7 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gold-primary/70">BTC Alignment</p>
-          <p className="text-sm font-medium leading-tight text-white sm:text-base">
+          <p className="text-sm font-medium leading-tight text-text-primary sm:text-base">
             {interpretation?.headline || "Analysis pending"}
           </p>
         </div>
@@ -248,11 +248,11 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
             <Icon d={IC.flame} className="h-2.5 w-2.5" /> EXTENDED
           </span>
         )}
-        <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-white/60">
+        <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-text-primary/60">
           {regimeLabel}
         </span>
         {confidence && confidence !== "insufficient_data" && (
-          <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-white/40">
+          <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-text-primary/40">
             {confidence} confidence
           </span>
         )}
@@ -290,7 +290,7 @@ function AdvancedMetricsGrid({ metrics }) {
       </div>
       {metrics.coin_volatility_pct != null && (
         <p className="mt-1.5 text-center text-[10px] text-text-muted">
-          Coin annualized volatility: <span className="font-mono font-medium text-white">{metrics.coin_volatility_pct.toFixed(0)}%</span>
+          Coin annualized volatility: <span className="font-mono font-medium text-text-primary">{metrics.coin_volatility_pct.toFixed(0)}%</span>
         </p>
       )}
     </div>
@@ -304,7 +304,7 @@ function KeyObservations({ observations }) {
       <div className="space-y-1.5">
         {observations.map((obs, i) => (
           <div key={i} className="rounded-lg border border-white/5 bg-[#0d0b09] px-3 py-2">
-            <p className="text-[11px] leading-relaxed text-white/85">{obs}</p>
+            <p className="text-[11px] leading-relaxed text-text-primary/85">{obs}</p>
           </div>
         ))}
       </div>
@@ -337,7 +337,7 @@ function ActionableHints({ interpretation }) {
             <span className="mt-0.5">
               <IconBadge d={item.d} color={item.color} size={22} />
             </span>
-            <p className={`text-[11px] leading-relaxed ${item.textClass || "text-white/80"}`}>
+            <p className={`text-[11px] leading-relaxed ${item.textClass || "text-text-primary/80"}`}>
               <span className="mr-1 font-semibold text-text-muted">{item.label}:</span>
               {item.text}
             </p>
@@ -384,19 +384,19 @@ function MetaFooter({ sample_size, confidence, data_source, snapshot_at }) {
     <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 text-[10px] sm:grid-cols-4">
       <div>
         <p className="text-text-muted">Sample size</p>
-        <p className="font-mono text-white/70">{sample_size ?? 0} samples</p>
+        <p className="font-mono text-text-primary/70">{sample_size ?? 0} samples</p>
       </div>
       <div>
         <p className="text-text-muted">Confidence</p>
-        <p className="capitalize text-white/70">{(confidence || "—").replace("_", " ")}</p>
+        <p className="capitalize text-text-primary/70">{(confidence || "—").replace("_", " ")}</p>
       </div>
       <div>
         <p className="text-text-muted">Source</p>
-        <p className="capitalize text-white/70">{data_source || "—"}</p>
+        <p className="capitalize text-text-primary/70">{data_source || "—"}</p>
       </div>
       <div>
         <p className="text-text-muted">Snapshot</p>
-        <p className="text-white/70">{formatDate(snapshot_at)}</p>
+        <p className="text-text-primary/70">{formatDate(snapshot_at)}</p>
       </div>
     </div>
   );
@@ -414,13 +414,13 @@ function MetricCard({ label, value, hint, digits = 2, signed = false, suffix = "
   return (
     <div className="rounded-lg border border-white/5 bg-[#0d0b09] p-2">
       <div className="text-[8px] uppercase tracking-wider text-text-muted">{label}</div>
-      <div className="mt-0.5 font-mono text-sm font-semibold text-white">{display}</div>
-      <div className="text-[8px] text-white/30">{hint}</div>
+      <div className="mt-0.5 font-mono text-sm font-semibold text-text-primary">{display}</div>
+      <div className="text-[8px] text-text-primary/30">{hint}</div>
     </div>
   );
 }
 
-function SnapshotItem({ label, value, valueClass = "text-white/85" }) {
+function SnapshotItem({ label, value, valueClass = "text-text-primary/85" }) {
   return (
     <div>
       <p className="text-[10px] text-text-muted">{label}</p>

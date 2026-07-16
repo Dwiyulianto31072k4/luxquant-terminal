@@ -64,11 +64,11 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
   return (
     <Modal isOpen onClose={onClose} size="md">
       <div className="min-w-0">
-        <h3 className="mb-1 text-base font-bold tracking-tight text-white">
+        <h3 className="mb-1 text-base font-bold tracking-tight text-text-primary">
           Send message via bot
         </h3>
         <p className="mb-3 text-xs text-text-muted">
-          DM <strong className="text-white">@{user?.username}</strong> directly
+          DM <strong className="text-text-primary">@{user?.username}</strong> directly
           through the LuxQuant bot.
         </p>
 
@@ -119,7 +119,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
               onChange={(e) => setText(e.target.value)}
               rows={6}
               placeholder="Type your message… (or pick a template above and edit it)"
-              className="w-full resize-none rounded-lg p-3 text-sm text-white outline-none"
+              className="w-full resize-none rounded-lg p-3 text-sm text-text-primary outline-none"
               style={{
                 background: "rgba(255,255,255,0.03)",
                 border: `1px solid ${tooLong ? "rgba(246,70,93,0.5)" : "rgba(255,255,255,0.1)"}`,

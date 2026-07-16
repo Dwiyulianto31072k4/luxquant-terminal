@@ -89,13 +89,13 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
         {/* header row */}
         <div className="grid items-center px-5 py-2.5 border-b border-white/[0.05]"
              style={{ gridTemplateColumns: "minmax(150px,1.4fr) repeat(4,1fr) 56px", gap: "6px" }}>
-          <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">Pattern</div>
+          <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">Pattern</div>
           {BTC_CONTEXTS.map((c) => (
-            <div key={c} className="text-[10px] tracking-[0.15em] font-mono uppercase text-white/40 text-center">
+            <div key={c} className="text-[10px] tracking-[0.15em] font-mono uppercase text-text-primary/40 text-center">
               {c}
             </div>
           ))}
-          <div className="text-[10px] tracking-[0.15em] font-mono uppercase text-white/40 text-right">N</div>
+          <div className="text-[10px] tracking-[0.15em] font-mono uppercase text-text-primary/40 text-right">N</div>
         </div>
 
         <div className="px-5 py-2">
@@ -105,13 +105,13 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
               className="grid items-stretch py-[3px]"
               style={{ gridTemplateColumns: "minmax(150px,1.4fr) repeat(4,1fr) 56px", gap: "6px" }}
             >
-              <div className="flex items-center font-mono text-xs text-white/85 truncate pr-2">{p.pattern}</div>
+              <div className="flex items-center font-mono text-xs text-text-primary/85 truncate pr-2">{p.pattern}</div>
               {BTC_CONTEXTS.map((ctx) => {
                 const cell = p.cells[ctx];
                 if (!cell)
                   return (
                     <div key={ctx} className="flex items-center justify-center rounded-md min-h-[40px] bg-white/[0.015]">
-                      <span className="text-white/12 text-xs">·</span>
+                      <span className="text-text-primary/12 text-xs">·</span>
                     </div>
                   );
                 const dim = cell.count < 5;
@@ -133,14 +133,14 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
                     style={{ background: wrColor(cell.win_rate, cell.count), opacity: dim ? 0.45 : 1 }}
                     title={`${p.pattern} · ${ctx} · ${cell.wins}/${cell.count} · ${cell.win_rate?.toFixed(1)}%`}
                   >
-                    <span className="font-mono tabular-nums text-[13px] text-white/95 leading-none">
+                    <span className="font-mono tabular-nums text-[13px] text-text-primary/95 leading-none">
                       {cell.win_rate?.toFixed(0)}%
                     </span>
-                    <span className="font-mono tabular-nums text-[9px] text-white/50 mt-0.5">n={cell.count}</span>
+                    <span className="font-mono tabular-nums text-[9px] text-text-primary/50 mt-0.5">n={cell.count}</span>
                   </button>
                 );
               })}
-              <div className="flex items-center justify-end font-mono tabular-nums text-xs text-white/55">
+              <div className="flex items-center justify-end font-mono tabular-nums text-xs text-text-primary/55">
                 {p.total}
               </div>
             </div>
@@ -148,7 +148,7 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
         </div>
 
         <div className="px-5 py-3 border-t border-white/[0.05] flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-white/40">
+          <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
             {WR_LEGEND.map((s, i) => (
               <span key={i} className="inline-flex items-center gap-1">
                 <span className="w-4 h-3 rounded-sm border border-white/10" style={{ background: s.c }} />
@@ -156,7 +156,7 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
               </span>
             ))}
           </div>
-          <span className="text-[10px] font-mono text-white/25">faint cells = n &lt; 5 · click to drill</span>
+          <span className="text-[10px] font-mono text-text-primary/25">faint cells = n &lt; 5 · click to drill</span>
         </div>
       </Panel>
     </div>

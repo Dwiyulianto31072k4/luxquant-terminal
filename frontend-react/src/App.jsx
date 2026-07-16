@@ -20,6 +20,7 @@ import {
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
@@ -252,7 +253,7 @@ function PremiumGate({ children }) {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-normal text-white mb-2 tracking-tight">
+          <h2 className="text-xl font-normal text-text-primary mb-2 tracking-tight">
             Premium Feature
           </h2>
           <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted mb-6 max-w-md normal-case">
@@ -268,7 +269,7 @@ function PremiumGate({ children }) {
             </button>
             <button
               onClick={() => navigate("/home")}
-              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-white/[0.03] text-text-muted border border-white/[0.06] hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-white/[0.03] text-text-muted border border-white/[0.06] hover:text-text-primary hover:bg-white/[0.06] transition-colors"
             >
               Kembali
             </button>
@@ -487,7 +488,7 @@ const SidebarItem = ({
               : "text-gold-primary"
             : isAdminAccent
               ? "text-red-400/70 group-hover:text-red-400"
-              : "text-white/70 group-hover:text-white"
+              : "text-text-primary/70 group-hover:text-text-primary"
         }`}
         fill="none"
         stroke="currentColor"
@@ -504,7 +505,7 @@ const SidebarItem = ({
             ? isAdminAccent
               ? "text-loss"
               : "text-gold-primary"
-            : "text-white/90 group-hover:text-white"
+            : "text-text-primary/90 group-hover:text-text-primary"
         }`}
       >
         {label}
@@ -804,7 +805,7 @@ function AppShell({ children }) {
               {/* Mobile menu toggle */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 -ml-1 text-text-secondary hover:text-white rounded-sm transition-colors"
+                className="lg:hidden p-2 -ml-1 text-text-secondary hover:text-text-primary rounded-sm transition-colors"
                 aria-label="Toggle menu"
               >
                 <div className="w-5 h-4 flex flex-col justify-between">
@@ -832,7 +833,7 @@ function AppShell({ children }) {
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <h1 className="text-[14px] lg:text-[15px] font-normal text-white tracking-tight leading-tight group-hover:text-gold-primary transition-colors">
+                <h1 className="text-[14px] lg:text-[15px] font-normal text-text-primary tracking-tight leading-tight group-hover:text-gold-primary transition-colors">
                   LuxQuant
                 </h1>
               </div>
@@ -849,8 +850,8 @@ function AppShell({ children }) {
                       onClick={() => handleNav(item.path)}
                       className={`relative px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
                         active
-                          ? "text-white border-transparent"
-                          : "text-text-secondary border-transparent hover:text-white hover:bg-white/[0.05] hover:border-white/[0.08]"
+                          ? "text-text-primary border-transparent"
+                          : "text-text-secondary border-transparent hover:text-text-primary hover:bg-white/[0.05] hover:border-white/[0.08]"
                       }`}
                     >
                       {item.label}
@@ -882,8 +883,8 @@ function AppShell({ children }) {
                     onClick={() => i18n.changeLanguage(lang)}
                     className={`px-2 py-1 font-mono text-[10px] uppercase tracking-wider rounded-sm transition-colors ${
                       i18n.language?.startsWith(lang)
-                        ? "bg-white/10 text-white border border-white/[0.08]"
-                        : "text-text-muted hover:text-white border border-transparent"
+                        ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                        : "text-text-muted hover:text-text-primary border border-transparent"
                     }`}
                   >
                     {lang.toUpperCase()}
@@ -1484,6 +1485,7 @@ function App() {
     <HelmetProvider>
       <BrowserRouter>
         <AuthProvider>
+          <ThemeProvider>
           <InAppBrowserBanner />
           <TelegramNudgeModal />
         <AnnouncementModal />
@@ -1987,6 +1989,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </CurrencyProvider>
+          </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>

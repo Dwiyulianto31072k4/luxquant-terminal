@@ -183,12 +183,12 @@ const AnalyzePage = () => {
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/70">
             Verified Track Record
           </span>
-          <h1 className="mt-1.5 text-[26px] lg:text-[34px] font-display text-white/95 tracking-tight leading-[1.05]">
+          <h1 className="mt-1.5 text-[26px] lg:text-[34px] font-display text-text-primary/95 tracking-tight leading-[1.05]">
             All-Time Performance
           </h1>
-          <p className="text-sm text-white/45 mt-2">
+          <p className="text-sm text-text-primary/45 mt-2">
             Lifetime track record across{" "}
-            <span className="text-white/85 font-mono tabular-nums">
+            <span className="text-text-primary/85 font-mono tabular-nums">
               {data.stats.total_signals.toLocaleString()}
             </span>{" "}
             resolved signals
@@ -204,7 +204,7 @@ const AnalyzePage = () => {
               className={`px-3.5 py-1.5 rounded-[7px] font-mono text-[10px] uppercase tracking-wider transition-all ${
                 timeRange === opt.value
                   ? "bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
-                  : "text-text-muted hover:text-white hover:bg-white/[0.04]"
+                  : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"
               }`}
             >
               <span className="sm:hidden">{opt.short}</span>
@@ -261,7 +261,7 @@ const AnalyzePage = () => {
           <div className="flex items-center gap-2">
             <IconTrend />
             <div>
-              <h3 className="text-white text-sm font-normal tracking-tight">
+              <h3 className="text-text-primary text-sm font-normal tracking-tight">
                 {t("perf.wr_trend")}
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -276,8 +276,8 @@ const AnalyzePage = () => {
                 onClick={() => setTrendMode(m)}
                 className={`px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   trendMode === m
-                    ? "bg-white/10 text-white border border-white/[0.08]"
-                    : "text-text-muted hover:text-white border border-transparent"
+                    ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                    : "text-text-muted hover:text-text-primary border border-transparent"
                 }`}
               >
                 {m === "daily" ? t("perf.daily") : t("perf.weekly")}
@@ -295,7 +295,7 @@ const AnalyzePage = () => {
           <div className="flex items-center gap-2 mb-4">
             <IconOutcome />
             <div>
-              <h3 className="text-white text-sm font-normal tracking-tight">
+              <h3 className="text-text-primary text-sm font-normal tracking-tight">
                 {t("perf.outcome_dist")}
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5 tabular-nums">
@@ -311,7 +311,7 @@ const AnalyzePage = () => {
           <div className="flex items-center gap-2 mb-4">
             <IconRR />
             <div>
-              <h3 className="text-white text-sm font-normal tracking-tight">
+              <h3 className="text-text-primary text-sm font-normal tracking-tight">
                 {t("perf.risk_reward")}
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -330,7 +330,7 @@ const AnalyzePage = () => {
         <div className="flex items-center gap-2 mb-4">
           <IconRisk />
           <div>
-            <h3 className="text-white text-sm font-normal tracking-tight">
+            <h3 className="text-text-primary text-sm font-normal tracking-tight">
               {t("perf.risk_analysis")}
             </h3>
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -423,7 +423,7 @@ const AnalyzePage = () => {
                         <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                           {t("perf.signals")}
                         </p>
-                        <p className="font-mono text-sm text-white font-light tabular-nums mt-0.5">
+                        <p className="font-mono text-sm text-text-primary font-light tabular-nums mt-0.5">
                           {rd.total_signals.toLocaleString()}
                         </p>
                       </div>
@@ -431,7 +431,7 @@ const AnalyzePage = () => {
                         <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                           {t("perf.avg_rr")}
                         </p>
-                        <p className="font-mono text-sm text-white font-light tabular-nums mt-0.5">
+                        <p className="font-mono text-sm text-text-primary font-light tabular-nums mt-0.5">
                           {rd.avg_rr > 0 ? `${rd.avg_rr.toFixed(2)}R` : "-"}
                         </p>
                       </div>
@@ -479,7 +479,7 @@ const AnalyzePage = () => {
                           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {t(`perf.${safeRiskKey}`)}
                           </span>
-                          <span className="font-mono text-[10px] text-white tabular-nums">
+                          <span className="font-mono text-[10px] text-text-primary tabular-nums">
                             {((rd.total_signals / totalSig) * 100).toFixed(0)}%
                           </span>
                         </div>
@@ -500,7 +500,7 @@ const AnalyzePage = () => {
           <div className="flex items-center gap-2 mb-4">
             <IconRiskTrend />
             <div>
-              <h3 className="text-white text-sm font-normal tracking-tight">
+              <h3 className="text-text-primary text-sm font-normal tracking-tight">
                 {t("perf.wr_by_risk")}
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -520,7 +520,7 @@ const AnalyzePage = () => {
             <div className="flex items-center gap-2">
               <IconPairs />
               <div>
-                <h3 className="text-white text-sm font-normal tracking-tight">
+                <h3 className="text-text-primary text-sm font-normal tracking-tight">
                   {t("perf.top_pairs")}
                 </h3>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
@@ -543,7 +543,7 @@ const AnalyzePage = () => {
               <IconHistory />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-white text-sm font-normal tracking-tight">
+                  <h3 className="text-text-primary text-sm font-normal tracking-tight">
                     {t("perf.sig_history")}
                   </h3>
                   <span className="px-2 py-0.5 rounded-sm bg-gold-primary/10 border border-gold-primary/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider">
@@ -577,7 +577,7 @@ const AnalyzePage = () => {
           >
             <div className="flex items-center gap-2">
               <IconFilter />
-              <span className="font-mono text-[11px] uppercase tracking-wider text-white">Filters</span>
+              <span className="font-mono text-[11px] uppercase tracking-wider text-text-primary">Filters</span>
               {sigActiveFilters > 0 && (
                 <span className="bg-gold-primary/15 text-gold-primary border border-gold-primary/30 font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm">
                   {sigActiveFilters}
@@ -600,14 +600,14 @@ const AnalyzePage = () => {
                   placeholder="BTC, ETH, SOL..."
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-gold-primary/40 transition-colors"
+                  className="w-full px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-gold-primary/40 transition-colors"
                 />
               </FilterField>
               <FilterField label={t("perf.status")} className="w-full sm:w-auto">
                 <select
                   value={sigStatus}
                   onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="all">{t("perf.all_status")}</option>
                   <option value="open">Not Hit</option>
@@ -622,7 +622,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigRisk}
                   onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="all">{t("perf.all_risk")}</option>
                   <option value="low">Low</option>
@@ -634,7 +634,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono focus:outline-none focus:border-gold-primary/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
@@ -644,7 +644,7 @@ const AnalyzePage = () => {
               </FilterField>
               <button
                 onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
-                className="px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm hover:border-gold-primary/30 transition-colors flex items-center gap-1.5"
+                className="px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-text-primary text-sm hover:border-gold-primary/30 transition-colors flex items-center gap-1.5"
               >
                 {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
                 <span className="font-mono text-[11px] uppercase tracking-wider">
@@ -677,7 +677,7 @@ const AnalyzePage = () => {
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   sigPage <= 1
                     ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
-                    : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                    : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
                 }`}
               >
                 <IconChevronLeft />
@@ -689,7 +689,7 @@ const AnalyzePage = () => {
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   sigPage >= sigTotalPages
                     ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
-                    : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                    : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
                 }`}
               >
                 {t("table.next")}
@@ -732,7 +732,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
     loss: "text-loss",
     gold: "text-gold-primary",
     muted: "text-text-secondary",
-    default: "text-white",
+    default: "text-text-primary",
   };
 
   return (
@@ -801,7 +801,7 @@ const OutcomeDistribution = ({ data, t }) => {
               className="h-full transition-all duration-700 relative group"
             >
               {(item.count / total) * 100 > 10 && (
-                <span className="absolute inset-0 flex items-center justify-center font-mono text-[8px] text-white/80 tabular-nums">
+                <span className="absolute inset-0 flex items-center justify-center font-mono text-[8px] text-text-primary/80 tabular-nums">
                   {((item.count / total) * 100).toFixed(0)}%
                 </span>
               )}
@@ -833,7 +833,7 @@ const OutcomeDistribution = ({ data, t }) => {
                 />
               </div>
               <div className="flex items-center gap-2 min-w-[80px] justify-end font-mono tabular-nums">
-                <span className="text-white text-[11px]">
+                <span className="text-text-primary text-[11px]">
                   {item.count.toLocaleString()}
                 </span>
                 <span className="text-text-muted/70 text-[10px] w-[36px] text-right">
@@ -921,7 +921,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
         </div>
         <span className="text-text-muted/40">·</span>
         <span className="text-text-muted/80">
-          Avg <span className="text-white tabular-nums">{avgWR.toFixed(1)}%</span>
+          Avg <span className="text-text-primary tabular-nums">{avgWR.toFixed(1)}%</span>
         </span>
       </div>
 
@@ -1121,14 +1121,14 @@ const RiskRewardChart = ({ data, t }) => {
                   className="w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: `rgba(212, 168, 83, ${alpha})` }}
                 />
-                <span className="font-mono text-[11px] uppercase tracking-wider text-white">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-text-primary">
                   {item.level}
                 </span>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted tabular-nums">
                   ({item.count.toLocaleString()} {t("perf.trades")})
                 </span>
               </div>
-              <span className="font-mono text-sm text-white font-light tabular-nums">
+              <span className="font-mono text-sm text-text-primary font-light tabular-nums">
                 {item.avg_rr.toFixed(2)}R
               </span>
             </div>
@@ -1366,7 +1366,7 @@ const TopPairsTable = ({ pairs, t }) => {
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={p.pair} size={18} />
-                      <span className="text-white text-[12px]">{pair}</span>
+                      <span className="text-text-primary text-[12px]">{pair}</span>
                     </div>
                   </td>
                   <td className="py-2.5 px-3">
@@ -1382,7 +1382,7 @@ const TopPairsTable = ({ pairs, t }) => {
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-[12px] text-white tabular-nums">
+                  <td className="py-2.5 px-3 font-mono text-[12px] text-text-primary tabular-nums">
                     {p.closed_trades}
                   </td>
                   <td className="py-2.5 px-3 font-mono text-[11px] tabular-nums">
@@ -1424,7 +1424,7 @@ const TopPairsTable = ({ pairs, t }) => {
               </span>
               <CoinLogo pair={p.pair} size={20} />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-[12px]">{pair}</p>
+                <p className="text-text-primary text-[12px]">{pair}</p>
                 <p className="font-mono text-[10px] text-text-muted/70 tabular-nums">
                   {p.closed_trades} trades ·{" "}
                   <span className="text-profit/80">{winners}W</span>{" "}
@@ -1552,18 +1552,18 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={s.pair} size={20} />
-                      <span className="text-white text-[12px] group-hover:text-gold-primary transition-colors">
+                      <span className="text-text-primary text-[12px] group-hover:text-gold-primary transition-colors">
                         {pair}
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-[12px] text-white tabular-nums">
+                  <td className="py-2.5 px-3 font-mono text-[12px] text-text-primary tabular-nums">
                     ${formatPrice(s.entry)}
                   </td>
                   <td className="py-2.5 px-3">
                     {mt.value ? (
                       <div className="font-mono tabular-nums">
-                        <span className="text-white text-[12px]">${formatPrice(mt.value)}</span>
+                        <span className="text-text-primary text-[12px]">${formatPrice(mt.value)}</span>
                         <span className="text-profit/80 text-[10px] ml-1.5">+{mt.pct}%</span>
                       </div>
                     ) : (
@@ -1573,7 +1573,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   <td className="py-2.5 px-3">
                     {s.stop1 ? (
                       <div className="font-mono tabular-nums">
-                        <span className="text-white text-[12px]">${formatPrice(s.stop1)}</span>
+                        <span className="text-text-primary text-[12px]">${formatPrice(s.stop1)}</span>
                         {s.entry && (
                           <span className="text-loss/80 text-[10px] ml-1.5">
                             {(((s.stop1 - s.entry) / s.entry) * 100).toFixed(1)}%
@@ -1623,7 +1623,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                 <div className="flex items-center gap-2">
                   <CoinLogo pair={s.pair} size={28} />
                   <div>
-                    <p className="text-white text-[12px]">
+                    <p className="text-text-primary text-[12px]">
                       {pair}<span className="text-text-muted/70 font-mono text-[10px] ml-0.5">/USDT</span>
                     </p>
                     <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70 tabular-nums">
@@ -1645,7 +1645,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                     {t("perf.entry")}
                   </p>
-                  <p className="font-mono text-[10px] text-white font-light tabular-nums mt-0.5">
+                  <p className="font-mono text-[10px] text-text-primary font-light tabular-nums mt-0.5">
                     ${formatPrice(s.entry)}
                   </p>
                 </div>
@@ -1653,7 +1653,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">Target</p>
                   {mt.value ? (
                     <p className="font-mono text-[10px] font-light tabular-nums mt-0.5">
-                      <span className="text-white">${formatPrice(mt.value)}</span>{" "}
+                      <span className="text-text-primary">${formatPrice(mt.value)}</span>{" "}
                       <span className="text-profit/80">+{mt.pct}%</span>
                     </p>
                   ) : (
@@ -1664,7 +1664,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">SL</p>
                   {s.stop1 ? (
                     <p className="font-mono text-[10px] font-light tabular-nums mt-0.5">
-                      <span className="text-white">${formatPrice(s.stop1)}</span>{" "}
+                      <span className="text-text-primary">${formatPrice(s.stop1)}</span>{" "}
                       <span className="text-loss/80">
                         {s.entry ? (((s.stop1 - s.entry) / s.entry) * 100).toFixed(1) : ""}%
                       </span>

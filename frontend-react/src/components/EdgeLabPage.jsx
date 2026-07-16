@@ -68,12 +68,12 @@ const Sparkline = ({ values, up }) => {
 const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
   <div className="relative rounded-xl bg-[#0b0907] border border-white/[0.07] px-4 py-3.5 flex flex-col">
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">{label}</div>
-    <div className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-white/95"}`}>
+    <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">{label}</div>
+    <div className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-text-primary/95"}`}>
       {value}
     </div>
     {children}
-    {sub && <div className="text-[10px] tracking-[0.12em] font-mono uppercase mt-1.5 text-white/40">{sub}</div>}
+    {sub && <div className="text-[10px] tracking-[0.12em] font-mono uppercase mt-1.5 text-text-primary/40">{sub}</div>}
   </div>
 );
 
@@ -154,7 +154,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
     return [...pool].sort((a, b) => b.expected_value - a.expected_value)[0] || null;
   }, [data]);
 
-  const wrColorCls = wr >= 75 ? "text-emerald-400" : wr >= 50 ? "text-white/95" : "text-red-400";
+  const wrColorCls = wr >= 75 ? "text-emerald-400" : wr >= 50 ? "text-text-primary/95" : "text-red-400";
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
@@ -176,7 +176,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
 
           <p className="text-sm text-text-muted/70 mt-2">
             Pattern reliability, expected value &amp; timing across{" "}
-            <span className="text-white/85 font-mono tabular-nums">
+            <span className="text-text-primary/85 font-mono tabular-nums">
               {resolved != null ? resolved.toLocaleString() : "—"}
             </span>{" "}
             resolved signals
@@ -190,7 +190,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
                 key={r.value}
                 onClick={() => setDays(r.value)}
                 className={`px-3.5 py-2 text-[10px] tracking-[0.18em] font-mono uppercase transition ${
-                  days === r.value ? "bg-gold-primary/12 text-gold-primary" : "text-white/50 hover:text-white"
+                  days === r.value ? "bg-gold-primary/12 text-gold-primary" : "text-text-primary/50 hover:text-text-primary"
                 }`}
               >
                 {r.label}
@@ -199,14 +199,14 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
           </div>
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#0c0a07] border border-white/[0.08]">
-            <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">Sector</span>
+            <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">Sector</span>
             <select
               value={sector}
               onChange={(e) => setSector(e.target.value)}
-              className="bg-transparent text-white/85 font-mono text-sm focus:outline-none cursor-pointer uppercase tracking-wider [color-scheme:dark]"
+              className="bg-transparent text-text-primary/85 font-mono text-sm focus:outline-none cursor-pointer uppercase tracking-wider [color-scheme:dark]"
             >
               {SECTOR_OPTIONS.map((s) => (
-                <option key={s} value={s} className="bg-[#0c0a07] text-white">{s}</option>
+                <option key={s} value={s} className="bg-[#0c0a07] text-text-primary">{s}</option>
               ))}
             </select>
           </div>
@@ -214,7 +214,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
           <button
             onClick={() => fetchData(days, sector)}
             disabled={loading}
-            className="px-3 py-2 rounded-md bg-[#0c0a07] border border-white/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-white/55 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50"
+            className="px-3 py-2 rounded-md bg-[#0c0a07] border border-white/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-gold-primary/30 hover:text-gold-primary transition disabled:opacity-50"
           >
             {loading ? "···" : "Refresh"}
           </button>
@@ -294,7 +294,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
                   className={`relative px-4 py-3 text-[12px] font-mono uppercase tracking-wider transition whitespace-nowrap ${
-                    isActive ? "text-gold-primary" : "text-white/40 hover:text-white/70"
+                    isActive ? "text-gold-primary" : "text-text-primary/40 hover:text-text-primary/70"
                   }`}
                 >
                   {t.label}

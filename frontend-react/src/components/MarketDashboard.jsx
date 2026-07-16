@@ -156,16 +156,16 @@ const MarketDashboard = () => {
       <div className="bg-gradient-to-br from-orange-500/10 to-yellow-500/5 rounded-2xl p-6 border border-orange-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-orange-500/30">
+            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-text-primary shadow-lg shadow-orange-500/30">
               ₿
             </div>
             <div>
-              <h2 className="text-2xl font-display font-bold text-white">Bitcoin</h2>
+              <h2 className="text-2xl font-display font-bold text-text-primary">Bitcoin</h2>
               <p className="text-text-muted">BTC/USDT</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-4xl font-mono font-bold text-white">
+            <p className="text-4xl font-mono font-bold text-text-primary">
               {formatPrice(btcPrice)}
             </p>
             <p className={`text-xl font-mono ${btcChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -178,25 +178,25 @@ const MarketDashboard = () => {
         <div className="grid grid-cols-4 gap-4 mt-6">
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">24H High</p>
-            <p className="text-white font-mono text-lg mt-1">
+            <p className="text-text-primary font-mono text-lg mt-1">
               {formatPrice(btcHigh)}
             </p>
           </div>
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">24H Low</p>
-            <p className="text-white font-mono text-lg mt-1">
+            <p className="text-text-primary font-mono text-lg mt-1">
               {formatPrice(btcLow)}
             </p>
           </div>
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">24H Volume</p>
-            <p className="text-white font-mono text-lg mt-1">
+            <p className="text-text-primary font-mono text-lg mt-1">
               ${formatNumber(btcVolume)}
             </p>
           </div>
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">Dominance</p>
-            <p className="text-white font-mono text-lg mt-1">
+            <p className="text-text-primary font-mono text-lg mt-1">
               {dominance > 0 ? `${dominance.toFixed(1)}%` : '--'}
             </p>
           </div>
@@ -288,7 +288,7 @@ const MarketDashboard = () => {
           
           {marketData?.open_interest ? (
             <div className="text-center">
-              <p className="text-4xl font-mono font-bold text-white">
+              <p className="text-4xl font-mono font-bold text-text-primary">
                 ${formatNumber(marketData.open_interest.usd)}
               </p>
               <p className="text-text-muted text-sm mt-2">
@@ -331,7 +331,7 @@ const MarketDashboard = () => {
                 fundingRates.map((item, idx) => (
                   <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="font-semibold text-white">
+                      <span className="font-semibold text-text-primary">
                         {item.symbol.replace('USDT', '')}
                       </span>
                       <span className="text-text-muted">/USDT</span>

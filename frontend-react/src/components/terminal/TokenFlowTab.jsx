@@ -27,7 +27,7 @@ function FlowRow({ r, max, color }) {
   return (
     <div className="flex items-center gap-2.5 py-1.5">
       <CoinLogo pair={r.symbol} size={22} />
-      <div className="w-14 shrink-0 text-[12.5px] text-white/90 truncate">{r.symbol}</div>
+      <div className="w-14 shrink-0 text-[12.5px] text-text-primary/90 truncate">{r.symbol}</div>
       <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${w}%`, background: color, opacity: 0.75 }} />
       </div>
@@ -43,7 +43,7 @@ function FlowColumn({ title, sub, rows, color }) {
   return (
     <div className="rounded-lg border border-white/[0.06] bg-[#0c0a07] p-3">
       <div className="mb-2">
-        <div className="text-[13px] text-white/90">{title}</div>
+        <div className="text-[13px] text-text-primary/90">{title}</div>
         <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">{sub}</div>
       </div>
       {rows.length === 0 ? (

@@ -47,9 +47,9 @@ export const UsersPagination = ({ page, totalPages, total, onChange }) => {
       }}
     >
       <p className="text-[10px] tabular-nums" style={{ color: '#6b5c52' }}>
-        Page <span className="text-white font-bold">{page}</span> of {totalPages}
+        Page <span className="text-text-primary font-bold">{page}</span> of {totalPages}
         <span className="mx-2" style={{ color: '#4a3f39' }}>·</span>
-        <span className="text-white font-bold">{total}</span> total
+        <span className="text-text-primary font-bold">{total}</span> total
       </p>
       <div className="flex items-center gap-1">
         <PaginationButton onClick={() => onChange(1)} disabled={page <= 1} title="First page">

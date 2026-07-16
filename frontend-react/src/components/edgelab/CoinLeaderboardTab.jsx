@@ -29,7 +29,7 @@ const fmtDate = (iso) => {
 
 const SECTORS = ["all", "infrastructure", "defi", "ai", "hype", "gamefi", "rwa", "payments", "privacy", "socialfi", "other"];
 
-const wrColorCls = (wr) => (wr >= 85 ? "text-emerald-400" : wr >= 70 ? "text-white/85" : wr >= 50 ? "text-amber-400/90" : "text-red-400");
+const wrColorCls = (wr) => (wr >= 85 ? "text-emerald-400" : wr >= 70 ? "text-text-primary/85" : wr >= 50 ? "text-amber-400/90" : "text-red-400");
 
 const CoinLeaderboardTab = ({ data, onDrill }) => {
   const [sortBy, setSortBy] = useState("median_peak");
@@ -83,7 +83,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
       <th
         onClick={() => toggleSort(id)}
         style={w ? { width: w } : undefined}
-        className={`px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase font-normal cursor-pointer hover:text-white transition text-right ${active ? "text-gold-primary" : "text-white/40"}`}
+        className={`px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase font-normal cursor-pointer hover:text-text-primary transition text-right ${active ? "text-gold-primary" : "text-text-primary/40"}`}
       >
         <span className="inline-flex items-center gap-1">
           {label}{active && <span className="text-[8px]">{sortDir === "desc" ? "▼" : "▲"}</span>}
@@ -97,9 +97,9 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
       <InsightBand items={insights} />
 
       <Methodology title="How to read this">
-        Every coin with ≥ 10 resolved signals in range. <span className="text-white/85">WR</span> = how often it wins;{" "}
-        <span className="text-white/85">median peak</span> = the typical highest gain from entry (entry → high,{" "}
-        <span className="text-white/60">peak potential, not realized PnL</span>). Median is used so a few moonshots
+        Every coin with ≥ 10 resolved signals in range. <span className="text-text-primary/85">WR</span> = how often it wins;{" "}
+        <span className="text-text-primary/85">median peak</span> = the typical highest gain from entry (entry → high,{" "}
+        <span className="text-text-primary/60">peak potential, not realized PnL</span>). Median is used so a few moonshots
         don't skew the picture. <span className="text-gold-primary/70">Click a coin</span> to open its signals.
       </Methodology>
 
@@ -112,7 +112,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
             className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider border transition ${
               sectorF === s
                 ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
-                : "border-white/[0.08] text-white/45 hover:text-white/80"
+                : "border-white/[0.08] text-text-primary/45 hover:text-text-primary/80"
             }`}
           >
             {s}
@@ -125,13 +125,13 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.06]">
-                <th className="text-left px-4 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-white/40 font-normal">Coin</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-white/40 font-normal">Sector</th>
+                <th className="text-left px-4 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal">Coin</th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal">Sector</th>
                 <SortTh id="count" label="N" w={56} />
                 <SortTh id="win_rate" label="WR" w={72} />
                 <SortTh id="median_peak" label="Median peak" w={150} />
                 <SortTh id="best_peak" label="Best" w={84} />
-                <th className="px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-white/40 font-normal text-right" style={{ width: 80 }}>Last</th>
+                <th className="px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal text-right" style={{ width: 80 }}>Last</th>
               </tr>
             </thead>
             <tbody>
@@ -148,11 +148,11 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       <span className="inline-flex items-center gap-2.5">
                         <CoinLogo pair={c.pair} size={22} />
-                        <span className="font-mono text-[13px] text-white/90">{fmtPair(c.pair)}</span>
+                        <span className="font-mono text-[13px] text-text-primary/90">{fmtPair(c.pair)}</span>
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-[11px] font-mono uppercase tracking-wider text-white/45">{c.sector}</td>
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-white/70">{c.count}</td>
+                    <td className="px-3 py-2.5 text-[11px] font-mono uppercase tracking-wider text-text-primary/45">{c.sector}</td>
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-text-primary/70">{c.count}</td>
                     <td className={`px-3 py-2.5 text-right font-mono tabular-nums ${wrColorCls(c.win_rate)}`}>{c.win_rate}%</td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2 justify-end">
@@ -162,8 +162,8 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-white/45">{fmtPeak(c.best_peak)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-white/35 text-[11px]">{fmtDate(c.last_signal)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-text-primary/45">{fmtPeak(c.best_peak)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-text-primary/35 text-[11px]">{fmtDate(c.last_signal)}</td>
                   </tr>
                 );
               })}
@@ -171,7 +171,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
           </table>
         </div>
 
-        <div className="px-5 py-3 border-t border-white/[0.05] text-[10px] text-white/35 font-mono">
+        <div className="px-5 py-3 border-t border-white/[0.05] text-[10px] text-text-primary/35 font-mono">
           n ≥ 10 signals · median peak = entry→high potential (not realized) · click a coin to drill
         </div>
       </Panel>

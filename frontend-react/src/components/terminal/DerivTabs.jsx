@@ -202,7 +202,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
         <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
           <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
-            <div className="text-[12.5px] text-white/90">Liquidations · live</div>
+            <div className="text-[12.5px] text-text-primary/90">Liquidations · live</div>
             <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">Forced position closes streaming from Bybit. Red = longs liquidated (price dumped), green = shorts liquidated (price ripped). Big prints = capitulation / squeeze zones.</div>
           </div>
           <div className="grid grid-cols-2 gap-2 p-3">
@@ -215,7 +215,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
             ) : (liq.events || []).map((e, i) => (
               <div key={i} className="flex items-center gap-2 py-1 border-b border-white/[0.04]">
                 <CoinLogo pair={e.pair} size={16} />
-                <span className="font-mono text-[11px] text-white/85">{(e.pair || "").replace(/USDT$/i, "")}</span>
+                <span className="font-mono text-[11px] text-text-primary/85">{(e.pair || "").replace(/USDT$/i, "")}</span>
                 <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm" style={{ color: e.side === "long" ? NEG : POS, background: (e.side === "long" ? NEG : POS) + "18" }}>{e.side} liq</span>
                 <span className="ml-auto font-mono text-[11px] tabular-nums" style={{ color: e.side === "long" ? NEG : POS }}>{fmtMoney(e.usd)}</span>
                 <span className="w-9 text-right font-mono text-[9px] text-text-muted/70">{_liqAgo(e.ts)}</span>
@@ -580,7 +580,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={t("terminal.viz.vsAdd")}
-                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
                 />
                 {searchOpts.length > 0 && (
                   <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-[#120809] border border-gold-primary/20 shadow-xl p-1">
@@ -588,7 +588,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                       <button
                         key={p}
                         onClick={() => { if (selected.length < 10) setSel([...selected, p]); setQ(""); }}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.05] font-mono text-[10.5px] text-white/85"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.05] font-mono text-[10.5px] text-text-primary/85"
                       >
                         <CoinLogo pair={p} size={14} /> {p}
                       </button>

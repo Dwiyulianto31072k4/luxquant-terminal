@@ -125,7 +125,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h2 className="mb-2 text-2xl font-bold tracking-tight text-white sm:text-3xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <h2 className="mb-2 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           {t("pricing.upgrade_to")} <span className="text-gold-primary">{t("pricing.premium")}</span>
         </h2>
         <p className="mx-auto max-w-md text-xs text-text-muted">{t("pricing.modal_subtitle")}</p>
@@ -172,7 +172,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
                     <PlanIcon name={plan.name} />
                   </span>
                   <div>
-                    <h3 className="text-sm font-bold text-white">{getPlanLabel(plan)}</h3>
+                    <h3 className="text-sm font-bold text-text-primary">{getPlanLabel(plan)}</h3>
                     <p className="text-[10px] text-text-muted">{getPlanDesc(plan)}</p>
                   </div>
                 </div>
@@ -180,7 +180,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
                 <div className="mb-4">
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs text-text-muted">$</span>
-                    <span className="text-3xl font-bold tracking-tight text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{plan.price_usdt}</span>
+                    <span className="text-3xl font-bold tracking-tight text-text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{plan.price_usdt}</span>
                     <span className="ml-0.5 text-[10px] text-text-muted">USDT {getPriceSuffix(plan)}</span>
                   </div>
                 </div>

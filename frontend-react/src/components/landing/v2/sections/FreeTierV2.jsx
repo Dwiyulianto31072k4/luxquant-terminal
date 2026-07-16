@@ -23,7 +23,7 @@ export default function FreeTierV2() {
           100% Free Tier
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/60" />
         </span>
-        <h2 className="mt-7 text-3xl font-bold leading-tight tracking-tight text-white lg:text-[2.6rem]">
+        <h2 className="mt-7 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Try Before You{" "}
           <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
             Subscribe.
@@ -75,8 +75,8 @@ export default function FreeTierV2() {
 
                 {/* heading + desc */}
                 <div className="min-w-0">
-                  <p className="text-lg font-bold text-white sm:text-xl">Scan to join the channel</p>
-                  <p className="mt-2.5 text-sm leading-relaxed text-white/55">
+                  <p className="text-lg font-bold text-text-primary sm:text-xl">Scan to join the channel</p>
+                  <p className="mt-2.5 text-sm leading-relaxed text-text-primary/55">
                     Enjoy our limited shared analysis — a free look at some of our algo calls, on Telegram.
                   </p>
                 </div>
@@ -88,7 +88,7 @@ export default function FreeTierV2() {
                   href={TG_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:border-gold-primary/40 hover:bg-white/[0.06] hover:text-gold-primary"
+                  className="group inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-text-primary transition-all duration-300 hover:border-gold-primary/40 hover:bg-white/[0.06] hover:text-gold-primary"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />

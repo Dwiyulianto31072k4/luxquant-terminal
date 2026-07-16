@@ -351,7 +351,7 @@ export const TodoTab = ({ onRefreshStats }) => {
             <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold" style={{ color: 'rgba(251,146,60,0.7)' }}>
               Internal Work
             </p>
-            <h2 className="text-lg font-semibold text-white tracking-tight">Brand TODOs</h2>
+            <h2 className="text-lg font-semibold text-text-primary tracking-tight">Brand TODOs</h2>
             <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
               Internal task list — product, marketing, ops, bugs, and ideas.
             </p>
@@ -387,11 +387,11 @@ export const TodoTab = ({ onRefreshStats }) => {
           <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6b5c52' }} />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title or description…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none" style={fieldStyle(!!search)} />
+            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none" style={fieldStyle(!!search)} />
         </div>
 
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer" style={fieldStyle(!!categoryFilter)}>
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer" style={fieldStyle(!!categoryFilter)}>
           <option value="">All Categories</option>
           <option value="product">⚙️ Product</option>
           <option value="marketing">📣 Marketing</option>
@@ -402,7 +402,7 @@ export const TodoTab = ({ onRefreshStats }) => {
         </select>
 
         <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer" style={fieldStyle(!!priorityFilter)}>
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer" style={fieldStyle(!!priorityFilter)}>
           <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
           <option value="high">High</option>
@@ -438,7 +438,7 @@ export const TodoTab = ({ onRefreshStats }) => {
               style={{ background: 'rgba(251,146,60,0.10)', border: '1px solid rgba(251,146,60,0.22)', color: '#fb923c' }}>
               <SparklesIcon size={20} />
             </div>
-            <p className="text-sm font-semibold text-white mb-1">
+            <p className="text-sm font-semibold text-text-primary mb-1">
               {hasFilters ? 'No todos match these filters' : 'No todos yet'}
             </p>
             <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>

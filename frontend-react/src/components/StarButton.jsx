@@ -86,7 +86,7 @@ const StarButton = ({ signalId, isStarred: initialStarred, onToggle }) => {
       {/* Tooltip for non-authenticated users */}
       {showTooltip && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1.5 bg-bg-card border border-gold-primary/30 rounded-lg shadow-xl z-50 whitespace-nowrap animate-fadeIn">
-          <p className="text-xs text-white">Login to add to watchlist</p>
+          <p className="text-xs text-text-primary">Login to add to watchlist</p>
           <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gold-primary/30" />
         </div>
       )}

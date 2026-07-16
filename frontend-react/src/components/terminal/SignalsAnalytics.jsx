@@ -65,7 +65,7 @@ function RegimeGauge({ macro, pairFc, deriv }) {
   const comp = (lbl, score, raw) => (
     <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-2.5 py-2">
       <div className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted">{lbl}</div>
-      <div className="font-mono text-[13px] text-white/90 mt-0.5">{raw}</div>
+      <div className="font-mono text-[13px] text-text-primary/90 mt-0.5">{raw}</div>
       <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${score || 0}%`, background: regColor }} /></div>
     </div>
   );
@@ -76,7 +76,7 @@ function RegimeGauge({ macro, pairFc, deriv }) {
       <div className="flex items-end justify-between mb-3">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Market Regime</div>
-          <div className="text-[28px] font-mono tabular-nums leading-none mt-1" style={{ color: regColor }}>{regime == null ? "—" : Math.round(regime)}<span className="text-[13px] text-white/40"> / 100</span></div>
+          <div className="text-[28px] font-mono tabular-nums leading-none mt-1" style={{ color: regColor }}>{regime == null ? "—" : Math.round(regime)}<span className="text-[13px] text-text-primary/40"> / 100</span></div>
           <div className="text-[12px] mt-1" style={{ color: regColor }}>{label}</div>
         </div>
         <div className="text-right font-mono text-[9px] uppercase tracking-wider text-text-muted/70 leading-relaxed hidden sm:block">take calls with<br />the backdrop</div>
@@ -522,7 +522,7 @@ export default function SignalsAnalytics() {
           value={filters.q}
           onChange={(e) => setF({ q: e.target.value })}
           placeholder={t("terminal.viz.searchPair")}
-          className="w-36 bg-[#15120d] border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+          className="w-36 bg-[#15120d] border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
         />
         <div className="flex gap-1">
           {["all", ...STATUS_ORDER].map((s) => (
@@ -545,7 +545,7 @@ export default function SignalsAnalytics() {
                 onClick={() => toggleDay(d)}
                 title={d === 0 ? "today" : `${d} day${d > 1 ? "s" : ""} ago`}
                 className={`px-1.5 py-1 rounded-sm font-mono text-[9px] tracking-wide transition-colors whitespace-nowrap ${
-                  on ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted/60 hover:text-white"
+                  on ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted/60 hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -556,7 +556,7 @@ export default function SignalsAnalytics() {
             onClick={() => setDayBuckets([0, 1, 2, 3, 4, 5, 6])}
             title="all 7 days"
             className={`px-1.5 py-1 rounded-sm font-mono text-[9px] uppercase tracking-wider transition-colors ${
-              dayBuckets.length === 7 ? "text-gold-primary" : "text-text-muted/50 hover:text-white"
+              dayBuckets.length === 7 ? "text-gold-primary" : "text-text-muted/50 hover:text-text-primary"
             }`}
           >
             all
@@ -589,7 +589,7 @@ export default function SignalsAnalytics() {
         <div className="ml-auto hidden sm:flex items-center gap-3 font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
           {agg.btcPrice && (
             <span>
-              BTC <span className="text-white/80">${Number(agg.btcPrice).toLocaleString()}</span>{" "}
+              BTC <span className="text-text-primary/80">${Number(agg.btcPrice).toLocaleString()}</span>{" "}
               <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}>{fmtPct(agg.btcChg)}</span>
             </span>
           )}
@@ -891,7 +891,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
                   label={t("terminal.viz.kBreadth")}
-                  value={<><span className="text-positive">{liveStats.up}▲</span> <span className="text-white/35">{liveStats.down}▼</span></>}
+                  value={<><span className="text-positive">{liveStats.up}▲</span> <span className="text-text-primary/35">{liveStats.down}▼</span></>}
                   desc={t("terminal.viz.kBreadthDesc")}
                 />
                 <Kpi label={t("terminal.viz.kBest")} value={gainers[0] ? fmtPct(gainers[0].v) : "—"} desc={gainers[0]?.pair} tone="text-positive" />

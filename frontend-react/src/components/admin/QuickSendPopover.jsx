@@ -167,7 +167,7 @@ export const QuickSendPopover = ({
             }}
           />
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-white tracking-tight">
+            <h3 className="text-sm font-bold text-text-primary tracking-tight">
               Quick Send
             </h3>
             <p className="text-[10px]" style={{ color: '#6b5c52' }}>
@@ -250,7 +250,7 @@ export const QuickSendPopover = ({
                 `Hi {username},\n\n` +
                 `You can also use placeholders like {plan_name}, {expires_at}, etc.`
               }
-              className="w-full px-3 py-2 rounded-md text-xs text-white focus:outline-none resize-none font-mono"
+              className="w-full px-3 py-2 rounded-md text-xs text-text-primary focus:outline-none resize-none font-mono"
               style={{
                 background: 'rgba(0,0,0,0.3)',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -350,7 +350,7 @@ export const QuickSendPopover = ({
                 >
                   Subject
                 </p>
-                <p className="text-xs text-white">{rendered.subject}</p>
+                <p className="text-xs text-text-primary">{rendered.subject}</p>
               </div>
             )}
 

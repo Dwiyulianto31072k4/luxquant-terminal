@@ -151,7 +151,7 @@ export const StatusTag = ({ status }) => {
 export const SectionBand = ({ title, desc }) => (
   <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0805] px-4 py-3.5">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-    <div className="text-[14px] text-white/95">{title}</div>
+    <div className="text-[14px] text-text-primary/95">{title}</div>
     {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
   </div>
 );
@@ -160,7 +160,7 @@ export const Kpi = ({ label, value, desc, tone }) => (
   <div className="group relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-gold-primary/25">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
     <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
-    <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-white/95"}`}>{value}</div>
+    <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-text-primary/95"}`}>{value}</div>
     {desc && <div className="text-[10px] text-text-muted mt-2 leading-relaxed">{desc}</div>}
   </div>
 );
@@ -171,7 +171,7 @@ export const Chip = ({ active, onClick, children }) => (
     className={`shrink-0 px-2.5 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider border transition-colors ${
       active
         ? "bg-gold-primary text-[#17110a] border-gold-primary font-semibold shadow-sm shadow-gold-primary/20"
-        : "bg-[#0c0a07] text-text-muted border-white/[0.1] hover:text-white hover:border-white/20"
+        : "bg-[#0c0a07] text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
     }`}
   >
     {children}
@@ -205,7 +205,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
       >
         <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{label}</span>
         {selected.length === 0 ? (
-          <span className="font-mono text-[10px] text-white/60">All</span>
+          <span className="font-mono text-[10px] text-text-primary/60">All</span>
         ) : (
           <>
             {selected.slice(0, 2).map((v) => (
@@ -237,7 +237,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
             {options.map((o) => (
               <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.04] cursor-pointer">
                 <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-[#d4a853] w-3 h-3" />
-                <span className="font-mono text-[10.5px] text-white/80">{o}</span>
+                <span className="font-mono text-[10.5px] text-text-primary/80">{o}</span>
               </label>
             ))}
           </div>
@@ -251,12 +251,12 @@ export const DarkTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
-      {label != null && <div className="text-white/50 mb-1">{label}</div>}
+      {label != null && <div className="text-text-primary/50 mb-1">{label}</div>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-sm" style={{ background: p.color || p.fill || GOLD }} />
-          <span className="text-white/80">{p.name}:</span>
-          <span className="text-white tabular-nums">{p.value}</span>
+          <span className="text-text-primary/80">{p.name}:</span>
+          <span className="text-text-primary tabular-nums">{p.value}</span>
         </div>
       ))}
     </div>
@@ -273,13 +273,13 @@ export function ScatterTip({ active, payload, xLabel = "x", yLabel = "y" }) {
   const ago = info ? timeAgo(info.created) : null;
   return (
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
-      <div className="text-white mb-0.5 flex items-center gap-2">
+      <div className="text-text-primary mb-0.5 flex items-center gap-2">
         <span>{p.pair}</span>
         {meta && <span className="font-bold" style={{ color: meta.color }}>{meta.label}</span>}
       </div>
-      {ago && <div className="text-white/45 mb-0.5">called {ago}</div>}
-      <div className="text-white/60">{xLabel}: <span className="text-white/90">{Number(p.x).toFixed(2)}</span></div>
-      <div className="text-white/60">{yLabel}: <span className="text-white/90">{Number(p.y).toFixed(2)}</span></div>
+      {ago && <div className="text-text-primary/45 mb-0.5">called {ago}</div>}
+      <div className="text-text-primary/60">{xLabel}: <span className="text-text-primary/90">{Number(p.x).toFixed(2)}</span></div>
+      <div className="text-text-primary/60">{yLabel}: <span className="text-text-primary/90">{Number(p.y).toFixed(2)}</span></div>
     </div>
   );
 }
@@ -293,7 +293,7 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
         className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm border font-mono text-[9px] uppercase tracking-wider transition-colors ${
           activeKey === e.key
             ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
-            : "border-white/[0.06] text-text-muted hover:text-white"
+            : "border-white/[0.06] text-text-muted hover:text-text-primary"
         }`}
       >
         <span className="w-1.5 h-1.5 rounded-sm" style={{ background: e.color }} />
@@ -340,7 +340,7 @@ export function XCard({ title, desc, render, zoom, hint }) {
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[12.5px] text-white/90">{title}</div>
+            <div className="text-[12.5px] text-text-primary/90">{title}</div>
             {desc && <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -363,7 +363,7 @@ export function XCard({ title, desc, render, zoom, hint }) {
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
             <div className="shrink-0 px-5 py-3.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[15px] text-white/95">{title}</div>
+                <div className="text-[15px] text-text-primary/95">{title}</div>
                 {desc && <div className="text-[11.5px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -504,7 +504,7 @@ export const CoinPill = ({ pair, onPair, className = "" }) => {
       title={tip}
     >
       <CoinLogo pair={pair} size={16} />
-      <span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate transition-colors">
+      <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary truncate transition-colors">
         {pair}
       </span>
     </button>
@@ -554,7 +554,7 @@ export function SectorBars({ data, dataKey, color, fmt, onPick, diverging = fals
         const c = color(v);
         return (
           <button key={d.sector} onClick={() => onPick(d.sector)} className="w-full flex items-center gap-2 group" title={d.sector}>
-            <span className="w-28 shrink-0 flex items-center gap-1.5 text-left font-mono text-[10px] text-text-muted group-hover:text-white transition-colors">
+            <span className="w-28 shrink-0 flex items-center gap-1.5 text-left font-mono text-[10px] text-text-muted group-hover:text-text-primary transition-colors">
               <SectorGlyph sector={d.sector} />
               <span className="truncate">{d.sector}</span>
             </span>

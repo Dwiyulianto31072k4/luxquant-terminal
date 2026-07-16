@@ -138,7 +138,7 @@ const FeatureSliderSection = () => {
         <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-gold-primary/20 bg-gold-primary/5 rounded-full mb-4">
           <span className="text-gold-primary font-mono text-[9px] uppercase tracking-[0.3em]">Core Technology</span>
         </div>
-        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4">
           Interactive <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">Terminal Preview</span>
         </h2>
         <p className="text-text-secondary text-sm lg:text-base max-w-2xl mx-auto">
@@ -151,7 +151,7 @@ const FeatureSliderSection = () => {
         {/* Transparent Left Controller */}
         <button
           onClick={() => scrollNav('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-white/30 hover:text-gold-primary transition-all bg-transparent focus:outline-none"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-text-primary/30 hover:text-gold-primary transition-all bg-transparent focus:outline-none"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
@@ -166,7 +166,7 @@ const FeatureSliderSection = () => {
               key={feat.id}
               onClick={() => handleTabClick(idx)}
               className={`flex flex-col items-center justify-center gap-2 px-2 py-3 flex-shrink-0 snap-center transition-all duration-300 relative focus:outline-none [-webkit-tap-highlight-color:transparent] ${
-                activeIdx === idx ? 'text-white' : 'text-text-muted hover:text-white/80'
+                activeIdx === idx ? 'text-text-primary' : 'text-text-muted hover:text-text-primary/80'
               }`}
             >
               <div className={`transition-all duration-300 ${activeIdx === idx ? 'text-gold-primary drop-shadow-[0_0_8px_rgba(212,168,83,0.5)] scale-110' : 'text-current opacity-60'}`}>
@@ -185,7 +185,7 @@ const FeatureSliderSection = () => {
         {/* Transparent Right Controller */}
         <button
           onClick={() => scrollNav('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-white/30 hover:text-gold-primary transition-all bg-transparent focus:outline-none"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-text-primary/30 hover:text-gold-primary transition-all bg-transparent focus:outline-none"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
@@ -212,14 +212,14 @@ const FeatureSliderSection = () => {
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
-            <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono tracking-widest">
+            <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-text-primary/30 font-mono tracking-widest">
               luxquant.tw
             </div>
           </div>
 
           {/* Screen content */}
           <div className="relative w-full h-full pt-6 lg:pt-8 bg-[#050302]">
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-xs font-mono">
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-text-primary/10 text-xs font-mono">
               Awaiting Screenshots...
             </div>
             {FEATURES.map((feat, idx) => (
@@ -241,7 +241,7 @@ const FeatureSliderSection = () => {
       <div className="max-w-4xl mx-auto px-4 relative z-20 text-center">
         <div className="w-16 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent mx-auto mb-6" />
 
-        <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-2">
+        <h3 className="font-display text-xl lg:text-2xl font-bold text-text-primary mb-2">
           ...and much <span className="text-gold-primary">more</span>
         </h3>
         <p className="text-text-secondary text-sm lg:text-base leading-relaxed max-w-2xl mx-auto">

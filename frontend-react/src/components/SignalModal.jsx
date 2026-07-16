@@ -1116,7 +1116,7 @@ const SignalModal = ({
   const timeline = buildTimeline();
   const LinkIcon = () => (
     <svg
-      className="w-2.5 h-2.5 text-white/40 group-hover:text-white/70"
+      className="w-2.5 h-2.5 text-text-primary/40 group-hover:text-text-primary/70"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -1298,8 +1298,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h3 className="text-white font-bold text-base mb-2">Premium Live Signal</h3>
-            <p className="text-white/60 text-xs leading-relaxed max-w-[260px] mb-4">
+            <h3 className="text-text-primary font-bold text-base mb-2">Premium Live Signal</h3>
+            <p className="text-text-primary/60 text-xs leading-relaxed max-w-[260px] mb-4">
               This signal is still{" "}
               <span className="text-gold-primary font-semibold">open and running</span>. Subscribe to view live entry, take-profits, stop-loss, and charts.
             </p>
@@ -1307,7 +1307,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               className="lq-btn-gold flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-xs active:scale-[0.98]">
               {Ic.lock("w-3.5 h-3.5")} Subscribe to Unlock
             </button>
-            <p className="text-[10px] text-white/40 mt-3">Closed signals are visible for free as track record proof.</p>
+            <p className="text-[10px] text-text-primary/40 mt-3">Closed signals are visible for free as track record proof.</p>
           </div>
         </div>
       );
@@ -1335,7 +1335,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
                     </span>
-                    <span className="text-[9px] uppercase tracking-[0.14em] text-white/45 font-medium">Live · Mark</span>
+                    <span className="text-[9px] uppercase tracking-[0.14em] text-text-primary/45 font-medium">Live · Mark</span>
                   </span>
                   {liveChange24h !== null && (
                     <span className={`text-[9px] font-mono font-semibold ${liveChange24h >= 0 ? "text-green-400/80" : "text-red-400/80"}`}>
@@ -1345,7 +1345,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </div>
                 <div className="flex items-end justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className={`font-mono font-bold leading-none truncate ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-green-400" : down ? "text-red-400" : "text-white"}`}>
+                    <p className={`font-mono font-bold leading-none truncate ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-green-400" : down ? "text-red-400" : "text-text-primary"}`}>
                       {formatPrice(livePrice)}
                     </p>
                     <LocalPriceLine usdtValue={livePrice} size="md" />
@@ -1354,7 +1354,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold flex-shrink-0 border ${
                       up ? "bg-green-500/15 text-green-400 border-green-500/20" :
                       down ? "bg-red-500/15 text-red-400 border-red-500/20" :
-                      "bg-white/5 text-white/50 border-white/10"
+                      "bg-white/5 text-text-primary/50 border-white/10"
                     }`}>
                       {up ? "▲" : down ? "▼" : "•"} {Math.abs(pnlPct).toFixed(2)}%
                     </span>
@@ -1402,13 +1402,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span className="flex items-center gap-1 min-w-0">
                     <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold flex-shrink-0 ${
-                      tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-white/45"
+                      tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-text-primary/45"
                     }`}>{tg.hit ? "✓" : i + 1}</span>
-                    <span className={`text-[10px] font-bold truncate ${tg.hit ? "text-green-400" : "text-white/70"}`}>{tg.label}</span>
+                    <span className={`text-[10px] font-bold truncate ${tg.hit ? "text-green-400" : "text-text-primary/70"}`}>{tg.label}</span>
                   </span>
-                  <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${tg.hit ? "text-green-400" : "text-white/50"}`}>+{tg.pct}%</span>
+                  <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${tg.hit ? "text-green-400" : "text-text-primary/50"}`}>+{tg.pct}%</span>
                 </div>
-                <p className={`text-[11px] font-mono leading-none truncate ${tg.hit ? "text-white" : "text-white/55"}`}>{formatPrice(tg.value)}</p>
+                <p className={`text-[11px] font-mono leading-none truncate ${tg.hit ? "text-text-primary" : "text-text-primary/55"}`}>{formatPrice(tg.value)}</p>
                 <LocalPriceLine usdtValue={tg.value} size="sm" />
               </div>
             ))}
@@ -1430,10 +1430,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     : "bg-white/[0.02] hover:bg-white/[0.05]"
                 }`}>
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className={`text-[10px] font-bold truncate ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
-                    <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${s.hit ? "text-red-400" : "text-white/50"}`}>{s.pct}%</span>
+                    <span className={`text-[10px] font-bold truncate ${s.hit ? "text-red-400" : "text-text-primary/70"}`}>{s.label}</span>
+                    <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${s.hit ? "text-red-400" : "text-text-primary/50"}`}>{s.pct}%</span>
                   </div>
-                  <p className={`text-[11px] font-mono leading-none truncate ${s.hit ? "text-white" : "text-white/55"}`}>{formatPrice(s.value)}</p>
+                  <p className={`text-[11px] font-mono leading-none truncate ${s.hit ? "text-text-primary" : "text-text-primary/55"}`}>{formatPrice(s.value)}</p>
                   <LocalPriceLine usdtValue={s.value} size="sm" />
                 </div>
               ))}
@@ -1451,23 +1451,23 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               {goldLine}
               <div className="px-2.5 py-1.5 border-b border-white/[0.05] flex items-center gap-1.5">
                 <svg className="w-2.5 h-2.5 text-gold-primary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                <span className="text-[8.5px] uppercase tracking-[0.14em] text-white/40 font-medium">Derivatives · Perp</span>
+                <span className="text-[8.5px] uppercase tracking-[0.14em] text-text-primary/40 font-medium">Derivatives · Perp</span>
               </div>
 
               {/* Funding + OI sebagai 2 tile kotak */}
               <div className="grid grid-cols-2 gap-px bg-white/[0.05]">
                 <div className="p-2.5 bg-[#0d0b08] transition-colors hover:bg-white/[0.03]">
-                  <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1">Funding</p>
+                  <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1">Funding</p>
                   <p className={`text-[12px] font-mono font-bold leading-none ${fundingPos ? "text-red-400" : "text-green-400"}`}>
                     {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
                   </p>
-                  <p className="text-[7.5px] text-white/35 mt-1 leading-tight">
+                  <p className="text-[7.5px] text-text-primary/35 mt-1 leading-tight">
                     {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · ${countdown}` : ""}
                   </p>
                 </div>
                 <div className="p-2.5 bg-[#0d0b08] transition-colors hover:bg-white/[0.03]">
-                  <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1">Open Interest</p>
-                  <p className="text-[12px] font-mono font-bold text-white leading-none">{formatOiUsd(oiUsd)}</p>
+                  <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1">Open Interest</p>
+                  <p className="text-[12px] font-mono font-bold text-text-primary leading-none">{formatOiUsd(oiUsd)}</p>
                   {oiChange24h !== null && (
                     <p className={`text-[7.5px] font-mono mt-1 leading-tight ${oiChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
                       {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% · 24h
@@ -1479,7 +1479,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               {/* L/S bar chart */}
               {lsLong !== null && lsShort !== null && (
                 <div className="px-2.5 py-2.5 border-t border-white/[0.05]">
-                  <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1.5">L/S · Top Traders</p>
+                  <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1.5">L/S · Top Traders</p>
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-mono font-bold text-green-400 w-8 flex-shrink-0">{lsLong}%</span>
                     <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-white/5">
@@ -1504,8 +1504,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 ].map((link, i, arr) => (
                   <span key={link.label} className="flex items-center gap-1.5">
                     <a href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                       className="text-[8px] text-white/30 hover:text-gold-primary/70 transition-colors">{link.label}</a>
-                    {i < arr.length - 1 && <span className="text-white/15 text-[8px]">·</span>}
+                       className="text-[8px] text-text-primary/30 hover:text-gold-primary/70 transition-colors">{link.label}</a>
+                    {i < arr.length - 1 && <span className="text-text-primary/15 text-[8px]">·</span>}
                   </span>
                 ))}
               </div>
@@ -1524,8 +1524,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
                 </svg>
               </div>
-              <p className="text-[11px] font-semibold text-white/85">Live data unavailable</p>
-              <p className="mx-auto mt-1 max-w-[250px] text-[9px] leading-relaxed text-white/45">
+              <p className="text-[11px] font-semibold text-text-primary/85">Live data unavailable</p>
+              <p className="mx-auto mt-1 max-w-[250px] text-[9px] leading-relaxed text-text-primary/45">
                 Derivatives data (funding, open interest, long/short) is blocked on your
                 network or region. Turn on a <span className="text-gold-primary/80 font-medium">VPN</span> and reopen
                 this signal to see real-time metrics.
@@ -1539,15 +1539,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           <div className="lq-card bg-[#0c0b09] p-2 space-y-1.5">
             {signal?.volume_rank_num && (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[9px] text-white/40 uppercase tracking-wider flex items-center gap-1.5 min-w-0">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
-                <span className="text-[11px] font-bold text-white font-mono flex-shrink-0">
-                  #{signal.volume_rank_num}<span className="text-white/35 text-[9px] font-normal ml-0.5">/ {signal.volume_rank_den}</span>
+                <span className="text-[9px] text-text-primary/40 uppercase tracking-wider flex items-center gap-1.5 min-w-0">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
+                <span className="text-[11px] font-bold text-text-primary font-mono flex-shrink-0">
+                  #{signal.volume_rank_num}<span className="text-text-primary/35 text-[9px] font-normal ml-0.5">/ {signal.volume_rank_den}</span>
                 </span>
               </div>
             )}
             {signal?.risk_level && (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[9px] text-white/40 uppercase tracking-wider min-w-0">{t("modal.risk_level")}</span>
+                <span className="text-[9px] text-text-primary/40 uppercase tracking-wider min-w-0">{t("modal.risk_level")}</span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
                   signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-green-500/15 text-green-400" :
                   signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-red-500/15 text-red-400" :
@@ -1557,8 +1557,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             )}
             {signal?.market_cap && (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[9px] text-white/40 uppercase tracking-wider min-w-0">{t("modal.market_cap")}</span>
-                <span className="text-[10px] text-white font-medium flex-shrink-0 text-right">{signal.market_cap}</span>
+                <span className="text-[9px] text-text-primary/40 uppercase tracking-wider min-w-0">{t("modal.market_cap")}</span>
+                <span className="text-[10px] text-text-primary font-medium flex-shrink-0 text-right">{signal.market_cap}</span>
               </div>
             )}
           </div>
@@ -1589,11 +1589,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <div className="min-w-0 flex-1">
                     {/* Baris 1: Pair name + status */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <h2 className="truncate font-mono text-[15px] font-semibold text-white sm:text-base">
+                      <h2 className="truncate font-mono text-[15px] font-semibold text-text-primary sm:text-base">
                         {signal?.pair}
                       </h2>
                       <span
-                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${statusStyles[signal?.status?.toLowerCase()] || "bg-gray-500"}`}
+                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-text-primary ${statusStyles[signal?.status?.toLowerCase()] || "bg-gray-500"}`}
                       >
                         {signal?.status?.toUpperCase()}
                       </span>
@@ -1635,7 +1635,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
-                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-white/65 transition hover:bg-white/[0.04] hover:text-white sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
+                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-text-primary/65 transition hover:bg-white/[0.04] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                   >
                     <span className="hidden sm:inline">X</span>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1663,7 +1663,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         window.location.href = "/journal";
                       }, 300);
                     }}
-                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-white/65 transition hover:bg-white/[0.04] hover:text-white sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
+                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-text-primary/65 transition hover:bg-white/[0.04] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                     title="Journal This Trade"
                   >
                     <svg
@@ -1701,7 +1701,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <button
                         key={id}
                         onClick={() => { setActiveTab(id); onTabChange && onTabChange(id); }}
-                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === id ? "bg-gold-primary text-black" : "text-text-secondary hover:text-white hover:bg-white/5"}`}
+                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === id ? "bg-gold-primary text-black" : "text-text-secondary hover:text-text-primary hover:bg-white/5"}`}
                       >
                         {icon}
                         <span className="hidden sm:inline">{label}</span>
@@ -1710,7 +1710,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                   <button
                     onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -1772,7 +1772,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-semibold uppercase tracking-[0.12em] backdrop-blur-sm transition-all active:scale-[0.97] ${
                           showIndicators
                             ? "bg-gold-primary/15 border-gold-primary/40 text-gold-primary hover:bg-gold-primary/25"
-                            : "bg-black/40 border-white/12 text-white/50 hover:text-white/80 hover:border-white/25"
+                            : "bg-black/40 border-white/12 text-text-primary/50 hover:text-text-primary/80 hover:border-white/25"
                         }`}
                       >
                         <span className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-gold-primary/70" : "bg-white/15"}`}>
@@ -1823,9 +1823,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               {t("modal.before_entry")}
                             </span>
                             {entryPrice > 0 && (
-                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-white/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center">
+                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center">
                                 Entry:{" "}
-                                <span className="text-white ml-1">
+                                <span className="text-text-primary ml-1">
                                   ${formatPrice(entryPrice)}
                                 </span>
                               </span>
@@ -1843,7 +1843,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 loading="lazy"
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                                <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded-md font-medium backdrop-blur-sm shadow-xl">
+                                <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-text-primary text-[10px] sm:text-xs px-3 py-1.5 rounded-md font-medium backdrop-blur-sm shadow-xl">
                                   Fullscreen
                                 </span>
                               </div>
@@ -1859,7 +1859,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {/* SEPARATOR */}
                         <div className="hidden md:flex flex-col items-center justify-center w-8 shrink-0 relative mt-6">
                           <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/30 via-white/10 to-green-500/30 -translate-y-1/2 z-0" />
-                          <div className="relative z-10 bg-[#0a0a0a] border border-white/10 text-white/50 w-7 h-7 rounded-full flex items-center justify-center">
+                          <div className="relative z-10 bg-[#0a0a0a] border border-white/10 text-text-primary/50 w-7 h-7 rounded-full flex items-center justify-center">
                             <svg
                               className="w-3.5 h-3.5"
                               fill="none"
@@ -1888,7 +1888,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               {showInteractiveRight && afterImg && (
                                 <button
                                   onClick={() => setShowTV(false)}
-                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-white flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded-md border border-white/5 transition-colors"
+                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-text-primary flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded-md border border-white/5 transition-colors"
                                 >
                                   <svg
                                     className="w-3 h-3"
@@ -1907,9 +1907,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 </button>
                               )}
                               {lastPrice > 0 && (
-                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-white/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center gap-1">
+                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center gap-1">
                                   Last:{" "}
-                                  <span className="text-white">
+                                  <span className="text-text-primary">
                                     ${formatPrice(lastPrice)}
                                   </span>
                                   {lastPricePct && (
@@ -1950,7 +1950,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <button
                                   type="button"
                                   onClick={() => setShowTV(true)}
-                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-white/85 transition hover:bg-white/[0.1] hover:text-white active:scale-[0.99]"
+                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-text-primary/85 transition hover:bg-white/[0.1] hover:text-text-primary active:scale-[0.99]"
                                 >
                                   <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
@@ -1960,7 +1960,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <button
                                   type="button"
                                   onClick={() => setLightboxImg(afterImg)}
-                                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-white/50 transition hover:text-white/80"
+                                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-text-primary/50 transition hover:text-text-primary/80"
                                 >
                                   Full
                                 </button>
@@ -1981,7 +1981,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         </div>
                         <div className="hidden h-5 w-px bg-white/10 sm:block" />
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-base font-semibold tabular-nums text-white sm:text-lg">
+                          <span className="font-mono text-base font-semibold tabular-nums text-text-primary sm:text-lg">
                             ${formatPrice(peakPrice)}
                           </span>
                           <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 font-mono text-[12px] font-semibold text-emerald-400">
@@ -2031,7 +2031,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                         </span>
                                       )}
                                     </div>
-                                    <span className="text-[11px] text-white/60 font-mono whitespace-nowrap">
+                                    <span className="text-[11px] text-text-primary/60 font-mono whitespace-nowrap">
                                       {ev.detail}
                                     </span>
                                   </div>
@@ -2087,7 +2087,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 e.target.src = link.fallbackLogo;
                               }}
                             />
-                            <span className="text-white/70 text-[9px] sm:text-[10px] font-medium group-hover:text-white truncate w-full text-center">
+                            <span className="text-text-primary/70 text-[9px] sm:text-[10px] font-medium group-hover:text-text-primary truncate w-full text-center">
                               {link.name}
                             </span>
                           </a>
@@ -2103,7 +2103,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
                   <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-3 sm:mb-5">
-                      <h3 className="text-base sm:text-lg font-display text-white mb-1">
+                      <h3 className="text-base sm:text-lg font-display text-text-primary mb-1">
                         {t("modal.research_analytics")}
                       </h3>
                       <p className="text-text-muted text-xs sm:text-sm">
@@ -2140,7 +2140,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             />
                           )}
                           <div>
-                            <h4 className="text-white font-semibold text-sm">
+                            <h4 className="text-text-primary font-semibold text-sm">
                               {coinInfo.name}{" "}
                               <span className="text-text-muted font-normal">
                                 ({coinInfo.symbol})
@@ -2165,7 +2165,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <p className="text-text-muted text-[9px] uppercase">
                                   {t("modal.price")}
                                 </p>
-                                <p className="text-white text-xs font-mono">
+                                <p className="text-text-primary text-xs font-mono">
                                   $
                                   {coinInfo.market_data.current_price.toLocaleString()}
                                 </p>
@@ -2176,7 +2176,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <p className="text-text-muted text-[9px] uppercase">
                                   {t("modal.market_cap")}
                                 </p>
-                                <p className="text-white text-xs">
+                                <p className="text-text-primary text-xs">
                                   {formatBigNum(
                                     coinInfo.market_data.market_cap,
                                   )}
@@ -2188,7 +2188,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <p className="text-text-muted text-[9px] uppercase">
                                   {t("modal.rank")}
                                 </p>
-                                <p className="text-white text-xs font-mono">
+                                <p className="text-text-primary text-xs font-mono">
                                   #{coinInfo.market_data.market_cap_rank}
                                 </p>
                               </div>
@@ -2198,7 +2198,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <p className="text-text-muted text-[9px] uppercase">
                                   {t("modal.vol_24h")}
                                 </p>
-                                <p className="text-white text-xs">
+                                <p className="text-text-primary text-xs">
                                   {formatBigNum(
                                     coinInfo.market_data.total_volume,
                                   )}
@@ -2249,7 +2249,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <p className="text-text-muted text-[9px] uppercase">
                                   {t("modal.ath")}
                                 </p>
-                                <p className="text-white text-xs font-mono">
+                                <p className="text-text-primary text-xs font-mono">
                                   ${coinInfo.market_data.ath.toLocaleString()}
                                 </p>
                                 {coinInfo.market_data.ath_change_pct !=
@@ -2269,7 +2269,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <p className="text-text-muted text-[9px] uppercase">
                                   {t("modal.supply")}
                                 </p>
-                                <p className="text-white text-xs">
+                                <p className="text-text-primary text-xs">
                                   {(
                                     coinInfo.market_data.circulating_supply /
                                     1e6
@@ -2469,7 +2469,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 e.target.src = link.fallbackLogo;
                               }}
                             />
-                            <span className="text-[10px] sm:text-[11px] font-medium text-white/80 group-hover:text-white whitespace-nowrap">
+                            <span className="text-[10px] sm:text-[11px] font-medium text-text-primary/80 group-hover:text-text-primary whitespace-nowrap">
                               {link.name}
                             </span>
                             <LinkIcon />
@@ -2538,7 +2538,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-text-primary bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
             onClick={() => setLightboxImg(null)}
           >
             <svg

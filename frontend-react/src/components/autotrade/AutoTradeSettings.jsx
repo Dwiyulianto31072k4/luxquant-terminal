@@ -70,7 +70,7 @@ export default function AutoTradeSettings({
                 className={`flex w-full items-start gap-3 rounded-md px-3 py-3 text-left transition-colors ${
                   active
                     ? "bg-gold-primary/[0.09] text-gold-primary"
-                    : "text-text-muted hover:bg-white/[0.03] hover:text-white"
+                    : "text-text-muted hover:bg-white/[0.03] hover:text-text-primary"
                 }`}
               >
                 <Icon className="mt-0.5 h-5 w-5 flex-shrink-0" />

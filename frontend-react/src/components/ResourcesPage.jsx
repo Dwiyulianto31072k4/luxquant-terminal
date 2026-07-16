@@ -63,7 +63,7 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         {resource.type === 'video' && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur flex items-center justify-center border border-white/20">
-              <svg className="w-7 h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              <svg className="w-7 h-7 text-text-primary ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </div>
           </div>
         )}
@@ -74,7 +74,7 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
           <TypeBadge type={resource.type} />
           <span className="text-[11px] text-text-muted">{resource.category}</span>
         </div>
-        <h2 className="text-xl lg:text-2xl font-bold text-white leading-tight group-hover:text-gold-primary transition-colors line-clamp-3">
+        <h2 className="text-xl lg:text-2xl font-bold text-text-primary leading-tight group-hover:text-gold-primary transition-colors line-clamp-3">
           {resource.title}
         </h2>
         {resource.excerpt && <p className="text-text-muted text-sm mt-3 line-clamp-3 leading-relaxed">{stripMarkdown(resource.excerpt)}</p>}
@@ -108,12 +108,12 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         {isVideo && (
           <div className="absolute inset-0 flex items-center justify-center opacity-90 group-hover:opacity-100 transition">
             <div className="w-12 h-12 rounded-full bg-black/55 backdrop-blur flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
-              <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              <svg className="w-5 h-5 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </div>
           </div>
         )}
         {resource.type === 'link' && (
-          <div className="absolute top-3 right-3 p-1 rounded bg-black/50 text-white/80">
+          <div className="absolute top-3 right-3 p-1 rounded bg-black/50 text-text-primary/80">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </div>
         )}
@@ -122,7 +122,7 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         <div className="flex items-center gap-2 mb-1.5">
           <span className="text-[10px] text-gold-primary/80 font-semibold uppercase tracking-wide">{resource.category}</span>
         </div>
-        <h3 className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
+        <h3 className="text-text-primary font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
           {resource.title}
         </h3>
         {resource.excerpt && <p className="text-text-muted text-[11px] line-clamp-2 leading-relaxed mb-3">{stripMarkdown(resource.excerpt)}</p>}
@@ -237,7 +237,7 @@ const ResourcesPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h2 className="font-display text-2xl font-semibold text-white">{t('resources.title', { defaultValue: 'Resources' })}</h2>
+          <h2 className="font-display text-2xl font-semibold text-text-primary">{t('resources.title', { defaultValue: 'Resources' })}</h2>
           <span className="px-2 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded">
             {items.length}
           </span>
@@ -258,7 +258,7 @@ const ResourcesPage = () => {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               </span>
-              <input type="text" placeholder={t('resources.search', { defaultValue: 'Search resources…' })} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-bg-card border border-gold-primary/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors" />
+              <input type="text" placeholder={t('resources.search', { defaultValue: 'Search resources…' })} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-bg-card border border-gold-primary/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold-primary/40 transition-colors" />
             </div>
           </form>
           <div className="flex flex-wrap gap-2">
@@ -267,7 +267,7 @@ const ResourcesPage = () => {
                 key={tab.id}
                 onClick={() => { setActiveType(tab.id); setLoading(true); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30' : 'bg-bg-card text-text-muted border border-white/5 hover:text-white hover:border-gold-primary/20'
+                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30' : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-gold-primary/20'
                 }`}
               >
                 {tab.label}
@@ -278,11 +278,11 @@ const ResourcesPage = () => {
 
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1 border-t border-white/5">
-            <button onClick={() => { setActiveCategory('all'); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === 'all' ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-white'}`}>
+            <button onClick={() => { setActiveCategory('all'); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === 'all' ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-text-primary'}`}>
               All categories
             </button>
             {categories.map((c) => (
-              <button key={c} onClick={() => { setActiveCategory(c); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === c ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-white'}`}>
+              <button key={c} onClick={() => { setActiveCategory(c); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === c ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-text-primary'}`}>
                 {c}
               </button>
             ))}
@@ -332,10 +332,10 @@ const ResourcesPage = () => {
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
               <div className="h-1 w-10 rounded-full bg-white/25" />
             </div>
-            <h3 className="text-white font-semibold text-center mb-2">Delete resource?</h3>
+            <h3 className="text-text-primary font-semibold text-center mb-2">Delete resource?</h3>
             <p className="text-text-muted text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors">Delete</button>
             </div>
           </div>

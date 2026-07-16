@@ -80,7 +80,7 @@ const computeWhaleThreshold = (alerts) => {
 const typeStyle = (t) => {
   const gold = "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
   const danger = "bg-red-500/10 text-red-400 border-red-500/25";
-  const neutral = "bg-white/[0.04] text-white/70 border-white/[0.08]";
+  const neutral = "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
 
   const map = {
     whale_transfer: gold,
@@ -320,7 +320,7 @@ const OnchainPage = () => {
         <SectionHeader label="On-Chain Intelligence" />
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
               On-Chain Intelligence
             </h1>
             <p className="text-text-muted text-sm mt-1.5">
@@ -337,7 +337,7 @@ const OnchainPage = () => {
             </span>
             <span className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
               <span className="uppercase tracking-[0.15em] text-[10px]">Auto-refresh</span>
-              <span className="ml-2 text-white tabular-nums">60s</span>
+              <span className="ml-2 text-text-primary tabular-nums">60s</span>
             </span>
           </div>
         </div>
@@ -366,7 +366,7 @@ const OnchainPage = () => {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
                 {label}
@@ -394,7 +394,7 @@ const OnchainPage = () => {
                 className={`shrink-0 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
                 {label}
@@ -424,18 +424,18 @@ const OnchainPage = () => {
               placeholder="Search title or raw text..."
               value={search}
               onChange={handleSearch}
-              className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
+              className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
             />
           </div>
 
           <select
             value={chainFilter}
             onChange={(e) => handleChain(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0805] text-white">Chain: All</option>
+            <option value="all" className="bg-[#0a0805] text-text-primary">Chain: All</option>
             {(stats?.by_blockchain || []).slice(0, 12).map((c) => (
-              <option key={c.blockchain} value={c.blockchain} className="bg-[#0a0805] text-white">
+              <option key={c.blockchain} value={c.blockchain} className="bg-[#0a0805] text-text-primary">
                 {c.blockchain}
               </option>
             ))}
@@ -444,11 +444,11 @@ const OnchainPage = () => {
           <select
             value={sourceFilter}
             onChange={(e) => handleSource(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0805] text-white">Source: All</option>
+            <option value="all" className="bg-[#0a0805] text-text-primary">Source: All</option>
             {(stats?.by_source || []).map((s) => (
-              <option key={s.source} value={s.source} className="bg-[#0a0805] text-white">
+              <option key={s.source} value={s.source} className="bg-[#0a0805] text-text-primary">
                 {s.source}
               </option>
             ))}
@@ -457,11 +457,11 @@ const OnchainPage = () => {
           <select
             value={tokenFilter}
             onChange={(e) => handleToken(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0805] text-white">Token: All</option>
+            <option value="all" className="bg-[#0a0805] text-text-primary">Token: All</option>
             {(stats?.by_token || []).slice(0, 15).map((t) => (
-              <option key={t.token} value={t.token} className="bg-[#0a0805] text-white">
+              <option key={t.token} value={t.token} className="bg-[#0a0805] text-text-primary">
                 ${t.token}
               </option>
             ))}
@@ -575,7 +575,7 @@ const StatCard = ({ label, value, sublabel, isLive, isGold }) => (
         )}
       </div>
 
-      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${isGold ? "text-gold-primary" : "text-white"}`}>
+      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${isGold ? "text-gold-primary" : "text-text-primary"}`}>
         {value}
       </div>
 
@@ -647,7 +647,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
 
           <p
             className={`text-sm leading-snug line-clamp-1 transition-colors ${
-              isHighlight ? "text-white" : "text-white/90"
+              isHighlight ? "text-text-primary" : "text-text-primary/90"
             } group-hover:text-gold-primary`}
           >
             {alert.title || alert.raw_text?.slice(0, 140) || "—"}
@@ -658,7 +658,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
           {alert.amount_usd ? (
             <span
               className={`font-mono text-sm tabular-nums font-semibold ${
-                isHighlight ? "text-gold-primary" : "text-white"
+                isHighlight ? "text-gold-primary" : "text-text-primary"
               }`}
             >
               {fmtUsd(alert.amount_usd)}
@@ -711,7 +711,7 @@ const SidebarTrendingTokens = ({ stats, onTokenClick, activeToken }) => {
                 <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className={`text-xs font-medium truncate ${active ? "text-gold-primary" : "text-white"}`}>
+                <span className={`text-xs font-medium truncate ${active ? "text-gold-primary" : "text-text-primary"}`}>
                   ${t.token}
                 </span>
               </div>
@@ -756,7 +756,7 @@ const SidebarBlockchains = ({ stats, onChainClick, activeChain }) => {
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className={`flex items-center gap-2 text-xs ${active ? "text-gold-primary" : "text-white"}`}>
+                <span className={`flex items-center gap-2 text-xs ${active ? "text-gold-primary" : "text-text-primary"}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${chainDot(c.blockchain)}`} />
                   {c.blockchain}
                 </span>
@@ -788,7 +788,7 @@ const SidebarLargestMoves = ({ stats }) => {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs text-white truncate">
+                <span className="text-xs text-text-primary truncate">
                   {m.token ? `$${m.token}` : "—"}
                 </span>
                 {m.alert_type && (
@@ -831,7 +831,7 @@ const SidebarSources = ({ stats, onSourceClick, activeSource }) => {
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className={`text-xs truncate ${active ? "text-gold-primary" : "text-white"}`}>
+                <span className={`text-xs truncate ${active ? "text-gold-primary" : "text-text-primary"}`}>
                   {s.source}
                 </span>
                 <span className="text-[10px] font-mono text-text-muted/70 tabular-nums shrink-0 ml-2">
@@ -882,7 +882,7 @@ const AlertModal = ({ alert, onClose }) => {
 
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-md bg-black/40 border border-white/[0.06] flex items-center justify-center text-text-muted hover:text-white hover:border-white/[0.15] transition-colors font-mono text-sm"
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-md bg-black/40 border border-white/[0.06] flex items-center justify-center text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-colors font-mono text-sm"
         >
           ✕
         </button>
@@ -912,7 +912,7 @@ const AlertModal = ({ alert, onClose }) => {
                 {typeLabel(alert.alert_type)}
               </span>
               {alert.blockchain && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-white/70 inline-flex items-center gap-1.5">
+                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-text-primary/70 inline-flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${chainDot(alert.blockchain)}`} />
                   {alert.blockchain}
                 </span>
@@ -923,7 +923,7 @@ const AlertModal = ({ alert, onClose }) => {
                 </span>
               )}
               {alert.source_name && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-white/70">
+                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-text-primary/70">
                   {alert.source_name}
                 </span>
               )}
@@ -935,7 +935,7 @@ const AlertModal = ({ alert, onClose }) => {
                 <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
                   Amount
                 </p>
-                <p className="text-3xl font-mono tabular-nums text-white">
+                <p className="text-3xl font-mono tabular-nums text-text-primary">
                   {fmtUsd(alert.amount_usd)}
                 </p>
                 {alert.amount_raw && alert.token && (
@@ -953,7 +953,7 @@ const AlertModal = ({ alert, onClose }) => {
                     <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-1">
                       From
                     </p>
-                    <p className="text-white text-xs font-mono truncate">
+                    <p className="text-text-primary text-xs font-mono truncate">
                       {alert.from_entity}
                     </p>
                   </div>
@@ -964,7 +964,7 @@ const AlertModal = ({ alert, onClose }) => {
                     <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-1">
                       To
                     </p>
-                    <p className="text-white text-xs font-mono truncate">
+                    <p className="text-text-primary text-xs font-mono truncate">
                       {alert.to_entity}
                     </p>
                   </div>
@@ -1042,7 +1042,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
-        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-white/[0.06] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         ← Prev
       </button>
@@ -1061,7 +1061,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
             className={`min-w-[34px] h-8 px-2 rounded-md text-[11px] font-mono tabular-nums transition-all ${
               p === page
                 ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-                : "border border-white/[0.06] text-text-muted hover:text-white hover:border-white/[0.15]"
+                : "border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15]"
             }`}
           >
             {p}
@@ -1071,7 +1071,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
-        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-white/[0.06] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         Next →
       </button>
@@ -1113,7 +1113,7 @@ const EmptyState = () => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>
     </div>
-    <p className="text-white text-sm font-medium mb-1">No alerts found</p>
+    <p className="text-text-primary text-sm font-medium mb-1">No alerts found</p>
     <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em]">
       Try adjusting filters
     </p>

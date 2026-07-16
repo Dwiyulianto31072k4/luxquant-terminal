@@ -68,7 +68,7 @@ const toneStyle = (tone) => {
     return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
   if (tone === "danger")
     return "bg-red-500/10 text-red-400 border-red-500/25";
-  return "bg-white/[0.04] text-white/70 border-white/[0.08]";
+  return "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
 };
 
 const toneDot = (tone) => {
@@ -270,7 +270,7 @@ const NotificationsPage = () => {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
               {t("notifications.title") || "Notifications"}
             </h1>
             {view === "inbox" && unreadCount > 0 && (
@@ -314,7 +314,7 @@ const NotificationsPage = () => {
               key={tab.key}
               onClick={() => setView(tab.key)}
               className={`relative px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.15em] transition-colors ${
-                active ? "text-gold-primary" : "text-text-muted hover:text-white"
+                active ? "text-gold-primary" : "text-text-muted hover:text-text-primary"
               }`}
             >
               {tab.label}
@@ -351,7 +351,7 @@ const NotificationsPage = () => {
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-[0.1em] transition-all ${
                       active
                         ? "bg-gold-primary/15 text-gold-primary"
-                        : "text-text-muted hover:text-white"
+                        : "text-text-muted hover:text-text-primary"
                     }`}
                   >
                     <span>{tab === "all" ? (t("notifications.all") || "All") : (t("notifications.unread") || "Unread")}</span>
@@ -364,10 +364,10 @@ const NotificationsPage = () => {
               <select
                 value={typeFilter || ""}
                 onChange={(e) => { setTypeFilter(e.target.value || null); setPage(1); }}
-                className="appearance-none cursor-pointer rounded-md border border-white/[0.08] bg-white/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-white/[0.15] hover:text-white focus:outline-none focus:border-gold-primary/40 transition-all"
+                className="appearance-none cursor-pointer rounded-md border border-white/[0.08] bg-white/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-white/[0.15] hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-all"
               >
                 {typeFilters.map((f) => (
-                  <option key={f.key || "all"} value={f.key || ""} className="bg-[#0a0805] text-white">
+                  <option key={f.key || "all"} value={f.key || ""} className="bg-[#0a0805] text-text-primary">
                     {f.label}
                   </option>
                 ))}
@@ -415,7 +415,7 @@ const NotificationsPage = () => {
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 transition-all"
+                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 transition-all"
                   >
                     ← Prev
                   </button>
@@ -425,7 +425,7 @@ const NotificationsPage = () => {
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 transition-all"
+                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 transition-all"
                   >
                     Next →
                   </button>
@@ -466,7 +466,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-sm leading-snug ${isUnread ? "font-semibold text-white" : "font-medium text-text-secondary"}`}>
+          <p className={`text-sm leading-snug ${isUnread ? "font-semibold text-text-primary" : "font-medium text-text-secondary"}`}>
             {notif.title}
           </p>
           <span className="text-[10px] font-mono text-text-muted/60 whitespace-nowrap shrink-0 mt-0.5 tabular-nums">
@@ -481,7 +481,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
         {notif.data && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {(notif.data.pair || notif.data.symbol) && (
-              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-white/[0.04] border-white/[0.08] text-white/70 tabular-nums">
+              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-white/[0.04] border-white/[0.08] text-text-primary/70 tabular-nums">
                 {notif.data.pair || notif.data.symbol}
               </span>
             )}
@@ -574,7 +574,7 @@ const EmptyState = ({ t }) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
       </svg>
     </div>
-    <p className="text-white text-base font-medium mb-1.5">
+    <p className="text-text-primary text-base font-medium mb-1.5">
       {t("notifications.no_notifications") || "All caught up"}
     </p>
     <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em]">

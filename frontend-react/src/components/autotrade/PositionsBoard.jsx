@@ -37,7 +37,7 @@ function pnlColor(value) {
   const n = Number(value || 0);
   if (n > 0) return "text-[#0ECB81]";
   if (n < 0) return "text-[#F6465D]";
-  return "text-white/80";
+  return "text-text-primary/80";
 }
 
 function protectionTone(position) {
@@ -141,7 +141,7 @@ function PortfolioCharts({ trackedSpot, manualSpot, futures }) {
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
                   {item.name}
                 </span>
-                <span className="font-mono text-white">{fmtUsd(item.value)}</span>
+                <span className="font-mono text-text-primary">{fmtUsd(item.value)}</span>
               </div>
             ))}
           </div>
@@ -211,7 +211,7 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
         <CoinLogo pair={position.symbol} size={30} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
-            <span className="font-mono text-sm font-semibold text-white">{position.symbol}</span>
+            <span className="font-mono text-sm font-semibold text-text-primary">{position.symbol}</span>
             <span
               className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
               style={{ background: dot }}
@@ -288,7 +288,7 @@ function Metric({ label, value, tone = "neutral" }) {
   const tones = {
     good: "text-[#0ECB81]",
     bad: "text-[#F6465D]",
-    neutral: "text-white/90",
+    neutral: "text-text-primary/90",
   };
   return (
     <div>
@@ -346,7 +346,7 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
                   <div className="flex items-center gap-2.5">
                     <CoinLogo pair={position.symbol} size={27} />
                     <div>
-                      <p className="font-mono font-medium text-white">{position.symbol}</p>
+                      <p className="font-mono font-medium text-text-primary">{position.symbol}</p>
                       <p className="font-mono text-[9px] text-text-muted">AutoTrade spot</p>
                     </div>
                   </div>
@@ -356,16 +356,16 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
                     {protectionLabel(position)}
                   </StatusBadge>
                 </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-white/90">
+                <td className="px-4 py-3 text-right font-mono tabular-nums text-text-primary/90">
                   {fmtNum(position.quantity, 8)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-white/90">
+                <td className="px-4 py-3 text-right font-mono tabular-nums text-text-primary/90">
                   {fmtUsd(position.entry_notional_usdt)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-white/90">
+                <td className="px-4 py-3 text-right font-mono tabular-nums text-text-primary/90">
                   {fmtUsd(position.current_value_usdt)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-[10px] tabular-nums text-white/90">
+                <td className="px-4 py-3 text-right font-mono text-[10px] tabular-nums text-text-primary/90">
                   <p>{fmtNum(position.entry_price, 8)}</p>
                   <p className="text-text-muted">{fmtNum(position.current_price, 8)}</p>
                 </td>
@@ -405,7 +405,7 @@ function DetailRow({ label, value, tone = "" }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-white/[0.05] py-2.5 last:border-0">
       <span className="text-xs text-text-muted">{label}</span>
-      <span className={`max-w-[65%] text-right font-mono text-xs text-white/90 ${tone}`}>{value ?? "—"}</span>
+      <span className={`max-w-[65%] text-right font-mono text-xs text-text-primary/90 ${tone}`}>{value ?? "—"}</span>
     </div>
   );
 }
@@ -440,7 +440,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               <CoinLogo pair={position.symbol} size={42} />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-mono text-lg font-semibold text-white">{position.symbol}</h3>
+                  <h3 className="font-mono text-lg font-semibold text-text-primary">{position.symbol}</h3>
                   <StatusBadge tone={protectionTone(position)}>{protectionLabel(position)}</StatusBadge>
                   <StatusBadge tone="info">Live spot</StatusBadge>
                 </div>
@@ -461,7 +461,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               >
                 Open full signal
               </button>
-              <button type="button" onClick={onClose} className="h-9 w-9 rounded-full text-text-muted hover:bg-white/[0.06] hover:text-white">×</button>
+              <button type="button" onClick={onClose} className="h-9 w-9 rounded-full text-text-muted hover:bg-white/[0.06] hover:text-text-primary">×</button>
             </div>
           </div>
 
@@ -548,17 +548,17 @@ function FuturesPositions({ positions }) {
               const long = Number(position.positionAmt || 0) > 0;
               return (
                 <tr key={position.symbol} className="border-b border-white/[0.04] last:border-0">
-                  <td className="px-4 py-3 font-mono text-white">{position.symbol}</td>
+                  <td className="px-4 py-3 font-mono text-text-primary">{position.symbol}</td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={long ? "good" : "bad"}>{long ? "Long" : "Short"}</StatusBadge>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-white/90">{fmtNum(position.positionAmt, 6)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-white/90">{fmtNum(position.entryPrice, 8)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-text-primary/90">{fmtNum(position.positionAmt, 6)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-text-primary/90">{fmtNum(position.entryPrice, 8)}</td>
                   <td className={`px-4 py-3 text-right font-mono ${pnlColor(position.unrealizedProfit)}`}>
                     {fmtUsd(position.unrealizedProfit)}
                   </td>
-                  <td className="px-4 py-3 font-mono text-white/80">{position.leverage}x</td>
-                  <td className="px-4 py-3 font-mono text-white/80">{position.marginType}</td>
+                  <td className="px-4 py-3 font-mono text-text-primary/80">{position.leverage}x</td>
+                  <td className="px-4 py-3 font-mono text-text-primary/80">{position.marginType}</td>
                 </tr>
               );
             })}
@@ -615,13 +615,13 @@ function ManualBalances({ balances, selectedAssets, onToggleAsset, busy }) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
                     <CoinLogo pair={`${balance.asset}USDT`} size={26} />
-                    <span className="font-mono font-medium text-white">{balance.asset}</span>
+                    <span className="font-mono font-medium text-text-primary">{balance.asset}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3"><StatusBadge tone="neutral">Wallet / manual</StatusBadge></td>
-                <td className="px-4 py-3 text-right font-mono text-white/90">{fmtNum(balance.free, 8)}</td>
-                <td className="px-4 py-3 text-right font-mono text-white/90">{fmtNum(balance.locked, 8)}</td>
-                <td className="px-4 py-3 text-right font-mono text-white/90">{fmtUsd(balance.usdt)}</td>
+                <td className="px-4 py-3 text-right font-mono text-text-primary/90">{fmtNum(balance.free, 8)}</td>
+                <td className="px-4 py-3 text-right font-mono text-text-primary/90">{fmtNum(balance.locked, 8)}</td>
+                <td className="px-4 py-3 text-right font-mono text-text-primary/90">{fmtUsd(balance.usdt)}</td>
               </tr>
             ))}
           </tbody>
@@ -642,22 +642,22 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
           <div className="h-1 w-10 rounded-full bg-white/25" />
         </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F6465D]">Irreversible exchange action</p>
-        <h3 className="mt-2 text-xl font-semibold text-white">{action.title}</h3>
+        <h3 className="mt-2 text-xl font-semibold text-text-primary">{action.title}</h3>
         <p className="mt-2 text-sm leading-6 text-text-muted">{action.description}</p>
         <div className="mt-4 rounded-lg border border-[#F6465D]/20 bg-[#F6465D]/5 p-3 text-xs leading-5 text-[#ff9aa7]">
           AutoTrade will be paused before this operation. Market execution can have slippage, and failed items may require manual reconciliation.
         </div>
         <label className="mt-4 block text-xs text-text-muted">
-          Type <span className="font-mono text-white">{action.phrase}</span> to confirm
+          Type <span className="font-mono text-text-primary">{action.phrase}</span> to confirm
           <input
             autoFocus
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
-            className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-sm text-white outline-none focus:border-[#F6465D]/50"
+            className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-sm text-text-primary outline-none focus:border-[#F6465D]/50"
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={busy} className="rounded-md border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted hover:text-white">
+          <button type="button" onClick={onClose} disabled={busy} className="rounded-md border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted hover:text-text-primary">
             Cancel
           </button>
           <EmergencyButton disabled={!matches || busy} onClick={() => onConfirm(confirmation)}>
@@ -841,7 +841,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
                 onClick={() => setSelectedAssets(
                   selectedAssets.length === convertibleAssets.length ? [] : convertibleAssets,
                 )}
-                className="rounded-md border border-white/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted hover:text-white"
+                className="rounded-md border border-white/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted hover:text-text-primary"
               >
                 {selectedAssets.length === convertibleAssets.length ? "Clear selection" : "Select all assets"}
               </button>

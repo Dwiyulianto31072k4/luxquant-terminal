@@ -85,7 +85,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
       <div className="flex items-center gap-3">
         <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
         <div>
-          <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">AI Arena</h2>
+          <h2 className="font-display text-xl lg:text-2xl font-semibold text-text-primary">AI Arena</h2>
           <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
             Multi-TF BTC Intelligence · DeepSeek R1
             {report.is_anomaly_triggered && (
@@ -128,7 +128,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs">{s.icon}</span>
-                          <span className="text-[11px] text-white font-medium">{t}</span>
+                          <span className="text-[11px] text-text-primary font-medium">{t}</span>
                           {r.is_anomaly_triggered && <span className="text-[8px] text-orange-400">⚡</span>}
                         </div>
                         <span className="text-[10px] font-mono" style={{ color: s.color }}>{s.label}</span>
@@ -164,7 +164,7 @@ function BlufHero({ report }) {
       </div>
 
       {/* BLUF text */}
-      <p className="text-white text-sm lg:text-base leading-relaxed mb-4 font-medium" dangerouslySetInnerHTML={{ __html: parseSmartTags(report.bluf || '') }} />
+      <p className="text-text-primary text-sm lg:text-base leading-relaxed mb-4 font-medium" dangerouslySetInnerHTML={{ __html: parseSmartTags(report.bluf || '') }} />
 
       {/* 3 key data points */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -176,7 +176,7 @@ function BlufHero({ report }) {
         </div>
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
           <span className="text-[10px] text-text-muted uppercase tracking-wider">Alignment</span>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-text-primary">
             {alignment.overall?.replace('_', ' ').toUpperCase() || 'N/A'}
             <span className="text-[10px] text-text-muted ml-1">
               ({alignment['1D']?.state?.[0] || '?'}·{alignment['4H']?.state?.[0] || '?'}·{alignment['1H']?.state?.[0] || '?'})
@@ -219,7 +219,7 @@ function ZonesToWatch({ zones, currentPrice }) {
           return (
             <div key={key} className="rounded-xl p-3" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
               <div className="text-[9px] uppercase tracking-wider font-bold mb-1" style={{ color: cfg.text }}>{cfg.label}</div>
-              <div className="text-lg font-bold font-mono text-white">
+              <div className="text-lg font-bold font-mono text-text-primary">
                 {fmtPrice(zone.low)}–{fmtPrice(zone.high)}
               </div>
               <div className="text-[10px] text-text-muted mt-1 leading-snug">{zone.notes}</div>
@@ -431,7 +431,7 @@ function PriceChart({ activeTF, onTFChange }) {
         <div className="flex items-center gap-1">
           {[{ key: '1D', label: 'Daily', sub: 'Tide' }, { key: '4H', label: '4H', sub: 'Wave' }, { key: '1H', label: '1H', sub: 'Ripple' }].map(tf => (
             <button key={tf.key} onClick={() => onTFChange(tf.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/30' : 'text-text-muted hover:text-white hover:bg-white/[0.04] border border-transparent'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/30' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04] border border-transparent'}`}>
               {tf.label} <span className="text-[9px] opacity-60">({tf.sub})</span>
             </button>
           ))}
@@ -473,8 +473,8 @@ function PriceChart({ activeTF, onTFChange }) {
       <div className="flex items-center gap-3 px-4 py-2 border-t border-white/5 overflow-x-auto text-[10px] text-text-muted">
         {tech.ema_bullish_cross != null && <span>EMA Cross: <span className={tech.ema_bullish_cross ? 'text-green-400' : 'text-red-400'}>{tech.ema_bullish_cross ? 'Bullish' : 'Bearish'}</span></span>}
         {tech.golden_cross != null && <span>Golden Cross: <span className={tech.golden_cross ? 'text-green-400' : 'text-red-400'}>{tech.golden_cross ? 'Yes' : 'No'}</span></span>}
-        {tech.volume_ratio != null && <span>Vol: <span className="text-white">{tech.volume_ratio}x</span></span>}
-        {tech.ema_spread_pct != null && <span>EMA Spread: <span className="text-white">{tech.ema_spread_pct}%</span></span>}
+        {tech.volume_ratio != null && <span>Vol: <span className="text-text-primary">{tech.volume_ratio}x</span></span>}
+        {tech.ema_spread_pct != null && <span>EMA Spread: <span className="text-text-primary">{tech.ema_spread_pct}%</span></span>}
         {tech.trend && <span>Trend: <span className={tech.trend.includes('UP') ? 'text-green-400' : tech.trend.includes('DOWN') ? 'text-red-400' : 'text-yellow-400'}>{tech.trend}</span></span>}
         {tech.momentum_12h != null && <span>12h ROC: <span className={tech.momentum_12h > 0 ? 'text-green-400' : 'text-red-400'}>{tech.momentum_12h > 0 ? '+' : ''}{tech.momentum_12h}%</span></span>}
         {tech.divergence && <span>Divergence: <span className={tech.divergence === 'bullish' ? 'text-green-400' : 'text-red-400'}>{tech.divergence}</span></span>}
@@ -551,7 +551,7 @@ function DeepAnalysis({ analysis, sections }) {
             <div key={key}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm">{icon}</span>
-                <span className="text-xs font-bold text-white uppercase tracking-wider">{label}</span>
+                <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{label}</span>
               </div>
               <p className="text-sm text-text-secondary leading-relaxed pl-6" dangerouslySetInnerHTML={{ __html: parseSmartTags(text) }} />
             </div>
@@ -680,7 +680,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
               const isPos = v >= 0;
               return (
                 <div key={i} className="px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 flex items-center gap-2">
-                  <span className="text-xs font-bold text-white">{tc.fund}</span>
+                  <span className="text-xs font-bold text-text-primary">{tc.fund}</span>
                   <span className={`text-[11px] font-medium ${isPos ? 'text-green-400' : 'text-red-400'}`}>
                     {isPos ? '+' : ''}${v.toFixed(1)}M
                   </span>
@@ -755,7 +755,7 @@ function MacroPulse({ macro, macroLive }) {
             <div key={row.key} className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
               <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">{row.label}</div>
               {current && (
-                <div className="text-sm text-white font-medium">
+                <div className="text-sm text-text-primary font-medium">
                   {row.key === 'us10y' ? `${current.toFixed(2)}%` : current.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </div>
               )}
@@ -806,7 +806,7 @@ function WhatChanged({ data }) {
           return (
             <div key={i} className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5">
               <div className="text-[9px] text-text-muted uppercase tracking-wider">{d.metric}</div>
-              <div className="text-xs text-white font-medium mt-0.5">
+              <div className="text-xs text-text-primary font-medium mt-0.5">
                 {d.from_fmt || String(d.from)} → {d.to_fmt || String(d.to)}
                 {typeof d.delta_pct === 'number' && (
                   <span className={`ml-1 text-[10px] font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
@@ -938,7 +938,7 @@ export default function AIArenaPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-        <h2 className="font-display text-2xl font-semibold text-white">AI Arena</h2>
+        <h2 className="font-display text-2xl font-semibold text-text-primary">AI Arena</h2>
       </div>
       {[...Array(5)].map((_, i) => (
         <div key={i} className="glass-card rounded-2xl p-6 animate-pulse border border-gold-primary/10">
@@ -952,7 +952,7 @@ export default function AIArenaPage() {
   if (error === 'first_report') return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
       <div className="text-5xl mb-4">🧠</div>
-      <h2 className="text-2xl font-display font-bold text-white mb-2">AI Arena</h2>
+      <h2 className="text-2xl font-display font-bold text-text-primary mb-2">AI Arena</h2>
       <p className="text-text-muted max-w-md mb-6">First report is being generated. Multi-timeframe BTC analysis with DeepSeek R1.</p>
       <button onClick={fetchData} className="px-6 py-3 bg-gold-primary/20 text-gold-primary rounded-xl hover:bg-gold-primary/30 transition-all font-medium">Refresh</button>
     </div>

@@ -206,7 +206,7 @@ export const SectionHeader = ({
             </p>
           )
         )}
-        <h2 className={`${titleSize} ${titleWeight} tracking-tight text-white flex items-center gap-2`}>
+        <h2 className={`${titleSize} ${titleWeight} tracking-tight text-text-primary flex items-center gap-2`}>
           {Icon && <Icon size={size === 'lg' ? 22 : 14} style={{ color: iconColor }} />}
           {title}
         </h2>
@@ -757,7 +757,7 @@ export const EmptyState = ({
         </div>
       </div>
     )}
-    <h3 className="text-base font-bold text-white mb-1 tracking-tight">{title}</h3>
+    <h3 className="text-base font-bold text-text-primary mb-1 tracking-tight">{title}</h3>
     {description && (
       <p className="text-xs max-w-sm" style={{ color: typography.body.muted }}>
         {description}
@@ -873,7 +873,7 @@ export const SearchInput = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={`w-full ${Icon ? 'pl-9' : 'pl-3'} ${rightSlot ? 'pr-20' : 'pr-3'} py-2 text-xs text-white focus:outline-none transition-colors`}
+      className={`w-full ${Icon ? 'pl-9' : 'pl-3'} ${rightSlot ? 'pr-20' : 'pr-3'} py-2 text-xs text-text-primary focus:outline-none transition-colors`}
       style={{
         background: surface.base.bg,
         border: `1px solid ${surface.base.border}`,
@@ -906,7 +906,7 @@ export const Select = ({ label, value, onChange, options, className = '', ...res
     <select
       value={value || ''}
       onChange={(e) => onChange(e.target.value || null)}
-      className="w-full px-3 py-2 text-xs text-white focus:outline-none cursor-pointer transition-colors appearance-none"
+      className="w-full px-3 py-2 text-xs text-text-primary focus:outline-none cursor-pointer transition-colors appearance-none"
       style={{
         background: surface.sunken.bg,
         border: `1px solid ${value ? surface.sunken.borderActive : surface.sunken.border}`,

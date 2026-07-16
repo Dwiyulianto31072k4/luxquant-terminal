@@ -266,7 +266,7 @@ const MoreMenuDropdown = ({
               ? 'text-gold-primary'
               : item.isAdmin
                 ? 'text-red-400/70 group-hover:text-red-400'
-                : 'text-white/70 group-hover:text-white'
+                : 'text-text-primary/70 group-hover:text-text-primary'
           }`}
         >
           {item.icon}
@@ -276,13 +276,13 @@ const MoreMenuDropdown = ({
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className={`text-[13px] leading-tight truncate transition-colors ${
-              active ? 'text-gold-primary' : 'text-white/90 group-hover:text-white'
+              active ? 'text-gold-primary' : 'text-text-primary/90 group-hover:text-text-primary'
             }`}>
               {item.label}
             </span>
           </span>
           {item.desc && (
-            <span className="block text-[11px] leading-snug text-white/40 group-hover:text-white/55 transition-colors mt-0.5 truncate">
+            <span className="block text-[11px] leading-snug text-text-primary/40 group-hover:text-text-primary/55 transition-colors mt-0.5 truncate">
               {item.desc}
             </span>
           )}
@@ -328,8 +328,8 @@ const MoreMenuDropdown = ({
         aria-expanded={open}
         className={`relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
           moreHasActive || open
-            ? 'text-white border-transparent'
-            : 'text-text-secondary border-transparent hover:text-white hover:bg-white/[0.05] hover:border-white/[0.08]'
+            ? 'text-text-primary border-transparent'
+            : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-white/[0.05] hover:border-white/[0.08]'
         }`}
       >
         <span>{label}</span>

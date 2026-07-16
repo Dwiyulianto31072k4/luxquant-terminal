@@ -38,7 +38,7 @@ const fmt = (iso) => { try { return new Date(iso).toLocaleString(); } catch { re
 // ── shared field styling ──────────────────────────────────────────────
 const fieldStyle = { background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' };
 const Field = (props) => (
-  <input {...props} className="w-full rounded-md px-3 py-2 text-[13px] focus:outline-none placeholder:text-white/30" style={fieldStyle} />
+  <input {...props} className="w-full rounded-md px-3 py-2 text-[13px] focus:outline-none placeholder:text-text-primary/30" style={fieldStyle} />
 );
 const Select = ({ children, ...props }) => (
   <select {...props} className="w-full rounded-md px-3 py-2 text-[13px] focus:outline-none" style={fieldStyle}>{children}</select>
@@ -97,7 +97,7 @@ function CreateForm({ components, onCreated, onError }) {
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], 0.4)}, transparent)` }} />
       <div className="flex items-center gap-2 mb-4">
         <PlusIcon size={13} style={{ color: palette.gold[300] }} />
-        <span className="text-[11px] uppercase font-semibold tracking-[0.08em] text-white/80">New Incident</span>
+        <span className="text-[11px] uppercase font-semibold tracking-[0.08em] text-text-primary/80">New Incident</span>
       </div>
 
       <label className="block text-[11px] mb-1" style={{ color: palette.warm[400] }}>Title</label>
@@ -151,7 +151,7 @@ function CreateForm({ components, onCreated, onError }) {
 
       <label className="block text-[11px] mb-1 mt-3" style={{ color: palette.warm[400] }}>First update (what users see)</label>
       <textarea value={message} onChange={(e) => setMessage(e.target.value)}
-        className="w-full rounded-md px-3 py-2 text-[13px] min-h-[70px] focus:outline-none placeholder:text-white/30" style={fieldStyle}
+        className="w-full rounded-md px-3 py-2 text-[13px] min-h-[70px] focus:outline-none placeholder:text-text-primary/30" style={fieldStyle}
         placeholder="e.g. We're investigating delays in signal delivery and will update shortly." />
 
       <div className="mt-4">
@@ -182,7 +182,7 @@ function IncidentCard({ inc, busy, onUpdate, onDelete }) {
       <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ background: closed ? 'transparent' : tint(accent, 0.05) }}>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13.5px] font-semibold text-white truncate">{inc.title}</span>
+            <span className="text-[13.5px] font-semibold text-text-primary truncate">{inc.title}</span>
             {inc.auto && (
               <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: palette.warm[300], border: '1px solid rgba(255,255,255,0.08)' }}>Auto</span>
             )}

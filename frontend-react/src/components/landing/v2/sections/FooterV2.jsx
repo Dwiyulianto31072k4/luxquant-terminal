@@ -111,7 +111,7 @@ export default function FooterV2({ onNav }) {
 
   const renderLink = (link) => {
     const cls =
-      "text-[13px] text-white/40 transition-colors duration-150 hover:text-white/85";
+      "text-[13px] text-text-primary/40 transition-colors duration-150 hover:text-text-primary/85";
     if (link.type === "external") {
       return (
         <a href={link.to} target="_blank" rel="noopener noreferrer" className={cls}>
@@ -147,11 +147,11 @@ export default function FooterV2({ onNav }) {
           <div className="max-w-sm">
             <div className="mb-4 flex items-center gap-2.5">
               <img src="/logo.png" alt="" className="h-8 w-8 rounded-md opacity-95" />
-              <span className="text-[15px] font-semibold tracking-tight text-white">
+              <span className="text-[15px] font-semibold tracking-tight text-text-primary">
                 LuxQuant
               </span>
             </div>
-            <p className="mb-5 text-[13px] leading-relaxed text-white/40">
+            <p className="mb-5 text-[13px] leading-relaxed text-text-primary/40">
               Market intelligence for crypto — signals, execution, on-chain context,
               and research in one terminal.
             </p>
@@ -202,7 +202,7 @@ export default function FooterV2({ onNav }) {
           <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-10 lg:max-w-xl">
             {COLUMNS.map((col) => (
               <div key={col.title}>
-                <p className="mb-3.5 text-[12px] font-medium tracking-wide text-white/70">
+                <p className="mb-3.5 text-[12px] font-medium tracking-wide text-text-primary/70">
                   {col.title}
                 </p>
                 <ul className="space-y-2.5">
@@ -219,17 +219,17 @@ export default function FooterV2({ onNav }) {
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center">
-          <p className="text-[11px] text-white/25">
+          <p className="text-[11px] text-text-primary/25">
             © {new Date().getFullYear()} LuxQuant · Since 2023
           </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-white/25">
-            <Link to="/pricing" className="transition-colors hover:text-white/50">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-primary/25">
+            <Link to="/pricing" className="transition-colors hover:text-text-primary/50">
               Pricing
             </Link>
-            <Link to="/status" className="transition-colors hover:text-white/50">
+            <Link to="/status" className="transition-colors hover:text-text-primary/50">
               Status
             </Link>
-            <Link to="/learn" className="transition-colors hover:text-white/50">
+            <Link to="/learn" className="transition-colors hover:text-text-primary/50">
               Learn
             </Link>
           </div>

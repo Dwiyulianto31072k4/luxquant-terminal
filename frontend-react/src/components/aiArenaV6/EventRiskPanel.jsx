@@ -18,8 +18,8 @@ const riskTone = {
   },
   unavailable: {
     label: "Unavailable",
-    badge: "border-white/10 bg-white/5 text-white/40",
-    accent: "text-white/40",
+    badge: "border-white/10 bg-white/5 text-text-primary/40",
+    accent: "text-text-primary/40",
   },
 };
 
@@ -61,15 +61,15 @@ function SourceCard({ label, source }) {
   return (
     <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
           {label}
         </span>
         <span className={`text-[10px] font-mono uppercase ${statusTone[status] || statusTone.unavailable}`}>
           {status}
         </span>
       </div>
-      <div className="mt-2 text-lg font-mono text-white/85">{count}</div>
-      <div className="text-[10px] text-white/35">
+      <div className="mt-2 text-lg font-mono text-text-primary/85">{count}</div>
+      <div className="text-[10px] text-text-primary/35">
         records · {formatAge(source?.age_seconds)}
       </div>
     </div>
@@ -81,8 +81,8 @@ function ImpactBadge({ impact }) {
   const tone = {
     high: "border-red-400/20 bg-red-400/10 text-red-300",
     medium: "border-amber-300/20 bg-amber-300/10 text-amber-200",
-    low: "border-white/10 bg-white/5 text-white/40",
-  }[value] || "border-white/10 bg-white/5 text-white/40";
+    low: "border-white/10 bg-white/5 text-text-primary/40",
+  }[value] || "border-white/10 bg-white/5 text-text-primary/40";
   return (
     <span className={`rounded border px-1.5 py-0.5 text-[9px] font-mono uppercase ${tone}`}>
       {value}
@@ -94,7 +94,7 @@ export default function EventRiskPanel({ data }) {
   if (!data) {
     return (
       <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
-        <p className="text-sm text-white/50">
+        <p className="text-sm text-text-primary/50">
           News and event-risk context is temporarily unavailable.
         </p>
       </section>
@@ -116,10 +116,10 @@ export default function EventRiskPanel({ data }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-sky-300/70 mb-1">
             Phase 3 · Context layer
           </div>
-          <h2 className="text-xl text-white/90 font-medium">
+          <h2 className="text-xl text-text-primary/90 font-medium">
             News and Event Risk
           </h2>
-          <p className="text-xs text-white/45 mt-1 max-w-2xl">
+          <p className="text-xs text-text-primary/45 mt-1 max-w-2xl">
             Headlines and scheduled releases may lower confidence or raise a
             warning. They cannot create or reverse the market direction.
           </p>
@@ -133,24 +133,24 @@ export default function EventRiskPanel({ data }) {
         <SourceCard label="News source" source={sources.news} />
         <SourceCard label="Calendar source" source={sources.calendar} />
         <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
             Next 24 hours
           </div>
-          <div className="mt-2 text-lg font-mono text-white/85">
+          <div className="mt-2 text-lg font-mono text-text-primary/85">
             {windows.next_24h?.event_count || 0}
           </div>
-          <div className="text-[10px] text-white/35">
+          <div className="text-[10px] text-text-primary/35">
             {windows.next_24h?.high_impact_count || 0} high impact
           </div>
         </div>
         <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
             Confidence guardrail
           </div>
           <div className={`mt-2 text-lg font-mono ${tone.accent}`}>
             {penalty ? `-${penalty} pts` : "No penalty"}
           </div>
-          <div className="text-[10px] text-white/35">direction unchanged</div>
+          <div className="text-[10px] text-text-primary/35">direction unchanged</div>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export default function EventRiskPanel({ data }) {
           {topics.slice(0, 6).map((topic) => (
             <span
               key={topic.topic}
-              className="rounded-full border border-white/5 bg-white/[0.025] px-2.5 py-1 text-[10px] text-white/55"
+              className="rounded-full border border-white/5 bg-white/[0.025] px-2.5 py-1 text-[10px] text-text-primary/55"
             >
               {topic.label} · {topic.article_count}
             </span>
@@ -177,7 +177,7 @@ export default function EventRiskPanel({ data }) {
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
           <div className="px-4 py-3 border-b border-white/5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
               Upcoming economic events
             </div>
           </div>
@@ -190,8 +190,8 @@ export default function EventRiskPanel({ data }) {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm text-white/80">{event.title}</div>
-                      <div className="mt-1 text-[10px] font-mono text-white/35">
+                      <div className="text-sm text-text-primary/80">{event.title}</div>
+                      <div className="mt-1 text-[10px] font-mono text-text-primary/35">
                         {event.country || "Global"} · {formatDate(event.scheduled_at)}
                       </div>
                     </div>
@@ -205,7 +205,7 @@ export default function EventRiskPanel({ data }) {
               ))}
             </div>
           ) : (
-            <div className="px-4 py-6 text-sm text-white/40">
+            <div className="px-4 py-6 text-sm text-text-primary/40">
               No BTC-relevant scheduled event found in the next seven days.
             </div>
           )}
@@ -213,7 +213,7 @@ export default function EventRiskPanel({ data }) {
 
         <div className="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
           <div className="px-4 py-3 border-b border-white/5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
               Relevant headlines
             </div>
           </div>
@@ -223,12 +223,12 @@ export default function EventRiskPanel({ data }) {
                 const content = (
                   <>
                     <div className="flex items-start justify-between gap-3">
-                      <div className="text-sm text-white/80 group-hover:text-white transition-colors">
+                      <div className="text-sm text-text-primary/80 group-hover:text-text-primary transition-colors">
                         {headline.title}
                       </div>
                       <ImpactBadge impact={headline.impact} />
                     </div>
-                    <div className="mt-1 text-[10px] font-mono text-white/35">
+                    <div className="mt-1 text-[10px] font-mono text-text-primary/35">
                       {headline.source} · {formatAge(headline.age_seconds)} · {headline.topic_label}
                     </div>
                   </>
@@ -251,7 +251,7 @@ export default function EventRiskPanel({ data }) {
               })}
             </div>
           ) : (
-            <div className="px-4 py-6 text-sm text-white/40">
+            <div className="px-4 py-6 text-sm text-text-primary/40">
               No relevant headline is available from the current source window.
             </div>
           )}

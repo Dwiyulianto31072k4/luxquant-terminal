@@ -34,14 +34,14 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
         label="Spot Value"
         value={fmtUsd(spotValue)}
         sub={`${openSpot} AutoTrade position${openSpot === 1 ? "" : "s"}`}
-        valueColor={openSpot > 0 ? "text-gold-primary" : "text-white"}
+        valueColor={openSpot > 0 ? "text-gold-primary" : "text-text-primary"}
         accent={openSpot > 0}
       />
       <StatCard
         label="Futures Value"
         value={fmtUsd(futuresValue)}
         sub={`${openFutures} open position${openFutures === 1 ? "" : "s"}`}
-        valueColor={openFutures > 0 ? "text-gold-primary" : "text-white"}
+        valueColor={openFutures > 0 ? "text-gold-primary" : "text-text-primary"}
         accent={openFutures > 0}
       />
       <StatCard
@@ -64,7 +64,7 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
               ? "text-gold-primary"
             : Number(closedLive) > 0
               ? "text-[#0ECB81]"
-              : "text-white"
+              : "text-text-primary"
         }
       />
     </div>

@@ -90,16 +90,16 @@ export default function TerminalLayout() {
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             onClick={() => navigate("/signals")}
-            className="hidden sm:inline-flex font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-white transition-colors"
+            className="hidden sm:inline-flex font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text-primary transition-colors"
           >
             {t("terminal.backToSignals")}
           </button>
-          <span className="hidden sm:inline text-white/20">/</span>
+          <span className="hidden sm:inline text-text-primary/20">/</span>
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/90 truncate">
             {t("terminal.title")}
           </span>
-          <span className="text-white/20">·</span>
-          <span className="text-[13px] text-white/90 truncate">{t(tabKey(active))}</span>
+          <span className="text-text-primary/20">·</span>
+          <span className="text-[13px] text-text-primary/90 truncate">{t(tabKey(active))}</span>
         </div>
         <div className="hidden lg:block font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/70">
           {t("terminal.nav.scan_desc")}
@@ -115,7 +115,7 @@ export default function TerminalLayout() {
             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
               active === id
                 ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
-                : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-white"
+                : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary"
             }`}
           >
             <TabIcon id={id} />
@@ -146,7 +146,7 @@ export default function TerminalLayout() {
                         className={`relative w-full flex items-center pl-3 pr-2 py-2 rounded-md text-left text-[12.5px] transition-colors ${
                           active === id
                             ? "bg-white/[0.04] text-gold-primary"
-                            : "text-white/85 hover:bg-white/[0.04] hover:text-white"
+                            : "text-text-primary/85 hover:bg-white/[0.04] hover:text-text-primary"
                         }`}
                       >
                         {active === id && (
@@ -157,7 +157,7 @@ export default function TerminalLayout() {
                         )}
                         <span className={`flex items-center gap-2.5 ${active === id ? "text-gold-primary" : "text-gold-primary/45"}`}>
                           <TabIcon id={id} />
-                          <span className={active === id ? "text-gold-primary" : "text-white/85"}>{t(tabKey(id))}</span>
+                          <span className={active === id ? "text-gold-primary" : "text-text-primary/85"}>{t(tabKey(id))}</span>
                         </span>
                       </button>
                     ))}

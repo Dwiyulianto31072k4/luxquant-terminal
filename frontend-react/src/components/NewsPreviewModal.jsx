@@ -65,7 +65,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
 
       {/* Body artikel */}
       <div className="space-y-2.5 px-4 pb-1 sm:px-5">
-        <h2 className="text-[15px] font-bold leading-snug text-white sm:text-lg">
+        <h2 className="text-[15px] font-bold leading-snug text-text-primary sm:text-lg">
           {article.title}
         </h2>
 
@@ -96,7 +96,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-white">{article.source}</p>
+            <p className="text-xs font-semibold text-text-primary">{article.source}</p>
             <p className="text-[10px] text-text-muted">{t("btc.crypto_news")}</p>
           </div>
         </div>

@@ -38,18 +38,18 @@ function StatCard({ label, value, note, tone = "neutral" }) {
     good: "text-emerald-400",
     warn: "text-amber-300",
     bad: "text-red-400",
-    neutral: "text-white",
+    neutral: "text-text-primary",
   }[tone];
 
   return (
     <div className="rounded-xl border border-white/5 bg-white/[0.025] p-4">
-      <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">
+      <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/40">
         {label}
       </div>
       <div className={`mt-2 text-xl font-mono font-semibold ${toneClass}`}>
         {value}
       </div>
-      <div className="mt-1 text-[11px] text-white/40">{note}</div>
+      <div className="mt-1 text-[11px] text-text-primary/40">{note}</div>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export default function LiquidityValidationPanel({ data }) {
   if (!data) {
     return (
       <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
-        <div className="text-sm text-white/50">
+        <div className="text-sm text-text-primary/50">
           Liquidity validation monitoring is temporarily unavailable.
         </div>
       </section>
@@ -93,10 +93,10 @@ export default function LiquidityValidationPanel({ data }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-300/70 mb-1">
             Phase 2 · Shadow validation
           </div>
-          <h2 className="text-xl text-white/90 font-medium">
+          <h2 className="text-xl text-text-primary/90 font-medium">
             Liquidity Model Validation
           </h2>
-          <p className="text-xs text-white/45 mt-1 max-w-2xl">
+          <p className="text-xs text-text-primary/45 mt-1 max-w-2xl">
             Estimated clusters are compared with actual Binance liquidations.
             This panel observes quality only and cannot activate deterministic
             direction.
@@ -137,23 +137,23 @@ export default function LiquidityValidationPanel({ data }) {
       <div className="grid lg:grid-cols-2 gap-4 mb-5">
         <div className="rounded-xl border border-white/5 bg-black/10 p-4">
           <div className="flex justify-between text-[11px] font-mono mb-2">
-            <span className="text-white/55">Initial calibration sample</span>
-            <span className="text-white/80">{sampleSize}/{initialTarget}</span>
+            <span className="text-text-primary/55">Initial calibration sample</span>
+            <span className="text-text-primary/80">{sampleSize}/{initialTarget}</span>
           </div>
           <ProgressBar value={validation.initial_progress} />
           <div className="flex justify-between text-[11px] font-mono mt-4 mb-2">
-            <span className="text-white/55">Robust evaluation sample</span>
-            <span className="text-white/80">{sampleSize}/{robustTarget}</span>
+            <span className="text-text-primary/55">Robust evaluation sample</span>
+            <span className="text-text-primary/80">{sampleSize}/{robustTarget}</span>
           </div>
           <ProgressBar value={validation.robust_progress} color="#60a5fa" />
-          <div className="mt-3 text-[10px] text-white/35">
+          <div className="mt-3 text-[10px] text-text-primary/35">
             Match tolerance: {formatPct(validation.match_tolerance_pct, 2)} from
             the nearest same-side predicted cluster.
           </div>
         </div>
 
         <div className="rounded-xl border border-white/5 bg-black/10 p-4">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-3">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-3">
             Readiness gates
           </div>
           <div className="space-y-2">
@@ -161,14 +161,14 @@ export default function LiquidityValidationPanel({ data }) {
               <div key={gate.key} className="flex items-start gap-2">
                 <span
                   className={`mt-0.5 text-xs ${
-                    gate.passed ? "text-emerald-400" : "text-white/25"
+                    gate.passed ? "text-emerald-400" : "text-text-primary/25"
                   }`}
                 >
                   {gate.passed ? "PASS" : "WAIT"}
                 </span>
                 <div>
-                  <div className="text-xs text-white/75">{gate.label}</div>
-                  <div className="text-[10px] text-white/35">{gate.detail}</div>
+                  <div className="text-xs text-text-primary/75">{gate.label}</div>
+                  <div className="text-[10px] text-text-primary/35">{gate.detail}</div>
                 </div>
               </div>
             ))}
@@ -178,26 +178,26 @@ export default function LiquidityValidationPanel({ data }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 text-xs">
         <div>
-          <div className="text-white/35">Event hit rate</div>
-          <div className="font-mono text-white/80 mt-1">
+          <div className="text-text-primary/35">Event hit rate</div>
+          <div className="font-mono text-text-primary/80 mt-1">
             {formatPct(validation.event_hit_rate)}
           </div>
         </div>
         <div>
-          <div className="text-white/35">Notional hit rate</div>
-          <div className="font-mono text-white/80 mt-1">
+          <div className="text-text-primary/35">Notional hit rate</div>
+          <div className="font-mono text-text-primary/80 mt-1">
             {formatPct(validation.notional_hit_rate)}
           </div>
         </div>
         <div>
-          <div className="text-white/35">Recent liquidation value</div>
-          <div className="font-mono text-white/80 mt-1">
+          <div className="text-text-primary/35">Recent liquidation value</div>
+          <div className="font-mono text-text-primary/80 mt-1">
             {formatUsd(recent.notional_usd)}
           </div>
         </div>
         <div>
-          <div className="text-white/35">Long / short events</div>
-          <div className="font-mono text-white/80 mt-1">
+          <div className="text-text-primary/35">Long / short events</div>
+          <div className="font-mono text-text-primary/80 mt-1">
             {recent.long_events || 0} / {recent.short_events || 0}
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function LiquidityValidationPanel({ data }) {
       {events.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-white/5">
           <table className="w-full min-w-[680px] text-left">
-            <thead className="bg-white/[0.025] text-[9px] font-mono uppercase tracking-wider text-white/35">
+            <thead className="bg-white/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-primary/35">
               <tr>
                 <th className="px-3 py-2">Time</th>
                 <th className="px-3 py-2">Side</th>
@@ -222,7 +222,7 @@ export default function LiquidityValidationPanel({ data }) {
                   key={`${event.event_time_iso || "event"}-${index}`}
                   className="border-t border-white/5 text-xs"
                 >
-                  <td className="px-3 py-2 font-mono text-white/50">
+                  <td className="px-3 py-2 font-mono text-text-primary/50">
                     {event.event_time_iso
                       ? new Date(event.event_time_iso).toLocaleString()
                       : "—"}
@@ -232,13 +232,13 @@ export default function LiquidityValidationPanel({ data }) {
                   }`}>
                     {event.side || "—"}
                   </td>
-                  <td className="px-3 py-2 font-mono text-white/75">
+                  <td className="px-3 py-2 font-mono text-text-primary/75">
                     {formatPrice(event.price)}
                   </td>
-                  <td className="px-3 py-2 font-mono text-white/75">
+                  <td className="px-3 py-2 font-mono text-text-primary/75">
                     {formatPrice(event.nearest_level?.price)}
                   </td>
-                  <td className="px-3 py-2 font-mono text-white/55">
+                  <td className="px-3 py-2 font-mono text-text-primary/55">
                     {formatPct(event.distance_pct, 2)}
                   </td>
                   <td className={`px-3 py-2 font-mono ${
@@ -253,10 +253,10 @@ export default function LiquidityValidationPanel({ data }) {
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-white/10 p-5 text-center">
-          <div className="text-sm text-white/50">
+          <div className="text-sm text-text-primary/50">
             No BTC liquidation event has arrived since collection started.
           </div>
-          <div className="mt-1 text-[10px] font-mono text-white/30">
+          <div className="mt-1 text-[10px] font-mono text-text-primary/30">
             The collector remains healthy and will populate this table automatically.
           </div>
         </div>

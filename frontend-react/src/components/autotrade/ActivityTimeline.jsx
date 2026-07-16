@@ -271,7 +271,7 @@ function symbolsPreview(items) {
 function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
   if (pageCount <= 1) return null;
   const btn =
-    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
   return (
     <div className="flex items-center justify-between gap-3 px-1 pt-1">
       <span className="font-mono text-[11px] text-text-muted">
@@ -305,7 +305,7 @@ function EventRow({ item, selected, onSelect }) {
       </span>
       <span>
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-white">
+          <span className="text-sm font-medium text-text-primary">
             {item.presentation.title}
           </span>
           <StatusBadge tone={item.presentation.tone}>
@@ -352,7 +352,7 @@ function GroupRow({ group, expanded, onToggle, selected, onSelect }) {
         </span>
         <span>
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-text-primary">
               {items.length} signals · {first.presentation.description}
             </span>
             <StatusBadge tone={first.presentation.tone}>
@@ -461,31 +461,31 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <StatusDot tone="good">
                 Completed{" "}
-                <span className="font-mono tabular-nums text-white">
+                <span className="font-mono tabular-nums text-text-primary">
                   {stats.completed}
                 </span>
               </StatusDot>
               <StatusDot tone={stats.skipped > 0 ? "warn" : "neutral"}>
                 Skipped{" "}
-                <span className="font-mono tabular-nums text-white">
+                <span className="font-mono tabular-nums text-text-primary">
                   {stats.skipped}
                 </span>
               </StatusDot>
               <StatusDot tone={stats.failed > 0 ? "bad" : "neutral"}>
                 Failed{" "}
-                <span className="font-mono tabular-nums text-white">
+                <span className="font-mono tabular-nums text-text-primary">
                   {stats.failed}
                 </span>
               </StatusDot>
               <StatusDot tone={stats.reconciliation > 0 ? "info" : "neutral"}>
                 Reconcile{" "}
-                <span className="font-mono tabular-nums text-white">
+                <span className="font-mono tabular-nums text-text-primary">
                   {stats.reconciliation}
                 </span>
               </StatusDot>
               <StatusDot tone={stats.running > 0 ? "warn" : "neutral"}>
                 Running{" "}
-                <span className="font-mono tabular-nums text-white">
+                <span className="font-mono tabular-nums text-text-primary">
                   {stats.running}
                 </span>
               </StatusDot>
@@ -500,7 +500,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
                 className={`rounded-[3px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                   filter === id
                     ? "border-gold-primary/35 bg-gold-primary/10 text-gold-primary"
-                    : "border-white/[0.07] text-text-muted hover:text-white"
+                    : "border-white/[0.07] text-text-muted hover:text-text-primary"
                 }`}
               >
                 {label}

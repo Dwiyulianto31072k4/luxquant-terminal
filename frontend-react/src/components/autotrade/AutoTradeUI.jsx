@@ -110,7 +110,7 @@ export function StatCard({
   label,
   value,
   sub,
-  valueColor = "text-white",
+  valueColor = "text-text-primary",
   accent = false,
 }) {
   return (
@@ -218,7 +218,7 @@ export function Toggle({ label, hint, checked, onChange, disabled = false }) {
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
     >
       <span className="min-w-0">
-        <span className="block text-sm font-medium text-white">{label}</span>
+        <span className="block text-sm font-medium text-text-primary">{label}</span>
         {hint ? (
           <span className="mt-0.5 block text-xs text-text-muted">{hint}</span>
         ) : null}
@@ -274,7 +274,7 @@ export function GhostButton({
 }) {
   const tones = {
     neutral:
-      "border-white/[0.08] text-text-muted hover:text-white hover:border-white/[0.16]",
+      "border-white/[0.08] text-text-muted hover:text-text-primary hover:border-white/[0.16]",
     gold: "border-gold-primary/25 text-gold-primary hover:bg-gold-primary/[0.08]",
     danger: "border-red-500/25 text-red-400 hover:bg-red-500/[0.08]",
   };
@@ -308,7 +308,7 @@ export function Field({ label, hint, children }) {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white transition-colors focus:outline-none focus:border-gold-primary/40";
+  "w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-text-primary transition-colors focus:outline-none focus:border-gold-primary/40";
 
 export function Select({ value, onChange, options }) {
   return (
@@ -386,7 +386,7 @@ export function Segmented({ value, onChange, options }) {
             className={`flex-1 rounded px-3 py-1.5 font-mono text-xs tabular-nums transition-colors ${
               active
                 ? "bg-gold-primary/15 text-gold-primary"
-                : "text-text-muted hover:text-white"
+                : "text-text-muted hover:text-text-primary"
             }`}
           >
             {option.label}
@@ -408,7 +408,7 @@ export function PillToggle({ active, onClick, children }) {
       className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors ${
         active
           ? "border-gold-primary/30 bg-gold-primary/10 text-gold-primary"
-          : "border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/[0.16] hover:text-white"
+          : "border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/[0.16] hover:text-text-primary"
       }`}
     >
       {children}
@@ -447,7 +447,7 @@ export function EmptyState({ icon, title, hint, action }) {
             {icon}
           </div>
         ) : null}
-        <p className="text-sm font-medium text-white">{title}</p>
+        <p className="text-sm font-medium text-text-primary">{title}</p>
         {hint ? (
           <p className="max-w-sm text-xs text-text-muted">{hint}</p>
         ) : null}
@@ -490,7 +490,7 @@ export function DangerButton({
       onClick={onClick}
       disabled={disabled}
       style={{ background: RED_GRADIENT }}
-      className={`rounded-md px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      className={`rounded-md px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-text-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
     >
       {children}
     </button>

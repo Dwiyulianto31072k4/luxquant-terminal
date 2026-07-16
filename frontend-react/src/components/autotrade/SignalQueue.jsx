@@ -85,7 +85,7 @@ export default function SignalQueue() {
             Live
           </StatusBadge>
           <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/70">
-            Auto-refresh <span className="text-white tabular-nums">30s</span>
+            Auto-refresh <span className="text-text-primary tabular-nums">30s</span>
           </span>
         </div>
         <button
@@ -122,7 +122,7 @@ export default function SignalQueue() {
               <p className="mt-2 text-xs leading-5 text-text-muted">
                 Current open-signal queue grouped by the risk label consumed by AutoTrade filters.
               </p>
-              <p className="mt-4 font-mono text-3xl text-white">{signals.length}</p>
+              <p className="mt-4 font-mono text-3xl text-text-primary">{signals.length}</p>
               <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">open signals</p>
             </div>
             <div className="h-40">
@@ -155,7 +155,7 @@ export default function SignalQueue() {
                 <CoinLogo pair={s.pair} size={32} />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                    <p className="truncate font-mono text-sm font-semibold text-white">
+                    <p className="truncate font-mono text-sm font-semibold text-text-primary">
                       {s.pair}
                     </p>
                     <StatusBadge tone="good">Buy</StatusBadge>
@@ -167,7 +167,7 @@ export default function SignalQueue() {
                   </div>
                   <p className="font-mono text-[10px] tabular-nums text-text-muted/70">
                     <span className="text-[9px] uppercase tracking-wider">Entry</span>
-                    <span className="ml-1 text-white/80">{fmtNum(s.entry, 6)}</span>
+                    <span className="ml-1 text-text-primary/80">{fmtNum(s.entry, 6)}</span>
                     <span className="mx-1.5 text-text-muted/40">·</span>
                     <span className="text-[9px] uppercase tracking-wider">SL</span>
                     <span className="ml-1 text-red-400/80">{fmtNum(s.stop1, 6)}</span>

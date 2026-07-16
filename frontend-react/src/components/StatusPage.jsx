@@ -101,7 +101,7 @@ function OverallBanner({ overall, label, counts = {} }) {
         <div className="flex items-center gap-4">
           <Dot status={overall} size={16} ping={overall === "major_outage"} />
           <div>
-            <div className="text-lg sm:text-2xl font-light tracking-tight text-white" style={{ letterSpacing: "-0.01em" }}>{label || meta(overall).label}</div>
+            <div className="text-lg sm:text-2xl font-light tracking-tight text-text-primary" style={{ letterSpacing: "-0.01em" }}>{label || meta(overall).label}</div>
             <div className="font-mono text-[10px] uppercase tracking-[0.25em] mt-1.5" style={{ color: c }}>LuxQuant Terminal</div>
           </div>
         </div>
@@ -125,7 +125,7 @@ function ComponentRow({ c }) {
   return (
     <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-4 border-b last:border-b-0" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
       <div className="min-w-0">
-        <div className="text-[14px] text-white/90">{c.name}</div>
+        <div className="text-[14px] text-text-primary/90">{c.name}</div>
         {c.description && <div className="text-[12px] mt-0.5 truncate" style={{ color: palette.warm[400] }}>{c.description}</div>}
       </div>
       <StatusPill status={c.status} />
@@ -145,7 +145,7 @@ function IncidentCard({ inc, past = false }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[14px] sm:text-[15px] text-white/95 font-medium">{inc.title}</span>
+              <span className="text-[14px] sm:text-[15px] text-text-primary/95 font-medium">{inc.title}</span>
               {inc.auto && <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.05)", color: palette.warm[300], border: "1px solid rgba(255,255,255,0.08)" }}>Auto-detected</span>}
             </div>
             {inc.affected?.length > 0 && (
@@ -269,9 +269,9 @@ export default function StatusPage() {
             <div className="w-7 h-7 rounded-sm overflow-hidden border" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
               <img src="/logo-512.png" alt="LuxQuant" className="w-full h-full object-cover" />
             </div>
-            <span className="text-[14px] font-normal text-white tracking-tight group-hover:text-gold-primary transition-colors">LuxQuant Status</span>
+            <span className="text-[14px] font-normal text-text-primary tracking-tight group-hover:text-gold-primary transition-colors">LuxQuant Status</span>
           </a>
-          <a href="/" className="font-mono text-[11px] uppercase tracking-wider transition-colors hover:text-white" style={{ color: palette.warm[400] }}>← Terminal</a>
+          <a href="/" className="font-mono text-[11px] uppercase tracking-wider transition-colors hover:text-text-primary" style={{ color: palette.warm[400] }}>← Terminal</a>
         </div>
       </header>
 
@@ -289,7 +289,7 @@ export default function StatusPage() {
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.32em] font-semibold leading-none mb-2" style={{ color: tint(palette.gold[300], 0.6) }}>LuxQuant</p>
                   <h1 className="text-[26px] sm:text-[30px] font-light tracking-tight leading-none" style={{ letterSpacing: "-0.02em" }}>
-                    <span className="text-white">System </span>
+                    <span className="text-text-primary">System </span>
                     <span style={{ background: gradient.goldText, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Status</span>
                   </h1>
                 </div>
@@ -297,7 +297,7 @@ export default function StatusPage() {
               <div className="flex items-center gap-4 font-mono text-[11px]" style={{ color: palette.warm[400] }}>
                 {updatedText && <span>Updated {updatedText}</span>}
                 <span className="hidden sm:inline" style={{ color: palette.warm[500] }}>· Auto 30s</span>
-                <button onClick={load} className="uppercase tracking-wider hover:text-white transition-colors">Refresh</button>
+                <button onClick={load} className="uppercase tracking-wider hover:text-text-primary transition-colors">Refresh</button>
               </div>
             </div>
 
@@ -338,7 +338,7 @@ export default function StatusPage() {
                     <button
                       onClick={() => setPastPage((p) => Math.max(0, p - 1))}
                       disabled={safePage <= 0}
-                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
+                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-text-primary"
                       style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
                     >
                       <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
@@ -348,7 +348,7 @@ export default function StatusPage() {
                     <button
                       onClick={() => setPastPage((p) => Math.min(pastPages - 1, p + 1))}
                       disabled={safePage >= pastPages - 1}
-                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
+                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-text-primary"
                       style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
                     >
                       Next

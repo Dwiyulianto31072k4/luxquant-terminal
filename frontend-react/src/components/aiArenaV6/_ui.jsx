@@ -209,7 +209,7 @@ export const Hi = ({ children, tone = "gold", className = "" }) => {
     gold: "bg-gold-primary/[0.16] text-gold-light",
     up: "bg-profit/[0.14] text-profit",
     down: "bg-loss/[0.14] text-loss",
-    white: "bg-white/[0.1] text-white",
+    white: "bg-white/[0.1] text-text-primary",
   };
   return (
     <mark
@@ -247,7 +247,7 @@ export const StatCard = ({ label, value, detail, tone = "neutral", big = false }
     down: "border-loss/20 bg-loss/[0.05]",
   };
   const valueTone =
-    tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : tone === "gold" ? "text-gold-light" : "text-white";
+    tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : tone === "gold" ? "text-gold-light" : "text-text-primary";
   return (
     <div className={`rounded-lg border p-4 ${tones[tone] || tones.neutral}`}>
       <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/70">{label}</div>
@@ -412,7 +412,7 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
   return (
     <div className="rounded-lg border border-white/[0.05] bg-[#140b0d] px-3.5 py-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="truncate text-[13px] font-medium text-white/90">{label}</span>
+        <span className="truncate text-[13px] font-medium text-text-primary/90">{label}</span>
         <span className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] ${meta.text}`}>
           {meta.label} · {pct}%
         </span>
@@ -468,7 +468,7 @@ export const OutcomeBar = ({ segments = [] }) => {
         {segments.map((s) => (
           <span key={s.label} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted/70">
             <span className="h-2 w-2 rounded-[3px]" style={{ background: s.hex }} />
-            {s.label} <span className="text-white/75">{s.value}</span>
+            {s.label} <span className="text-text-primary/75">{s.value}</span>
           </span>
         ))}
       </div>
@@ -505,7 +505,7 @@ export const GhostButton = ({ children, className = "", size = "md", ...rest }) 
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-white/70 transition hover:border-gold-primary/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-gold-primary/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -544,7 +544,7 @@ export const Donut = ({ segments = [], size = 150, thickness = 13, centerValue, 
         })}
       </svg>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="font-display text-[26px] font-bold leading-none text-white">{centerValue}</span>
+        <span className="font-display text-[26px] font-bold leading-none text-text-primary">{centerValue}</span>
         {centerLabel && (
           <span className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/70">
             {centerLabel}
@@ -566,7 +566,7 @@ export const Segmented = ({ options, value, onChange }) => (
         className={`rounded-md px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
           value === o.value
             ? "bg-gold-primary/15 text-gold-primary shadow-[inset_0_0_0_1px_rgba(212,168,83,0.3)]"
-            : "text-text-muted/60 hover:text-white"
+            : "text-text-muted/60 hover:text-text-primary"
         }`}
       >
         {o.label}
@@ -581,7 +581,7 @@ export const Chip = ({ active, onClick, children }) => (
     className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
       active
         ? "border-gold-primary/40 bg-gold-primary/15 text-gold-primary"
-        : "border-white/[0.07] bg-white/[0.02] text-text-muted/70 hover:border-white/[0.16] hover:text-white"
+        : "border-white/[0.07] bg-white/[0.02] text-text-muted/70 hover:border-white/[0.16] hover:text-text-primary"
     }`}
   >
     {children}

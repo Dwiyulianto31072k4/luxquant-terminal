@@ -257,7 +257,7 @@ const SRLevels = ({ sr, t }) => {
           <div className="space-y-1.5">
             {resistance.map((r, i) => (
               <div key={i} className="flex justify-between items-center font-mono">
-                <span className="text-xs text-white tabular-nums">{fmtP(r.price)}</span>
+                <span className="text-xs text-text-primary tabular-nums">{fmtP(r.price)}</span>
                 <span className="text-[11px] text-red-400 tabular-nums">{fmt(r.usd)}</span>
               </div>
             ))}
@@ -281,7 +281,7 @@ const SRLevels = ({ sr, t }) => {
           <div className="space-y-1.5">
             {support.map((s, i) => (
               <div key={i} className="flex justify-between items-center font-mono">
-                <span className="text-xs text-white tabular-nums">{fmtP(s.price)}</span>
+                <span className="text-xs text-text-primary tabular-nums">{fmtP(s.price)}</span>
                 <span className="text-[11px] text-emerald-400 tabular-nums">{fmt(s.usd)}</span>
               </div>
             ))}
@@ -332,7 +332,7 @@ const WallsCard = ({ walls, total, type }) => {
             return (
               <div key={i} className="relative">
                 <div className="flex justify-between items-center gap-2 mb-0.5">
-                  <span className="font-mono text-[11px] text-white tabular-nums">
+                  <span className="font-mono text-[11px] text-text-primary tabular-nums">
                     {fmtP(w.price)}
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -381,7 +381,7 @@ const DerivCard = ({ label, value, children, headerRight }) => (
         {headerRight}
       </div>
       {value !== undefined && (
-        <div className="text-xl sm:text-2xl font-mono tabular-nums text-white mb-3 truncate">
+        <div className="text-xl sm:text-2xl font-mono tabular-nums text-text-primary mb-3 truncate">
           {value}
         </div>
       )}
@@ -458,7 +458,7 @@ const LiqCard = ({ data }) => {
               }`}>
                 {isLong ? "Long" : "Short"}
               </span>
-              <span className="text-white font-semibold">{l.symbol}</span>
+              <span className="text-text-primary font-semibold">{l.symbol}</span>
               <span className="ml-auto text-gold-primary tabular-nums">{fmt(l.usd)}</span>
               <span className="text-text-muted/60 tabular-nums">{timeAgo(l.time)}</span>
             </div>
@@ -501,7 +501,7 @@ const FundingCard = ({ data }) => {
       <div className="space-y-1 mb-3">
         {longs.map((f, i) => (
           <div key={i} className="flex items-center justify-between font-mono">
-            <span className="text-[11px] text-white font-semibold truncate max-w-[90px]">
+            <span className="text-[11px] text-text-primary font-semibold truncate max-w-[90px]">
               {f.symbol}
             </span>
             <span className="text-[11px] text-emerald-400 tabular-nums">
@@ -518,7 +518,7 @@ const FundingCard = ({ data }) => {
       <div className="space-y-1 mb-3">
         {shorts.map((f, i) => (
           <div key={i} className="flex items-center justify-between font-mono">
-            <span className="text-[11px] text-white font-semibold truncate max-w-[90px]">
+            <span className="text-[11px] text-text-primary font-semibold truncate max-w-[90px]">
               {f.symbol}
             </span>
             <span className="text-[11px] text-red-400 tabular-nums">
@@ -606,7 +606,7 @@ const OICard = ({ data }) => {
           return (
             <div key={i}>
               <div className="flex justify-between items-center font-mono text-[10px] mb-1">
-                <span className="text-white font-semibold">{b.symbol}</span>
+                <span className="text-text-primary font-semibold">{b.symbol}</span>
                 <span className="text-text-muted tabular-nums">{fmt(b.oi_usd)}</span>
               </div>
               <div className="h-[2px] rounded-sm bg-white/[0.03]">
@@ -742,7 +742,7 @@ export default function OrderBookPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
             {t("orderbook.title") || "Order Book"}
           </h1>
           <p className="text-text-muted text-sm mt-1.5 font-mono">
@@ -756,7 +756,7 @@ export default function OrderBookPage() {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${
               autoRefresh
                 ? "bg-emerald-500/[0.08] border-emerald-500/25 text-emerald-400"
-                : "bg-white/[0.03] border-white/[0.06] text-text-muted hover:text-white hover:border-white/[0.12]"
+                : "bg-white/[0.03] border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.12]"
             }`}
           >
             <span
@@ -771,7 +771,7 @@ export default function OrderBookPage() {
 
           <button
             onClick={() => fetchOB(false)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted hover:text-white hover:border-white/[0.12] transition-all"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted hover:text-text-primary hover:border-white/[0.12] transition-all"
           >
             <svg
               className="w-3 h-3"
@@ -801,7 +801,7 @@ export default function OrderBookPage() {
                 className={`px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
                 }`}
               >
                 {s.label}
@@ -812,7 +812,7 @@ export default function OrderBookPage() {
 
         {data?.mid_price && (
           <div className="ml-auto text-right">
-            <p className="font-mono text-2xl tabular-nums text-white tracking-tight">
+            <p className="font-mono text-2xl tabular-nums text-text-primary tracking-tight">
               ${fmtP(data.mid_price)}
             </p>
             <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/70 tabular-nums">

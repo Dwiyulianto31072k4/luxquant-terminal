@@ -54,7 +54,7 @@ const StatCard = ({ label, value, sublabel, isGold }) => (
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">{label}</div>
-      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 ${isGold ? "text-gold-primary" : "text-white"}`}>{value}</div>
+      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 ${isGold ? "text-gold-primary" : "text-text-primary"}`}>{value}</div>
       {sublabel && <div className="text-[10px] font-mono text-text-muted/70 truncate">{sublabel}</div>}
     </div>
   </div>
@@ -166,7 +166,7 @@ const WatchingTab = () => {
       <div className="space-y-4">
         <SectionHeader label="Watchlist" />
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">Watching</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">Watching</h1>
           <p className="text-text-muted text-sm mt-1.5 font-mono">
             {counts.total} {counts.total === 1 ? "coin" : "coins"} watching
             <span className="text-text-muted/50"> · notify me when LuxQuant calls them</span>
@@ -194,7 +194,7 @@ const WatchingTab = () => {
               value={input}
               onChange={(e) => { setInput(e.target.value); setError(""); }}
               onKeyDown={handleKeyDown}
-              className="w-full pl-9 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono uppercase"
+              className="w-full pl-9 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono uppercase"
             />
           </div>
           <button
@@ -216,10 +216,10 @@ const WatchingTab = () => {
           >
             <CoinLogo pair={previewSymbol} size={28} />
             <div className="flex-1 min-w-0">
-              <span className="text-white text-sm font-semibold font-mono">{coinName(previewSymbol)}</span>
+              <span className="text-text-primary text-sm font-semibold font-mono">{coinName(previewSymbol)}</span>
               <span className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider ml-1.5">USDT</span>
             </div>
-            <span className="font-mono text-sm tabular-nums text-white/80">
+            <span className="font-mono text-sm tabular-nums text-text-primary/80">
               {previewPrice === undefined ? "…" : previewPrice !== null ? `$${formatPrice(previewPrice)}` : "—"}
             </span>
             <span className={`text-[10px] font-mono uppercase tracking-[0.15em] px-2 py-1 rounded ${
@@ -278,14 +278,14 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <CoinLogo pair={item.symbol} size={34} />
         <div className="min-w-0">
-          <p className="text-white text-sm font-semibold font-mono group-hover:text-gold-primary transition-colors">{coinName(item.symbol)}</p>
+          <p className="text-text-primary text-sm font-semibold font-mono group-hover:text-gold-primary transition-colors">{coinName(item.symbol)}</p>
           <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
         </div>
       </div>
 
       {/* Live price */}
       <div className="shrink-0 text-right hidden sm:block min-w-[110px]">
-        <p className="font-mono text-sm tabular-nums text-white/90">
+        <p className="font-mono text-sm tabular-nums text-text-primary/90">
           {price !== null && price !== undefined ? `$${formatPrice(price)}` : <span className="text-text-muted/40">—</span>}
         </p>
         <p className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/50">Live</p>
@@ -356,7 +356,7 @@ const EmptyState = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
       </svg>
     </div>
-    <p className="text-white text-base font-medium mb-1.5">No coins watched yet</p>
+    <p className="text-text-primary text-base font-medium mb-1.5">No coins watched yet</p>
     <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em]">Add a coin above to get notified when it's called</p>
   </div>
 );

@@ -15,7 +15,7 @@ function StatCard({ label, value, hint }) {
   return (
     <div className="rounded-xl border border-white/5 bg-bg-card p-4">
       <p className="mb-2 text-xs uppercase tracking-wider text-text-muted">{label}</p>
-      <p className="text-2xl font-display font-bold text-white">{value}</p>
+      <p className="text-2xl font-display font-bold text-text-primary">{value}</p>
       <p className="mt-1 text-xs text-text-muted">{hint}</p>
     </div>
   );
@@ -107,7 +107,7 @@ export default function PortfolioPage() {
       <div>
         <div className="mb-1 flex items-center gap-3">
           <div className="h-6 w-1 rounded bg-gradient-to-b from-gold-light to-gold-dark" />
-          <h1 className="text-2xl font-display font-bold text-white lg:text-3xl">
+          <h1 className="text-2xl font-display font-bold text-text-primary lg:text-3xl">
             Portfolio
           </h1>
         </div>
@@ -141,7 +141,7 @@ export default function PortfolioPage() {
       </div>
 
       <div className="rounded-2xl border border-white/5 bg-bg-card p-5">
-        <h2 className="mb-3 text-base font-display font-bold text-white">
+        <h2 className="mb-3 text-base font-display font-bold text-text-primary">
           Futures positions
         </h2>
         {(portfolio?.futures?.positions || []).length === 0 ? (
@@ -166,9 +166,9 @@ export default function PortfolioPage() {
               <tbody>
                 {portfolio.futures.positions.map((position) => (
                   <tr key={position.symbol} className="border-t border-white/5">
-                    <td className="px-3 py-2 font-mono text-white">{position.symbol}</td>
-                    <td className="px-3 py-2 font-mono text-white">{position.positionAmt}</td>
-                    <td className="px-3 py-2 font-mono text-white">{position.entryPrice}</td>
+                    <td className="px-3 py-2 font-mono text-text-primary">{position.symbol}</td>
+                    <td className="px-3 py-2 font-mono text-text-primary">{position.positionAmt}</td>
+                    <td className="px-3 py-2 font-mono text-text-primary">{position.entryPrice}</td>
                     <td
                       className={`px-3 py-2 font-mono ${
                         Number(position.unrealizedProfit || 0) >= 0
@@ -178,8 +178,8 @@ export default function PortfolioPage() {
                     >
                       {position.unrealizedProfit}
                     </td>
-                    <td className="px-3 py-2 font-mono text-white">{position.leverage}x</td>
-                    <td className="px-3 py-2 font-mono text-white">{position.marginType}</td>
+                    <td className="px-3 py-2 font-mono text-text-primary">{position.leverage}x</td>
+                    <td className="px-3 py-2 font-mono text-text-primary">{position.marginType}</td>
                   </tr>
                 ))}
               </tbody>

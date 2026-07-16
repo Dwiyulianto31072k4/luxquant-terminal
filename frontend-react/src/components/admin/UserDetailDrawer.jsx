@@ -173,7 +173,7 @@ const EmptyState = ({ Icon, title, hint, accent = '#4a3f39' }) => (
     >
       {Icon && <Icon size={20} />}
     </div>
-    <p className="text-sm font-semibold text-white mb-1">{title}</p>
+    <p className="text-sm font-semibold text-text-primary mb-1">{title}</p>
     {hint && (
       <p className="text-[11.5px]" style={{ color: '#6b5c52' }}>
         {hint}
@@ -211,7 +211,7 @@ const UserHero = ({ user }) => (
 
     <div className="flex-1 min-w-0 pt-0.5">
       <div className="flex items-center gap-2 mb-1">
-        <h3 className="text-lg font-semibold text-white tracking-tight truncate">
+        <h3 className="text-lg font-semibold text-text-primary tracking-tight truncate">
           {user.username}
         </h3>
         <ProviderIcon provider={user.auth_provider} size={14} />
@@ -614,7 +614,7 @@ const TimelineRow = ({ icon: Icon, color, label, date, last }) => (
       {!last && <div className="w-px flex-1 my-1" style={{ background: 'rgba(255,255,255,0.08)' }} />}
     </div>
     <div className="pb-3 min-w-0">
-      <div className="text-[12px] font-medium text-white/80">{label}</div>
+      <div className="text-[12px] font-medium text-text-primary/80">{label}</div>
       <div className="text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{date}</div>
     </div>
   </div>
@@ -708,7 +708,7 @@ const FollowupTimeline = ({ userId }) => {
                 </div>
                 <div className="pb-4 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-white">{f.title}</span>
+                    <span className="text-xs font-medium text-text-primary">{f.title}</span>
                     <span
                       className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
                       style={{ background: _fuRgba(st.color, 0.12), color: st.color, border: `1px solid ${_fuRgba(st.color, 0.25)}` }}
@@ -752,9 +752,9 @@ const OverviewTab = ({ data, onUserUpdated, onToast, canWrite = true, canManageR
         <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5"
           style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.22)' }}>
           <div>
-            <p className="text-[11px] font-semibold text-white/90">Staff / member role</p>
+            <p className="text-[11px] font-semibold text-text-primary/90">Staff / member role</p>
             <p className="text-[10px]" style={{ color: '#8a7a6e' }}>
-              Current: <span className="uppercase font-bold tracking-wider text-white/70">{user.role}</span>
+              Current: <span className="uppercase font-bold tracking-wider text-text-primary/70">{user.role}</span>
               {' · '}admin full · co_admin/founder view-only
             </p>
           </div>
@@ -984,7 +984,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 value={adminTg}
                 onChange={(e) => setAdminTg(e.target.value)}
                 placeholder="username (without @)"
-                className="w-full px-2.5 py-1.5 rounded-md text-xs text-white focus:outline-none font-mono"
+                className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none font-mono"
                 style={{
                   background: 'rgba(0,0,0,0.3)',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -1019,7 +1019,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 value={adminDc}
                 onChange={(e) => setAdminDc(e.target.value)}
                 placeholder="username or numeric ID"
-                className="w-full px-2.5 py-1.5 rounded-md text-xs text-white focus:outline-none font-mono"
+                className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none font-mono"
                 style={{
                   background: 'rgba(0,0,0,0.3)',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -1047,7 +1047,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 onChange={(e) => setAdminNotes(e.target.value)}
                 rows={3}
                 placeholder="VIP customer, prefers TG. Pays annually on each renewal…"
-                className="w-full px-2.5 py-1.5 rounded-md text-xs text-white focus:outline-none resize-none"
+                className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none resize-none"
                 style={{
                   background: 'rgba(0,0,0,0.3)',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -1215,7 +1215,7 @@ const PaymentsTab = ({ data }) => {
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">
+                  <p className="text-xs font-semibold text-text-primary truncate">
                     {p.plan_label || `Plan #${p.id}`}
                   </p>
                   <p
@@ -1292,7 +1292,7 @@ const ReferralTab = ({ data }) => {
             }}
           >
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">
+              <p className="text-xs font-semibold text-text-primary truncate">
                 @{as_referred.referrer_username}
               </p>
               <p
@@ -1332,7 +1332,7 @@ const ReferralTab = ({ data }) => {
                 }}
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-white truncate">
+                  <p className="text-xs font-medium text-text-primary truncate">
                     @{r.referee_username || 'unknown'}
                   </p>
                   <p
@@ -1403,7 +1403,7 @@ const OutreachTab = ({ data, templates, canWrite = true }) => {
     <div>
       <p className="text-[11px] mb-3" style={{ color: '#8a7a6e' }}>
         Pick a template to DM{' '}
-        <strong className="text-white">@{user.username}</strong>. Click{' '}
+        <strong className="text-text-primary">@{user.username}</strong>. Click{' '}
         <strong style={{ color: '#d4a853' }}>Send</strong> to copy the message
         and open the channel.
       </p>
@@ -1535,7 +1535,7 @@ export const UserDetailDrawer = ({
               <UserIcon size={14} style={{ color: '#d4a853' }} />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white tracking-tight leading-tight">
+              <h2 className="text-sm font-bold text-text-primary tracking-tight leading-tight">
                 User Detail
               </h2>
               {data?.user && (

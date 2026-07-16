@@ -249,7 +249,7 @@ const LeftBrandPanel = () => {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
-            <span className="text-white font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>LuxQuant</span>
+            <span className="text-text-primary font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>LuxQuant</span>
           </div>
 
           {/* Center — iMac (fade to black) + headline + chips */}

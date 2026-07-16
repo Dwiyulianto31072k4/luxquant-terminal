@@ -157,7 +157,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
       {loading && (
         <div className="flex flex-col items-center py-10">
           <div className="mb-3 h-10 w-10 animate-spin rounded-full border-2 border-gold-primary/20 border-t-gold-primary" />
-          <p className="font-semibold text-white">Fetching live data…</p>
+          <p className="font-semibold text-text-primary">Fetching live data…</p>
           <p className="mt-1 text-xs text-text-muted">Querying {order.exchange_id.toUpperCase()} API</p>
         </div>
       )}
@@ -192,13 +192,13 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-black" style={{ background: "linear-gradient(135deg, #d4a853, #8b6914)", color: "#0a0506" }}>LQ</div>
                 <div>
-                  <p className="font-display text-sm font-bold leading-none text-white">LuxQuant</p>
+                  <p className="font-display text-sm font-bold leading-none text-text-primary">LuxQuant</p>
                   <p className="mt-0.5 text-[9px] text-gold-primary">AutoTrade</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
                 {exchangeLogo && <img src={exchangeLogo} alt={data.exchange_id} crossOrigin="anonymous" className="h-6 w-6 rounded" style={{ objectFit: "contain" }} />}
-                <span className="text-[11px] font-bold uppercase text-white">{data.exchange_id}</span>
+                <span className="text-[11px] font-bold uppercase text-text-primary">{data.exchange_id}</span>
                 {data.live_verified && (
                   <span className="ml-1 rounded px-1.5 py-0.5 text-[8px] font-bold" style={{ background: "rgba(14,203,129,0.2)", color: "#0ecb81", border: "1px solid rgba(14,203,129,0.3)" }}>● LIVE</span>
                 )}
@@ -209,7 +209,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
               <CoinLogo pair={data.pair} size={48} />
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-display text-xl font-bold leading-none text-white">{data.pair}</h3>
+                  <h3 className="font-display text-xl font-bold leading-none text-text-primary">{data.pair}</h3>
                   <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: `${sideColor}20`, color: sideColor, border: `1px solid ${sideColor}60` }}>{sideLabel}</span>
                   {data.market_type === "futures" && (
                     <span className="rounded px-2 py-0.5 text-[10px] font-black uppercase" style={{ background: "rgba(212,168,83,0.15)", color: "#d4a853", border: "1px solid rgba(212,168,83,0.3)" }}>{data.leverage}x · {data.margin_mode === "cross" ? "CROSS" : "ISOLATED"}</span>
@@ -230,18 +230,18 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
             <div className="relative mb-4 grid grid-cols-2 gap-2">
               <div className="rounded-lg p-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
                 <p className="text-[9px] uppercase tracking-wider text-text-muted">Entry Price</p>
-                <p className="mt-0.5 font-mono text-sm font-semibold text-white">{fmtPrice(data.entry_price)}</p>
+                <p className="mt-0.5 font-mono text-sm font-semibold text-text-primary">{fmtPrice(data.entry_price)}</p>
               </div>
               <div className="rounded-lg p-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
                 <p className="text-[9px] uppercase tracking-wider text-text-muted">Mark Price</p>
-                <p className="mt-0.5 font-mono text-sm font-semibold text-white">{fmtPrice(data.mark_price)}</p>
+                <p className="mt-0.5 font-mono text-sm font-semibold text-text-primary">{fmtPrice(data.mark_price)}</p>
               </div>
             </div>
 
             <div className="relative mt-4 flex items-center justify-between pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
               <div>
                 <p className="mb-1 text-[9px] uppercase tracking-widest text-text-muted">Start auto-trading at</p>
-                <p className="font-display text-sm font-bold text-white">luxquant.tw</p>
+                <p className="font-display text-sm font-bold text-text-primary">luxquant.tw</p>
                 <p className="mt-0.5 text-[9px] text-gold-primary">{new Date(data.generated_at).toLocaleString()}</p>
               </div>
               <div className="rounded-lg bg-white p-1.5" style={{ width: 64, height: 64 }}>
@@ -301,7 +301,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                 href={deeplinkUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full rounded-md border border-white/5 px-4 py-2.5 text-center text-xs font-semibold text-text-muted transition hover:bg-white/5 hover:text-white"
+                className="block w-full rounded-md border border-white/5 px-4 py-2.5 text-center text-xs font-semibold text-text-muted transition hover:bg-white/5 hover:text-text-primary"
               >
                 <svg className="-mt-0.5 mr-1.5 inline h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />

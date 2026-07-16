@@ -38,7 +38,7 @@ function dayKey(value) {
 function pnlClass(value) {
   if (Number(value || 0) > 0) return "text-[#0ECB81]";
   if (Number(value || 0) < 0) return "text-[#F6465D]";
-  return "text-white/80";
+  return "text-text-primary/80";
 }
 
 function formatDuration(seconds) {
@@ -63,7 +63,7 @@ function formatBasis(value, basis) {
 function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
   if (pageCount <= 1) return null;
   const btn =
-    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
   return (
     <div className="flex items-center justify-between gap-3 px-1 pt-1">
       <span className="font-mono text-[11px] text-text-muted">
@@ -115,7 +115,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
               <CoinLogo pair={trade.symbol} size={40} />
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-mono text-lg font-semibold text-white">{trade.symbol}</h3>
+                  <h3 className="font-mono text-lg font-semibold text-text-primary">{trade.symbol}</h3>
                   <StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>
                     {trade.exit_reason?.replaceAll("_", " ") || trade.status}
                   </StatusBadge>
@@ -125,7 +125,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
                 </p>
               </div>
             </div>
-            <button type="button" onClick={onClose} className="h-8 w-8 rounded-full text-text-muted hover:bg-white/[0.06] hover:text-white">×</button>
+            <button type="button" onClick={onClose} className="h-8 w-8 rounded-full text-text-muted hover:bg-white/[0.06] hover:text-text-primary">×</button>
           </div>
 
           <div className="grid grid-cols-2 gap-px border-b border-white/[0.06] bg-white/[0.04] md:grid-cols-4">
@@ -177,7 +177,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
   );
 }
 
-function ModalMetric({ label, value, tone = "text-white", compact = false }) {
+function ModalMetric({ label, value, tone = "text-text-primary", compact = false }) {
   return (
     <div className={compact ? "" : "bg-[#0a0805] p-4"}>
       <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/60">{label}</p>
@@ -199,7 +199,7 @@ function DetailRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-white/[0.04] py-2 last:border-0">
       <span className="text-xs text-text-muted">{label}</span>
-      <span className="max-w-[65%] break-all text-right font-mono text-xs text-white/85">{value}</span>
+      <span className="max-w-[65%] break-all text-right font-mono text-xs text-text-primary/85">{value}</span>
     </div>
   );
 }
@@ -265,7 +265,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
               type="button"
               onClick={() => setBasis(value)}
               className={`rounded px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
-                basis === value ? "bg-gold-primary text-black" : "text-text-muted hover:text-white"
+                basis === value ? "bg-gold-primary text-black" : "text-text-muted hover:text-text-primary"
               }`}
             >
               {label}
@@ -326,7 +326,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
                 {outcomes.map((item) => (
                   <div key={item.name} className="rounded border border-white/[0.06] p-3">
                     <p className="text-xs text-text-muted">{item.name}</p>
-                    <p className="mt-1 font-mono text-lg text-white">{item.value}</p>
+                    <p className="mt-1 font-mono text-lg text-text-primary">{item.value}</p>
                   </div>
                 ))}
               </div>
@@ -369,7 +369,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
                   <CoinLogo pair={trade.symbol} size={28} />
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-semibold text-white">{trade.symbol}</span>
+                      <span className="font-mono text-sm font-semibold text-text-primary">{trade.symbol}</span>
                       <StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>
                         {trade.exit_reason?.replaceAll("_", " ")}
                       </StatusBadge>
@@ -426,13 +426,13 @@ export default function TradeHistoryCalendar({ history = {} }) {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <CoinLogo pair={trade.symbol} size={24} />
-                          <span className="font-mono text-white">{trade.symbol}</span>
+                          <span className="font-mono text-text-primary">{trade.symbol}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3"><StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>{trade.exit_reason?.replaceAll("_", " ")}</StatusBadge></td>
-                      <td className="px-4 py-3 text-right font-mono text-white/85">{fmtNum(trade.quantity, 8)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-white/85">{fmtNum(trade.entry_price, 8)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-white/85">{fmtNum(trade.exit_price, 8)}</td>
+                      <td className="px-4 py-3 text-right font-mono text-text-primary/85">{fmtNum(trade.quantity, 8)}</td>
+                      <td className="px-4 py-3 text-right font-mono text-text-primary/85">{fmtNum(trade.entry_price, 8)}</td>
+                      <td className="px-4 py-3 text-right font-mono text-text-primary/85">{fmtNum(trade.exit_price, 8)}</td>
                       <td className="px-4 py-3 text-right font-mono text-text-muted">{fmtUsd(trade.fees_usdt)}</td>
                       <td className={`px-4 py-3 text-right font-mono font-semibold ${pnlClass(valueFor(trade, basis))}`}>{formatBasis(valueFor(trade, basis), basis)}</td>
                       <td className="px-4 py-3 text-right font-mono text-text-muted">{formatDuration(trade.duration_seconds)}</td>

@@ -137,7 +137,7 @@ const AssetCard = ({ config, asset }) => {
       </div>
 
       {/* Current price */}
-      <div className="font-mono text-lg font-bold text-white leading-tight mt-1">
+      <div className="font-mono text-lg font-bold text-text-primary leading-tight mt-1">
         {config.prefix || ""}
         {fmtNum(asset.current, config.decimals)}
         {config.suffix || ""}
@@ -215,7 +215,7 @@ export default function MacroPulse() {
       <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
-          <h2 className="font-display text-xl text-white">Macro Pulse</h2>
+          <h2 className="font-display text-xl text-text-primary">Macro Pulse</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
@@ -230,7 +230,7 @@ export default function MacroPulse() {
       <div className="glass-card rounded-2xl p-6 border border-gold-primary/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
-          <h2 className="font-display text-xl text-white">Macro Pulse</h2>
+          <h2 className="font-display text-xl text-text-primary">Macro Pulse</h2>
         </div>
         <div className="text-text-muted text-sm py-4">
           {error ? `Could not load macro data: ${error}` : "No macro data available."}
@@ -284,7 +284,7 @@ export default function MacroPulse() {
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
           <div>
-            <h2 className="font-display text-xl text-white leading-tight">Macro Pulse</h2>
+            <h2 className="font-display text-xl text-text-primary leading-tight">Macro Pulse</h2>
             <p className="text-text-muted text-[11px] mt-0.5 tracking-wide">
               Cross-asset context · 30D correlations
             </p>
@@ -309,7 +309,7 @@ export default function MacroPulse() {
               BTC Reference
             </div>
             <div className="flex items-baseline justify-between gap-3">
-              <div className="font-mono text-base font-bold text-white">
+              <div className="font-mono text-base font-bold text-text-primary">
                 ${fmtNum(btc.current, 2)}
               </div>
               <div className="flex items-baseline gap-2 text-[10px] font-mono">
@@ -332,7 +332,7 @@ export default function MacroPulse() {
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             Regime Snapshot
           </div>
-          <div className="text-[11px] text-white/80 font-mono leading-relaxed">
+          <div className="text-[11px] text-text-primary/80 font-mono leading-relaxed">
             {regime_detail || "—"}
           </div>
         </div>

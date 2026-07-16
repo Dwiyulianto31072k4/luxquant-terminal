@@ -27,7 +27,7 @@ const fmtPct = (v) => {
 const pctColor = (v) =>
   v === null || v === undefined ? "text-text-muted"
   : Number(v) > 0 ? "text-emerald-400"
-  : Number(v) < 0 ? "text-red-400" : "text-white/70";
+  : Number(v) < 0 ? "text-red-400" : "text-text-primary/70";
 
 const Spinner = ({ className = "" }) => (
   <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
@@ -107,7 +107,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
       <button
         onClick={() => toggleSort(k)}
         className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${
-          active ? "text-gold-primary" : "text-white/35 hover:text-white/60"
+          active ? "text-gold-primary" : "text-text-primary/35 hover:text-text-primary/60"
         } ${className}`}
       >
         {label}
@@ -125,7 +125,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
       </div>
       <div className="min-w-0">
         <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-gold-primary/80">Narrative · Coins</p>
-        <h2 className="text-base sm:text-lg font-semibold text-white truncate">{sector?.name || "Sector"}</h2>
+        <h2 className="text-base sm:text-lg font-semibold text-text-primary truncate">{sector?.name || "Sector"}</h2>
       </div>
       {sector?.mcap_change_24h != null && (
         <span className={`ml-auto shrink-0 font-mono text-sm tabular-nums font-semibold ${pctColor(sector.mcap_change_24h)}`}>
@@ -143,7 +143,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search coin…"
-          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-[#120c08] border border-white/[0.08] rounded-md text-white placeholder-white/30 font-mono text-[12px] focus:border-gold-primary/40 focus:outline-none"
+          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-[#120c08] border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[12px] focus:border-gold-primary/40 focus:outline-none"
         />
         <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/70">
           {coins.length} coins{luxCount ? ` · ${luxCount} call` : ""}
@@ -152,7 +152,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
 
       {/* Column header */}
       <div className="grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 px-4 sm:px-5 py-2 border-b border-white/[0.06]">
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/35">#</span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35">#</span>
         <SortBtn label="Coin" k="symbol" />
         <SortBtn label="24h" k="price_change_24h" className="justify-self-end flex-row-reverse" />
         <SortBtn label="Mcap" k="market_cap" className="justify-self-end flex-row-reverse" />
@@ -160,11 +160,11 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
 
       {/* Body */}
       {loading ? (
-        <div className="py-16 text-center font-mono text-[12px] text-white/40">Loading coins…</div>
+        <div className="py-16 text-center font-mono text-[12px] text-text-primary/40">Loading coins…</div>
       ) : err ? (
         <div className="py-16 text-center font-mono text-[12px] text-red-400/70">{err}</div>
       ) : rows.length === 0 ? (
-        <div className="py-16 text-center font-mono text-[12px] text-white/40">
+        <div className="py-16 text-center font-mono text-[12px] text-text-primary/40">
           {q ? `No coins match "${q}".` : "No coins in this narrative."}
         </div>
       ) : (
@@ -196,7 +196,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                   ) : (
                     <span className="w-6 h-6 rounded-full bg-white/5 flex-shrink-0" />
                   )}
-                  <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-white"}`}>
+                  <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>
                     {c.symbol}
                   </span>
                   <span className="hidden sm:inline text-[11px] text-text-muted/60 truncate">{c.name}</span>
@@ -211,7 +211,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                       Call
                     </button>
                   )}
-                  <IconExternal className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-white/25 group-hover:text-gold-primary transition-colors" />
+                  <IconExternal className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-text-primary/25 group-hover:text-gold-primary transition-colors" />
                 </div>
                 <span className={`font-mono text-[13px] tabular-nums text-right font-semibold ${pctColor(c.price_change_24h)}`}>
                   {fmtPct(c.price_change_24h)}

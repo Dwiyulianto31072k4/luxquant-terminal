@@ -90,8 +90,8 @@ const RowMetrics = ({ rows, horizon = "72h" }) => (
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             {r.evidence.slice(0, 6).map((it, i) => (
               <div key={i} className="flex items-center justify-between gap-2">
-                <span className="truncate text-[12px] text-white/65">{it.metric}</span>
-                <Num className="text-[12px] text-white/90">{it.value ?? "—"}</Num>
+                <span className="truncate text-[12px] text-text-primary/65">{it.metric}</span>
+                <Num className="text-[12px] text-text-primary/90">{it.value ?? "—"}</Num>
               </div>
             ))}
           </div>
@@ -172,7 +172,7 @@ export default function LongerView({ data }) {
                   <div className="grid gap-2.5">
                     {[...zones].slice(0, 3).map((z, i) => (
                       <Tile key={i} label={readable(z.kind)}>
-                        <Num className="text-[15px] text-white">
+                        <Num className="text-[15px] text-text-primary">
                           {fmtUsd(z.price_low)}
                           {z.price_high ? <span className="text-text-muted"> – {fmtUsd(z.price_high)}</span> : null}
                         </Num>
@@ -216,7 +216,7 @@ export default function LongerView({ data }) {
                 />
                 <div className="grid grid-cols-2 gap-2.5">
                   <Tile label="Cycle score">
-                    <Num className="text-[20px] text-white">{data?.cycle?.score != null ? data.cycle.score : "—"}</Num>
+                    <Num className="text-[20px] text-text-primary">{data?.cycle?.score != null ? data.cycle.score : "—"}</Num>
                   </Tile>
                   <Tile label="Phase">
                     <span className="font-display text-[14px] font-semibold text-gold-light">{readable(data?.cycle?.phase)}</span>

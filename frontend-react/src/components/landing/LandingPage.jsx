@@ -89,7 +89,7 @@ const TickerBar = () => {
             <span className="text-text-secondary font-semibold">
               {coin.symbol}
             </span>
-            <span className="text-white font-mono">
+            <span className="text-text-primary font-mono">
               $
               {coin.price?.toLocaleString(undefined, {
                 maximumFractionDigits: 2,
@@ -247,7 +247,7 @@ const TestimonialsCarousel = () => {
           </span>
           <span className="h-px w-8 bg-gold-primary/40" />
         </div>
-        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4 tracking-tight">
           Trusted by{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
             Traders
@@ -307,7 +307,7 @@ const TestimonialsCarousel = () => {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          <p className="text-white text-sm font-semibold truncate">
+                          <p className="text-text-primary text-sm font-semibold truncate">
                             {t.name}
                           </p>
                           <VerifiedBadge />
@@ -338,7 +338,7 @@ const TestimonialsCarousel = () => {
                       <p className="text-text-muted text-[9px] uppercase tracking-[0.18em] mb-0.5">
                         Signals Traded
                       </p>
-                      <p className="text-white font-mono font-bold text-sm tabular-nums">
+                      <p className="text-text-primary font-mono font-bold text-sm tabular-nums">
                         {t.signalsTraded.toLocaleString()}
                       </p>
                     </div>
@@ -360,7 +360,7 @@ const TestimonialsCarousel = () => {
         {/* ── Arrow controls (desktop) ── */}
         <button
           onClick={goPrev}
-          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 w-9 h-9 items-center justify-center rounded-md text-white/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-gold-primary/30 transition-all"
+          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 w-9 h-9 items-center justify-center rounded-md text-text-primary/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-gold-primary/30 transition-all"
           aria-label="Previous testimonial"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -369,7 +369,7 @@ const TestimonialsCarousel = () => {
         </button>
         <button
           onClick={goNext}
-          className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 w-9 h-9 items-center justify-center rounded-md text-white/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-gold-primary/30 transition-all"
+          className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 w-9 h-9 items-center justify-center rounded-md text-text-primary/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-gold-primary/30 transition-all"
           aria-label="Next testimonial"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -382,7 +382,7 @@ const TestimonialsCarousel = () => {
           {/* Mobile prev arrow */}
           <button
             onClick={goPrev}
-            className="lg:hidden w-7 h-7 flex items-center justify-center text-white/40 hover:text-gold-primary transition-colors"
+            className="lg:hidden w-7 h-7 flex items-center justify-center text-text-primary/40 hover:text-gold-primary transition-colors"
             aria-label="Previous"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -406,7 +406,7 @@ const TestimonialsCarousel = () => {
           {/* Mobile next arrow */}
           <button
             onClick={goNext}
-            className="lg:hidden w-7 h-7 flex items-center justify-center text-white/40 hover:text-gold-primary transition-colors"
+            className="lg:hidden w-7 h-7 flex items-center justify-center text-text-primary/40 hover:text-gold-primary transition-colors"
             aria-label="Next"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -455,12 +455,12 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
       className="w-full px-5 py-4 text-left flex justify-between items-center focus:outline-none group"
       onClick={onClick}
     >
-      <span className="font-semibold text-white pr-4 text-sm lg:text-base">
+      <span className="font-semibold text-text-primary pr-4 text-sm lg:text-base">
         {q}
       </span>
       <svg
         className={`w-4 h-4 flex-shrink-0 transition-all duration-300 ${
-          isOpen ? "text-gold-primary rotate-180" : "text-white/40 group-hover:text-white/70"
+          isOpen ? "text-gold-primary rotate-180" : "text-text-primary/40 group-hover:text-text-primary/70"
         }`}
         fill="none"
         viewBox="0 0 24 24"
@@ -521,7 +521,7 @@ const PromoFlyingCoins = ({ gainers }) => {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <CoinLogo pair={item.pair} size={20} />
-            <span className="text-white text-sm font-bold">{symbol}</span>
+            <span className="text-text-primary text-sm font-bold">{symbol}</span>
           </div>
           <span className="text-green-400 text-sm font-bold font-mono">
             +{item.gain_pct?.toFixed(2)}%
@@ -557,7 +557,7 @@ const TelegramPromo = ({ gainers }) => {
             <span className="h-px w-8 bg-gold-primary/40" />
           </div>
 
-          <h2 className="font-display text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight tracking-tight">
+          <h2 className="font-display text-4xl lg:text-5xl font-bold text-text-primary mb-6 leading-tight tracking-tight">
             Try Before You <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
               Subscribe.
@@ -566,7 +566,7 @@ const TelegramPromo = ({ gainers }) => {
 
           <p className="text-text-secondary mb-10 text-base lg:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
             Want to test our accuracy before unlocking the full institutional terminal? Join{" "}
-            <span className="text-white font-mono">@LuxQuantSignal</span> for our free public channel. Real-time algorithm previews and selected high-probability calls — directly to your pocket.
+            <span className="text-text-primary font-mono">@LuxQuantSignal</span> for our free public channel. Real-time algorithm previews and selected high-probability calls — directly to your pocket.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
@@ -594,7 +594,7 @@ const TelegramPromo = ({ gainers }) => {
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
                 Active Community
               </span>
-              <span className="text-white font-mono text-sm tabular-nums">
+              <span className="text-text-primary font-mono text-sm tabular-nums">
                 Thousands of Traders
               </span>
             </div>
@@ -690,7 +690,7 @@ const RuntimeCounter = () => {
             />
           </>
           <div>
-            <p className="text-white font-semibold text-sm lg:text-base">
+            <p className="text-text-primary font-semibold text-sm lg:text-base">
               Algorithm Running Since
             </p>
             <p className="text-text-muted text-xs">
@@ -852,7 +852,7 @@ const LandingWinRateChart = ({ data }) => {
                   <p className="text-gold-primary text-xs font-bold mb-1">
                     {d.fullDate}
                   </p>
-                  <p className="text-white text-sm">
+                  <p className="text-text-primary text-sm">
                     Win Rate:{" "}
                     <span className="text-green-400 font-mono">
                       {d.winRate.toFixed(1)}%
@@ -936,22 +936,22 @@ export const LivePerformanceStats = ({ data }) => {
     {
       label: "Closed Trades",
       value: stats ? closedTrades.toLocaleString() : "—",
-      colorClass: "text-white",
+      colorClass: "text-text-primary",
     },
     {
       label: "Winners",
       value: stats ? totalWinners.toLocaleString() : "—",
-      colorClass: "text-white",
+      colorClass: "text-text-primary",
     },
     {
       label: "Losses",
       value: stats ? slCount.toLocaleString() : "—",
-      colorClass: "text-white",
+      colorClass: "text-text-primary",
     },
     {
       label: "Pairs Traded",
       value: stats ? activePairs.toLocaleString() : "—",
-      colorClass: "text-white",
+      colorClass: "text-text-primary",
     },
     {
       label: "Not Hit",
@@ -974,7 +974,7 @@ export const LivePerformanceStats = ({ data }) => {
           </span>
           <span className="h-px w-8 bg-gold-primary/40" />
         </div>
-        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4 tracking-tight">
           Transparent &{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
             Verified
@@ -984,7 +984,7 @@ export const LivePerformanceStats = ({ data }) => {
         <p className="text-text-secondary text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
           Every signal is recorded on-chain since day one. Full history, no
           hidden trades, no cherry-picking —
-          <span className="text-white font-medium font-mono">
+          <span className="text-text-primary font-medium font-mono">
             {" "}
             {stats ? totalSignals.toLocaleString() : "..."} signals
           </span>{" "}
@@ -1041,7 +1041,7 @@ export const LivePerformanceStats = ({ data }) => {
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-white font-semibold text-base lg:text-lg mb-1 tracking-tight">
+              <h3 className="text-text-primary font-semibold text-base lg:text-lg mb-1 tracking-tight">
                 Performance Trend
               </h3>
               <p className="text-text-muted text-[10px] lg:text-xs font-mono">
@@ -1063,7 +1063,7 @@ export const LivePerformanceStats = ({ data }) => {
           className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-          <h3 className="text-white font-semibold text-base lg:text-lg mb-1 tracking-tight">
+          <h3 className="text-text-primary font-semibold text-base lg:text-lg mb-1 tracking-tight">
             Outcome Distribution
           </h3>
           <p className="text-text-muted text-[10px] lg:text-xs mb-6 font-mono">
@@ -1119,7 +1119,7 @@ export const LivePerformanceStats = ({ data }) => {
                         />
                       </div>
                       <div className="flex items-center justify-end w-12">
-                        <span className="text-white text-[11px] font-mono font-semibold tabular-nums">
+                        <span className="text-text-primary text-[11px] font-mono font-semibold tabular-nums">
                           {item.count.toLocaleString()}
                         </span>
                       </div>
@@ -1146,7 +1146,7 @@ export const LivePerformanceStats = ({ data }) => {
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-5 gap-3">
           <div>
-            <h3 className="text-white font-semibold text-base lg:text-lg mb-1 tracking-tight">
+            <h3 className="text-text-primary font-semibold text-base lg:text-lg mb-1 tracking-tight">
               Risk Level Analysis
             </h3>
             <p className="text-text-muted text-[10px] lg:text-xs font-mono">
@@ -1193,12 +1193,12 @@ export const LivePerformanceStats = ({ data }) => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${c.dot}`} />
-                      <span className="font-bold text-sm font-mono tracking-wider uppercase text-white/70">
+                      <span className="font-bold text-sm font-mono tracking-wider uppercase text-text-primary/70">
                         {rd.risk_level}
                       </span>
                     </div>
                   </div>
-                  <p className="text-3xl lg:text-4xl font-bold font-mono tabular-nums text-white leading-none mb-1">
+                  <p className="text-3xl lg:text-4xl font-bold font-mono tabular-nums text-text-primary leading-none mb-1">
                     {rd.win_rate.toFixed(1)}%
                   </p>
                   <p className="text-text-muted text-[10px] mb-3 font-mono">
@@ -1263,11 +1263,11 @@ export const LivePerformanceStats = ({ data }) => {
             />
           </svg>
           <p className="text-text-secondary text-xs lg:text-sm leading-relaxed">
-            <span className="text-white font-semibold">
+            <span className="text-text-primary font-semibold">
               Every trade on record.
             </span>{" "}
             All{" "}
-            <span className="font-mono text-white">
+            <span className="font-mono text-text-primary">
               {stats ? totalSignals.toLocaleString() : "..."}
             </span>{" "}
             signals publicly verifiable — no edits, no deletions.
@@ -1345,7 +1345,7 @@ const PhoneFlyingCoins = ({ gainers }) => {
       >
         <div className="flex items-center gap-2">
           <CoinLogo pair={item.pair} size={20} />
-          <span className="text-white text-sm font-bold">{symbol}</span>
+          <span className="text-text-primary text-sm font-bold">{symbol}</span>
           <span className="text-green-400 text-sm font-bold font-mono">
             +{item.gain_pct?.toFixed(1)}%
           </span>
@@ -1455,7 +1455,7 @@ const LandingPage = () => {
   const stats = performanceData?.stats;
 
   return (
-    <div className="min-h-screen bg-bg-primary text-white relative pb-0 overflow-x-hidden">
+    <div className="min-h-screen bg-bg-primary text-text-primary relative pb-0 overflow-x-hidden">
       <Seo
         title="LuxQuant Terminal (legacy landing)"
         description="Legacy LuxQuant landing page. The primary product experience lives at luxquant.tw."
@@ -1513,7 +1513,7 @@ const LandingPage = () => {
                   className="w-8 h-8 lg:w-10 lg:h-10 object-cover group-hover:opacity-80 transition-opacity duration-300"
                 />
               </div>
-              <h1 className="font-display text-lg lg:text-xl font-bold text-white tracking-wide group-hover:text-gold-primary transition-colors duration-300">
+              <h1 className="font-display text-lg lg:text-xl font-bold text-text-primary tracking-wide group-hover:text-gold-primary transition-colors duration-300">
                 LuxQuant
               </h1>
             </div>
@@ -1529,7 +1529,7 @@ const LandingPage = () => {
                 <button
                   key={id}
                   onClick={() => scrollTo(id)}
-                  className="text-white/60 hover:text-white text-sm font-medium tracking-wide transition-colors relative group py-2"
+                  className="text-text-primary/60 hover:text-text-primary text-sm font-medium tracking-wide transition-colors relative group py-2"
                 >
                   {label}
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-gold-primary to-transparent transition-all duration-500 group-hover:w-[80%] opacity-0 group-hover:opacity-100"></span>
@@ -1569,7 +1569,7 @@ const LandingPage = () => {
             <div className="flex-1 flex justify-end lg:hidden">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 text-white/70 hover:text-white focus:outline-none"
+                className="p-2 text-text-primary/70 hover:text-text-primary focus:outline-none"
               >
                 <div className="w-5 h-4 flex flex-col justify-between">
                   <span
@@ -1601,7 +1601,7 @@ const LandingPage = () => {
               <button
                 key={id}
                 onClick={() => scrollTo(id)}
-                className="block w-full text-left text-white/70 hover:text-gold-primary hover:bg-white/[0.03] px-4 py-3 rounded-xl text-sm font-medium tracking-wide transition-colors"
+                className="block w-full text-left text-text-primary/70 hover:text-gold-primary hover:bg-white/[0.03] px-4 py-3 rounded-xl text-sm font-medium tracking-wide transition-colors"
               >
                 {label}
               </button>
@@ -1665,7 +1665,7 @@ const LandingPage = () => {
             </div>
 
             <h1
-              className="font-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] xl:text-[4.5rem] font-bold text-white leading-[1.1] lg:leading-[1.02] tracking-tight mb-5 px-2 sm:px-0"
+              className="font-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] xl:text-[4.5rem] font-bold text-text-primary leading-[1.1] lg:leading-[1.02] tracking-tight mb-5 px-2 sm:px-0"
               style={{ animation: "heroCardFadeIn 0.8s ease-out 0.2s both" }}
             >
               An{" "}
@@ -1680,18 +1680,18 @@ const LandingPage = () => {
 
             {/* 👇 FIX: mb-8 diubah jadi mb-2 khusus mobile 👇 */}
             <p
-              className="text-white/75 font-light text-[0.9rem] sm:text-base lg:text-[1.05rem] leading-relaxed mb-2 lg:mb-10 w-full max-w-[95%] sm:max-w-md lg:max-w-xl mx-auto lg:mx-0 px-2 lg:px-0"
+              className="text-text-primary/75 font-light text-[0.9rem] sm:text-base lg:text-[1.05rem] leading-relaxed mb-2 lg:mb-10 w-full max-w-[95%] sm:max-w-md lg:max-w-xl mx-auto lg:mx-0 px-2 lg:px-0"
               style={{ animation: "heroCardFadeIn 0.8s ease-out 0.35s both" }}
             >
               Our algorithm runs{" "}
-              <span className="text-white font-medium">24/7</span> — scanning
+              <span className="text-text-primary font-medium">24/7</span> — scanning
               price action, derivatives flow, on-chain whale movements, and
               order book liquidity to deliver precision projection and strict
               risk management.
               <br />
               <br />
               Complemented by an{" "}
-              <span className="text-white font-medium">
+              <span className="text-text-primary font-medium">
                 AI market researcher
               </span>{" "}
               that synthesizes sentiment and macro events into one clear
@@ -1731,7 +1731,7 @@ const LandingPage = () => {
               {/* Ghost CTA — outline */}
               <button
                 onClick={() => scrollTo("performance-top")}
-                className="group px-6 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 text-white/80 hover:text-white border border-white/10 hover:border-white/25 hover:bg-white/[0.03]"
+                className="group px-6 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 text-text-primary/80 hover:text-text-primary border border-white/10 hover:border-white/25 hover:bg-white/[0.03]"
               >
                 <span className="tracking-wide">View Performance</span>
                 <svg
@@ -1863,7 +1863,7 @@ const LandingPage = () => {
             </span>
             <span className="h-px w-8 bg-gold-primary/40" />
           </div>
-          <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-6 tracking-tight">
+          <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-6 tracking-tight">
             Recent Winner{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
               Captures
@@ -1872,7 +1872,7 @@ const LandingPage = () => {
           <p className="text-text-secondary text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
             Witness the algorithmic edge. Here are the most recent setups
             successfully identified and signaled by our quantitative engine{" "}
-            <span className="text-white font-medium">
+            <span className="text-text-primary font-medium">
               with massive upside potential
             </span>
             .
@@ -1919,7 +1919,7 @@ const LandingPage = () => {
             </span>
             <span className="h-px w-8 bg-gold-primary/40" />
           </div>
-          <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+          <h2 className="font-display text-3xl lg:text-5xl font-bold text-text-primary mb-4 tracking-tight">
             Quantitative{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
               Pipeline
@@ -1966,7 +1966,7 @@ const LandingPage = () => {
                 <span className="text-gold-primary/60 font-mono text-[9px] mb-1 block">
                   {node.id}
                 </span>
-                <h4 className="text-white text-[11px] font-bold tracking-wider mb-1 uppercase">
+                <h4 className="text-text-primary text-[11px] font-bold tracking-wider mb-1 uppercase">
                   {node.title}
                 </h4>
                 <p className="text-text-muted text-[10px] font-mono leading-tight">
@@ -1986,7 +1986,7 @@ const LandingPage = () => {
           <div className="w-[120px] xl:w-[140px] bg-[#050302] border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             <svg
-              className="w-6 h-6 text-white/50 mb-3"
+              className="w-6 h-6 text-text-primary/50 mb-3"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1998,7 +1998,7 @@ const LandingPage = () => {
                 d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
               />
             </svg>
-            <p className="text-white text-[10px] xl:text-xs font-bold tracking-widest text-center uppercase">
+            <p className="text-text-primary text-[10px] xl:text-xs font-bold tracking-widest text-center uppercase">
               Data
               <br />
               Filter
@@ -2042,7 +2042,7 @@ const LandingPage = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-white font-mono font-bold tracking-widest text-[10px] xl:text-xs">
+              <h3 className="text-text-primary font-mono font-bold tracking-widest text-[10px] xl:text-xs">
                 PREDICTIVE ALPHA
               </h3>
               <p className="text-gold-primary/60 font-mono text-[7px] xl:text-[8px] mt-1 uppercase tracking-[0.2em]">
@@ -2073,7 +2073,7 @@ const LandingPage = () => {
                 d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <p className="text-white text-[10px] xl:text-xs font-bold tracking-widest text-center uppercase">
+            <p className="text-text-primary text-[10px] xl:text-xs font-bold tracking-widest text-center uppercase">
               API
               <br />
               Gateway
@@ -2097,7 +2097,7 @@ const LandingPage = () => {
               <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
-                  <span className="text-white font-mono text-[10px] xl:text-xs font-bold tracking-widest">
+                  <span className="text-text-primary font-mono text-[10px] xl:text-xs font-bold tracking-widest">
                     WEB APP READY
                   </span>
                 </div>
@@ -2111,7 +2111,7 @@ const LandingPage = () => {
                     <p className="text-text-muted text-[8px] uppercase tracking-wider mb-0.5">
                       Payload Status
                     </p>
-                    <p className="text-white text-[10px]">Formatted JSON</p>
+                    <p className="text-text-primary text-[10px]">Formatted JSON</p>
                   </div>
                   <span className="text-gold-primary text-[9px]">200 OK</span>
                 </div>
@@ -2120,7 +2120,7 @@ const LandingPage = () => {
                     <p className="text-text-muted text-[8px] uppercase tracking-wider mb-0.5">
                       Potential Trade
                     </p>
-                    <p className="text-white text-[10px]">Entry & TP Matrix</p>
+                    <p className="text-text-primary text-[10px]">Entry & TP Matrix</p>
                   </div>
                   <span className="text-gold-primary text-[9px]">Pushed</span>
                 </div>
@@ -2129,7 +2129,7 @@ const LandingPage = () => {
                     <p className="text-text-muted text-[8px] uppercase tracking-wider mb-0.5">
                       Dashboard Render
                     </p>
-                    <p className="text-white text-[10px]">LuxQuant Platform</p>
+                    <p className="text-text-primary text-[10px]">LuxQuant Platform</p>
                   </div>
                   <span className="text-gold-primary text-[9px]">Live</span>
                 </div>
@@ -2154,7 +2154,7 @@ const LandingPage = () => {
                 <span className="text-gold-primary/60 font-mono text-[7px] mb-1 block">
                   {node.id}
                 </span>
-                <h4 className="text-white text-[9px] font-bold tracking-wider mb-1 uppercase">
+                <h4 className="text-text-primary text-[9px] font-bold tracking-wider mb-1 uppercase">
                   {node.title}
                 </h4>
                 <p className="text-text-muted text-[8px] font-mono leading-tight">
@@ -2173,7 +2173,7 @@ const LandingPage = () => {
 
           <div className="w-[160px] bg-[#050302] border border-white/10 rounded-md flex flex-col items-center justify-center p-3 relative z-20">
             <svg
-              className="w-5 h-5 text-white/50 mb-1.5"
+              className="w-5 h-5 text-text-primary/50 mb-1.5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -2185,7 +2185,7 @@ const LandingPage = () => {
                 d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
               />
             </svg>
-            <p className="text-white text-[10px] font-bold tracking-widest text-center uppercase">
+            <p className="text-text-primary text-[10px] font-bold tracking-widest text-center uppercase">
               Data Filter
             </p>
           </div>
@@ -2218,7 +2218,7 @@ const LandingPage = () => {
                   d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"
                 />
               </svg>
-              <h3 className="text-white font-mono font-bold tracking-widest text-[9px] text-center">
+              <h3 className="text-text-primary font-mono font-bold tracking-widest text-[9px] text-center">
                 PREDICTIVE
                 <br />
                 ALPHA
@@ -2248,7 +2248,7 @@ const LandingPage = () => {
               />
             </svg>
             <div className="text-left">
-              <p className="text-white text-[10px] font-bold tracking-widest uppercase">
+              <p className="text-text-primary text-[10px] font-bold tracking-widest uppercase">
                 API Gateway
               </p>
               <p className="text-text-muted text-[7px] font-mono">
@@ -2271,7 +2271,7 @@ const LandingPage = () => {
             <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
-                <span className="text-white font-mono text-[10px] font-bold tracking-widest">
+                <span className="text-text-primary font-mono text-[10px] font-bold tracking-widest">
                   WEB APP READY
                 </span>
               </div>
@@ -2285,7 +2285,7 @@ const LandingPage = () => {
                   <p className="text-text-muted text-[8px] uppercase tracking-wider">
                     Potential Trade
                   </p>
-                  <p className="text-white text-[10px]">Entry & TP Matrix</p>
+                  <p className="text-text-primary text-[10px]">Entry & TP Matrix</p>
                 </div>
                 <span className="text-gold-primary text-[9px]">
                   Pushed to UI
@@ -2319,7 +2319,7 @@ const LandingPage = () => {
         className="relative z-10 max-w-4xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24"
       >
         <div className="text-center mb-10">
-          <h2 className="font-display text-3xl lg:text-4xl font-bold text-white mb-4">
+          <h2 className="font-display text-3xl lg:text-4xl font-bold text-text-primary mb-4">
             Frequently Asked Questions
           </h2>
           <p className="text-text-secondary text-lg">
@@ -2369,7 +2369,7 @@ const LandingPage = () => {
               <div className="flex items-center gap-2.5 mb-4">
                 <img src="/logo.png" alt="LuxQuant" className="w-9 h-9 rounded-md" />
                 <div>
-                  <p className="font-display text-base font-bold text-white tracking-wide leading-none mb-0.5">
+                  <p className="font-display text-base font-bold text-text-primary tracking-wide leading-none mb-0.5">
                     LuxQuant
                   </p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/70">
@@ -2396,7 +2396,7 @@ const LandingPage = () => {
                   <li key={id}>
                     <button
                       onClick={() => scrollTo(id)}
-                      className="text-text-muted hover:text-white text-sm font-mono transition-colors group inline-flex items-center gap-2"
+                      className="text-text-muted hover:text-text-primary text-sm font-mono transition-colors group inline-flex items-center gap-2"
                     >
                       <span className="w-1 h-1 rounded-full bg-gold-primary/30 group-hover:bg-gold-primary transition-colors" />
                       {label}
@@ -2425,7 +2425,7 @@ const LandingPage = () => {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-text-muted hover:text-white text-sm font-mono transition-colors group inline-flex items-center gap-2"
+                        className="text-text-muted hover:text-text-primary text-sm font-mono transition-colors group inline-flex items-center gap-2"
                       >
                         <span className="w-1 h-1 rounded-full bg-gold-primary/30 group-hover:bg-gold-primary transition-colors" />
                         {item.label}
@@ -2433,7 +2433,7 @@ const LandingPage = () => {
                     ) : (
                       <button
                         onClick={item.action}
-                        className="text-text-muted hover:text-white text-sm font-mono transition-colors group inline-flex items-center gap-2"
+                        className="text-text-muted hover:text-text-primary text-sm font-mono transition-colors group inline-flex items-center gap-2"
                       >
                         <span className="w-1 h-1 rounded-full bg-gold-primary/30 group-hover:bg-gold-primary transition-colors" />
                         {item.label}
@@ -2464,10 +2464,10 @@ const LandingPage = () => {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold leading-none mb-1">Telegram</p>
+                    <p className="text-text-primary text-sm font-semibold leading-none mb-1">Telegram</p>
                     <p className="text-text-muted text-[11px] font-mono truncate">@LuxQuantSignal</p>
                   </div>
-                  <svg className="w-3.5 h-3.5 text-white/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-text-primary/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </a>
@@ -2480,15 +2480,15 @@ const LandingPage = () => {
                   className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/10 transition-colors">
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold leading-none mb-1">Twitter / X</p>
+                    <p className="text-text-primary text-sm font-semibold leading-none mb-1">Twitter / X</p>
                     <p className="text-text-muted text-[11px] font-mono truncate">@luxquantcrypto</p>
                   </div>
-                  <svg className="w-3.5 h-3.5 text-white/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-text-primary/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </a>
@@ -2501,15 +2501,15 @@ const LandingPage = () => {
                   className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#833AB4]/20 via-[#FD1D1D]/20 to-[#FCB045]/20 border border-[#FD1D1D]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[#833AB4]/30 group-hover:via-[#FD1D1D]/30 group-hover:to-[#FCB045]/30 transition-colors">
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold leading-none mb-1">Instagram</p>
+                    <p className="text-text-primary text-sm font-semibold leading-none mb-1">Instagram</p>
                     <p className="text-text-muted text-[11px] font-mono truncate">@luxquant.tw</p>
                   </div>
-                  <svg className="w-3.5 h-3.5 text-white/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-text-primary/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </a>
@@ -2524,11 +2524,11 @@ const LandingPage = () => {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 text-text-muted text-[11px] font-mono">
               <span>© {new Date().getFullYear()} LuxQuant</span>
-              <span className="text-white/20">·</span>
+              <span className="text-text-primary/20">·</span>
               <span className="flex items-center gap-1">
                 Built in Taiwan <span className="text-sm leading-none">🇹🇼</span>
               </span>
-              <span className="text-white/20 hidden sm:inline">·</span>
+              <span className="text-text-primary/20 hidden sm:inline">·</span>
               <span className="hidden sm:inline">All rights reserved</span>
             </div>
           </div>

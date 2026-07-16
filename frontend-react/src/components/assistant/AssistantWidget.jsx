@@ -92,19 +92,19 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z" /></svg>
                 </span>
                 <div className="min-w-0">
-                  <p className="font-display text-sm font-semibold text-white leading-none sm:text-base">LuxQuant Assistant</p>
+                  <p className="font-display text-sm font-semibold text-text-primary leading-none sm:text-base">LuxQuant Assistant</p>
                   {label && <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-gold-primary/70">{label}</p>}
                 </div>
               </div>
               <button
                 onClick={() => { setOpen(false); navigate(`/assistant?page=${encodeURIComponent(pageId)}`); }}
-                className="mr-1 hidden sm:inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-text-muted hover:bg-white/5 hover:text-white transition-all font-mono text-[10px] uppercase tracking-wider"
+                className="mr-1 hidden sm:inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-text-muted hover:bg-white/5 hover:text-text-primary transition-all font-mono text-[10px] uppercase tracking-wider"
                 title="Open full page"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                 Full Page
               </button>
-              <button onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:bg-white/5 hover:text-white transition-all" aria-label="Close">
+              <button onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:bg-white/5 hover:text-text-primary transition-all" aria-label="Close">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -113,7 +113,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
             <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 sm:px-6 sm:py-6 space-y-3">
               {!hasChat && (
                 <div className="space-y-4">
-                  <p className="text-sm text-white/70 leading-relaxed sm:text-[15px]">
+                  <p className="text-sm text-text-primary/70 leading-relaxed sm:text-[15px]">
                     Ask anything about how to use the <span className="text-gold-primary font-semibold">{label || 'this'}</span> page — column meanings, filtering, and more.
                   </p>
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
@@ -121,7 +121,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                       <button
                         key={i}
                         onClick={() => send(s)}
-                        className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-white/80 hover:border-gold-primary/40 hover:bg-gold-primary/[0.06] hover:text-white transition-all"
+                        className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-text-primary/80 hover:border-gold-primary/40 hover:bg-gold-primary/[0.06] hover:text-text-primary transition-all"
                       >
                         {s}
                       </button>
@@ -135,7 +135,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                   <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed sm:text-[14px] ${
                     m.role === 'user'
                       ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
-                      : 'bg-white/[0.05] text-white/90 border border-white/5'
+                      : 'bg-white/[0.05] text-text-primary/90 border border-white/5'
                   }`}>
                     {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => { setOpen(false); navigate(path); })}</div> : m.content}
                   </div>
@@ -164,7 +164,7 @@ export default function AssistantWidget({ pageId = 'signals', contextHint = null
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                   placeholder="Ask how to use this page…"
-                  className="flex-1 resize-none rounded-xl border border-white/10 bg-[#0d0d0d] px-3.5 py-2.5 text-[13px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-24 sm:text-[14px]"
+                  className="flex-1 resize-none rounded-xl border border-white/10 bg-[#0d0d0d] px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-24 sm:text-[14px]"
                 />
                 <button
                   onClick={() => send()}

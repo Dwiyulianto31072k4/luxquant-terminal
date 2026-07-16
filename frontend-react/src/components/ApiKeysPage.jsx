@@ -873,7 +873,7 @@ const StatCard = ({ label, value, accent, icon }) => (
         {label}
       </p>
     </div>
-    <p className={`text-lg font-semibold ${accent || "text-white"}`}>{value}</p>
+    <p className={`text-lg font-semibold ${accent || "text-text-primary"}`}>{value}</p>
   </div>
 );
 
@@ -890,7 +890,7 @@ const KeyRow = ({ k, onRevoke, revoking, t }) => (
   >
     {/* Name + status */}
     <div className="min-w-0 flex items-center gap-2">
-      <span className="text-white text-sm font-medium truncate">
+      <span className="text-text-primary text-sm font-medium truncate">
         {k.name || t("apiKeys.untitled")}
       </span>
       {k.is_active ? (
@@ -1025,7 +1025,7 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
 // Documentation section wrapper.
 const DocSection = ({ id, title, children }) => (
   <section id={id} className="scroll-mt-24">
-    <h3 className="text-white font-semibold text-[15px] mb-2 flex items-center gap-2">
+    <h3 className="text-text-primary font-semibold text-[15px] mb-2 flex items-center gap-2">
       <span className="w-1 h-3.5 rounded-full bg-gold-primary/70" />
       {title}
     </h3>
@@ -1202,7 +1202,7 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
               className={`w-full text-left px-2 py-1.5 rounded-md transition-colors flex items-center gap-2 ${
                 isActive
                   ? "text-gold-primary bg-gold-primary/10"
-                  : "text-text-secondary hover:text-white hover:bg-white/[0.03]"
+                  : "text-text-secondary hover:text-text-primary hover:bg-white/[0.03]"
               }`}
             >
               <span
@@ -1384,7 +1384,7 @@ const ApiKeysPage = () => {
           </span>
         </div>
         <h1
-          className="text-3xl sm:text-4xl text-white"
+          className="text-3xl sm:text-4xl text-text-primary"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 600,
@@ -1409,7 +1409,7 @@ const ApiKeysPage = () => {
         <StatCard
           label={t("apiKeys.stat_active", { defaultValue: "Active keys" })}
           value={`${activeCount} / ${KEY_CAP}`}
-          accent={atLimit ? "text-amber-400" : "text-white"}
+          accent={atLimit ? "text-amber-400" : "text-text-primary"}
           icon={ICON_KEY}
         />
         <StatCard
@@ -1450,7 +1450,7 @@ const ApiKeysPage = () => {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-sm">
+              <h3 className="text-text-primary font-semibold text-sm">
                 {t("apiKeys.locked_title")}
               </h3>
               <p className="text-text-secondary text-[13px] mt-1">
@@ -1498,7 +1498,7 @@ const ApiKeysPage = () => {
                 d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <h3 className="text-white font-semibold text-sm">
+            <h3 className="text-text-primary font-semibold text-sm">
               {t("apiKeys.created_title")}
             </h3>
           </div>
@@ -1542,7 +1542,7 @@ const ApiKeysPage = () => {
               onClick={() => setShowCreate((v) => !v)}
               className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
                 showCreate
-                  ? "text-text-secondary border border-white/10 hover:text-white hover:bg-white/[0.03]"
+                  ? "text-text-secondary border border-white/10 hover:text-text-primary hover:bg-white/[0.03]"
                   : "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow"
               }`}
             >
@@ -1568,7 +1568,7 @@ const ApiKeysPage = () => {
                 placeholder={t("apiKeys.name_placeholder")}
                 maxLength={60}
                 autoFocus
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-white bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
               />
               <button
                 onClick={handleCreate}
@@ -1711,7 +1711,7 @@ const ApiKeysPage = () => {
             </span>
           </div>
           <h2
-            className="text-2xl text-white"
+            className="text-2xl text-text-primary"
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 600,
@@ -1883,7 +1883,7 @@ const ApiKeysPage = () => {
                 Endpoints written as <Mono>{`/journey/{id}`}</Mono>,{" "}
                 <Mono>{`/enrichment/{id}`}</Mono>, and{" "}
                 <Mono>{`/btc-correlation/{id}`}</Mono> expect a{" "}
-                <Mono>signal_id</Mono> — <span className="text-white">not</span>{" "}
+                <Mono>signal_id</Mono> — <span className="text-text-primary">not</span>{" "}
                 a pair name like <Mono>BTCUSDT</Mono>.
               </p>
               <p>The flow is always:</p>
@@ -1979,7 +1979,7 @@ const ApiKeysPage = () => {
                 <li className="flex items-start gap-2">
                   <span className="text-gold-primary/60 mt-0.5">·</span>
                   <span>
-                    <span className="text-white">Poll, don't hammer.</span>{" "}
+                    <span className="text-text-primary">Poll, don't hammer.</span>{" "}
                     10–15s intervals are plenty and stay within the 60/min
                     limit.
                   </span>
@@ -1987,7 +1987,7 @@ const ApiKeysPage = () => {
                 <li className="flex items-start gap-2">
                   <span className="text-gold-primary/60 mt-0.5">·</span>
                   <span>
-                    <span className="text-white">Use the cursor.</span>{" "}
+                    <span className="text-text-primary">Use the cursor.</span>{" "}
                     Re-fetching everything wastes your rate budget;{" "}
                     <Mono>since</Mono> only returns what's new.
                   </span>
@@ -1995,7 +1995,7 @@ const ApiKeysPage = () => {
                 <li className="flex items-start gap-2">
                   <span className="text-gold-primary/60 mt-0.5">·</span>
                   <span>
-                    <span className="text-white">
+                    <span className="text-text-primary">
                       Handle "not ready" states.
                     </span>{" "}
                     Analytics endpoints can return{" "}
@@ -2007,7 +2007,7 @@ const ApiKeysPage = () => {
                 <li className="flex items-start gap-2">
                   <span className="text-gold-primary/60 mt-0.5">·</span>
                   <span>
-                    <span className="text-white">
+                    <span className="text-text-primary">
                       Keep the key server-side.
                     </span>{" "}
                     Don't embed it in a browser/client app where others can read
@@ -2017,7 +2017,7 @@ const ApiKeysPage = () => {
                 <li className="flex items-start gap-2">
                   <span className="text-gold-primary/60 mt-0.5">·</span>
                   <span>
-                    <span className="text-white">One identity per key.</span>{" "}
+                    <span className="text-text-primary">One identity per key.</span>{" "}
                     Sharing or reselling access can get the key flagged and
                     revoked.
                   </span>

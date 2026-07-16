@@ -41,7 +41,7 @@ const SectionLabel = ({ children, subtitle, step }) => (
 const Toggle = ({ label, hint, checked, onChange, disabled }) => (
   <div className={`flex items-center justify-between gap-4 py-2.5 ${disabled ? "opacity-50" : ""}`}>
     <div className="flex-1 min-w-0">
-      <p className="text-sm text-white font-medium">{label}</p>
+      <p className="text-sm text-text-primary font-medium">{label}</p>
       {hint && (
         <p className="text-[10px] font-mono text-text-muted/70 mt-0.5 leading-relaxed">
           {hint}
@@ -86,7 +86,7 @@ const NumberField = ({ label, value, onChange, min, max, step = 1, suffix = "", 
       min={min}
       max={max}
       step={step}
-      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white font-mono tabular-nums focus:outline-none focus:border-gold-primary/40 transition-colors"
+      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono tabular-nums focus:outline-none focus:border-gold-primary/40 transition-colors"
     />
     {hint && (
       <p className="text-[10px] font-mono text-text-muted/60 mt-1.5 leading-relaxed">
@@ -104,10 +104,10 @@ const SelectField = ({ label, value, onChange, options, hint }) => (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white font-mono focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
     >
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="bg-[#0a0805] text-white">
+        <option key={opt.value} value={opt.value} className="bg-[#0a0805] text-text-primary">
           {opt.label}
         </option>
       ))}
@@ -194,7 +194,7 @@ export default function ConfigPanel({ account, onClose }) {
       <div className="sticky top-0 z-20 bg-[#0a0805]/95 backdrop-blur border-b border-white/[0.06] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-white tracking-tight capitalize">
+            <h2 className="text-base font-semibold text-text-primary tracking-tight capitalize">
               Configure {account.exchange_id}
             </h2>
             <p className="text-[11px] font-mono text-text-muted/80 mt-0.5">
@@ -216,7 +216,7 @@ export default function ConfigPanel({ account, onClose }) {
             )}
             <button
               onClick={onClose}
-              className="px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
+              className="px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-all"
             >
               Close
             </button>
@@ -507,7 +507,7 @@ export default function ConfigPanel({ account, onClose }) {
         <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-[#0a0805]/95 backdrop-blur border-t border-white/[0.06] flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-md border border-white/[0.08] text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
+            className="flex-1 px-4 py-2.5 rounded-md border border-white/[0.08] text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-all"
           >
             Close
           </button>

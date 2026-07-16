@@ -80,7 +80,7 @@ Could you please help me complete the payment? Thanks!`;
       </span>
       <div className="min-w-0">
         <p className="mb-0.5 text-[9.5px] font-bold uppercase tracking-[0.18em] text-gold-primary/70">Manual Payment</p>
-        <h2 className="text-base font-bold tracking-tight text-white sm:text-lg">Subscribe via Admin</h2>
+        <h2 className="text-base font-bold tracking-tight text-text-primary sm:text-lg">Subscribe via Admin</h2>
         <p className="text-[11px] text-text-muted">Reach our admin on Telegram for assisted payment</p>
       </div>
     </div>
@@ -105,7 +105,7 @@ Could you please help me complete the payment? Thanks!`;
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-wider text-text-muted">Selected Plan</p>
-              <p className="mt-0.5 truncate text-sm font-semibold text-white">{planName}</p>
+              <p className="mt-0.5 truncate text-sm font-semibold text-text-primary">{planName}</p>
               <p className="text-[10.5px] text-text-muted">{duration}</p>
             </div>
             <div className="shrink-0 text-right">
@@ -140,7 +140,7 @@ Could you please help me complete the payment? Thanks!`;
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={9}
-          className="w-full resize-none rounded-xl border border-gold-primary/10 bg-[#0d0b09] px-4 py-3 font-mono text-[12px] leading-relaxed text-white outline-none transition-colors focus:border-gold-primary/30"
+          className="w-full resize-none rounded-xl border border-gold-primary/10 bg-[#0d0b09] px-4 py-3 font-mono text-[12px] leading-relaxed text-text-primary outline-none transition-colors focus:border-gold-primary/30"
           style={{ minHeight: "180px", maxHeight: "260px" }}
         />
         <p className="mt-2 text-[10px] text-text-muted">

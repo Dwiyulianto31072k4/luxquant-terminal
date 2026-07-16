@@ -87,7 +87,7 @@ export default function DelistingsPage() {
   const toggleSort = (key) => setSort((s) => s.key === key ? { key, dir: s.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
   const SortHead = ({ label, k, align = 'right', className = '' }) => (
     <th className={`py-2.5 px-3 ${align === 'left' ? 'text-left' : 'text-right'} ${className}`}>
-      <button onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${sort.key === k ? 'text-gold-primary' : 'text-white/35 hover:text-white/60'} ${align === 'left' ? '' : 'flex-row-reverse'}`}>
+      <button onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${sort.key === k ? 'text-gold-primary' : 'text-text-primary/35 hover:text-text-primary/60'} ${align === 'left' ? '' : 'flex-row-reverse'}`}>
         {label}<span className="text-[7px]">{sort.key === k ? (sort.dir === 'desc' ? '▼' : '▲') : '⇅'}</span>
       </button>
     </th>
@@ -96,7 +96,7 @@ export default function DelistingsPage() {
   const CallBtn = ({ x, compact }) => x.call_signal_id ? (
     <button onClick={(e) => openCall(e, x.call_signal_id)}
       title={x.call_after_announce ? 'LuxQuant called this after the delisting — open call' : 'Open LuxQuant call'}
-      className={`inline-flex items-center gap-1 rounded-md border font-mono text-[8.5px] uppercase tracking-wider px-1.5 py-0.5 transition-all ${x.call_after_announce ? 'bg-gold-primary/15 border-gold-primary/40 text-gold-primary hover:bg-gold-primary/25' : 'bg-white/[0.04] border-white/12 text-white/60 hover:text-white'} ${compact ? '' : ''}`}>
+      className={`inline-flex items-center gap-1 rounded-md border font-mono text-[8.5px] uppercase tracking-wider px-1.5 py-0.5 transition-all ${x.call_after_announce ? 'bg-gold-primary/15 border-gold-primary/40 text-gold-primary hover:bg-gold-primary/25' : 'bg-white/[0.04] border-white/12 text-text-primary/60 hover:text-text-primary'} ${compact ? '' : ''}`}>
       ⚡ Call
     </button>
   ) : null;
@@ -106,8 +106,8 @@ export default function DelistingsPage() {
       {/* Header — deskripsi di bawah judul */}
       <div className="mb-5 max-w-3xl">
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Terminal · Alerts</span>
-        <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight mt-1">Exchange Delistings</h1>
-        <p className="text-[12px] text-white/50 leading-relaxed mt-2">
+        <h1 className="font-display text-2xl lg:text-3xl font-normal text-text-primary tracking-tight mt-1">Exchange Delistings</h1>
+        <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Live delisting announcements from Binance, Bybit &amp; OKX.{' '}
           <span className="text-gold-primary/85 font-medium">Peak %</span> is the highest move a token made since the notice — the delist "relief pump" — not just the current price.
         </p>
@@ -121,7 +121,7 @@ export default function DelistingsPage() {
             const label = ex === 'all' ? 'All' : (EX_META[ex]?.label || ex);
             return (
               <button key={ex} onClick={() => setTab(ex)}
-                className={`whitespace-nowrap pb-3 pt-1 text-[14px] font-medium border-b-2 -mb-px transition-colors ${active ? 'text-white border-gold-primary' : 'text-white/50 border-transparent hover:text-white/80'}`}>
+                className={`whitespace-nowrap pb-3 pt-1 text-[14px] font-medium border-b-2 -mb-px transition-colors ${active ? 'text-text-primary border-gold-primary' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'}`}>
                 <span className="inline-flex items-center gap-1.5">
                   {ex !== 'all' && EX_META[ex]?.domain && <img src={favicon(EX_META[ex].domain)} alt="" width={15} height={15} className="rounded-sm" loading="lazy" />}
                   {label}
@@ -132,24 +132,24 @@ export default function DelistingsPage() {
         </div>
         <div className="relative flex-shrink-0 w-36 sm:w-56 mb-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…"
-            className="w-full pl-3 pr-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none" />
+            className="w-full pl-3 pr-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none" />
         </div>
       </div>
 
       {loading ? (
-        <div className="py-20 text-center font-mono text-[12px] text-white/40">Loading delistings…</div>
+        <div className="py-20 text-center font-mono text-[12px] text-text-primary/40">Loading delistings…</div>
       ) : err ? (
         <div className="py-20 text-center font-mono text-[12px] text-red-400/70">{err}</div>
       ) : rows.length === 0 ? (
-        <div className="py-20 text-center font-mono text-[12px] text-white/40">No delistings found.</div>
+        <div className="py-20 text-center font-mono text-[12px] text-text-primary/40">No delistings found.</div>
       ) : (
         <>
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-white/[0.08]">
                 <SortHead label="Token" k="token" align="left" />
-                <th className="py-2.5 px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-white/35">Exchange</th>
-                <th className="hidden md:table-cell py-2.5 px-3 text-right font-mono text-[9px] uppercase tracking-[0.14em] text-white/35">Announce Px</th>
+                <th className="py-2.5 px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35">Exchange</th>
+                <th className="hidden md:table-cell py-2.5 px-3 text-right font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35">Announce Px</th>
                 <SortHead label="Since" k="current_pct" className="hidden lg:table-cell" />
                 <SortHead label="Peak %" k="peak_pct" />
                 <SortHead label="Announced" k="announced_at" />
@@ -167,7 +167,7 @@ export default function DelistingsPage() {
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2.5">
                         <CoinLogo pair={`${x.token}USDT`} size={22} />
-                        <span className="font-mono text-[13px] font-semibold text-white" title={x.title}>{x.token}</span>
+                        <span className="font-mono text-[13px] font-semibold text-text-primary" title={x.title}>{x.token}</span>
                         <CallBtn x={x} />
                       </div>
                     </td>
@@ -179,17 +179,17 @@ export default function DelistingsPage() {
                       </span>
                     </td>
                     {/* Announce px */}
-                    <td className="hidden md:table-cell py-2.5 px-3 text-right font-mono text-[11px] tabular-nums text-white/60">{fmtPrice(x.price_at_announce)}</td>
+                    <td className="hidden md:table-cell py-2.5 px-3 text-right font-mono text-[11px] tabular-nums text-text-primary/60">{fmtPrice(x.price_at_announce)}</td>
                     {/* Since announce */}
                     <td className="hidden lg:table-cell py-2.5 px-3 text-right font-mono text-[12px] tabular-nums font-medium">
-                      {x.current_pct == null ? <span className="text-white/25">—</span> : (
+                      {x.current_pct == null ? <span className="text-text-primary/25">—</span> : (
                         <span className={x.current_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}>{x.current_pct >= 0 ? '+' : ''}{x.current_pct.toFixed(2)}%</span>
                       )}
                     </td>
                     {/* Peak % */}
                     <td className="py-2.5 px-3 text-right">
                       {x.peak_pct == null ? (
-                        <span className="text-white/25 font-mono text-[12px]" title="No live USDT spot market for this token">—</span>
+                        <span className="text-text-primary/25 font-mono text-[12px]" title="No live USDT spot market for this token">—</span>
                       ) : (
                         <span className={`font-mono text-[13px] tabular-nums font-bold ${x.peak_pct >= 20 ? 'text-gold-primary' : x.peak_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {x.peak_pct >= 0 ? '+' : ''}{x.peak_pct.toFixed(2)}%
@@ -199,12 +199,12 @@ export default function DelistingsPage() {
                     {/* Announced */}
                     <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       <div className="flex flex-col items-end leading-tight">
-                        <span className="font-mono text-[11px] text-white/70">{fmtDate(x.announced_at)}</span>
-                        <span className="font-mono text-[9px] text-white/35">{timeAgo(x.announced_at)}</span>
+                        <span className="font-mono text-[11px] text-text-primary/70">{fmtDate(x.announced_at)}</span>
+                        <span className="font-mono text-[9px] text-text-primary/35">{timeAgo(x.announced_at)}</span>
                       </div>
                     </td>
                     {/* Delist */}
-                    <td className="hidden md:table-cell py-2.5 px-3 text-right whitespace-nowrap font-mono text-[11px] text-white/60">{fmtDate(x.delist_at)}</td>
+                    <td className="hidden md:table-cell py-2.5 px-3 text-right whitespace-nowrap font-mono text-[11px] text-text-primary/60">{fmtDate(x.delist_at)}</td>
                   </tr>
                 );
               })}
@@ -213,19 +213,19 @@ export default function DelistingsPage() {
 
           {/* Footer: legend + pagination */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-            <span className="font-mono text-[9px] text-white/30 leading-relaxed">
-              <span className="text-white/45">—</span> = price/peak unavailable (no live USDT spot market). <span className="text-gold-primary/70">⚡ Call</span> = open LuxQuant's call for this token.
+            <span className="font-mono text-[9px] text-text-primary/30 leading-relaxed">
+              <span className="text-text-primary/45">—</span> = price/peak unavailable (no live USDT spot market). <span className="text-gold-primary/70">⚡ Call</span> = open LuxQuant's call for this token.
             </span>
             {totalPages > 1 && (
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="font-mono text-[10px] text-white/40">
+                <span className="font-mono text-[10px] text-text-primary/40">
                   {(curPage - 1) * PAGE_SIZE + 1}–{Math.min(curPage * PAGE_SIZE, rows.length)} of {rows.length}
                 </span>
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage <= 1}
-                  className="px-2.5 py-1 rounded-md border border-white/10 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Prev</button>
-                <span className="font-mono text-[10px] tabular-nums text-white/60 px-1">{curPage}/{totalPages}</span>
+                  className="px-2.5 py-1 rounded-md border border-white/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Prev</button>
+                <span className="font-mono text-[10px] tabular-nums text-text-primary/60 px-1">{curPage}/{totalPages}</span>
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={curPage >= totalPages}
-                  className="px-2.5 py-1 rounded-md border border-white/10 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Next</button>
+                  className="px-2.5 py-1 rounded-md border border-white/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Next</button>
               </div>
             )}
           </div>

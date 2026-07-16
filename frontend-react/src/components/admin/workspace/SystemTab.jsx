@@ -125,7 +125,7 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[13px] font-semibold text-white truncate">{svc.name}</span>
+              <span className="text-[13px] font-semibold text-text-primary truncate">{svc.name}</span>
               {isTimer && <span className="text-[9px] uppercase tracking-wider px-1 rounded" style={{ background: tint(palette.blue[400], 0.12), color: palette.blue[400] }}>timer</span>}
             </div>
             <p className="text-[11px] mt-0.5 truncate" style={{ color: palette.warm[400] }}>
@@ -255,7 +255,7 @@ export const SystemTab = () => {
     return (
       <div className="rounded-lg p-6 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${tint(palette.amber[400], 0.2)}` }}>
         <AlertTriangleIcon size={28} style={{ color: palette.amber[400] }} className="mx-auto mb-2" />
-        <p className="text-sm text-white font-semibold">Service monitor unavailable</p>
+        <p className="text-sm text-text-primary font-semibold">Service monitor unavailable</p>
         <p className="text-xs mt-1" style={{ color: palette.warm[400] }}>{data.reason || 'systemctl not reachable from the API host.'}</p>
       </div>
     );

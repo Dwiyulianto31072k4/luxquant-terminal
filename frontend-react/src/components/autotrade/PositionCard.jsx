@@ -23,11 +23,11 @@ const statusStyle = (status) => {
   const map = {
     filled: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
     partial: "bg-gold-primary/10 text-gold-primary border-gold-primary/25",
-    placed: "bg-white/[0.04] text-white/70 border-white/[0.08]",
+    placed: "bg-white/[0.04] text-text-primary/70 border-white/[0.08]",
     pending: "bg-white/[0.04] text-text-muted border-white/[0.06]",
     error: "bg-red-500/10 text-red-400 border-red-500/25",
   };
-  return map[status] || "bg-white/[0.04] text-white/70 border-white/[0.08]";
+  return map[status] || "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
 };
 
 
@@ -63,7 +63,7 @@ export default function PositionCard({ order, onClosed }) {
             <CoinLogo pair={order.pair} size={36} />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                <h3 className="text-white font-semibold text-sm font-mono">{order.pair}</h3>
+                <h3 className="text-text-primary font-semibold text-sm font-mono">{order.pair}</h3>
                 <span
                   className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${sideStyle(order.side)}`}
                 >
@@ -149,7 +149,7 @@ export default function PositionCard({ order, onClosed }) {
             </div>
             {order.trailing_activated && order.highest_price && (
               <p className="text-[10px] font-mono text-text-muted/70 mt-1.5 tabular-nums">
-                Peak: <span className="text-white/80">{fmtNum(order.highest_price, 6)}</span>
+                Peak: <span className="text-text-primary/80">{fmtNum(order.highest_price, 6)}</span>
               </p>
             )}
           </div>
@@ -186,7 +186,7 @@ export default function PositionCard({ order, onClosed }) {
 // ════════════════════════════════════════════════════════════════
 const PriceCell = ({ label, value, tone = "neutral" }) => {
   const valueColor = {
-    neutral: "text-white",
+    neutral: "text-text-primary",
     danger: "text-red-400/90",
     gold: "text-gold-primary",
   }[tone];

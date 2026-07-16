@@ -210,7 +210,7 @@ const MarketHighlights = () => {
         <div className="flex items-center justify-between px-4 py-3 border-b border-gold-primary/10">
           <div className="flex items-center gap-2">
             <span className="text-sm">📊</span>
-            <span className="text-white font-semibold text-sm">Market Overview</span>
+            <span className="text-text-primary font-semibold text-sm">Market Overview</span>
           </div>
           <span className="text-text-muted text-xs">Live Data</span>
         </div>
@@ -221,7 +221,7 @@ const MarketHighlights = () => {
             {/* Total Market Cap */}
             <div>
               <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Total Market Cap</p>
-              <p className="text-white font-mono text-lg font-bold">{formatLargeNumber(overview.totalMarketCap)}</p>
+              <p className="text-text-primary font-mono text-lg font-bold">{formatLargeNumber(overview.totalMarketCap)}</p>
               <p className={`text-xs font-semibold ${overview.marketCapChange24h >= 0 ? 'text-positive' : 'text-negative'}`}>
                 {formatChange(overview.marketCapChange24h)}
               </p>
@@ -230,7 +230,7 @@ const MarketHighlights = () => {
             {/* 24h Volume */}
             <div>
               <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">24h Volume</p>
-              <p className="text-white font-mono text-lg font-bold">{formatLargeNumber(overview.totalVolume24h)}</p>
+              <p className="text-text-primary font-mono text-lg font-bold">{formatLargeNumber(overview.totalVolume24h)}</p>
             </div>
             
             {/* Fear & Greed */}
@@ -283,7 +283,7 @@ const MarketHighlights = () => {
           <div className="flex items-center justify-between px-3 py-2 border-b border-gold-primary/10">
             <div className="flex items-center gap-1.5">
               <span className="text-xs">📈</span>
-              <span className="text-white font-semibold text-xs">Top Gainer</span>
+              <span className="text-text-primary font-semibold text-xs">Top Gainer</span>
             </div>
             <button className="text-text-muted text-[10px] hover:text-gold-primary transition-colors">More</button>
           </div>
@@ -294,7 +294,7 @@ const MarketHighlights = () => {
                   <img src={coin.logo} alt={coin.symbol} className="w-5 h-5 rounded-full" 
                     onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${coin.symbol}&background=d4a853&color=0a0506&size=20&bold=true`; }}
                   />
-                  <span className="text-white font-medium text-xs">{coin.symbol}</span>
+                  <span className="text-text-primary font-medium text-xs">{coin.symbol}</span>
                 </div>
                 <span className="text-positive text-xs font-semibold">{formatChange(coin.change)}</span>
               </div>
@@ -307,7 +307,7 @@ const MarketHighlights = () => {
           <div className="flex items-center justify-between px-3 py-2 border-b border-gold-primary/10">
             <div className="flex items-center gap-1.5">
               <span className="text-xs">💎</span>
-              <span className="text-white font-semibold text-xs">Top Volume</span>
+              <span className="text-text-primary font-semibold text-xs">Top Volume</span>
             </div>
             <button className="text-text-muted text-[10px] hover:text-gold-primary transition-colors">More</button>
           </div>
@@ -318,7 +318,7 @@ const MarketHighlights = () => {
                   <img src={coin.logo} alt={coin.symbol} className="w-5 h-5 rounded-full"
                     onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${coin.symbol}&background=d4a853&color=0a0506&size=20&bold=true`; }}
                   />
-                  <span className="text-white font-medium text-xs">{coin.symbol}</span>
+                  <span className="text-text-primary font-medium text-xs">{coin.symbol}</span>
                 </div>
                 <span className={`text-xs font-semibold ${coin.change >= 0 ? 'text-positive' : 'text-negative'}`}>
                   {formatChange(coin.change)}
@@ -338,7 +338,7 @@ const CategoryCard = ({ icon, label, coins, formatChange }) => (
     <div className="flex items-center justify-between px-4 py-3 border-b border-gold-primary/10">
       <div className="flex items-center gap-2">
         <span className="text-sm">{icon}</span>
-        <span className="text-white font-semibold text-sm">{label}</span>
+        <span className="text-text-primary font-semibold text-sm">{label}</span>
       </div>
       <button className="text-text-muted text-xs hover:text-gold-primary transition-colors flex items-center gap-1">
         More
@@ -363,10 +363,10 @@ const CategoryCard = ({ icon, label, coins, formatChange }) => (
                 e.target.src = `https://ui-avatars.com/api/?name=${coin.symbol}&background=d4a853&color=0a0506&size=24&bold=true`;
               }}
             />
-            <span className="text-white font-medium text-sm">{coin.symbol}</span>
+            <span className="text-text-primary font-medium text-sm">{coin.symbol}</span>
           </div>
           <div className="text-right">
-            <p className="text-white text-sm font-mono">{coin.price}</p>
+            <p className="text-text-primary text-sm font-mono">{coin.price}</p>
             <p className={`text-xs font-semibold ${
               coin.change >= 0 ? 'text-positive' : 'text-negative'
             }`}>

@@ -48,7 +48,7 @@ function statusTone(status) {
   if (value === "degraded" || value === "stale") {
     return "border-amber-300/20 bg-amber-300/10 text-amber-200";
   }
-  return "border-white/10 bg-white/5 text-white/45";
+  return "border-white/10 bg-white/5 text-text-primary/45";
 }
 
 function formatAge(timestamp) {
@@ -99,7 +99,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
 
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="min-w-[280px]">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-white md:text-[40px] md:leading-[1.05]">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-[40px] md:leading-[1.05]">
             BTC Market Outlook
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
@@ -114,14 +114,14 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             {Number.isFinite(btcPrice) && btcPrice > 0 && (
               <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">BTC / USDT</div>
-                <div className="mt-0.5 font-mono text-[17px] font-medium tabular-nums leading-tight tracking-tight text-white">
+                <div className="mt-0.5 font-mono text-[17px] font-medium tabular-nums leading-tight tracking-tight text-text-primary">
                   ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                 </div>
               </div>
             )}
             <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
               <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">24h stance</div>
-              <div className={`mt-0.5 font-display text-[15px] font-semibold leading-tight ${stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-white"}`}>
+              <div className={`mt-0.5 font-display text-[15px] font-semibold leading-tight ${stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-text-primary"}`}>
                 {stance.arrow} {stance.label}
                 {tactical.confidence != null ? (
                   <span className="ml-1 font-mono text-[11px] font-normal opacity-75">{tactical.confidence}%</span>
@@ -130,7 +130,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             </div>
             <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
               <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">Updated</div>
-              <div className="mt-0.5 font-mono text-[13px] leading-tight text-white/75">{formatAge(report?.timestamp)}</div>
+              <div className="mt-0.5 font-mono text-[13px] leading-tight text-text-primary/75">{formatAge(report?.timestamp)}</div>
             </div>
           </div>
           <button
@@ -204,7 +204,7 @@ function LoadingState() {
       {/* Status caption — Compass is generating, keep the context */}
       <div className="mt-6 flex items-center justify-center gap-2">
         <span className="h-1.5 w-1.5 rounded-full bg-gold-primary animate-pulse" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-primary/40">
           Building the latest Compass read…
         </span>
       </div>
@@ -216,16 +216,16 @@ function ErrorState({ error, onRetry }) {
   return (
     <div className="flex min-h-[45vh] items-center justify-center">
       <div className="max-w-md rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-6 text-center">
-        <h3 className="text-lg font-medium text-white/85">
+        <h3 className="text-lg font-medium text-text-primary/85">
           Compass read could not load
         </h3>
-        <p className="mt-2 text-sm leading-6 text-white/45">
+        <p className="mt-2 text-sm leading-6 text-text-primary/45">
           {error || "The latest market read is temporarily unavailable."}
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="mt-5 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/75 hover:bg-white/[0.08]"
+          className="mt-5 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-text-primary/75 hover:bg-white/[0.08]"
         >
           Try again
         </button>
@@ -281,13 +281,13 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
                 title={tab.description}
                 className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-3 text-[15px] font-medium transition-colors ${
                   active
-                    ? "border-gold-primary text-white"
-                    : "border-transparent text-white/45 hover:text-white/80"
+                    ? "border-gold-primary text-text-primary"
+                    : "border-transparent text-text-primary/45 hover:text-text-primary/80"
                 }`}
               >
                 <span
                   className={`font-mono text-[11px] tabular-nums ${
-                    active ? "text-gold-primary" : "text-white/30 group-hover:text-white/55"
+                    active ? "text-gold-primary" : "text-text-primary/30 group-hover:text-text-primary/55"
                   }`}
                 >
                   {tab.icon}
@@ -309,7 +309,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
             type="button"
             onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
             aria-label="Show more tabs"
-            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#160d10] text-white/70 transition hover:border-gold-primary/50 hover:text-gold-primary"
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#160d10] text-text-primary/70 transition hover:border-gold-primary/50 hover:text-gold-primary"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5l7 7-7 7" />
@@ -330,7 +330,7 @@ function ChartPanel({ report }) {
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
             Price context
           </div>
-          <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-white md:text-2xl">
+          <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-text-primary md:text-2xl">
             BTC projection chart
           </h2>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-text-muted/70">
@@ -341,7 +341,7 @@ function ChartPanel({ report }) {
         </div>
         <div className="rounded-lg border border-white/[0.07] bg-black/25 px-3 py-2 text-right font-mono text-[10px] text-text-muted/60">
           <div className="uppercase tracking-[0.14em]">Chart basis</div>
-          <div className="mt-1 text-white/65">Live BTC candles + Compass report</div>
+          <div className="mt-1 text-text-primary/65">Live BTC candles + Compass report</div>
         </div>
       </div>
       <PriceChart report={report} />
@@ -411,8 +411,8 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
         <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
           Report library
         </div>
-        <h2 className="mt-1 text-2xl font-medium text-white/90">PDF archive is unavailable</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
+        <h2 className="mt-1 text-2xl font-medium text-text-primary/90">PDF archive is unavailable</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-primary/45">
           The report itself is still saved in the database. The PDF catalog endpoint may need subscription auth or the PDF generator dependency on the server.
         </p>
       </section>
@@ -431,17 +431,17 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
                 Report library
               </div>
-              <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-white md:text-3xl">
+              <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-text-primary md:text-3xl">
                 Saved Compass PDFs
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-text-primary/45">
                 Four reports per page. Each card shows the stance, price, magnets, and risk snapshot before opening the full archived PDF.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
               <div className="rounded-sm border border-white/[0.04] bg-[#120809] px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Reports</div>
-                <div className="mt-1 text-white/80">{items.length}</div>
+                <div className="mt-1 text-text-primary/80">{items.length}</div>
               </div>
               <div className="rounded-sm border border-profit/15 bg-profit/[0.05] px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">PDF ready</div>
@@ -449,7 +449,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               </div>
               <div className="rounded-sm border border-white/[0.04] bg-[#120809] px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Latest</div>
-                <div className="mt-1 text-white/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
+                <div className="mt-1 text-text-primary/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
               </div>
             </div>
           </div>
@@ -462,15 +462,15 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
         {items.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/15 px-4 py-3 md:px-5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-              Showing <span className="text-white/65">{pageStart + 1}-{pageEnd}</span> of <span className="text-white/65">{items.length}</span>
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-primary/35">
+              Showing <span className="text-text-primary/65">{pageStart + 1}-{pageEnd}</span> of <span className="text-text-primary/65">{items.length}</span>
             </div>
             <div className="flex items-center gap-1.5 font-mono text-[10px]">
               <button
                 type="button"
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={page <= 1}
-                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
+                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Prev
               </button>
@@ -482,7 +482,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                   className={`h-8 min-w-8 rounded-md border px-2 transition ${
                     pageNumber === page
                       ? "border-gold-primary/40 bg-gold-primary/15 text-gold-primary"
-                      : "border-white/[0.07] bg-black/20 text-white/40 hover:border-white/[0.14] hover:text-white/70"
+                      : "border-white/[0.07] bg-black/20 text-text-primary/40 hover:border-white/[0.14] hover:text-text-primary/70"
                   }`}
                 >
                   {pageNumber}
@@ -492,7 +492,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 type="button"
                 onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
                 disabled={page >= pageCount}
-                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
+                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Next
               </button>
@@ -523,42 +523,42 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 <div className="relative flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-white/[0.08] bg-black/20 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-white/35">
+                      <span className="rounded-md border border-white/[0.08] bg-black/20 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
                         #{pageStart + index + 1}
                       </span>
-                      <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/35">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
                         {formatDateTime(item.timestamp)}
                       </span>
                       <span className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.1em] ${directionClasses(direction)}`}>
                         {readableLabel(direction)} {confidence ?? "-"}%
                       </span>
                     </div>
-                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-white/90">
+                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-text-primary/90">
                       {item.headline || "Compass report"}
                     </h3>
                   </div>
                   <div className="shrink-0 text-right font-mono">
-                    <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">BTC</div>
-                    <div className="mt-1 text-sm text-white/80">{formatMoney(item.btc_price)}</div>
+                    <div className="text-[9px] uppercase tracking-[0.14em] text-text-primary/30">BTC</div>
+                    <div className="mt-1 text-sm text-text-primary/80">{formatMoney(item.btc_price)}</div>
                   </div>
                 </div>
 
-                <p className="relative mt-3 line-clamp-3 text-sm leading-6 text-white/45">
+                <p className="relative mt-3 line-clamp-3 text-sm leading-6 text-text-primary/45">
                   {item.summary || item.tactical_24h?.rationale || "Archived Compass report with full breakdown."}
                 </p>
 
                 <div className="relative mt-4 grid gap-2 text-xs md:grid-cols-3">
                   <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
-                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Below magnet</div>
-                    <div className="mt-1 font-mono text-white/75">{formatMoney(item.nearest_magnet_below)}</div>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Below magnet</div>
+                    <div className="mt-1 font-mono text-text-primary/75">{formatMoney(item.nearest_magnet_below)}</div>
                   </div>
                   <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
-                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Above magnet</div>
-                    <div className="mt-1 font-mono text-white/75">{formatMoney(item.nearest_magnet_above)}</div>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Above magnet</div>
+                    <div className="mt-1 font-mono text-text-primary/75">{formatMoney(item.nearest_magnet_above)}</div>
                   </div>
                   <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
-                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Event risk</div>
-                    <div className="mt-1 font-mono text-white/75">{readableLabel(item.event_risk)}</div>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Event risk</div>
+                    <div className="mt-1 font-mono text-text-primary/75">{readableLabel(item.event_risk)}</div>
                   </div>
                 </div>
 
@@ -587,7 +587,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
         </div>
 
         {items.length === 0 && (
-          <div className="p-8 text-center text-sm text-white/40">
+          <div className="p-8 text-center text-sm text-text-primary/40">
             No archived Compass reports yet. The next scheduled report will create the first PDF.
           </div>
         )}
@@ -606,7 +606,7 @@ function ReportPdfModal({ modal, onClose }) {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center overflow-hidden bg-[#020102]/88 p-0 text-white backdrop-blur-2xl sm:p-3 lg:p-5"
+      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center overflow-hidden bg-[#020102]/88 p-0 text-text-primary backdrop-blur-2xl sm:p-3 lg:p-5"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
@@ -628,11 +628,11 @@ function ReportPdfModal({ modal, onClose }) {
                 <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
                   {readableLabel(direction)} {confidence ?? "-"}%
                 </span>
-                <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-white/45">
+                <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/45">
                   {generatedLabel}
                 </span>
               </div>
-              <h3 className="mt-1.5 max-w-[68vw] truncate text-sm font-semibold tracking-[-0.01em] text-white/90 md:text-lg">
+              <h3 className="mt-1.5 max-w-[68vw] truncate text-sm font-semibold tracking-[-0.01em] text-text-primary/90 md:text-lg">
                 {modal.title}
               </h3>
             </div>
@@ -641,7 +641,7 @@ function ReportPdfModal({ modal, onClose }) {
                 href={modal.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
               >
                 New tab
               </a>
@@ -655,7 +655,7 @@ function ReportPdfModal({ modal, onClose }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
               >
                 Close
               </button>
@@ -670,7 +670,7 @@ function ReportPdfModal({ modal, onClose }) {
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
                   Reading brief
                 </div>
-                <p className="mt-2 text-sm leading-6 text-white/62">
+                <p className="mt-2 text-sm leading-6 text-text-primary/62">
                   {item.summary || item.tactical_24h?.rationale || "Full Compass breakdown is archived in this report."}
                 </p>
               </div>
@@ -686,7 +686,7 @@ function ReportPdfModal({ modal, onClose }) {
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
                   Reader mode
                 </div>
-                <p className="mt-2 text-xs leading-5 text-white/42">
+                <p className="mt-2 text-xs leading-5 text-text-primary/42">
                   The window stays inside the viewport. Scroll only this reader, not the whole app behind it.
                 </p>
               </div>
@@ -831,7 +831,7 @@ function CompassPdfViewer({ url, title }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
             Fit reader
           </div>
-          <div className="mt-1 max-w-[54vw] truncate text-xs font-semibold text-white/78 md:text-sm">
+          <div className="mt-1 max-w-[54vw] truncate text-xs font-semibold text-text-primary/78 md:text-sm">
             {title}
           </div>
         </div>
@@ -840,18 +840,18 @@ function CompassPdfViewer({ url, title }) {
             type="button"
             onClick={() => goToPage(-1)}
             disabled={currentPage <= 1}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07] disabled:opacity-35"
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07] disabled:opacity-35"
           >
             Prev
           </button>
-          <span className="rounded-md border border-white/[0.08] bg-black/25 px-2.5 py-1.5 text-white/55">
+          <span className="rounded-md border border-white/[0.08] bg-black/25 px-2.5 py-1.5 text-text-primary/55">
             {currentPage} / {pageCount || "-"}
           </span>
           <button
             type="button"
             onClick={() => goToPage(1)}
             disabled={!pageCount || currentPage >= pageCount}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07] disabled:opacity-35"
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07] disabled:opacity-35"
           >
             Next
           </button>
@@ -859,7 +859,7 @@ function CompassPdfViewer({ url, title }) {
           <button
             type="button"
             onClick={zoomOut}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07]"
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07]"
           >
             -
           </button>
@@ -873,7 +873,7 @@ function CompassPdfViewer({ url, title }) {
           <button
             type="button"
             onClick={zoomIn}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07]"
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07]"
           >
             +
           </button>
@@ -888,7 +888,7 @@ function CompassPdfViewer({ url, title }) {
           <div className="flex h-full min-h-[420px] items-center justify-center text-center">
             <div>
               <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-[#d4a853]" />
-              <div className="font-mono text-xs uppercase tracking-[0.18em] text-white/35">
+              <div className="font-mono text-xs uppercase tracking-[0.18em] text-text-primary/35">
                 Rendering PDF
               </div>
             </div>
@@ -897,7 +897,7 @@ function CompassPdfViewer({ url, title }) {
 
         {status === "error" && (
           <div className="mx-auto mt-10 max-w-md rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-5 text-center">
-            <h4 className="text-base font-semibold text-white/85">PDF preview failed</h4>
+            <h4 className="text-base font-semibold text-text-primary/85">PDF preview failed</h4>
             <p className="mt-2 text-sm leading-6 text-red-100/65">{error}</p>
           </div>
         )}
@@ -991,13 +991,13 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
 
   return (
     <article className="mx-auto overflow-hidden rounded-xl border border-white/[0.10] bg-[#060506] shadow-[0_22px_90px_rgba(0,0,0,0.55)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
-      <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d090c] px-3 py-2 font-mono text-[10px] text-white/35">
+      <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d090c] px-3 py-2 font-mono text-[10px] text-text-primary/35">
         <span>Page {pageNumber}</span>
         <span>{pageNumber} / {pageCount}</span>
       </div>
       <div className="relative bg-[#050405]">
         {!pageSize && !error && (
-          <div className="flex h-[520px] items-center justify-center text-[10px] font-mono uppercase tracking-[0.18em] text-white/25">
+          <div className="flex h-[520px] items-center justify-center text-[10px] font-mono uppercase tracking-[0.18em] text-text-primary/25">
             Rendering page
           </div>
         )}
@@ -1015,10 +1015,10 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
 function ReaderMetric({ label, value }) {
   return (
     <div className="rounded-xl border border-white/[0.07] bg-black/20 p-3">
-      <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">
+      <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">
         {label}
       </div>
-      <div className="mt-1 truncate font-mono text-sm text-white/75">{value || "-"}</div>
+      <div className="mt-1 truncate font-mono text-sm text-text-primary/75">{value || "-"}</div>
     </div>
   );
 }
@@ -1151,7 +1151,7 @@ export default function AIArenaPageV6() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-white">
+      <div className="min-h-screen text-text-primary">
         <div className="mx-auto max-w-[1760px] px-4 py-8 md:px-6 xl:px-10">
           <LoadingState />
         </div>
@@ -1161,7 +1161,7 @@ export default function AIArenaPageV6() {
 
   if (error && !report) {
     return (
-      <div className="min-h-screen text-white">
+      <div className="min-h-screen text-text-primary">
         <div className="mx-auto max-w-[1760px] px-4 py-8 md:px-6 xl:px-10">
           <ErrorState error={error} onRetry={() => loadAll(false)} />
         </div>
@@ -1221,7 +1221,7 @@ export default function AIArenaPageV6() {
 
   return (
     <div
-      className="min-h-screen overflow-x-clip text-white"
+      className="min-h-screen overflow-x-clip text-text-primary"
       style={{
         fontFamily:
           'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

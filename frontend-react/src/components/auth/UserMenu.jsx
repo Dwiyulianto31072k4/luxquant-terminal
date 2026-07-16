@@ -209,7 +209,7 @@ const UserMenu = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-white font-semibold text-sm truncate">{user?.username}</p>
+                  <p className="text-text-primary font-semibold text-sm truncate">{user?.username}</p>
                   <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${badge.color} flex-shrink-0`}>
                     {badge.label}
                   </span>
@@ -323,7 +323,7 @@ const UserMenu = () => {
 const MenuItem = ({ icon, label, sublabel, onClick, badge }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-text-secondary hover:text-white hover:bg-white/[0.05] transition-all group"
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-text-secondary hover:text-text-primary hover:bg-white/[0.05] transition-all group"
   >
     <svg className="w-[18px] h-[18px] flex-shrink-0 text-text-muted group-hover:text-gold-primary/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {icon}

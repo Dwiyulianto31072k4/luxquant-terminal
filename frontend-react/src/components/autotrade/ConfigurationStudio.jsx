@@ -250,7 +250,7 @@ export default function ConfigurationStudio({
             {draft.is_active ? "Active" : "Paused"}
           </StatusDot>
         </div>
-        <h2 className="mt-2 text-xl font-semibold text-white lg:text-2xl">
+        <h2 className="mt-2 text-xl font-semibold text-text-primary lg:text-2xl">
           Strategy configuration
         </h2>
         <p className="mt-1 text-sm text-text-secondary">{statusText}</p>
@@ -436,7 +436,7 @@ export default function ConfigurationStudio({
 
         <div className="mb-5 flex flex-col gap-3 border-b border-white/[0.06] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h4 className="text-base font-semibold text-white">
+            <h4 className="text-base font-semibold text-text-primary">
               Portfolio protection
             </h4>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-text-muted">

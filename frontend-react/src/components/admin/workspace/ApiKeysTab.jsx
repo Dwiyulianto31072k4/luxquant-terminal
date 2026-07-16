@@ -83,7 +83,7 @@ export function ApiKeysTab() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="rounded-xl px-4 py-3 border border-white/5 bg-white/[0.02]">
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">Active keys</p>
-          <p className="text-lg font-semibold mt-1 text-white tabular-nums">{summary.active_keys}</p>
+          <p className="text-lg font-semibold mt-1 text-text-primary tabular-nums">{summary.active_keys}</p>
         </div>
         <div className="rounded-xl px-4 py-3 border border-amber-500/15 bg-amber-500/[0.04]">
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-amber-400/70">Flagged (multi-IP)</p>
@@ -91,7 +91,7 @@ export function ApiKeysTab() {
         </div>
         <div className="rounded-xl px-4 py-3 border border-white/5 bg-white/[0.02] hidden sm:block">
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">Showing</p>
-          <p className="text-lg font-semibold mt-1 text-white tabular-nums">{items.length}</p>
+          <p className="text-lg font-semibold mt-1 text-text-primary tabular-nums">{items.length}</p>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ export function ApiKeysTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search user / email / key…"
-          className="px-3 py-1.5 rounded-lg text-sm text-white bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 sm:w-64"
+          className="px-3 py-1.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 sm:w-64"
         />
       </div>
 
@@ -153,7 +153,7 @@ export function ApiKeysTab() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white text-sm font-medium truncate">{k.name || 'Untitled key'}</span>
+                    <span className="text-text-primary text-sm font-medium truncate">{k.name || 'Untitled key'}</span>
                     {k.is_active ? (
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
                         Active
@@ -170,7 +170,7 @@ export function ApiKeysTab() {
                     )}
                   </div>
                   <p className="text-[12px] text-text-secondary mt-1 truncate">
-                    <span className="text-white">{k.username}</span>
+                    <span className="text-text-primary">{k.username}</span>
                     <span className="text-text-muted"> · {k.email}</span>
                   </p>
                   <code className="block font-mono text-[11px] text-text-muted mt-1 truncate">

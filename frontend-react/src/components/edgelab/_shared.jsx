@@ -49,8 +49,8 @@ export const Panel = ({ children, className = "", title, meta, pad = true }) => 
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/35 to-transparent" />
     {title && (
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.05]">
-        <div className="text-[10px] tracking-[0.22em] font-mono uppercase text-white/45">{title}</div>
-        {meta && <div className="text-[9px] font-mono uppercase tracking-wider text-white/30">{meta}</div>}
+        <div className="text-[10px] tracking-[0.22em] font-mono uppercase text-text-primary/45">{title}</div>
+        {meta && <div className="text-[9px] font-mono uppercase tracking-wider text-text-primary/30">{meta}</div>}
       </div>
     )}
     {pad ? <div className="p-5">{children}</div> : children}
@@ -67,12 +67,12 @@ export const Methodology = ({ title, children, defaultOpen = false }) => {
         className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-white/[0.02] transition group"
       >
         <span className="flex items-center gap-2 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/60 group-hover:text-gold-primary/85 transition">
-          <span className="text-white/25">ⓘ</span> {title}
+          <span className="text-text-primary/25">ⓘ</span> {title}
         </span>
-        <span className={`text-white/30 text-[10px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
+        <span className={`text-text-primary/30 text-[10px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
       {open && (
-        <div className="px-4 pb-3.5 pt-0.5 text-xs text-white/60 leading-relaxed border-t border-white/[0.04]">
+        <div className="px-4 pb-3.5 pt-0.5 text-xs text-text-primary/60 leading-relaxed border-t border-white/[0.04]">
           {children}
         </div>
       )}
@@ -99,10 +99,10 @@ export const InsightBand = ({ items = [] }) => {
           <div key={i} className={`relative rounded-lg border px-4 py-3.5 ${k.ring}`}>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: k.dot }} />
-              <span className="text-[9px] tracking-[0.2em] font-mono uppercase text-white/45">{it.label}</span>
+              <span className="text-[9px] tracking-[0.2em] font-mono uppercase text-text-primary/45">{it.label}</span>
             </div>
             <div className={`font-mono tabular-nums text-lg leading-none ${k.val}`}>{it.value}</div>
-            {it.sub && <div className="text-[10px] font-mono text-white/45 mt-1.5 leading-snug">{it.sub}</div>}
+            {it.sub && <div className="text-[10px] font-mono text-text-primary/45 mt-1.5 leading-snug">{it.sub}</div>}
           </div>
         );
       })}
@@ -114,8 +114,8 @@ export const InsightBand = ({ items = [] }) => {
 export const EmptyState = ({ title, hint }) => (
   <Panel pad>
     <div className="py-12 text-center">
-      <div className="text-white/30 text-sm font-mono uppercase tracking-wider">{title}</div>
-      {hint && <div className="text-white/20 text-xs font-mono mt-2 normal-case">{hint}</div>}
+      <div className="text-text-primary/30 text-sm font-mono uppercase tracking-wider">{title}</div>
+      {hint && <div className="text-text-primary/20 text-xs font-mono mt-2 normal-case">{hint}</div>}
     </div>
   </Panel>
 );
@@ -142,7 +142,7 @@ export const ReliabilityBadge = ({ tier, compact = false }) => {
 
 // ─── WR scale legend strip ───────────────────────────────────────
 export const WrLegend = ({ note }) => (
-  <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-white/40">
+  <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
     <span>WR</span>
     {WR_LEGEND.map((s, i) => (
       <span key={i} className="inline-flex items-center gap-1">
@@ -150,6 +150,6 @@ export const WrLegend = ({ note }) => (
         {s.l}
       </span>
     ))}
-    {note && <span className="ml-2 text-white/25 normal-case tracking-normal">· {note}</span>}
+    {note && <span className="ml-2 text-text-primary/25 normal-case tracking-normal">· {note}</span>}
   </div>
 );

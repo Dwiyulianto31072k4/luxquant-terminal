@@ -71,7 +71,7 @@ const MarketingHeader = ({ onCreate }) => (
         <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold" style={{ color: 'rgba(167,139,250,0.7)' }}>
           Growth & Spend
         </p>
-        <h2 className="text-lg font-semibold text-white tracking-tight">Marketing Budget</h2>
+        <h2 className="text-lg font-semibold text-text-primary tracking-tight">Marketing Budget</h2>
         <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
           Track campaign budgets, line items, and custom KPIs per platform.
         </p>
@@ -138,7 +138,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             <PlatIcon size={15} {...(campaign.platform === 'telegram' || campaign.platform === 'discord' ? { colored: true } : {})} />
           </div>
           <div className="min-w-0">
-            <h4 className="text-sm font-semibold text-white tracking-tight truncate">{campaign.name}</h4>
+            <h4 className="text-sm font-semibold text-text-primary tracking-tight truncate">{campaign.name}</h4>
             <p className="text-[10px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>{platCfg.label}</p>
           </div>
         </div>
@@ -367,11 +367,11 @@ export const MarketingTab = ({ onRefreshStats }) => {
           <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6b5c52' }} />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search campaign name or description…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none" style={fieldStyle(!!search)} />
+            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none" style={fieldStyle(!!search)} />
         </div>
 
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer" style={fieldStyle(!!statusFilter)}>
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer" style={fieldStyle(!!statusFilter)}>
           <option value="">All Statuses</option>
           <option value="planning">Planning</option>
           <option value="active">Active</option>
@@ -381,7 +381,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
         </select>
 
         <select value={platformFilter} onChange={(e) => setPlatformFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer" style={fieldStyle(!!platformFilter)}>
+          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer" style={fieldStyle(!!platformFilter)}>
           <option value="">All Platforms</option>
           <option value="twitter">Twitter/X</option>
           <option value="telegram">Telegram</option>
@@ -417,7 +417,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
               style={{ background: 'rgba(167,139,250,0.10)', border: '1px solid rgba(167,139,250,0.22)', color: '#a78bfa' }}>
               <SparklesIcon size={20} />
             </div>
-            <p className="text-sm font-semibold text-white mb-1">
+            <p className="text-sm font-semibold text-text-primary mb-1">
               {hasFilters ? 'No campaigns match these filters' : 'No campaigns yet'}
             </p>
             <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>

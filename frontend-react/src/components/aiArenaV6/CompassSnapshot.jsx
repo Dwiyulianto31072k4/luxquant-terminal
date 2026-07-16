@@ -90,14 +90,14 @@ function LevelMeter({ spot, target, invalidation }) {
           className="absolute top-0 flex -translate-x-1/2 flex-col items-center transition-[left] duration-1000 ease-out"
           style={{ left: x(s) }}
         >
-          <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.14em] text-white/70">
+          <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.14em] text-text-primary/70">
             <span className="relative flex h-[5px] w-[5px]">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
               <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-profit" />
             </span>
             LIVE
           </span>
-          <span className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums leading-none text-white">
+          <span className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums leading-none text-text-primary">
             {fmtUsd(s)}
           </span>
           <span className="mt-[6px] h-[13px] w-[13px] rounded-full border-2 border-white bg-[#0d0709] shadow-[0_0_10px_rgba(255,255,255,0.35)]" />
@@ -242,7 +242,7 @@ export default function CompassSnapshot({ className = "" }) {
               {isFinite(conf) ? <span className="opacity-80">{conf}%</span> : null}
             </span>
             {spot ? (
-              <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px] tabular-nums text-white/80">
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px] tabular-nums text-text-primary/80">
                 <span className="relative flex h-[5px] w-[5px]">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
                   <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-profit" />
@@ -330,7 +330,7 @@ export default function CompassSnapshot({ className = "" }) {
                           className="mt-1 truncate font-mono text-[9.5px] tabular-nums text-text-muted/60"
                           title={`${ev.metric}: ${ev.value ?? "—"}`}
                         >
-                          {ev.metric}: <span className="text-white/85">{ev.value ?? "—"}</span>
+                          {ev.metric}: <span className="text-text-primary/85">{ev.value ?? "—"}</span>
                         </div>
                       ) : null}
                     </div>

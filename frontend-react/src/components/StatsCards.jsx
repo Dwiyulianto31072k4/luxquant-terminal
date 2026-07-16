@@ -38,7 +38,7 @@ const StatsCards = ({ stats, loading }) => {
       return (
         <div className="bg-bg-primary border border-gold-primary/30 rounded-lg px-3 py-2 shadow-xl">
           <p className="text-gold-primary font-semibold">{data.name}</p>
-          <p className="text-white">{data.value.toLocaleString()} signals</p>
+          <p className="text-text-primary">{data.value.toLocaleString()} signals</p>
           <p className="text-text-muted">{percentage}%</p>
         </div>
       );

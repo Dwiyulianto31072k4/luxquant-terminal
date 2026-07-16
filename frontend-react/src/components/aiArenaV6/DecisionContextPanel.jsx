@@ -58,16 +58,16 @@ function directionLabel(value) {
   return String(value || "unavailable").replaceAll("_", " ").toUpperCase();
 }
 
-function SummaryCard({ label, value, note, tone = "text-white/85" }) {
+function SummaryCard({ label, value, note, tone = "text-text-primary/85" }) {
   return (
     <div className="min-w-0 rounded-xl border border-white/[0.06] bg-black/15 p-3.5">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/35">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
         {label}
       </div>
       <div className={`mt-2 truncate text-lg font-mono font-semibold ${tone}`}>
         {value}
       </div>
-      <div className="mt-1 text-[10px] leading-relaxed text-white/35">
+      <div className="mt-1 text-[10px] leading-relaxed text-text-primary/35">
         {note}
       </div>
     </div>
@@ -81,11 +81,11 @@ function HorizonCard({ horizon, data }) {
     <div className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
             {horizon} outlook
           </div>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className={`text-xl font-semibold ${directionTone[data?.verdict_direction] || "text-white/70"}`}>
+            <span className={`text-xl font-semibold ${directionTone[data?.verdict_direction] || "text-text-primary/70"}`}>
               {directionLabel(data?.verdict_direction)}
             </span>
             <span className="font-mono text-sm text-[#f5c451]">
@@ -102,24 +102,24 @@ function HorizonCard({ horizon, data }) {
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-white/[0.05] bg-black/15 p-3">
-          <div className="text-[9px] font-mono uppercase text-white/30">
+          <div className="text-[9px] font-mono uppercase text-text-primary/30">
             Evidence bias
           </div>
-          <div className={`mt-1 text-sm font-mono ${directionTone[data?.evidence_bias] || "text-white/55"}`}>
+          <div className={`mt-1 text-sm font-mono ${directionTone[data?.evidence_bias] || "text-text-primary/55"}`}>
             {directionLabel(data?.evidence_bias)}
           </div>
         </div>
         <div className="rounded-lg border border-white/[0.05] bg-black/15 p-3">
-          <div className="text-[9px] font-mono uppercase text-white/30">
+          <div className="text-[9px] font-mono uppercase text-text-primary/30">
             Coverage
           </div>
-          <div className="mt-1 text-sm font-mono text-white/75">
+          <div className="mt-1 text-sm font-mono text-text-primary/75">
             {formatPct(data?.coverage)}
           </div>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-white/40">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-text-primary/40">
         <span>
           {comparison === "aligned"
             ? "verdict aligned"
@@ -140,12 +140,12 @@ function SourceCard({ source }) {
     <div className="min-w-0 rounded-lg border border-white/[0.05] bg-black/10 px-3 py-2.5">
       <div className="flex min-w-0 items-center gap-2">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sourceTone[status] || sourceTone.unavailable}`} />
-        <span className="truncate text-[11px] text-white/65">{source.label}</span>
-        <span className="ml-auto shrink-0 text-[9px] font-mono uppercase text-white/30">
+        <span className="truncate text-[11px] text-text-primary/65">{source.label}</span>
+        <span className="ml-auto shrink-0 text-[9px] font-mono uppercase text-text-primary/30">
           {status}
         </span>
       </div>
-      <div className="mt-1 truncate pl-3.5 text-[9px] font-mono text-white/25">
+      <div className="mt-1 truncate pl-3.5 text-[9px] font-mono text-text-primary/25">
         {source.provider} / {formatAge(source.age_seconds)}
       </div>
     </div>
@@ -188,7 +188,7 @@ export default function DecisionContextPanel({ data }) {
         <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
           Phase 6 / Evidence-first dashboard
         </div>
-        <p className="mt-2 text-sm text-white/45">
+        <p className="mt-2 text-sm text-text-primary/45">
           Decision-context health is unavailable for this report.
         </p>
       </section>
@@ -207,10 +207,10 @@ export default function DecisionContextPanel({ data }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]/75">
             Phase 6 / Evidence-first dashboard
           </div>
-          <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
+          <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">
             Decision Context
           </h2>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/45">
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-text-primary/45">
             {data.summary}
           </p>
         </div>
@@ -255,10 +255,10 @@ export default function DecisionContextPanel({ data }) {
 
       <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/10 p-3.5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
             Source health at this report cycle
           </div>
-          <div className="text-[9px] font-mono text-white/25">
+          <div className="text-[9px] font-mono text-text-primary/25">
             current age includes report age
           </div>
         </div>
@@ -271,7 +271,7 @@ export default function DecisionContextPanel({ data }) {
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <div className="min-w-0 rounded-xl border border-white/[0.06] bg-black/10 p-4">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
             Attention required
           </div>
           {issues.length ? (
@@ -283,8 +283,8 @@ export default function DecisionContextPanel({ data }) {
                       issue.severity === "high" ? "bg-red-400" : "bg-amber-300"
                     }`} />
                     <div className="min-w-0">
-                      <div className="text-xs text-white/70">{issue.title}</div>
-                      <div className="mt-1 break-words text-[10px] leading-relaxed text-white/35">
+                      <div className="text-xs text-text-primary/70">{issue.title}</div>
+                      <div className="mt-1 break-words text-[10px] leading-relaxed text-text-primary/35">
                         {issue.detail}
                       </div>
                     </div>
@@ -300,14 +300,14 @@ export default function DecisionContextPanel({ data }) {
         </div>
 
         <div className="min-w-0 rounded-xl border border-white/[0.06] bg-black/10 p-4">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
             Changed since previous report
           </div>
           {changes.length ? (
             <div className="mt-2 divide-y divide-white/[0.05]">
               {changes.slice(0, 5).map((change) => (
                 <div key={change.key} className="py-2.5">
-                  <div className="text-xs text-white/70">{change.label}</div>
+                  <div className="text-xs text-text-primary/70">{change.label}</div>
                   <div className="mt-1 break-words text-[10px] font-mono leading-relaxed text-sky-300/65">
                     <ChangeText change={change} />
                   </div>
@@ -315,7 +315,7 @@ export default function DecisionContextPanel({ data }) {
               ))}
             </div>
           ) : (
-            <div className="mt-3 text-xs text-white/35">
+            <div className="mt-3 text-xs text-text-primary/35">
               No material evidence change was recorded.
             </div>
           )}

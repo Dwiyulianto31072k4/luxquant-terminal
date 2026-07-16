@@ -489,7 +489,7 @@ const MarketPulsePageInner = () => {
           </h1>
           <p className="text-sm text-text-muted/70 mt-2">
             Real-time event flow across{" "}
-            <span className="text-white/85 font-mono tabular-nums">{stats?.hourly?.unique_coins || 0}</span>{" "}
+            <span className="text-text-primary/85 font-mono tabular-nums">{stats?.hourly?.unique_coins || 0}</span>{" "}
             coins · auto-refresh 10s
           </p>
         </div>
@@ -627,7 +627,7 @@ const MarketPulsePageInner = () => {
             <span className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
               <IconChevronsLeft className="h-3.5 w-3.5" />
             </span>
-            <span className="mp-rail-label text-[9px] font-semibold uppercase tracking-[0.22em] text-text-muted/60 group-hover:text-white transition-colors">
+            <span className="mp-rail-label text-[9px] font-semibold uppercase tracking-[0.22em] text-text-muted/60 group-hover:text-text-primary transition-colors">
               Market Panel
             </span>
           </button>
@@ -677,7 +677,7 @@ const PulseTape = ({ items, onSelect }) => {
               className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity px-1 group"
             >
               <CoinLogo pair={m.pair} size={16} />
-              <span className="text-white/90 text-[11px] font-medium tracking-tight">{symbol}</span>
+              <span className="text-text-primary/90 text-[11px] font-medium tracking-tight">{symbol}</span>
               <span
                 className={`text-[11px] font-mono tabular-nums flex items-center gap-1 ${
                   pos ? "text-emerald-400" : "text-red-400"
@@ -747,7 +747,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
         {/* A/D ratio */}
         <div className="flex-shrink-0 flex items-center gap-1.5 border-t sm:border-t-0 sm:border-l border-white/[0.06] pt-2 sm:pt-0 sm:pl-5">
           <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45">A/D</span>
-          <span className="text-sm font-mono tabular-nums font-medium text-white leading-none">{adDisplay}</span>
+          <span className="text-sm font-mono tabular-nums font-medium text-text-primary leading-none">{adDisplay}</span>
         </div>
       </div>
     </div>
@@ -778,7 +778,7 @@ const KpiEvents = ({ total, uniqueCoins, histogram }) => {
         </span>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl sm:text-[28px] font-light text-white leading-none tabular-nums tracking-tight">
+        <span className="text-2xl sm:text-[28px] font-light text-text-primary leading-none tabular-nums tracking-tight">
           {total}
         </span>
         <span className="text-[11px] font-mono text-text-muted/55 tabular-nums">
@@ -880,7 +880,7 @@ const KpiFlash = ({ count, previews, onSelect }) => (
     <div className="flex items-baseline gap-2">
       <span
         className={`text-2xl sm:text-[28px] font-light leading-none tabular-nums tracking-tight ${
-          count > 0 ? "text-amber-400" : "text-white"
+          count > 0 ? "text-amber-400" : "text-text-primary"
         }`}
       >
         {count}
@@ -898,7 +898,7 @@ const KpiFlash = ({ count, previews, onSelect }) => (
               onClick={() => onSelect(p.pair)}
               className="w-full flex items-center gap-2 group"
             >
-              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted/60 w-10 truncate text-left group-hover:text-white transition-colors">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted/60 w-10 truncate text-left group-hover:text-text-primary transition-colors">
                 {symbol}
               </span>
               <div className="flex-1 h-[3px] bg-amber-500/15 rounded-full overflow-hidden">
@@ -928,7 +928,7 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
           Biggest Move · 1h
         </span>
-        <p className="text-white text-2xl sm:text-[28px] font-light mt-2 leading-none tabular-nums">
+        <p className="text-text-primary text-2xl sm:text-[28px] font-light mt-2 leading-none tabular-nums">
           —
         </p>
         <p className="text-text-muted/40 text-[10px] mt-auto pt-3">No data yet</p>
@@ -952,7 +952,7 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
         <div className="flex items-center gap-2.5 mb-2">
           <CoinLogo pair={biggest.pair} size={22} />
           <div className="min-w-0">
-            <p className="text-white text-[13px] font-medium truncate leading-tight">
+            <p className="text-text-primary text-[13px] font-medium truncate leading-tight">
               {titleCase(symbol)}
             </p>
             <p className="text-text-muted/55 text-[10px] font-mono tabular-nums leading-tight mt-0.5">
@@ -998,7 +998,7 @@ const ControlBar = ({
               setSearchPair(e.target.value);
               setSelectedCoin(null);
             }}
-            className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-white"
+            className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-text-primary"
           />
         </label>
 
@@ -1012,8 +1012,8 @@ const ControlBar = ({
                 onClick={() => selectCoin(pair)}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-all border ${
                   isSelected
-                    ? "bg-gold-primary/15 text-white border-gold-primary/40"
-                    : "bg-white/[0.03] text-text-muted/80 border-white/[0.06] hover:border-white/[0.14] hover:text-white"
+                    ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+                    : "bg-white/[0.03] text-text-muted/80 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
                 }`}
               >
                 <CoinLogo pair={pair} size={14} />
@@ -1095,8 +1095,8 @@ const FilterPill = ({ active, onClick, label }) => (
     onClick={onClick}
     className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
       active
-        ? "bg-gold-primary/15 text-white border-gold-primary/40"
-        : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-white"
+        ? "bg-gold-primary/15 text-text-primary border-gold-primary/40"
+        : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
     }`}
   >
     {label}
@@ -1115,7 +1115,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
           <CoinLogo pair={pair} size={32} />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-white font-medium text-[15px] tracking-tight">
+              <span className="text-text-primary font-medium text-[15px] tracking-tight">
                 {titleCase(symbol)}
               </span>
               <span className="text-text-muted/55 text-[10px] font-mono tabular-nums">{pair}</span>
@@ -1159,7 +1159,7 @@ const DetailStat = ({ label, value, accent }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
   return (
     <div className="bg-[#120809] rounded-md p-2.5 text-center border border-white/[0.04]">
-      <p className={`text-sm font-mono font-medium tabular-nums leading-none ${colorMap[accent] || "text-white"}`}>
+      <p className={`text-sm font-mono font-medium tabular-nums leading-none ${colorMap[accent] || "text-text-primary"}`}>
         {value}
       </p>
       <p className="text-text-muted/55 text-[9px] uppercase tracking-[0.18em] mt-1.5 font-mono">
@@ -1228,7 +1228,7 @@ const SegGroup = ({ options, value, onChange }) => (
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={`px-2.5 py-1 rounded-sm text-[9.5px] font-medium uppercase tracking-[0.14em] transition-all ${
-            active ? activeClass : "text-text-muted/60 hover:text-white"
+            active ? activeClass : "text-text-muted/60 hover:text-text-primary"
           }`}
         >
           {opt.label}
@@ -1353,7 +1353,7 @@ const ActivityFeedPanel = ({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
           </span>
-          <h2 className="text-[11px] font-semibold text-white uppercase tracking-[0.2em]">
+          <h2 className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.2em]">
             Activity Feed
           </h2>
           <span className="text-[10px] font-mono tabular-nums text-text-muted/45">
@@ -1475,7 +1475,7 @@ const FeedRow = ({
 
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-white font-medium text-[12.5px] leading-none tracking-tight">
+          <span className="text-text-primary font-medium text-[12.5px] leading-none tracking-tight">
             {symbol}
           </span>
           <span
@@ -1553,7 +1553,7 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
     >
       <CoinLogo pair={group.pair} size={26} />
       <div className="flex-1 flex items-center gap-2 min-w-0">
-        <span className="text-white text-[12.5px] font-medium tracking-tight">{symbol}</span>
+        <span className="text-text-primary text-[12.5px] font-medium tracking-tight">{symbol}</span>
         <span className="text-[9px] text-text-muted/55 px-1.5 py-0.5 bg-white/[0.04] rounded-sm font-mono uppercase tracking-wider">
           ×{group.events.length} events
         </span>
@@ -1579,7 +1579,7 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
       </span>
       <button
         onClick={onToggle}
-        className="w-[22px] h-[22px] rounded-sm border border-white/[0.08] text-text-muted/60 hover:text-white hover:border-white/20 transition-colors flex items-center justify-center"
+        className="w-[22px] h-[22px] rounded-sm border border-white/[0.08] text-text-muted/60 hover:text-text-primary hover:border-white/20 transition-colors flex items-center justify-center"
       >
         {expanded ? <IconChevronUp className="h-2.5 w-2.5" /> : <IconChevronDown className="h-2.5 w-2.5" />}
       </button>
@@ -1719,7 +1719,7 @@ function HeatTreemap({ data, height, onPick }) {
     if (!d.name) return null;
     return (
       <div className="rounded-md border border-white/10 bg-[#0c0a07]/95 px-3 py-2 text-[11px] shadow-xl">
-        <div className="font-medium text-white mb-0.5">{stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}</div>
+        <div className="font-medium text-text-primary mb-0.5">{stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}</div>
         <div className="font-mono" style={{ color: d.isBull ? "#6ee7b7" : "#fca5a5" }}>{d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%</div>
         <div className="font-mono text-text-muted">{d.eventCount} events</div>
       </div>
@@ -1764,7 +1764,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
         <button
           key={k}
           onClick={() => onSortChange(k)}
-          className={`${big ? "px-2.5 py-1 text-[10px]" : "px-2 py-0.5 text-[9px]"} rounded-sm font-medium uppercase tracking-[0.15em] transition-all ${sortMode === k ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-white"}`}
+          className={`${big ? "px-2.5 py-1 text-[10px]" : "px-2 py-0.5 text-[9px]"} rounded-sm font-medium uppercase tracking-[0.15em] transition-all ${sortMode === k ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-text-primary"}`}
         >
           {k === "events" ? "Events" : "% Change"}
         </button>
@@ -1827,7 +1827,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
             <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent sm:block" />
             <div className="mb-3 flex shrink-0 items-center justify-between sm:mb-4">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="text-[15px] font-semibold text-white">Heatmap</span>
+                <span className="text-[15px] font-semibold text-text-primary">Heatmap</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60">
                   {withCalled.length} coins · 1h
                 </span>
@@ -1836,7 +1836,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
                 <SortToggle big />
                 <button
                   onClick={() => setExpanded(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-text-muted hover:border-white/25 hover:text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-text-muted hover:border-white/25 hover:text-text-primary"
                   aria-label="Close"
                 >
                   ✕
@@ -1871,7 +1871,7 @@ const PanelHeader = ({ title, subtitle, right, icon }) => (
   <div className="flex items-center justify-between mb-3 gap-2 flex-shrink-0">
     <div className="flex items-center gap-2 min-w-0">
       {icon && <span className="text-gold-primary/70">{icon}</span>}
-      <h3 className="text-[11px] font-semibold text-white uppercase tracking-[0.2em]">
+      <h3 className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.2em]">
         {title}
       </h3>
       {subtitle && (
@@ -1898,7 +1898,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
               className={`px-1.5 py-0.5 rounded-sm text-[9px] font-mono uppercase tracking-wider transition-colors ${
                 period === p
                   ? "bg-gold-primary/15 text-gold-primary"
-                  : "text-text-muted/55 hover:text-white"
+                  : "text-text-muted/55 hover:text-text-primary"
               }`}
             >
               {p}
@@ -1923,7 +1923,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
             </span>
             <CoinLogo pair={coin.pair} size={22} />
             <div className="min-w-0">
-              <p className="text-white text-[11px] font-medium truncate leading-tight flex items-center gap-1.5 tracking-tight">
+              <p className="text-text-primary text-[11px] font-medium truncate leading-tight flex items-center gap-1.5 tracking-tight">
                 {symbol}
                 <span className="text-[9px] text-text-muted/50 font-mono font-normal tabular-nums">
                   {coin.event_count} ev
@@ -1978,7 +1978,7 @@ const FlashMovesPanel = ({ moves, onSelect }) => (
             style={{ opacity }}
           >
             <CoinLogo pair={fm.pair} size={18} />
-            <span className="text-white text-[11px] font-medium truncate tracking-tight">
+            <span className="text-text-primary text-[11px] font-medium truncate tracking-tight">
               {symbol}
             </span>
             <span
@@ -2065,7 +2065,7 @@ const SummaryPanel = ({ daily, className = "" }) => {
 
 const SummaryCell = ({ label, value, accent }) => {
   const colorMap = {
-    white: "text-white bg-white/[0.03] border-white/[0.04]",
+    white: "text-text-primary bg-white/[0.03] border-white/[0.04]",
     emerald: "text-emerald-400 bg-emerald-500/[0.05] border-emerald-500/15",
     red: "text-red-400 bg-red-500/[0.05] border-red-500/15",
   };
@@ -2367,7 +2367,7 @@ const CoinChartModal = ({ pair, onClose }) => {
             <CoinLogo pair={pair} size={36} />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-white text-base sm:text-lg font-semibold leading-none tracking-tight">
+                <span className="text-text-primary text-base sm:text-lg font-semibold leading-none tracking-tight">
                   {symbol}
                 </span>
                 <span className="text-text-muted/55 text-[10px] font-mono tabular-nums">
@@ -2375,7 +2375,7 @@ const CoinChartModal = ({ pair, onClose }) => {
                 </span>
               </div>
               <div className="flex items-baseline gap-2 mt-1.5">
-                <span className="text-white font-mono tabular-nums text-sm sm:text-base font-light leading-none tracking-tight">
+                <span className="text-text-primary font-mono tabular-nums text-sm sm:text-base font-light leading-none tracking-tight">
                   {last != null ? `$${formatPrice(last)}` : "—"}
                 </span>
                 {change != null && (
@@ -2400,7 +2400,7 @@ const CoinChartModal = ({ pair, onClose }) => {
 
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-md bg-white/[0.03] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center text-text-muted hover:text-white transition-all flex-shrink-0"
+            className="w-8 h-8 rounded-md bg-white/[0.03] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center text-text-muted hover:text-text-primary transition-all flex-shrink-0"
             aria-label="Close"
           >
             <IconClose />
@@ -2417,7 +2417,7 @@ const CoinChartModal = ({ pair, onClose }) => {
                 className={`px-2.5 py-1 rounded-sm text-[10px] font-medium uppercase tracking-[0.12em] transition-all ${
                   tvInterval === it.v
                     ? "bg-gold-primary/15 text-gold-primary"
-                    : "text-text-muted/60 hover:text-white"
+                    : "text-text-muted/60 hover:text-text-primary"
                 }`}
               >
                 {it.l}
@@ -2429,7 +2429,7 @@ const CoinChartModal = ({ pair, onClose }) => {
             href={tvFullUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.12em] border bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.14] transition-all flex items-center gap-1.5"
+            className="px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.12em] border bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.14] transition-all flex items-center gap-1.5"
           >
             <IconExternal />
             <span>Open in TradingView</span>
@@ -2470,7 +2470,7 @@ const CoinChartModal = ({ pair, onClose }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="sm:hidden rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-white/70 active:scale-95"
+            className="sm:hidden rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 active:scale-95"
           >
             Close
           </button>
@@ -2578,7 +2578,7 @@ const MetricOI = ({ oi }) => {
   const isPos = oi.changePct >= 0;
   return (
     <MetricCellShell label="Open Interest">
-      <p className="text-sm font-mono font-medium tabular-nums text-white leading-none mt-1">
+      <p className="text-sm font-mono font-medium tabular-nums text-text-primary leading-none mt-1">
         ${formatVolume(oi.current)}
       </p>
       <p

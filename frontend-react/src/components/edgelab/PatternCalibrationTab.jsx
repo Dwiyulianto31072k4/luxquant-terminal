@@ -34,12 +34,12 @@ const CalibrationRow = ({ row, onDrill }) => {
     >
       <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[13px] font-mono text-white/90 truncate">{row.pattern}</span>
+          <span className="text-[13px] font-mono text-text-primary/90 truncate">{row.pattern}</span>
           <ReliabilityBadge tier={row.reliability} compact />
         </div>
         <div className="flex items-baseline gap-3 font-mono tabular-nums flex-shrink-0">
-          <span className="text-[10px] text-white/35">n={row.count}</span>
-          <span className="text-[10px] text-white/35">±{row.win_rate_ci_half_width?.toFixed(1)}pp</span>
+          <span className="text-[10px] text-text-primary/35">n={row.count}</span>
+          <span className="text-[10px] text-text-primary/35">±{row.win_rate_ci_half_width?.toFixed(1)}pp</span>
           <span className="text-base font-semibold" style={{ color }}>{wr.toFixed(1)}%</span>
         </div>
       </div>
@@ -128,7 +128,7 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
 
       <Methodology title="How calibration works">
         Win rate alone misleads at small samples. We compute the{" "}
-        <span className="text-white/85 font-mono">Wilson 95% confidence interval</span> around each pattern's WR —
+        <span className="text-text-primary/85 font-mono">Wilson 95% confidence interval</span> around each pattern's WR —
         the band where the true WR most likely sits given sample size. Narrow band + large n ={" "}
         <span className="text-emerald-400">reliable</span>; wide band ={" "}
         <span className="text-red-400">caution</span>. Tiers:{" "}
@@ -147,10 +147,10 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
           className={`px-3 py-1.5 rounded-md border text-[10px] font-mono uppercase tracking-wider transition ${
             tierFilter === "all"
               ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
-              : "border-white/[0.08] text-white/55 hover:text-white"
+              : "border-white/[0.08] text-text-primary/55 hover:text-text-primary"
           }`}
         >
-          All <span className="text-white/30 ml-1">({data.length})</span>
+          All <span className="text-text-primary/30 ml-1">({data.length})</span>
         </button>
         {["reliable", "moderate", "unreliable"].map((t) => {
           const isActive = tierFilter === t;
@@ -167,7 +167,7 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
             >
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                {TIER_LABELS[t]} <span className="text-white/30 ml-0.5">({tierCounts[t] || 0})</span>
+                {TIER_LABELS[t]} <span className="text-text-primary/30 ml-0.5">({tierCounts[t] || 0})</span>
               </span>
             </button>
           );
@@ -184,7 +184,7 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
             {[0, 25, 50, 75, 100].map((v) => (
               <div
                 key={v}
-                className="absolute top-0 -translate-x-1/2 text-[9px] font-mono tabular-nums text-white/30"
+                className="absolute top-0 -translate-x-1/2 text-[9px] font-mono tabular-nums text-text-primary/30"
                 style={{ left: `${v}%` }}
               >
                 {v}%
@@ -195,7 +195,7 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
 
         <div className="px-5 pb-2 pt-1">
           {filtered.length === 0 ? (
-            <div className="py-10 text-center text-white/30 text-sm font-mono uppercase tracking-wider">
+            <div className="py-10 text-center text-text-primary/30 text-sm font-mono uppercase tracking-wider">
               No patterns match this tier
             </div>
           ) : (
@@ -203,14 +203,14 @@ const PatternCalibrationTab = ({ data, onDrill }) => {
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/[0.05] flex items-center gap-4 text-[10px] text-white/35 font-mono flex-wrap">
+        <div className="px-5 py-3 border-t border-white/[0.05] flex items-center gap-4 text-[10px] text-text-primary/35 font-mono flex-wrap">
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-2 rounded-full bg-white/15" /> 95% CI band
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-white/60" /> observed WR
           </span>
-          <span className="text-white/25">| vertical line = 50% breakeven · click a row to drill</span>
+          <span className="text-text-primary/25">| vertical line = 50% breakeven · click a row to drill</span>
         </div>
       </Panel>
     </div>

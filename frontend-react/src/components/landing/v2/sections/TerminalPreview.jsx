@@ -150,13 +150,13 @@ export default function TerminalPreview() {
     <section id="terminal-preview" className="relative z-10 w-full overflow-hidden pb-16 pt-20 lg:pb-24 lg:pt-28">
       {/* HEADER */}
       <div className="mx-auto mb-10 max-w-7xl px-4 text-center lg:px-8">
-        <h2 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-[2.6rem]">
+        <h2 className="text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Interactive{" "}
           <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
             Terminal Preview
           </span>
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/55 lg:text-base">
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           Explore the analytical tools that give you a clear quantitative edge, now unified in one dashboard.
         </p>
       </div>
@@ -165,7 +165,7 @@ export default function TerminalPreview() {
       <div className="relative mx-auto mb-8 w-full max-w-4xl px-4 lg:px-12">
         <button
           onClick={() => scrollNav("left")}
-          className="absolute left-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-white/30 transition-all hover:text-gold-primary lg:flex"
+          className="absolute left-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-text-primary/30 transition-all hover:text-gold-primary lg:flex"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
@@ -176,7 +176,7 @@ export default function TerminalPreview() {
               key={t.id}
               onClick={() => handleTab(idx)}
               className={`relative flex flex-shrink-0 snap-center flex-col items-center justify-center gap-2 px-2 py-3 transition-all duration-300 ${
-                activeIdx === idx ? "text-white" : "text-text-muted hover:text-white/80"
+                activeIdx === idx ? "text-text-primary" : "text-text-muted hover:text-text-primary/80"
               }`}
             >
               <div className={`transition-all duration-300 ${activeIdx === idx ? "scale-110 text-gold-primary drop-shadow-[0_0_8px_rgba(212,168,83,0.5)]" : "text-current opacity-60"}`}>
@@ -192,7 +192,7 @@ export default function TerminalPreview() {
 
         <button
           onClick={() => scrollNav("right")}
-          className="absolute right-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-white/30 transition-all hover:text-gold-primary lg:flex"
+          className="absolute right-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-text-primary/30 transition-all hover:text-gold-primary lg:flex"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
@@ -200,7 +200,7 @@ export default function TerminalPreview() {
 
       {/* ACTIVE DESCRIPTION */}
       <div className="mx-auto mb-10 flex h-[78px] max-w-3xl items-center justify-center px-4 text-center sm:h-[58px] lg:mb-12">
-        <p key={activeIdx} className="animate-[fadeIn_0.5s_ease-out] text-sm leading-relaxed text-white/60 lg:text-base">
+        <p key={activeIdx} className="animate-[fadeIn_0.5s_ease-out] text-sm leading-relaxed text-text-primary/60 lg:text-base">
           {active.desc}
         </p>
       </div>
@@ -235,10 +235,10 @@ export default function TerminalPreview() {
                   style={{ background: "radial-gradient(ellipse 80% 80% at 50% 40%, #140a0b 0%, #0a0506 60%, #050302 100%)" }}
                 >
                   <span className="h-px w-14 bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
-                  <h3 className="text-xl font-bold text-white sm:text-2xl lg:text-3xl">
+                  <h3 className="text-xl font-bold text-text-primary sm:text-2xl lg:text-3xl">
                     …and much <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">more</span>
                   </h3>
-                  <p className="hidden max-w-md text-xs leading-relaxed text-white/55 sm:block sm:text-sm">
+                  <p className="hidden max-w-md text-xs leading-relaxed text-text-primary/55 sm:block sm:text-sm">
                     Everything else a serious trader needs — already built into the terminal.
                   </p>
                   <div className="mt-1 w-full max-w-[340px]">

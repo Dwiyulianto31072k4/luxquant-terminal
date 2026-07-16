@@ -97,7 +97,7 @@ export default function BTCCorrelationPanel({ signalId, apiBase = '/api/signals'
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
             BTC Correlation Analysis
           </h3>
-          <p className="text-white font-medium mt-1 leading-snug">
+          <p className="text-text-primary font-medium mt-1 leading-snug">
             {interpretation.headline}
           </p>
         </div>
@@ -180,7 +180,7 @@ function MetricCard({ label, value, hint }) {
   return (
     <div className="bg-gray-800/50 rounded-lg p-2.5 border border-gray-700/40">
       <div className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</div>
-      <div className="text-lg font-mono font-semibold text-white mt-0.5">{display}</div>
+      <div className="text-lg font-mono font-semibold text-text-primary mt-0.5">{display}</div>
       <div className="text-[10px] text-gray-600">{hint}</div>
     </div>
   );

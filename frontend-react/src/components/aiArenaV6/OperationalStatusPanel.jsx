@@ -17,14 +17,14 @@ const statusTone = {
     dot: "bg-red-400",
   },
   unknown: {
-    badge: "border-white/15 bg-white/5 text-white/45",
-    text: "text-white/45",
+    badge: "border-white/15 bg-white/5 text-text-primary/45",
+    text: "text-text-primary/45",
     dot: "bg-white/35",
   },
 };
 
 const severityTone = {
-  info: "text-white/35",
+  info: "text-text-primary/35",
   warning: "text-amber-200",
   critical: "text-red-300",
 };
@@ -59,14 +59,14 @@ function CheckCard({ check }) {
     <div className="min-w-0 rounded-xl border border-white/[0.06] bg-black/15 p-3.5">
       <div className="flex min-w-0 items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`} />
-        <span className="truncate text-[11px] font-mono uppercase tracking-[0.12em] text-white/35">
+        <span className="truncate text-[11px] font-mono uppercase tracking-[0.12em] text-text-primary/35">
           {check?.label || "Unknown check"}
         </span>
       </div>
       <div className={`mt-2 text-sm font-semibold ${tone.text}`}>
         {statusLabel(check?.status)}
       </div>
-      <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-white/35">
+      <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-text-primary/35">
         {check?.detail || "No detail available."}
       </p>
     </div>
@@ -80,14 +80,14 @@ function AlertRow({ alert }) {
         <span className={`text-[9px] font-mono uppercase tracking-wider ${severityTone[alert.severity] || severityTone.info}`}>
           {alert.severity || "info"}
         </span>
-        <span className="text-xs text-white/75">{alert.title}</span>
+        <span className="text-xs text-text-primary/75">{alert.title}</span>
         {alert.runbook && (
-          <span className="ml-auto text-[9px] font-mono uppercase text-white/25">
+          <span className="ml-auto text-[9px] font-mono uppercase text-text-primary/25">
             runbook: {alert.runbook}
           </span>
         )}
       </div>
-      <p className="mt-1 text-[10px] leading-relaxed text-white/35">
+      <p className="mt-1 text-[10px] leading-relaxed text-text-primary/35">
         {alert.detail}
       </p>
     </div>
@@ -101,7 +101,7 @@ export default function OperationalStatusPanel({ data }) {
         <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
           Phase 7 / Monitoring
         </div>
-        <p className="mt-2 text-sm text-white/45">
+        <p className="mt-2 text-sm text-text-primary/45">
           Operational health is unavailable. Market data can still display, but
           runtime alerts could not be loaded.
         </p>
@@ -127,10 +127,10 @@ export default function OperationalStatusPanel({ data }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]/75">
             Phase 7 / Monitoring and runbooks
           </div>
-          <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
+          <h2 className="mt-1 text-xl font-medium text-text-primary/90 md:text-2xl">
             Operational Health
           </h2>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/45">
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-text-primary/45">
             {data.summary}
           </p>
         </div>
@@ -148,10 +148,10 @@ export default function OperationalStatusPanel({ data }) {
       <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-xl border border-white/[0.06] bg-black/10 p-3.5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/35">
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
               Active alerts
             </div>
-            <span className="text-[9px] font-mono uppercase text-white/25">
+            <span className="text-[9px] font-mono uppercase text-text-primary/25">
               {alerts.length} open
             </span>
           </div>
@@ -169,19 +169,19 @@ export default function OperationalStatusPanel({ data }) {
         </div>
 
         <div className="rounded-xl border border-white/[0.06] bg-black/10 p-3.5">
-          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/35">
+          <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
             Latest report
           </div>
-          <div className="mt-3 space-y-2 text-[11px] font-mono text-white/45">
+          <div className="mt-3 space-y-2 text-[11px] font-mono text-text-primary/45">
             <div className="flex justify-between gap-3">
               <span>Report ID</span>
-              <span className="truncate text-white/70">
+              <span className="truncate text-text-primary/70">
                 {data.latest_report?.report_id || "-"}
               </span>
             </div>
             <div className="flex justify-between gap-3">
               <span>Captured</span>
-              <span className="text-white/70">
+              <span className="text-text-primary/70">
                 {formatTimestamp(data.latest_report?.timestamp)}
               </span>
             </div>
@@ -192,7 +192,7 @@ export default function OperationalStatusPanel({ data }) {
               </span>
             </div>
           </div>
-          <p className="mt-3 text-[10px] leading-relaxed text-white/30">
+          <p className="mt-3 text-[10px] leading-relaxed text-text-primary/30">
             Phase 7 only checks runtime health. It cannot change market
             direction, confidence, entries, or thesis.
           </p>

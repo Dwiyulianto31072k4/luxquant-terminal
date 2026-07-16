@@ -48,7 +48,7 @@ function CallRow({ s, active, onClick }) {
     >
       <CoinLogo pair={s.pair} size={24} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-semibold text-white">{sym(s.pair)}</p>
+        <p className="truncate text-[12px] font-semibold text-text-primary">{sym(s.pair)}</p>
         <p className="font-mono text-[9px] text-text-muted">{fmtWhen(s.created_at)}</p>
       </div>
       <span className="rounded px-1.5 py-0.5 text-[8px] font-bold uppercase" style={{ color, background: `${color}1a` }}>{s.outcome}</span>
@@ -68,7 +68,7 @@ function TargetRow({ label, price, entry, hit, isStop }) {
         {done ? "✓" : "·"}
       </span>
       <span className="w-9 font-mono text-[11px] font-bold" style={{ color: tone }}>{label}</span>
-      <span className="font-mono text-[11px] text-white">${fmtP(price)}</span>
+      <span className="font-mono text-[11px] text-text-primary">${fmtP(price)}</span>
       {movePct != null && (
         <span className="font-mono text-[10px]" style={{ color: isStop ? C.loss : C.muted }}>{fmtPct(movePct)}</span>
       )}
@@ -89,7 +89,7 @@ function Proof({ call, detail }) {
       <div className="flex items-center gap-3">
         <CoinLogo pair={call.pair} size={34} />
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-bold text-white">{sym(call.pair)}<span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-text-muted">{detail?.risk_level} risk</span></p>
+          <p className="text-[15px] font-bold text-text-primary">{sym(call.pair)}<span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-text-muted">{detail?.risk_level} risk</span></p>
           <p className="font-mono text-[10px] text-text-muted">opened {fmtWhen(call.created_at)}</p>
         </div>
         <span className="rounded-md px-2 py-1 text-[10px] font-bold uppercase" style={{ color: isWin ? C.win : C.loss, background: `${isWin ? C.win : C.loss}1a` }}>{call.outcome}</span>
@@ -103,7 +103,7 @@ function Proof({ call, detail }) {
         </div>
         <div className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
           <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Banked</p>
-          <p className="text-[17px] font-bold tabular-nums text-white">{fmtPct(call.realized_pct)}</p>
+          <p className="text-[17px] font-bold tabular-nums text-text-primary">{fmtPct(call.realized_pct)}</p>
         </div>
         <div className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
           <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Worst dip</p>
@@ -115,7 +115,7 @@ function Proof({ call, detail }) {
       <div className="rounded-xl border border-white/8 bg-white/[0.015] p-3">
         <div className="mb-1.5 flex items-center justify-between">
           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Entry</span>
-          <span className="font-mono text-[12px] font-semibold text-white">${fmtP(detail?.entry)}</span>
+          <span className="font-mono text-[12px] font-semibold text-text-primary">${fmtP(detail?.entry)}</span>
         </div>
         <div className="border-t border-white/[0.06] pt-1.5">
           {[1, 2, 3, 4].map((i) => (
@@ -196,7 +196,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
         <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] px-4 pb-3 pt-1 sm:p-4">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">Winning calls · proof</p>
-            <h3 className="mt-0.5 text-[16px] font-bold text-white">
+            <h3 className="mt-0.5 text-[16px] font-bold text-text-primary">
               {new Date(date).toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
             </h3>
             {data && (
@@ -205,7 +205,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
               </p>
             )}
           </div>
-          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted transition-colors hover:border-white/25 hover:text-white">✕</button>
+          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted transition-colors hover:border-white/25 hover:text-text-primary">✕</button>
         </div>
 
         {/* body */}

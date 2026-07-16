@@ -193,7 +193,7 @@ const WatchlistPage = () => {
     if (r.startsWith('low')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
     if (r.startsWith('med') || r.startsWith('nor')) return 'bg-gold-primary/10 text-gold-primary border-gold-primary/25';
     if (r.startsWith('high')) return 'bg-red-500/10 text-red-400 border-red-500/25';
-    return 'bg-white/[0.04] text-white/70 border-white/[0.08]';
+    return 'bg-white/[0.04] text-text-primary/70 border-white/[0.08]';
   };
 
   const riskLabel = (risk) => {
@@ -208,9 +208,9 @@ const WatchlistPage = () => {
   const statusStyle = (status) => {
     const s = status?.toLowerCase() || '';
     if (s.includes('loss') || s === 'sl') return 'bg-red-500/10 text-red-400 border-red-500/25';
-    if (s === 'open') return 'bg-white/[0.04] text-white/70 border-white/[0.08]';
+    if (s === 'open') return 'bg-white/[0.04] text-text-primary/70 border-white/[0.08]';
     if (s.startsWith('tp') || s.includes('win')) return 'bg-gold-primary/10 text-gold-primary border-gold-primary/25';
-    return 'bg-white/[0.04] text-white/70 border-white/[0.08]';
+    return 'bg-white/[0.04] text-text-primary/70 border-white/[0.08]';
   };
 
   const statusLabel = (status) => {
@@ -317,7 +317,7 @@ const WatchlistPage = () => {
         <SectionHeader label="Watchlist" />
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight">
               {t('watchlist.title') || 'Watchlist'}
             </h1>
             <p className="text-text-muted text-sm mt-1.5 font-mono">
@@ -341,7 +341,7 @@ const WatchlistPage = () => {
               </span>
               <span className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
                 <span className="uppercase tracking-[0.15em] text-[10px]">Refresh</span>
-                <span className="ml-2 text-white tabular-nums">15s</span>
+                <span className="ml-2 text-text-primary tabular-nums">15s</span>
               </span>
             </div>
           )}
@@ -389,7 +389,7 @@ const WatchlistPage = () => {
                     className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                       active
                         ? 'bg-gold-primary/15 text-gold-primary border-gold-primary/40'
-                        : 'bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]'
+                        : 'bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]'
                     }`}
                   >
                     {label}
@@ -417,17 +417,17 @@ const WatchlistPage = () => {
                   placeholder="Search by pair..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
+                  className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
                 />
               </div>
 
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value)}
-                className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+                className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
               >
                 {SORT_OPTIONS.map(opt => (
-                  <option key={opt.key} value={opt.key} className="bg-[#0a0805] text-white">
+                  <option key={opt.key} value={opt.key} className="bg-[#0a0805] text-text-primary">
                     Sort: {opt.label}
                   </option>
                 ))}
@@ -598,7 +598,7 @@ const StatCard = ({ label, value, sublabel, isLive, isGold, isDanger }) => (
       </div>
       <div
         className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${
-          isDanger ? 'text-red-400' : isGold ? 'text-gold-primary' : 'text-white'
+          isDanger ? 'text-red-400' : isGold ? 'text-gold-primary' : 'text-text-primary'
         }`}
       >
         {value}
@@ -667,7 +667,7 @@ const DesktopRow = ({
           <div className="flex items-center gap-2.5">
             <CoinLogo pair={item.pair} size={32} />
             <div className="min-w-0">
-              <p className="text-white text-sm font-semibold group-hover:text-gold-primary transition-colors font-mono">
+              <p className="text-text-primary text-sm font-semibold group-hover:text-gold-primary transition-colors font-mono">
                 {getCoinName(item.pair)}
               </p>
               <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
@@ -680,7 +680,7 @@ const DesktopRow = ({
           {pricesLoading && !currentPrice ? (
             <div className="h-4 w-20 bg-white/[0.04] rounded animate-pulse ml-auto" />
           ) : currentPrice ? (
-            <span className="text-white font-mono text-sm tabular-nums">
+            <span className="text-text-primary font-mono text-sm tabular-nums">
               {formatPrice(currentPrice)}
             </span>
           ) : (
@@ -690,7 +690,7 @@ const DesktopRow = ({
 
         {/* Entry */}
         <Td align="right">
-          <span className="text-white/80 font-mono text-sm tabular-nums">
+          <span className="text-text-primary/80 font-mono text-sm tabular-nums">
             {formatPrice(item.entry)}
           </span>
         </Td>
@@ -835,7 +835,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary/60 mb-1">
                   {tp.label}
                 </p>
-                <p className="text-white font-mono text-sm tabular-nums">
+                <p className="text-text-primary font-mono text-sm tabular-nums">
                   {formatPrice(tp.value)}
                 </p>
                 {pct !== null && (
@@ -859,7 +859,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
             Stop Loss
           </p>
-          <p className="text-white font-mono text-sm tabular-nums">
+          <p className="text-text-primary font-mono text-sm tabular-nums">
             {formatPrice(item.stop1)}
           </p>
           {(() => {
@@ -880,7 +880,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
             Stop Loss 2
           </p>
-          <p className="text-white font-mono text-sm tabular-nums">
+          <p className="text-text-primary font-mono text-sm tabular-nums">
             {formatPrice(item.stop2)}
           </p>
           {(() => {
@@ -900,7 +900,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
             24H Volume
           </p>
-          <p className="text-white font-mono text-sm tabular-nums">
+          <p className="text-text-primary font-mono text-sm tabular-nums">
             {formatVolume(currentVol)}
           </p>
         </div>
@@ -909,7 +909,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
             Volume Rank
           </p>
-          <p className="text-white font-mono text-sm tabular-nums">
+          <p className="text-text-primary font-mono text-sm tabular-nums">
             <span className="text-gold-primary">#{item.volume_rank_num}</span>
             <span className="text-text-muted/60"> / {item.volume_rank_den}</span>
           </p>
@@ -964,7 +964,7 @@ const MobileCard = ({
         <div className="flex items-center gap-2.5">
           <CoinLogo pair={item.pair} size={32} />
           <div>
-            <p className="text-white font-semibold text-sm font-mono">{getCoinName(item.pair)}</p>
+            <p className="text-text-primary font-semibold text-sm font-mono">{getCoinName(item.pair)}</p>
             <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
           </div>
         </div>
@@ -982,14 +982,14 @@ const MobileCard = ({
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div>
           <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">Entry</p>
-          <p className="text-white font-mono text-xs tabular-nums">{formatPrice(item.entry)}</p>
+          <p className="text-text-primary font-mono text-xs tabular-nums">{formatPrice(item.entry)}</p>
         </div>
         <div>
           <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">Current</p>
           {pricesLoading && !currentPrice ? (
             <div className="h-3 w-14 bg-white/[0.04] rounded animate-pulse" />
           ) : currentPrice ? (
-            <p className="text-white font-mono text-xs tabular-nums">{formatPrice(currentPrice)}</p>
+            <p className="text-text-primary font-mono text-xs tabular-nums">{formatPrice(currentPrice)}</p>
           ) : (
             <p className="text-text-muted/40 font-mono text-xs">—</p>
           )}
@@ -1021,7 +1021,7 @@ const MobileCard = ({
               return (
                 <div key={i} className="text-center">
                   <p className="text-gold-primary/50 text-[8px] font-mono tracking-wider">{tp.label}</p>
-                  <p className="text-white font-mono text-[10px] tabular-nums leading-tight">
+                  <p className="text-text-primary font-mono text-[10px] tabular-nums leading-tight">
                     {formatPrice(tp.value)}
                   </p>
                   {pct !== null && (
@@ -1045,7 +1045,7 @@ const MobileCard = ({
               <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400/70">
                 Stop Loss
               </span>
-              <span className="text-white font-mono text-[11px] tabular-nums">
+              <span className="text-text-primary font-mono text-[11px] tabular-nums">
                 {formatPrice(item.stop1)}
               </span>
             </div>
@@ -1070,12 +1070,12 @@ const MobileCard = ({
           {currentVol ? (
             <span className="text-text-muted">
               <span className="uppercase tracking-wider text-[9px]">Vol</span>
-              <span className="ml-1 text-white tabular-nums">{formatVolume(currentVol)}</span>
+              <span className="ml-1 text-text-primary tabular-nums">{formatVolume(currentVol)}</span>
             </span>
           ) : item.volume_rank_num && item.volume_rank_den ? (
             <span className="text-text-muted">
               <span className="uppercase tracking-wider text-[9px]">Rank</span>
-              <span className="ml-1 text-white tabular-nums">#{item.volume_rank_num}</span>
+              <span className="ml-1 text-text-primary tabular-nums">#{item.volume_rank_num}</span>
               <span className="text-text-muted/60">/{item.volume_rank_den}</span>
             </span>
           ) : null}
@@ -1122,7 +1122,7 @@ const EmptyState = ({ onBrowse }) => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
       </svg>
     </div>
-    <p className="text-white text-base font-medium mb-1.5">Watchlist is empty</p>
+    <p className="text-text-primary text-base font-medium mb-1.5">Watchlist is empty</p>
     <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em] mb-5">
       Star signals to track them here
     </p>

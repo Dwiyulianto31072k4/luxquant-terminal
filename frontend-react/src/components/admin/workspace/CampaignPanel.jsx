@@ -60,7 +60,7 @@ const STATUSES = [
   { value: 'cancelled', label: 'Cancelled', color: '#6b5c52' },
 ];
 
-const inputCls = "w-full rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none";
+const inputCls = "w-full rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none";
 const inputStyle = { background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' };
 
 const LineItemRow = ({ item, onChange, onDelete }) => (
@@ -170,12 +170,12 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
       <div className="space-y-4">
         <Field label="Campaign Name" required>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Twitter Promo Q2 2026" maxLength={200}
-            className="w-full rounded-lg px-3 py-2 text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
         </Field>
 
         <Field label="Description" hint="(optional)">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Goal, target audience, or strategy summary…"
-            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
         </Field>
 
         <Field label="Platform">
@@ -197,11 +197,11 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="Budget (USD)">
             <input type="number" step="0.01" min="0" value={budgetUsd} onChange={(e) => setBudgetUsd(e.target.value)} placeholder="0.00"
-              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
           </Field>
           <Field label="Spent (USD)">
             <input type="number" step="0.01" min="0" value={spentUsd} onChange={(e) => setSpentUsd(e.target.value)} placeholder="0.00"
-              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
             {lineItemsTotal > 0 && lineItemsTotal !== parseFloat(spentUsd) && (
               <button type="button" onClick={() => setSpentUsd(String(lineItemsTotal))} className="mt-1 text-[10px] hover:underline" style={{ color: '#d4a853' }}>
                 Sync from line items: ${lineItemsTotal.toFixed(2)}
@@ -213,11 +213,11 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="Start Date" hint="(optional)">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
           </Field>
           <Field label="End Date" hint="(optional)">
             <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-white focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
           </Field>
         </div>
 

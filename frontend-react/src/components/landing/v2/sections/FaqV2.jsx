@@ -22,21 +22,21 @@ function Row({ index, q, a, open, onToggle }) {
       >
         <span
           className={`w-5 flex-shrink-0 font-mono text-sm tabular-nums transition-colors ${
-            open ? "text-gold-primary" : "text-white/35 group-hover:text-white/60"
+            open ? "text-gold-primary" : "text-text-primary/35 group-hover:text-text-primary/60"
           }`}
         >
           {index}
         </span>
         <span
           className={`flex-1 text-[15px] font-medium transition-colors sm:text-base ${
-            open ? "text-white" : "text-white/85 group-hover:text-white"
+            open ? "text-text-primary" : "text-text-primary/85 group-hover:text-text-primary"
           }`}
         >
           {q}
         </span>
         <svg
           className={`h-4 w-4 flex-shrink-0 transition-all duration-300 ${
-            open ? "rotate-180 text-gold-primary" : "text-white/35 group-hover:text-white/70"
+            open ? "rotate-180 text-gold-primary" : "text-text-primary/35 group-hover:text-text-primary/70"
           }`}
           fill="none"
           viewBox="0 0 24 24"
@@ -53,7 +53,7 @@ function Row({ index, q, a, open, onToggle }) {
         }`}
       >
         <div className="overflow-hidden">
-          <p className="pb-5 pl-11 pr-6 text-sm leading-relaxed text-white/55 sm:pl-13">
+          <p className="pb-5 pl-11 pr-6 text-sm leading-relaxed text-text-primary/55 sm:pl-13">
             {a}
           </p>
         </div>
@@ -73,13 +73,13 @@ export default function FaqV2() {
           Help Center
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/60" />
         </span>
-        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-white lg:text-[2.6rem]">
+        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
           Frequently Asked{" "}
           <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
             Questions
           </span>
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/55 lg:text-base">
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
           How the algorithm thinks, how risk is defined, how the track record is audited —
           and how to start with a process you can actually verify.
         </p>

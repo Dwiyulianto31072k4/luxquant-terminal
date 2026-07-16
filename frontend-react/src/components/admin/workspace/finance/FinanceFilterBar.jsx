@@ -50,7 +50,7 @@ const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full ${onClear ? 'pr-8' : 'pr-3'} py-2 rounded-lg text-xs text-white focus:outline-none focus:ring-1 transition-all ${
+      className={`w-full ${onClear ? 'pr-8' : 'pr-3'} py-2 rounded-lg text-xs text-text-primary focus:outline-none focus:ring-1 transition-all ${
         hasIcon ? 'pl-9' : 'pl-3'
       }`}
       style={{
@@ -76,7 +76,7 @@ const SelectBox = ({ value, onChange, options, highlight, className = '' }) => (
   <select
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    className={`px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer ${className}`}
+    className={`px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer ${className}`}
     style={{
       background: fieldBg,
       border: `1px solid ${highlight ? fieldBorderActive : fieldBorder}`,

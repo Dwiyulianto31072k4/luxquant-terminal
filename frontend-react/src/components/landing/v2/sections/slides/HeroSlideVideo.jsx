@@ -162,7 +162,7 @@ export default function HeroSlideVideo() {
                 "0 2px 30px rgba(0,0,0,0.42), 0 1px 4px rgba(0,0,0,0.3)",
             }}
           >
-            <span className="block text-balance text-white sm:whitespace-nowrap">
+            <span className="block text-balance text-text-primary sm:whitespace-nowrap">
               {HEADLINE_TOP}
             </span>
             <span
@@ -190,7 +190,7 @@ export default function HeroSlideVideo() {
             }}
           />
           <p
-            className="mx-auto max-w-[23rem] text-balance px-1 text-[0.8rem] leading-snug text-white/80 sm:max-w-2xl sm:px-0 sm:text-base sm:leading-relaxed sm:text-white/82 lg:max-w-3xl lg:text-lg"
+            className="mx-auto max-w-[23rem] text-balance px-1 text-[0.8rem] leading-snug text-text-primary/80 sm:max-w-2xl sm:px-0 sm:text-base sm:leading-relaxed sm:text-text-primary/82 lg:max-w-3xl lg:text-lg"
             style={{ textShadow: "0 1px 14px rgba(0,0,0,0.78)" }}
           >
             {HERO_DESCRIPTION}

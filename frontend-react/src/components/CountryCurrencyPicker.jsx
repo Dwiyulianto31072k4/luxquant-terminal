@@ -86,7 +86,7 @@ export default function CountryCurrencyPicker({
               </span>
 
               <Combobox.Input
-                className="w-full pl-12 pr-10 py-3 bg-transparent text-sm text-white placeholder:text-text-muted/40 focus:outline-none"
+                className="w-full pl-12 pr-10 py-3 bg-transparent text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none"
                 displayValue={(c) => c?.name || ''}
                 placeholder={t('profile.country_placeholder', 'Search country...')}
                 onChange={(e) => setCountryQuery(e.target.value)}
@@ -142,7 +142,7 @@ export default function CountryCurrencyPicker({
                       value={c}
                       className={({ active, selected }) =>
                         `relative cursor-pointer select-none py-2.5 pl-12 pr-4 transition-colors ${
-                          active ? 'bg-gold-primary/10 text-white' : 'text-text-secondary'
+                          active ? 'bg-gold-primary/10 text-text-primary' : 'text-text-secondary'
                         } ${selected ? 'text-gold-primary' : ''}`
                       }
                     >
@@ -196,7 +196,7 @@ export default function CountryCurrencyPicker({
               </span>
 
               <Combobox.Input
-                className="w-full pl-12 pr-10 py-3 bg-transparent text-sm text-white font-mono focus:outline-none"
+                className="w-full pl-12 pr-10 py-3 bg-transparent text-sm text-text-primary font-mono focus:outline-none"
                 displayValue={(code) => code || ''}
                 placeholder={t('profile.currency_placeholder', 'Search currency...')}
                 onChange={(e) => setCurrencyQuery(e.target.value)}
@@ -241,7 +241,7 @@ export default function CountryCurrencyPicker({
                           value={code}
                           className={({ active, selected }) =>
                             `relative cursor-pointer select-none py-2.5 pl-12 pr-4 transition-colors ${
-                              active ? 'bg-gold-primary/10 text-white' : 'text-text-secondary'
+                              active ? 'bg-gold-primary/10 text-text-primary' : 'text-text-secondary'
                             } ${selected ? 'text-gold-primary' : ''}`
                           }
                         >

@@ -133,7 +133,7 @@ export const BulkActionBar = ({
           {selectedCount}
         </span>
         <div className="text-[11px]">
-          <p className="text-white font-semibold leading-tight">selected</p>
+          <p className="text-text-primary font-semibold leading-tight">selected</p>
           <p className="leading-tight" style={{ color: '#6b5c52' }}>
             {subscriberCount} subs · {reachableCount} reachable
           </p>
@@ -192,7 +192,7 @@ export const BulkActionBar = ({
               <button
                 key={opt.key}
                 onClick={() => run(() => onBulkGrant(opt.key))}
-                className="w-full px-3 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors"
+                className="w-full px-3 py-2.5 text-left text-xs text-text-primary hover:bg-white/5 transition-colors"
                 style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}
               >
                 <span className="font-semibold">{opt.label}</span>
@@ -267,7 +267,7 @@ export const BulkActionBar = ({
                   <button
                     key={t.id}
                     onClick={() => handleSendTemplateClick(t)}
-                    className="w-full px-3 py-2 text-left text-xs text-white hover:bg-white/5 transition-colors"
+                    className="w-full px-3 py-2 text-left text-xs text-text-primary hover:bg-white/5 transition-colors"
                     style={
                       idx > 0
                         ? { borderTop: '1px solid rgba(255,255,255,0.04)' }

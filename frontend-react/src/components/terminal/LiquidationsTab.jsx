@@ -86,8 +86,8 @@ function LiqTip({ active, payload }) {
   const d = payload[0]?.payload || {};
   return (
     <div className="rounded-md border border-white/10 bg-[#0c0a07]/95 px-3 py-2 text-[11px] shadow-xl">
-      <div className="font-medium text-white mb-1">{d.name}</div>
-      <div className="font-mono text-text-muted">4H total: <span className="text-white">{fmtMoney(d.size)}</span></div>
+      <div className="font-medium text-text-primary mb-1">{d.name}</div>
+      <div className="font-mono text-text-muted">4H total: <span className="text-text-primary">{fmtMoney(d.size)}</span></div>
       <div className="font-mono" style={{ color: POS }}>shorts rekt: {fmtMoney(d.shorts)}</div>
       <div className="font-mono" style={{ color: NEG }}>longs rekt: {fmtMoney(d.longs)}</div>
       {d.spike && <div className="font-mono mt-1" style={{ color: GOLD }}>⚡ abnormal spike</div>}

@@ -32,14 +32,14 @@ function FaqItem({ q, a }) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-4 py-5 text-left"
       >
-        <span className="text-[15px] font-medium tracking-tight text-white/90">{q}</span>
-        <span className={`shrink-0 text-white/30 transition-transform duration-200 ${open ? "rotate-45" : ""}`} aria-hidden>
+        <span className="text-[15px] font-medium tracking-tight text-text-primary/90">{q}</span>
+        <span className={`shrink-0 text-text-primary/30 transition-transform duration-200 ${open ? "rotate-45" : ""}`} aria-hidden>
           +
         </span>
       </button>
       <div className={`grid transition-[grid-template-rows] duration-200 ease-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="overflow-hidden">
-          <p className="pb-5 text-[14px] leading-relaxed text-white/45">{a}</p>
+          <p className="pb-5 text-[14px] leading-relaxed text-text-primary/45">{a}</p>
         </div>
       </div>
     </div>
@@ -325,18 +325,18 @@ const PricingPage = () => {
       <div className="relative z-10 mx-auto max-w-5xl px-4 pb-28 pt-14 sm:px-6 sm:pt-20 lg:pt-24">
         {/* Hero — typography first */}
         <header className="mx-auto mb-14 max-w-2xl text-center sm:mb-20">
-          <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-white/35">
+          <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary/35">
             {t("pricing.hero_eyebrow")}
           </p>
           <h1
-            className="text-[2rem] font-semibold leading-[1.15] tracking-[-0.02em] text-white sm:text-[2.75rem] lg:text-[3.15rem]"
+            className="text-[2rem] font-semibold leading-[1.15] tracking-[-0.02em] text-text-primary sm:text-[2.75rem] lg:text-[3.15rem]"
             style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
           >
             {t("pricing.hero_title_line1")}
             <br />
-            <span className="text-white/55">{t("pricing.hero_title_line2")}</span>
+            <span className="text-text-primary/55">{t("pricing.hero_title_line2")}</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-white/45 sm:text-base">
+          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-text-primary/45 sm:text-base">
             {isPremium
               ? `${t("pricing.subscribing_to")} ${getCurrentPlanLabel()}${
                   subStatus?.days_remaining != null
@@ -351,7 +351,7 @@ const PricingPage = () => {
           <SkeletonCards />
         ) : loadError ? (
           <div className="mx-auto max-w-sm py-16 text-center">
-            <p className="text-sm text-white/50">{t("pricing.load_error")}</p>
+            <p className="text-sm text-text-primary/50">{t("pricing.load_error")}</p>
             <button
               type="button"
               onClick={loadData}
@@ -368,24 +368,24 @@ const PricingPage = () => {
                 {/* Free */}
                 <article className={cardBase}>
                   <div className="mb-8">
-                    <h2 className="text-[15px] font-medium text-white/90">{t("pricing.free_name")}</h2>
-                    <p className="mt-1 text-[13px] text-white/35">{t("pricing.free_desc")}</p>
+                    <h2 className="text-[15px] font-medium text-text-primary/90">{t("pricing.free_name")}</h2>
+                    <p className="mt-1 text-[13px] text-text-primary/35">{t("pricing.free_desc")}</p>
                   </div>
                   <div className="mb-8">
                     <div className="flex items-baseline gap-0.5">
-                      <span className="text-sm text-white/30">$</span>
+                      <span className="text-sm text-text-primary/30">$</span>
                       <span
-                        className="text-[2.75rem] font-semibold tracking-tight text-white tabular-nums leading-none"
+                        className="text-[2.75rem] font-semibold tracking-tight text-text-primary tabular-nums leading-none"
                         style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                       >
                         {t("pricing.free_price")}
                       </span>
                     </div>
-                    <p className="mt-2 text-[12px] text-white/30">{t("pricing.free_forever")}</p>
+                    <p className="mt-2 text-[12px] text-text-primary/30">{t("pricing.free_forever")}</p>
                   </div>
                   <ul className="mb-10 flex-1 space-y-3">
                     {freeFeatures.map((f) => (
-                      <li key={f} className="flex gap-2.5 text-[13px] leading-snug text-white/45">
+                      <li key={f} className="flex gap-2.5 text-[13px] leading-snug text-text-primary/45">
                         <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" tone="rgba(255,255,255,0.25)" />
                         {f}
                       </li>
@@ -394,7 +394,7 @@ const PricingPage = () => {
                   <button
                     type="button"
                     onClick={() => navigate(isAuthenticated ? "/" : "/login")}
-                    className="mt-auto w-full rounded-lg border border-white/[0.1] py-2.5 text-[13px] font-medium text-white/70 transition hover:border-white/20 hover:text-white"
+                    className="mt-auto w-full rounded-lg border border-white/[0.1] py-2.5 text-[13px] font-medium text-text-primary/70 transition hover:border-white/20 hover:text-text-primary"
                   >
                     {t("pricing.free_cta")}
                   </button>
@@ -415,7 +415,7 @@ const PricingPage = () => {
                     >
                       <div className="mb-8">
                         <div className="flex items-baseline justify-between gap-2">
-                          <h2 className="text-[15px] font-medium text-white/90">{getPlanLabel(plan)}</h2>
+                          <h2 className="text-[15px] font-medium text-text-primary/90">{getPlanLabel(plan)}</h2>
                           {recommended && !current && (
                             <span className="text-[11px] font-medium text-gold-primary/80">
                               {t("pricing.recommended")}
@@ -427,37 +427,37 @@ const PricingPage = () => {
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 text-[13px] text-white/35">{getPlanDesc(plan)}</p>
+                        <p className="mt-1 text-[13px] text-text-primary/35">{getPlanDesc(plan)}</p>
                       </div>
 
                       <div className="mb-8">
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-sm text-white/30">$</span>
+                          <span className="text-sm text-text-primary/30">$</span>
                           <span
-                            className="text-[2.75rem] font-semibold tracking-tight text-white tabular-nums leading-none"
+                            className="text-[2.75rem] font-semibold tracking-tight text-text-primary tabular-nums leading-none"
                             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                           >
                             {plan.price_usdt}
                           </span>
-                          <span className="ml-1 text-[12px] text-white/30">USDT</span>
+                          <span className="ml-1 text-[12px] text-text-primary/30">USDT</span>
                         </div>
-                        <p className="mt-2 text-[12px] text-white/30">
+                        <p className="mt-2 text-[12px] text-text-primary/30">
                           {getPriceSuffix(plan)}
                           {equiv ? (
-                            <span className="text-white/40">
+                            <span className="text-text-primary/40">
                               {" "}
                               · {t("pricing.equiv_month", { price: equiv })}
                             </span>
                           ) : null}
                           {plan.name === "yearly" ? (
-                            <span className="text-white/40"> · {t("pricing.yearly_save")}</span>
+                            <span className="text-text-primary/40"> · {t("pricing.yearly_save")}</span>
                           ) : null}
                         </p>
                       </div>
 
                       <ul className="mb-10 flex-1 space-y-3">
                         {features.map((f) => (
-                          <li key={f} className="flex gap-2.5 text-[13px] leading-snug text-white/55">
+                          <li key={f} className="flex gap-2.5 text-[13px] leading-snug text-text-primary/55">
                             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             {f}
                           </li>
@@ -474,7 +474,7 @@ const PricingPage = () => {
                               ? "border border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-400/90"
                               : recommended
                                 ? "bg-white text-[#0a0506] hover:bg-white/90"
-                                : "border border-white/[0.12] text-white/85 hover:border-white/25 hover:bg-white/[0.03]"
+                                : "border border-white/[0.12] text-text-primary/85 hover:border-white/25 hover:bg-white/[0.03]"
                           }`}
                         >
                           {creating && selectedPlan === plan.id
@@ -486,7 +486,7 @@ const PricingPage = () => {
                           <button
                             type="button"
                             onClick={() => handleSubscribeViaAdmin(plan)}
-                            className="flex w-full items-center justify-center gap-1.5 py-2 text-[12px] text-white/35 transition hover:text-white/60"
+                            className="flex w-full items-center justify-center gap-1.5 py-2 text-[12px] text-text-primary/35 transition hover:text-text-primary/60"
                           >
                             <TelegramIcon className="h-3 w-3 opacity-70" />
                             {t("pricing.subscribe_via_admin")}
@@ -500,9 +500,9 @@ const PricingPage = () => {
             </div>
 
             {/* Payment — quiet footer line, not a card box */}
-            <p className="mx-auto mt-10 max-w-xl text-center text-[13px] leading-relaxed text-white/30">
+            <p className="mx-auto mt-10 max-w-xl text-center text-[13px] leading-relaxed text-text-primary/30">
               {t("pricing.payment_desc")}{" "}
-              <span className="text-white/40">
+              <span className="text-text-primary/40">
                 {t("pricing.usdt_bep20")} · {t("pricing.auto_verify")} · {t("pricing.instant_act")}
               </span>
             </p>
@@ -510,12 +510,12 @@ const PricingPage = () => {
             {/* What’s included — dynamic plan tabs, no horizontal scroll */}
             <section className="mx-auto mt-20 max-w-lg sm:mt-24">
               <h2
-                className="mb-2 text-center text-xl font-semibold tracking-tight text-white sm:text-2xl"
+                className="mb-2 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.compare_title")}
               </h2>
-              <p className="mb-8 text-center text-[14px] text-white/35">{t("pricing.compare_subtitle")}</p>
+              <p className="mb-8 text-center text-[14px] text-text-primary/35">{t("pricing.compare_subtitle")}</p>
 
               {/* Segmented control — wraps on narrow screens, no swipe table */}
               <div
@@ -535,7 +535,7 @@ const PricingPage = () => {
                       className={`rounded-lg py-2 text-[11px] font-medium transition sm:text-[12px] ${
                         active
                           ? "bg-white text-[#0a0506] shadow-sm"
-                          : "text-white/45 hover:text-white/75"
+                          : "text-text-primary/45 hover:text-text-primary/75"
                       }`}
                     >
                       {tab.label}
@@ -553,7 +553,7 @@ const PricingPage = () => {
                       key={row.id}
                       className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5"
                     >
-                      <span className="text-[13px] text-white/60 sm:text-[14px]">{row.label}</span>
+                      <span className="text-[13px] text-text-primary/60 sm:text-[14px]">{row.label}</span>
                       <span className="shrink-0 text-right">
                         {v.kind === "yes" && (
                           <span className="inline-flex items-center gap-1.5 text-[12px] text-gold-primary/90">
@@ -562,13 +562,13 @@ const PricingPage = () => {
                           </span>
                         )}
                         {v.kind === "no" && (
-                          <span className="text-[13px] text-white/20">—</span>
+                          <span className="text-[13px] text-text-primary/20">—</span>
                         )}
                         {v.kind === "partial" && (
-                          <span className="text-[12px] text-white/40">{v.text}</span>
+                          <span className="text-[12px] text-text-primary/40">{v.text}</span>
                         )}
                         {v.kind === "text" && (
-                          <span className="text-[12px] text-white/55">{v.text}</span>
+                          <span className="text-[12px] text-text-primary/55">{v.text}</span>
                         )}
                       </span>
                     </li>
@@ -576,7 +576,7 @@ const PricingPage = () => {
                 })}
               </ul>
 
-              <p className="mt-4 text-center text-[12px] leading-relaxed text-white/25">
+              <p className="mt-4 text-center text-[12px] leading-relaxed text-text-primary/25">
                 {t("pricing.compare_note")}
               </p>
             </section>
@@ -584,7 +584,7 @@ const PricingPage = () => {
             {/* FAQ */}
             <section className="mx-auto mt-20 max-w-xl sm:mt-24">
               <h2
-                className="mb-8 text-center text-xl font-semibold tracking-tight text-white sm:text-2xl"
+                className="mb-8 text-center text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {t("pricing.faq_title")}
@@ -600,7 +600,7 @@ const PricingPage = () => {
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="text-[13px] text-white/30 transition hover:text-white/60"
+                className="text-[13px] text-text-primary/30 transition hover:text-text-primary/60"
               >
                 {t("pricing.cta_secondary")}
               </button>

@@ -87,7 +87,7 @@ const pctColor = (v) =>
     ? "text-emerald-400"
     : Number(v) < 0
     ? "text-red-400"
-    : "text-white/70";
+    : "text-text-primary/70";
 
 const TURNOVER_LABEL = {
   high_turnover: "High",
@@ -127,7 +127,7 @@ const Th = ({ label, sortKey, sort, onSort, align = "right", sortable = true, cl
   const alignCls = align === "left" ? "text-left" : "text-right";
   if (!sortable) {
     return (
-      <th className={`py-2.5 px-2 sm:px-3 ${alignCls} font-mono text-[9px] uppercase tracking-[0.14em] text-white/35 ${className}`}>
+      <th className={`py-2.5 px-2 sm:px-3 ${alignCls} font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35 ${className}`}>
         {label}
       </th>
     );
@@ -137,7 +137,7 @@ const Th = ({ label, sortKey, sort, onSort, align = "right", sortable = true, cl
       <button
         onClick={() => onSort(sortKey)}
         className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${
-          active ? "text-gold-primary" : "text-white/35 hover:text-white/60"
+          active ? "text-gold-primary" : "text-text-primary/35 hover:text-text-primary/60"
         } ${align === "left" ? "" : "flex-row-reverse"}`}
       >
         {label}
@@ -193,7 +193,7 @@ const CardSkeleton = ({ rows = 6 }) => (
 );
 
 // Labeled stat used inside mobile cards
-const StatCell = ({ label, value, color = "text-white", align = "left" }) => (
+const StatCell = ({ label, value, color = "text-text-primary", align = "left" }) => (
   <div className={`flex flex-col ${align === "right" ? "items-end" : ""}`}>
     <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/50">{label}</span>
     <span className={`font-mono text-[13px] tabular-nums font-semibold ${color}`}>{value}</span>
@@ -234,7 +234,7 @@ const SearchBox = ({ value, onChange, placeholder = "Search…" }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full pl-3 pr-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none"
+      className="w-full pl-3 pr-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none"
     />
   </div>
 );
@@ -273,7 +273,7 @@ const Gauge = ({ value, label, sub, subColor, accent = "gold" }) => {
     <Card className="p-4">
       <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70 mb-2">{label}</div>
       <div className="flex items-baseline gap-2 mb-3">
-        <span className="font-mono text-2xl tabular-nums text-white leading-none">
+        <span className="font-mono text-2xl tabular-nums text-text-primary leading-none">
           {value != null ? (typeof value === "number" ? value.toFixed(1) : value) : "—"}
         </span>
         {sub && <span className={`font-mono text-[10px] tabular-nums ${subColor || "text-text-muted/60"}`}>{sub}</span>}
@@ -399,7 +399,7 @@ const SectorsTab = ({ q }) => {
         <table className="hidden sm:table w-full border-collapse table-fixed">
           <thead>
             <tr className="border-b border-white/[0.08]">
-              <th className="py-2.5 px-2 sm:px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-white/35 w-10">#</th>
+              <th className="py-2.5 px-2 sm:px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35 w-10">#</th>
               <Th label="Sector" sortKey="name" sort={sort} onSort={onSort} align="left" />
               <Th label="24h" sortKey="mcap_change_24h" sort={sort} onSort={onSort} className="w-24" />
               <Th label="7d" sortKey="mcap_change_7d" sort={sort} onSort={onSort} className="hidden md:table-cell w-24" />
@@ -429,13 +429,13 @@ const SectorsTab = ({ q }) => {
                             <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-[#0a0805] bg-white/5" onError={(e) => (e.target.style.display = "none")} />
                           ))}
                         </div>
-                        <span className="text-white text-sm truncate group-hover:text-gold-primary transition-colors">{s.name}</span>
+                        <span className="text-text-primary text-sm truncate group-hover:text-gold-primary transition-colors">{s.name}</span>
                         {isLeader && (
                           <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
                             Leader
                           </span>
                         )}
-                        <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-white/20 group-hover:text-gold-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-text-primary/20 group-hover:text-gold-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 6l6 6-6 6" />
                         </svg>
                       </div>
@@ -481,13 +481,13 @@ const SectorsTab = ({ q }) => {
                           <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-[#0a0805] bg-white/5" onError={(e) => (e.target.style.display = "none")} />
                         ))}
                       </div>
-                      <span className="text-white text-sm truncate flex-1">{s.name}</span>
+                      <span className="text-text-primary text-sm truncate flex-1">{s.name}</span>
                       {isLeader && (
                         <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
                           Leader
                         </span>
                       )}
-                      <svg className="w-3.5 h-3.5 shrink-0 text-white/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg className="w-3.5 h-3.5 shrink-0 text-text-primary/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 6l6 6-6 6" />
                       </svg>
                     </div>
@@ -549,8 +549,8 @@ const FlowFilterChip = ({ active, gold, onClick, children }) => (
       active
         ? gold
           ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-          : "bg-white/[0.08] text-white border-white/20"
-        : "bg-white/[0.04] text-text-muted border-white/[0.1] hover:text-white hover:border-white/20"
+          : "bg-white/[0.08] text-text-primary border-white/20"
+        : "bg-white/[0.04] text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
     }`}
   >
     {children}
@@ -566,12 +566,12 @@ const DexRow = ({ p }) => {
     <div className="px-4 py-3.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.05] last:border-b-0">
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-white text-sm font-medium truncate">{p.base_symbol || p.name}</span>
+          <span className="text-text-primary text-sm font-medium truncate">{p.base_symbol || p.name}</span>
           {p.flow_tag && (
             <span className={`shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
               p.flow_tag === "net_buying" ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/10"
               : p.flow_tag === "net_selling" ? "text-red-400 border-red-500/25 bg-red-500/10"
-              : "text-white/60 border-white/[0.08] bg-white/[0.03]"
+              : "text-text-primary/60 border-white/[0.08] bg-white/[0.03]"
             }`}>
               {FLOW_LABEL[p.flow_tag]}
             </span>
@@ -736,7 +736,7 @@ const CoinsTab = ({ q }) => {
                       <td className="py-3 px-2 sm:px-3">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <CoinLogo pair={c.symbol} size={24} className="flex-shrink-0" />
-                          <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
+                          <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>{c.symbol}</span>
                           {called && (
                             <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
                               Call
@@ -802,7 +802,7 @@ const CoinsTab = ({ q }) => {
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <CoinLogo pair={c.symbol} size={26} className="flex-shrink-0" />
-                        <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
+                        <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>{c.symbol}</span>
                         {called && (
                           <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
                             Call
@@ -940,8 +940,8 @@ export default function MoneyFlowPage() {
       {/* Header — eyebrow + title + description (Delistings parity) */}
       <div className="mb-5 max-w-3xl">
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/70">Terminal · Flow</span>
-        <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight mt-1">Money Flow</h1>
-        <p className="text-[12px] text-white/50 leading-relaxed mt-2">
+        <h1 className="font-display text-2xl lg:text-3xl font-normal text-text-primary tracking-tight mt-1">Money Flow</h1>
+        <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Where capital is rotating — <span className="text-gold-primary/85 font-medium">sectors</span>, coins &amp; whale
           transactions. Track macro dominance, per-coin flow intensity, DEX buy/sell pressure and large on-chain moves in one place.
         </p>
@@ -959,11 +959,11 @@ export default function MoneyFlowPage() {
                 aria-selected={active}
                 onClick={() => setTab(tb.key)}
                 className={`group whitespace-nowrap pb-3 pt-1 text-[14px] font-medium border-b-2 -mb-px transition-colors ${
-                  active ? "text-white border-gold-primary" : "text-white/50 border-transparent hover:text-white/80"
+                  active ? "text-text-primary border-gold-primary" : "text-text-primary/50 border-transparent hover:text-text-primary/80"
                 }`}
               >
                 <span className="inline-flex items-center gap-1.5">
-                  <span className={active ? "text-gold-primary" : "text-white/40 group-hover:text-white/70"}>{tb.icon}</span>
+                  <span className={active ? "text-gold-primary" : "text-text-primary/40 group-hover:text-text-primary/70"}>{tb.icon}</span>
                   {tb.label}
                 </span>
               </button>

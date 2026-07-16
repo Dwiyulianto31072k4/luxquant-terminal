@@ -112,7 +112,7 @@ const VipGroupCard = ({ onToast }) => {
               <TelegramIcon />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-white text-xs font-medium">{t('vip.name', 'VIP Signal Group')}</p>
+              <p className="text-text-primary text-xs font-medium">{t('vip.name', 'VIP Signal Group')}</p>
               {inGroup ? (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1 h-1 rounded-full bg-emerald-400 flex-shrink-0" />

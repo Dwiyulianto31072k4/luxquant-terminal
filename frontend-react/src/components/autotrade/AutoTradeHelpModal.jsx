@@ -25,7 +25,7 @@ const SECTIONS = [
 
 function H({ children }) {
   return (
-    <h3 className="text-base font-semibold text-white">{children}</h3>
+    <h3 className="text-base font-semibold text-text-primary">{children}</h3>
   );
 }
 
@@ -45,7 +45,7 @@ function P({ children }) {
 
 function Code({ children }) {
   return (
-    <code className="rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[12px] text-white/90">
+    <code className="rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[12px] text-text-primary/90">
       {children}
     </code>
   );
@@ -70,7 +70,7 @@ function Tip({ tone = "info", children }) {
 function Field({ label, children }) {
   return (
     <div className="space-y-1.5 rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-3.5">
-      <p className="text-[13px] font-semibold text-white">{label}</p>
+      <p className="text-[13px] font-semibold text-text-primary">{label}</p>
       <div className="text-xs leading-6 text-text-muted">{children}</div>
     </div>
   );
@@ -85,7 +85,7 @@ function PresetCard({ name, audience, accent, items }) {
         : "border-[#F6465D]/35";
   return (
     <div className={`rounded-lg border ${ring} bg-white/[0.015] p-4`}>
-      <p className="text-base font-semibold text-white">{name}</p>
+      <p className="text-base font-semibold text-text-primary">{name}</p>
       <p className="mt-1 text-[11px] uppercase tracking-wider text-text-muted">
         {audience}
       </p>
@@ -93,7 +93,7 @@ function PresetCard({ name, audience, accent, items }) {
         {items.map((item) => (
           <div key={item[0]} className="flex justify-between gap-3">
             <span className="text-text-muted">{item[0]}</span>
-            <span className="text-white/90">{item[1]}</span>
+            <span className="text-text-primary/90">{item[1]}</span>
           </div>
         ))}
       </div>
@@ -617,7 +617,7 @@ function SectionFAQ() {
             key={item.q}
             className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-3.5"
           >
-            <p className="text-[13px] font-semibold text-white">{item.q}</p>
+            <p className="text-[13px] font-semibold text-text-primary">{item.q}</p>
             <p className="mt-1.5 text-xs leading-6 text-text-muted">{item.a}</p>
           </div>
         ))}
@@ -680,7 +680,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-white"
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
           >
             <svg
               viewBox="0 0 24 24"
@@ -716,7 +716,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                     <circle cx="12" cy="12" r="10" />
                   </svg>
                 </span>
-                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
                   AutoTrade Guide
                 </h2>
               </div>
@@ -753,7 +753,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                         className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
                           selected
                             ? "bg-gold-primary/10 text-gold-primary"
-                            : "text-text-secondary hover:bg-white/[0.03] hover:text-white"
+                            : "text-text-secondary hover:bg-white/[0.03] hover:text-text-primary"
                         }`}
                       >
                         <span>{section.label}</span>

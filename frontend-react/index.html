@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0506" />
 
+    <!-- Theme anti-flash: set data-theme BEFORE first paint so there is no
+         flash of the wrong theme. Defaults to Luxquant. Members never have a
+         stored theme (switching is admin-gated), so they always resolve here. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('lq-theme');
+          var ok = ['luxquant', 'dark', 'bright'];
+          document.documentElement.dataset.theme = ok.indexOf(t) > -1 ? t : 'luxquant';
+        } catch (e) {
+          document.documentElement.dataset.theme = 'luxquant';
+        }
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" />

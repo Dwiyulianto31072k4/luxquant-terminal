@@ -49,7 +49,7 @@ const GainerCard = ({ item, onClick }) => (
     <div className="flex items-center gap-2.5 mb-3">
       <CoinLogo pair={item.pair} size={26} />
       <div className="min-w-0">
-        <p className="text-white text-sm font-medium leading-tight truncate group-hover:text-gold-primary transition-colors">
+        <p className="text-text-primary text-sm font-medium leading-tight truncate group-hover:text-gold-primary transition-colors">
           {symbolOf(item.pair)}
           <span className="text-text-muted font-normal">USDT</span>
         </p>
@@ -209,13 +209,13 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
       // angka netral → putih (MEXC-clean, gak dipaksa warna brand)
       label: "Verified Win Rate",
       value: stats ? `${(stats.win_rate ?? 0).toFixed(1)}%` : "—",
-      accent: "text-white",
+      accent: "text-text-primary",
       onClick: () => navigate("/performance"),
     },
     {
       label: "Pairs Tracked",
       value: stats ? (stats.active_pairs ?? 0).toLocaleString() : "—",
-      accent: "text-white",
+      accent: "text-text-primary",
       onClick: () => navigate("/performance"),
     },
   ];
@@ -234,13 +234,13 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
         </span>
 
         <h2
-          className="mt-5 font-bold text-white text-3xl lg:text-5xl tracking-tight"
+          className="mt-5 font-bold text-text-primary text-3xl lg:text-5xl tracking-tight"
           style={{ textShadow: "0 0 30px rgba(255,255,255,0.12)" }}
         >
           Top Gainers We Called
         </h2>
 
-        <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-base leading-relaxed text-white/55">
+        <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-base leading-relaxed text-text-primary/55">
           Not market noise — every coin below is a real LuxQuant entry. These
           are the peak gains each one ran after our call.
         </p>
@@ -322,8 +322,8 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                   onClick={() => { setTab(tt); clearCustom(); setPickerOpen(false); }}
                   className={`text-base font-medium transition-colors ${
                     tab === tt && !customActive
-                      ? "text-white"
-                      : "text-text-muted hover:text-white/70"
+                      ? "text-text-primary"
+                      : "text-text-muted hover:text-text-primary/70"
                   }`}
                 >
                   {tt}
@@ -338,7 +338,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                 <button
                   onClick={() => setPickerOpen((o) => !o)}
                   className={`flex items-center gap-1 text-base font-medium transition-colors ${
-                    customActive || pickerOpen ? "text-white" : "text-text-muted hover:text-white/70"
+                    customActive || pickerOpen ? "text-text-primary" : "text-text-muted hover:text-text-primary/70"
                   }`}
                 >
                   Custom
@@ -354,7 +354,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                     <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-white/12 bg-[#0c0d12] p-3 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Pick a date range</span>
-                        <button onClick={() => setPickerOpen(false)} className="text-text-muted transition-colors hover:text-white">✕</button>
+                        <button onClick={() => setPickerOpen(false)} className="text-text-muted transition-colors hover:text-text-primary">✕</button>
                       </div>
                       <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
                         <input
@@ -362,7 +362,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                           value={customFrom}
                           max={customTo || undefined}
                           onChange={(e) => setCustomFrom(e.target.value)}
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none [color-scheme:dark]"
                         />
                         <span className="font-mono text-[10px] text-text-muted">→</span>
                         <input
@@ -370,7 +370,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                           value={customTo}
                           min={customFrom || undefined}
                           onChange={(e) => setCustomTo(e.target.value)}
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none [color-scheme:dark]"
                         />
                       </div>
                       {customActive && (
@@ -380,7 +380,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                           </span>
                           <button
                             onClick={clearCustom}
-                            className="rounded-md border border-white/10 px-2 py-0.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
+                            className="rounded-md border border-white/10 px-2 py-0.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-text-primary"
                           >
                             Clear
                           </button>

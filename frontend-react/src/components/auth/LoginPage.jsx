@@ -127,7 +127,7 @@ const LoginPage = () => {
         {/* LOGO MOBILE */}
         <div className="lg:hidden absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2.5 z-30">
           <img src="/logo.png" alt="LuxQuant" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
-          <span className="text-white font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>LuxQuant</span>
+          <span className="text-text-primary font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>LuxQuant</span>
         </div>
 
         {/* CONTENT — mobile: no card (MEXC style); desktop: glass card */}
@@ -267,7 +267,7 @@ const LoginPage = () => {
                  onClick={e => e.stopPropagation()}
                  style={{ background: '#161618', borderTop: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -20px 60px rgba(0,0,0,0.6)', animation: 'lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)' }}>
               <div className="mx-auto mb-5 h-1 w-10 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
-              <h3 className="mb-4 font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>More Options</h3>
+              <h3 className="mb-4 font-bold text-text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>More Options</h3>
               <PillButton variant="dark" icon={<DiscordIcon />} text={a('continue_discord')} onClick={handleDiscordLogin} loading={discordLoading} loadingText={a('connecting')} />
             </div>
           </div>
@@ -405,7 +405,7 @@ const TermsModal = ({ onClose }) => {
         <div className="flex items-start justify-between px-6 sm:px-9 pt-7 sm:pt-9 pb-5"
              style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Terms & Conditions
             </h2>
             <p className="text-sm" style={{ color: '#9a8a7e' }}>
@@ -430,7 +430,7 @@ const TermsModal = ({ onClose }) => {
           </p>
           {TERMS_SECTIONS.map((s) => (
             <div key={s.title} className="mb-6">
-              <h3 className="text-sm font-semibold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h3 className="text-sm font-semibold text-text-primary mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {s.title}
               </h3>
               <p className="text-[13px] leading-relaxed" style={{ color: '#9a8a7e' }}>

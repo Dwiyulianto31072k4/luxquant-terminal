@@ -44,7 +44,7 @@ export const wrc = w => w >= 70 ? '#22c55e' : w >= 50 ? '#eab308' : '#ef4444';
 export const scoreColor = s => s >= 80 ? '#22c55e' : s >= 65 ? '#84cc16' : s >= 45 ? '#eab308' : s >= 25 ? '#f97316' : '#ef4444';
 export const scoreGrade = s => s >= 80 ? 'Excellent' : s >= 65 ? 'Good' : s >= 45 ? 'Average' : s >= 25 ? 'Poor' : 'Very Poor';
 export const primarySev = f => { for (const s of ['danger','warning','positive','info']) if (f?.some(x => x.severity === s)) return s; return 'info'; };
-export const parseBold = t => t ? t.split(/(\*\*[^*]+\*\*)/).map((p,i) => p.startsWith('**') ? <span key={i} className="font-semibold text-white drop-shadow-md">{p.slice(2,-2)}</span> : p) : t;
+export const parseBold = t => t ? t.split(/(\*\*[^*]+\*\*)/).map((p,i) => p.startsWith('**') ? <span key={i} className="font-semibold text-text-primary drop-shadow-md">{p.slice(2,-2)}</span> : p) : t;
 export const fmtDate = d => { if (!d) return ''; const p = d.split('-'); return p.length === 3 ? `${parseInt(p[2])} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]}` : d; };
 
 export const classifyCoin = c => {
@@ -203,7 +203,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 <CoinLogo pair={coin.pair} size={40} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-xl text-white tracking-tight">{coin.pair.replace('USDT','')}</span>
+                    <span className="font-mono font-bold text-xl text-text-primary tracking-tight">{coin.pair.replace('USDT','')}</span>
                     <span className="text-text-muted font-mono text-xs">USDT</span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest"
                       style={{ background:`${vc}15`, color:vc, border:`1px solid ${vc}30` }}>
@@ -222,7 +222,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               </div>
               <button
                 onClick={handleClose}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all"
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -292,8 +292,8 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             return (
                               <div key={k} className="flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background:JC[k] }} />
-                                <span className="text-white/80">{OC[k]?.l || k.toUpperCase()}</span>
-                                <span className="ml-auto tabular-nums text-white/45">{pct}% · {v} tr</span>
+                                <span className="text-text-primary/80">{OC[k]?.l || k.toUpperCase()}</span>
+                                <span className="ml-auto tabular-nums text-text-primary/45">{pct}% · {v} tr</span>
                               </div>
                             );
                           })}
@@ -347,7 +347,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     {coin.tp4_streaks?.total_tp4 > 0 && (
                       <div className="grid grid-cols-3 gap-3 text-center border-t border-gold-primary/10 pt-3">
                         <div><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
-                        <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-white">{coin.tp4_streaks.longest_streak}</p></div>
+                        <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-text-primary">{coin.tp4_streaks.longest_streak}</p></div>
                         <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
                       </div>
                     )}
@@ -449,7 +449,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       {coin.correlated_pairs.map((cp,i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-red-500/[0.08] border border-red-500/20">
                           <CoinLogo pair={cp.pair} size={18} />
-                          <span className="text-[12px] font-mono font-bold text-white tracking-wide">{cp.pair.replace('USDT','')}</span>
+                          <span className="text-[12px] font-mono font-bold text-text-primary tracking-wide">{cp.pair.replace('USDT','')}</span>
                           <span className="text-[9px] text-red-400 font-semibold bg-red-500/10 px-1.5 py-0.5 rounded">{cp.co_sl_count}× together</span>
                         </div>
                       ))}
@@ -509,15 +509,15 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             <button
                               onClick={() => setHistPage((p) => Math.max(1, p - 1))}
                               disabled={page <= 1}
-                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                             >
                               Prev
                             </button>
-                            <span className="font-mono text-[10px] tabular-nums text-white/60 px-1">{page}/{pages}</span>
+                            <span className="font-mono text-[10px] tabular-nums text-text-primary/60 px-1">{page}/{pages}</span>
                             <button
                               onClick={() => setHistPage((p) => Math.min(pages, p + 1))}
                               disabled={page >= pages}
-                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                             >
                               Next
                             </button>

@@ -293,7 +293,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
           style={{ left: Math.min(tooltip.x, (wrapRef.current?.clientWidth || 400) - 270), top: tooltip.y }}
         >
           {tooltip.lines.map((line, i) => (
-            <div key={i} className={i === 0 ? "text-[12px] font-semibold text-white" : "mt-0.5 text-[11px] leading-4 text-text-muted"}>
+            <div key={i} className={i === 0 ? "text-[12px] font-semibold text-text-primary" : "mt-0.5 text-[11px] leading-4 text-text-muted"}>
               {line}
             </div>
           ))}
@@ -328,7 +328,7 @@ export default function BrainPanel() {
   if (!data?.available) {
     return (
       <Card className="p-8 text-center">
-        <div className="text-lg font-semibold text-white/80">The brain vault is still empty</div>
+        <div className="text-lg font-semibold text-text-primary/80">The brain vault is still empty</div>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
           Lessons appear here after the daily reflection worker has scored enough resolved
           projections. Check back after the next cycle.
@@ -347,13 +347,13 @@ export default function BrainPanel() {
       {/* vault stats strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Tile label="Regime"><span className="font-display text-[16px] font-semibold text-gold-light">{pretty(regime?.regime || "any")}</span></Tile>
-        <Tile label="σ · 1h realized"><span className="font-mono text-[16px] tabular-nums text-white">{regime?.sigma_1h_pct != null ? `${regime.sigma_1h_pct}%` : "—"}</span></Tile>
+        <Tile label="σ · 1h realized"><span className="font-mono text-[16px] tabular-nums text-text-primary">{regime?.sigma_1h_pct != null ? `${regime.sigma_1h_pct}%` : "—"}</span></Tile>
         <Tile label="72h tape">
           <span className={`font-mono text-[16px] tabular-nums ${Number(regime?.trend_72h_pct) >= 0 ? "text-profit" : "text-loss"}`}>
             {regime?.trend_72h_pct != null ? `${regime.trend_72h_pct > 0 ? "+" : ""}${regime.trend_72h_pct}%` : "—"}
           </span>
         </Tile>
-        <Tile label="Lessons"><span className="font-mono text-[16px] tabular-nums text-white">{lessons.length}</span></Tile>
+        <Tile label="Lessons"><span className="font-mono text-[16px] tabular-nums text-text-primary">{lessons.length}</span></Tile>
         <Tile label="Validated"><span className="font-mono text-[16px] tabular-nums text-profit">{validatedCount}</span></Tile>
         <Tile label="Postmortems"><span className="font-mono text-[16px] tabular-nums text-loss">{postmortems.length}</span></Tile>
       </div>
@@ -392,15 +392,15 @@ export default function BrainPanel() {
             {selectedLesson && (
               <div className="mt-4 rounded-xl border border-gold-primary/25 bg-gold-primary/[0.05] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-display text-[15px] font-semibold text-white">{shortLessonName(selectedLesson.id)}</span>
+                  <span className="font-display text-[15px] font-semibold text-text-primary">{shortLessonName(selectedLesson.id)}</span>
                   <Tag tone={STATUS_TONE[String(selectedLesson.status)] || "muted"}>{selectedLesson.status}</Tag>
                 </div>
                 <p className="mt-1.5 text-[13px] leading-5 text-text-muted">{selectedLesson.prompt_line}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Tile label="Record"><span className="font-mono text-[14px] text-white">{selectedLesson.wins}W / {selectedLesson.losses}L</span></Tile>
+                  <Tile label="Record"><span className="font-mono text-[14px] text-text-primary">{selectedLesson.wins}W / {selectedLesson.losses}L</span></Tile>
                   <Tile label="Hit rate"><span className="font-mono text-[14px] text-gold-light">{selectedLesson.hit_rate}%</span></Tile>
-                  <Tile label="Scope"><span className="font-mono text-[12px] text-white/80">{pretty(selectedLesson.regime)}</span></Tile>
-                  <Tile label="Updated"><span className="font-mono text-[12px] text-white/80">{selectedLesson.updated || "—"}</span></Tile>
+                  <Tile label="Scope"><span className="font-mono text-[12px] text-text-primary/80">{pretty(selectedLesson.regime)}</span></Tile>
+                  <Tile label="Updated"><span className="font-mono text-[12px] text-text-primary/80">{selectedLesson.updated || "—"}</span></Tile>
                 </div>
                 {linkedPostmortems.length > 0 && (
                   <p className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/60">
@@ -433,7 +433,7 @@ export default function BrainPanel() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-semibold text-white/90">
+                      <span className="truncate text-[13px] font-semibold text-text-primary/90">
                         {pretty(String(lesson.id).replace(/^(bias|flag)_/, ""))}
                       </span>
                       <Tag tone={STATUS_TONE[String(lesson.status)] || "muted"}>{lesson.status}</Tag>
@@ -467,7 +467,7 @@ export default function BrainPanel() {
                 {postmortems.slice(0, 6).map((pm) => (
                   <div key={pm.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-[#140b0d] px-3 py-2.5">
                     <div className="min-w-0">
-                      <div className="truncate font-mono text-[11px] text-white/75">{pm.id}</div>
+                      <div className="truncate font-mono text-[11px] text-text-primary/75">{pm.id}</div>
                       <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/60">
                         {pretty(pm.bias)} · {pretty(pm.market_mode)}
                       </div>

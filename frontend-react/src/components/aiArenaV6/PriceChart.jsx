@@ -413,7 +413,7 @@ export default function PriceChart({ report }) {
           <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Projection Chart</h2>
+              <h2 className="font-display text-xl lg:text-2xl font-semibold text-text-primary">Projection Chart</h2>
               <Tooltip termKey="confluence">
                 <span className="text-text-muted text-[10px] font-mono px-1.5 py-0.5 rounded-md border border-gold-primary/15">
                   {labelText}
@@ -429,7 +429,7 @@ export default function PriceChart({ report }) {
         <div className="flex items-center gap-3 flex-wrap">
           {lastPrice != null && (
             <div className="text-right">
-              <p className="text-white font-mono text-lg lg:text-xl font-semibold tabular-nums leading-none">
+              <p className="text-text-primary font-mono text-lg lg:text-xl font-semibold tabular-nums leading-none">
                 {formatPrice(lastPrice)}
               </p>
               {pctMove != null && (
@@ -448,7 +448,7 @@ export default function PriceChart({ report }) {
                 className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all lg:px-3 lg:py-1.5 lg:text-xs ${
                   tf === opt.value
                     ? "bg-gold-primary/15 text-gold-primary"
-                    : "text-text-muted hover:text-white"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
                 title={`${opt.label} · ${opt.sub}`}
               >
@@ -477,7 +477,7 @@ export default function PriceChart({ report }) {
                   className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] transition ${
                     active
                       ? "border-[#d4a853]/30 bg-[#d4a853]/10 text-[#f5c451]"
-                      : "border-white/[0.06] bg-black/10 text-white/35 hover:border-white/[0.12] hover:text-white/65"
+                      : "border-white/[0.06] bg-black/10 text-text-primary/35 hover:border-white/[0.12] hover:text-text-primary/65"
                   }`}
                 >
                   <span className={`h-1.5 w-1.5 rounded-sm ${active ? "bg-[#f5c451]" : "bg-white/20"}`} />
@@ -487,7 +487,7 @@ export default function PriceChart({ report }) {
             })}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-white/[0.06] bg-black/15 p-1.5 text-[10px] font-mono text-white/45 lg:min-w-[390px]">
+        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-white/[0.06] bg-black/15 p-1.5 text-[10px] font-mono text-text-primary/45 lg:min-w-[390px]">
           <DataBasis label="Candles" value="Live BTC" detail={`${tf} OHLCV`} />
           <DataBasis label="Projection" value={projection?.directionLabel || "Neutral"} detail="Compass read" />
           <DataBasis label="Liquidity" value={projection?.liquidityConfidence || "Model"} detail="Magnet map" />
@@ -502,8 +502,8 @@ export default function PriceChart({ report }) {
               onClick={() => setMaVisible((v) => ({ ...v, [key]: !v[key] }))}
               className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-all border ${
                 maVisible[key]
-                  ? "bg-bg-card/60 border-white/10 text-white"
-                  : "bg-transparent border-white/5 text-text-muted hover:text-white"
+                  ? "bg-bg-card/60 border-white/10 text-text-primary"
+                  : "bg-transparent border-white/5 text-text-muted hover:text-text-primary"
               }`}
             >
               <span
@@ -513,16 +513,16 @@ export default function PriceChart({ report }) {
               {label}
             </button>
           ))}
-          <span className="text-[10px] font-mono text-white/30">{visibleMaCount}/4 active</span>
+          <span className="text-[10px] font-mono text-text-primary/30">{visibleMaCount}/4 active</span>
         </div>
       )}
 
       <div className="relative mt-4">
         {crosshair && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none flex items-center gap-3 px-3 py-1.5 rounded-lg bg-bg-primary/85 backdrop-blur-md border border-gold-primary/20 text-[10px] font-mono">
-            <span className="text-text-muted">O <span className="text-white">{formatPrice(crosshair.open)}</span></span>
-            <span className="text-text-muted">H <span className="text-white">{formatPrice(crosshair.high)}</span></span>
-            <span className="text-text-muted">L <span className="text-white">{formatPrice(crosshair.low)}</span></span>
+            <span className="text-text-muted">O <span className="text-text-primary">{formatPrice(crosshair.open)}</span></span>
+            <span className="text-text-muted">H <span className="text-text-primary">{formatPrice(crosshair.high)}</span></span>
+            <span className="text-text-muted">L <span className="text-text-primary">{formatPrice(crosshair.low)}</span></span>
             <span className="text-text-muted">C <span className={crosshair.close >= crosshair.open ? "text-positive" : "text-negative"}>{formatPrice(crosshair.close)}</span></span>
           </div>
         )}
@@ -595,7 +595,7 @@ export default function PriceChart({ report }) {
 function ProjectionPanel({ projection, lastPrice }) {
   if (!projection) {
     return (
-      <div className="rounded-xl border border-white/[0.06] bg-black/15 p-4 text-sm text-white/45">
+      <div className="rounded-xl border border-white/[0.06] bg-black/15 p-4 text-sm text-text-primary/45">
         Projection detail is waiting for the latest Compass report.
       </div>
     );
@@ -616,19 +616,19 @@ function ProjectionPanel({ projection, lastPrice }) {
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">
               {projection.horizonLabel}
             </div>
-            <h3 className="mt-0.5 text-xl font-semibold leading-tight text-white/90">
+            <h3 className="mt-0.5 text-xl font-semibold leading-tight text-text-primary/90">
               {projection.title}
             </h3>
           </div>
         </div>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/55">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-text-primary/55">
           {highlightPrices(projection.explanation)}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {projection.reasons.slice(0, 4).map((reason, index) => (
             <div key={`${reason.label}-${index}`} className="rounded-md border border-white/[0.06] bg-white/[0.025] px-3 py-2">
-              <div className="text-[9px] font-mono uppercase tracking-[0.12em] text-white/30">{reason.label}</div>
-              <div className="mt-1 text-xs leading-5 text-white/65">{reason.value}</div>
+              <div className="text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">{reason.label}</div>
+              <div className="mt-1 text-xs leading-5 text-text-primary/65">{reason.value}</div>
             </div>
           ))}
         </div>
@@ -659,11 +659,11 @@ function ProjectionPanel({ projection, lastPrice }) {
 function ProjectionStat({ label, value, hint, tone }) {
   return (
     <div className="rounded-sm border border-white/[0.04] bg-[#120809] p-3">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{label}</div>
-      <div className="mt-1 font-mono text-lg font-semibold text-white/90" style={{ color: tone ? directionColor(tone) : undefined }}>
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{label}</div>
+      <div className="mt-1 font-mono text-lg font-semibold text-text-primary/90" style={{ color: tone ? directionColor(tone) : undefined }}>
         {value}
       </div>
-      {hint && <div className="mt-1 text-[10px] leading-4 text-white/40">{hint}</div>}
+      {hint && <div className="mt-1 text-[10px] leading-4 text-text-primary/40">{hint}</div>}
     </div>
   );
 }
@@ -671,9 +671,9 @@ function ProjectionStat({ label, value, hint, tone }) {
 function DataBasis({ label, value, detail }) {
   return (
     <div className="rounded-md border border-white/[0.05] bg-white/[0.025] px-2.5 py-2">
-      <div className="text-[8px] uppercase tracking-[0.12em] text-white/25">{label}</div>
-      <div className="mt-1 text-white/75">{value}</div>
-      <div className="mt-0.5 text-[9px] text-white/30">{detail}</div>
+      <div className="text-[8px] uppercase tracking-[0.12em] text-text-primary/25">{label}</div>
+      <div className="mt-1 text-text-primary/75">{value}</div>
+      <div className="mt-0.5 text-[9px] text-text-primary/30">{detail}</div>
     </div>
   );
 }
@@ -682,7 +682,7 @@ function StatPill({ label, value, hint }) {
   return (
     <div className="bg-bg-card/40 rounded-lg px-3 py-2 border border-white/5">
       <p className="text-text-muted text-[9px] uppercase tracking-wider">{label}</p>
-      <p className="text-white font-mono text-sm font-semibold tabular-nums mt-0.5">
+      <p className="text-text-primary font-mono text-sm font-semibold tabular-nums mt-0.5">
         {value ?? "—"}
       </p>
       {hint && <p className="text-text-muted text-[9px] mt-0.5">{hint}</p>}
@@ -701,10 +701,10 @@ function ChartReadPanel({ read }) {
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
             AI chart reasoning
           </div>
-          <h3 className="mt-1 text-lg font-semibold leading-tight text-white/90 lg:text-xl">
+          <h3 className="mt-1 text-lg font-semibold leading-tight text-text-primary/90 lg:text-xl">
             {read.title}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-white/55">
+          <p className="mt-2 text-sm leading-6 text-text-primary/55">
             {read.summary}
           </p>
         </div>
@@ -712,7 +712,7 @@ function ChartReadPanel({ read }) {
           className="rounded-lg border px-3 py-2 text-right font-mono"
           style={{ borderColor: `${toneColor}44`, background: `${toneColor}12` }}
         >
-          <div className="text-[8px] uppercase tracking-[0.14em] text-white/35">Mode</div>
+          <div className="text-[8px] uppercase tracking-[0.14em] text-text-primary/35">Mode</div>
           <div className="mt-1 text-sm font-semibold" style={{ color: toneColor }}>
             {read.mode}
           </div>
@@ -725,7 +725,7 @@ function ChartReadPanel({ read }) {
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">
               What to do with it
             </div>
-            <p className="mt-2 text-sm leading-6 text-white/70">
+            <p className="mt-2 text-sm leading-6 text-text-primary/70">
               {highlightPrices(read.tradePlan)}
             </p>
           </div>
@@ -747,10 +747,10 @@ function ChartReadPanel({ read }) {
       <div className="border-t border-white/[0.06] p-4">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/30">Technical tape</div>
-            <p className="mt-1 text-xs text-white/45">These numbers explain whether the projected touch is clean, stretched, or noisy.</p>
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/30">Technical tape</div>
+            <p className="mt-1 text-xs text-text-primary/45">These numbers explain whether the projected touch is clean, stretched, or noisy.</p>
           </div>
-          <div className="text-[10px] font-mono text-white/30">Projection layer is the default view</div>
+          <div className="text-[10px] font-mono text-text-primary/30">Projection layer is the default view</div>
         </div>
         <div className="grid gap-2 lg:grid-cols-4">
           {read.metrics.map((metric) => (
@@ -765,9 +765,9 @@ function ChartReadPanel({ read }) {
 function MarketNumber({ item }) {
   return (
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{item.label}</div>
-      <div className="mt-1 font-mono text-base font-semibold tabular-nums text-white/90">{item.value}</div>
-      <div className="mt-1 text-[10px] leading-4 text-white/45">{item.detail}</div>
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{item.label}</div>
+      <div className="mt-1 font-mono text-base font-semibold tabular-nums text-text-primary/90">{item.value}</div>
+      <div className="mt-1 text-[10px] leading-4 text-text-primary/45">{item.detail}</div>
     </div>
   );
 }
@@ -778,8 +778,8 @@ function ReasonRow({ item }) {
       <div className="flex items-start gap-2">
         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-sm bg-[#d4a853]" />
         <div>
-          <div className="text-sm font-semibold text-white/85">{item.title}</div>
-          <p className="mt-1 text-xs leading-5 text-white/50">{item.body}</p>
+          <div className="text-sm font-semibold text-text-primary/85">{item.title}</div>
+          <p className="mt-1 text-xs leading-5 text-text-primary/50">{item.body}</p>
         </div>
       </div>
     </div>
@@ -789,10 +789,10 @@ function ReasonRow({ item }) {
 function MetricExplain({ metric }) {
   return (
     <div className="rounded-sm border border-white/[0.04] bg-[#120809] p-3">
-      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{metric.label}</div>
-      <div className="mt-1 font-mono text-sm font-semibold text-white/90">{metric.value}</div>
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{metric.label}</div>
+      <div className="mt-1 font-mono text-sm font-semibold text-text-primary/90">{metric.value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#d4a853]/75">{metric.state}</div>
-      <p className="mt-1 text-[10px] leading-4 text-white/45">{metric.reason}</p>
+      <p className="mt-1 text-[10px] leading-4 text-text-primary/45">{metric.reason}</p>
     </div>
   );
 }
@@ -814,7 +814,7 @@ function ZoneChip({ label, zone, tint, accent, arrow, currentPrice }) {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <span style={{ color: accent }} className="text-sm leading-none">{arrow}</span>
-          <span className="text-white text-[11px] font-semibold uppercase tracking-wider">{label}</span>
+          <span className="text-text-primary text-[11px] font-semibold uppercase tracking-wider">{label}</span>
         </div>
         {inZone && (
           <span style={{ color: accent }} className="text-[9px] font-mono font-bold flex items-center gap-1">
@@ -822,7 +822,7 @@ function ZoneChip({ label, zone, tint, accent, arrow, currentPrice }) {
           </span>
         )}
       </div>
-      <p className="text-white font-mono text-xs tabular-nums">
+      <p className="text-text-primary font-mono text-xs tabular-nums">
         {formatPrice(zone.low)} <span className="text-text-muted">–</span> {formatPrice(zone.high)}
       </p>
       {(zone.why || zone.liquidity_note || zone.notes) && (

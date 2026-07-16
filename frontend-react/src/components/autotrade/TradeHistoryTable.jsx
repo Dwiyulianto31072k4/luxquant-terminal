@@ -54,7 +54,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
     return (
       <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <p className="text-white text-sm font-medium mb-1">No trade history yet</p>
+        <p className="text-text-primary text-sm font-medium mb-1">No trade history yet</p>
         <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
           Closed trades will appear here
         </p>
@@ -104,7 +104,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={o.pair} size={24} />
-                      <span className="text-white font-mono text-sm font-semibold">{o.pair}</span>
+                      <span className="text-text-primary font-mono text-sm font-semibold">{o.pair}</span>
                     </div>
                   </td>
 
@@ -125,12 +125,12 @@ export default function TradeHistoryTable({ orders = [], loading }) {
                   </td>
 
                   {/* Entry */}
-                  <td className="px-3 py-3 text-right text-white/80 font-mono text-xs tabular-nums">
+                  <td className="px-3 py-3 text-right text-text-primary/80 font-mono text-xs tabular-nums">
                     {fmtNum(o.entry_price, 6)}
                   </td>
 
                   {/* Exit */}
-                  <td className="px-3 py-3 text-right text-white/80 font-mono text-xs tabular-nums">
+                  <td className="px-3 py-3 text-right text-text-primary/80 font-mono text-xs tabular-nums">
                     {fmtNum(o.sl_current, 6)}
                   </td>
 
@@ -166,7 +166,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <CoinLogo pair={o.pair} size={28} />
                   <div className="min-w-0">
-                    <p className="text-white font-semibold text-sm font-mono">{o.pair}</p>
+                    <p className="text-text-primary font-semibold text-sm font-mono">{o.pair}</p>
                     <p className="text-[10px] font-mono text-text-muted/70 mt-0.5">
                       <span className="uppercase tracking-wider">{o.exchange_id}</span>
                       <span className="text-text-muted/40 mx-1.5">·</span>

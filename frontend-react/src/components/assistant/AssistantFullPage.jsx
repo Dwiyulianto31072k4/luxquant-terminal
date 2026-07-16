@@ -64,8 +64,8 @@ export default function AssistantFullPage() {
     return (
       <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-4xl items-center justify-center px-4 text-center">
         <div>
-          <p className="font-display text-lg font-semibold text-white">Assistant is currently off</p>
-          <p className="mt-2 text-sm text-white/60">The LuxQuant Assistant has been turned off by an admin.</p>
+          <p className="font-display text-lg font-semibold text-text-primary">Assistant is currently off</p>
+          <p className="mt-2 text-sm text-text-primary/60">The LuxQuant Assistant has been turned off by an admin.</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function AssistantFullPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z" /></svg>
           </span>
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-semibold text-white leading-none">LuxQuant Assistant</h1>
+            <h1 className="font-display text-lg font-semibold text-text-primary leading-none">LuxQuant Assistant</h1>
             <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-gold-primary/70">Full page · feature & data help</p>
           </div>
         </div>
@@ -89,13 +89,13 @@ export default function AssistantFullPage() {
           <select
             value={pageId}
             onChange={(e) => changePage(e.target.value)}
-            className="rounded-lg border border-white/10 bg-[#0d0d0d] px-3 py-1.5 text-[12px] text-white focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]"
+            className="rounded-lg border border-white/10 bg-[#0d0d0d] px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]"
           >
             {pages.map((p) => <option key={p.page_id} value={p.page_id}>{p.label}</option>)}
           </select>
           <button
             onClick={() => navigate(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:bg-white/5 hover:text-white transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:bg-white/5 hover:text-text-primary transition-all"
             title="Back"
             aria-label="Back"
           >
@@ -108,7 +108,7 @@ export default function AssistantFullPage() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar py-6 space-y-3">
         {messages.length === 0 && !loading && (
           <div className="space-y-4">
-            <p className="text-[15px] text-white/70 leading-relaxed">
+            <p className="text-[15px] text-text-primary/70 leading-relaxed">
               Ask anything about how to use the <span className="text-gold-primary font-semibold">{label || 'this'}</span> page. Pick a different topic from the selector above anytime.
             </p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -116,7 +116,7 @@ export default function AssistantFullPage() {
                 <button
                   key={i}
                   onClick={() => send(s)}
-                  className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-white/80 hover:border-gold-primary/40 hover:bg-gold-primary/[0.06] hover:text-white transition-all"
+                  className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-text-primary/80 hover:border-gold-primary/40 hover:bg-gold-primary/[0.06] hover:text-text-primary transition-all"
                 >
                   {s}
                 </button>
@@ -130,7 +130,7 @@ export default function AssistantFullPage() {
             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
               m.role === 'user'
                 ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
-                : 'bg-white/[0.05] text-white/90 border border-white/5'
+                : 'bg-white/[0.05] text-text-primary/90 border border-white/5'
             }`}>
               {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => navigate(path))}</div> : m.content}
             </div>
@@ -159,7 +159,7 @@ export default function AssistantFullPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask how to use this page…"
-            className="flex-1 resize-none rounded-xl border border-white/10 bg-[#0d0d0d] px-4 py-3 text-[14px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-32"
+            className="flex-1 resize-none rounded-xl border border-white/10 bg-[#0d0d0d] px-4 py-3 text-[14px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 max-h-32"
           />
           <button
             onClick={() => send()}

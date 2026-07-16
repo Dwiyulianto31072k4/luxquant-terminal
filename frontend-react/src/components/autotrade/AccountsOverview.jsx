@@ -52,7 +52,7 @@ export default function AccountsOverview({
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#F3BA2F]">
                 Exchange Connection
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-white lg:text-2xl">
+              <h2 className="mt-1 text-xl font-semibold text-text-primary lg:text-2xl">
                 Binance
               </h2>
               <p className="mt-1 text-xs text-text-muted">
@@ -124,7 +124,7 @@ export default function AccountsOverview({
                       <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
                         <BinanceIcon className="h-5 w-5" />
                       </span>
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-text-primary">
                         {account.label || "Primary Binance account"}
                       </span>
                       <StatusBadge tone="neutral">

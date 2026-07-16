@@ -19,7 +19,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-white/90 mb-4"
+          className="text-2xl text-text-primary/90 mb-4"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -29,7 +29,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
           What Changed
         </h2>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
-          <p className="text-white/40 text-sm italic">
+          <p className="text-text-primary/40 text-sm italic">
             No previous report to compare against
           </p>
         </div>
@@ -59,7 +59,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
       {/* Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2
-          className="text-2xl text-white/90"
+          className="text-2xl text-text-primary/90"
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
@@ -68,7 +68,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         >
           What Changed
         </h2>
-        <span className="text-xs font-mono text-white/40 uppercase tracking-wider">
+        <span className="text-xs font-mono text-text-primary/40 uppercase tracking-wider">
           {sinceLabel}
         </span>
       </div>
@@ -105,14 +105,14 @@ export default function WhatChanged({ whatChanged, timestamp }) {
               <polyline points="12 5 19 12 12 19" />
             </svg>
           </div>
-          <p className="text-base text-white/85 leading-relaxed flex-1">
+          <p className="text-base text-text-primary/85 leading-relaxed flex-1">
             {whatChanged}
           </p>
         </div>
       </div>
 
       {/* Footer note */}
-      <p className="mt-3 text-[11px] text-white/30 font-mono">
+      <p className="mt-3 text-[11px] text-text-primary/30 font-mono">
         Diff produced by LuxQuant AI comparing previous and current verdicts
       </p>
     </section>
