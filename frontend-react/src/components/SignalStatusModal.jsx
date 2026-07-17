@@ -298,13 +298,6 @@ export default function GlobalSignalModalHost() {
         >
           Open full signal →
         </button>
-        <button
-          type="button"
-          onClick={close}
-          className="rounded-xl border border-ink/15 px-4 py-3.5 text-[13px] font-medium text-text-primary/75 active:scale-[0.99]"
-        >
-          Close
-        </button>
       </div>
     );
   }

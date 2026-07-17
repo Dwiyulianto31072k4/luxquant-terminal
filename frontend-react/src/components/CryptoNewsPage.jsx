@@ -362,13 +362,6 @@ const NewsModal = ({ item, onClose }) => {
           </svg>
         </button>
       ) : null}
-      <button
-        type="button"
-        onClick={close}
-        className="h-11 shrink-0 rounded-md border border-ink/[0.12] bg-surface-secondary px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-secondary transition hover:border-ink/25 hover:text-text-primary sm:px-5"
-      >
-        Close
-      </button>
     </div>
   );
 

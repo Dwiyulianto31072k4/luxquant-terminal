@@ -2736,13 +2736,6 @@ const CoinChartModal = ({ pair, onClose }) => {
             Chart · TradingView · Metrics · Binance Futures
           </span>
           <span className="hidden uppercase tracking-[0.15em] sm:inline">ESC to close</span>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="sm:hidden rounded-lg border border-ink/10 bg-ink/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 active:scale-95"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>
