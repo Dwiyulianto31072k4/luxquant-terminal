@@ -36,8 +36,8 @@ function dayKey(value) {
 }
 
 function pnlClass(value) {
-  if (Number(value || 0) > 0) return "text-[#0ECB81]";
-  if (Number(value || 0) < 0) return "text-[#F6465D]";
+  if (Number(value || 0) > 0) return "text-profit";
+  if (Number(value || 0) < 0) return "text-negative";
   return "text-text-primary/80";
 }
 

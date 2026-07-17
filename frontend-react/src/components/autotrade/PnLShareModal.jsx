@@ -249,7 +249,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                     className="ml-1 rounded px-1.5 py-0.5 text-[8px] font-bold"
                     style={{
                       background: "rgba(14,203,129,0.2)",
-                      color: "#0ecb81",
+                      color: "rgb(var(--pos-text))",
                       border: "1px solid rgba(14,203,129,0.3)",
                     }}
                   >

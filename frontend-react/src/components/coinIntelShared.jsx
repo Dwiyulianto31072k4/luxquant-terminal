@@ -658,7 +658,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                           <p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">
                             Total TP4
                           </p>
-                          <p className="font-mono font-bold text-lg text-[#22c55e]">
+                          <p className="font-mono font-bold text-lg text-profit">
                             {coin.tp4_streaks.total_tp4}
                           </p>
                         </div>

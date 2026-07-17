@@ -117,7 +117,7 @@ const SubscriptionStatus = ({ compact = false }) => {
               </span>
             </p>
           ) : (
-            <p className="text-xs" style={{ color: "#22c55e" }}>
+            <p className="text-xs" style={{ color: "rgb(var(--pos-text))" }}>
               Lifetime ∞
             </p>
           )}

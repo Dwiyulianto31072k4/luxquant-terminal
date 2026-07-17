@@ -810,7 +810,7 @@ export default function SystemMap() {
           borderRadius: 10,
           background: "rgba(248,113,113,.08)",
           border: "1px solid rgba(248,113,113,.25)",
-          color: "#fca5a5",
+          color: "rgb(var(--neg-text))",
           fontSize: 13,
         }}
       >

@@ -140,9 +140,9 @@ const DOT_HEX = {
 };
 
 const DOT_TEXT = {
-  good: "text-[#0ECB81]",
+  good: "text-profit",
   warn: "text-accent",
-  bad: "text-[#F6465D]",
+  bad: "text-negative",
   info: "text-[#5B8DEF]",
   neutral: "text-text-muted",
 };
@@ -162,9 +162,9 @@ export function StatusDot({ tone = "neutral", children, pulse = false }) {
 
 // StatusBadge — small squared tag. Subtle tinted background, medium label.
 const TAG_TONES = {
-  good: "bg-[#0ECB81]/12 text-[#0ECB81]",
+  good: "bg-[#0ECB81]/12 text-profit",
   warn: "bg-accent/12 text-accent",
-  bad: "bg-[#F6465D]/12 text-[#F6465D]",
+  bad: "bg-[#F6465D]/12 text-negative",
   info: "bg-[#5B8DEF]/12 text-[#5B8DEF]",
   neutral: "bg-ink/[0.06] text-text-secondary",
 };
@@ -254,7 +254,7 @@ export function GhostButton({
     neutral:
       "border-ink/[0.1] bg-surface-secondary text-text-secondary hover:border-ink/18 hover:text-text-primary",
     gold: "border-accent/35 bg-accent/[0.08] text-accent hover:bg-accent/15",
-    danger: "border-[#F6465D]/30 bg-[#F6465D]/[0.06] text-[#F6465D] hover:bg-[#F6465D]/12",
+    danger: "border-[#F6465D]/30 bg-[#F6465D]/[0.06] text-negative hover:bg-[#F6465D]/12",
   };
   return (
     <button
@@ -389,8 +389,8 @@ export function PillToggle({ active, onClick, children }) {
 // ────────────────────────────────────────────────────────────────
 export function Notice({ tone = "info", children }) {
   const tones = {
-    error: "border-[#F6465D]/30 bg-[#F6465D]/[0.08] text-[#F6465D]",
-    success: "border-[#0ECB81]/30 bg-[#0ECB81]/[0.08] text-[#0ECB81]",
+    error: "border-[#F6465D]/30 bg-[#F6465D]/[0.08] text-negative",
+    success: "border-[#0ECB81]/30 bg-[#0ECB81]/[0.08] text-profit",
     warn: "border-accent/30 bg-accent/[0.08] text-accent",
     info: "border-ink/[0.1] bg-surface-secondary text-text-secondary",
   };

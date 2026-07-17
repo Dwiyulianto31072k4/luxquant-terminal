@@ -36,7 +36,7 @@ function zoneStyle(kind) {
   if (lower === "demand") {
     return {
       label: "Demand",
-      color: "#22c55e",
+      color: "rgb(var(--pos-text))",
       bg: "rgba(34,197,94,0.06)",
       border: "rgba(34,197,94,0.25)",
       barBg: "rgba(34,197,94,0.15)",
@@ -47,7 +47,7 @@ function zoneStyle(kind) {
   if (lower === "supply") {
     return {
       label: "Supply",
-      color: "#ef4444",
+      color: "rgb(var(--neg-text))",
       bg: "rgba(239,68,68,0.06)",
       border: "rgba(239,68,68,0.25)",
       barBg: "rgba(239,68,68,0.15)",

@@ -78,7 +78,7 @@ const RegisterPage = () => {
     if (s <= 1) return { level: 1, label: a("strength_weak"), color: "rgb(var(--neg-text))" };
     if (s <= 2) return { level: 2, label: a("strength_fair"), color: "rgb(var(--warn))" };
     if (s <= 3) return { level: 3, label: a("strength_good"), color: "rgb(var(--pos-text))" };
-    return { level: 4, label: a("strength_strong"), color: "#22c55e" };
+    return { level: 4, label: a("strength_strong"), color: "rgb(var(--pos-text))" };
   };
   const strength = getStrength(password);
 
@@ -207,7 +207,7 @@ const RegisterPage = () => {
               style={{
                 background: "rgba(239,68,68,0.08)",
                 border: "1px solid rgba(239,68,68,0.25)",
-                color: "#fca5a5",
+                color: "rgb(var(--neg-text))",
               }}
             >
               <svg

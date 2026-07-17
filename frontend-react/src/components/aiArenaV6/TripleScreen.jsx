@@ -30,7 +30,7 @@ function stateStyle(state) {
   if (upper === "UPTREND" || upper === "BULLISH") {
     return {
       label: upper,
-      color: "#22c55e",
+      color: "rgb(var(--pos-text))",
       bg: "rgba(34,197,94,0.08)",
       border: "rgba(34,197,94,0.25)",
       icon: "↑",
@@ -39,7 +39,7 @@ function stateStyle(state) {
   if (upper === "DOWNTREND" || upper === "BEARISH") {
     return {
       label: upper,
-      color: "#ef4444",
+      color: "rgb(var(--neg-text))",
       bg: "rgba(239,68,68,0.08)",
       border: "rgba(239,68,68,0.25)",
       icon: "↓",
@@ -84,13 +84,13 @@ function computeAlignment(screens) {
   });
 
   if (bull === screens.length) {
-    return { label: "ALL ALIGNED BULL", color: "#22c55e" };
+    return { label: "ALL ALIGNED BULL", color: "rgb(var(--pos-text))" };
   }
   if (bear === screens.length) {
-    return { label: "ALL ALIGNED BEAR", color: "#ef4444" };
+    return { label: "ALL ALIGNED BEAR", color: "rgb(var(--neg-text))" };
   }
-  if (bull >= 2) return { label: "MAJORITY BULL", color: "#22c55e" };
-  if (bear >= 2) return { label: "MAJORITY BEAR", color: "#ef4444" };
+  if (bull >= 2) return { label: "MAJORITY BULL", color: "rgb(var(--pos-text))" };
+  if (bear >= 2) return { label: "MAJORITY BEAR", color: "rgb(var(--neg-text))" };
   return { label: "MIXED ACROSS TF", color: "rgb(var(--accent-text))" };
 }
 

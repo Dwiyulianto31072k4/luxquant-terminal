@@ -891,7 +891,7 @@ export const LivePerformanceStats = ({ data }) => {
     { label: "TP2", count: stats?.tp2_count ?? 0, color: "rgb(var(--accent-text))", opacity: 0.85 },
     { label: "TP3", count: stats?.tp3_count ?? 0, color: "rgb(var(--accent-text))", opacity: 0.7 },
     { label: "TP4", count: stats?.tp4_count ?? 0, color: "rgb(var(--accent-dark))", opacity: 0.55 },
-    { label: "SL", count: slCount, color: "#EF4444", opacity: 1 },
+    { label: "SL", count: slCount, color: "rgb(var(--neg-text))", opacity: 1 },
   ];
   const outcomeTotal = outcomeItems.reduce((s, i) => s + i.count, 0);
 

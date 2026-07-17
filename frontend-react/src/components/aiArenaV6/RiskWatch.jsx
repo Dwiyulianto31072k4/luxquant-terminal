@@ -29,7 +29,7 @@ function severityStyle(severity) {
   if (lower === "high" || lower === "critical") {
     return {
       label: "High",
-      color: "#ef4444",
+      color: "rgb(var(--neg-text))",
       bg: "rgba(239,68,68,0.08)",
       border: "rgba(239,68,68,0.3)",
       icon: "▲",

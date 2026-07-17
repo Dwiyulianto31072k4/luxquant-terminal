@@ -198,7 +198,7 @@ const LoginPage = () => {
               style={{
                 background: "rgba(239,68,68,0.08)",
                 border: "1px solid rgba(239,68,68,0.25)",
-                color: "#fca5a5",
+                color: "rgb(var(--neg-text))",
               }}
             >
               <svg

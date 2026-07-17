@@ -302,7 +302,7 @@ function AutoTradeControlCenter({
             className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border ${
               active
                 ? state.tone === "good"
-                  ? "border-[#0ECB81]/35 bg-[#0ECB81]/12 text-[#0ECB81]"
+                  ? "border-[#0ECB81]/35 bg-[#0ECB81]/12 text-profit"
                   : "border-[#5B8DEF]/35 bg-[#5B8DEF]/12 text-[#5B8DEF]"
                 : "border-ink/[0.1] bg-surface-secondary text-text-secondary"
             }`}

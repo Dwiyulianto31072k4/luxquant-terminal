@@ -220,7 +220,7 @@ function CritiqueBanner({ critique }) {
   const decisionStyle = {
     approved: {
       label: "Approved",
-      color: "#22c55e",
+      color: "rgb(var(--pos-text))",
       bg: "rgba(34, 197, 94, 0.1)",
       icon: "✓",
     },
@@ -232,7 +232,7 @@ function CritiqueBanner({ critique }) {
     },
     needs_revision: {
       label: "Needs revision",
-      color: "#ef4444",
+      color: "rgb(var(--neg-text))",
       bg: "rgba(239, 68, 68, 0.1)",
       icon: "⚠",
     },

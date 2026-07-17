@@ -632,7 +632,7 @@ export const ExchangePaymentHero = ({ payment }) => {
                 className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono"
                 style={{
                   background: "#7f1d1d",
-                  color: "#fecaca",
+                  color: "rgb(var(--neg-text))",
                   border: "1px solid #991b1b",
                 }}
               >

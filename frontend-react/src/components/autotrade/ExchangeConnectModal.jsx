@@ -37,13 +37,13 @@ const PERMISSIONS = [
 function PermIcon({ state }) {
   if (state === "no") {
     return (
-      <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#F6465D]/12 text-[10px] text-[#F6465D]">
+      <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#F6465D]/12 text-[10px] text-negative">
         ✕
       </span>
     );
   }
   return (
-    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#0ECB81]/12 text-[10px] text-[#0ECB81]">
+    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#0ECB81]/12 text-[10px] text-profit">
       ✓
     </span>
   );
@@ -238,7 +238,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                         <PermIcon state={perm.state} />
                         <span
                           className={`text-[13px] font-medium leading-5 ${
-                            perm.state === "no" ? "text-[#F6465D]" : "text-text-primary"
+                            perm.state === "no" ? "text-negative" : "text-text-primary"
                           }`}
                         >
                           {perm.label}
@@ -246,7 +246,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                             <span className="font-normal text-text-muted"> · optional</span>
                           ) : null}
                           {perm.state === "no" ? (
-                            <span className="font-normal text-[#F6465D]/80"> · never enable</span>
+                            <span className="font-normal text-negative/80"> · never enable</span>
                           ) : null}
                         </span>
                       </li>

@@ -48,11 +48,11 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
         sub={executionIssues.length > 0 ? executionIssues.join(" · ") : "Open / closed live"}
         valueColor={
           failed > 0 || reconciliation > 0
-            ? "text-[#F6465D]"
+            ? "text-negative"
             : skipped > 0
               ? "text-accent"
               : Number(closedLive) > 0
-                ? "text-[#0ECB81]"
+                ? "text-profit"
                 : "text-text-primary"
         }
       />

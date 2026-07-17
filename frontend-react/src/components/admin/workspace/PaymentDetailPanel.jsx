@@ -161,7 +161,7 @@ const TONE = {
     iconBg: "#047857",
   },
   danger: {
-    color: "#fecaca",
+    color: "rgb(var(--neg-text))",
     bg: "#7f1d1d",
     border: "#991b1b",
     iconBg: "#991b1b",
@@ -613,7 +613,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
               className="text-[11.5px] px-3 py-2.5 rounded-xl flex items-start gap-2"
               style={{
                 background: "#7f1d1d",
-                color: "#fecaca",
+                color: "rgb(var(--neg-text))",
                 border: "1px solid #991b1b",
               }}
             >

@@ -35,8 +35,8 @@ import {
 
 function pnlColor(value) {
   const n = Number(value || 0);
-  if (n > 0) return "text-[#0ECB81]";
-  if (n < 0) return "text-[#F6465D]";
+  if (n > 0) return "text-profit";
+  if (n < 0) return "text-negative";
   return "text-text-primary/80";
 }
 
@@ -320,8 +320,8 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
 
 function Metric({ label, value, tone = "neutral" }) {
   const tones = {
-    good: "text-[#0ECB81]",
-    bad: "text-[#F6465D]",
+    good: "text-profit",
+    bad: "text-negative",
     neutral: "text-text-primary/90",
   };
   return (
@@ -402,9 +402,9 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
                   <p className="text-text-muted">{fmtNum(position.current_price, 8)}</p>
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-[11px] tabular-nums">
-                  <span className="text-[#0ECB81]">{fmtNum(position.take_profit, 8)}</span>
+                  <span className="text-profit">{fmtNum(position.take_profit, 8)}</span>
                   <span className="px-1 text-text-muted">/</span>
-                  <span className="text-[#F6465D]">{fmtNum(position.stop_loss, 8)}</span>
+                  <span className="text-negative">{fmtNum(position.stop_loss, 8)}</span>
                 </td>
                 <td
                   className={`px-4 py-3 text-right font-mono tabular-nums ${pnlColor(position.unrealized_pnl_usdt)}`}
@@ -547,12 +547,12 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               <DetailRow
                 label="Take profit"
                 value={`${fmtNum(position.take_profit, 8)}${tpDistance === null ? "" : ` · ${fmtPct(tpDistance)} away`}`}
-                tone="text-[#0ECB81]"
+                tone="text-profit"
               />
               <DetailRow
                 label="Stop loss"
                 value={`${fmtNum(position.stop_loss, 8)}${slDistance === null ? "" : ` · ${fmtPct(slDistance)} away`}`}
-                tone="text-[#F6465D]"
+                tone="text-negative"
               />
               <DetailRow label="OCO list" value={position.oco_order_list_id || "Not recorded"} />
               <DetailRow label="Last exchange sync" value={fmtDateTime(position.last_synced_at)} />
@@ -782,12 +782,12 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
         <div className="flex justify-center -mt-1 mb-3 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F6465D]">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-negative">
           Irreversible exchange action
         </p>
         <h3 className="mt-2 text-xl font-semibold text-text-primary">{action.title}</h3>
         <p className="mt-2 text-sm leading-6 text-text-muted">{action.description}</p>
-        <div className="mt-4 rounded-lg border border-[#F6465D]/20 bg-[#F6465D]/5 p-3 text-xs leading-5 text-[#ff9aa7]">
+        <div className="mt-4 rounded-lg border border-[#F6465D]/20 bg-[#F6465D]/5 p-3 text-xs leading-5 text-negative">
           AutoTrade will be paused before this operation. Market execution can have slippage, and
           failed items may require manual reconciliation.
         </div>

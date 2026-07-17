@@ -13,12 +13,12 @@ const STAGE_STYLE = {
   },
   hold: {
     label: "Hold",
-    color: "#ef4444",
+    color: "rgb(var(--neg-text))",
     bg: "rgba(239,68,68,0.10)",
   },
   manual_review_ready: {
     label: "Manual review ready",
-    color: "#22c55e",
+    color: "rgb(var(--pos-text))",
     bg: "rgba(34,197,94,0.10)",
   },
 };

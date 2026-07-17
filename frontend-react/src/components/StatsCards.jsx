@@ -27,11 +27,11 @@ const StatsCards = ({ stats, loading }) => {
 
   // Pie chart data
   const distributionData = [
-    { name: "TP1", value: stats.tp1_signals || 0, color: "#22C55E" },
+    { name: "TP1", value: stats.tp1_signals || 0, color: "rgb(var(--pos-text))" },
     { name: "TP2", value: stats.tp2_signals || 0, color: "#84CC16" },
     { name: "TP3", value: stats.tp3_signals || 0, color: "rgb(var(--warn))" },
     { name: "TP4", value: stats.closed_win || 0, color: "#F97316" },
-    { name: "SL", value: stats.closed_loss || 0, color: "#EF4444" },
+    { name: "SL", value: stats.closed_loss || 0, color: "rgb(var(--neg-text))" },
   ].filter((item) => item.value > 0);
 
   // Custom tooltip

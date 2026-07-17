@@ -581,7 +581,7 @@ export const Button = React.forwardRef(
       },
       danger: {
         background: "rgba(248,113,113,0.12)",
-        color: "#fecaca",
+        color: "rgb(var(--neg-text))",
         border: "1px solid rgba(248,113,113,0.35)",
       },
       success: {

@@ -22,7 +22,7 @@ export function DangerIcon() {
           background: "radial-gradient(circle, rgba(246,70,93,0.35) 0%, transparent 70%)",
         }}
       />
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#F6465D]/12 text-[#F6465D] ring-1 ring-[#F6465D]/35">
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#F6465D]/12 text-negative ring-1 ring-[#F6465D]/35">
         <svg
           viewBox="0 0 24 24"
           className="h-[21px] w-[21px]"
