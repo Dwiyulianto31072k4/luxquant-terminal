@@ -15,13 +15,13 @@
 // SignalModal @ 200k hid DeepAnalysis @ 150k → "button does nothing".
 
 export const Z = {
- chrome: 50,
- pageOverlay: 9999,
- modal: 100_000,
- drawer: 150_000,
- signalShell: 200_000,
- nestedModal: 210_000,
- lightbox: 300_000,
+  chrome: 50,
+  pageOverlay: 9999,
+  modal: 100_000,
+  drawer: 150_000,
+  signalShell: 200_000,
+  nestedModal: 210_000,
+  lightbox: 300_000,
 };
 
 export default Z;

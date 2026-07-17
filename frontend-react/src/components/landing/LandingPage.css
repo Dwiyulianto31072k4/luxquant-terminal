@@ -2,144 +2,242 @@
 
 /* Sembunyikan scrollbar untuk efek geser horizontal yang bersih di HP */
 .hide-scrollbar::-webkit-scrollbar {
- display: none;
+  display: none;
 }
 .hide-scrollbar {
- -ms-overflow-style: none;
- scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* =========================================
  ANIMASI HERO & COINS
 ========================================= */
 @keyframes heroCardFadeIn {
- from { opacity: 0; transform: translateY(20px) scale(0.97); }
- to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes heroGlowPulse {
- 0%, 100% { opacity: 0.25; }
- 50% { opacity: 0.55; }
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 @keyframes heroLineGrow {
- from { width: 0; }
- to { width: 56px; }
+  from {
+    width: 0;
+  }
+  to {
+    width: 56px;
+  }
 }
 
-@keyframes floatPhone { 
- 0%, 100% { transform: translateY(0px); } 
- 50% { transform: translateY(-14px); } 
+@keyframes floatPhone {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
 }
 
 /* Animasi Koin Terbang ke Kanan Atas (Menjauhi Globe) */
 @keyframes coin-float-up-right {
- 0% { opacity: 0; transform: translate(-20px, 20px) scale(0.8); }
- 15% { opacity: 1; transform: translate(10px, -10px) scale(1); }
- 85% { opacity: 1; transform: translate(30px, -30px) scale(1); }
- 100% { opacity: 0; transform: translate(50px, -50px) scale(0.8); }
+  0% {
+    opacity: 0;
+    transform: translate(-20px, 20px) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(10px, -10px) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(30px, -30px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(50px, -50px) scale(0.8);
+  }
 }
 
 /* =========================================
  ANIMASI SYSTEM ARCHITECTURE (PIPELINE)
 ========================================= */
 @keyframes spin-slow {
- from { transform: rotate(0deg); }
- to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes spin-reverse-slow {
- from { transform: rotate(360deg); }
- to { transform: rotate(0deg); }
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
 }
 
 @keyframes core-pulse {
- 0%, 100% { box-shadow: 0 0 20px rgb(var(--accent) / 0.1), inset 0 0 15px rgb(var(--accent) / 0.05); }
- 50% { box-shadow: 0 0 40px rgb(var(--accent) / 0.3), inset 0 0 30px rgb(var(--accent) / 0.1); border-color: rgb(var(--accent) / 0.7); }
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgb(var(--accent) / 0.1),
+      inset 0 0 15px rgb(var(--accent) / 0.05);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgb(var(--accent) / 0.3),
+      inset 0 0 30px rgb(var(--accent) / 0.1);
+    border-color: rgb(var(--accent) / 0.7);
+  }
 }
 
 @keyframes data-stream-right {
- 0% { transform: translateX(-100%); opacity: 0; }
- 10% { opacity: 1; }
- 90% { opacity: 1; }
- 100% { transform: translateX(200%); opacity: 0; }
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200%);
+    opacity: 0;
+  }
 }
 
 @keyframes data-stream-down {
- 0% { transform: translateY(-100%); opacity: 0; }
- 10% { opacity: 1; }
- 90% { opacity: 1; }
- 100% { transform: translateY(200%); opacity: 0; }
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(200%);
+    opacity: 0;
+  }
 }
 
 @keyframes scanline {
- 0% { transform: translateY(-100%); }
- 100% { transform: translateY(100%); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
 }
 
 /* =========================================
  BENTO GRID ECOSYSTEM CSS
 ========================================= */
 .bento-card {
- background: rgba(10, 8, 5, 0.6);
- backdrop-filter: blur(16px);
- -webkit-backdrop-filter: blur(16px);
- border: 1px solid rgb(var(--ink) / 0.05);
- border-radius: 1.5rem;
- overflow: hidden;
- position: relative;
- transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
- display: flex;
- flex-direction: column;
+  background: rgba(10, 8, 5, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgb(var(--ink) / 0.05);
+  border-radius: 1.5rem;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
 }
 
 .bento-card:hover {
- border-color: rgb(var(--accent) / 0.3);
- box-shadow: 0 10px 40px -10px rgb(var(--accent) / 0.15);
- transform: translateY(-2px);
+  border-color: rgb(var(--accent) / 0.3);
+  box-shadow: 0 10px 40px -10px rgb(var(--accent) / 0.15);
+  transform: translateY(-2px);
 }
 
 .bento-glow {
- position: absolute;
- width: 200px;
- height: 200px;
- background: radial-gradient(circle, rgb(var(--accent) / 0.15) 0%, transparent 70%);
- top: -50px;
- right: -50px;
- pointer-events: none;
- transition: opacity 0.4s ease;
- opacity: 0.5;
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgb(var(--accent) / 0.15) 0%, transparent 70%);
+  top: -50px;
+  right: -50px;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  opacity: 0.5;
 }
 
 .bento-card:hover .bento-glow {
- opacity: 1;
+  opacity: 1;
 }
 
 .bg-grid-pattern {
- background-size: 20px 20px;
- background-image: 
- linear-gradient(to right, rgb(var(--ink) / 0.03) 1px, transparent 1px),
- linear-gradient(to bottom, rgb(var(--ink) / 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, rgb(var(--ink) / 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--ink) / 0.03) 1px, transparent 1px);
 }
 
 @keyframes float-subtle {
- 0%, 100% { transform: translateY(0); }
- 50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes pulse-ring {
- 0% { box-shadow: 0 0 0 0 rgb(var(--accent) / 0.4); }
- 70% { box-shadow: 0 0 0 10px rgb(var(--accent) / 0); }
- 100% { box-shadow: 0 0 0 0 rgb(var(--accent) / 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--accent) / 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgb(var(--accent) / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--accent) / 0);
+  }
 }
 
 @keyframes progress-scan {
- 0% { width: 0%; opacity: 0.5; }
- 50% { opacity: 1; }
- 100% { width: 85%; opacity: 0.8; }
+  0% {
+    width: 0%;
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    width: 85%;
+    opacity: 0.8;
+  }
 }
 
 @keyframes data-blink {
- 0%, 100% { opacity: 1; }
- 50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }

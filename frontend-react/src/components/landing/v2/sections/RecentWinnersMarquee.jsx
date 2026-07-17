@@ -20,37 +20,37 @@ import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
 
 const deriveChartWithCard = (rawUrl) => {
- if (!rawUrl || typeof rawUrl !== "string") return null;
- if (!/_tp[234]_/i.test(rawUrl)) return null;
- if (/_with_card|_combined/i.test(rawUrl)) return null;
- return rawUrl.replace(/\.png$/i, "_with_card.png");
+  if (!rawUrl || typeof rawUrl !== "string") return null;
+  if (!/_tp[234]_/i.test(rawUrl)) return null;
+  if (/_with_card|_combined/i.test(rawUrl)) return null;
+  return rawUrl.replace(/\.png$/i, "_with_card.png");
 };
 
 const cleanPair = (p) => (p || "").replace(/USDT$/i, "").replace(/^3A/i, "");
 
 const fmtInt = (n) => {
- if (n == null || Number.isNaN(Number(n))) return null;
- return Math.round(Number(n)).toLocaleString("en-US");
+  if (n == null || Number.isNaN(Number(n))) return null;
+  return Math.round(Number(n)).toLocaleString("en-US");
 };
 
 const fmtDate = (iso) => {
- if (!iso) return null;
- const d = new Date(iso);
- if (Number.isNaN(d.getTime())) return null;
- return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 };
 
 const timeAgo = (iso) => {
- if (!iso) return null;
- const s = (Date.now() - new Date(iso).getTime()) / 1000;
- if (Number.isNaN(s)) return null;
- if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m ago`;
- if (s < 86400) return `${Math.round(s / 3600)}h ago`;
- const d = Math.round(s / 86400);
- if (d < 30) return `${d}d ago`;
- const mo = Math.round(d / 30);
- if (mo < 12) return `${mo}mo ago`;
- return `${Math.round(mo / 12)}y ago`;
+  if (!iso) return null;
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (Number.isNaN(s)) return null;
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  const d = Math.round(s / 86400);
+  if (d < 30) return `${d}d ago`;
+  const mo = Math.round(d / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  return `${Math.round(mo / 12)}y ago`;
 };
 
 // Short, varied, soft-sell copy. Each card reads differently (deterministic
@@ -58,326 +58,366 @@ const timeAgo = (iso) => {
 // numbers are real; the tone gently implies "this is what LuxQuant does".
 // No dash characters anywhere.
 const buildCaption = (w) => {
- const sym = cleanPair(w.pair);
- const peak = fmtInt(w.gain_pct);
- const realized = fmtInt(w.realized_pct);
- const lev = w.pnl_leverage ? Number(w.pnl_leverage) : null;
- const levPeak = lev && w.gain_pct != null ? fmtInt(w.gain_pct * lev) : null;
- const date = fmtDate(w.signal_time);
- const ago = timeAgo(w.signal_time);
+  const sym = cleanPair(w.pair);
+  const peak = fmtInt(w.gain_pct);
+  const realized = fmtInt(w.realized_pct);
+  const lev = w.pnl_leverage ? Number(w.pnl_leverage) : null;
+  const levPeak = lev && w.gain_pct != null ? fmtInt(w.gain_pct * lev) : null;
+  const date = fmtDate(w.signal_time);
+  const ago = timeAgo(w.signal_time);
 
- const c = [];
- if (peak) {
- c.push(`Called ${ago}, $${sym} ran to a +${peak}% peak from entry.`);
- c.push(`The algorithm flagged $${sym} on ${date}; it topped near +${peak}%.`);
- c.push(`Entry to peak, +${peak}% on $${sym}. The kind of call we make daily.`);
- c.push(`$${sym} climbed +${peak}% after the call. Live, not hindsight.`);
- c.push(`$${sym} pushed +${peak}% above entry. Proof, not promises.`);
- }
- if (peak && realized) {
- c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high.`);
- c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak.`);
- }
- if (peak && levPeak) {
- c.push(`$${sym} peaked +${peak}%. At ${lev}x, that is roughly +${levPeak}%.`);
- }
- if (c.length === 0) return `$${sym}, called ${ago || "recently"}.`;
+  const c = [];
+  if (peak) {
+    c.push(`Called ${ago}, $${sym} ran to a +${peak}% peak from entry.`);
+    c.push(`The algorithm flagged $${sym} on ${date}; it topped near +${peak}%.`);
+    c.push(`Entry to peak, +${peak}% on $${sym}. The kind of call we make daily.`);
+    c.push(`$${sym} climbed +${peak}% after the call. Live, not hindsight.`);
+    c.push(`$${sym} pushed +${peak}% above entry. Proof, not promises.`);
+  }
+  if (peak && realized) {
+    c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high.`);
+    c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak.`);
+  }
+  if (peak && levPeak) {
+    c.push(`$${sym} peaked +${peak}%. At ${lev}x, that is roughly +${levPeak}%.`);
+  }
+  if (c.length === 0) return `$${sym}, called ${ago || "recently"}.`;
 
- let h = 0;
- const key = String(w.signal_id || sym);
- for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
- return c[h % c.length];
+  let h = 0;
+  const key = String(w.signal_id || sym);
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return c[h % c.length];
 };
 
 const ArrowUpRight = ({ className = "h-3 w-3" }) => (
- <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
- <path d="M7 17 17 7" />
- <path d="M8 7h9v9" />
- </svg>
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M7 17 17 7" />
+    <path d="M8 7h9v9" />
+  </svg>
 );
 
 export default function RecentWinnersMarquee({ gainers = [], blendWithHero = true }) {
- const { t } = useTranslation();
+  const { t } = useTranslation();
 
- // Interleave Weekly → Daily → Weekly → Daily (same spirit as Top Gainers).
- // Within each type, keep peak-sorted order; skip a pair if it already appeared.
- const winners = useMemo(() => {
- const eligible = (gainers || [])
- .map((g) => ({ ...g, cardImg: deriveChartWithCard(g.latest_chart_url) }))
- .filter((g) => g.cardImg && g.signal_id);
+  // Interleave Weekly → Daily → Weekly → Daily (same spirit as Top Gainers).
+  // Within each type, keep peak-sorted order; skip a pair if it already appeared.
+  const winners = useMemo(() => {
+    const eligible = (gainers || [])
+      .map((g) => ({ ...g, cardImg: deriveChartWithCard(g.latest_chart_url) }))
+      .filter((g) => g.cardImg && g.signal_id);
 
- const dedupeByPair = (list) => {
- const seen = new Set();
- return list
- .sort((a, b) => (b.gain_pct || 0) - (a.gain_pct || 0))
- .filter((g) => !seen.has(g.pair) && seen.add(g.pair));
- };
+    const dedupeByPair = (list) => {
+      const seen = new Set();
+      return list
+        .sort((a, b) => (b.gain_pct || 0) - (a.gain_pct || 0))
+        .filter((g) => !seen.has(g.pair) && seen.add(g.pair));
+    };
 
- const typeOf = (g) => String(g.type || "").toLowerCase();
- const weekly = dedupeByPair(eligible.filter((g) => typeOf(g) === "weekly"));
- const daily = dedupeByPair(eligible.filter((g) => typeOf(g) === "daily"));
- // Fallback if type tag missing (shouldn't happen from useLandingData)
- const untyped = dedupeByPair(eligible.filter((g) => !typeOf(g)));
+    const typeOf = (g) => String(g.type || "").toLowerCase();
+    const weekly = dedupeByPair(eligible.filter((g) => typeOf(g) === "weekly"));
+    const daily = dedupeByPair(eligible.filter((g) => typeOf(g) === "daily"));
+    // Fallback if type tag missing (shouldn't happen from useLandingData)
+    const untyped = dedupeByPair(eligible.filter((g) => !typeOf(g)));
 
- const combined = [];
- const seenPair = new Set();
- const MAX = 20;
- const push = (item) => {
- if (!item || seenPair.has(item.pair) || combined.length >= MAX) return;
- seenPair.add(item.pair);
- combined.push(item);
- };
+    const combined = [];
+    const seenPair = new Set();
+    const MAX = 20;
+    const push = (item) => {
+      if (!item || seenPair.has(item.pair) || combined.length >= MAX) return;
+      seenPair.add(item.pair);
+      combined.push(item);
+    };
 
- const max = Math.max(weekly.length, daily.length);
- for (let i = 0; i < max && combined.length < MAX; i++) {
- push(weekly[i]); // 1st, 3rd, 5th… weekly
- push(daily[i]); // 2nd, 4th, 6th… daily
- }
- // Top up if one side ran dry / types missing
- for (const item of untyped) push(item);
+    const max = Math.max(weekly.length, daily.length);
+    for (let i = 0; i < max && combined.length < MAX; i++) {
+      push(weekly[i]); // 1st, 3rd, 5th… weekly
+      push(daily[i]); // 2nd, 4th, 6th… daily
+    }
+    // Top up if one side ran dry / types missing
+    for (const item of untyped) push(item);
 
- return combined;
- }, [gainers]);
+    return combined;
+  }, [gainers]);
 
- const hasWinners = winners.length > 0;
+  const hasWinners = winners.length > 0;
 
- // ── proof modal (reuse SignalDetailModal — the exact full proof) ──
- const [modalOpen, setModalOpen] = useState(false);
- const [modalItem, setModalItem] = useState(null);
- const [signalDetail, setSignalDetail] = useState(null);
- const [detailLoading, setDetailLoading] = useState(false);
- const [modalSignalIds, setModalSignalIds] = useState([]);
- const [modalIndex, setModalIndex] = useState(0);
+  // ── proof modal (reuse SignalDetailModal — the exact full proof) ──
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalItem, setModalItem] = useState(null);
+  const [signalDetail, setSignalDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [modalSignalIds, setModalSignalIds] = useState([]);
+  const [modalIndex, setModalIndex] = useState(0);
 
- const fetchDetail = useCallback(async (sid) => {
- setDetailLoading(true);
- setSignalDetail(null);
- try {
- const token = localStorage.getItem("access_token");
- const headers = token ? { Authorization: `Bearer ${token}` } : {};
- const r = await fetch(`/api/v1/signals/detail/${sid}`, { headers });
- if (r.ok) setSignalDetail(await r.json());
- } catch (e) {
- console.warn("[RecentWinners] detail fetch failed:", e);
- } finally {
- setDetailLoading(false);
- }
- }, []);
+  const fetchDetail = useCallback(async (sid) => {
+    setDetailLoading(true);
+    setSignalDetail(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/v1/signals/detail/${sid}`, { headers });
+      if (r.ok) setSignalDetail(await r.json());
+    } catch (e) {
+      console.warn("[RecentWinners] detail fetch failed:", e);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
- const openProof = useCallback(
- (item) => {
- if (!item?.signal_id) return;
- const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
- const bi = ids.indexOf(item.signal_id);
- setModalSignalIds(ids);
- setModalIndex(bi >= 0 ? bi : 0);
- setModalItem(item);
- setModalOpen(true);
- fetchDetail(item.signal_id);
- },
- [fetchDetail]
- );
+  const openProof = useCallback(
+    (item) => {
+      if (!item?.signal_id) return;
+      const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
+      const bi = ids.indexOf(item.signal_id);
+      setModalSignalIds(ids);
+      setModalIndex(bi >= 0 ? bi : 0);
+      setModalItem(item);
+      setModalOpen(true);
+      fetchDetail(item.signal_id);
+    },
+    [fetchDetail]
+  );
 
- const goToSignal = useCallback(
- (i) => {
- if (i < 0 || i >= modalSignalIds.length) return;
- setModalIndex(i);
- fetchDetail(modalSignalIds[i]);
- },
- [modalSignalIds, fetchDetail]
- );
+  const goToSignal = useCallback(
+    (i) => {
+      if (i < 0 || i >= modalSignalIds.length) return;
+      setModalIndex(i);
+      fetchDetail(modalSignalIds[i]);
+    },
+    [modalSignalIds, fetchDetail]
+  );
 
- const closeModal = useCallback(() => {
- setModalOpen(false);
- setModalSignalIds([]);
- setModalIndex(0);
- setModalItem(null);
- setSignalDetail(null);
- }, []);
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setModalSignalIds([]);
+    setModalIndex(0);
+    setModalItem(null);
+    setSignalDetail(null);
+  }, []);
 
- // ── seamless transform loop + grab/drag ──
- const trackRef = useRef(null);
- const offsetRef = useRef(0);
- const pausedRef = useRef(false);
- const dragRef = useRef({ active: false, startX: 0, startOffset: 0, moved: false });
+  // ── seamless transform loop + grab/drag ──
+  const trackRef = useRef(null);
+  const offsetRef = useRef(0);
+  const pausedRef = useRef(false);
+  const dragRef = useRef({ active: false, startX: 0, startOffset: 0, moved: false });
 
- const onWinMove = useCallback((e) => {
- const d = dragRef.current;
- if (!d.active) return;
- const dx = e.clientX - d.startX;
- if (Math.abs(dx) > 5) d.moved = true;
- offsetRef.current = d.startOffset + dx;
- }, []);
+  const onWinMove = useCallback((e) => {
+    const d = dragRef.current;
+    if (!d.active) return;
+    const dx = e.clientX - d.startX;
+    if (Math.abs(dx) > 5) d.moved = true;
+    offsetRef.current = d.startOffset + dx;
+  }, []);
 
- const onWinUp = useCallback(() => {
- window.removeEventListener("pointermove", onWinMove);
- window.removeEventListener("pointerup", onWinUp);
- setTimeout(() => { dragRef.current.active = false; }, 0);
- }, [onWinMove]);
+  const onWinUp = useCallback(() => {
+    window.removeEventListener("pointermove", onWinMove);
+    window.removeEventListener("pointerup", onWinUp);
+    setTimeout(() => {
+      dragRef.current.active = false;
+    }, 0);
+  }, [onWinMove]);
 
- const onPointerDown = (e) => {
- dragRef.current = { active: true, startX: e.clientX, startOffset: offsetRef.current, moved: false };
- window.addEventListener("pointermove", onWinMove);
- window.addEventListener("pointerup", onWinUp);
- };
+  const onPointerDown = (e) => {
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startOffset: offsetRef.current,
+      moved: false,
+    };
+    window.addEventListener("pointermove", onWinMove);
+    window.addEventListener("pointerup", onWinUp);
+  };
 
- useEffect(() => () => {
- window.removeEventListener("pointermove", onWinMove);
- window.removeEventListener("pointerup", onWinUp);
- }, [onWinMove, onWinUp]);
+  useEffect(
+    () => () => {
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+    },
+    [onWinMove, onWinUp]
+  );
 
- useEffect(() => {
- const track = trackRef.current;
- if (!track || !hasWinners) return;
- const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
- let raf;
- let last;
- const SPEED = 42; // px per second
- const n = winners.length;
- const frame = (ts) => {
- if (last == null) last = ts;
- const dt = (ts - last) / 1000;
- last = ts;
- // One set width = left offset of the first card of the duplicated set.
- const secondStart = track.children[n];
- const setW = secondStart ? secondStart.offsetLeft : 0;
- if (setW > 0) {
- if (!reduce && !pausedRef.current && !dragRef.current.active) {
- offsetRef.current -= SPEED * dt;
- }
- let o = offsetRef.current;
- if (o <= -setW) o += setW;
- else if (o > 0) o -= setW;
- offsetRef.current = o;
- track.style.transform = `translate3d(${o}px,0,0)`;
- }
- raf = requestAnimationFrame(frame);
- };
- raf = requestAnimationFrame(frame);
- return () => cancelAnimationFrame(raf);
- }, [hasWinners, winners.length]);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || !hasWinners) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    let raf;
+    let last;
+    const SPEED = 42; // px per second
+    const n = winners.length;
+    const frame = (ts) => {
+      if (last == null) last = ts;
+      const dt = (ts - last) / 1000;
+      last = ts;
+      // One set width = left offset of the first card of the duplicated set.
+      const secondStart = track.children[n];
+      const setW = secondStart ? secondStart.offsetLeft : 0;
+      if (setW > 0) {
+        if (!reduce && !pausedRef.current && !dragRef.current.active) {
+          offsetRef.current -= SPEED * dt;
+        }
+        let o = offsetRef.current;
+        if (o <= -setW) o += setW;
+        else if (o > 0) o -= setW;
+        offsetRef.current = o;
+        track.style.transform = `translate3d(${o}px,0,0)`;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [hasWinners, winners.length]);
 
- const track = hasWinners ? [...winners, ...winners] : [];
+  const track = hasWinners ? [...winners, ...winners] : [];
 
- // Video hero: mild pull into dissolve, but leave the slider dots (z-40) clear.
- // Algo product slide: normal gap (no collision with CTA/devices).
- const sectionClass = blendWithHero
- ? "rwm relative z-[1] -mt-2 pt-3 pb-12 sm:-mt-3 sm:pt-4 sm:pb-24"
- : "rwm relative z-[1] mt-2 pt-10 pb-12 sm:mt-4 sm:pt-14 sm:pb-24";
+  // Video hero: mild pull into dissolve, but leave the slider dots (z-40) clear.
+  // Algo product slide: normal gap (no collision with CTA/devices).
+  const sectionClass = blendWithHero
+    ? "rwm relative z-[1] -mt-2 pt-3 pb-12 sm:-mt-3 sm:pt-4 sm:pb-24"
+    : "rwm relative z-[1] mt-2 pt-10 pb-12 sm:mt-4 sm:pt-14 sm:pb-24";
 
- return (
- <section className={sectionClass}>
- {/* Additive glow only — transparent section so page canvas is continuous
+  return (
+    <section className={sectionClass}>
+      {/* Additive glow only — transparent section so page canvas is continuous
  with the hero dissolve (same world, not a new band under a cut). */}
- <div className="rwm-bg" aria-hidden="true" />
+      <div className="rwm-bg" aria-hidden="true" />
 
- {/* Heading — only overlaps video dissolve when blendWithHero */}
- <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
- <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-text-primary">
- Real calls. Real peaks.
- </h2>
- <p className="mt-3 text-sm sm:text-[15px] text-text-primary/55 max-w-lg mx-auto leading-relaxed">
- Every card is an actual LuxQuant call, from entry to peak, exactly as it played out.
- </p>
- </div>
+      {/* Heading — only overlaps video dissolve when blendWithHero */}
+      <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
+        <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-text-primary">
+          Real calls. Real peaks.
+        </h2>
+        <p className="mt-3 text-sm sm:text-[15px] text-text-primary/55 max-w-lg mx-auto leading-relaxed">
+          Every card is an actual LuxQuant call, from entry to peak, exactly as it played out.
+        </p>
+      </div>
 
- {/* Rail */}
- <div className="rwm-window relative z-10 mt-8 sm:mt-14">
- <div
- className="rwm-viewport"
- onMouseEnter={() => { pausedRef.current = true; }}
- onMouseLeave={() => { pausedRef.current = false; }}
- onTouchStart={() => { pausedRef.current = true; }}
- onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 1400); }}
- onPointerDown={onPointerDown}
- >
- <div className="rwm-track" ref={trackRef}>
- {!hasWinners &&
- Array.from({ length: 4 }).map((_, i) => (
- <div key={`skel-${i}`} className="rwm-card">
- <div className="rwm-img-wrap rwm-skel" style={{ paddingTop: "56%" }} />
- <div className="rwm-meta">
- <div className="rwm-skel rwm-skel-line" style={{ width: "45%" }} />
- <div className="rwm-skel rwm-skel-line" style={{ width: "92%", marginTop: 12 }} />
- <div className="rwm-skel rwm-skel-line" style={{ width: "70%", marginTop: 7 }} />
- </div>
- </div>
- ))}
- {track.map((w, i) => {
- const sym = cleanPair(w.pair);
- const date = fmtDate(w.signal_time);
- const ago = timeAgo(w.signal_time);
- const caption = buildCaption(w);
- return (
- <button
- key={`${w.signal_id}-${i}`}
- onClick={() => { if (!dragRef.current.moved) openProof(w); }}
- className="rwm-card group"
- title={`${sym} · open full proof`}
- >
- <div className="rwm-img-wrap">
- <img
- src={w.cardImg}
- alt={`${sym} PnL card`}
- loading="lazy"
- draggable="false"
- className="rwm-img"
- onError={(e) => {
- const img = e.currentTarget;
- if (img.dataset.fallback !== "1" && w.latest_chart_url) {
- img.dataset.fallback = "1";
- img.src = w.latest_chart_url;
- return;
- }
- const card = img.closest(".rwm-card");
- if (card) card.style.display = "none";
- }}
- />
- </div>
+      {/* Rail */}
+      <div className="rwm-window relative z-10 mt-8 sm:mt-14">
+        <div
+          className="rwm-viewport"
+          onMouseEnter={() => {
+            pausedRef.current = true;
+          }}
+          onMouseLeave={() => {
+            pausedRef.current = false;
+          }}
+          onTouchStart={() => {
+            pausedRef.current = true;
+          }}
+          onTouchEnd={() => {
+            setTimeout(() => {
+              pausedRef.current = false;
+            }, 1400);
+          }}
+          onPointerDown={onPointerDown}
+        >
+          <div className="rwm-track" ref={trackRef}>
+            {!hasWinners &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={`skel-${i}`} className="rwm-card">
+                  <div className="rwm-img-wrap rwm-skel" style={{ paddingTop: "56%" }} />
+                  <div className="rwm-meta">
+                    <div className="rwm-skel rwm-skel-line" style={{ width: "45%" }} />
+                    <div
+                      className="rwm-skel rwm-skel-line"
+                      style={{ width: "92%", marginTop: 12 }}
+                    />
+                    <div
+                      className="rwm-skel rwm-skel-line"
+                      style={{ width: "70%", marginTop: 7 }}
+                    />
+                  </div>
+                </div>
+              ))}
+            {track.map((w, i) => {
+              const sym = cleanPair(w.pair);
+              const date = fmtDate(w.signal_time);
+              const ago = timeAgo(w.signal_time);
+              const caption = buildCaption(w);
+              return (
+                <button
+                  key={`${w.signal_id}-${i}`}
+                  onClick={() => {
+                    if (!dragRef.current.moved) openProof(w);
+                  }}
+                  className="rwm-card group"
+                  title={`${sym} · open full proof`}
+                >
+                  <div className="rwm-img-wrap">
+                    <img
+                      src={w.cardImg}
+                      alt={`${sym} PnL card`}
+                      loading="lazy"
+                      draggable="false"
+                      className="rwm-img"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (img.dataset.fallback !== "1" && w.latest_chart_url) {
+                          img.dataset.fallback = "1";
+                          img.src = w.latest_chart_url;
+                          return;
+                        }
+                        const card = img.closest(".rwm-card");
+                        if (card) card.style.display = "none";
+                      }}
+                    />
+                  </div>
 
- <div className="rwm-meta">
- <div className="flex items-center gap-2 flex-wrap">
- <CoinLogo pair={w.pair} size={22} />
- <span className="text-text-primary text-[15px] font-semibold tracking-tight">${sym}</span>
- {(date || ago) && (
- <span className="text-[11.5px] font-mono tabular-nums text-text-primary/40">
- {date}{ago ? ` · ${ago}` : ""}
- </span>
- )}
- </div>
+                  <div className="rwm-meta">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CoinLogo pair={w.pair} size={22} />
+                      <span className="text-text-primary text-[15px] font-semibold tracking-tight">
+                        ${sym}
+                      </span>
+                      {(date || ago) && (
+                        <span className="text-[11.5px] font-mono tabular-nums text-text-primary/40">
+                          {date}
+                          {ago ? ` · ${ago}` : ""}
+                        </span>
+                      )}
+                    </div>
 
- <p className="mt-2.5 text-[13.5px] leading-[1.7] text-text-primary/65">
- {caption}{" "}
- <span className="rwm-proof">
- View proof
- <ArrowUpRight className="h-3 w-3" />
- </span>
- </p>
- </div>
- </button>
- );
- })}
- </div>
- </div>
+                    <p className="mt-2.5 text-[13.5px] leading-[1.7] text-text-primary/65">
+                      {caption}{" "}
+                      <span className="rwm-proof">
+                        View proof
+                        <ArrowUpRight className="h-3 w-3" />
+                      </span>
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
- {/* Edge dissolve via mask on .rwm-window (no colored curtain overlays). */}
- </div>
+        {/* Edge dissolve via mask on .rwm-window (no colored curtain overlays). */}
+      </div>
 
- {modalOpen && modalItem && (
- <SignalDetailModal
- item={modalItem}
- detail={signalDetail}
- loading={detailLoading}
- signalIds={modalSignalIds}
- currentIndex={modalIndex}
- onNavigate={goToSignal}
- onClose={closeModal}
- cleanPair={cleanPair}
- t={t}
- />
- )}
+      {modalOpen && modalItem && (
+        <SignalDetailModal
+          item={modalItem}
+          detail={signalDetail}
+          loading={detailLoading}
+          signalIds={modalSignalIds}
+          currentIndex={modalIndex}
+          onNavigate={goToSignal}
+          onClose={closeModal}
+          cleanPair={cleanPair}
+          t={t}
+        />
+      )}
 
- <style>{`
+      <style>{`
  .rwm-bg {
  position: absolute; inset: 0; z-index: 0; pointer-events: none;
  /* Soft only — no top edge plate that would re-draw a seam under hero */
@@ -497,6 +537,6 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
 
  @media (prefers-reduced-motion: reduce) { .rwm-skel::after { animation: none; } }
  `}</style>
- </section>
- );
+    </section>
+  );
 }

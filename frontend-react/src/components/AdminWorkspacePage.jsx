@@ -14,52 +14,52 @@
 // • Active tab persisted via URL hash (e.g. /admin/workspace#finance)
 // • Stats polled every 60s for live badge counters
 //
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { workspaceApi } from '../services/workspaceApi';
-import { financeApi } from '../services/financeApi';
-import { isAdminStaff, isAdminViewOnly } from '../utils/roles';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from "../context/AuthContext";
+import { workspaceApi } from "../services/workspaceApi";
+import { financeApi } from "../services/financeApi";
+import { isAdminStaff, isAdminViewOnly } from "../utils/roles";
 
 // Tab content
-import UserManagementPage from './UserManagementPage';
-import { FollowupTab } from './admin/workspace/FollowupTab';
-import { MarketingTab } from './admin/workspace/MarketingTab';
-import { FinanceTab } from './admin/workspace/FinanceTab';
-import { GrowthTab } from './admin/workspace/GrowthTab';
-import { TodoTab } from './admin/workspace/TodoTab';
-import { ActivityTab } from './admin/workspace/ActivityTab';
-import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
-import { AnnouncementsTab } from './admin/workspace/AnnouncementsTab';
-import { SystemTab } from './admin/workspace/SystemTab';
-import { ProfitSharingTab } from './admin/workspace/ProfitSharingTab';
-import { AiCostTab } from './admin/workspace/AiCostTab';
-import { StatusTab } from './admin/workspace/StatusTab';
-import { ResourcesTab } from './admin/workspace/ResourcesTab';
-import SocialPostsAdminPage from './SocialPostsAdminPage';
+import UserManagementPage from "./UserManagementPage";
+import { FollowupTab } from "./admin/workspace/FollowupTab";
+import { MarketingTab } from "./admin/workspace/MarketingTab";
+import { FinanceTab } from "./admin/workspace/FinanceTab";
+import { GrowthTab } from "./admin/workspace/GrowthTab";
+import { TodoTab } from "./admin/workspace/TodoTab";
+import { ActivityTab } from "./admin/workspace/ActivityTab";
+import { ApiKeysTab } from "./admin/workspace/ApiKeysTab";
+import { AnnouncementsTab } from "./admin/workspace/AnnouncementsTab";
+import { SystemTab } from "./admin/workspace/SystemTab";
+import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
+import { AiCostTab } from "./admin/workspace/AiCostTab";
+import { StatusTab } from "./admin/workspace/StatusTab";
+import { ResourcesTab } from "./admin/workspace/ResourcesTab";
+import SocialPostsAdminPage from "./SocialPostsAdminPage";
 
 // Design system
-import { palette, tint, motion, NEUTRAL } from './admin/designSystem';
+import { palette, tint, motion, NEUTRAL } from "./admin/designSystem";
 
 // Icons
 import {
- ShieldIcon,
- AlertTriangleIcon,
- AlertCircleIcon,
- BellIcon,
- ZapIcon,
- ClockIcon,
- TrendingUpIcon,
- TargetIcon,
- CheckCircleIcon,
- UsersRingIcon,
- ArrowTargetIcon,
- BroadcastConeIcon,
- BarsChartIcon,
- CheckSquareIcon,
- ActivityIcon,
- ServerIcon,
- DollarIcon,
-} from './admin/Icons';
+  ShieldIcon,
+  AlertTriangleIcon,
+  AlertCircleIcon,
+  BellIcon,
+  ZapIcon,
+  ClockIcon,
+  TrendingUpIcon,
+  TargetIcon,
+  CheckCircleIcon,
+  UsersRingIcon,
+  ArrowTargetIcon,
+  BroadcastConeIcon,
+  BarsChartIcon,
+  CheckSquareIcon,
+  ActivityIcon,
+  ServerIcon,
+  DollarIcon,
+} from "./admin/Icons";
 
 // ════════════════════════════════════════════════════════════════════
 // Tab definition
@@ -67,30 +67,131 @@ import {
 
 // Inline library/content icon for the Resources tab.
 const LibraryIcon = ({ size = 14, style, ...props }) => (
- <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={style} {...props}>
- <path d="M4 5v14a1 1 0 001 1h3V4H5a1 1 0 00-1 1z" />
- <path d="M8 4h4v16H8z" />
- <path d="M12.5 5.2l3.9-1 3.2 12.4-3.9 1z" />
- </svg>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    {...props}
+  >
+    <path d="M4 5v14a1 1 0 001 1h3V4H5a1 1 0 00-1 1z" />
+    <path d="M8 4h4v16H8z" />
+    <path d="M12.5 5.2l3.9-1 3.2 12.4-3.9 1z" />
+  </svg>
 );
 
 // Decorative accent for tabs/icons is neutral — colour only for urgency badges.
 const TABS = [
- { id: 'users', label: 'Users', description: 'Members, roles, and access', Icon: UsersRingIcon, accent: NEUTRAL },
- { id: 'followups', label: 'Follow-ups', description: 'Reminders & support queue', Icon: ArrowTargetIcon, accent: NEUTRAL },
- { id: 'marketing', label: 'Marketing', description: 'Campaigns & budget tracking', Icon: BroadcastConeIcon, accent: NEUTRAL },
- { id: 'finance', label: 'Finance', description: 'Revenue & payment ops', Icon: BarsChartIcon, accent: NEUTRAL },
- { id: 'growth', label: 'Growth', description: 'Revenue, retention & attribution', Icon: TrendingUpIcon, accent: NEUTRAL },
- { id: 'todos', label: 'TODOs', description: 'Internal task board', Icon: CheckSquareIcon, accent: NEUTRAL },
- { id: 'activity', label: 'Activity', description: 'Engagement & growth analytics', Icon: ActivityIcon, accent: NEUTRAL },
- { id: 'apikeys', label: 'API', description: 'Developer keys & abuse flags', Icon: ShieldIcon, accent: NEUTRAL },
- { id: 'announcements', label: 'Announcements', description: 'In-app modal messages', Icon: BroadcastConeIcon, accent: NEUTRAL },
- { id: 'socialposts', label: 'Social Posts', description: 'AI-generated post drafts', Icon: BroadcastConeIcon, accent: NEUTRAL },
- { id: 'resources', label: 'Resources', description: 'Research, guides, videos & links', Icon: LibraryIcon, accent: NEUTRAL },
- { id: 'system', label: 'System', description: 'VPS service health & control', Icon: ServerIcon, accent: NEUTRAL },
- { id: 'status', label: 'Status', description: 'Public status page & incidents', Icon: BellIcon, accent: NEUTRAL },
- { id: 'profitshare', label: 'Profit Share', description: 'Revenue split recap & export', Icon: DollarIcon, accent: NEUTRAL },
- { id: 'aicost', label: 'AI Cost', description: 'AI usage & spend tracking', Icon: ZapIcon, accent: NEUTRAL },
+  {
+    id: "users",
+    label: "Users",
+    description: "Members, roles, and access",
+    Icon: UsersRingIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "followups",
+    label: "Follow-ups",
+    description: "Reminders & support queue",
+    Icon: ArrowTargetIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "marketing",
+    label: "Marketing",
+    description: "Campaigns & budget tracking",
+    Icon: BroadcastConeIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    description: "Revenue & payment ops",
+    Icon: BarsChartIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "growth",
+    label: "Growth",
+    description: "Revenue, retention & attribution",
+    Icon: TrendingUpIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "todos",
+    label: "TODOs",
+    description: "Internal task board",
+    Icon: CheckSquareIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "activity",
+    label: "Activity",
+    description: "Engagement & growth analytics",
+    Icon: ActivityIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "apikeys",
+    label: "API",
+    description: "Developer keys & abuse flags",
+    Icon: ShieldIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "announcements",
+    label: "Announcements",
+    description: "In-app modal messages",
+    Icon: BroadcastConeIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "socialposts",
+    label: "Social Posts",
+    description: "AI-generated post drafts",
+    Icon: BroadcastConeIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    description: "Research, guides, videos & links",
+    Icon: LibraryIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "system",
+    label: "System",
+    description: "VPS service health & control",
+    Icon: ServerIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "status",
+    label: "Status",
+    description: "Public status page & incidents",
+    Icon: BellIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "profitshare",
+    label: "Profit Share",
+    description: "Revenue split recap & export",
+    Icon: DollarIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "aicost",
+    label: "AI Cost",
+    description: "AI usage & spend tracking",
+    Icon: ZapIcon,
+    accent: NEUTRAL,
+  },
 ];
 
 const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
@@ -100,14 +201,14 @@ const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
 // ════════════════════════════════════════════════════════════════════
 
 const BrandHeader = () => (
- <div className="min-w-0">
- <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-text-muted">
- LuxQuant
- </p>
- <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-3xl">
- Management System
- </h1>
- </div>
+  <div className="min-w-0">
+    <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-text-muted">
+      LuxQuant
+    </p>
+    <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-3xl">
+      Management System
+    </h1>
+  </div>
 );
 
 // ════════════════════════════════════════════════════════════════════
@@ -115,48 +216,164 @@ const BrandHeader = () => (
 // ════════════════════════════════════════════════════════════════════
 
 const UrgencyChip = ({ label, value, accent, Icon, onClick, pulse = false }) => (
- <button
- onClick={onClick}
- disabled={!onClick}
- className={`group relative flex items-center gap-2 px-2.5 py-1.5 rounded-md ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
- style={{ background: tint(accent, 0.05), border: `1px solid ${tint(accent, 0.18)}`, transition: motion.base }}
- onMouseEnter={(e) => { if (onClick) { e.currentTarget.style.background = tint(accent, 0.10); e.currentTarget.style.borderColor = tint(accent, 0.32); } }}
- onMouseLeave={(e) => { if (onClick) { e.currentTarget.style.background = tint(accent, 0.05); e.currentTarget.style.borderColor = tint(accent, 0.18); } }}
- >
- <span className="relative inline-flex shrink-0">
- {pulse && <span className="absolute inset-0 rounded-full animate-ping opacity-50" style={{ background: accent }} />}
- <span className="relative inline-block w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
- </span>
- <Icon size={11} style={{ color: tint(accent, 0.85) }} />
- <span className="text-[10px] font-medium leading-none" style={{ color: tint(accent, 0.75), letterSpacing: '0.02em' }}>{label}</span>
- <span className="text-[12px] font-bold tabular-nums leading-none" style={{ color: accent, fontFeatureSettings: '"tnum"' }}>{value}</span>
- </button>
+  <button
+    onClick={onClick}
+    disabled={!onClick}
+    className={`group relative flex items-center gap-2 px-2.5 py-1.5 rounded-md ${onClick ? "cursor-pointer" : "cursor-default"}`}
+    style={{
+      background: tint(accent, 0.05),
+      border: `1px solid ${tint(accent, 0.18)}`,
+      transition: motion.base,
+    }}
+    onMouseEnter={(e) => {
+      if (onClick) {
+        e.currentTarget.style.background = tint(accent, 0.1);
+        e.currentTarget.style.borderColor = tint(accent, 0.32);
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (onClick) {
+        e.currentTarget.style.background = tint(accent, 0.05);
+        e.currentTarget.style.borderColor = tint(accent, 0.18);
+      }
+    }}
+  >
+    <span className="relative inline-flex shrink-0">
+      {pulse && (
+        <span
+          className="absolute inset-0 rounded-full animate-ping opacity-50"
+          style={{ background: accent }}
+        />
+      )}
+      <span
+        className="relative inline-block w-1.5 h-1.5 rounded-full"
+        style={{ background: accent }}
+      />
+    </span>
+    <Icon size={11} style={{ color: tint(accent, 0.85) }} />
+    <span
+      className="text-[10px] font-medium leading-none"
+      style={{ color: tint(accent, 0.75), letterSpacing: "0.02em" }}
+    >
+      {label}
+    </span>
+    <span
+      className="text-[12px] font-bold tabular-nums leading-none"
+      style={{ color: accent, fontFeatureSettings: '"tnum"' }}
+    >
+      {value}
+    </span>
+  </button>
 );
 
 const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
- const chips = [];
- if (servicesSummary?.down > 0) chips.push({ label: 'service down', value: servicesSummary.down, accent: palette.red[400], Icon: ServerIcon, pulse: true, onClick: () => onJumpTo('system') });
- if (stats?.followups_overdue > 0) chips.push({ label: 'overdue', value: stats.followups_overdue, accent: palette.red[400], Icon: AlertTriangleIcon, pulse: true, onClick: () => onJumpTo('followups') });
- if (financeStats?.stale_count > 0) chips.push({ label: 'stale pay', value: financeStats.stale_count, accent: palette.red[400], Icon: AlertCircleIcon, pulse: true, onClick: () => onJumpTo('finance') });
- if (financeStats?.payment_gap_pending > 0) chips.push({ label: 'pay gap', value: financeStats.payment_gap_pending, accent: palette.amber[400], Icon: DollarIcon, pulse: true, onClick: () => {
- try { sessionStorage.setItem('luxquant.openPaymentAudit', '1'); } catch { /* ignore */ }
- onJumpTo('finance');
- }});
- if (stats?.todos_urgent > 0) chips.push({ label: 'urgent todos', value: stats.todos_urgent, accent: palette.orange[400], Icon: ZapIcon, onClick: () => onJumpTo('todos') });
- if (stats?.followups_today > 0) chips.push({ label: 'due today', value: stats.followups_today, accent: palette.amber[400], Icon: ClockIcon, onClick: () => onJumpTo('followups') });
- if (financeStats?.revenue_today > 0) chips.push({ label: 'today', value: `$${Number(financeStats.revenue_today).toLocaleString('en-US', { maximumFractionDigits: 0 })}`, accent: palette.green[400], Icon: TrendingUpIcon, onClick: () => onJumpTo('finance') });
- if (stats?.campaigns_active > 0) chips.push({ label: 'campaigns', value: stats.campaigns_active, accent: palette.purple[400], Icon: TargetIcon, onClick: () => onJumpTo('marketing') });
+  const chips = [];
+  if (servicesSummary?.down > 0)
+    chips.push({
+      label: "service down",
+      value: servicesSummary.down,
+      accent: palette.red[400],
+      Icon: ServerIcon,
+      pulse: true,
+      onClick: () => onJumpTo("system"),
+    });
+  if (stats?.followups_overdue > 0)
+    chips.push({
+      label: "overdue",
+      value: stats.followups_overdue,
+      accent: palette.red[400],
+      Icon: AlertTriangleIcon,
+      pulse: true,
+      onClick: () => onJumpTo("followups"),
+    });
+  if (financeStats?.stale_count > 0)
+    chips.push({
+      label: "stale pay",
+      value: financeStats.stale_count,
+      accent: palette.red[400],
+      Icon: AlertCircleIcon,
+      pulse: true,
+      onClick: () => onJumpTo("finance"),
+    });
+  if (financeStats?.payment_gap_pending > 0)
+    chips.push({
+      label: "pay gap",
+      value: financeStats.payment_gap_pending,
+      accent: palette.amber[400],
+      Icon: DollarIcon,
+      pulse: true,
+      onClick: () => {
+        try {
+          sessionStorage.setItem("luxquant.openPaymentAudit", "1");
+        } catch {
+          /* ignore */
+        }
+        onJumpTo("finance");
+      },
+    });
+  if (stats?.todos_urgent > 0)
+    chips.push({
+      label: "urgent todos",
+      value: stats.todos_urgent,
+      accent: palette.orange[400],
+      Icon: ZapIcon,
+      onClick: () => onJumpTo("todos"),
+    });
+  if (stats?.followups_today > 0)
+    chips.push({
+      label: "due today",
+      value: stats.followups_today,
+      accent: palette.amber[400],
+      Icon: ClockIcon,
+      onClick: () => onJumpTo("followups"),
+    });
+  if (financeStats?.revenue_today > 0)
+    chips.push({
+      label: "today",
+      value: `$${Number(financeStats.revenue_today).toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
+      accent: palette.green[400],
+      Icon: TrendingUpIcon,
+      onClick: () => onJumpTo("finance"),
+    });
+  if (stats?.campaigns_active > 0)
+    chips.push({
+      label: "campaigns",
+      value: stats.campaigns_active,
+      accent: palette.purple[400],
+      Icon: TargetIcon,
+      onClick: () => onJumpTo("marketing"),
+    });
 
- if (chips.length === 0) {
- return (
- <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md" style={{ background: tint(palette.green[400], 0.05), border: `1px solid ${tint(palette.green[400], 0.15)}` }}>
- <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: palette.green[400] }} />
- <CheckCircleIcon size={11} style={{ color: palette.green[400] }} />
- <span className="text-[10px] font-medium leading-none" style={{ color: tint(palette.green[400], 0.85), letterSpacing: '0.02em' }}>all clear</span>
- </div>
- );
- }
- return <div className="flex flex-wrap gap-1.5 items-center lg:justify-end">{chips.map((chip, i) => <UrgencyChip key={i} {...chip} />)}</div>;
+  if (chips.length === 0) {
+    return (
+      <div
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md"
+        style={{
+          background: tint(palette.green[400], 0.05),
+          border: `1px solid ${tint(palette.green[400], 0.15)}`,
+        }}
+      >
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ background: palette.green[400] }}
+        />
+        <CheckCircleIcon size={11} style={{ color: palette.green[400] }} />
+        <span
+          className="text-[10px] font-medium leading-none"
+          style={{ color: tint(palette.green[400], 0.85), letterSpacing: "0.02em" }}
+        >
+          all clear
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5 items-center lg:justify-end">
+      {chips.map((chip, i) => (
+        <UrgencyChip key={i} {...chip} />
+      ))}
+    </div>
+  );
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -164,17 +381,17 @@ const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
 // ════════════════════════════════════════════════════════════════════
 
 const BadgePill = ({ count, accent, active }) => (
- <span
- className="text-[9.5px] font-bold px-1.5 rounded-full tabular-nums min-w-[18px] h-[16px] inline-flex items-center justify-center"
- style={{
- background: active ? tint(accent, 0.18) : tint(palette.red[400], 0.14),
- color: active ? accent : palette.red[400],
- border: `1px solid ${active ? tint(accent, 0.32) : tint(palette.red[400], 0.24)}`,
- lineHeight: 1,
- }}
- >
- {count > 99 ? '99+' : count}
- </span>
+  <span
+    className="text-[9.5px] font-bold px-1.5 rounded-full tabular-nums min-w-[18px] h-[16px] inline-flex items-center justify-center"
+    style={{
+      background: active ? tint(accent, 0.18) : tint(palette.red[400], 0.14),
+      color: active ? accent : palette.red[400],
+      border: `1px solid ${active ? tint(accent, 0.32) : tint(palette.red[400], 0.24)}`,
+      lineHeight: 1,
+    }}
+  >
+    {count > 99 ? "99+" : count}
+  </span>
 );
 
 // ════════════════════════════════════════════════════════════════════
@@ -182,40 +399,42 @@ const BadgePill = ({ count, accent, active }) => (
 // ════════════════════════════════════════════════════════════════════
 
 const TabBar = ({ activeTab, badges, onSelect }) => (
- <div className="mb-5 border-b border-ink/[0.07]">
- <div className="no-scrollbar flex items-center gap-1 overflow-x-auto sm:gap-2">
- {TABS.map((t) => {
- const on = t.id === activeTab;
- const badge = badges[t.id];
- return (
- <button
- key={t.id}
- type="button"
- onClick={() => onSelect(t.id)}
- className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1 transition-colors sm:px-3 ${
- on
- ? 'border-text-primary text-text-primary'
- : 'border-transparent text-text-muted hover:border-ink/15 hover:text-text-primary/85'
- }`}
- >
- <span className="inline-flex items-center gap-2">
- <t.Icon
- size={14}
- className={on ? 'text-text-primary' : 'text-text-muted/70'}
- style={{ color: on ? 'rgb(var(--fg))' : 'rgb(var(--ink) / 0.4)' }}
- />
- <span className={`text-[13px] tracking-tight ${on ? 'font-semibold' : 'font-medium'}`}>
- {t.label}
- </span>
- {badge != null && badge > 0 && (
- <BadgePill count={badge} accent={palette.red[400]} active={on} />
- )}
- </span>
- </button>
- );
- })}
- </div>
- </div>
+  <div className="mb-5 border-b border-ink/[0.07]">
+    <div className="no-scrollbar flex items-center gap-1 overflow-x-auto sm:gap-2">
+      {TABS.map((t) => {
+        const on = t.id === activeTab;
+        const badge = badges[t.id];
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onSelect(t.id)}
+            className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1 transition-colors sm:px-3 ${
+              on
+                ? "border-text-primary text-text-primary"
+                : "border-transparent text-text-muted hover:border-ink/15 hover:text-text-primary/85"
+            }`}
+          >
+            <span className="inline-flex items-center gap-2">
+              <t.Icon
+                size={14}
+                className={on ? "text-text-primary" : "text-text-muted/70"}
+                style={{ color: on ? "rgb(var(--fg))" : "rgb(var(--ink) / 0.4)" }}
+              />
+              <span
+                className={`text-[13px] tracking-tight ${on ? "font-semibold" : "font-medium"}`}
+              >
+                {t.label}
+              </span>
+              {badge != null && badge > 0 && (
+                <BadgePill count={badge} accent={palette.red[400]} active={on} />
+              )}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  </div>
 );
 
 // ════════════════════════════════════════════════════════════════════
@@ -223,20 +442,30 @@ const TabBar = ({ activeTab, badges, onSelect }) => (
 // ════════════════════════════════════════════════════════════════════
 
 const AccessGuard = () => (
- <div className="flex items-center justify-center min-h-[60vh] px-4">
- <div className="text-center max-w-sm">
- <div className="relative inline-flex mb-5">
- <div className="absolute inset-0 rounded-full blur-2xl opacity-20" style={{ background: palette.red[400] }} />
- <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: tint(palette.red[400], 0.06), border: `1px solid ${tint(palette.red[400], 0.2)}` }}>
- <ShieldIcon size={36} style={{ color: palette.red[400], opacity: 0.8 }} />
- </div>
- </div>
- <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Restricted Area</h2>
- <p className="text-xs" style={{ color: 'rgb(var(--fg-muted))' }}>
- LuxQuant Management System is reserved for admin, co-admin, and founder. If you believe this is an error, reach out to your team lead.
- </p>
- </div>
- </div>
+  <div className="flex items-center justify-center min-h-[60vh] px-4">
+    <div className="text-center max-w-sm">
+      <div className="relative inline-flex mb-5">
+        <div
+          className="absolute inset-0 rounded-full blur-2xl opacity-20"
+          style={{ background: palette.red[400] }}
+        />
+        <div
+          className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
+          style={{
+            background: tint(palette.red[400], 0.06),
+            border: `1px solid ${tint(palette.red[400], 0.2)}`,
+          }}
+        >
+          <ShieldIcon size={36} style={{ color: palette.red[400], opacity: 0.8 }} />
+        </div>
+      </div>
+      <h2 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">Restricted Area</h2>
+      <p className="text-xs" style={{ color: "rgb(var(--fg-muted))" }}>
+        LuxQuant Management System is reserved for admin, co-admin, and founder. If you believe this
+        is an error, reach out to your team lead.
+      </p>
+    </div>
+  </div>
 );
 
 // ════════════════════════════════════════════════════════════════════
@@ -244,146 +473,169 @@ const AccessGuard = () => (
 // ════════════════════════════════════════════════════════════════════
 
 const AdminWorkspacePage = () => {
- const { user: currentUser } = useAuth();
- const [stats, setStats] = useState(null);
- const [financeStats, setFinanceStats] = useState(null);
- const [servicesSummary, setServicesSummary] = useState(null);
+  const { user: currentUser } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [financeStats, setFinanceStats] = useState(null);
+  const [servicesSummary, setServicesSummary] = useState(null);
 
- const initialTab = (() => {
- const hash = window.location.hash.replace('#', '');
- return TAB_BY_ID[hash] ? hash : 'users';
- })();
- const [activeTab, setActiveTab] = useState(initialTab);
+  const initialTab = (() => {
+    const hash = window.location.hash.replace("#", "");
+    return TAB_BY_ID[hash] ? hash : "users";
+  })();
+  const [activeTab, setActiveTab] = useState(initialTab);
 
- const changeTab = (id) => {
- setActiveTab(id);
- window.location.hash = id;
- };
+  const changeTab = (id) => {
+    setActiveTab(id);
+    window.location.hash = id;
+  };
 
- const fetchStats = useCallback(async () => {
- try { setStats(await workspaceApi.getStats()); } catch (e) { console.error('Failed to load workspace stats:', e); }
- }, []);
- const fetchFinanceStats = useCallback(async () => {
- try {
- const [fin, audit] = await Promise.all([
- financeApi.getStats(),
- workspaceApi.getPaymentAudit().catch(() => null),
- ]);
- const gap = audit?.summary?.pending ?? audit?.users?.length ?? 0;
- setFinanceStats({ ...fin, payment_gap_pending: gap });
- } catch (e) {
- console.error('Failed to load finance stats:', e);
- }
- }, []);
- const fetchServicesSummary = useCallback(async () => {
- try { const r = await workspaceApi.getServices(); setServicesSummary(r?.summary || null); }
- catch (e) { console.error('Failed to load services summary:', e); }
- }, []);
+  const fetchStats = useCallback(async () => {
+    try {
+      setStats(await workspaceApi.getStats());
+    } catch (e) {
+      console.error("Failed to load workspace stats:", e);
+    }
+  }, []);
+  const fetchFinanceStats = useCallback(async () => {
+    try {
+      const [fin, audit] = await Promise.all([
+        financeApi.getStats(),
+        workspaceApi.getPaymentAudit().catch(() => null),
+      ]);
+      const gap = audit?.summary?.pending ?? audit?.users?.length ?? 0;
+      setFinanceStats({ ...fin, payment_gap_pending: gap });
+    } catch (e) {
+      console.error("Failed to load finance stats:", e);
+    }
+  }, []);
+  const fetchServicesSummary = useCallback(async () => {
+    try {
+      const r = await workspaceApi.getServices();
+      setServicesSummary(r?.summary || null);
+    } catch (e) {
+      console.error("Failed to load services summary:", e);
+    }
+  }, []);
 
- useEffect(() => {
- fetchStats();
- fetchFinanceStats();
- fetchServicesSummary();
- const interval = setInterval(() => { fetchStats(); fetchFinanceStats(); fetchServicesSummary(); }, 60000);
- return () => clearInterval(interval);
- }, [fetchStats, fetchFinanceStats, fetchServicesSummary]);
+  useEffect(() => {
+    fetchStats();
+    fetchFinanceStats();
+    fetchServicesSummary();
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchFinanceStats();
+      fetchServicesSummary();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [fetchStats, fetchFinanceStats, fetchServicesSummary]);
 
- useEffect(() => {
- const handler = () => {
- const hash = window.location.hash.replace('#', '');
- if (TAB_BY_ID[hash]) setActiveTab(hash);
- };
- window.addEventListener('hashchange', handler);
- return () => window.removeEventListener('hashchange', handler);
- }, []);
+  useEffect(() => {
+    const handler = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (TAB_BY_ID[hash]) setActiveTab(hash);
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  }, []);
 
- const badges = useMemo(() => ({
- users: null,
- followups: stats?.followups_overdue || null,
- marketing: null,
- // Prefer stale payments; fall back to payment-gap backlog
- finance: financeStats?.stale_count || financeStats?.payment_gap_pending || null,
- growth: null,
- todos: stats?.todos_urgent || null,
- activity: null,
- apikeys: null,
- announcements: null,
- system: servicesSummary?.down || null,
- }), [stats, financeStats, servicesSummary]);
+  const badges = useMemo(
+    () => ({
+      users: null,
+      followups: stats?.followups_overdue || null,
+      marketing: null,
+      // Prefer stale payments; fall back to payment-gap backlog
+      finance: financeStats?.stale_count || financeStats?.payment_gap_pending || null,
+      growth: null,
+      todos: stats?.todos_urgent || null,
+      activity: null,
+      apikeys: null,
+      announcements: null,
+      system: servicesSummary?.down || null,
+    }),
+    [stats, financeStats, servicesSummary]
+  );
 
- if (!isAdminStaff(currentUser)) return <AccessGuard />;
+  if (!isAdminStaff(currentUser)) return <AccessGuard />;
 
- const viewOnly = isAdminViewOnly(currentUser);
- const activeTabDef = TAB_BY_ID[activeTab] || TABS[0];
+  const viewOnly = isAdminViewOnly(currentUser);
+  const activeTabDef = TAB_BY_ID[activeTab] || TABS[0];
 
- return (
- <div className="w-full px-4 py-6 lg:px-8">
- {/* ─── Header row (matches Terminal / Home page-top rhythm) ─── */}
- <div className="mb-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
- <div>
- <BrandHeader />
- <p className="mt-2 text-sm text-text-muted">
- Unified operations workspace
- </p>
- </div>
- <div className="lg:max-w-md">
- <p className="mb-2 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted lg:text-right">
- Pulse
- </p>
- <PulseStrip stats={stats} financeStats={financeStats} servicesSummary={servicesSummary} onJumpTo={changeTab} />
- </div>
- </div>
+  return (
+    <div className="w-full px-4 py-6 lg:px-8">
+      {/* ─── Header row (matches Terminal / Home page-top rhythm) ─── */}
+      <div className="mb-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <BrandHeader />
+          <p className="mt-2 text-sm text-text-muted">Unified operations workspace</p>
+        </div>
+        <div className="lg:max-w-md">
+          <p className="mb-2 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted lg:text-right">
+            Pulse
+          </p>
+          <PulseStrip
+            stats={stats}
+            financeStats={financeStats}
+            servicesSummary={servicesSummary}
+            onJumpTo={changeTab}
+          />
+        </div>
+      </div>
 
- {viewOnly && (
- <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-ink/[0.1] bg-ink/[0.03] px-3.5 py-2.5">
- <ShieldIcon size={14} className="mt-0.5 shrink-0 text-text-muted" style={{ color: NEUTRAL }} />
- <div>
- <p className="text-[12px] font-semibold text-text-primary/90">
- View-only mode ({currentUser?.role === 'founder' ? 'Founder' : 'Co-Admin'})
- </p>
- <p className="mt-0.5 text-[11px] text-text-muted">
- You can browse all management tabs. Create, edit, delete, grant, and send actions are blocked by the server.
- </p>
- </div>
- </div>
- )}
+      {viewOnly && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-ink/[0.1] bg-ink/[0.03] px-3.5 py-2.5">
+          <ShieldIcon
+            size={14}
+            className="mt-0.5 shrink-0 text-text-muted"
+            style={{ color: NEUTRAL }}
+          />
+          <div>
+            <p className="text-[12px] font-semibold text-text-primary/90">
+              View-only mode ({currentUser?.role === "founder" ? "Founder" : "Co-Admin"})
+            </p>
+            <p className="mt-0.5 text-[11px] text-text-muted">
+              You can browse all management tabs. Create, edit, delete, grant, and send actions are
+              blocked by the server.
+            </p>
+          </div>
+        </div>
+      )}
 
- <div className="mb-5 mt-5">
- <TabBar activeTab={activeTab} badges={badges} onSelect={changeTab} />
- </div>
+      <div className="mb-5 mt-5">
+        <TabBar activeTab={activeTab} badges={badges} onSelect={changeTab} />
+      </div>
 
- {/* active tab descriptor */}
- <div className="mb-5 hidden items-center gap-2 sm:flex">
- <activeTabDef.Icon size={13} style={{ color: 'rgb(var(--ink) / 0.45)' }} />
- <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary/80">
- {activeTabDef.label}
- </span>
- <span className="inline-block h-1 w-1 rounded-full bg-ink/25" />
- <span className="text-[12px] text-text-muted">{activeTabDef.description}</span>
- </div>
+      {/* active tab descriptor */}
+      <div className="mb-5 hidden items-center gap-2 sm:flex">
+        <activeTabDef.Icon size={13} style={{ color: "rgb(var(--ink) / 0.45)" }} />
+        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary/80">
+          {activeTabDef.label}
+        </span>
+        <span className="inline-block h-1 w-1 rounded-full bg-ink/25" />
+        <span className="text-[12px] text-text-muted">{activeTabDef.description}</span>
+      </div>
 
- {/* ─── Active tab content ─── */}
- {activeTab === 'users' && (
- <div className="-mx-4 lg:-mx-8">
- <UserManagementPage />
- </div>
- )}
- {activeTab === 'followups' && <FollowupTab onRefreshStats={fetchStats} />}
- {activeTab === 'marketing' && <MarketingTab onRefreshStats={fetchStats} />}
- {activeTab === 'finance' && <FinanceTab onRefreshStats={fetchFinanceStats} />}
- {activeTab === 'growth' && <GrowthTab />}
- {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
- {activeTab === 'activity' && <ActivityTab />}
- {activeTab === 'apikeys' && <ApiKeysTab />}
- {activeTab === 'announcements' && <AnnouncementsTab />}
- {activeTab === 'socialposts' && <SocialPostsAdminPage />}
- {activeTab === 'resources' && <ResourcesTab />}
- {activeTab === 'system' && <SystemTab />}
- {activeTab === 'status' && <StatusTab />}
- {activeTab === 'profitshare' && <ProfitSharingTab />}
- {activeTab === 'aicost' && <AiCostTab />}
- </div>
- );
+      {/* ─── Active tab content ─── */}
+      {activeTab === "users" && (
+        <div className="-mx-4 lg:-mx-8">
+          <UserManagementPage />
+        </div>
+      )}
+      {activeTab === "followups" && <FollowupTab onRefreshStats={fetchStats} />}
+      {activeTab === "marketing" && <MarketingTab onRefreshStats={fetchStats} />}
+      {activeTab === "finance" && <FinanceTab onRefreshStats={fetchFinanceStats} />}
+      {activeTab === "growth" && <GrowthTab />}
+      {activeTab === "todos" && <TodoTab onRefreshStats={fetchStats} />}
+      {activeTab === "activity" && <ActivityTab />}
+      {activeTab === "apikeys" && <ApiKeysTab />}
+      {activeTab === "announcements" && <AnnouncementsTab />}
+      {activeTab === "socialposts" && <SocialPostsAdminPage />}
+      {activeTab === "resources" && <ResourcesTab />}
+      {activeTab === "system" && <SystemTab />}
+      {activeTab === "status" && <StatusTab />}
+      {activeTab === "profitshare" && <ProfitSharingTab />}
+      {activeTab === "aicost" && <AiCostTab />}
+    </div>
+  );
 };
 
 export default AdminWorkspacePage;

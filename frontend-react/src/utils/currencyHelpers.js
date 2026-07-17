@@ -14,31 +14,80 @@
 // ─────────────────────────────────────────────────────────────────────
 
 // Currencies with no decimal places by convention (IDR, JPY, KRW, VND, etc.)
-const NO_DECIMAL_CURRENCIES = new Set([
- 'JPY', 'KRW', 'VND', 'IDR', 'CLP', 'HUF', 'PYG', 'XPF',
-]);
+const NO_DECIMAL_CURRENCIES = new Set(["JPY", "KRW", "VND", "IDR", "CLP", "HUF", "PYG", "XPF"]);
 
 // Flag emoji mapping for popular currencies (used in picker dropdowns)
 export const CURRENCY_FLAGS = {
- USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CNY: '🇨🇳',
- IDR: '🇮🇩', TWD: '🇹🇼', KRW: '🇰🇷', INR: '🇮🇳', SGD: '🇸🇬',
- MYR: '🇲🇾', THB: '🇹🇭', VND: '🇻🇳', PHP: '🇵🇭', AED: '🇦🇪',
- SAR: '🇸🇦', TRY: '🇹🇷', BRL: '🇧🇷', MXN: '🇲🇽', RUB: '🇷🇺',
- ZAR: '🇿🇦', AUD: '🇦🇺', CAD: '🇨🇦', CHF: '🇨🇭', HKD: '🇭🇰',
- NZD: '🇳🇿', SEK: '🇸🇪', NOK: '🇳🇴', DKK: '🇩🇰', PLN: '🇵🇱',
- CZK: '🇨🇿', ILS: '🇮🇱', NGN: '🇳🇬', PKR: '🇵🇰', BDT: '🇧🇩',
- LKR: '🇱🇰', MMK: '🇲🇲', UAH: '🇺🇦', ARS: '🇦🇷', CLP: '🇨🇱',
- KWD: '🇰🇼', BHD: '🇧🇭', GEL: '🇬🇪', HUF: '🇭🇺', VEF: '🇻🇪',
- BMD: '🇧🇲',
+  USD: "🇺🇸",
+  EUR: "🇪🇺",
+  GBP: "🇬🇧",
+  JPY: "🇯🇵",
+  CNY: "🇨🇳",
+  IDR: "🇮🇩",
+  TWD: "🇹🇼",
+  KRW: "🇰🇷",
+  INR: "🇮🇳",
+  SGD: "🇸🇬",
+  MYR: "🇲🇾",
+  THB: "🇹🇭",
+  VND: "🇻🇳",
+  PHP: "🇵🇭",
+  AED: "🇦🇪",
+  SAR: "🇸🇦",
+  TRY: "🇹🇷",
+  BRL: "🇧🇷",
+  MXN: "🇲🇽",
+  RUB: "🇷🇺",
+  ZAR: "🇿🇦",
+  AUD: "🇦🇺",
+  CAD: "🇨🇦",
+  CHF: "🇨🇭",
+  HKD: "🇭🇰",
+  NZD: "🇳🇿",
+  SEK: "🇸🇪",
+  NOK: "🇳🇴",
+  DKK: "🇩🇰",
+  PLN: "🇵🇱",
+  CZK: "🇨🇿",
+  ILS: "🇮🇱",
+  NGN: "🇳🇬",
+  PKR: "🇵🇰",
+  BDT: "🇧🇩",
+  LKR: "🇱🇰",
+  MMK: "🇲🇲",
+  UAH: "🇺🇦",
+  ARS: "🇦🇷",
+  CLP: "🇨🇱",
+  KWD: "🇰🇼",
+  BHD: "🇧🇭",
+  GEL: "🇬🇪",
+  HUF: "🇭🇺",
+  VEF: "🇻🇪",
+  BMD: "🇧🇲",
 };
 
 // Browser locale hint per currency (improves Intl formatting)
 const CURRENCY_LOCALES = {
- USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP',
- IDR: 'id-ID', TWD: 'zh-TW', KRW: 'ko-KR', INR: 'en-IN',
- CNY: 'zh-CN', SGD: 'en-SG', MYR: 'ms-MY', THB: 'th-TH',
- VND: 'vi-VN', PHP: 'en-PH', AED: 'ar-AE', SAR: 'ar-SA',
- TRY: 'tr-TR', BRL: 'pt-BR', MXN: 'es-MX', RUB: 'ru-RU',
+  USD: "en-US",
+  EUR: "de-DE",
+  GBP: "en-GB",
+  JPY: "ja-JP",
+  IDR: "id-ID",
+  TWD: "zh-TW",
+  KRW: "ko-KR",
+  INR: "en-IN",
+  CNY: "zh-CN",
+  SGD: "en-SG",
+  MYR: "ms-MY",
+  THB: "th-TH",
+  VND: "vi-VN",
+  PHP: "en-PH",
+  AED: "ar-AE",
+  SAR: "ar-SA",
+  TRY: "tr-TR",
+  BRL: "pt-BR",
+  MXN: "es-MX",
+  RUB: "ru-RU",
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -54,10 +103,10 @@ const CURRENCY_LOCALES = {
  * @returns {number|null} Local price, or null if rate unavailable
  */
 export const convertPrice = (usdtPrice, currency, rates) => {
- if (usdtPrice == null || !rates || !currency) return null;
- const rate = rates[currency?.toUpperCase()];
- if (!rate || rate <= 0) return null;
- return usdtPrice * rate;
+  if (usdtPrice == null || !rates || !currency) return null;
+  const rate = rates[currency?.toUpperCase()];
+  if (!rate || rate <= 0) return null;
+  return usdtPrice * rate;
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -69,21 +118,21 @@ export const convertPrice = (usdtPrice, currency, rates) => {
  * Used for both crypto micro-prices and fiat conversions.
  */
 const pickDecimals = (value, currency) => {
- const abs = Math.abs(value);
- const isNoDecimal = NO_DECIMAL_CURRENCIES.has(currency);
+  const abs = Math.abs(value);
+  const isNoDecimal = NO_DECIMAL_CURRENCIES.has(currency);
 
- // For currencies that traditionally don't use decimals
- if (isNoDecimal) {
- if (abs < 1) return 4; // very tiny: Rp 0,0035 (shows precision)
- if (abs < 100) return 2; // small: Rp 50,25
- return 0; // normal: Rp 5.892
- }
+  // For currencies that traditionally don't use decimals
+  if (isNoDecimal) {
+    if (abs < 1) return 4; // very tiny: Rp 0,0035 (shows precision)
+    if (abs < 100) return 2; // small: Rp 50,25
+    return 0; // normal: Rp 5.892
+  }
 
- // For decimal currencies (USD, EUR, etc.)
- if (abs >= 1) return 2; // $1.23, $123.45
- if (abs >= 0.01) return 4; // $0.0123
- if (abs >= 0.0001) return 6; // $0.000123
- return 8; // $0.00000123
+  // For decimal currencies (USD, EUR, etc.)
+  if (abs >= 1) return 2; // $1.23, $123.45
+  if (abs >= 0.01) return 4; // $0.0123
+  if (abs >= 0.0001) return 6; // $0.000123
+  return 8; // $0.00000123
 };
 
 /**
@@ -101,27 +150,27 @@ const pickDecimals = (value, currency) => {
  * @returns {string} Formatted price string
  */
 export const formatLocalPrice = (value, currency, options = {}) => {
- if (value == null || !isFinite(value)) return '—';
+  if (value == null || !isFinite(value)) return "—";
 
- const code = (currency || 'USD').toUpperCase();
- const locale = CURRENCY_LOCALES[code] || 'en-US';
- const decimals = pickDecimals(value, code);
+  const code = (currency || "USD").toUpperCase();
+  const locale = CURRENCY_LOCALES[code] || "en-US";
+  const decimals = pickDecimals(value, code);
 
- try {
- return new Intl.NumberFormat(locale, {
- style: 'currency',
- currency: code,
- minimumFractionDigits: decimals,
- maximumFractionDigits: decimals,
- ...(options.compact && Math.abs(value) >= 1_000_000
- ? { notation: 'compact', compactDisplay: 'short' }
- : {}),
- }).format(value);
- } catch (err) {
- // Fallback for browsers/locales that don't support this currency
- const formatted = value.toFixed(decimals);
- return options.showCode === false ? formatted : `${formatted} ${code}`;
- }
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: code,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+      ...(options.compact && Math.abs(value) >= 1_000_000
+        ? { notation: "compact", compactDisplay: "short" }
+        : {}),
+    }).format(value);
+  } catch (err) {
+    // Fallback for browsers/locales that don't support this currency
+    const formatted = value.toFixed(decimals);
+    return options.showCode === false ? formatted : `${formatted} ${code}`;
+  }
 };
 
 /**
@@ -129,14 +178,14 @@ export const formatLocalPrice = (value, currency, options = {}) => {
  * Mirrors backend signal pricing format.
  */
 export const formatUsdtPrice = (value) => {
- if (value == null || !isFinite(value)) return '—';
- const abs = Math.abs(value);
- let decimals;
- if (abs >= 1) decimals = 4;
- else if (abs >= 0.01) decimals = 4;
- else if (abs >= 0.0001) decimals = 6;
- else decimals = 8;
- return value.toFixed(decimals);
+  if (value == null || !isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  let decimals;
+  if (abs >= 1) decimals = 4;
+  else if (abs >= 0.01) decimals = 4;
+  else if (abs >= 0.0001) decimals = 6;
+  else decimals = 8;
+  return value.toFixed(decimals);
 };
 
 /**
@@ -146,9 +195,9 @@ export const formatUsdtPrice = (value) => {
  * Example: formatBothPrices(0.3526, 'IDR', rates) → "0.3526 / Rp 6.190"
  */
 export const formatBothPrices = (usdtPrice, currency, rates) => {
- const usdt = formatUsdtPrice(usdtPrice);
- if (!currency || currency === 'USD' || !rates) return usdt;
- const local = convertPrice(usdtPrice, currency, rates);
- if (local == null) return usdt;
- return `${usdt} / ${formatLocalPrice(local, currency)}`;
+  const usdt = formatUsdtPrice(usdtPrice);
+  if (!currency || currency === "USD" || !rates) return usdt;
+  const local = convertPrice(usdtPrice, currency, rates);
+  if (local == null) return usdt;
+  return `${usdt} / ${formatLocalPrice(local, currency)}`;
 };

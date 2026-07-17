@@ -17,53 +17,53 @@
 // Colours are theme tokens, so Luxquant/Dark both render correctly.
 
 export function Eyebrow({ children, className = "" }) {
- if (!children) return null;
- return (
- <div className={`flex items-center gap-3 mb-3 ${className}`}>
- <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
- {children}
- </span>
- </div>
- );
+  if (!children) return null;
+  return (
+    <div className={`flex items-center gap-3 mb-3 ${className}`}>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
+        {children}
+      </span>
+    </div>
+  );
 }
 
 export function PageHeader({
- eyebrow,
- title,
- subtitle,
- meta, // custom node under the title (counts, timestamps, …)
- right, // right-side slot (actions / status pills)
- className = "",
+  eyebrow,
+  title,
+  subtitle,
+  meta, // custom node under the title (counts, timestamps, …)
+  right, // right-side slot (actions / status pills)
+  className = "",
 }) {
- return (
- <div className={`flex flex-col md:flex-row md:items-end md:justify-between gap-4 ${className}`}>
- <div className="min-w-0 flex-1">
- <Eyebrow>{eyebrow}</Eyebrow>
- <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-tight text-text-primary">
- {title}
- </h1>
- {subtitle ? (
- <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{subtitle}</p>
- ) : null}
- {meta ? <div className="mt-1.5">{meta}</div> : null}
- </div>
- {right ? <div className="shrink-0">{right}</div> : null}
- </div>
- );
+  return (
+    <div className={`flex flex-col md:flex-row md:items-end md:justify-between gap-4 ${className}`}>
+      <div className="min-w-0 flex-1">
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-tight text-text-primary">
+          {title}
+        </h1>
+        {subtitle ? (
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{subtitle}</p>
+        ) : null}
+        {meta ? <div className="mt-1.5">{meta}</div> : null}
+      </div>
+      {right ? <div className="shrink-0">{right}</div> : null}
+    </div>
+  );
 }
 
 export function SectionHeader({ title, desc, right, className = "", as: Tag = "h2" }) {
- return (
- <div className={`flex items-end justify-between gap-4 ${className}`}>
- <div className="min-w-0">
- <Tag className="font-display text-lg sm:text-xl font-semibold tracking-tight text-text-primary">
- {title}
- </Tag>
- {desc ? <p className="mt-0.5 text-xs text-text-muted">{desc}</p> : null}
- </div>
- {right ? <div className="shrink-0">{right}</div> : null}
- </div>
- );
+  return (
+    <div className={`flex items-end justify-between gap-4 ${className}`}>
+      <div className="min-w-0">
+        <Tag className="font-display text-lg sm:text-xl font-semibold tracking-tight text-text-primary">
+          {title}
+        </Tag>
+        {desc ? <p className="mt-0.5 text-xs text-text-muted">{desc}</p> : null}
+      </div>
+      {right ? <div className="shrink-0">{right}</div> : null}
+    </div>
+  );
 }
 
 export default PageHeader;

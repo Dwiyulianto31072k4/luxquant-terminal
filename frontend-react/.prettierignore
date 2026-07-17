@@ -1,0 +1,6 @@
+dist
+node_modules
+coverage
+*.min.js
+public
+scripts/prerender-content.mjs

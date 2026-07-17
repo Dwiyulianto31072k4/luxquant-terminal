@@ -16,202 +16,276 @@ import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import CoinLogo from "../CoinLogo";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 import {
- API_BASE, authHeaders, GOLD, POS, NEG,
- fmtMoney, SectionBand, Kpi, Warming, CoinPill, Chip, heatBias,
+  API_BASE,
+  authHeaders,
+  GOLD,
+  POS,
+  NEG,
+  fmtMoney,
+  SectionBand,
+  Kpi,
+  Warming,
+  CoinPill,
+  Chip,
+  heatBias,
 } from "./vizShared";
 
 // custom treemap cell — recharts spreads the node's fields into props.
 // Solid Binance green/red fills (no pastel wash). White labels for contrast.
 function LiqCell(props) {
- const { x, y, width, height, name, bias = 0, spike, intensity = 0.55, called, onPick } = props;
- const size = props.size ?? props.value ?? 0;
- if (!name || width <= 1 || height <= 1) return null;
- const fill = heatBias(bias, intensity);
- const sym = (name || "").replace(/USDT$/i, "");
- const med = width > 34 && height > 24;
- const big = width > 54 && height > 46;
- const logo = Math.min(26, Math.max(13, Math.min(width, height) * 0.26));
- const label = {
- color: "#ffffff",
- fontWeight: 700,
- lineHeight: 1.05,
- maxWidth: "100%",
- overflow: "hidden",
- textOverflow: "ellipsis",
- whiteSpace: "nowrap",
- textShadow: "0 1px 2px rgba(0,0,0,0.55)",
- };
- return (
- <g style={{ cursor: called ? "pointer" : "default" }} onClick={() => onPick?.(name, called)}>
- <rect
- x={x} y={y} width={Math.max(0, width - 1)} height={Math.max(0, height - 1)} rx={3}
- style={{
- fill,
- stroke: called ? "rgb(var(--accent))" : "rgba(0,0,0,0.22)",
- strokeWidth: called ? 2 : 1,
- }}
- />
- {med && (
- <foreignObject x={x} y={y} width={width} height={height} style={{ pointerEvents: "none" }}>
- <div
- style={{
- width: "100%", height: "100%", display: "flex", flexDirection: "column",
- alignItems: "center", justifyContent: "center", gap: 2, padding: 2,
- overflow: "hidden", boxSizing: "border-box",
- }}
- >
- {big && <CoinLogo pair={name} size={logo} />}
- <span style={{ ...label, fontSize: big ? 12.5 : 10.5 }}>{sym}</span>
- <span style={{ ...label, fontWeight: 600, fontFamily: "ui-monospace, monospace", fontSize: big ? 11 : 9.5, opacity: 0.95 }}>
- {fmtMoney(size)}
- </span>
- </div>
- </foreignObject>
- )}
- {spike && med && <circle cx={x + width - 8} cy={y + 8} r={3.4} fill="rgb(var(--accent))" stroke="rgba(0,0,0,0.35)" strokeWidth={1} />}
- {called && med && (
- <text
- x={x + width - 5}
- y={y + height - 6}
- textAnchor="end"
- fill="rgb(var(--accent))"
- fontSize={8}
- fontWeight={800}
- fontFamily="ui-monospace, monospace"
- letterSpacing="0.06em"
- style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
- >
- CALL
- </text>
- )}
- </g>
- );
+  const { x, y, width, height, name, bias = 0, spike, intensity = 0.55, called, onPick } = props;
+  const size = props.size ?? props.value ?? 0;
+  if (!name || width <= 1 || height <= 1) return null;
+  const fill = heatBias(bias, intensity);
+  const sym = (name || "").replace(/USDT$/i, "");
+  const med = width > 34 && height > 24;
+  const big = width > 54 && height > 46;
+  const logo = Math.min(26, Math.max(13, Math.min(width, height) * 0.26));
+  const label = {
+    color: "#ffffff",
+    fontWeight: 700,
+    lineHeight: 1.05,
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+  };
+  return (
+    <g style={{ cursor: called ? "pointer" : "default" }} onClick={() => onPick?.(name, called)}>
+      <rect
+        x={x}
+        y={y}
+        width={Math.max(0, width - 1)}
+        height={Math.max(0, height - 1)}
+        rx={3}
+        style={{
+          fill,
+          stroke: called ? "rgb(var(--accent))" : "rgba(0,0,0,0.22)",
+          strokeWidth: called ? 2 : 1,
+        }}
+      />
+      {med && (
+        <foreignObject x={x} y={y} width={width} height={height} style={{ pointerEvents: "none" }}>
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              padding: 2,
+              overflow: "hidden",
+              boxSizing: "border-box",
+            }}
+          >
+            {big && <CoinLogo pair={name} size={logo} />}
+            <span style={{ ...label, fontSize: big ? 12.5 : 10.5 }}>{sym}</span>
+            <span
+              style={{
+                ...label,
+                fontWeight: 600,
+                fontFamily: "ui-monospace, monospace",
+                fontSize: big ? 11 : 9.5,
+                opacity: 0.95,
+              }}
+            >
+              {fmtMoney(size)}
+            </span>
+          </div>
+        </foreignObject>
+      )}
+      {spike && med && (
+        <circle
+          cx={x + width - 8}
+          cy={y + 8}
+          r={3.4}
+          fill="rgb(var(--accent))"
+          stroke="rgba(0,0,0,0.35)"
+          strokeWidth={1}
+        />
+      )}
+      {called && med && (
+        <text
+          x={x + width - 5}
+          y={y + height - 6}
+          textAnchor="end"
+          fill="rgb(var(--accent))"
+          fontSize={8}
+          fontWeight={800}
+          fontFamily="ui-monospace, monospace"
+          letterSpacing="0.06em"
+          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+        >
+          CALL
+        </text>
+      )}
+    </g>
+  );
 }
 
 function LiqTip({ active, payload }) {
- if (!active || !payload?.length) return null;
- const d = payload[0]?.payload || {};
- return (
- <div className="rounded-md border border-ink/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
- <div className="font-medium text-text-primary mb-1">{d.name}</div>
- <div className="font-mono text-text-muted">4H total: <span className="text-text-primary">{fmtMoney(d.size)}</span></div>
- <div className="font-mono" style={{ color: POS }}>shorts rekt: {fmtMoney(d.shorts)}</div>
- <div className="font-mono" style={{ color: NEG }}>longs rekt: {fmtMoney(d.longs)}</div>
- {d.spike && <div className="font-mono mt-1" style={{ color: GOLD }}>⚡ abnormal spike</div>}
- </div>
- );
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload || {};
+  return (
+    <div className="rounded-md border border-ink/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
+      <div className="font-medium text-text-primary mb-1">{d.name}</div>
+      <div className="font-mono text-text-muted">
+        4H total: <span className="text-text-primary">{fmtMoney(d.size)}</span>
+      </div>
+      <div className="font-mono" style={{ color: POS }}>
+        shorts rekt: {fmtMoney(d.shorts)}
+      </div>
+      <div className="font-mono" style={{ color: NEG }}>
+        longs rekt: {fmtMoney(d.longs)}
+      </div>
+      {d.spike && (
+        <div className="font-mono mt-1" style={{ color: GOLD }}>
+          ⚡ abnormal spike
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function LiquidationsTab({ view }) {
- const [data, setData] = useState(null);
- const [loading, setLoading] = useState(true);
- const [scope, setScope] = useState("calls"); // "calls" (scoped) | "market"
- const statusCtx = useSignalStatus();
- const calledMap = statusCtx?.map;
- const pick = (pair, called) => { if (called && statusCtx?.openPair) statusCtx.openPair(pair); };
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState("calls"); // "calls" (scoped) | "market"
+  const statusCtx = useSignalStatus();
+  const calledMap = statusCtx?.map;
+  const pick = (pair, called) => {
+    if (called && statusCtx?.openPair) statusCtx.openPair(pair);
+  };
 
- useEffect(() => {
- let alive = true;
- (async () => {
- try {
- const r = await fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() });
- const j = await r.json();
- if (alive) setData(j);
- } catch {
- if (alive) setData({ items: [] });
- } finally {
- if (alive) setLoading(false);
- }
- })();
- return () => { alive = false; };
- }, []);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/v1/terminal/liquidations`, {
+          headers: authHeaders(),
+        });
+        const j = await r.json();
+        if (alive) setData(j);
+      } catch {
+        if (alive) setData({ items: [] });
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
- // scope to pairs in the current (filtered) view → call-centric
- const { nodes, totalLiq, spikes, top } = useMemo(() => {
- const byPair = {};
- (data?.items || []).forEach((it) => { byPair[it.pair] = it; });
- const viewPairs = new Set((view || []).map((s) => s.pair));
- const rows = Object.values(byPair)
- .filter((it) => scope === "market" || viewPairs.size === 0 || viewPairs.has(it.pair))
- .filter((it) => (it.total_4h || 0) > 0);
- const max = rows.reduce((a, r) => Math.max(a, r.total_4h || 0), 0) || 1;
- const nodes = rows
- .sort((a, b) => (b.total_4h || 0) - (a.total_4h || 0))
- .slice(0, 60)
- .map((r) => ({
- name: r.pair,
- size: r.total_4h,
- longs: r.liq_long_4h,
- shorts: r.liq_short_4h,
- bias: r.side_bias ?? 0,
- spike: !!r.spike,
- intensity: (r.total_4h || 0) / max,
- called: !!(calledMap && calledMap[(r.pair || "").toUpperCase()]),
- }));
- return {
- nodes,
- totalLiq: rows.reduce((a, r) => a + (r.total_4h || 0), 0),
- spikes: rows.filter((r) => r.spike).length,
- top: nodes[0] || null,
- };
- }, [data, view, scope, calledMap]);
+  // scope to pairs in the current (filtered) view → call-centric
+  const { nodes, totalLiq, spikes, top } = useMemo(() => {
+    const byPair = {};
+    (data?.items || []).forEach((it) => {
+      byPair[it.pair] = it;
+    });
+    const viewPairs = new Set((view || []).map((s) => s.pair));
+    const rows = Object.values(byPair)
+      .filter((it) => scope === "market" || viewPairs.size === 0 || viewPairs.has(it.pair))
+      .filter((it) => (it.total_4h || 0) > 0);
+    const max = rows.reduce((a, r) => Math.max(a, r.total_4h || 0), 0) || 1;
+    const nodes = rows
+      .sort((a, b) => (b.total_4h || 0) - (a.total_4h || 0))
+      .slice(0, 60)
+      .map((r) => ({
+        name: r.pair,
+        size: r.total_4h,
+        longs: r.liq_long_4h,
+        shorts: r.liq_short_4h,
+        bias: r.side_bias ?? 0,
+        spike: !!r.spike,
+        intensity: (r.total_4h || 0) / max,
+        called: !!(calledMap && calledMap[(r.pair || "").toUpperCase()]),
+      }));
+    return {
+      nodes,
+      totalLiq: rows.reduce((a, r) => a + (r.total_4h || 0), 0),
+      spikes: rows.filter((r) => r.spike).length,
+      top: nodes[0] || null,
+    };
+  }, [data, view, scope, calledMap]);
 
- if (loading) return <Warming text="Loading liquidations…" />;
+  if (loading) return <Warming text="Loading liquidations…" />;
 
- return (
- <div className="space-y-2.5">
- <SectionBand
- title="Liquidations"
- desc="Where leverage got flushed — risk context. Green = shorts flushed (squeeze up), red = longs flushed."
- badge={
- <div className="flex items-center gap-1">
- <Chip active={scope === "calls"} onClick={() => setScope("calls")}>My calls</Chip>
- <Chip active={scope === "market"} onClick={() => setScope("market")}>Market</Chip>
- </div>
- }
- />
+  return (
+    <div className="space-y-2.5">
+      <SectionBand
+        title="Liquidations"
+        desc="Where leverage got flushed — risk context. Green = shorts flushed (squeeze up), red = longs flushed."
+        badge={
+          <div className="flex items-center gap-1">
+            <Chip active={scope === "calls"} onClick={() => setScope("calls")}>
+              My calls
+            </Chip>
+            <Chip active={scope === "market"} onClick={() => setScope("market")}>
+              Market
+            </Chip>
+          </div>
+        }
+      />
 
- <div className="grid grid-cols-3 gap-2">
- <Kpi compact label={scope === "market" ? "4H liq (market)" : "4H liq (calls)"} value={fmtMoney(totalLiq)} />
- <Kpi compact label="Spikes" value={spikes} tone={spikes > 0 ? "text-negative" : undefined} />
- <Kpi compact label="Biggest" value={top ? `${top.name.replace("USDT", "")}` : "—"} sub={top ? fmtMoney(top.size) : undefined} />
- </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Kpi
+          compact
+          label={scope === "market" ? "4H liq (market)" : "4H liq (calls)"}
+          value={fmtMoney(totalLiq)}
+        />
+        <Kpi
+          compact
+          label="Spikes"
+          value={spikes}
+          tone={spikes > 0 ? "text-negative" : undefined}
+        />
+        <Kpi
+          compact
+          label="Biggest"
+          value={top ? `${top.name.replace("USDT", "")}` : "—"}
+          sub={top ? fmtMoney(top.size) : undefined}
+        />
+      </div>
 
- {nodes.length === 0 ? (
- <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] px-4 py-12 text-center">
- <div className="font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
- {scope === "market"
- ? "No liquidation data yet — worker refreshes every ~10 min"
- : "No liquidations for your active calls — switch to Market to see all"}
- </div>
- <div className="mt-2 flex items-center justify-center gap-1.5 flex-wrap">
- {(view || []).slice(0, 10).map((s) => (
- <CoinPill key={s.pair} pair={s.pair} className="opacity-50" />
- ))}
- </div>
- </div>
- ) : (
- <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-2">
- <ResponsiveContainer width="100%" height={420}>
- <Treemap
- data={nodes}
- dataKey="size"
- aspectRatio={4 / 3}
- stroke="rgb(var(--surface))"
- content={<LiqCell onPick={pick} />}
- isAnimationActive={false}
- >
- <Tooltip content={<LiqTip />} />
- </Treemap>
- </ResponsiveContainer>
- </div>
- )}
+      {nodes.length === 0 ? (
+        <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] px-4 py-12 text-center">
+          <div className="font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
+            {scope === "market"
+              ? "No liquidation data yet — worker refreshes every ~10 min"
+              : "No liquidations for your active calls — switch to Market to see all"}
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-1.5 flex-wrap">
+            {(view || []).slice(0, 10).map((s) => (
+              <CoinPill key={s.pair} pair={s.pair} className="opacity-50" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-2">
+          <ResponsiveContainer width="100%" height={420}>
+            <Treemap
+              data={nodes}
+              dataKey="size"
+              aspectRatio={4 / 3}
+              stroke="rgb(var(--surface))"
+              content={<LiqCell onPick={pick} />}
+              isAnimationActive={false}
+            >
+              <Tooltip content={<LiqTip />} />
+            </Treemap>
+          </ResponsiveContainer>
+        </div>
+      )}
 
- <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted/45 px-0.5">
- Coinalyze multi-exchange · ~10 min · risk context only
- </div>
- </div>
- );
+      <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted/45 px-0.5">
+        Coinalyze multi-exchange · ~10 min · risk context only
+      </div>
+    </div>
+  );
 }
 
 export default LiquidationsTab;

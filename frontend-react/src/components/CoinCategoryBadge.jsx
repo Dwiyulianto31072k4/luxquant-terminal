@@ -29,31 +29,31 @@ const coinCache = new Map();
 // ───────────────────────────────────────────────────────────────
 
 const TOKEN_TYPE_META = {
- layer1: { label: "Layer 1", status: "utility", defaultTag: "Blockchain infrastructure" },
- layer2: { label: "Layer 2", status: "utility", defaultTag: "Scaling solution" },
- utility: { label: "Utility", status: "utility", defaultTag: "Real utility token" },
- defi: { label: "DeFi", status: "utility", defaultTag: "Decentralized finance protocol" },
- governance: { label: "Governance", status: "utility", defaultTag: "Protocol governance token" },
- rwa: { label: "RWA", status: "utility", defaultTag: "Real-world asset backed" },
- stablecoin: { label: "Stablecoin", status: "utility", defaultTag: "Price-stable asset" },
- exchange: { label: "Exchange", status: "utility", defaultTag: "Exchange native token" },
- privacy: { label: "Privacy", status: "utility", defaultTag: "Privacy-focused crypto" },
- memecoin: { label: "Meme", status: "speculation", defaultTag: "Hype-driven, click for risks" },
+  layer1: { label: "Layer 1", status: "utility", defaultTag: "Blockchain infrastructure" },
+  layer2: { label: "Layer 2", status: "utility", defaultTag: "Scaling solution" },
+  utility: { label: "Utility", status: "utility", defaultTag: "Real utility token" },
+  defi: { label: "DeFi", status: "utility", defaultTag: "Decentralized finance protocol" },
+  governance: { label: "Governance", status: "utility", defaultTag: "Protocol governance token" },
+  rwa: { label: "RWA", status: "utility", defaultTag: "Real-world asset backed" },
+  stablecoin: { label: "Stablecoin", status: "utility", defaultTag: "Price-stable asset" },
+  exchange: { label: "Exchange", status: "utility", defaultTag: "Exchange native token" },
+  privacy: { label: "Privacy", status: "utility", defaultTag: "Privacy-focused crypto" },
+  memecoin: { label: "Meme", status: "speculation", defaultTag: "Hype-driven, click for risks" },
 };
 
 const SECTOR_LABEL = {
- infrastructure: "Infrastructure",
- defi: "DeFi",
- gamefi: "GameFi",
- nft: "NFT",
- metaverse: "Metaverse",
- ai: "AI",
- socialfi: "SocialFi",
- payments: "Payments",
- rwa: "RWA",
- privacy: "Privacy",
- hype: "Hype-driven",
- other: "Other",
+  infrastructure: "Infrastructure",
+  defi: "DeFi",
+  gamefi: "GameFi",
+  nft: "NFT",
+  metaverse: "Metaverse",
+  ai: "AI",
+  socialfi: "SocialFi",
+  payments: "Payments",
+  rwa: "RWA",
+  privacy: "Privacy",
+  hype: "Hype-driven",
+  other: "Other",
 };
 
 // ───────────────────────────────────────────────────────────────
@@ -61,10 +61,10 @@ const SECTOR_LABEL = {
 // ───────────────────────────────────────────────────────────────
 
 const truncate = (str, max) => {
- if (!str) return "";
- const s = String(str).trim();
- if (s.length <= max) return s;
- return s.slice(0, max - 1).trimEnd() + "…";
+  if (!str) return "";
+  const s = String(str).trim();
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1).trimEnd() + "…";
 };
 
 /**
@@ -72,14 +72,14 @@ const truncate = (str, max) => {
  * Priority: top use_case → summary (truncated) → meta.defaultTag
  */
 const buildTagline = (coinData, meta) => {
- const useCases = Array.isArray(coinData.use_cases) ? coinData.use_cases : [];
- if (useCases.length > 0 && typeof useCases[0] === "string") {
- return truncate(useCases[0], 55);
- }
- if (coinData.summary && typeof coinData.summary === "string") {
- return truncate(coinData.summary, 55);
- }
- return meta.defaultTag;
+  const useCases = Array.isArray(coinData.use_cases) ? coinData.use_cases : [];
+  if (useCases.length > 0 && typeof useCases[0] === "string") {
+    return truncate(useCases[0], 55);
+  }
+  if (coinData.summary && typeof coinData.summary === "string") {
+    return truncate(coinData.summary, 55);
+  }
+  return meta.defaultTag;
 };
 
 // ───────────────────────────────────────────────────────────────
@@ -87,158 +87,155 @@ const buildTagline = (coinData, meta) => {
 // ───────────────────────────────────────────────────────────────
 
 const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
- const [coinData, setCoinData] = useState(() => coinCache.get(pair) || null);
- const [loading, setLoading] = useState(!coinCache.has(pair));
+  const [coinData, setCoinData] = useState(() => coinCache.get(pair) || null);
+  const [loading, setLoading] = useState(!coinCache.has(pair));
 
- useEffect(() => {
- if (!pair) return;
+  useEffect(() => {
+    if (!pair) return;
 
- if (coinCache.has(pair)) {
- setCoinData(coinCache.get(pair));
- setLoading(false);
- return;
- }
+    if (coinCache.has(pair)) {
+      setCoinData(coinCache.get(pair));
+      setLoading(false);
+      return;
+    }
 
- let cancelled = false;
- setLoading(true);
+    let cancelled = false;
+    setLoading(true);
 
- fetch(`/api/v1/coins/${pair}`)
- .then((r) => (r.ok ? r.json() : null))
- .then((data) => {
- if (cancelled) return;
- if (data && data.is_categorized) {
- coinCache.set(pair, data);
- setCoinData(data);
- } else {
- coinCache.set(pair, null);
- setCoinData(null);
- }
- })
- .catch((err) => {
- if (!cancelled) {
- console.warn("[CoinCategoryBadge] fetch failed:", err);
- setCoinData(null);
- }
- })
- .finally(() => {
- if (!cancelled) setLoading(false);
- });
+    fetch(`/api/v1/coins/${pair}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data && data.is_categorized) {
+          coinCache.set(pair, data);
+          setCoinData(data);
+        } else {
+          coinCache.set(pair, null);
+          setCoinData(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.warn("[CoinCategoryBadge] fetch failed:", err);
+          setCoinData(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
- return () => {
- cancelled = true;
- };
- }, [pair]);
+    return () => {
+      cancelled = true;
+    };
+  }, [pair]);
 
- // While loading or no data → render nothing (avoid layout flash)
- if (loading || !coinData) return null;
+  // While loading or no data → render nothing (avoid layout flash)
+  if (loading || !coinData) return null;
 
- const meta = TOKEN_TYPE_META[coinData.token_type] || {
- label: coinData.token_type || "Unknown",
- status: "unknown",
- defaultTag: "Click for details",
- };
+  const meta = TOKEN_TYPE_META[coinData.token_type] || {
+    label: coinData.token_type || "Unknown",
+    status: "unknown",
+    defaultTag: "Click for details",
+  };
 
- const sectorLabel =
- SECTOR_LABEL[coinData.sector] ||
- (coinData.sector
- ? coinData.sector.charAt(0).toUpperCase() + coinData.sector.slice(1)
- : null);
+  const sectorLabel =
+    SECTOR_LABEL[coinData.sector] ||
+    (coinData.sector ? coinData.sector.charAt(0).toUpperCase() + coinData.sector.slice(1) : null);
 
- // Speculation = explicit no_utility, OR token_type is memecoin
- const isSpeculation =
- coinData.has_utility === false || meta.status === "speculation";
+  // Speculation = explicit no_utility, OR token_type is memecoin
+  const isSpeculation = coinData.has_utility === false || meta.status === "speculation";
 
- const tagline = buildTagline(coinData, meta);
+  const tagline = buildTagline(coinData, meta);
 
- // ─────────────────────────────────────────────────────────────
- // COMPACT MODE — single pill (used in tight spaces, e.g. signal cards)
- // ─────────────────────────────────────────────────────────────
- if (compact) {
- const compactClass = isSpeculation
- ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
- : "bg-profit/15 text-profit border-profit/25";
+  // ─────────────────────────────────────────────────────────────
+  // COMPACT MODE — single pill (used in tight spaces, e.g. signal cards)
+  // ─────────────────────────────────────────────────────────────
+  if (compact) {
+    const compactClass = isSpeculation
+      ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
+      : "bg-profit/15 text-profit border-profit/25";
 
- return (
- <span
- onClick={(e) => {
- e.stopPropagation();
- if (onClick) onClick(coinData);
- }}
- className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide cursor-pointer hover:opacity-80 transition-opacity ${compactClass}`}
- title={tagline}
- >
- <span className="flex items-center">
- {isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3")}
- </span>
- <span>{meta.label}</span>
- </span>
- );
- }
+    return (
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onClick) onClick(coinData);
+        }}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide cursor-pointer hover:opacity-80 transition-opacity ${compactClass}`}
+        title={tagline}
+      >
+        <span className="flex items-center">
+          {isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3")}
+        </span>
+        <span>{meta.label}</span>
+      </span>
+    );
+  }
 
- // ─────────────────────────────────────────────────────────────
- // FULL MODE — dual pill (Type + Utility Status) + tagline
- // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // FULL MODE — dual pill (Type + Utility Status) + tagline
+  // ─────────────────────────────────────────────────────────────
 
- // Type pill (e.g. "✓ Utility" or "⚠ Meme") — colored by status
- const typePillClass = isSpeculation
- ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
- : "bg-profit/15 text-profit border-profit/25";
+  // Type pill (e.g. "✓ Utility" or "⚠ Meme") — colored by status
+  const typePillClass = isSpeculation
+    ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
+    : "bg-profit/15 text-profit border-profit/25";
 
- const typeIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
+  const typeIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
 
- // Utility status pill — explicit "HAS UTILITY" / "NO UTILITY"
- // More tegas/loud — uses full saturation background
- const utilityPillClass = isSpeculation
- ? "bg-orange-500/25 text-orange-200 border-orange-500/50"
- : "bg-profit/25 text-profit border-profit/40";
+  // Utility status pill — explicit "HAS UTILITY" / "NO UTILITY"
+  // More tegas/loud — uses full saturation background
+  const utilityPillClass = isSpeculation
+    ? "bg-orange-500/25 text-orange-200 border-orange-500/50"
+    : "bg-profit/25 text-profit border-profit/40";
 
- const utilityLabel = isSpeculation ? "NO UTILITY" : "HAS UTILITY";
- const utilityIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
+  const utilityLabel = isSpeculation ? "NO UTILITY" : "HAS UTILITY";
+  const utilityIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
 
- return (
- <button
- type="button"
- onClick={(e) => {
- e.stopPropagation();
- if (onClick) onClick(coinData);
- }}
- className="group flex items-center gap-1.5 max-w-full text-left rounded-md hover:bg-ink/[0.03] active:bg-ink/[0.05] transition-colors px-1 -mx-1 py-0.5 flex-wrap"
- title="Click for full categorization details"
- >
- {/* Pill 1: Type (e.g., "✓ Utility" or "⚠ Meme") */}
- <span
- className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide ${typePillClass}`}
- >
- <span className="flex items-center">{typeIcon}</span>
- <span>{meta.label}</span>
- </span>
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onClick) onClick(coinData);
+      }}
+      className="group flex items-center gap-1.5 max-w-full text-left rounded-md hover:bg-ink/[0.03] active:bg-ink/[0.05] transition-colors px-1 -mx-1 py-0.5 flex-wrap"
+      title="Click for full categorization details"
+    >
+      {/* Pill 1: Type (e.g., "✓ Utility" or "⚠ Meme") */}
+      <span
+        className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide ${typePillClass}`}
+      >
+        <span className="flex items-center">{typeIcon}</span>
+        <span>{meta.label}</span>
+      </span>
 
- {/* Pill 2: Sector (subtle, secondary) */}
- {sectorLabel && (
- <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-ink/[0.04] text-text-primary/60 border-ink/10">
- {sectorLabel}
- </span>
- )}
+      {/* Pill 2: Sector (subtle, secondary) */}
+      {sectorLabel && (
+        <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-ink/[0.04] text-text-primary/60 border-ink/10">
+          {sectorLabel}
+        </span>
+      )}
 
- {/* Pill 3: Utility Status — explicit "HAS UTILITY" / "NO UTILITY" */}
- <span
- className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-extrabold tracking-wider ${utilityPillClass}`}
- >
- <span className="flex items-center">{utilityIcon}</span>
- <span>{utilityLabel}</span>
- </span>
+      {/* Pill 3: Utility Status — explicit "HAS UTILITY" / "NO UTILITY" */}
+      <span
+        className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-extrabold tracking-wider ${utilityPillClass}`}
+      >
+        <span className="flex items-center">{utilityIcon}</span>
+        <span>{utilityLabel}</span>
+      </span>
 
- {/* Tagline (truncated, hidden on narrow screens) */}
- <span className="hidden md:inline text-[10px] sm:text-[11px] text-text-muted truncate min-w-0">
- {tagline}
- </span>
+      {/* Tagline (truncated, hidden on narrow screens) */}
+      <span className="hidden md:inline text-[10px] sm:text-[11px] text-text-muted truncate min-w-0">
+        {tagline}
+      </span>
 
- {/* Arrow hint */}
- <span className="flex-shrink-0 text-text-muted group-hover:text-text-primary group-hover:translate-x-0.5 transition-all">
- {Ic.arrowRight("w-3 h-3")}
- </span>
- </button>
- );
+      {/* Arrow hint */}
+      <span className="flex-shrink-0 text-text-muted group-hover:text-text-primary group-hover:translate-x-0.5 transition-all">
+        {Ic.arrowRight("w-3 h-3")}
+      </span>
+    </button>
+  );
 };
 
 export default CoinCategoryBadge;
