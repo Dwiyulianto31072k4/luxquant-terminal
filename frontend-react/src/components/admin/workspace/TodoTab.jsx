@@ -35,7 +35,7 @@ const formatDate = (dateStr) => {
 
 const PRIORITY_CONFIG = {
   urgent: {
-    color: "rgb(var(--neg))",
+    color: "rgb(var(--neg-text))",
     bg: "rgba(248,113,113,0.1)",
     border: "rgba(248,113,113,0.3)",
   },
@@ -51,8 +51,8 @@ const PRIORITY_CONFIG = {
 const CATEGORY_CONFIG = {
   product: { label: "Product", emoji: "⚙️", color: "#8a8a93" },
   marketing: { label: "Marketing", emoji: "📣", color: "rgb(var(--accent-text))" },
-  ops: { label: "Ops", emoji: "🔧", color: "rgb(var(--pos))" },
-  bug: { label: "Bug", emoji: "🐛", color: "rgb(var(--neg))" },
+  ops: { label: "Ops", emoji: "🔧", color: "rgb(var(--pos-text))" },
+  bug: { label: "Bug", emoji: "🐛", color: "rgb(var(--neg-text))" },
   idea: { label: "Idea", emoji: "💡", color: "rgb(var(--warn))" },
   other: { label: "Other", emoji: "📌", color: "rgb(var(--fg-muted))" },
 };
@@ -60,7 +60,7 @@ const CATEGORY_CONFIG = {
 const STATUS_COLUMNS = [
   { id: "backlog", label: "Backlog", color: "rgb(var(--fg-muted))", Icon: ClockIcon },
   { id: "in_progress", label: "In Progress", color: "#8a8a93", Icon: SparklesIcon },
-  { id: "done", label: "Done", color: "rgb(var(--pos))", Icon: CheckCircleIcon },
+  { id: "done", label: "Done", color: "rgb(var(--pos-text))", Icon: CheckCircleIcon },
 ];
 
 /* ── TODO card ────────────────────────────────────────────────────── */
@@ -187,7 +187,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
               title="Mark done"
               className="p-1 rounded transition-colors"
               style={{
-                color: "rgb(var(--pos))",
+                color: "rgb(var(--pos-text))",
                 background: "rgba(52,211,153,0.08)",
                 border: "1px solid rgba(52,211,153,0.2)",
               }}
@@ -226,7 +226,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
             title="Delete"
             className="p-1 rounded transition-colors"
             style={{
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               background: "rgba(248,113,113,0.08)",
               border: "1px solid rgba(248,113,113,0.2)",
             }}
@@ -584,7 +584,7 @@ export const TodoTab = ({ onRefreshStats }) => {
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
             style={{
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               background: "rgba(248,113,113,0.06)",
               border: "1px solid rgba(248,113,113,0.2)",
             }}

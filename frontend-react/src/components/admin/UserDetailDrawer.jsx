@@ -265,7 +265,7 @@ const UserHero = ({ user }) => (
             className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{
               background: "rgba(248,113,113,0.12)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               border: "1px solid rgba(248,113,113,0.3)",
             }}
           >
@@ -435,7 +435,7 @@ const computeVipDiagnosis = (user) => {
   if (active && hasTg && inGroup) {
     return {
       tone: "ok",
-      color: "rgb(var(--pos))",
+      color: "rgb(var(--pos-text))",
       icon: "check",
       title: "Healthy — active access & inside the VIP group",
       detail: "No action needed.",
@@ -485,7 +485,7 @@ const computeVipDiagnosis = (user) => {
   if (!active && inGroup && !inGrace) {
     return {
       tone: "danger",
-      color: "rgb(var(--neg))",
+      color: "rgb(var(--neg-text))",
       icon: "alert",
       title: "Expired but still inside the group",
       detail:
@@ -641,7 +641,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
               style={{
                 background: "#34d39924",
-                color: "rgb(var(--pos))",
+                color: "rgb(var(--pos-text))",
                 border: "1px solid #34d3994d",
                 cursor: fuBusy ? "wait" : "pointer",
               }}
@@ -687,7 +687,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
             className="mt-2 p-2 rounded-md text-[11px] break-all"
             style={{
               background: "rgb(var(--ink) / 0.04)",
-              color: "rgb(var(--pos))",
+              color: "rgb(var(--pos-text))",
               border: "1px solid rgba(52,211,153,0.3)",
             }}
           >
@@ -756,7 +756,7 @@ const AccountTimeline = ({ data }) => {
       events.push({
         ts: p.verified_at || p.created_at,
         icon: StarIcon,
-        color: "rgb(var(--pos))",
+        color: "rgb(var(--pos-text))",
         label: `Payment confirmed${p.plan_label ? ` · ${p.plan_label}` : ""} ($${p.final_amount || p.amount_usdt})`,
       });
     });
@@ -817,7 +817,7 @@ const _fuRgba = (hex, a) => {
 const FU_STATUS = {
   pending: { color: "rgb(var(--warn))", label: "Pending" },
   in_progress: { color: "#5aa9e6", label: "In progress" },
-  done: { color: "rgb(var(--pos))", label: "Done" },
+  done: { color: "rgb(var(--pos-text))", label: "Done" },
   cancelled: { color: "rgb(var(--fg-muted))", label: "Cancelled" },
 };
 
@@ -885,7 +885,7 @@ const FollowupTimeline = ({ userId }) => {
                     {f.priority === "urgent" && (
                       <span
                         className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
-                        style={{ background: _fuRgba("#f87171", 0.12), color: "rgb(var(--neg))" }}
+                        style={{ background: _fuRgba("#f87171", 0.12), color: "rgb(var(--neg-text))" }}
                       >
                         Urgent
                       </span>
@@ -1123,7 +1123,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 className="text-xs p-3 rounded-lg flex items-start gap-2"
                 style={{
                   background: "rgba(248,113,113,0.05)",
-                  color: "rgb(var(--neg))",
+                  color: "rgb(var(--neg-text))",
                   border: "1px solid rgba(248,113,113,0.18)",
                 }}
               >
@@ -1165,7 +1165,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               {user.telegram_username && (
                 <p
                   className="text-[10px] mt-1 flex items-center gap-1"
-                  style={{ color: "rgb(var(--pos))" }}
+                  style={{ color: "rgb(var(--pos-text))" }}
                 >
                   <span style={{ color: "rgb(var(--fg-muted))" }}>Real username (from login):</span>
                   <strong>@{user.telegram_username}</strong>
@@ -1229,7 +1229,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 className="text-xs px-2 py-1.5 rounded flex items-start gap-2"
                 style={{
                   background: "rgba(248,113,113,0.1)",
-                  color: "rgb(var(--neg))",
+                  color: "rgb(var(--neg-text))",
                   border: "1px solid rgba(248,113,113,0.3)",
                 }}
               >
@@ -1330,13 +1330,13 @@ const PaymentsTab = ({ data }) => {
           />
           <p
             className="text-[10px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: "rgb(var(--pos))" }}
+            style={{ color: "rgb(var(--pos-text))" }}
           >
             Total Paid
           </p>
           <p
             className="text-xl font-light tabular-nums tracking-tight"
-            style={{ color: "rgb(var(--pos))" }}
+            style={{ color: "rgb(var(--pos-text))" }}
           >
             ${totalConfirmed.toFixed(2)}
           </p>
@@ -1497,7 +1497,7 @@ const ReferralTab = ({ data }) => {
                   {r.total_commission_earned > 0 && (
                     <p
                       className="text-xs font-bold tabular-nums"
-                      style={{ color: "rgb(var(--pos))" }}
+                      style={{ color: "rgb(var(--pos-text))" }}
                     >
                       ${r.total_commission_earned.toFixed(2)}
                     </p>
@@ -1774,7 +1774,7 @@ export const UserDetailDrawer = ({
               className="rounded-lg p-3 text-xs flex items-start gap-2"
               style={{
                 background: "rgba(248,113,113,0.08)",
-                color: "rgb(var(--neg))",
+                color: "rgb(var(--neg-text))",
                 border: "1px solid rgba(248,113,113,0.25)",
               }}
             >

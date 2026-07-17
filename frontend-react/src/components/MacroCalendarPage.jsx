@@ -41,7 +41,7 @@ const IMPACTS = ["All", "High", "Medium", "Low", "Holiday"];
 // Theme-token impact palette (no hardcoded brand hex)
 const IMPACT_STYLE = {
   High: {
-    color: "rgb(var(--neg))",
+    color: "rgb(var(--neg-text))",
     bg: "rgb(var(--neg) / 0.1)",
     border: "rgb(var(--neg) / 0.25)",
     dot: "rgb(var(--neg))",
@@ -81,7 +81,7 @@ const TYPE_STYLE = {
     cls: "text-text-secondary border-ink/12 bg-surface-secondary",
   },
   unlock: {
-    color: "rgb(var(--pos))",
+    color: "rgb(var(--pos-text))",
     bg: "rgb(var(--pos) / 0.1)",
     border: "rgb(var(--pos) / 0.22)",
     label: "Unlock",

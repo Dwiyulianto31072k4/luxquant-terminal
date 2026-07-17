@@ -157,7 +157,7 @@ export const BulkActionBar = ({
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
           style={{
             background: "rgba(52,211,153,0.08)",
-            color: "rgb(var(--pos))",
+            color: "rgb(var(--pos-text))",
             border: "1px solid rgba(52,211,153,0.22)",
           }}
           title="Grant subscription to selected users"
@@ -203,7 +203,7 @@ export const BulkActionBar = ({
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
           style={{
             background: "rgba(248,113,113,0.08)",
-            color: "rgb(var(--neg))",
+            color: "rgb(var(--neg-text))",
             border: "1px solid rgba(248,113,113,0.22)",
           }}
           title="Revoke subscription from selected subscribers"

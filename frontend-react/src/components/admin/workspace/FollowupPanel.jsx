@@ -149,7 +149,7 @@ const Field = ({ label, hint, required, children }) => (
       style={{ color: "rgb(var(--ink) / 0.4)" }}
     >
       {label}
-      {required && <span style={{ color: "rgb(var(--neg))" }}> *</span>}
+      {required && <span style={{ color: "rgb(var(--neg-text))" }}> *</span>}
       {hint && (
         <span className="ml-1 lowercase tracking-normal" style={{ color: "rgb(var(--fg-muted))" }}>
           {hint}
@@ -182,13 +182,13 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 const CATEGORIES = [
   { value: "renewal", label: "Renewal", Icon: RenewalIcon, color: "#8a8a93" },
   { value: "winback", label: "Win-back", Icon: RenewalIcon, color: "#8a8a93" },
-  { value: "payment", label: "Payment", Icon: PaymentCardIcon, color: "rgb(var(--pos))" },
+  { value: "payment", label: "Payment", Icon: PaymentCardIcon, color: "rgb(var(--pos-text))" },
   { value: "support", label: "Support", Icon: SupportIcon, color: "rgb(var(--warn))" },
   { value: "general", label: "General", Icon: NoteIcon, color: "rgb(var(--fg-muted))" },
 ];
 
 const PRIORITIES = [
-  { value: "urgent", label: "Urgent", color: "rgb(var(--neg))" },
+  { value: "urgent", label: "Urgent", color: "rgb(var(--neg-text))" },
   { value: "high", label: "High", color: "#fb923c" },
   { value: "normal", label: "Normal", color: "#8a8a93" },
   { value: "low", label: "Low", color: "rgb(var(--fg-muted))" },
@@ -369,7 +369,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
               background: "rgba(248,113,113,0.08)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               border: "1px solid rgba(248,113,113,0.25)",
             }}
           >
@@ -399,7 +399,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               {editingItem.creator && <> by @{editingItem.creator.username}</>}
             </p>
             {editingItem.completer && (
-              <p style={{ color: "rgb(var(--pos))" }}>
+              <p style={{ color: "rgb(var(--pos-text))" }}>
                 Completed by @{editingItem.completer.username} on{" "}
                 {new Date(editingItem.completed_at).toLocaleString("en-GB", {
                   day: "2-digit",

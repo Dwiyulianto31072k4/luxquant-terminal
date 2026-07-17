@@ -160,6 +160,8 @@
   /* Trading PnL — Binance green/red */
   --pos: 14 203 129; /* #0ECB81 */
   --neg: 246 70 93; /* #F6465D */
+  --pos-text: 14 203 129; /* green/red as TEXT — dark desks: same as fill */
+  --neg-text: 246 70 93;
   --warn: 240 185 11;
   --tg: 0 136 204;
   --line: 240 185 11;
@@ -184,6 +186,8 @@
   --fg-muted: 94 102 115;
   --pos: 14 203 129;
   --neg: 246 70 93;
+  --pos-text: 14 203 129;
+  --neg-text: 246 70 93;
   --warn: 240 185 11;
   --tg: 0 136 204;
   --line: 48 54 64;
@@ -214,6 +218,11 @@
   --fg-muted: 88 101 120; /* slate — ≥4.5:1 on the cool-white page surface */
   --pos: 14 203 129;
   --neg: 246 70 93;
+  /* Bright green/red are ~2-3:1 as TEXT on the light canvas — darken for
+     legibility while staying clearly green/red. Fills (bg-pos/neg) keep the
+     bright Binance colours. */
+  --pos-text: 8 128 88; /* ≈4.4:1 */
+  --neg-text: 211 47 60; /* ≈4.6:1 */
   --warn: 200 148 8;
   --tg: 2 132 199;
   --line: 228 232 238;
@@ -314,6 +323,22 @@
 [data-theme="bright"] [class~="text-accent"],
 [data-theme="bright"] [class*="text-accent/"] {
   color: rgb(var(--accent-text));
+}
+
+/* Bright: green/red are low-contrast as TEXT on the light canvas (green ≈2:1).
+   Darken profit/positive & loss/negative TEXT to --pos-text/--neg-text.
+   Fills (bg-profit/bg-loss …) keep the bright Binance colours. */
+[data-theme="bright"] [class~="text-profit"],
+[data-theme="bright"] [class~="text-positive"],
+[data-theme="bright"] [class*="text-profit/"],
+[data-theme="bright"] [class*="text-positive/"] {
+  color: rgb(var(--pos-text));
+}
+[data-theme="bright"] [class~="text-loss"],
+[data-theme="bright"] [class~="text-negative"],
+[data-theme="bright"] [class*="text-loss/"],
+[data-theme="bright"] [class*="text-negative/"] {
+  color: rgb(var(--neg-text));
 }
 
 /* Bright footer band — solid white chrome under terminal */

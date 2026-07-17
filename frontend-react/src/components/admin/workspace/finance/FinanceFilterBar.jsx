@@ -176,7 +176,7 @@ export const FinanceFilterBar = ({
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 whitespace-nowrap"
             style={{
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               background: "rgba(248,113,113,0.06)",
               border: "1px solid rgba(248,113,113,0.22)",
             }}

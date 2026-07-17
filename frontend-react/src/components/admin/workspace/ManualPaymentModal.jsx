@@ -81,7 +81,7 @@ const Field = ({ label, hint, error, children }) => (
       </p>
     )}
     {error && (
-      <p className="flex items-center gap-1 text-[10px]" style={{ color: "rgb(var(--neg))" }}>
+      <p className="flex items-center gap-1 text-[10px]" style={{ color: "rgb(var(--neg-text))" }}>
         <AlertTriangleIcon size={10} />
         {error}
       </p>
@@ -106,7 +106,7 @@ const Pill = ({ tone, children, Icon, pulse }) => {
   const tones = {
     green: {
       bg: "rgba(52,211,153,0.10)",
-      color: "rgb(var(--pos))",
+      color: "rgb(var(--pos-text))",
       border: "rgba(52,211,153,0.3)",
     },
     amber: {
@@ -116,7 +116,7 @@ const Pill = ({ tone, children, Icon, pulse }) => {
     },
     red: {
       bg: "rgba(248,113,113,0.10)",
-      color: "rgb(var(--neg))",
+      color: "rgb(var(--neg-text))",
       border: "rgba(248,113,113,0.3)",
     },
     gold: {
@@ -198,7 +198,7 @@ const TxStep = ({
               className="flex items-start gap-2 rounded-lg px-3 py-2.5 text-xs"
               style={{
                 background: "rgba(248,113,113,0.08)",
-                color: "rgb(var(--neg))",
+                color: "rgb(var(--neg-text))",
                 border: "1px solid rgba(248,113,113,0.28)",
               }}
             >
@@ -294,7 +294,7 @@ const TxStep = ({
               className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
               style={{
                 background: "rgba(248,113,113,0.08)",
-                color: "rgb(var(--neg))",
+                color: "rgb(var(--neg-text))",
                 border: "1px solid rgba(248,113,113,0.28)",
               }}
             >
@@ -737,7 +737,7 @@ const SelectedUserCard = ({ user, onClear }) => (
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-1.5">
         <p className="truncate text-[12px] font-semibold text-text-primary">@{user.username}</p>
-        <CheckCircleIcon size={11} style={{ color: "rgb(var(--pos))" }} />
+        <CheckCircleIcon size={11} style={{ color: "rgb(var(--pos-text))" }} />
       </div>
       <p className="truncate text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
         {user.email} · #{user.id} · {user.role}
@@ -811,7 +811,7 @@ const PlanStep = ({
                   {amountMatch && txAmount && (
                     <p
                       className="mt-1 flex items-center gap-1 text-[9.5px]"
-                      style={{ color: "rgb(var(--pos))" }}
+                      style={{ color: "rgb(var(--pos-text))" }}
                     >
                       <CheckCircleIcon size={9} />
                       Matches TX amount
@@ -1321,16 +1321,16 @@ export const ManualPaymentModal = ({
               <AlertTriangleIcon
                 size={13}
                 className="mt-0.5 shrink-0"
-                style={{ color: "rgb(var(--neg))" }}
+                style={{ color: "rgb(var(--neg-text))" }}
               />
-              <div className="text-[11px]" style={{ color: "rgb(var(--neg))" }}>
+              <div className="text-[11px]" style={{ color: "rgb(var(--neg-text))" }}>
                 <strong>Out-of-pool wallet:</strong> recipient address is not registered in the
                 receiving wallet pool. This is unusual.
               </div>
             </div>
             <label
               className="flex cursor-pointer items-center gap-2 text-[11px]"
-              style={{ color: "rgb(var(--neg))" }}
+              style={{ color: "rgb(var(--neg-text))" }}
             >
               <input
                 type="checkbox"
@@ -1352,7 +1352,7 @@ export const ManualPaymentModal = ({
             className="flex items-start gap-2 rounded-lg p-3 text-xs"
             style={{
               background: "rgba(248,113,113,0.08)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               border: "1px solid rgba(248,113,113,0.28)",
             }}
           >

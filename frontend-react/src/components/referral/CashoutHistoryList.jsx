@@ -31,14 +31,14 @@ const STATUS_CONFIG = {
   completed: {
     bg: "rgba(74,222,128,0.12)",
     border: "rgba(74,222,128,0.3)",
-    color: "rgb(var(--pos))",
+    color: "rgb(var(--pos-text))",
     label: "Completed",
     description: "Funds sent successfully",
   },
   rejected: {
     bg: "rgba(239,68,68,0.12)",
     border: "rgba(239,68,68,0.3)",
-    color: "rgb(var(--neg))",
+    color: "rgb(var(--neg-text))",
     label: "Rejected",
     description: "Balance has been refunded",
   },
@@ -241,7 +241,7 @@ const CashoutRow = ({ item, onUpdate }) => {
               style={{ borderColor: "rgb(var(--accent) / 0.06)" }}
             >
               {error && (
-                <p className="text-[11px] mb-2" style={{ color: "rgb(var(--neg))" }}>
+                <p className="text-[11px] mb-2" style={{ color: "rgb(var(--neg-text))" }}>
                   {error}
                 </p>
               )}
@@ -251,7 +251,7 @@ const CashoutRow = ({ item, onUpdate }) => {
                 className="w-full py-2.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                 style={{
                   background: "rgba(239,68,68,0.06)",
-                  color: "rgb(var(--neg))",
+                  color: "rgb(var(--neg-text))",
                   border: "1px solid rgba(239,68,68,0.2)",
                 }}
               >

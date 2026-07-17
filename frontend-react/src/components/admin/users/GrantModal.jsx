@@ -329,7 +329,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
               background: "rgba(248,113,113,0.08)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               border: "1px solid rgba(248,113,113,0.25)",
             }}
           >

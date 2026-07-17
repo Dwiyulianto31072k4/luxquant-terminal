@@ -65,7 +65,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
             className="group flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
             style={{
               background: "rgba(248,113,113,0.10)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               border: "1px solid rgba(248,113,113,0.30)",
             }}
           >
@@ -115,7 +115,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
         style={{
           background: "rgba(52,211,153,0.10)",
           border: "1px solid rgba(52,211,153,0.22)",
-          color: "rgb(var(--pos))",
+          color: "rgb(var(--pos-text))",
         }}
       >
         <TrendingUpIcon size={20} />

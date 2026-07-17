@@ -87,12 +87,12 @@ const MethodBadge = ({ method, dense = false }) => {
 
 const TONE = {
   success: {
-    color: "rgb(var(--pos))",
+    color: "rgb(var(--pos-text))",
     bg: "rgba(52,211,153,0.08)",
     border: "rgba(52,211,153,0.22)",
   },
   danger: {
-    color: "rgb(var(--neg))",
+    color: "rgb(var(--neg-text))",
     bg: "rgba(248,113,113,0.08)",
     border: "rgba(248,113,113,0.22)",
   },

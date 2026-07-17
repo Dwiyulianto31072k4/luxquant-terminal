@@ -74,7 +74,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
             style={{
               background: "rgba(246,70,93,0.08)",
               border: "1px solid rgba(246,70,93,0.25)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
             }}
           >
             This user hasn't linked Telegram, so the bot can't message them. Ask them to connect

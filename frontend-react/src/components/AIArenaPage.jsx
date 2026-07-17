@@ -10,14 +10,14 @@ import api from "../services/authApi";
 
 const SENTIMENT_CONFIG = {
   bullish: {
-    color: "rgb(var(--pos))",
+    color: "rgb(var(--pos-text))",
     bg: "rgba(74,222,128,0.06)",
     border: "rgba(74,222,128,0.15)",
     label: "BULLISH",
     icon: "🟢",
   },
   bearish: {
-    color: "rgb(var(--neg))",
+    color: "rgb(var(--neg-text))",
     bg: "rgba(248,113,113,0.06)",
     border: "rgba(248,113,113,0.15)",
     label: "BEARISH",
@@ -582,7 +582,7 @@ function PriceChart({ activeTF, onTFChange }) {
         if (liq) {
           if (liq.nearest_long_cluster) {
             const s = chart.addSeries(LineSeries, {
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               lineWidth: 1,
               lineStyle: 2,
               priceLineVisible: false,
@@ -596,7 +596,7 @@ function PriceChart({ activeTF, onTFChange }) {
           }
           if (liq.nearest_short_cluster) {
             const s = chart.addSeries(LineSeries, {
-              color: "rgb(var(--pos))",
+              color: "rgb(var(--pos-text))",
               lineWidth: 1,
               lineStyle: 2,
               priceLineVisible: false,
@@ -845,9 +845,9 @@ function ThreePillars({ pillars }) {
   if (!pillars) return null;
 
   const items = [
-    { key: "trend", icon: "📈", label: "Trend", color: "rgb(var(--pos))" },
+    { key: "trend", icon: "📈", label: "Trend", color: "rgb(var(--pos-text))" },
     { key: "flow", icon: "💧", label: "Flow", color: "#22d3ee" },
-    { key: "risk", icon: "⚠️", label: "Risk", color: "rgb(var(--neg))" },
+    { key: "risk", icon: "⚠️", label: "Risk", color: "rgb(var(--neg-text))" },
   ];
 
   return (

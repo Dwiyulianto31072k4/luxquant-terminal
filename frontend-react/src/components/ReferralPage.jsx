@@ -138,14 +138,14 @@ const FunnelBar = ({ funnel }) => {
       value: funnel.signed_up,
       color: "rgb(var(--fg-muted))",
     },
-    { key: "active", label: "Active", value: funnel.active, color: "rgb(var(--pos))" },
+    { key: "active", label: "Active", value: funnel.active, color: "rgb(var(--pos-text))" },
     {
       key: "subscribed",
       label: "Subscribed",
       value: funnel.subscribed,
       color: "rgb(var(--accent-text))",
     },
-    { key: "churned", label: "Churned", value: funnel.churned, color: "rgb(var(--neg))" },
+    { key: "churned", label: "Churned", value: funnel.churned, color: "rgb(var(--neg-text))" },
   ];
 
   return (

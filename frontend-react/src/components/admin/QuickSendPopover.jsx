@@ -288,7 +288,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
                     className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded ml-1 shrink-0"
                     style={{
                       background: "rgba(248,113,113,0.12)",
-                      color: "rgb(var(--neg))",
+                      color: "rgb(var(--neg-text))",
                       border: "1px solid rgba(248,113,113,0.25)",
                     }}
                   >

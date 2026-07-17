@@ -148,11 +148,11 @@ export function EdgeTab() {
         (s.sl_count || 0);
     if (!closed) return null;
     const tiers = [
-      { k: "TP1", n: s.tp1_count || 0, avg: ta.TP1 ?? 0, color: "rgb(var(--pos))" },
-      { k: "TP2", n: s.tp2_count || 0, avg: ta.TP2 ?? 0, color: "rgb(var(--pos))" },
+      { k: "TP1", n: s.tp1_count || 0, avg: ta.TP1 ?? 0, color: "rgb(var(--pos-text))" },
+      { k: "TP2", n: s.tp2_count || 0, avg: ta.TP2 ?? 0, color: "rgb(var(--pos-text))" },
       { k: "TP3", n: s.tp3_count || 0, avg: ta.TP3 ?? 0, color: "#86efac" },
       { k: "TP4", n: s.tp4_count || 0, avg: ta.TP4 ?? 0, color: GOLD },
-      { k: "SL", n: s.sl_count || 0, avg: ta.SL ?? 0, color: "rgb(var(--neg))" },
+      { k: "SL", n: s.sl_count || 0, avg: ta.SL ?? 0, color: "rgb(var(--neg-text))" },
     ];
     let grossWin = 0,
       grossLoss = 0,

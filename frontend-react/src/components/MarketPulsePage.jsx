@@ -817,14 +817,14 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
     bull: {
       label: "Bullish",
       bias: "Long bias",
-      color: "rgb(var(--pos))",
+      color: "rgb(var(--pos-text))",
       text: "text-profit",
       chip: "border-profit/30 bg-profit/10 text-profit",
     },
     bear: {
       label: "Bearish",
       bias: "Short bias",
-      color: "rgb(var(--neg))",
+      color: "rgb(var(--neg-text))",
       text: "text-loss",
       chip: "border-loss/30 bg-loss/10 text-loss",
     },

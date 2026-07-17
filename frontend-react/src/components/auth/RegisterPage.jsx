@@ -75,9 +75,9 @@ const RegisterPage = () => {
     if (/[A-Z]/.test(pwd)) s++;
     if (/[0-9]/.test(pwd)) s++;
     if (/[^A-Za-z0-9]/.test(pwd)) s++;
-    if (s <= 1) return { level: 1, label: a("strength_weak"), color: "rgb(var(--neg))" };
+    if (s <= 1) return { level: 1, label: a("strength_weak"), color: "rgb(var(--neg-text))" };
     if (s <= 2) return { level: 2, label: a("strength_fair"), color: "rgb(var(--warn))" };
-    if (s <= 3) return { level: 3, label: a("strength_good"), color: "rgb(var(--pos))" };
+    if (s <= 3) return { level: 3, label: a("strength_good"), color: "rgb(var(--pos-text))" };
     return { level: 4, label: a("strength_strong"), color: "#22c55e" };
   };
   const strength = getStrength(password);
@@ -303,7 +303,7 @@ const RegisterPage = () => {
               {confirmPassword && confirmPassword !== password && (
                 <p
                   className="mt-1 text-xs flex items-center gap-1 ml-1"
-                  style={{ color: "rgb(var(--neg))" }}
+                  style={{ color: "rgb(var(--neg-text))" }}
                 >
                   <svg
                     width="12"
@@ -322,7 +322,7 @@ const RegisterPage = () => {
               {confirmPassword && confirmPassword === password && password && (
                 <p
                   className="mt-1 text-xs flex items-center gap-1 ml-1"
-                  style={{ color: "rgb(var(--pos))" }}
+                  style={{ color: "rgb(var(--pos-text))" }}
                 >
                   <svg
                     width="12"

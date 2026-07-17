@@ -438,15 +438,15 @@ const fmtPrice = (v) => {
 };
 const ST_META = {
   open: { label: "OPEN", color: "#60a5fa", desc: "Live — no target hit yet" },
-  tp1: { label: "TP1 HIT", color: "rgb(var(--pos))", desc: "First target reached" },
-  tp2: { label: "TP2 HIT", color: "rgb(var(--pos))", desc: "Second target reached" },
-  tp3: { label: "TP3 HIT", color: "rgb(var(--pos))", desc: "Third target reached" },
+  tp1: { label: "TP1 HIT", color: "rgb(var(--pos-text))", desc: "First target reached" },
+  tp2: { label: "TP2 HIT", color: "rgb(var(--pos-text))", desc: "Second target reached" },
+  tp3: { label: "TP3 HIT", color: "rgb(var(--pos-text))", desc: "Third target reached" },
   closed_win: {
     label: "TP4 / WIN",
     color: "rgb(var(--accent-text))",
     desc: "Final target — closed in profit",
   },
-  closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg))", desc: "Hit stop loss" },
+  closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg-text))", desc: "Hit stop loss" },
 };
 
 // ── Signal detail modal — opens when any point/row/tile is clicked ──

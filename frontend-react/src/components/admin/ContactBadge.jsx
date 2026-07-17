@@ -200,7 +200,7 @@ export const ContactBadgeRow = ({ user, reach }) => {
         className="inline-flex items-center text-[10px] px-2 py-0.5 rounded font-medium"
         style={{
           background: "rgba(248,113,113,0.07)",
-          color: "rgb(var(--neg))",
+          color: "rgb(var(--neg-text))",
           border: "1px solid rgba(248,113,113,0.18)",
         }}
         title="No contact channel available"

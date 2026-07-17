@@ -64,7 +64,7 @@ const timeUntilDue = (dateStr) => {
 
 const PRIORITY_CONFIG = {
   urgent: {
-    color: "rgb(var(--neg))",
+    color: "rgb(var(--neg-text))",
     bg: "rgba(248,113,113,0.1)",
     border: "rgba(248,113,113,0.3)",
   },
@@ -80,7 +80,7 @@ const PRIORITY_CONFIG = {
 const STATUS_CONFIG = {
   pending: { color: "rgb(var(--warn))", label: "Pending" },
   in_progress: { color: "#8a8a93", label: "In Progress" },
-  done: { color: "rgb(var(--pos))", label: "Done" },
+  done: { color: "rgb(var(--pos-text))", label: "Done" },
   cancelled: { color: "rgb(var(--fg-muted))", label: "Cancelled" },
 };
 
@@ -311,7 +311,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
               <span>Due {formatDateTime(followup.due_date)}</span>
               {followup.creator && <span>· by @{followup.creator.username}</span>}
               {followup.completer && (
-                <span style={{ color: "rgb(var(--pos))" }}>
+                <span style={{ color: "rgb(var(--pos-text))" }}>
                   · ✓ by @{followup.completer.username}
                 </span>
               )}
@@ -339,7 +339,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                     title="Mark as done"
                     className="p-1.5 rounded-md transition-colors"
                     style={{
-                      color: "rgb(var(--pos))",
+                      color: "rgb(var(--pos-text))",
                       background: "rgba(52,211,153,0.08)",
                       border: "1px solid rgba(52,211,153,0.2)",
                     }}
@@ -379,7 +379,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 title="Delete"
                 className="p-1.5 rounded-md transition-colors"
                 style={{
-                  color: "rgb(var(--neg))",
+                  color: "rgb(var(--neg-text))",
                   background: "rgba(248,113,113,0.08)",
                   border: "1px solid rgba(248,113,113,0.2)",
                 }}
@@ -678,7 +678,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
             style={{
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               background: "rgba(248,113,113,0.06)",
               border: "1px solid rgba(248,113,113,0.2)",
             }}

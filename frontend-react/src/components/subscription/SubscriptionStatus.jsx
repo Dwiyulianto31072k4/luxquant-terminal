@@ -33,7 +33,7 @@ const SubscriptionStatus = ({ compact = false }) => {
           className="px-2 py-0.5 rounded text-[10px] font-bold"
           style={{
             background: "rgba(239, 68, 68, 0.15)",
-            color: "rgb(var(--neg))",
+            color: "rgb(var(--neg-text))",
             border: "1px solid rgba(239, 68, 68, 0.3)",
           }}
         >
@@ -83,7 +83,7 @@ const SubscriptionStatus = ({ compact = false }) => {
         {sub?.tier === "admin" ? (
           <span
             className="px-2 py-0.5 rounded text-xs font-bold"
-            style={{ background: "rgba(239, 68, 68, 0.15)", color: "rgb(var(--neg))" }}
+            style={{ background: "rgba(239, 68, 68, 0.15)", color: "rgb(var(--neg-text))" }}
           >
             ADMIN
           </span>

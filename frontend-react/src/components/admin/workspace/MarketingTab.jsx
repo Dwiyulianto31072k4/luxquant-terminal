@@ -47,7 +47,7 @@ const STATUS_CONFIG = {
     border: "rgba(138,138,147,0.3)",
   },
   active: {
-    color: "rgb(var(--pos))",
+    color: "rgb(var(--pos-text))",
     label: "Active",
     bg: "rgba(52,211,153,0.1)",
     border: "rgba(52,211,153,0.3)",
@@ -279,7 +279,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
           </p>
         )}
         {overBudget && (
-          <p className="text-[10px] mt-1 tabular-nums" style={{ color: "rgb(var(--neg))" }}>
+          <p className="text-[10px] mt-1 tabular-nums" style={{ color: "rgb(var(--neg-text))" }}>
             Over budget by {formatCurrency(spent - budget)}
           </p>
         )}
@@ -348,7 +348,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             title="Delete"
             className="p-1.5 rounded-md transition-colors"
             style={{
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               background: "rgba(248,113,113,0.08)",
               border: "1px solid rgba(248,113,113,0.2)",
             }}
@@ -567,7 +567,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
             style={{
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               background: "rgba(248,113,113,0.06)",
               border: "1px solid rgba(248,113,113,0.2)",
             }}

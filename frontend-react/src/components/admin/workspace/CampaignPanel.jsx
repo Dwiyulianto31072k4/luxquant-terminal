@@ -22,7 +22,7 @@ const Field = ({ label, hint, required, children }) => (
       style={{ color: "rgb(var(--ink) / 0.4)" }}
     >
       {label}
-      {required && <span style={{ color: "rgb(var(--neg))" }}> *</span>}
+      {required && <span style={{ color: "rgb(var(--neg-text))" }}> *</span>}
       {hint && (
         <span className="ml-1 lowercase tracking-normal" style={{ color: "rgb(var(--fg-muted))" }}>
           {hint}
@@ -68,7 +68,7 @@ const PLATFORMS = [
 
 const STATUSES = [
   { value: "planning", label: "Planning", color: "#8a8a93" },
-  { value: "active", label: "Active", color: "rgb(var(--pos))" },
+  { value: "active", label: "Active", color: "rgb(var(--pos-text))" },
   { value: "paused", label: "Paused", color: "rgb(var(--warn))" },
   { value: "completed", label: "Completed", color: "#8a8a93" },
   { value: "cancelled", label: "Cancelled", color: "rgb(var(--fg-muted))" },
@@ -126,7 +126,7 @@ const LineItemRow = ({ item, onChange, onDelete }) => (
         onClick={onDelete}
         className="rounded-md p-1.5 transition-colors"
         style={{
-          color: "rgb(var(--neg))",
+          color: "rgb(var(--neg-text))",
           background: "rgba(248,113,113,0.08)",
           border: "1px solid rgba(248,113,113,0.2)",
         }}
@@ -164,7 +164,7 @@ const MetadataRow = ({ k, v, onChange, onDelete }) => (
       onClick={onDelete}
       className="rounded-md p-1.5 transition-colors"
       style={{
-        color: "rgb(var(--neg))",
+        color: "rgb(var(--neg-text))",
         background: "rgba(248,113,113,0.08)",
         border: "1px solid rgba(248,113,113,0.2)",
       }}
@@ -544,7 +544,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
               background: "rgba(248,113,113,0.08)",
-              color: "rgb(var(--neg))",
+              color: "rgb(var(--neg-text))",
               border: "1px solid rgba(248,113,113,0.25)",
             }}
           >

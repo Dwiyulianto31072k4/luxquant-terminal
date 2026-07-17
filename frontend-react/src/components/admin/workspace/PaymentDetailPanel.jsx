@@ -277,7 +277,7 @@ const NoteInput = ({ actionType, note, onChange, onCancel, onSubmit, busy }) => 
           className="block text-[9.5px] uppercase tracking-wider font-semibold mb-1 font-mono"
           style={{ color: t.color }}
         >
-          Reason <span style={{ color: "rgb(var(--neg))" }}>*</span>
+          Reason <span style={{ color: "rgb(var(--neg-text))" }}>*</span>
         </label>
         <textarea
           value={note}

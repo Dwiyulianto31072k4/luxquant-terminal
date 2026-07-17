@@ -307,7 +307,7 @@ export default function CoinSpotlight() {
                       {c.win_rate != null && (
                         <span
                           className="ml-auto font-mono text-[10px]"
-                          style={{ color: "rgb(var(--pos))" }}
+                          style={{ color: "rgb(var(--pos-text))" }}
                         >
                           {pct(c.win_rate)}
                         </span>
