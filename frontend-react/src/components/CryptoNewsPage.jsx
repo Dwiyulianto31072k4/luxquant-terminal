@@ -569,26 +569,30 @@ const MediaBlock = ({ item, className = "", playSize = "md" }) => {
   );
 };
 
-// Lead — Bloomberg hero: full-bleed image, then overline · headline · deck · byline
+// Lead — side-by-side image | copy (cuts hero height ~50% vs stacked 16/10)
 const LeadCard = ({ item, onSelect }) => (
   <article
     onClick={() => onSelect(item)}
-    className="group cursor-pointer"
+    className="group cursor-pointer flex flex-col sm:flex-row gap-3 sm:gap-3.5 sm:min-h-[168px]"
   >
-    <MediaBlock item={item} className="aspect-[16/10] w-full" playSize="lg" />
-    <div className="pt-3.5 space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+    <MediaBlock
+      item={item}
+      className="aspect-[16/10] sm:aspect-auto sm:w-[46%] sm:min-h-[168px] sm:max-h-[200px] w-full shrink-0"
+      playSize="md"
+    />
+    <div className="min-w-0 flex-1 flex flex-col justify-center gap-1.5 py-0.5">
+      <div className="flex items-center gap-1.5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
           {shortDomain(item.domain) || "Wire"}
         </span>
-        <span className="text-text-muted/40">·</span>
-        <span className="font-mono text-[10px] text-text-muted/70">{timeAgo(item.created_at)}</span>
+        <span className="text-text-muted/35">·</span>
+        <span className="font-mono text-[9px] text-text-muted/65">{timeAgo(item.created_at)}</span>
       </div>
-      <h2 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] font-semibold leading-[1.15] tracking-tight text-text-primary group-hover:text-white transition-colors">
+      <h2 className="font-display text-[17px] sm:text-[19px] lg:text-[21px] font-semibold leading-[1.2] tracking-tight text-text-primary group-hover:text-white transition-colors line-clamp-4">
         {item.title}
       </h2>
       {item.description ? (
-        <p className="text-[14px] leading-relaxed text-text-secondary line-clamp-3 max-w-[62ch]">
+        <p className="text-[12.5px] leading-snug text-text-secondary line-clamp-2">
           {cleanText(item.description)}
         </p>
       ) : null}
@@ -596,62 +600,59 @@ const LeadCard = ({ item, onSelect }) => (
   </article>
 );
 
-// Stack story — sits beside the lead (image left small, headline right) OR compact under-rail
+// Stack — denser thumbs + 2-line heads (fills hero column height)
 const StackStory = ({ item, onSelect }) => (
   <button
     type="button"
     onClick={() => onSelect(item)}
-    className="group w-full flex gap-3 text-left py-3 first:pt-0 last:pb-0 border-b border-white/[0.07] last:border-b-0"
+    className="group w-full flex gap-2.5 text-left py-2 first:pt-0 last:pb-0 border-b border-white/[0.06] last:border-b-0"
   >
-    <MediaBlock item={item} className="w-[88px] h-[66px] shrink-0" playSize="sm" />
-    <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
-      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+    <MediaBlock item={item} className="w-[64px] h-[48px] shrink-0" playSize="sm" />
+    <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+      <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted">
         {shortDomain(item.domain)}
-        <span className="text-text-muted/40"> · </span>
+        <span className="text-text-muted/35"> · </span>
         {timeAgo(item.created_at)}
       </span>
-      <h3 className="font-display text-[14px] font-semibold leading-snug text-text-primary line-clamp-3 group-hover:text-white transition-colors">
+      <h3 className="font-display text-[12.5px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-white transition-colors">
         {item.title}
       </h3>
     </div>
   </button>
 );
 
-// Secondary card — 3-up mid-band (image top, tight deck)
+// Mid-band — shorter image, tighter type (4-up capable)
 const SecondaryCard = ({ item, onSelect }) => (
-  <article
-    onClick={() => onSelect(item)}
-    className="group cursor-pointer flex flex-col"
-  >
-    <MediaBlock item={item} className="aspect-[16/10] w-full" />
-    <div className="pt-2.5 space-y-1.5">
-      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+  <article onClick={() => onSelect(item)} className="group cursor-pointer flex flex-col">
+    <MediaBlock item={item} className="aspect-[16/9] w-full" playSize="sm" />
+    <div className="pt-1.5 space-y-0.5">
+      <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted">
         {shortDomain(item.domain)}
-        <span className="text-text-muted/40"> · </span>
+        <span className="text-text-muted/35"> · </span>
         {timeAgo(item.created_at)}
       </span>
-      <h3 className="font-display text-[15px] font-semibold leading-snug text-text-primary line-clamp-3 group-hover:text-white transition-colors">
+      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-white transition-colors">
         {item.title}
       </h3>
     </div>
   </article>
 );
 
-// Wire row — dense terminal list: TIME | SOURCE | HEADLINE
+// Wire — single-line terminal density
 const WireRow = ({ item, onSelect }) => (
   <button
     type="button"
     onClick={() => onSelect(item)}
-    className="group grid grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[56px_100px_minmax(0,1fr)] gap-x-3 gap-y-0.5 w-full py-2.5 text-left border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors"
+    className="group grid grid-cols-[44px_minmax(0,1fr)] sm:grid-cols-[48px_88px_minmax(0,1fr)] gap-x-2.5 w-full py-1.5 text-left border-b border-white/[0.05] hover:bg-white/[0.025] transition-colors items-baseline"
   >
-    <span className="font-mono text-[11px] tabular-nums text-text-muted pt-0.5">
+    <span className="font-mono text-[10px] tabular-nums text-text-muted/80">
       {timeAgo(item.created_at).replace(" ago", "")}
     </span>
-    <span className="hidden sm:block font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted pt-0.5 truncate">
+    <span className="hidden sm:block font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/70 truncate">
       {shortDomain(item.domain)}
     </span>
-    <span className="font-display text-[13.5px] sm:text-[14px] font-medium leading-snug text-text-primary group-hover:text-white transition-colors line-clamp-2">
-      <span className="sm:hidden font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted mr-2">
+    <span className="font-display text-[13px] font-medium leading-snug text-text-primary group-hover:text-white transition-colors line-clamp-1">
+      <span className="sm:hidden font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted mr-1.5">
         {shortDomain(item.domain)}
       </span>
       {item.title}
@@ -659,32 +660,31 @@ const WireRow = ({ item, onSelect }) => (
   </button>
 );
 
-// Mobile / compact list row with thumb
 const ListRow = ({ item, onSelect }) => {
   const hasVideo = !!getVideoSrc(item);
   return (
     <button
       type="button"
       onClick={() => onSelect(item)}
-      className="group relative w-full flex gap-3 py-3 text-left border-b border-white/[0.06]"
+      className="group relative w-full flex gap-2.5 py-2 text-left border-b border-white/[0.05]"
     >
-      <div className="relative w-[76px] h-[58px] overflow-hidden flex-shrink-0 bg-[#050505]">
+      <div className="relative w-[64px] h-[48px] overflow-hidden flex-shrink-0 bg-[#050505]">
         <RowThumb item={item} />
         {hasVideo && (
           <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 border border-white/30">
-              <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/55 border border-white/30">
+              <svg className="w-2.5 h-2.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
           </span>
         )}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+        <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted">
           {shortDomain(item.domain)} · {timeAgo(item.created_at)}
         </span>
-        <h4 className="font-display text-[13.5px] font-medium leading-snug line-clamp-2 text-text-primary group-hover:text-white transition-colors">
+        <h4 className="font-display text-[13px] font-medium leading-snug line-clamp-2 text-text-primary group-hover:text-white transition-colors">
           {item.title}
         </h4>
       </div>
@@ -692,34 +692,34 @@ const ListRow = ({ item, onSelect }) => {
   );
 };
 
-// Right-rail market desk (always-on desktop column)
+// Right rail — compact desk
 const MarketDesk = ({ trending, stats, onSearchTopic }) => {
-  const topDomains = stats?.top_domains?.slice(0, 8) || [];
-  const topics = trending?.trending?.slice(0, 12) || [];
+  const topDomains = stats?.top_domains?.slice(0, 7) || [];
+  const topics = trending?.trending?.slice(0, 10) || [];
   return (
-    <aside className="space-y-6">
+    <aside className="space-y-4">
       <div>
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted border-b border-white/[0.1] pb-2 mb-3">
+        <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.1] pb-1.5 mb-1">
           Trending
         </h3>
         {topics.length === 0 ? (
-          <p className="text-[12px] text-text-muted/60">No topics yet</p>
+          <p className="text-[11px] text-text-muted/60 py-2">No topics yet</p>
         ) : (
-          <ol className="space-y-0">
+          <ol>
             {topics.map((t, i) => (
               <li key={t.topic}>
                 <button
                   type="button"
                   onClick={() => onSearchTopic(t.topic)}
-                  className="group flex w-full items-baseline gap-2.5 py-2 border-b border-white/[0.05] text-left hover:bg-white/[0.02]"
+                  className="group flex w-full items-baseline gap-2 py-1.5 border-b border-white/[0.045] text-left hover:bg-white/[0.02]"
                 >
-                  <span className="font-mono text-[11px] tabular-nums text-text-muted/50 w-4 shrink-0">
+                  <span className="font-mono text-[10px] tabular-nums text-text-muted/45 w-3.5 shrink-0">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="flex-1 text-[13px] text-text-primary/90 group-hover:text-white transition-colors">
+                  <span className="flex-1 text-[12px] leading-snug text-text-primary/90 group-hover:text-white transition-colors line-clamp-1">
                     {t.topic}
                   </span>
-                  <span className="font-mono text-[10px] tabular-nums text-text-muted/50">×{t.count}</span>
+                  <span className="font-mono text-[9.5px] tabular-nums text-text-muted/45">×{t.count}</span>
                 </button>
               </li>
             ))}
@@ -729,21 +729,17 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
 
       {topDomains.length > 0 && (
         <div>
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted border-b border-white/[0.1] pb-2 mb-3">
+          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.1] pb-1.5 mb-1">
             Sources
           </h3>
-          <ul className="space-y-0">
+          <ul>
             {topDomains.map((d) => (
               <li
                 key={d.domain}
-                className="flex items-center justify-between py-2 border-b border-white/[0.05]"
+                className="flex items-center justify-between py-1.5 border-b border-white/[0.045]"
               >
-                <span className="text-[12.5px] text-text-secondary truncate pr-2">
-                  {d.domain}
-                </span>
-                <span className="font-mono text-[11px] tabular-nums text-text-muted shrink-0">
-                  {d.count}
-                </span>
+                <span className="text-[11.5px] text-text-secondary truncate pr-2">{d.domain}</span>
+                <span className="font-mono text-[10px] tabular-nums text-text-muted shrink-0">{d.count}</span>
               </li>
             ))}
           </ul>
@@ -752,7 +748,7 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
 
       {stats && (
         <div>
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted border-b border-white/[0.1] pb-2 mb-3">
+          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.1] pb-1.5 mb-1.5">
             Desk pulse
           </h3>
           <div className="grid grid-cols-3 gap-px bg-white/[0.06] border border-white/[0.06]">
@@ -761,9 +757,9 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
               { l: "6h", v: stats.last_6h },
               { l: "All", v: stats.total },
             ].map((s) => (
-              <div key={s.l} className="bg-surface-raised px-2 py-3 text-center">
-                <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{s.l}</div>
-                <div className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
+              <div key={s.l} className="bg-surface-raised px-1.5 py-2 text-center">
+                <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted">{s.l}</div>
+                <div className="mt-0.5 font-mono text-[14px] font-semibold tabular-nums text-text-primary">
                   {s.v ?? "—"}
                 </div>
               </div>
@@ -1211,7 +1207,7 @@ const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
 // Quiet segment chip — monochrome active (Bloomberg terminal style)
 const FilterChip = ({ active, onClick, children, icon }) => {
   const base =
-    "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[11px] font-medium tracking-wide transition-colors whitespace-nowrap";
+    "inline-flex items-center gap-1 h-7 px-2 rounded-md text-[10.5px] font-medium tracking-wide transition-colors whitespace-nowrap";
 
   if (active) {
     return (
@@ -1220,7 +1216,7 @@ const FilterChip = ({ active, onClick, children, icon }) => {
         onClick={onClick}
         className={`${base} bg-white/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]`}
       >
-        {icon && <Icon name={icon} className="w-3.5 h-3.5 opacity-80" />}
+        {icon && <Icon name={icon} className="w-3 h-3 opacity-80" />}
         {children}
       </button>
     );
@@ -1232,7 +1228,7 @@ const FilterChip = ({ active, onClick, children, icon }) => {
       onClick={onClick}
       className={`${base} text-text-muted hover:text-text-primary hover:bg-white/[0.04]`}
     >
-      {icon && <Icon name={icon} className="w-3.5 h-3.5 opacity-70" />}
+      {icon && <Icon name={icon} className="w-3 h-3 opacity-70" />}
       {children}
     </button>
   );
@@ -1270,11 +1266,10 @@ const FilterBar = ({
   ];
 
   return (
-    <div className="space-y-3">
-      {/* Search — full-width quiet field */}
+    <div className="space-y-1.5">
       <div className="relative">
         <svg
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/60"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted/55"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -1291,26 +1286,25 @@ const FilterBar = ({
           value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search headlines, topics, sources…"
-          className="w-full h-11 pl-11 pr-10 rounded-xl border border-white/[0.08] bg-surface-raised text-text-primary text-[13px] placeholder:text-text-muted/45 focus:outline-none focus:border-white/20 transition-colors"
+          className="w-full h-9 pl-9 pr-9 rounded-lg border border-white/[0.08] bg-surface-raised text-text-primary text-[12.5px] placeholder:text-text-muted/45 focus:outline-none focus:border-white/18 transition-colors"
         />
         {searchInput && (
           <button
             type="button"
             onClick={onClearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-white/[0.06] transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-white/[0.06]"
             title="Clear search"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
       </div>
 
-      {/* Format rail */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 min-w-0">
         <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-0.5"
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5"
           role="tablist"
           aria-label="Content type"
         >
@@ -1325,9 +1319,8 @@ const FilterBar = ({
           })}
         </div>
 
-        {/* Topic rail */}
         <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-0.5 min-w-0"
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5 min-w-0 overflow-x-auto no-scrollbar"
           role="tablist"
           aria-label="Topic"
         >
@@ -1520,9 +1513,9 @@ const CryptoNewsPage = () => {
     if (!heroEnabled || filteredItems.length === 0) {
       return { lead: null, secondary: [], midBand: [], listItems: filteredItems };
     }
-    // Bloomberg hero: 1 lead + 3 stacked secondaries, rest go to wire / mid-band
-    const STACK_COUNT = 3;
-    const MID_BAND = 3;
+    // Compact desk: 1 lead + 4 stack (fills side column) + 4 mid-band + wire
+    const STACK_COUNT = 4;
+    const MID_BAND = 4;
     const used = new Set();
     const leadItem = filteredItems.find(hasVisual) || filteredItems[0];
     if (leadItem) used.add(leadItem.id);
@@ -1578,45 +1571,42 @@ const CryptoNewsPage = () => {
 
   // ── Render ─────────────────────────────
   return (
-    <div className="pb-10">
+    <div className="pb-6">
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
-      {/* ── Masthead ── */}
-      <header className="border-b border-white/[0.1] pb-3 mb-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted mb-1">
-              LuxQuant · Markets
-            </p>
-            <h1 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-text-primary leading-none">
-              News
-            </h1>
-          </div>
-          <div className="flex items-center gap-4 font-mono text-[11px] text-text-muted">
-            {stats?.last_hour != null && (
-              <span>
-                <span className="text-text-muted/50">1h </span>
-                <span className="tabular-nums text-text-primary/80">{stats.last_hour}</span>
-              </span>
-            )}
-            {stats?.total != null && (
-              <span>
-                <span className="text-text-muted/50">Indexed </span>
-                <span className="tabular-nums text-text-primary/80">
-                  {Number(stats.total).toLocaleString()}
-                </span>
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-positive" />
-              Live
+      {/* Masthead — single tight row */}
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-white/[0.1] pb-2 mb-2.5">
+        <div className="flex items-baseline gap-2.5 min-w-0">
+          <h1 className="font-display text-[22px] sm:text-[24px] font-semibold tracking-tight text-text-primary leading-none">
+            News
+          </h1>
+          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted hidden sm:inline">
+            Markets wire
+          </span>
+        </div>
+        <div className="flex items-center gap-3 font-mono text-[10px] text-text-muted">
+          {stats?.last_hour != null && (
+            <span>
+              <span className="text-text-muted/45">1h </span>
+              <span className="tabular-nums text-text-primary/85">{stats.last_hour}</span>
             </span>
-          </div>
+          )}
+          {stats?.total != null && (
+            <span>
+              <span className="text-text-muted/45">Idx </span>
+              <span className="tabular-nums text-text-primary/85">
+                {Number(stats.total).toLocaleString()}
+              </span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+            Live
+          </span>
         </div>
       </header>
 
-      {/* ── Filters ── */}
-      <div className="mb-5">
+      <div className="mb-3">
         <FilterBar
           searchInput={searchInput}
           onSearchChange={handleSearchInput}
@@ -1633,9 +1623,9 @@ const CryptoNewsPage = () => {
       {loading ? (
         <LoadingSkeleton />
       ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-28 text-center border-y border-white/[0.06]">
-          <p className="font-display text-text-primary text-lg mb-1">No results</p>
-          <p className="text-text-muted text-sm max-w-sm">
+        <div className="flex flex-col items-center justify-center py-16 text-center border-y border-white/[0.06]">
+          <p className="font-display text-text-primary text-base mb-1">No results</p>
+          <p className="text-text-muted text-xs max-w-sm">
             {searchQuery
               ? `Nothing matches “${searchQuery}”.`
               : activeCategory
@@ -1645,36 +1635,28 @@ const CryptoNewsPage = () => {
         </div>
       ) : (
         <>
-          {/* ════════ DESKTOP: Bloomberg 8+4 ════════ */}
-          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-            {/* MAIN COLUMN */}
-            <div className="lg:col-span-8 min-w-0 space-y-8">
-              {/* Hero band: lead + stack */}
+          {/* Desktop: 9+3 denser columns */}
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-5 lg:items-start">
+            <div className="lg:col-span-9 min-w-0 space-y-4">
               {layout.lead && (
-                <section className="grid grid-cols-12 gap-6 border-b border-white/[0.1] pb-8">
+                <section className="grid grid-cols-12 gap-4 border-b border-white/[0.09] pb-3.5">
                   <div className="col-span-12 xl:col-span-7">
                     <LeadCard item={layout.lead} onSelect={openArticle} />
                   </div>
-                  <div className="col-span-12 xl:col-span-5 xl:border-l xl:border-white/[0.08] xl:pl-6">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted mb-1 pb-2 border-b border-white/[0.08]">
+                  <div className="col-span-12 xl:col-span-5 xl:border-l xl:border-white/[0.07] xl:pl-4">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted mb-0.5 pb-1.5 border-b border-white/[0.07]">
                       Also on the wire
                     </p>
-                    <div>
-                      {layout.secondary.map((it) => (
-                        <StackStory key={it.id} item={it} onSelect={openArticle} />
-                      ))}
-                      {layout.secondary.length === 0 && (
-                        <p className="text-[12px] text-text-muted/60 py-4">No secondary stories</p>
-                      )}
-                    </div>
+                    {layout.secondary.map((it) => (
+                      <StackStory key={it.id} item={it} onSelect={openArticle} />
+                    ))}
                   </div>
                 </section>
               )}
 
-              {/* Mid-band 3-up */}
               {layout.midBand?.length > 0 && (
-                <section>
-                  <div className="grid grid-cols-3 gap-5 border-b border-white/[0.1] pb-8">
+                <section className="border-b border-white/[0.09] pb-3.5">
+                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
                     {layout.midBand.map((it) => (
                       <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
                     ))}
@@ -1682,14 +1664,13 @@ const CryptoNewsPage = () => {
                 </section>
               )}
 
-              {/* Dense wire list */}
               <section>
-                <div className="flex items-baseline justify-between border-b border-white/[0.12] pb-2 mb-1">
-                  <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
+                <div className="flex items-baseline justify-between border-b border-white/[0.1] pb-1 mb-0.5">
+                  <h2 className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                     {layout.lead ? "Latest" : sectionLabel}
                   </h2>
-                  <span className="font-mono text-[10px] tabular-nums text-text-muted/50">
-                    {layout.listItems.length} headlines
+                  <span className="font-mono text-[9px] tabular-nums text-text-muted/45">
+                    {layout.listItems.length}
                   </span>
                 </div>
                 <div>
@@ -1702,14 +1683,13 @@ const CryptoNewsPage = () => {
                     <WireRow key={it.id} item={it} onSelect={openArticle} />
                   ))}
                 </div>
-                <div className="pt-6">
+                <div className="pt-3">
                   <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
                 </div>
               </section>
             </div>
 
-            {/* RIGHT RAIL */}
-            <div className="lg:col-span-4 lg:sticky lg:top-20">
+            <div className="lg:col-span-3 lg:sticky lg:top-16">
               <MarketDesk
                 trending={trending}
                 stats={stats}
@@ -1718,33 +1698,29 @@ const CryptoNewsPage = () => {
             </div>
           </div>
 
-          {/* ════════ MOBILE ════════ */}
-          <div className="lg:hidden space-y-5">
+          {/* Mobile */}
+          <div className="lg:hidden space-y-3">
             {layout.lead && <LeadCard item={layout.lead} onSelect={openArticle} />}
-
             {layout.secondary.length > 0 && (
-              <div className="border-t border-white/[0.08] pt-1">
+              <div className="border-t border-white/[0.07] pt-0.5">
                 {layout.secondary.map((it) => (
                   <StackStory key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </div>
             )}
-
             <CollapsibleInsights
               trending={trending}
               stats={stats}
               onSearchTopic={handleSearchTopic}
             />
-
-            <div className="border-t border-white/[0.1] pt-1">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted py-2">
+            <div className="border-t border-white/[0.09] pt-0.5">
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted py-1.5">
                 {layout.lead ? "Latest" : sectionLabel}
               </p>
               {[...(layout.midBand || []), ...layout.listItems].map((it) => (
                 <ListRow key={it.id} item={it} onSelect={openArticle} />
               ))}
             </div>
-
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
           </div>
         </>
