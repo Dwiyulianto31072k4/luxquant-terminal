@@ -129,7 +129,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
                 className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase tracking-wider"
                 style={{
                   backgroundColor: "rgba(245, 196, 81, 0.15)",
-                  color: "rgb(var(--accent))",
+                  color: "rgb(var(--accent-text))",
                 }}
                 title="AI flagged a concern about this step"
               >
@@ -226,7 +226,7 @@ function CritiqueBanner({ critique }) {
     },
     approved_with_caveat: {
       label: "Approved with caveat",
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
       bg: "rgba(245, 196, 81, 0.1)",
       icon: "⚠",
     },

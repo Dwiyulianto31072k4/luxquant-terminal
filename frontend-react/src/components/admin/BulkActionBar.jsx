@@ -116,7 +116,7 @@ export const BulkActionBar = ({
           className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md text-xs font-bold tabular-nums"
           style={{
             background: "rgb(var(--accent) / 0.18)",
-            color: "rgb(var(--accent))",
+            color: "rgb(var(--accent-text))",
             border: "1px solid rgb(var(--line) / 0.3)",
           }}
         >
@@ -225,7 +225,7 @@ export const BulkActionBar = ({
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
             style={{
               background: "rgb(var(--accent) / 0.08)",
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               border: "1px solid rgb(var(--line) / 0.22)",
             }}
             title="Send a template message to selected users"

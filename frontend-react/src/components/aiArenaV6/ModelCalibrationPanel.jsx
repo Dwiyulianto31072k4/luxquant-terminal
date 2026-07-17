@@ -8,7 +8,7 @@ const STAGE_STYLE = {
   },
   initial_review: {
     label: "Initial review",
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     bg: "rgba(245,196,81,0.10)",
   },
   hold: {

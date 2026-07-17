@@ -143,7 +143,7 @@ const FunnelBar = ({ funnel }) => {
       key: "subscribed",
       label: "Subscribed",
       value: funnel.subscribed,
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
     },
     { key: "churned", label: "Churned", value: funnel.churned, color: "rgb(var(--neg))" },
   ];
@@ -336,7 +336,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={{
               background: "rgb(var(--accent) / 0.1)",
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               border: "1px solid rgb(var(--ink) / 0.12)",
             }}
           >

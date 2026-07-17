@@ -58,7 +58,7 @@ function zoneStyle(kind) {
   // fair_value / neutral
   return {
     label: "Fair Value",
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     bg: "rgba(245,196,81,0.05)",
     border: "rgba(245,196,81,0.2)",
     barBg: "rgba(245,196,81,0.12)",
@@ -241,7 +241,7 @@ function PriceLadder({ zones, currentPrice }) {
             style={{
               backgroundColor: "rgb(var(--surface-raised))",
               border: "1px solid #f5c451",
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               boxShadow: "0 0 8px rgba(245,196,81,0.4)",
             }}
           >

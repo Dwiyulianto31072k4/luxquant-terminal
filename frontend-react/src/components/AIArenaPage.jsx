@@ -661,7 +661,7 @@ function PriceChart({ activeTF, onTFChange }) {
         crosshair: { mode: 0 },
       });
       const rsiLine = chart.addSeries(LineSeries, {
-        color: "rgb(var(--accent))",
+        color: "rgb(var(--accent-text))",
         lineWidth: 1.5,
         priceLineVisible: false,
         lastValueVisible: true,
@@ -1282,7 +1282,7 @@ function MetricsRow({ report }) {
     {
       label: "BTC Price",
       value: `$${(report.btc_price || 0).toLocaleString()}`,
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
     },
     {
       label: "Fear & Greed",

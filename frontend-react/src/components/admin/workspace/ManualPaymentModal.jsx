@@ -121,7 +121,7 @@ const Pill = ({ tone, children, Icon, pulse }) => {
     },
     gold: {
       bg: "rgb(var(--accent) / 0.10)",
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
       border: "rgb(var(--accent) / 0.3)",
     },
   };
@@ -365,7 +365,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
         <div className="flex items-center gap-1.5">
           <span
             className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wider"
-            style={{ color: "rgb(var(--accent))" }}
+            style={{ color: "rgb(var(--accent-text))" }}
           >
             <CalendarMini /> Payment Date
           </span>
@@ -562,7 +562,7 @@ const UserStep = ({
                   className="flex h-6 w-6 items-center justify-center rounded-md"
                   style={{
                     background: "rgb(var(--accent) / 0.14)",
-                    color: "rgb(var(--accent))",
+                    color: "rgb(var(--accent-text))",
                     boxShadow: "inset 0 0 0 1px rgb(var(--accent) / 0.3)",
                   }}
                 >
@@ -636,7 +636,7 @@ const UserStep = ({
                             className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
                             style={{
                               background: "rgb(var(--accent) / 0.12)",
-                              color: "rgb(var(--accent))",
+                              color: "rgb(var(--accent-text))",
                             }}
                           >
                             {u.username[0].toUpperCase()}
@@ -730,7 +730,7 @@ const SelectedUserCard = ({ user, onClear }) => (
   >
     <span
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-      style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent))" }}
+      style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent-text))" }}
     >
       {user.username[0].toUpperCase()}
     </span>
@@ -1173,7 +1173,7 @@ export const ManualPaymentModal = ({
           border: "1px solid rgb(var(--line) / 0.22)",
         }}
       >
-        <StarIcon size={14} style={{ color: "rgb(var(--accent))" }} />
+        <StarIcon size={14} style={{ color: "rgb(var(--accent-text))" }} />
       </div>
       <div className="min-w-0">
         <h2 className="text-sm font-bold leading-tight tracking-tight text-text-primary">

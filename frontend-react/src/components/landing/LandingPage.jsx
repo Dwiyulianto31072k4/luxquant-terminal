@@ -888,8 +888,8 @@ export const LivePerformanceStats = ({ data }) => {
 
   const outcomeItems = [
     { label: "TP1", count: stats?.tp1_count ?? 0, color: "rgb(var(--accent-light))", opacity: 1 },
-    { label: "TP2", count: stats?.tp2_count ?? 0, color: "rgb(var(--accent))", opacity: 0.85 },
-    { label: "TP3", count: stats?.tp3_count ?? 0, color: "rgb(var(--accent))", opacity: 0.7 },
+    { label: "TP2", count: stats?.tp2_count ?? 0, color: "rgb(var(--accent-text))", opacity: 0.85 },
+    { label: "TP3", count: stats?.tp3_count ?? 0, color: "rgb(var(--accent-text))", opacity: 0.7 },
     { label: "TP4", count: stats?.tp4_count ?? 0, color: "rgb(var(--accent-dark))", opacity: 0.55 },
     { label: "SL", count: slCount, color: "#EF4444", opacity: 1 },
   ];
@@ -1210,13 +1210,13 @@ export const LivePerformanceStats = ({ data }) => {
                   <div className="flex justify-between text-[10px]">
                     <span
                       className="font-mono tabular-nums"
-                      style={{ color: "rgb(var(--accent))", opacity: 1 }}
+                      style={{ color: "rgb(var(--accent-text))", opacity: 1 }}
                     >
                       {rd.winners?.toLocaleString()} W
                     </span>
                     <span
                       className="font-mono tabular-nums"
-                      style={{ color: "rgb(var(--accent))", opacity: 0.4 }}
+                      style={{ color: "rgb(var(--accent-text))", opacity: 0.4 }}
                     >
                       {rd.losers?.toLocaleString()} L
                     </span>

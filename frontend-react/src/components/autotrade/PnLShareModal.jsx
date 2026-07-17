@@ -281,7 +281,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                       className="rounded px-2 py-0.5 text-[10px] font-black uppercase"
                       style={{
                         background: "rgb(var(--accent) / 0.15)",
-                        color: "rgb(var(--accent))",
+                        color: "rgb(var(--accent-text))",
                         border: "1px solid rgb(var(--line) / 0.3)",
                       }}
                     >
@@ -293,7 +293,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                       className="rounded px-2 py-0.5 text-[10px] font-black uppercase"
                       style={{
                         background: "rgb(var(--accent) / 0.15)",
-                        color: "rgb(var(--accent))",
+                        color: "rgb(var(--accent-text))",
                         border: "1px solid rgb(var(--line) / 0.3)",
                       }}
                     >

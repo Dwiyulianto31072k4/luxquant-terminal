@@ -193,7 +193,7 @@ const RegisterPage = () => {
                 letterSpacing: "0.03em",
               }}
             >
-              <span style={{ color: "rgb(var(--accent))" }}>🌍</span> {a("globe_more")}{" "}
+              <span style={{ color: "rgb(var(--accent-text))" }}>🌍</span> {a("globe_more")}{" "}
               <span style={{ color: "rgb(var(--fg-secondary))", fontWeight: 600 }}>
                 {a("globe_countries")}
               </span>{" "}
@@ -361,7 +361,7 @@ const RegisterPage = () => {
             <Link
               to="/login"
               className="font-semibold transition-all hover:tracking-wide"
-              style={{ color: "rgb(var(--accent))" }}
+              style={{ color: "rgb(var(--accent-text))" }}
             >
               {a("login_title")}
             </Link>

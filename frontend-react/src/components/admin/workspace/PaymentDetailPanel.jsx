@@ -332,7 +332,7 @@ const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
         style={{ background: PANEL.hairline }}
       />
       <div>
-        <p className="text-[12px] font-bold" style={{ color: "rgb(var(--accent))" }}>
+        <p className="text-[12px] font-bold" style={{ color: "rgb(var(--accent-text))" }}>
           Add Note to Audit Trail
         </p>
         <p className="text-[10.5px] mt-0.5" style={{ color: PANEL.muted }}>
@@ -376,7 +376,7 @@ const PaymentDateRow = ({ verifiedAt }) => (
   >
     <span
       className="text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5"
-      style={{ color: "rgb(var(--accent))" }}
+      style={{ color: "rgb(var(--accent-text))" }}
     >
       <CalendarDotIcon size={11} />
       Payment Date
@@ -891,7 +891,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
                 className="text-[10.5px] mt-1.5 flex items-center gap-1.5 px-2"
                 style={{ color: "rgb(var(--fg-muted))" }}
               >
-                <TimerIcon size={11} style={{ color: "rgb(var(--accent))" }} />
+                <TimerIcon size={11} style={{ color: "rgb(var(--accent-text))" }} />
                 {recordGapDays > 0
                   ? `Recorded ${recordGapDays} day${recordGapDays !== 1 ? "s" : ""} after the payment`
                   : `Record predates the payment by ${Math.abs(recordGapDays)} day${Math.abs(recordGapDays) !== 1 ? "s" : ""} (unusual)`}

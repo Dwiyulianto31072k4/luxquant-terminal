@@ -50,7 +50,7 @@ const ManualBadge = ({ dense = false }) => (
     }`}
     style={{
       background: "rgb(var(--accent) / 0.10)",
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
       border: "1px solid rgb(var(--line) / 0.28)",
     }}
     title="Manually recorded by admin"
@@ -97,7 +97,7 @@ const TONE = {
     border: "rgba(248,113,113,0.22)",
   },
   gold: {
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     bg: "rgb(var(--accent) / 0.08)",
     border: "rgb(var(--accent) / 0.22)",
   },
@@ -316,7 +316,7 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
           <>
             <p
               className="text-[11px] truncate font-medium"
-              style={{ color: "rgb(var(--accent))" }}
+              style={{ color: "rgb(var(--accent-text))" }}
               title={formatDateTime(payment.verified_at)}
             >
               {formatRelative(payment.verified_at)}

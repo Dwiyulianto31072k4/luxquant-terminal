@@ -159,7 +159,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center hover:scale-105 transition-all shrink-0"
             style={{
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               background: "rgb(var(--accent) / 0.08)",
               border: "1px solid rgb(var(--line) / 0.22)",
             }}

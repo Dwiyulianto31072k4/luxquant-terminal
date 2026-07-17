@@ -367,7 +367,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 title="Edit"
                 className="p-1.5 rounded-md transition-colors"
                 style={{
-                  color: "rgb(var(--accent))",
+                  color: "rgb(var(--accent-text))",
                   background: "rgb(var(--accent) / 0.08)",
                   border: "1px solid rgb(var(--line) / 0.2)",
                 }}
@@ -751,7 +751,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
               style={{
                 background: "rgb(var(--accent) / 0.10)",
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 border: "1px solid rgb(var(--line) / 0.28)",
               }}
             >

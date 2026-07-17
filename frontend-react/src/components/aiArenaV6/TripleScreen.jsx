@@ -48,7 +48,7 @@ function stateStyle(state) {
   // MIXED / NEUTRAL / RANGE / SIDEWAYS
   return {
     label: upper || "—",
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     bg: "rgba(245,196,81,0.08)",
     border: "rgba(245,196,81,0.25)",
     icon: "→",
@@ -91,7 +91,7 @@ function computeAlignment(screens) {
   }
   if (bull >= 2) return { label: "MAJORITY BULL", color: "#22c55e" };
   if (bear >= 2) return { label: "MAJORITY BEAR", color: "#ef4444" };
-  return { label: "MIXED ACROSS TF", color: "rgb(var(--accent))" };
+  return { label: "MIXED ACROSS TF", color: "rgb(var(--accent-text))" };
 }
 
 // ─────────────────────────────────────────────────────────────────────

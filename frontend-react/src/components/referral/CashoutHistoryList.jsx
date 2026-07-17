@@ -132,7 +132,7 @@ const CashoutRow = ({ item, onUpdate }) => {
               >
                 {Number(item.amount_usdt).toFixed(2)}
               </span>
-              <span className="text-xs font-semibold" style={{ color: "rgb(var(--accent))" }}>
+              <span className="text-xs font-semibold" style={{ color: "rgb(var(--accent-text))" }}>
                 USDT
               </span>
             </div>
@@ -146,7 +146,7 @@ const CashoutRow = ({ item, onUpdate }) => {
               {item.destination_telegram && (
                 <>
                   <span style={{ color: "rgb(var(--fg-muted))" }}>·</span>
-                  <span style={{ color: "rgb(var(--accent))" }}>@{item.destination_telegram}</span>
+                  <span style={{ color: "rgb(var(--accent-text))" }}>@{item.destination_telegram}</span>
                 </>
               )}
             </div>

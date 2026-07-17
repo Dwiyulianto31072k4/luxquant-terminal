@@ -186,7 +186,7 @@ const PaymentPage = () => {
               Complete Your Payment
             </h1>
             <p className="text-sm mt-2" style={{ color: "rgb(var(--fg-muted))" }}>
-              <span style={{ color: "rgb(var(--accent))" }}>{planLabel}</span>
+              <span style={{ color: "rgb(var(--accent-text))" }}>{planLabel}</span>
               <span className="mx-2" style={{ color: "rgb(var(--fg-muted))" }}>
                 ·
               </span>
@@ -231,7 +231,7 @@ const PaymentPage = () => {
               >
                 {amount || "—"}
               </span>
-              <span className="text-xs font-semibold" style={{ color: "rgb(var(--accent))" }}>
+              <span className="text-xs font-semibold" style={{ color: "rgb(var(--accent-text))" }}>
                 USDT
               </span>
             </div>
@@ -264,7 +264,7 @@ const PaymentPage = () => {
           <StatCard label="Expires In">
             <div
               className={`text-lg sm:text-xl font-mono font-bold tracking-wider ${isExpired ? "text-loss" : ""}`}
-              style={!isExpired ? { color: "rgb(var(--accent))" } : {}}
+              style={!isExpired ? { color: "rgb(var(--accent-text))" } : {}}
             >
               {timeLeft || t("payment.calculating")}
             </div>
@@ -323,7 +323,7 @@ const PaymentPage = () => {
                     className="px-3 py-1 rounded-md text-[10px] font-semibold transition-all disabled:opacity-20 hover:scale-[1.02]"
                     style={{
                       background: "rgb(var(--accent) / 0.08)",
-                      color: "rgb(var(--accent))",
+                      color: "rgb(var(--accent-text))",
                       border: "1px solid rgb(var(--line) / 0.15)",
                     }}
                   >
@@ -360,7 +360,7 @@ const PaymentPage = () => {
                       </span>
                       <span
                         className="text-xs font-semibold"
-                        style={{ color: "rgb(var(--accent))" }}
+                        style={{ color: "rgb(var(--accent-text))" }}
                       >
                         USDT
                       </span>
@@ -372,7 +372,7 @@ const PaymentPage = () => {
                     className="px-3 py-1.5 rounded-md text-[10px] font-semibold transition-all disabled:opacity-20 hover:scale-[1.02]"
                     style={{
                       background: "rgb(var(--accent) / 0.08)",
-                      color: "rgb(var(--accent))",
+                      color: "rgb(var(--accent-text))",
                       border: "1px solid rgb(var(--line) / 0.15)",
                     }}
                   >
@@ -391,7 +391,7 @@ const PaymentPage = () => {
               >
                 <svg
                   className="w-4 h-4 flex-shrink-0 mt-0.5"
-                  style={{ color: "rgb(var(--accent))" }}
+                  style={{ color: "rgb(var(--accent-text))" }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -615,7 +615,7 @@ const PaymentPage = () => {
               >
                 <svg
                   className="w-5 h-5"
-                  style={{ color: "rgb(var(--accent))" }}
+                  style={{ color: "rgb(var(--accent-text))" }}
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -638,7 +638,7 @@ const PaymentPage = () => {
               style={{
                 background: "rgb(var(--accent) / 0.08)",
                 border: "1px solid rgb(var(--line) / 0.25)",
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
               }}
             >
               Subscribe via Admin

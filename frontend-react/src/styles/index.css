@@ -151,6 +151,9 @@
   --accent-light: 252 213 53; /* #FCD535 */
   --accent-dark: 200 148 8;
   --accent-fg: 11 14 17; /* dark ink ON solid gold CTA (Binance pattern) */
+  /* accent used as TEXT/ICON — readable per theme. Yellow reads fine on the
+     dark desks; Bright overrides to a dark amber (yellow-on-white fails WCAG). */
+  --accent-text: 240 185 11;
   --fg: 255 255 255;
   --fg-secondary: 184 168 154;
   --fg-muted: 165 149 133;
@@ -174,6 +177,7 @@
   --accent: 240 185 11;
   --accent-light: 252 213 53;
   --accent-dark: 200 148 8;
+  --accent-text: 240 185 11;
   --accent-fg: 11 14 17;
   --fg: 234 236 239;
   --fg-secondary: 132 142 156;
@@ -202,9 +206,12 @@
   --accent-light: 252 213 53;
   --accent-dark: 200 148 8;
   --accent-fg: 11 14 17; /* always dark on yellow buttons */
+  /* Yellow is unreadable as text on light (≈1.7:1) — use a dark amber for
+     accent TEXT/ICONS. Solid yellow stays for fills (bg-accent). #806408 ≈ 5.3:1 */
+  --accent-text: 128 100 8;
   --fg: 11 14 17;
   --fg-secondary: 55 65 81;
-  --fg-muted: 100 116 139;
+  --fg-muted: 88 101 120; /* slate — ≥4.5:1 on the cool-white page surface */
   --pos: 14 203 129;
   --neg: 246 70 93;
   --warn: 200 148 8;
@@ -298,6 +305,15 @@
 [data-theme="bright"] textarea,
 [data-theme="bright"] select {
   color-scheme: light;
+}
+
+/* Bright: accent used as TEXT/ICON is unreadable in brand yellow on light
+   (≈1.7:1). Remap text-accent (and its opacity variants) to the dark-amber
+   --accent-text. Solid fills (bg-accent) keep the brand yellow. `text-accent-fg`
+   (dark ink on yellow buttons) is intentionally NOT matched. */
+[data-theme="bright"] [class~="text-accent"],
+[data-theme="bright"] [class*="text-accent/"] {
+  color: rgb(var(--accent-text));
 }
 
 /* Bright footer band — solid white chrome under terminal */

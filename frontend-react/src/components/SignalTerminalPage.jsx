@@ -443,7 +443,7 @@ const ST_META = {
   tp3: { label: "TP3 HIT", color: "rgb(var(--pos))", desc: "Third target reached" },
   closed_win: {
     label: "TP4 / WIN",
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     desc: "Final target — closed in profit",
   },
   closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg))", desc: "Hit stop loss" },

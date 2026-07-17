@@ -185,8 +185,8 @@ const LoginPage = () => {
                 maxWidth: "14ch",
               }}
             >
-              Detect <span style={{ color: "rgb(var(--accent))" }}>Crypto</span> &amp; Tokenized{" "}
-              <span style={{ color: "rgb(var(--accent))" }}>TradFi</span> Moves
+              Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp; Tokenized{" "}
+              <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
             </h1>
             {/* coins right under the headline */}
             <AssetCoins size={38} className="mt-8" />
@@ -768,7 +768,7 @@ const TermsModal = ({ onClose }) => {
         <div className="lq-terms-scroll overflow-y-auto px-6 sm:px-9 py-6" style={{ flex: 1 }}>
           <p
             className="mb-6 text-xs uppercase font-semibold"
-            style={{ color: "rgb(var(--accent))", letterSpacing: "0.18em" }}
+            style={{ color: "rgb(var(--accent-text))", letterSpacing: "0.18em" }}
           >
             Last updated · June 2026
           </p>

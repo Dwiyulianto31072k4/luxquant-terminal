@@ -50,7 +50,7 @@ const PRIORITY_CONFIG = {
 
 const CATEGORY_CONFIG = {
   product: { label: "Product", emoji: "⚙️", color: "#8a8a93" },
-  marketing: { label: "Marketing", emoji: "📣", color: "rgb(var(--accent))" },
+  marketing: { label: "Marketing", emoji: "📣", color: "rgb(var(--accent-text))" },
   ops: { label: "Ops", emoji: "🔧", color: "rgb(var(--pos))" },
   bug: { label: "Bug", emoji: "🐛", color: "rgb(var(--neg))" },
   idea: { label: "Idea", emoji: "💡", color: "rgb(var(--warn))" },
@@ -152,7 +152,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
               className="text-[9px] px-1.5 py-0.5 rounded font-mono"
               style={{
                 background: "rgb(var(--accent) / 0.05)",
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 border: "1px solid rgb(var(--line) / 0.15)",
               }}
             >
@@ -214,7 +214,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
             title="Edit"
             className="p-1 rounded transition-colors"
             style={{
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               background: "rgb(var(--accent) / 0.08)",
               border: "1px solid rgb(var(--line) / 0.2)",
             }}
@@ -656,7 +656,7 @@ export const TodoTab = ({ onRefreshStats }) => {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
               style={{
                 background: "rgb(var(--accent) / 0.10)",
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 border: "1px solid rgb(var(--line) / 0.28)",
               }}
             >

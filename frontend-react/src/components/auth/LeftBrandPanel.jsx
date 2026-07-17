@@ -77,7 +77,7 @@ export const TypewriterLine = ({ mobile }) => {
         ))}
         <span
           style={{
-            color: "rgb(var(--accent))",
+            color: "rgb(var(--accent-text))",
             fontWeight: 300,
             marginLeft: 1,
             animation: "lq-blink 1s step-end infinite",
@@ -237,7 +237,7 @@ export const MobileGlobeSection = () => {
         <DeviceShowcase compact />
       </div>
       <p className="mt-3 pb-1 text-center" style={{ fontSize: 12, color: "rgb(var(--fg-muted))" }}>
-        <span style={{ color: "rgb(var(--accent))" }}>📊</span> {a("globe_more")}{" "}
+        <span style={{ color: "rgb(var(--accent-text))" }}>📊</span> {a("globe_more")}{" "}
         <span style={{ color: "rgb(var(--fg-secondary))", fontWeight: 600 }}>
           {a("globe_countries")}
         </span>{" "}
@@ -507,8 +507,8 @@ const LeftBrandPanel = () => {
                 fontSize: "clamp(26px, 2.5vw, 36px)",
               }}
             >
-              Detect <span style={{ color: "rgb(var(--accent))" }}>Crypto</span> &amp; Tokenized{" "}
-              <span style={{ color: "rgb(var(--accent))" }}>TradFi</span> Moves
+              Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp; Tokenized{" "}
+              <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
             </h2>
 
             {/* Asset logos — shared component */}

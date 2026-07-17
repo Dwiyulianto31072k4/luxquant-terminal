@@ -461,9 +461,9 @@ function KeyObservations({ observations }) {
 
 function ActionableHints({ interpretation }) {
   const items = [
-    { d: IC.ruler, label: "Sizing", text: interpretation.sizing_hint, color: "rgb(var(--accent))" },
-    { d: IC.shield, label: "Hedge", text: interpretation.hedge_hint, color: "rgb(var(--accent))" },
-    { d: IC.target, label: "Bias", text: interpretation.trade_bias, color: "rgb(var(--accent))" },
+    { d: IC.ruler, label: "Sizing", text: interpretation.sizing_hint, color: "rgb(var(--accent-text))" },
+    { d: IC.shield, label: "Hedge", text: interpretation.hedge_hint, color: "rgb(var(--accent-text))" },
+    { d: IC.target, label: "Bias", text: interpretation.trade_bias, color: "rgb(var(--accent-text))" },
   ].filter((i) => i.text);
 
   if (interpretation.regime_warning) {
@@ -480,7 +480,7 @@ function ActionableHints({ interpretation }) {
       d: IC.bolt,
       label: "Catalyst",
       text: interpretation.decoupling_note,
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
     });
   }
 

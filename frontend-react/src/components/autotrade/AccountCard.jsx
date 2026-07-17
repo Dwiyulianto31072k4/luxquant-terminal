@@ -106,7 +106,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
 
   const isEnabled = config?.enabled;
   const brand = EXCHANGE_BRANDING[account.exchange_id] || {
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     logo: null,
   };
 

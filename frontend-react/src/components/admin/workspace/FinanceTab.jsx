@@ -134,7 +134,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
           className="px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider transition-colors"
           style={{
             background: "rgb(var(--accent) / 0.10)",
-            color: "rgb(var(--accent))",
+            color: "rgb(var(--accent-text))",
             border: "1px solid rgb(var(--line) / 0.28)",
           }}
         >

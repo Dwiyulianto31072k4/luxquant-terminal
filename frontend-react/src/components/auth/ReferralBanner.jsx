@@ -54,7 +54,7 @@ export default function ReferralBanner({ className = "" }) {
         🎉
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold" style={{ color: "rgb(var(--accent))" }}>
+        <p className="text-sm font-semibold" style={{ color: "rgb(var(--accent-text))" }}>
           Referred by @{username}
         </p>
         <p className="text-xs mt-0.5" style={{ color: "rgb(var(--fg-secondary))" }}>

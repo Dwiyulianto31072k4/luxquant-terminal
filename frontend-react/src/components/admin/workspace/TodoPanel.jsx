@@ -47,7 +47,7 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 
 const CATEGORIES = [
   { value: "product", label: "Product", Icon: GearIcon, color: "#8a8a93" },
-  { value: "marketing", label: "Marketing", Icon: MegaphoneIcon, color: "rgb(var(--accent))" },
+  { value: "marketing", label: "Marketing", Icon: MegaphoneIcon, color: "rgb(var(--accent-text))" },
   { value: "ops", label: "Ops", Icon: WrenchIcon, color: "rgb(var(--pos))" },
   { value: "bug", label: "Bug", Icon: BugIcon, color: "rgb(var(--neg))" },
   { value: "idea", label: "Idea", Icon: BulbIcon, color: "rgb(var(--warn))" },
@@ -98,7 +98,7 @@ const TagsInput = ({ tags, onChange }) => {
           className="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px]"
           style={{
             background: "rgb(var(--accent) / 0.08)",
-            color: "rgb(var(--accent))",
+            color: "rgb(var(--accent-text))",
             border: "1px solid rgb(var(--line) / 0.22)",
           }}
         >

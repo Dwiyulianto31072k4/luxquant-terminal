@@ -234,7 +234,7 @@ export default function DelistingsPage() {
                 const ex = EX_META[x.exchange] || {
                   label: x.exchange,
                   domain: "",
-                  color: "rgb(var(--accent))",
+                  color: "rgb(var(--accent-text))",
                 };
                 return (
                   <tr

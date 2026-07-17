@@ -125,7 +125,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
               className="text-[8px] font-bold px-1.5 py-px rounded"
               style={{
                 background: "rgb(var(--accent) / 0.15)",
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 border: "1px solid rgb(var(--line) / 0.25)",
               }}
             >

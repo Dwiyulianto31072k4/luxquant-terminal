@@ -62,7 +62,7 @@ const PLATFORMS = [
   { value: "twitter", label: "Twitter/X", color: "rgb(var(--fg))", Icon: TwitterIcon },
   { value: "telegram", label: "Telegram", color: "#229ED9", Icon: TelegramIcon },
   { value: "discord", label: "Discord", color: "#5865F2", Icon: DiscordIcon },
-  { value: "influencer", label: "Influencer", color: "rgb(var(--accent))", Icon: SparklesIcon },
+  { value: "influencer", label: "Influencer", color: "rgb(var(--accent-text))", Icon: SparklesIcon },
   { value: "other", label: "Other", color: "rgb(var(--fg-muted))", Icon: TrendingUpIcon },
 ];
 
@@ -378,7 +378,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
                 type="button"
                 onClick={() => setSpentUsd(String(lineItemsTotal))}
                 className="mt-1 text-[10px] hover:underline"
-                style={{ color: "rgb(var(--accent))" }}
+                style={{ color: "rgb(var(--accent-text))" }}
               >
                 Sync from line items: ${lineItemsTotal.toFixed(2)}
               </button>
@@ -438,7 +438,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               }
               className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 background: "rgb(var(--accent) / 0.08)",
                 border: "1px solid rgb(var(--line) / 0.22)",
               }}
@@ -501,7 +501,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               onClick={() => setMetadata([...metadata, { key: "", value: "" }])}
               className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 background: "rgb(var(--accent) / 0.08)",
                 border: "1px solid rgb(var(--line) / 0.22)",
               }}

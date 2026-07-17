@@ -82,7 +82,7 @@ const PLATFORM_CONFIG = {
   twitter: { Icon: TwitterIcon, label: "Twitter/X", color: "rgb(var(--fg))" },
   telegram: { Icon: TelegramIcon, label: "Telegram", color: "#229ED9" },
   discord: { Icon: DiscordIcon, label: "Discord", color: "#5865F2" },
-  influencer: { Icon: SparklesIcon, label: "Influencer", color: "rgb(var(--accent))" },
+  influencer: { Icon: SparklesIcon, label: "Influencer", color: "rgb(var(--accent-text))" },
   other: { Icon: TrendingUpIcon, label: "Other", color: "rgb(var(--fg-muted))" },
 };
 
@@ -316,7 +316,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             className="px-2 py-0.5 rounded font-medium"
             style={{
               background: "rgb(var(--accent) / 0.06)",
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               border: "1px solid rgb(var(--line) / 0.22)",
             }}
           >
@@ -336,7 +336,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             title="Edit"
             className="p-1.5 rounded-md transition-colors"
             style={{
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               background: "rgb(var(--accent) / 0.08)",
               border: "1px solid rgb(var(--line) / 0.2)",
             }}
@@ -638,7 +638,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
               style={{
                 background: "rgb(var(--accent) / 0.10)",
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 border: "1px solid rgb(var(--line) / 0.28)",
               }}
             >

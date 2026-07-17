@@ -106,7 +106,7 @@ const UserPicker = ({ selectedUser, onChange }) => {
             >
               <span
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent))" }}
+                style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent-text))" }}
               >
                 {u.username?.charAt(0).toUpperCase()}
               </span>

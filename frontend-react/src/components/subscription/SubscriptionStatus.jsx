@@ -48,7 +48,7 @@ const SubscriptionStatus = ({ compact = false }) => {
           className="px-2 py-0.5 rounded text-[10px] font-bold"
           style={{
             background: "rgb(var(--accent) / 0.15)",
-            color: "rgb(var(--accent))",
+            color: "rgb(var(--accent-text))",
             border: "1px solid rgb(var(--line) / 0.3)",
           }}
         >
@@ -90,7 +90,7 @@ const SubscriptionStatus = ({ compact = false }) => {
         ) : sub?.is_subscribed ? (
           <span
             className="px-2 py-0.5 rounded text-xs font-bold"
-            style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent))" }}
+            style={{ background: "rgb(var(--accent) / 0.15)", color: "rgb(var(--accent-text))" }}
           >
             PREMIUM
           </span>

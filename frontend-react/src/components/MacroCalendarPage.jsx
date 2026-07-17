@@ -48,7 +48,7 @@ const IMPACT_STYLE = {
     cls: "text-loss border-loss/25 bg-loss/10",
   },
   Medium: {
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     bg: "rgb(var(--accent) / 0.1)",
     border: "rgb(var(--accent) / 0.25)",
     dot: "rgb(var(--accent))",
@@ -89,7 +89,7 @@ const TYPE_STYLE = {
     cls: "text-profit border-profit/25 bg-profit/10",
   },
   crypto_event: {
-    color: "rgb(var(--accent))",
+    color: "rgb(var(--accent-text))",
     bg: "rgb(var(--accent) / 0.1)",
     border: "rgb(var(--accent) / 0.22)",
     label: "Event",

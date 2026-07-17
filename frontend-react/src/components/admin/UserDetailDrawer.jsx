@@ -122,7 +122,7 @@ const Section = ({ title, Icon, action, children }) => (
   <section className="space-y-2.5">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-1.5">
-        {Icon && <Icon size={12} style={{ color: "rgb(var(--accent))" }} />}
+        {Icon && <Icon size={12} style={{ color: "rgb(var(--accent-text))" }} />}
         <h4
           className="text-[10px] font-bold tracking-wider uppercase"
           style={{ color: "rgb(var(--ink) / 0.5)" }}
@@ -190,7 +190,7 @@ const UserHero = ({ user }) => (
       className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden"
       style={{
         background: user.avatar_url ? "transparent" : "rgb(var(--accent) / 0.12)",
-        color: "rgb(var(--accent))",
+        color: "rgb(var(--accent-text))",
         border: "1px solid rgb(var(--line) / 0.22)",
       }}
     >
@@ -277,7 +277,7 @@ const UserHero = ({ user }) => (
             className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{
               background: "rgb(var(--accent) / 0.1)",
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               border: "1px solid rgb(var(--line) / 0.22)",
             }}
           >
@@ -447,7 +447,7 @@ const computeVipDiagnosis = (user) => {
   if (active && hasTg && !inGroup) {
     return {
       tone: "warn",
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
       icon: "alert",
       title: "Paid & Telegram linked, but outside the group",
       detail:
@@ -739,7 +739,7 @@ const AccountTimeline = ({ data }) => {
     events.push({
       ts: user.created_at,
       icon: SparklesIcon,
-      color: "rgb(var(--accent))",
+      color: "rgb(var(--accent-text))",
       label: `Account created (via ${user.auth_provider || "unknown"})`,
     });
   if (user.first_login_at)
@@ -1080,7 +1080,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-amber-500/10"
               style={{
-                color: "rgb(var(--accent))",
+                color: "rgb(var(--accent-text))",
                 background: "rgb(var(--accent) / 0.06)",
                 border: "1px solid rgb(var(--line) / 0.22)",
               }}
@@ -1146,7 +1146,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <div>
               <label
                 className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
-                style={{ color: "rgb(var(--accent))" }}
+                style={{ color: "rgb(var(--accent-text))" }}
               >
                 <TelegramIcon size={11} colored />
                 Admin Telegram Note
@@ -1181,7 +1181,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <div>
               <label
                 className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
-                style={{ color: "rgb(var(--accent))" }}
+                style={{ color: "rgb(var(--accent-text))" }}
               >
                 <DiscordIcon size={11} colored />
                 Discord Handle
@@ -1207,7 +1207,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <div>
               <label
                 className="block text-[10px] uppercase tracking-wider font-semibold mb-1"
-                style={{ color: "rgb(var(--accent))" }}
+                style={{ color: "rgb(var(--accent-text))" }}
               >
                 Admin Notes
               </label>
@@ -1259,10 +1259,10 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             className="mt-1.5 text-[10px] flex items-center gap-1.5"
             style={{ color: "rgb(var(--fg-muted))" }}
           >
-            <SparklesIcon size={10} style={{ color: "rgb(var(--accent))" }} />
+            <SparklesIcon size={10} style={{ color: "rgb(var(--accent-text))" }} />
             <span>
               Enriched by{" "}
-              <strong style={{ color: "rgb(var(--accent))" }}>@{enriched_by_user.username}</strong>{" "}
+              <strong style={{ color: "rgb(var(--accent-text))" }}>@{enriched_by_user.username}</strong>{" "}
               on {formatDateTime(user.admin_enriched_at)}
             </span>
           </div>
@@ -1357,13 +1357,13 @@ const PaymentsTab = ({ data }) => {
           />
           <p
             className="text-[10px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: "rgb(var(--accent))" }}
+            style={{ color: "rgb(var(--accent-text))" }}
           >
             Records
           </p>
           <p
             className="text-xl font-light tabular-nums tracking-tight"
-            style={{ color: "rgb(var(--accent))" }}
+            style={{ color: "rgb(var(--accent-text))" }}
           >
             {payments.length}
           </p>
@@ -1551,7 +1551,7 @@ const OutreachTab = ({ data, templates, canWrite = true }) => {
     <div>
       <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
         Pick a template to DM <strong className="text-text-primary">@{user.username}</strong>. Click{" "}
-        <strong style={{ color: "rgb(var(--accent))" }}>Send</strong> to copy the message and open
+        <strong style={{ color: "rgb(var(--accent-text))" }}>Send</strong> to copy the message and open
         the channel.
       </p>
       <QuickSendPopover user={user} templates={templates} reach={reach} inline />
@@ -1674,7 +1674,7 @@ export const UserDetailDrawer = ({
                 border: "1px solid rgb(var(--line) / 0.22)",
               }}
             >
-              <UserIcon size={14} style={{ color: "rgb(var(--accent))" }} />
+              <UserIcon size={14} style={{ color: "rgb(var(--accent-text))" }} />
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-bold text-text-primary tracking-tight leading-tight">
@@ -1695,7 +1695,7 @@ export const UserDetailDrawer = ({
             onClick={onClose}
             className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 shrink-0"
             style={{
-              color: "rgb(var(--accent))",
+              color: "rgb(var(--accent-text))",
               background: "rgb(var(--accent) / 0.08)",
               border: "1px solid rgb(var(--line) / 0.22)",
             }}

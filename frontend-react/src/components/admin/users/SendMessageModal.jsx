@@ -91,7 +91,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
                   className="rounded-md px-2 py-1 text-[10px] font-semibold"
                   style={{
                     background: "rgb(var(--accent) / 0.1)",
-                    color: "rgb(var(--accent))",
+                    color: "rgb(var(--accent-text))",
                     border: "1px solid rgb(var(--line) / 0.25)",
                   }}
                 >
