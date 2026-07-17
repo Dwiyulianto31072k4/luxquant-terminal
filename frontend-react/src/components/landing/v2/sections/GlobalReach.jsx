@@ -412,7 +412,8 @@ function drawVectorPath(ctx, vectors, radius, cx, cy, yaw, pitch) {
 function drawGrid(ctx, radius, cx, cy, yaw, pitch) {
  ctx.save();
  ctx.lineWidth = 0.5;
- ctx.strokeStyle = "rgb(var(--accent) / 0.06)";
+ // Canvas 2D cannot parse CSS vars — keep concrete rgba only
+ ctx.strokeStyle = "rgba(212,168,83,0.06)";
 
  [-60, -30, 0, 30, 60].forEach((lat) => {
  const points = [];
@@ -587,7 +588,7 @@ function drawHoverPill(ctx, x, y, text) {
  const left = x + 16;
  const top = y - height / 2;
 
- ctx.shadowColor = "rgb(var(--accent) / 0.32)";
+ ctx.shadowColor = "rgba(212,168,83,0.32)";
  ctx.shadowBlur = 20;
 
  roundedRectPath(ctx, left, top, width, height, 10);
@@ -626,7 +627,7 @@ function drawCityLabel(ctx, x, y, cityText, alpha = 0.5) {
  ctx.textAlign = "left";
  ctx.textBaseline = "middle";
  ctx.fillStyle = `rgba(${COLORS.whiteSoft},${alpha})`;
- ctx.shadowColor = "rgb(var(--scrim) / 0.35)";
+ ctx.shadowColor = "rgba(0,0,0,0.35)";
  ctx.shadowBlur = 10;
  ctx.fillText(cityText, x, y);
  ctx.restore();
@@ -751,6 +752,7 @@ function CanvasGlobe() {
  resize();
 
  const draw = (time) => {
+ try {
  context.clearRect(0, 0, width, height);
 
  const interaction = interactionRef.current;
@@ -788,7 +790,7 @@ function CanvasGlobe() {
  ambientGlow.addColorStop(0, glowDark ? "rgba(42,42,46,0.10)" : "rgba(70,30,28,0.12)");
  ambientGlow.addColorStop(0.32, glowDark ? "rgba(28,28,32,0.05)" : "rgba(45,20,20,0.06)");
  ambientGlow.addColorStop(0.62, glowDark ? "rgba(15,15,17,0.02)" : "rgba(22,11,11,0.025)");
- ambientGlow.addColorStop(1, "rgb(var(--ink) / 0.0)");
+ ambientGlow.addColorStop(1, "rgba(0,0,0,0)");
  context.fillStyle = ambientGlow;
  context.fillRect(
  cx - radius * 1.9,
@@ -834,8 +836,8 @@ function CanvasGlobe() {
  radius * 0.52
  );
  pointerGlow.addColorStop(0, "rgba(240,216,144,0.09)");
- pointerGlow.addColorStop(0.35, "rgb(var(--accent) / 0.035)");
- pointerGlow.addColorStop(1, "rgb(var(--accent) / 0)");
+ pointerGlow.addColorStop(0.35, "rgba(212,168,83,0.035)");
+ pointerGlow.addColorStop(1, "rgba(212,168,83,0)");
 
  context.save();
  context.globalCompositeOperation = "screen";
@@ -1066,6 +1068,10 @@ function CanvasGlobe() {
 
  if (activeLabel) {
  drawHoverPill(context, activeLabel.x, activeLabel.y, activeLabel.text);
+ }
+ } catch (err) {
+ // Never kill the rAF loop — invalid colors / rare canvas errors
+ if (typeof console !== "undefined") console.warn("[GlobalReach] draw frame failed", err);
  }
 
  raf = requestAnimationFrame(draw);

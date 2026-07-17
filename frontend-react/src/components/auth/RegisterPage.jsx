@@ -229,19 +229,20 @@ const MobileGlobeInner = () => {
  const g = new TG()
  .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
  .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
- .showAtmosphere(true).atmosphereColor('rgb(var(--accent))').atmosphereAltitude(0.2);
+ .showAtmosphere(true).atmosphereColor('#F0B90B').atmosphereAltitude(0.2);
  const LOCS = [
  { lat: 25.033, lng: 121.565, s: 0.9, hub: true },
  { lat: 39.933, lng: 32.860, s: 0.7 }, { lat: 40.713, lng: -74.006, s: 0.65 },
  { lat: -6.209, lng: 106.846, s: 0.6 }, { lat: 35.676, lng: 139.650, s: 0.5 },
  { lat: 51.507, lng: -0.128, s: 0.55 }, { lat: 37.567, lng: 126.978, s: 0.45 },
  ];
- g.pointsData(LOCS.map(l => ({ lat: l.lat, lng: l.lng, color: l.hub ? 'rgb(var(--accent))' : 'rgb(var(--accent))', altitude: 0.01, radius: l.s })))
+ // three-globe needs concrete hex (CSS vars do not resolve in WebGL color paths)
+ g.pointsData(LOCS.map(l => ({ lat: l.lat, lng: l.lng, color: '#F0B90B', altitude: 0.01, radius: l.s })))
  .pointColor('color').pointRadius('radius').pointAltitude('altitude');
  const hub = LOCS[0];
  g.arcsData(LOCS.filter(l => !l.hub).map(l => ({
  startLat: hub.lat, startLng: hub.lng, endLat: l.lat, endLng: l.lng,
- color: ['rgb(var(--accent))', 'rgb(var(--accent))'], stroke: 0.4
+ color: ['#F0B90B', 'rgba(240,185,11,0.25)'], stroke: 0.4
  }))).arcColor('color').arcStroke('stroke').arcDashLength(0.4).arcDashGap(0.2).arcDashAnimateTime(3000);
  sc.add(g); setOk(true);
  let cleanup;

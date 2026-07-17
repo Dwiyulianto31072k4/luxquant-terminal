@@ -60,16 +60,16 @@ const LandingGlobe = () => {
  .globeImageUrl('https://unpkg.com/three-globe@2.24.4/example/img/earth-night.jpg')
  .bumpImageUrl('https://unpkg.com/three-globe@2.24.4/example/img/earth-topology.png')
  .pointsData(POINTS)
- .pointColor(() => 'rgb(var(--accent))')
+ .pointColor(() => '#F0B90B')
  .pointAltitude(0.07)
  .pointRadius(0.5)
  .arcsData(POINTS.slice(1).map(p => ({ startLat: POINTS[0].lat, startLng: POINTS[0].lng, endLat: p.lat, endLng: p.lng })))
- .arcColor(() => ['rgb(var(--accent) / 0.6)', 'rgb(var(--accent) / 0.1)'])
+ .arcColor(() => ['rgba(240,185,11,0.6)', 'rgba(240,185,11,0.1)'])
  .arcStroke(0.5)
  .arcDashLength(0.4)
  .arcDashGap(0.2)
  .arcDashAnimateTime(2000)
- .atmosphereColor('rgb(var(--accent))')
+ .atmosphereColor('#F0B90B')
  .atmosphereAltitude(0.15);
 
  const globeMat = globe.globeMaterial();

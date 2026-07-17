@@ -101,12 +101,12 @@ const AuthGlobe = () => {
  .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
  .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
  .showAtmosphere(true)
- .atmosphereColor('rgb(var(--accent))')
+ .atmosphereColor('#F0B90B')
  .atmosphereAltitude(0.18);
 
- // Points
+ // Points — three-globe needs concrete hex/rgba (no CSS vars)
  globe
- .pointsData(LOCATIONS.map(l => ({ lat: l.lat, lng: l.lng, color: 'rgb(var(--accent))' })))
+ .pointsData(LOCATIONS.map(l => ({ lat: l.lat, lng: l.lng, color: '#F0B90B' })))
  .pointColor('color')
  .pointRadius(0.5)
  .pointAltitude(0.01);
@@ -116,7 +116,7 @@ const AuthGlobe = () => {
  globe
  .arcsData(LOCATIONS.filter(l => l.name !== 'Jakarta').map(l => ({
  startLat: jakartaLat, startLng: jakartaLng,
- endLat: l.lat, endLng: l.lng, color: 'rgb(var(--fg))'
+ endLat: l.lat, endLng: l.lng, color: '#eaecef'
  })))
  .arcColor('color')
  .arcStroke(0.35)
