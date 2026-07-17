@@ -912,11 +912,9 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
     {/* Action button */}
     <div className="flex justify-end pt-2">
       <button
+        type="button"
         onClick={onOpenModal}
-        className="group inline-flex items-center gap-2 px-4 py-2 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-        style={{
-          background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
-        }}
+        className="group inline-flex items-center gap-2 rounded-md border border-transparent bg-accent px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
       >
         View Full Detail
         <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
@@ -1115,11 +1113,9 @@ const EmptyState = ({ onBrowse }) => (
       Star signals to track them here
     </p>
     <button
+      type="button"
       onClick={onBrowse}
-      className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-      style={{
-        background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
-      }}
+      className="group inline-flex items-center gap-2 rounded-md border border-transparent bg-accent px-5 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
     >
       Browse Signals
       <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
