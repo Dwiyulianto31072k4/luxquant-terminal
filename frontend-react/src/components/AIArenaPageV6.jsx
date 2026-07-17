@@ -125,20 +125,20 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing, activeLabel }
         <div className="flex flex-wrap items-center gap-2.5">
           <ProductSwitcher active="research" />
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] ${
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${
               healthy
-                ? "border-profit/20 bg-profit/10 text-profit"
-                : "border-amber-500/20 bg-amber-500/10 text-amber-400"
+                ? "border-profit/25 bg-profit/10 text-profit"
+                : "border-accent/30 bg-accent/10 text-accent"
             }`}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-amber-500"}`} />
+            <span className={`h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-accent"}`} />
             {healthy ? "Healthy" : "Check"}
           </span>
           <button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.05] px-3.5 text-[13px] font-medium text-text-primary transition hover:bg-ink/[0.09] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-ink/10 bg-surface-secondary px-3.5 text-[12px] font-semibold text-text-primary transition hover:border-ink/18 hover:bg-ink/[0.06] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className={refreshing ? "animate-spin" : ""}>
               <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -148,28 +148,28 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing, activeLabel }
         </div>
       </div>
 
-      {/* Ticker strip — price / stance / age */}
-      <div className="flex flex-wrap items-stretch overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised divide-x divide-ink/[0.06]">
+      {/* Ticker strip — Terminal KPI language */}
+      <div className="flex flex-wrap items-stretch divide-x divide-ink/[0.06] overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
         {Number.isFinite(btcPrice) && btcPrice > 0 && (
           <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
-            <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">BTC / USDT</div>
-            <div className="mt-1 font-mono text-[18px] font-semibold tabular-nums leading-none tracking-tight text-text-primary">
+            <div className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted">BTC / USDT</div>
+            <div className="mt-1.5 font-mono text-[18px] font-semibold tabular-nums leading-none tracking-tight text-text-primary">
               ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </div>
         )}
         <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
-          <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">24h stance</div>
-          <div className={`mt-1 font-display text-[16px] font-semibold leading-none ${stanceText}`}>
+          <div className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted">24h stance</div>
+          <div className={`mt-1.5 font-display text-[16px] font-semibold leading-none ${stanceText}`}>
             {stance.arrow} {stance.label}
             {tactical.confidence != null ? (
-              <span className="ml-1.5 font-mono text-[12px] font-normal text-text-muted">{tactical.confidence}%</span>
+              <span className="ml-1.5 font-mono text-[12px] font-semibold text-text-muted">{tactical.confidence}%</span>
             ) : null}
           </div>
         </div>
         <div className="min-w-[100px] flex-1 px-4 py-3 sm:flex-none">
-          <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">Updated</div>
-          <div className="mt-1 font-mono text-[14px] leading-none text-text-primary/80">{formatAge(report?.timestamp)}</div>
+          <div className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted">Updated</div>
+          <div className="mt-1.5 font-mono text-[14px] font-semibold leading-none text-text-primary">{formatAge(report?.timestamp)}</div>
         </div>
       </div>
     </header>
@@ -260,20 +260,68 @@ function ErrorState({ error, onRetry }) {
   );
 }
 
-// Terminal-style side navigation (desktop) + horizontal chips (mobile)
+// Terminal-style side navigation — SVG glyphs (not numeric "01")
 const WORKSPACE_GROUPS = [
   { g: "Compass", keys: ["read", "longer", "chart"] },
   { g: "Audit", keys: ["evaluation", "brain"] },
   { g: "Library", keys: ["archive"] },
 ];
 
+const TAB_ICON_PATHS = {
+  read: (
+    <>
+      <path d="M4 5.5h16v13H4z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M7 9h10M7 12.5h7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </>
+  ),
+  longer: (
+    <>
+      <path d="M3 17l5-5 4 3 8-9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 5h5v5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  chart: (
+    <>
+      <rect x="3" y="11" width="4" height="9" rx="1" />
+      <rect x="10" y="6" width="4" height="14" rx="1" opacity="0.7" />
+      <rect x="17" y="9" width="4" height="11" rx="1" opacity="0.45" />
+    </>
+  ),
+  evaluation: (
+    <>
+      <path d="M9 11l2.2 2.2L16 8.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" fill="none" stroke="currentColor" strokeWidth="1.7" opacity="0.7" />
+    </>
+  ),
+  brain: (
+    <>
+      <circle cx="9" cy="10" r="3.2" opacity="0.55" />
+      <circle cx="15" cy="10" r="3.2" opacity="0.55" />
+      <path d="M8 16c1.2 1.5 2.6 2.2 4 2.2S14.8 17.5 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </>
+  ),
+  archive: (
+    <>
+      <path d="M4 7.5h16v11H4z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 7.5 6.5 4h11L20 7.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9 12h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </>
+  ),
+};
+
+const TabGlyph = ({ id }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-[15px] w-[15px] shrink-0" aria-hidden="true">
+    {TAB_ICON_PATHS[id] || <rect x="4" y="4" width="16" height="16" rx="2" />}
+  </svg>
+);
+
 function WorkspaceSideNav({ activeTab, onChange, tabs }) {
   const byKey = Object.fromEntries(tabs.map((t) => [t.key, t]));
 
   return (
     <>
-      {/* Mobile — horizontal chips */}
-      <div className="mb-3 flex gap-1 overflow-x-auto pb-1 lg:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Mobile — horizontal chips with glyphs */}
+      <div className="mb-2 flex gap-1 overflow-x-auto pb-1 lg:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const on = activeTab === tab.key;
           return (
@@ -282,21 +330,23 @@ function WorkspaceSideNav({ activeTab, onChange, tabs }) {
               type="button"
               onClick={() => onChange(tab.key)}
               title={tab.description}
-              className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
                 on
                   ? "bg-ink/[0.1] text-text-primary"
                   : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
               }`}
             >
-              <span className="tabular-nums opacity-60">{tab.icon}</span>
-              {tab.label}
+              <span className={on ? "text-text-primary" : "text-text-muted"}>
+                <TabGlyph id={tab.key} />
+              </span>
+              {tab.short || tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* Desktop — slim left rail (matches TerminalLayout) */}
-      <aside className="hidden w-[168px] shrink-0 overflow-y-auto lg:block [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/10">
+      {/* Desktop — Terminal-identical slim rail */}
+      <aside className="hidden w-[172px] shrink-0 overflow-y-auto lg:block [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/10">
         <nav className="space-y-2.5 pr-1" aria-label="AI Research sections">
           {WORKSPACE_GROUPS.map(({ g, keys }) => (
             <div key={g}>
@@ -324,10 +374,10 @@ function WorkspaceSideNav({ activeTab, onChange, tabs }) {
                       {on && (
                         <span className="absolute bottom-1.5 left-0 top-1.5 w-[2.5px] rounded-full bg-accent" />
                       )}
-                      <span className={`font-mono text-[10px] tabular-nums ${on ? "text-text-primary/70" : "text-text-muted/50"}`}>
-                        {tab.icon}
+                      <span className={on ? "text-text-primary" : "text-text-muted"}>
+                        <TabGlyph id={key} />
                       </span>
-                      <span className="truncate">{tab.label}</span>
+                      <span className="truncate leading-tight">{tab.short || tab.label}</span>
                     </button>
                   );
                 })}
@@ -342,25 +392,27 @@ function WorkspaceSideNav({ activeTab, onChange, tabs }) {
 
 function ChartPanel({ report }) {
   return (
-    <section className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4 md:p-5">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <section className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-ink/[0.06] px-4 py-3.5 md:px-5">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+          <div className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
             Price context
           </div>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-text-primary md:text-xl">
             BTC projection chart
           </h2>
-          <p className="mt-1 max-w-3xl text-xs leading-5 text-text-muted">
+          <p className="mt-0.5 max-w-3xl text-[12px] leading-5 text-text-muted">
             Live candles with Compass magnets, zones, and invalidation levels.
           </p>
         </div>
-        <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2 text-right font-mono text-[10px] text-text-muted">
+        <div className="rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2 text-right font-mono text-[10px] text-text-muted">
           <div className="uppercase tracking-[0.14em]">Basis</div>
-          <div className="mt-1 text-text-primary/70">BTC candles + report</div>
+          <div className="mt-1 font-semibold text-text-primary">BTC + report</div>
         </div>
       </div>
-      <PriceChart report={report} />
+      <div className="p-3 md:p-4">
+        <PriceChart report={report} />
+      </div>
     </section>
   );
 }
@@ -1179,45 +1231,39 @@ export default function AIArenaPageV6() {
     () => [
       {
         key: "read",
-        icon: "01",
-        eyebrow: "Today",
+        short: "Outlook",
         label: "Market Outlook",
         description: "24h direction, exposure guide, levels, and risk.",
       },
       {
         key: "longer",
-        icon: "02",
-        eyebrow: "7d · 30d",
+        short: "Longer View",
         label: "Longer View",
         description: "Swing context and holder backdrop.",
       },
       {
-        key: "evaluation",
-        icon: "03",
-        eyebrow: "Audit",
-        label: "Projection Audit",
-        description: "Projected level, result, and explanation.",
-      },
-      {
         key: "chart",
-        icon: "04",
-        eyebrow: "Context",
+        short: "Chart",
         label: "Projection Chart",
         description: "Live candles with projection overlay.",
       },
       {
-        key: "archive",
-        icon: "05",
-        eyebrow: "Library",
-        label: "Report Library",
-        description: "Archived outlooks and PDF guide.",
+        key: "evaluation",
+        short: "Audit",
+        label: "Projection Audit",
+        description: "Projected level, result, and explanation.",
       },
       {
         key: "brain",
-        icon: "06",
-        eyebrow: "Learning",
+        short: "AI Brain",
         label: "AI Brain",
         description: "Lessons the AI learned from its own audited calls.",
+      },
+      {
+        key: "archive",
+        short: "Library",
+        label: "Report Library",
+        description: "Archived outlooks and PDF guide.",
       },
     ],
     [],

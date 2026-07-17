@@ -135,16 +135,16 @@ export const confLevel = (c) => {
 
 /* ═══════════════ layout primitives ═══════════════ */
 
-// Panel — quiet card surface (no gold glow / hairline by default)
+// Panel — Terminal desk card (rounded-lg, solid ink border)
 export const Card = ({ className = "", children, accent, hairline = false }) => {
   const border =
     accent === "gold" ? "border-ink/[0.1]"
     : accent === "up" ? "border-positive/20"
     : accent === "down" ? "border-negative/20"
-    : "border-ink/[0.07]";
+    : "border-ink/[0.08]";
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border ${border} bg-surface-raised ${className}`}
+      className={`relative overflow-hidden rounded-lg border ${border} bg-surface-raised ${className}`}
     >
       {hairline && (
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.06]" />
@@ -235,23 +235,23 @@ export const highlightPrices = (text) => {
   );
 };
 
-// KPI stat card (used on audit + library headers).
+// KPI stat card — Terminal monochrome desk (medium weight, solid borders)
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
   const tones = {
-    neutral: "border-ink/[0.05] bg-surface-secondary",
-    gold: "border-ink/10 bg-ink/[0.04]",
-    up: "border-profit/20 bg-profit/[0.05]",
-    down: "border-loss/20 bg-loss/[0.05]",
+    neutral: "border-ink/[0.08] bg-surface-secondary",
+    gold: "border-ink/[0.1] bg-surface-secondary",
+    up: "border-profit/25 bg-profit/[0.07]",
+    down: "border-loss/25 bg-loss/[0.07]",
   };
   const valueTone =
     tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : "text-text-primary";
   return (
-    <div className={`rounded-lg border p-4 ${tones[tone] || tones.neutral}`}>
-      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/70">{label}</div>
-      <div className={`mt-1.5 font-mono ${big ? "text-3xl" : "text-2xl"} font-light tabular-nums tracking-tight ${valueTone}`}>
+    <div className={`rounded-lg border p-3.5 md:p-4 ${tones[tone] || tones.neutral}`}>
+      <div className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted">{label}</div>
+      <div className={`mt-1.5 font-mono ${big ? "text-3xl" : "text-[22px] md:text-2xl"} font-semibold tabular-nums tracking-tight leading-none ${valueTone}`}>
         {value}
       </div>
-      {detail && <div className="mt-1 text-[11px] leading-4 text-text-muted/60">{detail}</div>}
+      {detail && <div className="mt-1.5 text-[11px] leading-4 text-text-muted">{detail}</div>}
     </div>
   );
 };
@@ -573,11 +573,12 @@ export const Segmented = ({ options, value, onChange }) => (
 
 export const Chip = ({ active, onClick, children }) => (
   <button
+    type="button"
     onClick={onClick}
-    className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
+    className={`rounded-md border px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
       active
-        ? "border-ink/20 bg-ink/[0.1] text-text-primary"
-        : "border-ink/[0.07] bg-ink/[0.02] text-text-muted/70 hover:border-ink/[0.16] hover:text-text-primary"
+        ? "border-transparent bg-accent text-accent-fg"
+        : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
     }`}
   >
     {children}

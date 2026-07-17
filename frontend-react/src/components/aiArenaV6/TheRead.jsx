@@ -93,10 +93,12 @@ export default function TheRead({ data }) {
 
   return (
     <div className="space-y-4">
-      {/* ════════ WHY THIS UPDATED — quiet event strip ════════ */}
-      <div className="flex items-start gap-3 rounded-xl border border-ink/[0.07] bg-surface-raised p-3.5">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-ink/10 bg-ink/[0.04] text-[13px] text-text-secondary">
-          ↻
+      {/* ════════ WHY THIS UPDATED — Terminal desk strip ════════ */}
+      <div className="flex items-start gap-3 rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-secondary">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

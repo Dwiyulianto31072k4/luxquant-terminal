@@ -144,53 +144,53 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   ];
 
   return (
-    <Card>
+    <Card className="!rounded-lg">
       {/* ── header ── */}
-      <div className="border-b border-ink/[0.06] p-5 md:p-6">
+      <div className="border-b border-ink/[0.07] p-4 md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <SectionHeader label="Evaluation · target-first" className="mb-2" />
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text-primary md:text-3xl">
+          <div className="min-w-0">
+            <SectionHeader label="Evaluation · target-first" className="mb-1.5" />
+            <h2 className="text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
               Projection accountability
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
+            <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-secondary">
               Every row is judged by the target-first scenario map: what BTC was projected
               to touch, which barrier resolved first, and why that result matters.
             </p>
           </div>
-          {/* landing-style win-rate donut */}
-          <div className="flex items-center gap-4 rounded-xl border border-ink/[0.06] bg-surface-secondary px-5 py-3">
+          {/* Hit-rate donut — Terminal desk card */}
+          <div className="flex items-center gap-4 rounded-lg border border-ink/[0.08] bg-surface-secondary px-4 py-3">
             <Donut
-              size={118}
+              size={112}
               thickness={11}
               centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
               centerLabel="hit rate"
               segments={[
                 { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
                 { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
-                { label: "Tracking", value: stats.pending ?? 0, hex: "rgba(212,168,83,0.45)" },
+                { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
               ]}
             />
-            <div className="space-y-1.5 font-mono text-[10px]">
-              <div className="flex items-center gap-1.5 text-text-muted/80">
+            <div className="space-y-1.5 font-mono text-[10px] font-medium">
+              <div className="flex items-center gap-1.5 text-text-muted">
                 <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
-                Hits <span className="text-text-primary">{stats.clean_hits ?? 0}</span>
+                Hits <span className="font-semibold text-text-primary">{stats.clean_hits ?? 0}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-text-muted/80">
+              <div className="flex items-center gap-1.5 text-text-muted">
                 <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
-                Invalidated <span className="text-text-primary">{stats.invalidated_first ?? 0}</span>
+                Invalidated <span className="font-semibold text-text-primary">{stats.invalidated_first ?? 0}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-text-muted/80">
-                <span className="h-2 w-2 rounded-full bg-ink/[0.03]0" />
-                Tracking <span className="text-text-primary">{stats.pending ?? 0}</span>
+              <div className="flex items-center gap-1.5 text-text-muted">
+                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.gold }} />
+                Tracking <span className="font-semibold text-text-primary">{stats.pending ?? 0}</span>
               </div>
-              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/50">Target-first schema</div>
+              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/55">Target-first schema</div>
             </div>
           </div>
         </div>
 
         {/* KPI strip */}
-        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
           <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
           <StatCard label="Tracking" value={stats.pending ?? 0} detail="Waiting for first barrier" />
           <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
@@ -203,19 +203,22 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="down" />
         </div>
 
-        {/* outcome distribution */}
-        <div className="mt-4">
+        <div className="mt-3.5">
           <OutcomeBar segments={outcomeSegments} />
         </div>
       </div>
 
       {/* ── toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] bg-scrim/20 px-4 py-3 md:px-5">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/60">
-          Showing <span className="text-text-primary/70">{filteredTotal ? start + 1 : 0}-{Math.min(filteredTotal, start + visible.length)}</span> of <span className="text-text-primary/70">{filteredTotal}</span>
-          {loading && <span className="ml-2 text-text-primary/70">loading…</span>}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] bg-surface-secondary/60 px-4 py-2.5 md:px-5">
+        <div className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
+          Showing{" "}
+          <span className="text-text-primary">
+            {filteredTotal ? start + 1 : 0}–{Math.min(filteredTotal, start + visible.length)}
+          </span>{" "}
+          of <span className="text-text-primary">{filteredTotal}</span>
+          {loading && <span className="ml-2 text-accent">loading…</span>}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {[
             ["all", "All"],
             ["pending", "Pending"],
@@ -242,11 +245,11 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             <col />
           </colgroup>
           <thead>
-            <tr className="border-b border-ink/[0.06] bg-ink/[0.02] text-left">
+            <tr className="border-b border-ink/[0.08] bg-surface-secondary/80 text-left">
               {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
                 <th
                   key={header}
-                  className="px-4 py-3 text-[10px] font-mono uppercase tracking-[0.16em] text-text-muted/60"
+                  className="px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted"
                 >
                   {header}
                 </th>
