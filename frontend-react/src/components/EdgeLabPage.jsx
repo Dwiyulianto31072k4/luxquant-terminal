@@ -203,7 +203,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
             <select
               value={sector}
               onChange={(e) => setSector(e.target.value)}
-              className="bg-transparent text-text-primary/85 font-mono text-sm focus:outline-none cursor-pointer uppercase tracking-wider [color-scheme:dark]"
+              className="bg-transparent text-text-primary/85 font-mono text-sm focus:outline-none cursor-pointer uppercase tracking-wider"
             >
               {SECTOR_OPTIONS.map((s) => (
                 <option key={s} value={s} className="bg-surface-raised text-text-primary">{s}</option>

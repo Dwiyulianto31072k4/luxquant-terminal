@@ -362,7 +362,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                           value={customFrom}
                           max={customTo || undefined}
                           onChange={(e) => setCustomFrom(e.target.value)}
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none [color-scheme:dark]"
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none"
                         />
                         <span className="font-mono text-[10px] text-text-muted">→</span>
                         <input
@@ -370,7 +370,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                           value={customTo}
                           min={customFrom || undefined}
                           onChange={(e) => setCustomTo(e.target.value)}
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none [color-scheme:dark]"
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none"
                         />
                       </div>
                       {customActive && (

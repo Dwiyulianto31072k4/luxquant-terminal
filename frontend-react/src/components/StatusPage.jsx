@@ -178,7 +178,7 @@ function IncidentCard({ inc, past = false }) {
                   const uc = UPDATE_COLOR(u.status);
                   return (
                     <div key={i} className="relative pl-6">
-                      <span className="absolute left-[1px] top-[3px] w-[11px] h-[11px] rounded-full" style={{ background: uc, boxShadow: `0 0 8px ${tint(uc, 0.55)}`, border: "2px solid #0a0805" }} />
+                      <span className="absolute left-[1px] top-[3px] w-[11px] h-[11px] rounded-full" style={{ background: uc, boxShadow: `0 0 8px ${tint(uc, 0.55)}`, border: "2px solid rgb(var(--surface-raised))" }} />
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color: uc }}>{LIFECYCLE_LABEL[u.status] || u.status}</span>
                         <span className="font-mono text-[10px] tabular-nums" style={{ color: palette.warm[500] }}>{fmtTime(u.created_at)}</span>

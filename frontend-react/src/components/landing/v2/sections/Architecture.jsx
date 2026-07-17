@@ -4,7 +4,7 @@
 //   LIVE MARKET DATA → DATA SANITIZER → PREDICTIVE ALPHA → TERMINAL
 //
 // Animated gold connectors + edge art KEPT (the moving pipeline).
-// Cards/nodes redesigned SOLID & timeless: flat #0d0b09, hairline
+// Cards/nodes redesigned SOLID & timeless: flat rgb(var(--surface)), hairline
 // borders, solid gold icons, no glow/scan/beam. Mobile stepper below.
 // ════════════════════════════════════════════════════════════════
 
@@ -51,21 +51,21 @@ const ICONS = {
     <>
       <circle cx="12" cy="12" r="8.2" fill="url(#lqGold)" opacity="0.3" />
       <path fill="url(#lqGold)" d="M12 3.8a8.2 8.2 0 017.72 5.4L12 12z" />
-      <circle cx="12" cy="12" r="3.4" fill="#0c0807" />
+      <circle cx="12" cy="12" r="3.4" fill="rgb(var(--surface-raised))" />
     </>
   ),
   sanitizer: (
     <>
       <path fill="url(#lqGold)" d="M3.4 4.4h17.2a1 1 0 01.78 1.63L14.6 13.7v4.8a1 1 0 01-1.45.9l-2.9-1.45a1 1 0 01-.55-.9V13.7L2.62 6.03a1 1 0 01.78-1.63z" opacity="0.9" />
       <circle cx="18.6" cy="17.2" r="3.2" fill="url(#lqGold)" />
-      <path d="M17.2 17.2l1 1 1.9-2.2" stroke="#0c0807" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17.2 17.2l1 1 1.9-2.2" stroke="rgb(var(--surface-raised))" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
   core: (
     <>
       <path fill="url(#lqGold)" opacity="0.22" d="M12 1.8l8.7 5v10.4L12 22.2 3.3 17.2V6.8z" />
       <path fill="url(#lqGold)" d="M12 6l5.1 2.95v5.9L12 17.8l-5.1-2.95v-5.9z" />
-      <circle cx="12" cy="12" r="2.2" fill="#0c0807" />
+      <circle cx="12" cy="12" r="2.2" fill="rgb(var(--surface-raised))" />
       <circle cx="12" cy="12" r="1" fill="url(#lqGold)" />
     </>
   ),

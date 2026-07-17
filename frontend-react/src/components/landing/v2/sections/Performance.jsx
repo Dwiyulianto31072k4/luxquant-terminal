@@ -244,7 +244,7 @@ function PeriodFilterPopover({
                     setCustomStart(e.target.value);
                     setEventId(null);
                   }}
-                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-text-primary outline-none [color-scheme:dark] sm:text-[11px]"
+                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-text-primary outline-none sm:text-[11px]"
                 />
               </label>
               <span className="hidden font-mono text-[10px] text-text-muted sm:inline">→</span>
@@ -258,7 +258,7 @@ function PeriodFilterPopover({
                     setCustomEnd(e.target.value);
                     setEventId(null);
                   }}
-                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-text-primary outline-none [color-scheme:dark] sm:text-[11px]"
+                  className="min-w-0 w-full bg-transparent font-mono text-[12px] text-text-primary outline-none sm:text-[11px]"
                 />
               </label>
             </div>
@@ -790,7 +790,7 @@ export default function Performance({ data }) {
                 {showBtc && <Bar yAxisId="btc" dataKey="range" shape={<Candle />} isAnimationActive={false} />}
                 <ReferenceLine yAxisId="wr" y={wrAvg} stroke="rgba(231,195,115,0.3)" strokeDasharray="4 4" />
                 {!showBtc && <Area yAxisId="wr" type="monotone" dataKey="wr" stroke="none" fill="url(#wrFill)" />}
-                <Line yAxisId="wr" type="monotone" dataKey="wr" stroke={C.gold} strokeWidth={2.2} dot={false} activeDot={{ r: 4, fill: C.gold, stroke: "#0a0506", strokeWidth: 2 }} />
+                <Line yAxisId="wr" type="monotone" dataKey="wr" stroke={C.gold} strokeWidth={2.2} dot={false} activeDot={{ r: 4, fill: C.gold, stroke: "rgb(var(--surface))", strokeWidth: 2 }} />
                 <Tooltip
                   cursor={{ stroke: "rgb(var(--ink) / 0.18)", strokeWidth: 1 }}
                   content={({ active, payload }) => {

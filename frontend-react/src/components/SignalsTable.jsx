@@ -1239,7 +1239,7 @@ const SignalsTable = ({
                                     title="View deep analysis"
                                     className={`group/vd inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider transition-all hover:brightness-125 cursor-pointer ${
                                       isAvoid ? 'text-red-400' : 'text-emerald-400'
-                                    } ${showHint ? 'ring-2 ring-gold-primary/50 ring-offset-1 ring-offset-[#0a0805] rounded-sm px-1' : ''}`}
+                                    } ${showHint ? 'ring-2 ring-gold-primary/50 ring-offset-1 ring-offset-[rgb(var(--surface-raised))] rounded-sm px-1' : ''}`}
                                   >
                                     <span>{isAvoid ? '⛔ Avoid' : '✓ Worth It'}</span>
                                     {score != null && <span className="tabular-nums opacity-70">{score}</span>}

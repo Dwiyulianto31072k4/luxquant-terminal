@@ -75,9 +75,9 @@ export const EXCHANGE_BRANDS = {
     name: 'Bybit',
     primary: '#F7A600',
     accent: '#FFB11A',
-    cardFill: 'linear-gradient(145deg, #0A0A0A 0%, #1A1408 55%, #2A1A00 100%)',
+    cardFill: 'linear-gradient(145deg, rgb(var(--surface)) 0%, #1A1408 55%, #2A1A00 100%)',
     cardOrb: 'radial-gradient(circle at 100% 0%, rgba(247,166,0,0.35) 0%, transparent 55%)',
-    surface: '#0A0A0A',
+    surface: 'rgb(var(--surface))',
     surfaceRaised: 'rgb(var(--scrim) / 0.35)',
     surfaceInset: 'rgb(var(--scrim) / 0.28)',
     border: 'rgba(247,166,0,0.35)',
@@ -673,7 +673,7 @@ export const ExchangePaymentHero = ({ payment }) => {
               style={{
                 background: brand.primary === '#FFFFFF' ? '#FFFFFF' : brand.primary,
                 color: brand.primary === '#FFFFFF' || brand.primary === '#F0B90B' || brand.primary === '#F7A600' || brand.primary === '#FCD535'
-                  ? '#0a0a0a'
+                  ? 'rgb(var(--surface))'
                   : '#FFFFFF',
               }}
             >

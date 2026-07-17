@@ -367,7 +367,7 @@ function MapFlow({ topo, onAction }) {
 
 const CSS = `
 .lqf-root{position:relative}
-.lqf-box{position:relative;border:1px solid rgb(var(--ink) / .07);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#0c0709,#0a0506);height:clamp(440px,64vh,660px)}
+.lqf-box{position:relative;border:1px solid rgb(var(--ink) / .07);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,rgb(var(--surface)),rgb(var(--surface)));height:clamp(440px,64vh,660px)}
 .lqf-box::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(212,168,83,.45),transparent);z-index:5;pointer-events:none}
 .lqf-box .react-flow__renderer,.lqf-box .react-flow{background:transparent}
 .lqf-ping{animation:lqfping 1.5s ease-out infinite}
@@ -375,7 +375,7 @@ const CSS = `
 
 /* React Flow control chrome → dark/gold */
 .lqf-box .react-flow__controls{box-shadow:0 6px 20px rgba(0,0,0,.4);border-radius:8px;overflow:hidden}
-.lqf-box .react-flow__controls-button{background:#140a0e;border-bottom:1px solid rgb(var(--ink) / .08);width:28px;height:28px}
+.lqf-box .react-flow__controls-button{background:rgb(var(--surface-secondary));border-bottom:1px solid rgb(var(--ink) / .08);width:28px;height:28px}
 .lqf-box .react-flow__controls-button:hover{background:#20121a}
 .lqf-box .react-flow__controls-button svg{fill:#d4a853;max-width:14px;max-height:14px}
 .lqf-mini{bottom:12px;right:12px}
@@ -388,10 +388,10 @@ const CSS = `
 /* node detail — centered modal (SignalModal-style) */
 .lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:lqfade .18s ease}
 @keyframes lqfade{from{opacity:0}to{opacity:1}}
-.lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#100b09,#0a0605);border:1px solid rgb(var(--line) / .22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+.lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,rgb(var(--surface-raised)),rgb(var(--surface)));border:1px solid rgb(var(--line) / .22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
 @keyframes lqpop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
 .lqm-card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(212,168,83,.5),transparent);z-index:2}
-.lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgb(var(--ink) / .12);background:#0a0a0a;color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}
+.lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}
 .lqm-close:hover{color:#fff;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.14)}
 .lqd-body{padding:22px;overflow-y:auto}
 .lqd-body h3{font-size:18px;font-weight:600;margin:0 0 3px;color:#f5f0e8;padding-right:34px}

@@ -3,7 +3,7 @@
 // LuxQuant — AutoTrade shared UI primitives
 // One source of truth so every AutoTrade panel matches the rest of
 // the terminal (SignalsPage / SignalsTable design language):
-//   • #0a0805 cards with a gold hairline accent
+//   • rgb(var(--surface-raised)) cards with a gold hairline accent
 //   • mono / tabular-nums numerics, uppercase tracked labels
 //   • gold gradient primary action, ghost secondary
 // ════════════════════════════════════════════════════════════════

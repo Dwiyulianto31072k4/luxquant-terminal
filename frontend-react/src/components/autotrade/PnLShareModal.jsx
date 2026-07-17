@@ -179,7 +179,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
             ref={cardRef}
             className="relative overflow-hidden rounded-2xl"
             style={{
-              background: "linear-gradient(145deg, #0b0908 0%, #1a1410 50%, #0b0908 100%)",
+              background: "linear-gradient(145deg, rgb(var(--surface)) 0%, #1a1410 50%, rgb(var(--surface)) 100%)",
               border: "1px solid rgb(var(--line) / 0.3)",
               padding: "28px 24px",
               minHeight: "480px",

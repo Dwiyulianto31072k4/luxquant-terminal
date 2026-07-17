@@ -967,6 +967,46 @@ const BtcTradingViewChart = ({ t }) => {
     el.style.height = "100%";
     chartRef.current.appendChild(el);
 
+    // TradingView needs concrete hex — resolve from active data-theme
+    let tv;
+    try {
+      // lazy import-free helper (same as utils/themeColors)
+      const theme = document.documentElement?.dataset?.theme || "luxquant";
+      tv =
+        theme === "bright"
+          ? {
+              theme: "light",
+              toolbar_bg: "#ffffff",
+              backgroundColor: "#ffffff",
+              gridColor: "rgba(15, 23, 42, 0.06)",
+              textColor: "#52525b",
+              lineColor: "rgba(15, 23, 42, 0.1)",
+              upColor: "#059669",
+              downColor: "#dc2626",
+            }
+          : {
+              theme: "dark",
+              toolbar_bg: "#0a0805",
+              backgroundColor: "#0a0805",
+              gridColor: "rgba(212, 168, 83, 0.05)",
+              textColor: "#a0a0a0",
+              lineColor: "rgba(212, 168, 83, 0.12)",
+              upColor: "#56c996",
+              downColor: "#e07288",
+            };
+    } catch {
+      tv = {
+        theme: "dark",
+        toolbar_bg: "#0a0805",
+        backgroundColor: "#0a0805",
+        gridColor: "rgba(212, 168, 83, 0.05)",
+        textColor: "#a0a0a0",
+        lineColor: "rgba(212, 168, 83, 0.12)",
+        upColor: "#56c996",
+        downColor: "#e07288",
+      };
+    }
+
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/tv.js";
     script.async = true;
@@ -979,16 +1019,16 @@ const BtcTradingViewChart = ({ t }) => {
         symbol: "BINANCE:BTCUSDT.P",
         interval: "240",
         timezone: "Asia/Jakarta",
-        theme: "dark",
+        theme: tv.theme,
         style: "1",
         locale: "en",
-        toolbar_bg: "#0a0805",
+        toolbar_bg: tv.toolbar_bg,
         enable_publishing: false,
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: true,
-        backgroundColor: "rgb(var(--surface-raised))",
-        gridColor: "rgba(212, 168, 83, 0.04)",
+        backgroundColor: tv.backgroundColor,
+        gridColor: tv.gridColor,
         hide_top_toolbar: false,
         hide_legend: false,
         withdateranges: true,
@@ -997,18 +1037,18 @@ const BtcTradingViewChart = ({ t }) => {
         calendar: false,
         studies: ["MACD@tv-basicstudies", "StochasticRSI@tv-basicstudies"],
         overrides: {
-          "paneProperties.background": "#0a0805",
+          "paneProperties.background": tv.backgroundColor,
           "paneProperties.backgroundType": "solid",
-          "paneProperties.vertGridProperties.color": "rgba(212, 168, 83, 0.04)",
-          "paneProperties.horzGridProperties.color": "rgba(212, 168, 83, 0.04)",
-          "scalesProperties.textColor": "#a0a0a0",
-          "scalesProperties.lineColor": "rgba(212, 168, 83, 0.1)",
-          "mainSeriesProperties.candleStyle.upColor": "#56c996",
-          "mainSeriesProperties.candleStyle.downColor": "#e07288",
-          "mainSeriesProperties.candleStyle.borderUpColor": "#56c996",
-          "mainSeriesProperties.candleStyle.borderDownColor": "#e07288",
-          "mainSeriesProperties.candleStyle.wickUpColor": "#56c996",
-          "mainSeriesProperties.candleStyle.wickDownColor": "#e07288",
+          "paneProperties.vertGridProperties.color": tv.gridColor,
+          "paneProperties.horzGridProperties.color": tv.gridColor,
+          "scalesProperties.textColor": tv.textColor,
+          "scalesProperties.lineColor": tv.lineColor,
+          "mainSeriesProperties.candleStyle.upColor": tv.upColor,
+          "mainSeriesProperties.candleStyle.downColor": tv.downColor,
+          "mainSeriesProperties.candleStyle.borderUpColor": tv.upColor,
+          "mainSeriesProperties.candleStyle.borderDownColor": tv.downColor,
+          "mainSeriesProperties.candleStyle.wickUpColor": tv.upColor,
+          "mainSeriesProperties.candleStyle.wickDownColor": tv.downColor,
         },
       });
     };

@@ -40,8 +40,8 @@ import {
 /* ── Layout primitives — solid Terminal language ─────────────────── */
 
 const PANEL = {
-  card: '#0a0805',
-  inset: '#0c0a07',
+  card: 'rgb(var(--surface-raised))',
+  inset: 'rgb(var(--surface-raised))',
   raised: '#100c08',
   border: 'rgb(var(--ink) / 0.08)',
   borderSoft: 'rgb(var(--ink) / 0.06)',
@@ -182,7 +182,7 @@ const TONE = {
   },
   muted: {
     color: 'rgb(var(--ink) / 0.72)',
-    bg: '#0c0a07',
+    bg: 'rgb(var(--surface-raised))',
     border: 'rgb(var(--ink) / 0.12)',
     iconBg: '#120f0c',
   },

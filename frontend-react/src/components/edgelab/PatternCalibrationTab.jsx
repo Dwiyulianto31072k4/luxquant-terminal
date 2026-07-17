@@ -55,7 +55,7 @@ const CalibrationRow = ({ row, onDrill }) => {
         <div className="absolute top-1/2 -translate-y-1/2 w-px h-3" style={{ left: `${ciHi}%`, background: `${color}99` }} />
         <div
           className="absolute top-1/2 -translate-y-1/2 rounded-full transition-transform group-hover:scale-125"
-          style={{ left: `calc(${wr}% - 4px)`, width: 8, height: 8, background: color, boxShadow: "0 0 0 2px #0c0a07" }}
+          style={{ left: `calc(${wr}% - 4px)`, width: 8, height: 8, background: color, boxShadow: "0 0 0 2px rgb(var(--surface-raised))" }}
         />
       </div>
     </button>

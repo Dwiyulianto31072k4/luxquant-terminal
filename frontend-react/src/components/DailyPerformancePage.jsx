@@ -1366,7 +1366,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-surface-raised border border-ink/[0.08]">
             <Label>Date</Label>
-            <input type="date" value={selectedDate} min={dateMin} max={dateMax} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-text-primary/85 font-mono tabular-nums text-sm focus:outline-none [color-scheme:dark]" />
+            <input type="date" value={selectedDate} min={dateMin} max={dateMax} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-text-primary/85 font-mono tabular-nums text-sm focus:outline-none" />
           </div>
           <button onClick={() => fetchData(selectedDate)} disabled={loading} className="px-3 py-2 rounded-md bg-surface-raised border border-ink/[0.08] text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/60 hover:border-line/30 hover:text-gold-primary transition disabled:opacity-50">{loading ? "..." : "Refresh"}</button>
         </div>

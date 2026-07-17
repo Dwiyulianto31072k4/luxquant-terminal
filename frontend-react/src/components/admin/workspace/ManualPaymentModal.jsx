@@ -98,8 +98,8 @@ const TxStep = ({ txHash, setTxHash, verifying, verifyResult, verifyError, onVer
           <button
             onClick={onVerify} disabled={!looksValid || verifying}
             className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ background: looksValid ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgb(var(--ink) / 0.04)', color: looksValid ? '#0a0506' : '#6b5c52' }}>
-            {verifying && <span className="h-3 w-3 animate-spin rounded-full border-2" style={{ borderColor: 'rgba(10,5,6,0.3)', borderTopColor: '#0a0506' }} />}
+            style={{ background: looksValid ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgb(var(--ink) / 0.04)', color: looksValid ? 'rgb(var(--surface))' : '#6b5c52' }}>
+            {verifying && <span className="h-3 w-3 animate-spin rounded-full border-2" style={{ borderColor: 'rgba(10,5,6,0.3)', borderTopColor: 'rgb(var(--surface))' }} />}
             {verifying ? 'Inspecting on BSC…' : 'Verify on BSC'}
           </button>
           {verifyError && (
@@ -569,7 +569,7 @@ export const ManualPaymentModal = ({ isOpen, onClose, onSuccess, preselectedUser
     <div className="flex gap-2">
       <GhostButton onClick={onClose} disabled={submitting} className="flex-1">Cancel</GhostButton>
       <GoldButton onClick={handleSubmit} disabled={!canSubmit} className="flex-1 flex items-center justify-center gap-2">
-        {submitting && <span className="h-3 w-3 animate-spin rounded-full border-2" style={{ borderColor: 'rgba(10,5,6,0.3)', borderTopColor: '#0a0506' }} />}
+        {submitting && <span className="h-3 w-3 animate-spin rounded-full border-2" style={{ borderColor: 'rgba(10,5,6,0.3)', borderTopColor: 'rgb(var(--surface))' }} />}
         {submitting ? 'Recording…' : 'Record Payment'}
       </GoldButton>
     </div>

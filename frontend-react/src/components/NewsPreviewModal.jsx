@@ -19,7 +19,7 @@ const cleanText = (s) => {
 };
 
 const WirePlaceholder = () => (
-  <div className="relative flex w-full max-h-[min(32vh,220px)] min-h-[9rem] flex-col items-center justify-center bg-[#050505] select-none sm:max-h-[min(36vh,260px)] sm:min-h-[11rem]">
+  <div className="relative flex w-full max-h-[min(32vh,220px)] min-h-[9rem] flex-col items-center justify-center bg-[rgb(var(--surface))] select-none sm:max-h-[min(36vh,260px)] sm:min-h-[11rem]">
     <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.08]" />
     <img src={LUXQUANT_LOGO} alt="LuxQuant" className="h-14 w-14 object-contain opacity-95" />
     <span className="mt-2.5 font-mono text-[9px] uppercase tracking-[0.28em] text-ink/75">

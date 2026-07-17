@@ -308,7 +308,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
             style={{
               background: customCode.length >= 4 ? 'linear-gradient(135deg, #d4a853 0%, #b8941f 100%)' : 'rgba(212,168,83,0.1)',
-              color: customCode.length >= 4 ? '#0a0506' : '#6b5c52',
+              color: customCode.length >= 4 ? 'rgb(var(--surface))' : '#6b5c52',
               border: 'none',
               cursor: customCode.length < 4 ? 'not-allowed' : 'pointer',
             }}
@@ -715,7 +715,7 @@ const ReferralPage = () => {
               background: cashoutBalance.can_request_cashout
                 ? 'linear-gradient(135deg, #d4a853, #a07c2e)'
                 : 'rgba(212,168,83,0.08)',
-              color: cashoutBalance.can_request_cashout ? '#0a0506' : '#6b5c52',
+              color: cashoutBalance.can_request_cashout ? 'rgb(var(--surface))' : '#6b5c52',
               boxShadow: cashoutBalance.can_request_cashout ? '0 2px 12px rgba(212,168,83,0.2)' : 'none',
             }}
           >

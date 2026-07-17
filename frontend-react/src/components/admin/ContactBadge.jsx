@@ -84,7 +84,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
             className="absolute -top-[3px] -right-[3px] w-2.5 h-2.5 rounded-full"
             style={{
               background: 'rgb(var(--accent))',
-              boxShadow: '0 0 0 1.5px #0a0506',
+              boxShadow: '0 0 0 1.5px rgb(var(--surface))',
             }}
             title="Admin-added"
           />
@@ -92,7 +92,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
         {botReady === false && !deepLink && (
           <span
             className="absolute -bottom-[3px] -right-[3px] w-2.5 h-2.5 rounded-full"
-            style={{ background: 'rgb(var(--warn))', boxShadow: '0 0 0 1.5px #0a0506' }}
+            style={{ background: 'rgb(var(--warn))', boxShadow: '0 0 0 1.5px rgb(var(--surface))' }}
             title="Bot DM unconfirmed — user may not have started the bot. Reach them via in-app Announcements."
           />
         )}

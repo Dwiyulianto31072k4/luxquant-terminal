@@ -65,14 +65,13 @@ const AnnouncementModal = () => {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{ background: 'rgba(5,5,6,0.72)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgb(var(--scrim) / 0.72)', backdropFilter: 'blur(4px)' }}
       onClick={dismiss}
     >
       <div
-        className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)]"
+        className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
         style={{
-          background: 'linear-gradient(160deg, #0d0405, #0a0506)',
-          border: '1px solid rgb(var(--line) / 0.18)',
+          border: '1px solid rgb(var(--ink) / 0.1)',
           boxShadow: '0 -20px 60px rgb(var(--scrim) / 0.35)',
         }}
         onClick={(e) => e.stopPropagation()}

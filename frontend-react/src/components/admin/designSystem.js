@@ -29,7 +29,7 @@ export const palette = {
   },
 
   maroon: {
-    900: '#0a0506',
+    900: 'rgb(var(--surface))',
     800: '#12090d',
     700: '#1a0d12',
     600: '#241218',

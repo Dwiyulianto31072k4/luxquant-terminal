@@ -2273,16 +2273,17 @@ const CoinChartModal = ({ pair, onClose }) => {
     script.type = "text/javascript";
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.async = true;
+    const isBright = document.documentElement?.dataset?.theme === "bright";
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol: tvSymbol,
       interval: tvInterval,
       timezone: timezone,
-      theme: "dark",
+      theme: isBright ? "light" : "dark",
       style: "1",
       locale: "en",
-      backgroundColor: "rgba(10, 5, 6, 1)",
-      gridColor: "rgba(212, 168, 83, 0.04)",
+      backgroundColor: isBright ? "rgba(255, 255, 255, 1)" : "rgba(10, 5, 6, 1)",
+      gridColor: isBright ? "rgba(15, 23, 42, 0.06)" : "rgba(212, 168, 83, 0.04)",
       hide_top_toolbar: false,
       hide_legend: false,
       hide_side_toolbar: false,

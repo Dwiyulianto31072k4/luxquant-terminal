@@ -176,7 +176,7 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden bg-[#050505]">
+    <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden bg-[rgb(var(--surface))]">
       {/* subtle top rule — terminal masthead, not a glow */}
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.08]" />
       <div className={`relative z-10 flex flex-col items-center ${compact ? "gap-1.5" : "gap-2.5"}`}>
@@ -622,7 +622,7 @@ const MediaBlock = ({ item, className = "", playSize = "md", compact = false }) 
   const iconCls = playSize === "sm" ? "w-2.5 h-2.5" : "w-3.5 h-3.5";
 
   return (
-    <div className={`relative overflow-hidden bg-[#050505] ${className}`}>
+    <div className={`relative overflow-hidden bg-[rgb(var(--surface))] ${className}`}>
       {showPhoto ? (
         <img
           src={raw}

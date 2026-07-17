@@ -712,7 +712,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
   const hasAnyImg = entryImg || afterImg;
   const showInteractiveRight = showTV || (!afterImg && entryImg);
 
-  useEffect(() => { let widget = null; const shouldMount = (!hasAnyImg && detail) || (hasAnyImg && showInteractiveRight); const initTV = () => { if (!document.getElementById('tv_chart_modal_topperf')) return; widget = new window.TradingView.widget({ container_id: 'tv_chart_modal_topperf', autosize: true, symbol: `BINANCE:${pair.replace('USDT', '')}USDT.P`, interval: '60', timezone: 'Asia/Jakarta', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#0a0a0f', enable_publishing: false, backgroundColor: 'rgb(var(--surface-secondary))', gridColor: 'rgba(212, 168, 83, 0.05)', hide_top_toolbar: false, hide_legend: false, hide_side_toolbar: false, allow_symbol_change: true, save_image: false, studies: ["STD;SMA"] }); }; if (shouldMount) { const tm = setTimeout(() => { if (window.TradingView) initTV(); else { const s = document.createElement('script'); s.src = 'https://s3.tradingview.com/tv.js'; s.async = true; s.onload = initTV; document.head.appendChild(s); } }, 100); return () => { clearTimeout(tm); if (widget) try { widget.remove(); } catch {} }; } }, [pair, hasAnyImg, showInteractiveRight, detail]);
+  useEffect(() => { let widget = null; const shouldMount = (!hasAnyImg && detail) || (hasAnyImg && showInteractiveRight); const initTV = () => { if (!document.getElementById('tv_chart_modal_topperf')) return; widget = new window.TradingView.widget({ container_id: 'tv_chart_modal_topperf', autosize: true, symbol: `BINANCE:${pair.replace('USDT', '')}USDT.P`, interval: '60', timezone: 'Asia/Jakarta', theme: (document.documentElement?.dataset?.theme === 'bright' ? 'light' : 'dark'), style: '1', locale: 'en', toolbar_bg: (document.documentElement?.dataset?.theme === 'bright' ? '#ffffff' : '#0a0a0f'), enable_publishing: false, backgroundColor: (document.documentElement?.dataset?.theme === 'bright' ? '#ffffff' : '#0a0a0f'), gridColor: 'rgba(212, 168, 83, 0.05)', hide_top_toolbar: false, hide_legend: false, hide_side_toolbar: false, allow_symbol_change: true, save_image: false, studies: ["STD;SMA"] }); }; if (shouldMount) { const tm = setTimeout(() => { if (window.TradingView) initTV(); else { const s = document.createElement('script'); s.src = 'https://s3.tradingview.com/tv.js'; s.async = true; s.onload = initTV; document.head.appendChild(s); } }, 100); return () => { clearTimeout(tm); if (widget) try { widget.remove(); } catch {} }; } }, [pair, hasAnyImg, showInteractiveRight, detail]);
 
   const events = [];
   events.push({ label: t('top.called_sig'), time: 'T+0', sub: fmtDt(created), detail: `${t('top.entry')} @ $${formatPrice(detail?.entry)}`, key: 'gold', isSL: false });
@@ -925,12 +925,12 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                           <button
                             type="button"
                             onClick={() => setLightboxImg(entryImg)}
-                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px] cursor-zoom-in"
+                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[rgb(var(--surface-secondary))] sm:h-[260px] lg:h-[300px] cursor-zoom-in"
                           >
                             <img src={entryImg} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
                           </button>
                         ) : (
-                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-ink/10 bg-[#0a0a0c] text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
+                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-ink/10 bg-[rgb(var(--surface-secondary))] text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
                             {t("top.waiting_ss")}
                           </div>
                         )}
@@ -988,11 +988,11 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                       </div>
                       <div className="p-2 flex-1 flex flex-col">
                         {showInteractiveRight ? (
-                          <div className="relative h-[200px] overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
+                          <div className="relative h-[200px] overflow-hidden rounded-lg border border-ink/[0.06] bg-[rgb(var(--surface-secondary))] sm:h-[260px] lg:h-[300px]">
                             <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
                           </div>
                         ) : afterImg ? (
-                          <div className="relative h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
+                          <div className="relative h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[rgb(var(--surface-secondary))] sm:h-[260px] lg:h-[300px]">
                             <img
                               src={afterImg}
                               alt=""

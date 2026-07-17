@@ -48,7 +48,7 @@ const MarketConditionLineChart = ({ timeline }) => {
         <path d={pathD} fill="none" stroke="#d4a853" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p, i) => (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r="2.5" fill="#0a0506" stroke={FC[p.marketCond]?.border || FC.neutral.border} strokeWidth="1.5" />
+            <circle cx={p.x} cy={p.y} r="2.5" fill="rgb(var(--surface))" stroke={FC[p.marketCond]?.border || FC.neutral.border} strokeWidth="1.5" />
             <text x={p.x} y={H + 15} fill="#6b5c52" fontSize="7" textAnchor="middle">{fmtDate(p.date)}</text>
             <text x={p.x} y={p.y - 7} fill={FC[p.marketCond]?.text || FC.neutral.text} fontSize="8" fontWeight="700" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">{Math.round(p.wr)}%</text>
           </g>

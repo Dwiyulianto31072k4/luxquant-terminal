@@ -297,7 +297,7 @@ export const IconBadge = ({
     color.toLowerCase().includes('fcd5') ||
     color.toLowerCase().includes('f7a6');
   const iconColor =
-    ink === 'dark' ? '#0a0805' : ink === 'light' ? '#ffffff' : lightFill ? '#0a0805' : '#ffffff';
+    ink === 'dark' ? 'rgb(var(--surface-raised))' : ink === 'light' ? '#ffffff' : lightFill ? 'rgb(var(--surface-raised))' : '#ffffff';
   const glyph = iconSize || Math.round(size * 0.48);
   const r = Math.max(8, Math.round(size * 0.28));
 

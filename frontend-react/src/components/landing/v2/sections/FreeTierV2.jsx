@@ -66,7 +66,7 @@ export default function FreeTierV2() {
                   className="group relative flex-shrink-0 rounded-2xl bg-white p-3 shadow-[0_8px_24px_rgb(var(--scrim) / 0.35)] transition-transform duration-300 hover:-translate-y-0.5"
                   aria-label="Scan or open the LuxQuant Telegram channel"
                 >
-                  <QRCodeSVG value={TG_LINK} size={124} level="H" bgColor="#ffffff" fgColor="#0a0506" />
+                  <QRCodeSVG value={TG_LINK} size={124} level="H" bgColor="#ffffff" fgColor="#0a0a0a" />
                   {/* center logo chip */}
                   <span className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-white ring-2 ring-white">
                     <img src="/logo.png" alt="" className="h-7 w-7 rounded-[5px] object-cover" />

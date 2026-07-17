@@ -543,11 +543,17 @@ const SignalModal = ({
       symbol: symbol,
       interval: "240",
       timezone: timezone,
-      theme: "dark",
+      theme: document.documentElement?.dataset?.theme === "bright" ? "light" : "dark",
       style: "1",
       locale: "en",
-      backgroundColor: "rgba(13, 13, 13, 1)",
-      gridColor: "rgba(128,128,138,0.08)",
+      backgroundColor:
+        document.documentElement?.dataset?.theme === "bright"
+          ? "rgba(255, 255, 255, 1)"
+          : "rgba(13, 13, 13, 1)",
+      gridColor:
+        document.documentElement?.dataset?.theme === "bright"
+          ? "rgba(15, 23, 42, 0.06)"
+          : "rgba(128,128,138,0.08)",
       hide_top_toolbar: false,
       hide_legend: false,
       // Drawing toolbar (trendline, fib, dll) SELALU tampil — penting buat analisa.
@@ -620,11 +626,17 @@ const SignalModal = ({
         symbol: symbol,
         interval: "240",
         timezone: timezone,
-        theme: "dark",
+        theme: document.documentElement?.dataset?.theme === "bright" ? "light" : "dark",
         style: "1",
         locale: "en",
-        backgroundColor: "rgba(13, 13, 13, 1)",
-        gridColor: "rgba(128,128,138,0.08)",
+        backgroundColor:
+          document.documentElement?.dataset?.theme === "bright"
+            ? "rgba(255, 255, 255, 1)"
+            : "rgba(13, 13, 13, 1)",
+        gridColor:
+          document.documentElement?.dataset?.theme === "bright"
+            ? "rgba(15, 23, 42, 0.06)"
+            : "rgba(128,128,138,0.08)",
         hide_top_toolbar: false,
         hide_legend: false,
         hide_side_toolbar: false,

@@ -89,7 +89,7 @@ export default function AssistantFullPage() {
           <select
             value={pageId}
             onChange={(e) => changePage(e.target.value)}
-            className="rounded-lg border border-ink/10 bg-surface-raised px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-line/40 [color-scheme:dark]"
+            className="rounded-lg border border-ink/10 bg-surface-raised px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-line/40"
           >
             {pages.map((p) => <option key={p.page_id} value={p.page_id}>{p.label}</option>)}
           </select>

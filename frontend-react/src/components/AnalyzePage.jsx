@@ -1020,7 +1020,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
               activeDot={{
                 r: 4,
                 fill: C.profit,
-                stroke: "#0a0805",
+                stroke: "rgb(var(--surface-raised))",
                 strokeWidth: 2,
               }}
               connectNulls
@@ -1276,7 +1276,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
             stroke={C.profit}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3, fill: C.profit, stroke: "#0a0805", strokeWidth: 2 }}
+            activeDot={{ r: 3, fill: C.profit, stroke: "rgb(var(--surface-raised))", strokeWidth: 2 }}
             connectNulls
           />
           <Line
@@ -1286,7 +1286,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
             stroke={C.gold}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3, fill: C.gold, stroke: "#0a0805", strokeWidth: 2 }}
+            activeDot={{ r: 3, fill: C.gold, stroke: "rgb(var(--surface-raised))", strokeWidth: 2 }}
             connectNulls
           />
           <Line
@@ -1296,7 +1296,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
             stroke={C.loss}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3, fill: C.loss, stroke: "#0a0805", strokeWidth: 2 }}
+            activeDot={{ r: 3, fill: C.loss, stroke: "rgb(var(--surface-raised))", strokeWidth: 2 }}
             connectNulls
           />
         </LineChart>

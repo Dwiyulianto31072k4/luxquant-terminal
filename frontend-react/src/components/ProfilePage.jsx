@@ -410,7 +410,7 @@ const ProfilePage = () => {
                       className="px-4 py-2.5 rounded-md font-mono text-[10px] uppercase tracking-wider font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                       style={{
                         background: usernameChanged && !usernameError ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgb(var(--ink) / 0.03)',
-                        color: usernameChanged && !usernameError ? '#0a0506' : '#4a3f39',
+                        color: usernameChanged && !usernameError ? 'rgb(var(--surface))' : '#4a3f39',
                         border: '1px solid rgb(var(--ink) / 0.04)'
                       }}>
                       {saving ? <div className="w-3.5 h-3.5 border-2 border-bg-primary/30 border-t-bg-primary rounded-full animate-spin" /> : t('profile.save', 'Save')}

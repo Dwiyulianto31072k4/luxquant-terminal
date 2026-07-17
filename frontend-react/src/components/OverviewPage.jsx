@@ -306,7 +306,7 @@ const OverviewPage = () => {
                           <line x1="100" y1="100" x2="100" y2="44" stroke={fgStroke(data.fearGreed.value)} strokeWidth="3" strokeLinecap="round" />
                           <circle cx="100" cy="44" r="3.5" fill={fgStroke(data.fearGreed.value)} />
                         </g>
-                        <circle cx="100" cy="100" r="7" fill="#0a0805" stroke={fgStroke(data.fearGreed.value)} strokeWidth="2.5" />
+                        <circle cx="100" cy="100" r="7" fill="rgb(var(--surface-raised))" stroke={fgStroke(data.fearGreed.value)} strokeWidth="2.5" />
                       </svg>
                       <div className="absolute inset-x-2 bottom-0 flex justify-between font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/50 pointer-events-none">
                         <span>Fear</span>
