@@ -64,64 +64,85 @@ function AnomDot({ cx, cy, payload, statusMap, onPair }) {
   );
 }
 
-// Market Regime — composite risk-on/off score (altseason · BTC.D · breadth · funding)
-function RegimeGauge({ macro, pairFc, deriv }) {
+// Market Regime — composite risk-on/off (altseason · BTC.D · closed win rate · funding)
+// Live "in profit %" is intentionally excluded — momentum noise, not edge quality.
+function RegimeGauge({ macro, deriv, winRate, closedN, tpHitPct }) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const btcDom = macro?.btc_dominance ?? null;
   const alt = macro?.altseason_index ?? null;
-  const fcs = Object.values(pairFc || {});
-  const breadth = fcs.length ? (fcs.filter((v) => v > 0).length / fcs.length) * 100 : null;
   const fund = deriv?.pairs ? Object.values(deriv.pairs).map((p) => p.funding).filter((v) => v != null) : [];
   const avgFund = fund.length ? fund.reduce((a, b) => a + b, 0) / fund.length : null;
 
   const altScore = alt != null ? clamp(alt, 0, 100) : null;
   const domScore = btcDom != null ? clamp(((65 - btcDom) / 20) * 100, 0, 100) : null;
-  const breadthScore = breadth;
+  // Prefer resolved win rate; fall back to TP1+ hit rate when few closes
+  const edgeScore = winRate != null ? winRate : tpHitPct != null ? tpHitPct : null;
   const fundScore = avgFund != null ? clamp(50 + avgFund * 100 * 500, 0, 100) : null;
 
-  const parts = [[altScore, 0.35], [domScore, 0.25], [breadthScore, 0.25], [fundScore, 0.15]].filter(([v]) => v != null);
+  const parts = [[altScore, 0.35], [domScore, 0.25], [edgeScore, 0.25], [fundScore, 0.15]].filter(([v]) => v != null);
   const wsum = parts.reduce((a, [, w]) => a + w, 0) || 1;
   const regime = parts.length ? parts.reduce((a, [v, w]) => a + v * w, 0) / wsum : null;
-  const regColor = regime == null ? "#94a3b8" : regime >= 65 ? POS : regime >= 45 ? GOLD : NEG;
+  // Semantic color only — no gold brand glow for neutral zone
+  const regColor = regime == null ? "#94a3b8" : regime >= 65 ? POS : regime >= 45 ? "#94a3b8" : NEG;
   const label = regime == null ? "—" : regime >= 65 ? "Risk-on" : regime >= 52 ? "Constructive" : regime >= 42 ? "Neutral" : "Risk-off";
 
-  const comp = (lbl, score, raw) => (
-    <div className="rounded-lg bg-white/[0.02] border border-white/[0.05] px-2.5 py-2">
+  const edgeLabel = winRate != null ? "Win rate" : "TP1+ rate";
+  const edgeRaw = winRate != null
+    ? `${winRate}%`
+    : tpHitPct != null
+      ? `${tpHitPct}%`
+      : "—";
+  const edgeBar = edgeScore;
+  const edgeSub = winRate != null && closedN
+    ? `${closedN} resolved`
+    : winRate == null && tpHitPct != null
+      ? "reached TP1+"
+      : null;
+
+  const comp = (lbl, score, raw, sub) => (
+    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-2">
       <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/80">{lbl}</div>
-      <div className="font-mono text-[13px] tabular-nums text-text-primary mt-0.5">{raw}</div>
-      <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${score || 0}%`, background: regColor }} />
+      <div className="mt-0.5 font-mono text-[13px] tabular-nums text-text-primary">{raw}</div>
+      {sub && <div className="mt-0.5 font-mono text-[8px] text-text-muted/55">{sub}</div>}
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="h-full rounded-full bg-text-primary/55" style={{ width: `${score || 0}%` }} />
       </div>
     </div>
   );
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-      <div className="flex items-end justify-between mb-2.5 gap-3">
+      <div className="mb-2.5 flex items-end justify-between gap-3">
         <div>
           <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">Market regime</div>
-          <div className="text-[26px] font-mono tabular-nums leading-none mt-1" style={{ color: regColor }}>
+          <div className="mt-1 font-mono text-[26px] tabular-nums leading-none" style={{ color: regColor }}>
             {regime == null ? "—" : Math.round(regime)}
             <span className="text-[12px] text-text-muted/50"> / 100</span>
           </div>
-          <div className="text-[12px] mt-1 font-medium" style={{ color: regColor }}>{label}</div>
+          <div className="mt-1 text-[12px] font-medium" style={{ color: regColor }}>{label}</div>
         </div>
-        <div className="text-right text-[10px] text-text-muted/60 leading-snug hidden sm:block max-w-[10rem]">
-          Backdrop for position sizing
+        <div className="hidden max-w-[11rem] text-right text-[10px] leading-snug text-text-muted/60 sm:block">
+          Backdrop for position sizing · edge from resolved outcomes
         </div>
       </div>
-      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg,rgb(var(--neg)),rgb(var(--accent)),rgb(var(--pos)))" }}>
+      <div
+        className="relative h-2 overflow-hidden rounded-full"
+        style={{ background: "linear-gradient(90deg,rgb(var(--neg)),rgb(148 163 184),rgb(var(--pos)))" }}
+      >
         {regime != null && (
-          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-4 rounded-sm bg-white shadow" style={{ left: `${regime}%` }} />
+          <div
+            className="absolute top-1/2 h-4 w-2 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-white shadow"
+            style={{ left: `${regime}%` }}
+          />
         )}
       </div>
-      <div className="flex justify-between font-mono text-[8px] uppercase tracking-wider text-text-muted/50 mt-1">
+      <div className="mt-1 flex justify-between font-mono text-[8px] uppercase tracking-wider text-text-muted/50">
         <span>Risk-off</span><span>Neutral</span><span>Risk-on</span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2.5">
+      <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {comp("Altseason", altScore, alt != null ? alt.toFixed(0) : "—")}
         {comp("BTC dominance", domScore, btcDom != null ? `${btcDom.toFixed(1)}%` : "—")}
-        {comp("Calls in profit", breadthScore, breadth != null ? `${breadth.toFixed(0)}%` : "—")}
+        {comp(edgeLabel, edgeBar, edgeRaw, edgeSub)}
         {comp("Avg funding", fundScore, avgFund != null ? `${(avgFund * 100).toFixed(3)}%` : "—")}
       </div>
     </div>
@@ -537,19 +558,54 @@ export default function SignalsAnalytics() {
     return Math.round((hit / view.length) * 100);
   }, [view]);
   // "coiled" = high-confluence, clean setups still sitting near entry (not pumped)
+  const STRONG_TAGS = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
+  const WARN_TAGS = ["LATE_ENTRY", "OVEREXTENDED", "PARABOLIC", "EXHAUSTION_CANDLE", "LIQ_VERY_LOW", "LIQ_LOW", "RISK_OFF_REGIME", "HTF_TREND_EXHAUSTED", "MTF_AGAINST_HTF"];
   const coiledCount = useMemo(() => {
-    const STRONG = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
-    const WARN = ["LATE_ENTRY", "OVEREXTENDED", "PARABOLIC", "EXHAUSTION_CANDLE", "LIQ_VERY_LOW", "LIQ_LOW", "RISK_OFF_REGIME", "HTF_TREND_EXHAUSTED", "MTF_AGAINST_HTF"];
     let n = 0;
     Object.values(latestByPair).forEach((s) => {
       const tags = s.v3?.tags || [];
-      if (!tags.length || !STRONG.some((x) => tags.includes(x))) return;
-      if (tags.some((x) => WARN.includes(x))) return;
+      if (!tags.length || !STRONG_TAGS.some((x) => tags.includes(x))) return;
+      if (tags.some((x) => WARN_TAGS.includes(x))) return;
       const fc = pairFc[s.pair];
       if (fc == null || fc < -5 || fc > 6) return;
       n += 1;
     });
     return n;
+  }, [latestByPair, pairFc]);
+
+  // Early edge — strong/clean setups that have NOT run to high TP yet
+  // (still open / TP1 / TP2, live P&L modest or red). Actionable scan list.
+  const earlyEdge = useMemo(() => {
+    const EARLY = new Set(["open", "tp1", "tp2"]);
+    const seen = new Set();
+    const out = [];
+    Object.values(latestByPair).forEach((s) => {
+      if (!s?.pair || seen.has(s.pair)) return;
+      if (!EARLY.has(s.status)) return;
+      const tags = s.v3?.tags || [];
+      if (!tags.length || !STRONG_TAGS.some((x) => tags.includes(x))) return;
+      if (tags.some((x) => WARN_TAGS.includes(x))) return;
+      const fc = pairFc[s.pair];
+      // Still early: under water, flat, or modest green — not already a runaway
+      if (fc != null && fc > 18) return;
+      const strength = tags.filter((x) => STRONG_TAGS.includes(x)).length;
+      const score =
+        strength * 12 +
+        (tags.includes("SMC_GOLDEN_SETUP") ? 8 : 0) +
+        (s.status === "open" ? 4 : s.status === "tp1" ? 2 : 0) +
+        (fc == null ? 0 : fc < 0 ? 5 : Math.max(0, 6 - fc / 3));
+      seen.add(s.pair);
+      out.push({
+        s,
+        fc,
+        status: s.status,
+        score,
+        golden: tags.includes("SMC_GOLDEN_SETUP"),
+        htf: tags.includes("HTF_TREND_STRONG"),
+        aligned: tags.includes("MTF_FULL_ALIGNED"),
+      });
+    });
+    return out.sort((a, b) => b.score - a.score).slice(0, 18);
   }, [latestByPair, pairFc]);
 
   const zAnom = useZoom(-30, 30, 0, 60);
@@ -683,12 +739,25 @@ export default function SignalsAnalytics() {
           {/* ═══════════ OVERVIEW ═══════════ */}
           {tab === "overview" && (
             <>
-              <RegimeGauge macro={macro} pairFc={pairFc} deriv={deriv} />
+              <RegimeGauge
+                macro={macro}
+                deriv={deriv}
+                winRate={agg.winRate}
+                closedN={agg.closedN}
+                tpHitPct={tpHitPct}
+              />
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi compact label={t("terminal.viz.kActive")} value={view.length} sub="Last 7 days" />
-                <Kpi compact label={t("terminal.viz.kCoiled")} value={coiledCount} sub="Near entry · high quality" tone={coiledCount ? "text-gold-primary" : undefined} accent={coiledCount ? GOLD : undefined} />
+                <Kpi
+                  compact
+                  label="Win rate"
+                  value={agg.winRate == null ? "—" : `${agg.winRate}%`}
+                  sub={agg.closedN ? `${agg.closedN} resolved (TP4 vs SL)` : "Awaiting closes"}
+                  tone={agg.winRate != null && agg.winRate >= 55 ? "text-positive" : undefined}
+                  accent={agg.winRate != null && agg.winRate >= 55 ? POS : undefined}
+                />
                 <Kpi compact label={t("terminal.viz.kTpReached")} value={tpHitPct == null ? "—" : `${tpHitPct}%`} sub="Hit TP1 or better" tone="text-positive" accent={POS} />
-                <Kpi compact label={t("terminal.viz.kDecoupled")} value={agg.decoupled} sub="Low BTC correlation" tone={agg.decoupled ? "text-cyan-400" : undefined} accent={agg.decoupled ? CYAN : undefined} />
+                <Kpi compact label={t("terminal.viz.kCoiled")} value={coiledCount} sub="Near entry · high quality" />
               </div>
 
               <XCard
@@ -846,11 +915,17 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
                   compact
+                  label="Early edge"
+                  value={earlyEdge.length}
+                  sub={earlyEdge.length ? "Strong setup · ≤TP2" : t("terminal.viz.none")}
+                  tone={earlyEdge.length ? "text-positive" : undefined}
+                  accent={earlyEdge.length ? POS : undefined}
+                />
+                <Kpi
+                  compact
                   label={t("terminal.viz.kHot")}
                   value={anomMeta.hotN}
                   sub={anomMeta.hotN ? t("terminal.viz.kHotSub") : t("terminal.viz.none")}
-                  tone={anomMeta.hotN ? "text-gold-primary" : undefined}
-                  accent={anomMeta.hotN ? GOLD : undefined}
                 />
                 <Kpi
                   compact
@@ -862,14 +937,6 @@ export default function SignalsAnalytics() {
                 />
                 <Kpi
                   compact
-                  label="Decoupled"
-                  value={agg.decoupled}
-                  sub={t("terminal.viz.kDecoupledDesc")}
-                  tone={agg.decoupled ? "text-cyan-400" : undefined}
-                  accent={agg.decoupled ? CYAN : undefined}
-                />
-                <Kpi
-                  compact
                   label={t("terminal.viz.kSession")}
                   value={anomMeta.ageS != null ? `${anomMeta.ageS}s` : "—"}
                   sub={anomMeta.fresh ? t("terminal.viz.kSessionFresh") : t("terminal.viz.kSessionLag")}
@@ -878,12 +945,70 @@ export default function SignalsAnalytics() {
                 />
               </div>
 
+              {/* Early edge desk — good structure not yet at high TP; click opens modal */}
+              <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
+                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/[0.05] bg-white/[0.015] px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12.5px] font-medium text-text-primary">Early edge</span>
+                      <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                        {earlyEdge.length}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[10.5px] leading-snug text-text-muted">
+                      Strong confluence still open / TP1 / TP2 — not extended. Tap a chip to open call proof.
+                    </p>
+                  </div>
+                </div>
+                {earlyEdge.length === 0 ? (
+                  <div className="px-3.5 py-8 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/60">
+                    No early-edge setups in the current window
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 p-3">
+                    {earlyEdge.map(({ s, fc, status, golden, htf, aligned }) => (
+                      <button
+                        key={s.signal_id || s.pair}
+                        type="button"
+                        onClick={() => openSignalRow(s)}
+                        className="group inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-white/18 hover:bg-white/[0.06]"
+                      >
+                        <CoinLogo pair={s.pair} size={18} />
+                        <span className="font-mono text-[11.5px] font-semibold text-text-primary group-hover:text-white">
+                          {(s.pair || "").replace(/USDT$/i, "")}
+                        </span>
+                        <span className="rounded bg-white/[0.06] px-1 py-px font-mono text-[8.5px] uppercase tracking-wide text-text-muted">
+                          {STATUS_LABEL[status] || status}
+                        </span>
+                        {golden && (
+                          <span className="rounded border border-white/10 px-1 py-px font-mono text-[8px] uppercase text-text-primary/55">
+                            golden
+                          </span>
+                        )}
+                        {!golden && htf && (
+                          <span className="font-mono text-[8px] uppercase text-text-muted">htf</span>
+                        )}
+                        {!golden && !htf && aligned && (
+                          <span className="font-mono text-[8px] uppercase text-text-muted">mtf</span>
+                        )}
+                        <span
+                          className={`font-mono text-[11px] tabular-nums ${
+                            fc == null ? "text-text-muted" : fc >= 0 ? "text-positive" : "text-negative"
+                          }`}
+                        >
+                          {fc == null ? "—" : fmtPct(fc, 1)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {anomMeta.hotN > 0 && (
-                <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised px-3.5 py-2.5">
-                  <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] text-gold-primary/90 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
+                <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised px-3.5 py-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
                       {t("terminal.viz.hotNow")}
                     </span>
                     {anomMeta.hotPts.slice(0, 12).map((p) => (
@@ -891,13 +1016,13 @@ export default function SignalsAnalytics() {
                         key={p.pair}
                         type="button"
                         onClick={() => openPair(p.pair)}
-                        className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full border border-gold-primary/25 bg-gold-primary/[0.07] hover:bg-gold-primary/[0.14] hover:border-gold-primary/40 transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] py-1 pl-1.5 pr-2 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
                       >
                         <CoinLogo pair={p.pair} size={15} />
                         <span className="font-mono text-[10.5px] text-text-primary/85">
                           {(p.pair || "").replace(/USDT$/i, "")}
                         </span>
-                        <span className="font-mono text-[10px] tabular-nums text-gold-primary/90">
+                        <span className="font-mono text-[10px] tabular-nums text-orange-300/90">
                           {fmtPct(p.x, 1)}
                         </span>
                       </button>

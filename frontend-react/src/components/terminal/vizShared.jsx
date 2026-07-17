@@ -1,8 +1,9 @@
 // ════════════════════════════════════════════════════════════════
 // Terminal viz — shared atoms, palette & helpers.
-// Used by SignalsAnalytics + DerivTabs. Dark+gold, Allium structure.
+// Used by SignalsAnalytics + DerivTabs. Timeless desk structure.
 // ════════════════════════════════════════════════════════════════
 import { useState, useContext, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import CoinLogo from "../CoinLogo";
@@ -362,10 +363,26 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
   </div>
 );
 
-// Expandable metric/chart panel — Aero-style soft card + polished fullscreen
+// Expandable metric/chart panel — desk card + fullscreen via portal (above app header)
 export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
   const { t } = useTranslation();
   const [big, setBig] = useState(false);
+
+  // Escape + lock body scroll while expanded — never sit under sticky chrome
+  useEffect(() => {
+    if (!big) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") setBig(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [big]);
+
   const zoomBtns = zoom && (
     <>
       <IconBtn onClick={zoom.zoomOut} title="zoom out">−</IconBtn>
@@ -393,47 +410,62 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
       )}
     </>
   );
-  return (
-    <>
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden flex flex-col min-h-0">
-        <div className="px-3.5 py-2.5 flex items-start justify-between gap-2 border-b border-white/[0.04]">
-          <div className="min-w-0">
-            <div className="text-[12.5px] font-medium text-text-primary/90 leading-snug">{title}</div>
-            {desc && <div className="text-[10px] text-text-muted/75 mt-0.5 leading-snug line-clamp-2">{desc}</div>}
-          </div>
-          <div className="flex items-center gap-0.5 shrink-0">
-            {zoomBtns}
-            <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>↗</IconBtn>
-          </div>
-        </div>
-        <div className="p-2.5 sm:p-3 flex-1 min-h-0">{body(height)}</div>
-      </div>
 
-      {big && (
+  const overlay = big
+    ? createPortal(
         <div
-          className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-md p-3 sm:p-6 md:p-8 flex items-center justify-center"
+          className="fixed inset-0 flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6 md:p-8"
+          style={{ zIndex: 200000 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={typeof title === "string" ? title : "Expanded chart"}
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex flex-col w-full max-w-[1480px] h-[min(92vh,920px)] rounded-2xl bg-surface border border-white/[0.08] shadow-2xl shadow-black/70 overflow-hidden"
+            className="relative flex h-[min(94vh,960px)] w-full max-w-[1480px] flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-surface shadow-2xl shadow-black/70"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 px-5 py-4 border-b border-white/[0.06] flex items-start justify-between gap-3 bg-white/[0.02]">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.06] bg-white/[0.02] px-5 py-4">
               <div className="min-w-0">
-                <div className="text-[17px] font-medium text-text-primary tracking-tight">{title}</div>
-                {desc && <div className="text-[12px] text-text-muted mt-1 leading-relaxed max-w-3xl">{desc}</div>}
+                <div className="text-[17px] font-medium tracking-tight text-text-primary">{title}</div>
+                {desc && (
+                  <div className="mt-1 max-w-3xl text-[12px] leading-relaxed text-text-muted">{desc}</div>
+                )}
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex shrink-0 items-center gap-1">
                 {zoomBtns}
                 <IconBtn onClick={() => setBig(false)} title="close">✕</IconBtn>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto p-4 sm:p-6 flex flex-col">
-              <div className="flex-1 min-h-0">{body(Math.max(480, Math.round(window.innerHeight * 0.72)))}</div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 sm:p-6">
+              <div className="min-h-0 flex-1">
+                {body(Math.max(520, Math.round(window.innerHeight * 0.74)))}
+              </div>
             </div>
           </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02]">
+        <div className="flex items-start justify-between gap-2 border-b border-white/[0.04] px-3.5 py-2.5">
+          <div className="min-w-0">
+            <div className="text-[12.5px] font-medium leading-snug text-text-primary/90">{title}</div>
+            {desc && (
+              <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-text-muted/75">{desc}</div>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {zoomBtns}
+            <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>↗</IconBtn>
+          </div>
         </div>
-      )}
+        <div className="min-h-0 flex-1 p-2.5 sm:p-3">{body(height)}</div>
+      </div>
+      {overlay}
     </>
   );
 }
