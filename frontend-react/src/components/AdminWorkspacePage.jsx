@@ -250,16 +250,16 @@ const UrgencyChip = ({ label, value, accent, Icon, onClick, pulse = false }) => 
         style={{ background: accent }}
       />
     </span>
-    <Icon size={11} style={{ color: tint(accent, 0.85) }} />
+    <Icon size={11} className="text-text-muted" />
     <span
-      className="text-[10px] font-medium leading-none"
-      style={{ color: tint(accent, 0.75), letterSpacing: "0.02em" }}
+      className="text-[10px] font-medium leading-none text-text-muted"
+      style={{ letterSpacing: "0.02em" }}
     >
       {label}
     </span>
     <span
-      className="text-[12px] font-bold tabular-nums leading-none"
-      style={{ color: accent, fontFeatureSettings: '"tnum"' }}
+      className="text-[12px] font-bold tabular-nums leading-none text-text-primary"
+      style={{ fontFeatureSettings: '"tnum"' }}
     >
       {value}
     </span>
@@ -359,8 +359,8 @@ const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
         />
         <CheckCircleIcon size={11} style={{ color: palette.green[400] }} />
         <span
-          className="text-[10px] font-medium leading-none"
-          style={{ color: tint(palette.green[400], 0.85), letterSpacing: "0.02em" }}
+          className="text-[10px] font-medium leading-none text-text-muted"
+          style={{ letterSpacing: "0.02em" }}
         >
           all clear
         </span>
@@ -565,7 +565,6 @@ const AdminWorkspacePage = () => {
   if (!isAdminStaff(currentUser)) return <AccessGuard />;
 
   const viewOnly = isAdminViewOnly(currentUser);
-  const activeTabDef = TAB_BY_ID[activeTab] || TABS[0];
 
   return (
     <div className="w-full px-4 py-6 lg:px-8">
@@ -606,16 +605,6 @@ const AdminWorkspacePage = () => {
 
       <div className="mb-5 mt-5">
         <TabBar activeTab={activeTab} badges={badges} onSelect={changeTab} />
-      </div>
-
-      {/* active tab descriptor */}
-      <div className="mb-5 hidden items-center gap-2 sm:flex">
-        <activeTabDef.Icon size={13} style={{ color: "rgb(var(--ink) / 0.45)" }} />
-        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary/80">
-          {activeTabDef.label}
-        </span>
-        <span className="inline-block h-1 w-1 rounded-full bg-ink/25" />
-        <span className="text-[12px] text-text-muted">{activeTabDef.description}</span>
       </div>
 
       {/* ─── Active tab content (isolated crash domain) ─── */}

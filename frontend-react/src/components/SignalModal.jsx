@@ -1624,8 +1624,25 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </div>
 
             {/* HEADER — exchange trade ticket style */}
-            <div className="z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-3 sm:px-4">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-3 pr-14 sm:px-4 sm:pr-16">
+              {/* Close — pinned top-right corner (best-practice escape affordance) */}
+              <button
+                type="button"
+                onClick={handleCloseClick}
+                title="Close"
+                aria-label="Close"
+                className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/25 hover:bg-ink/[0.08] sm:right-4"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth={2.75}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
                   <CoinLogo pair={signal?.pair} size={32} />
                   <div className="min-w-0 flex-1">
@@ -1740,100 +1757,6 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </button>
                   {/* END TOMBOL JOURNAL */}
 
-                  <div className="flex items-center bg-ink/[0.03] rounded-lg p-0.5 border border-ink/[0.08]">
-                    {[
-                      {
-                        id: "chart",
-                        label: t("modal.chart"),
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 3v18h18" />
-                            <rect x="7" y="10" width="3" height="7" rx="0.5" />
-                            <rect x="13.5" y="6" width="3" height="11" rx="0.5" />
-                          </svg>
-                        ),
-                      },
-                      {
-                        id: "trade",
-                        label: t("modal.trade"),
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M7 10 3 14l4 4" />
-                            <path d="M3 14h13" />
-                            <path d="m17 14 4-4-4-4" />
-                            <path d="M21 10H8" />
-                          </svg>
-                        ),
-                      },
-                      {
-                        id: "research",
-                        label: t("modal.research"),
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="m21 21-4.3-4.3" />
-                          </svg>
-                        ),
-                      },
-                      {
-                        id: "history",
-                        label: "History",
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-                            <path d="M3 3v5h5" />
-                            <path d="M12 7v5l3 2" />
-                          </svg>
-                        ),
-                      },
-                    ].map(({ id, label, icon }) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => {
-                          setActiveTab(id);
-                          onTabChange && onTabChange(id);
-                        }}
-                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-medium transition-colors whitespace-nowrap ${activeTab === id ? "bg-ink/[0.1] text-text-primary" : "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]"}`}
-                      >
-                        {icon}
-                        <span className="hidden sm:inline">{label}</span>
-                      </button>
-                    ))}
-                  </div>
-
                   {/* INSTAGRAM (share X tweet link) — only when a tweet exists */}
                   {tweetUrl && (
                     <button
@@ -1861,23 +1784,107 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </span>
                     )}
                   </div>
-                  {/* Close last — solid hit target, thick X for bright + dark */}
-                  <button
-                    type="button"
-                    onClick={handleCloseClick}
-                    title="Close"
-                    aria-label="Close"
-                    className="ml-1.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/20 hover:bg-ink/[0.08]"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M6 6l12 12M18 6L6 18"
-                        stroke="currentColor"
-                        strokeWidth={2.75}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
+                </div>
+              </div>
+
+              {/* Row 2 — navigation tabs (own row, never mixed with close) */}
+              <div className="mt-3 flex items-center">
+                <div className="flex w-full items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5 sm:w-auto">
+                  {[
+                    {
+                      id: "chart",
+                      label: t("modal.chart"),
+                      icon: (
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 3v18h18" />
+                          <rect x="7" y="10" width="3" height="7" rx="0.5" />
+                          <rect x="13.5" y="6" width="3" height="11" rx="0.5" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      id: "trade",
+                      label: t("modal.trade"),
+                      icon: (
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M7 10 3 14l4 4" />
+                          <path d="M3 14h13" />
+                          <path d="m17 14 4-4-4-4" />
+                          <path d="M21 10H8" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      id: "research",
+                      label: t("modal.research"),
+                      icon: (
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="11" cy="11" r="7" />
+                          <path d="m21 21-4.3-4.3" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      id: "history",
+                      label: "History",
+                      icon: (
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                          <path d="M3 3v5h5" />
+                          <path d="M12 7v5l3 2" />
+                        </svg>
+                      ),
+                    },
+                  ].map(({ id, label, icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(id);
+                        onTabChange && onTabChange(id);
+                      }}
+                      className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[10px] font-medium transition-colors sm:flex-none sm:px-3 sm:text-[11px] ${
+                        activeTab === id
+                          ? "bg-surface-raised text-text-primary shadow-sm"
+                          : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
+                      }`}
+                    >
+                      {icon}
+                      <span>{label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
