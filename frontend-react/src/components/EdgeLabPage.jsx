@@ -17,6 +17,7 @@ import CoinLeaderboardTab from "./edgelab/CoinLeaderboardTab";
 import WrVsBtcTab from "./edgelab/WrVsBtcTab";
 import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
 import SignalModal from "./SignalModal";
+import { PageHeader } from "./ui/PageHeader";
 
 const TAB_ITEMS = [
   { id: "calibration", label: "Calibration" },
@@ -192,18 +193,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
       {/* ═══ HEADER ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1
-            className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
-            style={{
-              background:
-                "linear-gradient(135deg, #ffffff 0%, rgb(var(--ink) / 0.7) 60%, rgb(var(--accent) / 0.85) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Research
-          </h1>
+          <PageHeader title="Research" />
 
           <p className="text-sm text-text-muted/70 mt-2">
             Pattern reliability, expected value &amp; timing across{" "}

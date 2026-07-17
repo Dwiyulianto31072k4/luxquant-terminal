@@ -39,6 +39,8 @@ import SocialPostsAdminPage from "./SocialPostsAdminPage";
 
 // Design system
 import { palette, tint, motion, NEUTRAL } from "./admin/designSystem";
+import { PageHeader } from "./ui/PageHeader";
+import { RouteErrorBoundary } from "./ErrorBoundary";
 
 // Icons
 import {
@@ -201,14 +203,12 @@ const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
 // ════════════════════════════════════════════════════════════════════
 
 const BrandHeader = () => (
-  <div className="min-w-0">
-    <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-text-muted">
-      LuxQuant
-    </p>
-    <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-3xl">
-      Management System
-    </h1>
-  </div>
+  <PageHeader
+    className="min-w-0"
+    eyebrow="LuxQuant"
+    title="Management System"
+    subtitle="Unified operations workspace"
+  />
 );
 
 // ════════════════════════════════════════════════════════════════════
@@ -399,8 +399,12 @@ const BadgePill = ({ count, accent, active }) => (
 // ════════════════════════════════════════════════════════════════════
 
 const TabBar = ({ activeTab, badges, onSelect }) => (
-  <div className="mb-5 border-b border-ink/[0.07]">
-    <div className="no-scrollbar flex items-center gap-1 overflow-x-auto sm:gap-2">
+  <div className="mb-5 border-b border-ink/[0.08]">
+    <div
+      className="no-scrollbar flex items-center gap-0.5 overflow-x-auto sm:gap-1"
+      role="tablist"
+      aria-label="Admin workspace sections"
+    >
       {TABS.map((t) => {
         const on = t.id === activeTab;
         const badge = badges[t.id];
@@ -408,21 +412,24 @@ const TabBar = ({ activeTab, badges, onSelect }) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={on}
             onClick={() => onSelect(t.id)}
-            className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1 transition-colors sm:px-3 ${
+            className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1.5 transition-colors sm:px-3 ${
               on
-                ? "border-text-primary text-text-primary"
-                : "border-transparent text-text-muted hover:border-ink/15 hover:text-text-primary/85"
+                ? "border-accent text-text-primary"
+                : "border-transparent text-text-muted hover:border-ink/12 hover:text-text-primary/90"
             }`}
           >
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 sm:gap-2">
               <t.Icon
                 size={14}
-                className={on ? "text-text-primary" : "text-text-muted/70"}
-                style={{ color: on ? "rgb(var(--fg))" : "rgb(var(--ink) / 0.4)" }}
+                style={{ color: on ? "rgb(var(--accent))" : "rgb(var(--ink) / 0.38)" }}
               />
               <span
-                className={`text-[13px] tracking-tight ${on ? "font-semibold" : "font-medium"}`}
+                className={`text-[12px] tracking-tight sm:text-[13px] ${
+                  on ? "font-semibold" : "font-medium"
+                }`}
               >
                 {t.label}
               </span>
@@ -563,12 +570,9 @@ const AdminWorkspacePage = () => {
   return (
     <div className="w-full px-4 py-6 lg:px-8">
       {/* ─── Header row (matches Terminal / Home page-top rhythm) ─── */}
-      <div className="mb-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <BrandHeader />
-          <p className="mt-2 text-sm text-text-muted">Unified operations workspace</p>
-        </div>
-        <div className="lg:max-w-md">
+      <div className="mb-2 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <BrandHeader />
+        <div className="lg:max-w-md lg:pb-1">
           <p className="mb-2 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted lg:text-right">
             Pulse
           </p>
@@ -614,26 +618,28 @@ const AdminWorkspacePage = () => {
         <span className="text-[12px] text-text-muted">{activeTabDef.description}</span>
       </div>
 
-      {/* ─── Active tab content ─── */}
-      {activeTab === "users" && (
-        <div className="-mx-4 lg:-mx-8">
-          <UserManagementPage />
-        </div>
-      )}
-      {activeTab === "followups" && <FollowupTab onRefreshStats={fetchStats} />}
-      {activeTab === "marketing" && <MarketingTab onRefreshStats={fetchStats} />}
-      {activeTab === "finance" && <FinanceTab onRefreshStats={fetchFinanceStats} />}
-      {activeTab === "growth" && <GrowthTab />}
-      {activeTab === "todos" && <TodoTab onRefreshStats={fetchStats} />}
-      {activeTab === "activity" && <ActivityTab />}
-      {activeTab === "apikeys" && <ApiKeysTab />}
-      {activeTab === "announcements" && <AnnouncementsTab />}
-      {activeTab === "socialposts" && <SocialPostsAdminPage />}
-      {activeTab === "resources" && <ResourcesTab />}
-      {activeTab === "system" && <SystemTab />}
-      {activeTab === "status" && <StatusTab />}
-      {activeTab === "profitshare" && <ProfitSharingTab />}
-      {activeTab === "aicost" && <AiCostTab />}
+      {/* ─── Active tab content (isolated crash domain) ─── */}
+      <RouteErrorBoundary>
+        {activeTab === "users" && (
+          <div className="-mx-4 lg:-mx-8">
+            <UserManagementPage />
+          </div>
+        )}
+        {activeTab === "followups" && <FollowupTab onRefreshStats={fetchStats} />}
+        {activeTab === "marketing" && <MarketingTab onRefreshStats={fetchStats} />}
+        {activeTab === "finance" && <FinanceTab onRefreshStats={fetchFinanceStats} />}
+        {activeTab === "growth" && <GrowthTab />}
+        {activeTab === "todos" && <TodoTab onRefreshStats={fetchStats} />}
+        {activeTab === "activity" && <ActivityTab />}
+        {activeTab === "apikeys" && <ApiKeysTab />}
+        {activeTab === "announcements" && <AnnouncementsTab />}
+        {activeTab === "socialposts" && <SocialPostsAdminPage />}
+        {activeTab === "resources" && <ResourcesTab />}
+        {activeTab === "system" && <SystemTab />}
+        {activeTab === "status" && <StatusTab />}
+        {activeTab === "profitshare" && <ProfitSharingTab />}
+        {activeTab === "aicost" && <AiCostTab />}
+      </RouteErrorBoundary>
     </div>
   );
 };

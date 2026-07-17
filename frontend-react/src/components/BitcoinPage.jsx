@@ -9,6 +9,7 @@ import {
   mountTradingViewEmbed,
   subscribeTheme,
 } from "../utils/themeColors";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = "/api/v1";
 

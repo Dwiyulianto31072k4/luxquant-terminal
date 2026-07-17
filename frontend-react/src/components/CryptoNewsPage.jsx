@@ -1660,17 +1660,12 @@ const CryptoNewsPage = () => {
     <div className="pb-6">
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
-      {/* Masthead — single tight row */}
-      <header className="mb-3 flex flex-col gap-3 border-b border-ink/[0.08] pb-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
-            News
-          </h1>
-          <p className="mt-1.5 text-[13px] text-text-secondary">
-            Markets wire · live crypto headlines
-          </p>
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums text-text-muted">
+      <PageHeader
+        className="mb-3 border-b border-ink/[0.08] pb-3"
+        title="News"
+        subtitle="Markets wire · live crypto headlines"
+        right={
+          <div className="flex flex-shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums text-text-muted">
           {stats?.last_hour != null && (
             <span>
               <span className="text-text-muted">1h </span>
@@ -1694,8 +1689,9 @@ const CryptoNewsPage = () => {
               Live
             </span>
           </div>
-        </div>
-      </header>
+          </div>
+        }
+      />
 
       <div className="mb-3">
         <FilterBar

@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
+import { PageHeader } from "./ui/PageHeader";
 
 const API = "/api/v1/onchain";
 const PER_PAGE = 30;
@@ -327,9 +328,7 @@ const OnchainPage = () => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
-              On-Chain Intelligence
-            </h1>
+            <PageHeader title="On-Chain Intelligence" />
             <p className="mt-1.5 text-[13px] text-text-secondary">
               Whale transfers · Smart money · Liquidations
               {stats?.by_blockchain?.length && (

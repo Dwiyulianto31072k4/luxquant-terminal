@@ -20,13 +20,7 @@ import {
   mountTradingViewEmbed,
   subscribeTheme,
 } from "../utils/themeColors";
-
-const deriveChartWithCard = (rawUrl) => {
-  if (!rawUrl || typeof rawUrl !== "string") return null;
-  if (!/_tp[234]_/i.test(rawUrl)) return null;
-  if (/_with_card|_combined/i.test(rawUrl)) return null;
-  return rawUrl.replace(/\.png$/i, "_with_card.png");
-};
+import { deriveChartWithCard } from "./signalModal/utils";
 
 const SignalModal = ({
   signal,

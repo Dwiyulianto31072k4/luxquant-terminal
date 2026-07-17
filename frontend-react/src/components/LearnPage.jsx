@@ -4,6 +4,7 @@
 import { Link, useParams, Navigate } from "react-router-dom";
 import Seo from "./Seo";
 import { GLOSSARY, getTerm } from "../content/glossary";
+import { PageHeader } from "./ui/PageHeader";
 
 const SITE = "https://luxquant.tw";
 
@@ -163,9 +164,7 @@ function IndexPage() {
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">
         Learn · Glossary
       </span>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-        Crypto &amp; Quant Glossary
-      </h1>
+      <PageHeader title="Crypto &amp; Quant Glossary" />
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Plain-English definitions of the concepts behind the LuxQuant Terminal — the same metrics
         you'll see across Money Flow, On-Chain, and Signals.

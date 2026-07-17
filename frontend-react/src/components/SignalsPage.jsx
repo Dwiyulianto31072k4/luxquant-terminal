@@ -13,6 +13,7 @@ import CoinLogo from "./CoinLogo";
 import CompassSnapshot from "./aiArenaV6/CompassSnapshot";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { filtersToParams } from "../utils/signalFilters";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -1345,9 +1346,7 @@ const SignalsPage = () => {
       <header className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <h1 className="font-display text-2xl lg:text-[28px] font-semibold tracking-tight text-text-primary">
-              Potential Trades
-            </h1>
+            <PageHeader title="Potential Trades" />
             <p className="mt-1.5 text-sm text-text-secondary">
               Live algo setups with entry, targets & risk — last 7 days
               <span className="mx-1.5 text-text-muted/40">·</span>

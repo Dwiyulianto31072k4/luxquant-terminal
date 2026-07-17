@@ -28,6 +28,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { apiKeysApi } from "../services/api";
+import { PageHeader } from "./ui/PageHeader";
 
 const PUBLIC_BASE = "https://luxquant.tw/api/public/v1";
 const MAX_REVOKED_VISIBLE = 3;
@@ -1272,23 +1273,10 @@ const ApiKeysPage = () => {
     <div className="max-w-6xl mx-auto px-1 sm:px-2 lg:px-0 space-y-6">
       {/* ── Header ── */}
       <header>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="w-1 h-3 rounded-full bg-accent text-accent-fg" />
-          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-            {t("apiKeys.eyebrow")}
-          </span>
-        </div>
-        <h1
-          className="text-3xl sm:text-4xl text-text-primary"
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 600,
-            letterSpacing: "-0.025em",
-          }}
-        >
+        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
           {t("apiKeys.title")}
         </h1>
-        <p className="text-text-muted text-xs sm:text-sm mt-1.5 max-w-2xl">
+        <p className="text-text-muted text-xs sm:text-sm mt-2 max-w-2xl">
           {t("apiKeys.subtitle")}
         </p>
       </header>

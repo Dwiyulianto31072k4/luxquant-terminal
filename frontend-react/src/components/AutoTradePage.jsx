@@ -54,6 +54,7 @@ import {
   GoldButton,
   Notice,
 } from "./autotrade/AutoTradeUI";
+import { PageHeader } from "./ui/PageHeader";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -730,9 +731,7 @@ export default function AutoTradePage() {
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
-            AutoTrade
-          </h1>
+          <PageHeader title="AutoTrade" />
           <p className="mt-2 text-sm text-text-secondary">{summaryText}</p>
         </div>
         <div className="flex items-center gap-3">

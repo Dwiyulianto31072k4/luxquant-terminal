@@ -15,6 +15,7 @@ import CoinLogo from "./CoinLogo";
 import SignalModal from "./SignalModal";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const PRICE_REFRESH_INTERVAL = 15000;
@@ -331,7 +332,6 @@ const WatchlistPage = () => {
     <div className="space-y-4 pb-10">
       {/* HEADER */}
       <div className="space-y-4">
-        <SectionHeader label="Watchlist" />
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">

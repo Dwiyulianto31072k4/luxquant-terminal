@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import NewsPreviewModal from "./NewsPreviewModal";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { heatPct } from "./terminal/vizShared";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = "/api/v1";
 
@@ -130,9 +131,7 @@ const MarketsPage = () => {
       {/* ── PAGE HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl lg:text-[28px] font-semibold text-text-primary tracking-tight">
-            Markets
-          </h1>
+          <PageHeader title="Markets" />
           <p className="mt-1 text-[13px] text-text-secondary">{t("markets.global_overview")}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">

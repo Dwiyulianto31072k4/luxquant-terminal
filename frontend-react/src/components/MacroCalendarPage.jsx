@@ -5,6 +5,7 @@ import calendarApi from "../services/calendarApi";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { SegGroup } from "./ui/SegGroup";
 import { StatCard, StatGrid } from "./ui/StatCard";
+import { PageHeader } from "./ui/PageHeader";
 
 /* ──────────────────────────────────────────────────────────────
  MacroCalendarPage — Terminal desk (theme tokens)
@@ -367,10 +368,10 @@ const MacroCalendarPage = () => {
       {/* ── HEADER ── */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             {t("calendar.title")}
           </h1>
-          <p className="mt-1.5 text-[13px] text-text-secondary">{t("calendar.subtitle")}</p>
+          <p className="mt-2 text-sm text-text-secondary">{t("calendar.subtitle")}</p>
         </div>
         <button
           type="button"

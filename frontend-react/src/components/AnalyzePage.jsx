@@ -16,6 +16,7 @@ import {
 import { useTranslation } from "react-i18next";
 import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = "/api/v1";
 
@@ -191,9 +192,7 @@ const AnalyzePage = () => {
       {/* ── PAGE HEADER — eyebrow + title + tagline, with integrated time range ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1.5">
-            All-Time Performance
-          </h1>
+          <PageHeader title="All-Time Performance" />
           <p className="text-sm text-text-primary/45 mt-2">
             Lifetime track record across{" "}
             <span className="text-text-primary/85 font-mono tabular-nums">

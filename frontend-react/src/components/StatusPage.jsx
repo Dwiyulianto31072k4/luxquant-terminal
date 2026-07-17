@@ -13,6 +13,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { palette, tint, gradient } from "./admin/designSystem";
 import Seo from "./Seo";
+import { PageHeader } from "./ui/PageHeader";
 
 const REFRESH_MS = 30_000;
 const PING_TIMEOUT_MS = 4_000;
@@ -525,37 +526,10 @@ export default function StatusPage() {
           <>
             {/* title block (Management-System language) */}
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
-              <div className="flex items-stretch gap-3.5">
-                <div
-                  className="w-[3px] shrink-0 rounded-full"
-                  style={{
-                    background: `linear-gradient(to bottom, ${palette.gold[300]}, ${tint(palette.gold[300], 0.4)}, transparent)`,
-                  }}
-                />
-                <div>
-                  <p
-                    className="text-[10px] uppercase tracking-[0.32em] font-semibold leading-none mb-2"
-                    style={{ color: tint(palette.gold[300], 0.6) }}
-                  >
-                    LuxQuant
-                  </p>
-                  <h1
-                    className="text-[26px] sm:text-[30px] font-light tracking-tight leading-none"
-                    style={{ letterSpacing: "-0.02em" }}
-                  >
-                    <span className="text-text-primary">System </span>
-                    <span
-                      style={{
-                        background: gradient.goldText,
-                        WebkitBackgroundClip: "text",
-                        backgroundClip: "text",
-                        color: "transparent",
-                      }}
-                    >
-                      Status
-                    </span>
-                  </h1>
-                </div>
+              <div>
+                <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+                  System Status
+                </h1>
               </div>
               <div
                 className="flex items-center gap-4 font-mono text-[11px]"

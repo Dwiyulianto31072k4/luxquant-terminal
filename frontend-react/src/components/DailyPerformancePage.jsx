@@ -20,6 +20,7 @@ import { analyticsApi } from "../services/analyticsApi";
 import { signalsApi } from "../services/api";
 import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
+import { PageHeader } from "./ui/PageHeader";
 
 // strip the quote-asset suffix for a clean coin symbol
 const coinSym = (p) => (p || "").replace(/USDT$|USDC$|USD$/i, "");
@@ -2506,9 +2507,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
-            Daily Performance
-          </h1>
+          <PageHeader title="Daily Performance" />
           <p className="text-sm text-text-primary/45 mt-1">
             Interactive analytics · click any chart to filter · click any pair for detail
           </p>

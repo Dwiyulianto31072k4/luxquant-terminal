@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import whaleApi from "../services/whaleApi";
+import { PageHeader } from "./ui/PageHeader";
 
 // ═══════════════════════════════════════════
 // Config
@@ -551,9 +552,6 @@ export default function WhaleAlertPage() {
   // ════════════════════════════════════════
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
-      {/* ── Section Header ── */}
-      <SectionHeader label="Whale Alert" />
-
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>

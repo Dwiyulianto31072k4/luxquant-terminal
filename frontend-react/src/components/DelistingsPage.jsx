@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import delistingApi from "../services/delistingApi";
 import CoinLogo from "./CoinLogo";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { PageHeader } from "./ui/PageHeader";
 
 const EX_META = {
   binance: { label: "Binance", domain: "binance.com", color: "rgb(var(--warn))" },
@@ -153,9 +154,7 @@ export default function DelistingsPage() {
         <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
           Terminal · Alerts
         </span>
-        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-          Exchange Delistings
-        </h1>
+        <PageHeader title="Exchange Delistings" />
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Live delisting announcements from Binance, Bybit &amp; OKX.{" "}
           <span className="text-accent/85 font-medium">Peak %</span> is the highest move a token

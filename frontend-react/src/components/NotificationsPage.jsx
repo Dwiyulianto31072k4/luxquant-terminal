@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { notificationApi } from "../services/notificationApi";
 import NotificationSettings from "./NotificationSettings";
 import { ShimmerStyles } from "./ui/Loaders";
+import { PageHeader } from "./ui/PageHeader";
 
 const PAGE_SIZE = 20;
 
@@ -258,9 +259,6 @@ const NotificationsPage = () => {
   // ════════════════════════════════════════
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
-      {/* Section Header */}
-      <SectionHeader label="Notifications" />
-
       {/* Page Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>

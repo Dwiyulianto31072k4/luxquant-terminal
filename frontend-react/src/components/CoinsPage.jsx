@@ -4,6 +4,7 @@
 import { Link, useParams, Navigate } from "react-router-dom";
 import Seo from "./Seo";
 import { COINS, getCoin } from "../content/coins";
+import { PageHeader } from "./ui/PageHeader";
 
 const SITE = "https://luxquant.tw";
 
@@ -195,9 +196,7 @@ function CoinsIndex() {
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
         Coins
       </span>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-        Crypto Coins
-      </h1>
+      <PageHeader title="Crypto Coins" />
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Money flow, on-chain intelligence, and algorithmic signals for the assets traders watch
         most.

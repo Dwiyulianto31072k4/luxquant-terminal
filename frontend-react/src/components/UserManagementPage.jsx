@@ -133,21 +133,17 @@ const CleanupButton = ({ count, onClick }) => (
 // Page header
 // ════════════════════════════════════════════════════════════════════
 
-const PageHeader = ({ stats, onCleanup }) => (
-  <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-    <div>
+const UsersHero = ({ stats, onCleanup }) => (
+  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-w-0">
       <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
         Users · Members, roles, and access
       </p>
-      <h1 className="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight text-text-primary lg:text-2xl">
-        <UsersIcon
-          size={22}
-          className="text-text-muted"
-          style={{ color: "rgb(var(--ink) / 0.45)" }}
-        />
+      <h2 className="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight text-text-primary lg:text-2xl">
+        <UsersIcon size={22} style={{ color: "rgb(var(--ink) / 0.45)" }} />
         User Management
-      </h1>
-      <p className="mt-1.5 text-sm text-text-muted">
+      </h2>
+      <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-text-muted">
         Manage members, subscriptions, contact enrichment, and outreach.
       </p>
     </div>
@@ -513,7 +509,7 @@ const UserManagementPage = () => {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* ── Zone 1: Command ── */}
-      <PageHeader stats={stats} onCleanup={canWrite ? handleCleanup : undefined} />
+      <UsersHero stats={stats} onCleanup={canWrite ? handleCleanup : undefined} />
 
       {viewOnly && <ViewOnlyBanner />}
 

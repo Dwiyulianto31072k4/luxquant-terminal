@@ -17,6 +17,7 @@ import { ensureTelegram, openTelegramAuth } from "../utils/telegramLoader";
 import CountryCurrencyPicker from "./CountryCurrencyPicker";
 import VipGroupCard from "./VipGroupCard";
 import { convertPrice, formatLocalPrice, formatUsdtPrice } from "../utils/currencyHelpers";
+import { PageHeader } from "./ui/PageHeader";
 
 // ─── Lazy-load Google Identity Services — hanya saat dibutuhkan ───
 // AuthContext tidak lagi me-load GSI global (login Google sekarang pakai
@@ -401,9 +402,6 @@ const ProfilePage = () => {
       {/* ═══ HEADER — Flowscan style ═══ */}
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-            Account
-          </p>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
             {t("profile.title", "Profile Settings")}
           </h1>

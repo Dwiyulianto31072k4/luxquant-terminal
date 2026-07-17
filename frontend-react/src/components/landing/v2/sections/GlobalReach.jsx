@@ -1444,12 +1444,82 @@ function drawGrid(ctx, radius, cx, cy, yaw, pitch) {
   ctx.restore();
 }
 
+function getAppTheme() {
+  try {
+    return document.documentElement.dataset.theme || "luxquant";
+  } catch {
+    return "luxquant";
+  }
+}
+
+/** Theme-aware land fill + outline (bright needs real contrast on paper). */
+function landPalette(theme) {
+  if (theme === "bright") {
+    return {
+      // Cool slate continents on soft paper ocean — Apple Maps / Linear light desk
+      fillBase: "100,116,139", // slate-500
+      fillAlpha: (intensity) => 0.12 + intensity * 0.55,
+      outline: "rgba(51,65,85,0.28)", // slate-700
+      outlineW: 0.65,
+      ocean: [
+        "rgba(248,250,252,0.98)",
+        "rgba(226,232,240,0.95)",
+        "rgba(203,213,225,0.72)",
+        "rgba(226,232,240,0.28)",
+        "rgba(248,250,252,0)",
+      ],
+      ambient: ["rgba(15,23,42,0.07)", "rgba(15,23,42,0.035)", "rgba(15,23,42,0.012)"],
+      arcDim: 0.12,
+      arcReach: 0.22,
+      arcStrong: 0.55,
+    };
+  }
+  if (theme === "dark") {
+    return {
+      fillBase: "212,168,83",
+      fillAlpha: (intensity) => 0.05 + intensity * 0.48,
+      outline: "rgba(212,168,83,0.18)",
+      outlineW: 0.5,
+      ocean: [
+        "rgba(34,38,46,0.95)",
+        "rgba(24,28,34,0.88)",
+        "rgba(18,22,28,0.5)",
+        "rgba(11,14,17,0.18)",
+        "rgba(11,14,17,0)",
+      ],
+      ambient: ["rgba(42,42,46,0.10)", "rgba(28,28,32,0.05)", "rgba(15,15,17,0.02)"],
+      arcDim: 0.05,
+      arcReach: 0.09,
+      arcStrong: 0.38,
+    };
+  }
+  // luxquant warm desk
+  return {
+    fillBase: "212,168,83",
+    fillAlpha: (intensity) => 0.045 + intensity * 0.5,
+    outline: "rgba(212,168,83,0.16)",
+    outlineW: 0.5,
+    ocean: [
+      "rgba(44,17,16,0.92)",
+      "rgba(25,11,12,0.8)",
+      "rgba(14,7,8,0.46)",
+      "rgba(10,5,6,0.16)",
+      "rgba(10,5,6,0)",
+    ],
+    ambient: ["rgba(70,30,28,0.12)", "rgba(45,20,20,0.06)", "rgba(22,11,11,0.025)"],
+    arcDim: 0.05,
+    arcReach: 0.09,
+    arcStrong: 0.38,
+  };
+}
+
 // Choropleth: isi tiap negara dengan intensitas warna (makin tinggi
 // makin mencolok). Titik di sisi belakang "didrape" ke tepi bola biar
 // poligon yang melewati cakrawala tetap rapi (lalu di-clip ke lingkaran).
-function drawChoropleth(ctx, radius, cx, cy, yaw, pitch) {
+function drawChoropleth(ctx, radius, cx, cy, yaw, pitch, theme = getAppTheme()) {
+  const pal = landPalette(theme);
   COUNTRY_SHAPES.forEach((country) => {
-    const alpha = 0.045 + country.intensity * 0.5;
+    const alpha = pal.fillAlpha(country.intensity);
 
     ctx.beginPath();
 
@@ -1477,13 +1547,14 @@ function drawChoropleth(ctx, radius, cx, cy, yaw, pitch) {
       ctx.closePath();
     });
 
-    ctx.fillStyle = `rgba(${COLORS.goldMuted},${alpha})`;
+    ctx.fillStyle = `rgba(${pal.fillBase},${alpha})`;
     ctx.fill();
   });
 }
 
 // Garis batas negara (front-face di-cull otomatis), 1 stroke.
-function drawCountryOutlines(ctx, radius, cx, cy, yaw, pitch) {
+function drawCountryOutlines(ctx, radius, cx, cy, yaw, pitch, theme = getAppTheme()) {
+  const pal = landPalette(theme);
   ctx.save();
   ctx.beginPath();
 
@@ -1506,8 +1577,8 @@ function drawCountryOutlines(ctx, radius, cx, cy, yaw, pitch) {
     });
   });
 
-  ctx.strokeStyle = `rgba(${COLORS.goldMuted},0.16)`;
-  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = pal.outline;
+  ctx.lineWidth = pal.outlineW;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.stroke();
@@ -1781,22 +1852,11 @@ function CanvasGlobe() {
           cy,
           radius * 1.85
         );
-        // Theme-aware ambient + sphere: bright=cool slate, dark=neutral, luxquant=warm
-        const appTheme = document.documentElement.dataset.theme || "luxquant";
-        const isBright = appTheme === "bright";
-        const isDark = appTheme === "dark";
-        ambientGlow.addColorStop(
-          0,
-          isBright ? "rgba(15,23,42,0.06)" : isDark ? "rgba(42,42,46,0.10)" : "rgba(70,30,28,0.12)"
-        );
-        ambientGlow.addColorStop(
-          0.32,
-          isBright ? "rgba(15,23,42,0.03)" : isDark ? "rgba(28,28,32,0.05)" : "rgba(45,20,20,0.06)"
-        );
-        ambientGlow.addColorStop(
-          0.62,
-          isBright ? "rgba(15,23,42,0.01)" : isDark ? "rgba(15,15,17,0.02)" : "rgba(22,11,11,0.025)"
-        );
+        const appTheme = getAppTheme();
+        const pal = landPalette(appTheme);
+        ambientGlow.addColorStop(0, pal.ambient[0]);
+        ambientGlow.addColorStop(0.32, pal.ambient[1]);
+        ambientGlow.addColorStop(0.62, pal.ambient[2]);
         ambientGlow.addColorStop(1, "rgba(0,0,0,0)");
         context.fillStyle = ambientGlow;
         context.fillRect(cx - radius * 1.9, cy - radius * 1.9, radius * 3.8, radius * 3.8);
@@ -1816,25 +1876,9 @@ function CanvasGlobe() {
           cy,
           radius * 1.02
         );
-        if (isBright) {
-          globeGradient.addColorStop(0, "rgba(241,245,249,0.98)");
-          globeGradient.addColorStop(0.4, "rgba(226,232,240,0.92)");
-          globeGradient.addColorStop(0.72, "rgba(203,213,225,0.55)");
-          globeGradient.addColorStop(0.9, "rgba(226,232,240,0.2)");
-          globeGradient.addColorStop(1, "rgba(245,246,248,0)");
-        } else if (isDark) {
-          globeGradient.addColorStop(0, "rgba(34,38,46,0.95)");
-          globeGradient.addColorStop(0.4, "rgba(24,28,34,0.88)");
-          globeGradient.addColorStop(0.72, "rgba(18,22,28,0.5)");
-          globeGradient.addColorStop(0.9, "rgba(11,14,17,0.18)");
-          globeGradient.addColorStop(1, "rgba(11,14,17,0)");
-        } else {
-          globeGradient.addColorStop(0, "rgba(44,17,16,0.92)");
-          globeGradient.addColorStop(0.4, "rgba(25,11,12,0.8)");
-          globeGradient.addColorStop(0.72, "rgba(14,7,8,0.46)");
-          globeGradient.addColorStop(0.9, "rgba(10,5,6,0.16)");
-          globeGradient.addColorStop(1, "rgba(10,5,6,0)");
-        }
+        [0, 0.4, 0.72, 0.9, 1].forEach((stop, i) => {
+          globeGradient.addColorStop(stop, pal.ocean[i]);
+        });
 
         context.fillStyle = globeGradient;
         context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
@@ -1848,25 +1892,25 @@ function CanvasGlobe() {
             interaction.pointer.y,
             radius * 0.52
           );
-          pointerGlow.addColorStop(0, "rgba(240,216,144,0.09)");
-          pointerGlow.addColorStop(0.35, "rgba(212,168,83,0.035)");
-          pointerGlow.addColorStop(1, "rgba(212,168,83,0)");
+          pointerGlow.addColorStop(0, "rgba(240,185,11,0.14)");
+          pointerGlow.addColorStop(0.35, "rgba(240,185,11,0.05)");
+          pointerGlow.addColorStop(1, "rgba(240,185,11,0)");
 
           context.save();
-          context.globalCompositeOperation = "screen";
+          context.globalCompositeOperation = appTheme === "bright" ? "multiply" : "screen";
           context.fillStyle = pointerGlow;
           context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
           context.restore();
         }
 
         drawGrid(context, radius, cx, cy, yaw, pitch);
-        drawChoropleth(context, radius, cx, cy, yaw, pitch);
-        drawCountryOutlines(context, radius, cx, cy, yaw, pitch);
+        drawChoropleth(context, radius, cx, cy, yaw, pitch, appTheme);
+        drawCountryOutlines(context, radius, cx, cy, yaw, pitch, appTheme);
 
         // Background arcs — garis penghubung statis ke SEMUA negara (murah, no shadow)
         ARCS.forEach((arc) => {
           const isActiveArc = arc.code === hoveredCode;
-          const baseAlpha = arc.dim ? 0.05 : arc.reach ? 0.09 : 0.1;
+          const baseAlpha = arc.dim ? pal.arcDim : arc.reach ? pal.arcReach : pal.arcStrong * 0.28;
           drawArc(
             context,
             arc,

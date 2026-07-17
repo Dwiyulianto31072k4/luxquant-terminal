@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import orderbookApi from "../services/orderbookApi";
 import api from "../services/api";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { PageHeader } from "./ui/PageHeader";
 
 // ═══════════════════════════════════════════
 // Config
@@ -722,9 +723,6 @@ export default function OrderBookPage() {
   // ════════════════════════════════════════
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
-      {/* Section Header */}
-      <SectionHeader label="Order Book" />
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>

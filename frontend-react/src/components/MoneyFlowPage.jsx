@@ -20,6 +20,7 @@ import CoinLogo from "./CoinLogo";
 import SignalModal from "./SignalModal";
 import SectorCoinsModal from "./SectorCoinsModal";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -1236,9 +1237,7 @@ export default function MoneyFlowPage() {
         <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
           Terminal · Flow
         </span>
-        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-          Money Flow
-        </h1>
+        <PageHeader title="Money Flow" />
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
           Where capital is rotating — <span className="text-accent/85 font-medium">sectors</span>,
           coins &amp; whale transactions. Track macro dominance, per-coin flow intensity, DEX

@@ -5,6 +5,7 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import Seo from "./Seo";
 import { POSTS, getPost } from "../content/posts";
 import { getTerm } from "../content/glossary";
+import { PageHeader } from "./ui/PageHeader";
 
 const SITE = "https://luxquant.tw";
 
@@ -192,9 +193,7 @@ function IndexPage() {
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Blog" }]} />
 
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Blog</span>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-        LuxQuant Blog
-      </h1>
+      <PageHeader title="LuxQuant Blog" />
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Guides on reading crypto money flow, on-chain intelligence, and quantitative trading — the
         thinking behind the terminal.

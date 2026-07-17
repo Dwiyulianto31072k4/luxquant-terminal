@@ -7,6 +7,7 @@ import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import { PageHeader } from "./ui/PageHeader";
 
 // ════════════════════════════════════════════════════════════════════
 // Helper Components
@@ -569,9 +570,7 @@ const ReferralPage = () => {
             <line x1="23" y1="11" x2="17" y2="11" />
           </svg>
         </div>
-        <h1 className="mb-3 font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
-          Start Your Referral Program
-        </h1>
+        <PageHeader title="Start Your Referral Program" />
         <p className="text-sm sm:text-base mb-8 max-w-md mx-auto text-text-muted">
           Share your link, earn 10% commission on every payment from people you invite. Pick a
           custom code or auto-generate one.

@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import api from "../services/authApi";
 import CoinLogo from "./CoinLogo";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { PageHeader } from "./ui/PageHeader";
 
 // ════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -673,9 +674,7 @@ const JournalPage = () => {
             <IconBook className="h-3 w-3" />
             <span>Personal Trading Logbook</span>
           </div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
-            Trade Journal
-          </h1>
+          <PageHeader title="Trade Journal" />
           <p className="mt-1.5 text-[13px] text-text-secondary">
             Track, analyze, and improve your trading edge ·{" "}
             <span className="font-mono font-semibold tabular-nums text-text-primary">

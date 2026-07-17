@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
+import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = "/api/v1";
 
@@ -287,9 +288,7 @@ const OverviewPage = () => {
       />
       {/* PAGE HEADER — same voice as every other page (h1 + subtitle) */}
       <div>
-        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
-          Home
-        </h1>
+        <PageHeader title="Home" />
         <p className="mt-2 text-sm text-text-secondary">
           Top calls, market state, and today&apos;s highlights in one view.
         </p>

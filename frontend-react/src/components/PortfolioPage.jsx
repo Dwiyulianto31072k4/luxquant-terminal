@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getExecutions, getMe, getPortfolio } from "../services/autotradeApi";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import { PageHeader } from "./ui/PageHeader";
 
 function fmtUsd(value) {
   return Number(value || 0).toLocaleString(undefined, {
@@ -110,9 +111,7 @@ export default function PortfolioPage() {
       <div>
         <div className="mb-1 flex items-center gap-3">
           <div className="h-6 w-1 rounded bg-gradient-to-b from-accent to-accent" />
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
-            Portfolio
-          </h1>
+          <PageHeader title="Portfolio" />
         </div>
         <p className="text-sm text-text-muted">
           Documented API view across {accounts.length} linked exchange account
