@@ -32,8 +32,8 @@ const SOURCE_OPTIONS = [
   { value: 'manual', label: 'Manual records only' },
 ];
 
-const fieldBg = 'rgba(0,0,0,0.28)';
-const fieldBorder = 'rgba(255,255,255,0.06)';
+const fieldBg = 'rgb(var(--scrim) / 0.28)';
+const fieldBorder = 'rgb(var(--ink) / 0.06)';
 const fieldBorderActive = 'rgba(212,168,83,0.35)';
 
 const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
@@ -61,7 +61,7 @@ const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
     {onClear && value && (
       <button
         onClick={onClear}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/5"
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-ink/5"
         style={{ color: 'rgb(var(--fg-muted))' }}
         title="Clear search"
         aria-label="Clear search"

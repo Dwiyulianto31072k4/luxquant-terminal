@@ -123,7 +123,7 @@ export const dirMeta = (direction) => {
     return { k, label: "Bearish", arrow: "↓", text: "text-negative", hex: COLOR.loss,
       tag: "bg-negative/10 text-negative border-negative/20", bar: "bg-negative" };
   return { k, label: "Neutral", arrow: "→", text: "text-text-secondary", hex: COLOR.flat,
-    tag: "bg-white/[0.05] text-text-secondary border-white/10", bar: "bg-white/30" };
+    tag: "bg-ink/[0.05] text-text-secondary border-ink/10", bar: "bg-ink/30" };
 };
 
 export const confLevel = (c) => {
@@ -138,16 +138,16 @@ export const confLevel = (c) => {
 // Panel — quiet card surface (no gold glow / hairline by default)
 export const Card = ({ className = "", children, accent, hairline = false }) => {
   const border =
-    accent === "gold" ? "border-white/[0.1]"
+    accent === "gold" ? "border-ink/[0.1]"
     : accent === "up" ? "border-positive/20"
     : accent === "down" ? "border-negative/20"
-    : "border-white/[0.07]";
+    : "border-ink/[0.07]";
   return (
     <div
       className={`relative overflow-hidden rounded-xl border ${border} bg-surface-raised ${className}`}
     >
       {hairline && (
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.06]" />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.06]" />
       )}
       <div className="relative z-10">{children}</div>
     </div>
@@ -174,9 +174,9 @@ export const Tag = ({ children, tone = "muted", className = "" }) => {
   const tones = {
     up: "bg-positive/10 text-positive border-positive/20",
     down: "bg-negative/10 text-negative border-negative/20",
-    neutral: "bg-white/[0.05] text-text-secondary border-white/10",
-    gold: "bg-white/[0.05] text-text-secondary border-white/10",
-    muted: "bg-white/[0.03] text-text-muted border-white/[0.08]",
+    neutral: "bg-ink/[0.05] text-text-secondary border-ink/10",
+    gold: "bg-ink/[0.05] text-text-secondary border-ink/10",
+    muted: "bg-ink/[0.03] text-text-muted border-ink/[0.08]",
   };
   return (
     <span
@@ -188,7 +188,7 @@ export const Tag = ({ children, tone = "muted", className = "" }) => {
 };
 
 export const Tile = ({ label, children, className = "" }) => (
-  <div className={`rounded-lg border border-white/[0.05] bg-surface-secondary px-3.5 py-3 ${className}`}>
+  <div className={`rounded-lg border border-ink/[0.05] bg-surface-secondary px-3.5 py-3 ${className}`}>
     {label && (
       <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">{label}</p>
     )}
@@ -204,10 +204,10 @@ export const Num = ({ children, className = "" }) => (
 // Use sparingly: one glance should land on price, direction, target, stop.
 export const Hi = ({ children, tone = "gold", className = "" }) => {
   const tones = {
-    gold: "bg-white/[0.06] text-text-primary",
+    gold: "bg-ink/[0.06] text-text-primary",
     up: "bg-positive/10 text-positive",
     down: "bg-negative/10 text-negative",
-    white: "bg-white/[0.08] text-text-primary",
+    white: "bg-ink/[0.08] text-text-primary",
   };
   return (
     <mark
@@ -225,7 +225,7 @@ export const highlightPrices = (text) => {
     /^\$[\d]/.test(part) ? (
       <mark
         key={i}
-        className="whitespace-nowrap rounded-[5px] bg-white/[0.06] px-1 py-[1px] font-mono font-semibold tabular-nums text-text-primary"
+        className="whitespace-nowrap rounded-[5px] bg-ink/[0.06] px-1 py-[1px] font-mono font-semibold tabular-nums text-text-primary"
       >
         {part}
       </mark>
@@ -238,8 +238,8 @@ export const highlightPrices = (text) => {
 // KPI stat card (used on audit + library headers).
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
   const tones = {
-    neutral: "border-white/[0.05] bg-surface-secondary",
-    gold: "border-white/10 bg-white/[0.04]",
+    neutral: "border-ink/[0.05] bg-surface-secondary",
+    gold: "border-ink/10 bg-ink/[0.04]",
     up: "border-profit/20 bg-profit/[0.05]",
     down: "border-loss/20 bg-loss/[0.05]",
   };
@@ -264,9 +264,9 @@ export const ConfidenceMeter = ({ value = 0, dir = "up" }) => {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   return (
     <div>
-      <div className="relative h-2.5 overflow-hidden rounded-full border border-white/[0.06] bg-white/[0.03]">
-        <span className="absolute bottom-0 top-0 w-px bg-white/[0.1]" style={{ left: "45%" }} />
-        <span className="absolute bottom-0 top-0 w-px bg-white/[0.1]" style={{ left: "65%" }} />
+      <div className="relative h-2.5 overflow-hidden rounded-full border border-ink/[0.06] bg-ink/[0.03]">
+        <span className="absolute bottom-0 top-0 w-px bg-ink/[0.1]" style={{ left: "45%" }} />
+        <span className="absolute bottom-0 top-0 w-px bg-ink/[0.1]" style={{ left: "65%" }} />
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${meta.hex}66, ${meta.hex})` }}
@@ -299,7 +299,7 @@ export const StanceGauge = ({ value = 0, dir = "up", size = 168 }) => {
   return (
     <div className="relative" style={{ width: w, height: h }}>
       <svg width={w} height={h} className="block">
-        <path d={arc(0, 100)} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="9" strokeLinecap="round" />
+        <path d={arc(0, 100)} fill="none" stroke="rgb(var(--ink) / 0.07)" strokeWidth="9" strokeLinecap="round" />
         {/* zone ticks */}
         {[45, 65].map((z) => (
           <line
@@ -308,7 +308,7 @@ export const StanceGauge = ({ value = 0, dir = "up", size = 168 }) => {
             y1={cy - (r - 9) * Math.sin(angle(z))}
             x2={cx + (r + 9) * Math.cos(angle(z))}
             y2={cy - (r + 9) * Math.sin(angle(z))}
-            stroke="rgba(255,255,255,0.14)"
+            stroke="rgb(var(--ink) / 0.14)"
             strokeWidth="1.5"
           />
         ))}
@@ -359,7 +359,7 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
   return (
     <div className="relative h-[260px] w-full">
       {/* rail track */}
-      <div className="absolute bottom-0 left-[9px] top-0 w-px bg-white/[0.08]" />
+      <div className="absolute bottom-0 left-[9px] top-0 w-px bg-ink/[0.08]" />
       {/* filled span between invalidation and target */}
       <div
         className="absolute left-[7px] w-[5px] rounded-full opacity-80"
@@ -384,7 +384,7 @@ export const LevelRail = ({ spot, target, invalidation, dir = "up" }) => {
               <span className="absolute inset-[3px] animate-pulse rounded-full" style={{ background: row.hex }} />
             )}
           </span>
-          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-white/[0.05] bg-surface-secondary px-3 py-2">
+          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-ink/[0.05] bg-surface-secondary px-3 py-2">
             <div className="min-w-0">
               <div className="font-mono text-[8.5px] uppercase tracking-[0.18em]" style={{ color: `${row.hex}99` }}>
                 {row.label}
@@ -407,15 +407,15 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
   const pct = Math.max(0, Math.min(100, Math.round((Number(strength) || 0) * 100)));
   const half = pct / 2; // % of half-track
   return (
-    <div className="rounded-lg border border-white/[0.05] bg-surface-secondary px-3.5 py-3">
+    <div className="rounded-lg border border-ink/[0.05] bg-surface-secondary px-3.5 py-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className="truncate text-[13px] font-medium text-text-primary/90">{label}</span>
         <span className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] ${meta.text}`}>
           {meta.label} · {pct}%
         </span>
       </div>
-      <div className="relative mt-2 h-[7px] overflow-hidden rounded-full bg-white/[0.05]">
-        <span className="absolute bottom-0 left-1/2 top-0 w-px bg-white/[0.14]" />
+      <div className="relative mt-2 h-[7px] overflow-hidden rounded-full bg-ink/[0.05]">
+        <span className="absolute bottom-0 left-1/2 top-0 w-px bg-ink/[0.14]" />
         {meta.k !== "flat" && pct > 0 && (
           <span
             className="absolute bottom-0 top-0 rounded-full"
@@ -449,7 +449,7 @@ export const OutcomeBar = ({ segments = [] }) => {
   if (!total) return null;
   return (
     <div>
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/[0.06] bg-white/[0.03]">
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-ink/[0.06] bg-ink/[0.03]">
         {segments.map((s) =>
           s.value > 0 ? (
             <span
@@ -484,7 +484,7 @@ export const GoldButton = ({ children, className = "", size = "md", ...rest }) =
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/15 bg-white/[0.1] font-semibold leading-none text-text-primary transition hover:bg-white/[0.14] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-ink/15 bg-ink/[0.1] font-semibold leading-none text-text-primary transition hover:bg-ink/[0.14] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -501,7 +501,7 @@ export const GhostButton = ({ children, className = "", size = "md", ...rest }) 
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-white/20 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-ink/[0.1] bg-ink/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-ink/20 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -519,7 +519,7 @@ export const Donut = ({ segments = [], size = 150, thickness = 13, centerValue, 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={c} cy={c} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={thickness} />
+        <circle cx={c} cy={c} r={r} fill="none" stroke="rgb(var(--ink) / 0.06)" strokeWidth={thickness} />
         {segments.map((s) => {
           const frac = (Number(s.value) || 0) / total;
           const dash = Math.max(0, frac * circumference - 2);
@@ -554,14 +554,14 @@ export const Donut = ({ segments = [], size = 150, thickness = 13, centerValue, 
 /* ═══════════════ controls ═══════════════ */
 
 export const Segmented = ({ options, value, onChange }) => (
-  <div className="inline-flex gap-0.5 rounded-lg border border-white/[0.07] bg-black/25 p-0.5">
+  <div className="inline-flex gap-0.5 rounded-lg border border-ink/[0.07] bg-scrim/25 p-0.5">
     {options.map((o) => (
       <button
         key={o.value}
         onClick={() => onChange(o.value)}
         className={`rounded-md px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
           value === o.value
-            ? "bg-white/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
+            ? "bg-ink/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgb(var(--ink)_/_0.1)]"
             : "text-text-muted/60 hover:text-text-primary"
         }`}
       >
@@ -576,8 +576,8 @@ export const Chip = ({ active, onClick, children }) => (
     onClick={onClick}
     className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
       active
-        ? "border-white/20 bg-white/[0.1] text-text-primary"
-        : "border-white/[0.07] bg-white/[0.02] text-text-muted/70 hover:border-white/[0.16] hover:text-text-primary"
+        ? "border-ink/20 bg-ink/[0.1] text-text-primary"
+        : "border-ink/[0.07] bg-ink/[0.02] text-text-muted/70 hover:border-ink/[0.16] hover:text-text-primary"
     }`}
   >
     {children}
@@ -585,8 +585,8 @@ export const Chip = ({ active, onClick, children }) => (
 );
 
 export const WeightBar = ({ pct }) => (
-  <span className="mr-2 inline-block h-[6px] w-[70px] overflow-hidden rounded-full border border-white/[0.06] bg-white/[0.04] align-middle">
-    <span className="block h-full rounded-full bg-white/50" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+  <span className="mr-2 inline-block h-[6px] w-[70px] overflow-hidden rounded-full border border-ink/[0.06] bg-ink/[0.04] align-middle">
+    <span className="block h-full rounded-full bg-ink/50" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
   </span>
 );
 

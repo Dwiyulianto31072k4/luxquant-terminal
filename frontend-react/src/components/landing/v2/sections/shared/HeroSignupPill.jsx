@@ -42,7 +42,7 @@ export default function HeroSignupPill({
   return (
     <div
       className={[
-        "mx-auto flex w-full max-w-[400px] items-center rounded-full border border-white/20 bg-white/[0.96] p-1 shadow-[0_10px_24px_rgba(0,0,0,0.24)] backdrop-blur-md sm:max-w-[440px]",
+        "mx-auto flex w-full max-w-[400px] items-center rounded-full border border-ink/20 bg-ink/[0.96] p-1 shadow-[0_10px_24px_rgb(var(--scrim) / 0.24)] backdrop-blur-md sm:max-w-[440px]",
         className,
       ].join(" ")}
     >
@@ -66,7 +66,7 @@ export default function HeroSignupPill({
         type="button"
         onClick={goPlatform}
         aria-label="Continue with Google"
-        className="ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-transform duration-300 hover:scale-[1.05] sm:h-9 sm:w-9"
+        className="ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05] sm:h-9 sm:w-9"
       >
         <GoogleIcon />
       </button>

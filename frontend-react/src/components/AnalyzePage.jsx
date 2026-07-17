@@ -193,7 +193,7 @@ const AnalyzePage = () => {
         </div>
 
         {/* Time range — segmented control */}
-        <div className="inline-flex gap-0.5 p-0.5 bg-surface-raised rounded-lg border border-white/[0.06] self-start sm:self-auto shrink-0">
+        <div className="inline-flex gap-0.5 p-0.5 bg-surface-raised rounded-lg border border-ink/[0.06] self-start sm:self-auto shrink-0">
           {timeRangeOptions.map((opt) => (
             <button
               key={opt.value}
@@ -201,7 +201,7 @@ const AnalyzePage = () => {
               className={`px-3.5 py-1.5 rounded-[7px] font-mono text-[10px] uppercase tracking-wider transition-all ${
                 timeRange === opt.value
                   ? "bg-gold-primary text-surface-hover font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
-                  : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"
+                  : "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]"
               }`}
             >
               <span className="sm:hidden">{opt.short}</span>
@@ -252,7 +252,7 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── WIN RATE TREND ── */}
-      <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+      <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
@@ -266,14 +266,14 @@ const AnalyzePage = () => {
               </p>
             </div>
           </div>
-          <div className="flex gap-1 p-1 bg-surface-secondary rounded-sm border border-white/[0.04]">
+          <div className="flex gap-1 p-1 bg-surface-secondary rounded-sm border border-ink/[0.04]">
             {["daily", "weekly"].map((m) => (
               <button
                 key={m}
                 onClick={() => setTrendMode(m)}
                 className={`px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   trendMode === m
-                    ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                    ? "bg-ink/10 text-text-primary border border-ink/[0.08]"
                     : "text-text-muted hover:text-text-primary border border-transparent"
                 }`}
               >
@@ -287,7 +287,7 @@ const AnalyzePage = () => {
 
       {/* ── OUTCOME & R:R ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconOutcome />
@@ -303,7 +303,7 @@ const AnalyzePage = () => {
           <OutcomeDistribution data={data.stats} t={t} />
         </div>
 
-        <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRR />
@@ -322,7 +322,7 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── RISK LEVEL ANALYSIS ── */}
-      <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+      <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="flex items-center gap-2 mb-4">
           <IconRisk />
@@ -396,7 +396,7 @@ const AnalyzePage = () => {
                       {t("perf.win_rate")}
                     </p>
 
-                    <div className="h-1 rounded-sm overflow-hidden flex bg-white/[0.04] mb-2">
+                    <div className="h-1 rounded-sm overflow-hidden flex bg-ink/[0.04] mb-2">
                       <div
                         className="h-full bg-profit/70 transition-all duration-700"
                         style={{ width: `${winPct}%` }}
@@ -415,7 +415,7 @@ const AnalyzePage = () => {
                       </span>
                     </div>
 
-                    <div className="pt-3 border-t border-white/[0.04] grid grid-cols-2 gap-2">
+                    <div className="pt-3 border-t border-ink/[0.04] grid grid-cols-2 gap-2">
                       <div>
                         <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                           {t("perf.signals")}
@@ -450,8 +450,8 @@ const AnalyzePage = () => {
               };
               if (totalSig === 0) return null;
               return (
-                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-surface-secondary border border-white/[0.04]">
-                  <div className="w-full sm:w-64 h-1 rounded-sm overflow-hidden flex bg-white/[0.04] flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-surface-secondary border border-ink/[0.04]">
+                  <div className="w-full sm:w-64 h-1 rounded-sm overflow-hidden flex bg-ink/[0.04] flex-shrink-0">
                     {data.risk_distribution.map((rd, i) => (
                       <div
                         key={i}
@@ -492,7 +492,7 @@ const AnalyzePage = () => {
 
       {/* ── WIN RATE TREND BY RISK LEVEL ── */}
       {data.risk_trend && data.risk_trend.length > 0 && (
-        <div className="bg-surface-raised rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRiskTrend />
@@ -511,7 +511,7 @@ const AnalyzePage = () => {
 
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
-        <div className="bg-surface-raised rounded-xl border border-white/[0.07] relative overflow-hidden">
+        <div className="bg-surface-raised rounded-xl border border-ink/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="p-5 pb-0">
             <div className="flex items-center gap-2">
@@ -531,7 +531,7 @@ const AnalyzePage = () => {
       )}
 
       {/* ── FULL SIGNAL HISTORY ── */}
-      <div className="bg-surface-raised rounded-xl border border-white/[0.07] relative overflow-hidden">
+      <div className="bg-surface-raised rounded-xl border border-ink/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
         <div className="p-5 pb-0">
@@ -589,7 +589,7 @@ const AnalyzePage = () => {
             </svg>
           </button>
 
-          <div className={`${showSigFilters ? "block" : "hidden"} lg:block pb-4 border-b border-white/[0.04]`}>
+          <div className={`${showSigFilters ? "block" : "hidden"} lg:block pb-4 border-b border-ink/[0.04]`}>
             <div className="flex flex-col sm:flex-row flex-wrap items-end gap-2">
               <FilterField label={t("perf.search_pair")} className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[160px]">
                 <input
@@ -597,14 +597,14 @@ const AnalyzePage = () => {
                   placeholder="BTC, ETH, SOL..."
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-line/40 transition-colors"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-line/40 transition-colors"
                 />
               </FilterField>
               <FilterField label={t("perf.status")} className="w-full sm:w-auto">
                 <select
                   value={sigStatus}
                   onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
                 >
                   <option value="all">{t("perf.all_status")}</option>
                   <option value="open">Not Hit</option>
@@ -619,7 +619,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigRisk}
                   onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
                 >
                   <option value="all">{t("perf.all_risk")}</option>
                   <option value="low">Low</option>
@@ -631,7 +631,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
                 >
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
@@ -641,7 +641,7 @@ const AnalyzePage = () => {
               </FilterField>
               <button
                 onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
-                className="px-3 py-2 bg-surface-secondary border border-white/[0.06] rounded-sm text-text-primary text-sm hover:border-line/30 transition-colors flex items-center gap-1.5"
+                className="px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm hover:border-line/30 transition-colors flex items-center gap-1.5"
               >
                 {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
                 <span className="font-mono text-[11px] uppercase tracking-wider">
@@ -662,7 +662,7 @@ const AnalyzePage = () => {
         </div>
 
         {sigTotalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.04]">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-ink/[0.04]">
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted tabular-nums">
               <span className="hidden sm:inline">{t("table.page")} </span>
               {sigPage} / {sigTotalPages}
@@ -673,8 +673,8 @@ const AnalyzePage = () => {
                 disabled={sigPage <= 1}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   sigPage <= 1
-                    ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
-                    : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                    ? "text-text-muted/30 cursor-not-allowed bg-ink/[0.02] border border-ink/[0.04]"
+                    : "text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/[0.06]"
                 }`}
               >
                 <IconChevronLeft />
@@ -685,8 +685,8 @@ const AnalyzePage = () => {
                 disabled={sigPage >= sigTotalPages}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   sigPage >= sigTotalPages
-                    ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
-                    : "text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                    ? "text-text-muted/30 cursor-not-allowed bg-ink/[0.02] border border-ink/[0.04]"
+                    : "text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/[0.06]"
                 }`}
               >
                 {t("table.next")}
@@ -737,7 +737,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
       className={`group relative rounded-md p-4 border transition-all overflow-hidden ${
         accent
           ? "bg-gradient-to-b from-gold-primary/[0.07] to-transparent border-line/25"
-          : "bg-surface-raised border-white/[0.06] hover:border-white/[0.13]"
+          : "bg-surface-raised border-ink/[0.06] hover:border-ink/[0.13]"
       }`}
     >
       {accent && (
@@ -785,7 +785,7 @@ const OutcomeDistribution = ({ data, t }) => {
   return (
     <div className="space-y-3">
       {/* Stack bar */}
-      <div className="h-2 rounded-sm overflow-hidden flex bg-white/[0.04] border border-white/[0.04]">
+      <div className="h-2 rounded-sm overflow-hidden flex bg-ink/[0.04] border border-ink/[0.04]">
         {items
           .filter((i) => i.count > 0)
           .map((item, idx) => (
@@ -820,7 +820,7 @@ const OutcomeDistribution = ({ data, t }) => {
               >
                 {item.label}
               </span>
-              <div className="flex-1 h-1 rounded-sm bg-white/[0.04] overflow-hidden">
+              <div className="flex-1 h-1 rounded-sm bg-ink/[0.04] overflow-hidden">
                 <div
                   className="h-full transition-all duration-700"
                   style={{
@@ -943,7 +943,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
 
             <CartesianGrid
               strokeDasharray="2 4"
-              stroke="rgba(255,255,255,0.04)"
+              stroke="rgb(var(--ink) / 0.04)"
               vertical={false}
             />
 
@@ -1033,9 +1033,9 @@ const WinRateTrendChart = ({ data, mode, t }) => {
                 if (!d) return null;
                 const wrColor = d.winRate >= 70 ? "text-profit" : d.winRate >= 55 ? "text-gold-primary" : "text-loss";
                 return (
-                  <div className="bg-surface border border-white/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                  <div className="bg-surface border border-ink/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
                     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-2 pb-2 border-b border-white/[0.04]">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-2 pb-2 border-b border-ink/[0.04]">
                       {d.fullDate || label}
                     </p>
                     <div className="flex items-center justify-between mb-1.5 font-mono text-[10px] uppercase tracking-wider">
@@ -1045,7 +1045,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
                       </div>
                       <span className={`tabular-nums ${wrColor}`}>{d.winRate.toFixed(1)}%</span>
                     </div>
-                    <div className="flex items-center justify-between pt-1.5 border-t border-white/[0.04] font-mono text-[10px] tabular-nums">
+                    <div className="flex items-center justify-between pt-1.5 border-t border-ink/[0.04] font-mono text-[10px] tabular-nums">
                       <span className="text-text-muted uppercase tracking-wider">{d.total} {t("perf.trades")}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-profit/80">{d.winners}W</span>
@@ -1129,7 +1129,7 @@ const RiskRewardChart = ({ data, t }) => {
                 {item.avg_rr.toFixed(2)}R
               </span>
             </div>
-            <div className="h-1.5 rounded-sm bg-white/[0.04] overflow-hidden">
+            <div className="h-1.5 rounded-sm bg-ink/[0.04] overflow-hidden">
               <div
                 className="h-full transition-all duration-700"
                 style={{
@@ -1143,7 +1143,7 @@ const RiskRewardChart = ({ data, t }) => {
       })}
 
       {data.find((d) => d.level === "SL") && (
-        <div className="pt-2 border-t border-white/[0.04]">
+        <div className="pt-2 border-t border-ink/[0.04]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-loss" />
@@ -1207,7 +1207,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
     <div className="h-48 lg:h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--ink) / 0.04)" vertical={false} />
           <XAxis
             dataKey="period"
             stroke="#6b5c52"
@@ -1232,7 +1232,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
               if (!active || !payload?.length) return null;
               const d = payload[0]?.payload;
               return (
-                <div className="bg-surface border border-white/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                <div className="bg-surface border border-ink/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
                   <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
                   <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-1.5">
                     {d?.fullDate || label}
@@ -1334,7 +1334,7 @@ const TopPairsTable = ({ pairs, t }) => {
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-ink/[0.06]">
               {[t("perf.rank"), t("perf.pair"), t("perf.win_rate"), t("perf.closed"), t("perf.wl"), t("perf.best_tp"), t("perf.score")].map((h) => (
                 <th key={h} className="py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70">
                   {h}
@@ -1356,7 +1356,7 @@ const TopPairsTable = ({ pairs, t }) => {
               const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
               const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-gold-primary" : "text-loss";
               return (
-                <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                <tr key={i} className="border-b border-ink/[0.03] hover:bg-ink/[0.02] transition-colors">
                   <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted/70 tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </td>
@@ -1368,7 +1368,7 @@ const TopPairsTable = ({ pairs, t }) => {
                   </td>
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1 rounded-sm bg-white/[0.04] overflow-hidden">
+                      <div className="w-16 h-1 rounded-sm bg-ink/[0.04] overflow-hidden">
                         <div
                           className="h-full bg-profit/70 transition-all duration-500"
                           style={{ width: `${winPct}%` }}
@@ -1415,7 +1415,7 @@ const TopPairsTable = ({ pairs, t }) => {
           const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
           const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-gold-primary" : "text-loss";
           return (
-            <div key={i} className="flex items-center gap-3 py-2 border-b border-white/[0.03]">
+            <div key={i} className="flex items-center gap-3 py-2 border-b border-ink/[0.03]">
               <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
                 {String(i + 1).padStart(2, "0")}
               </span>
@@ -1477,7 +1477,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
         ? "bg-loss/10 text-loss border-loss/25"
         : isOpen
           ? "bg-gold-primary/10 text-gold-primary border-line/25"
-          : "bg-white/[0.04] text-text-muted border-white/[0.06]";
+          : "bg-ink/[0.04] text-text-muted border-ink/[0.06]";
     const labels = {
       open: t("perf.not_hit_badge"),
       tp1: "TP1",
@@ -1501,14 +1501,14 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       return "bg-gold-primary/10 text-gold-primary border-line/25";
     if (rl.startsWith("high"))
       return "bg-loss/10 text-loss border-loss/25";
-    return "bg-white/[0.04] text-text-muted border-white/[0.06]";
+    return "bg-ink/[0.04] text-text-muted border-ink/[0.06]";
   };
 
   if (loading) {
     return (
       <div className="space-y-1.5">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-10 bg-white/[0.03] rounded-sm animate-pulse" />
+          <div key={i} className="h-10 bg-ink/[0.03] rounded-sm animate-pulse" />
         ))}
       </div>
     );
@@ -1528,7 +1528,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-ink/[0.06]">
               {[t("perf.pair"), t("perf.entry"), t("perf.max_target"), t("perf.stop_loss"), t("perf.risk"), t("perf.status"), t("perf.mcap"), t("perf.date")].map((h) => (
                 <th key={h} className="py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70">
                   {h}
@@ -1544,7 +1544,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                 <tr
                   key={i}
                   onClick={() => onSelect(s)}
-                  className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer transition-colors group"
+                  className="border-b border-ink/[0.03] hover:bg-ink/[0.02] cursor-pointer transition-colors group"
                 >
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
@@ -1613,7 +1613,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
             <div
               key={i}
               onClick={() => onSelect(s)}
-              className="bg-surface-raised rounded-md p-3 border border-white/[0.06] active:border-line/25 transition-all cursor-pointer relative overflow-hidden"
+              className="bg-surface-raised rounded-md p-3 border border-ink/[0.06] active:border-line/25 transition-all cursor-pointer relative overflow-hidden"
             >
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="flex items-center justify-between mb-2">
@@ -1637,7 +1637,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   {statusBadge(s.status)}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-white/[0.04]">
+              <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-ink/[0.04]">
                 <div>
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                     {t("perf.entry")}
@@ -1805,25 +1805,25 @@ const IconChevronRight = () => (
 
 const LoadingSkeleton = ({ t }) => (
   <div className="space-y-5">
-    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgb(var(--ink) / .06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
       <div className="skel w-40 h-3" />
     </div>
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="rounded-sm p-4 bg-surface-raised border border-white/[0.06]">
+        <div key={i} className="rounded-sm p-4 bg-surface-raised border border-ink/[0.06]">
           <div className="skel w-16 h-3 mb-2" />
           <div className="skel w-20 h-5" />
         </div>
       ))}
     </div>
-    <div className="bg-surface-raised rounded-md p-5 h-72 border border-white/[0.06]">
+    <div className="bg-surface-raised rounded-md p-5 h-72 border border-ink/[0.06]">
       <div className="skel w-32 h-3 mb-2" />
       <div className="skel w-48 h-3" />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {[...Array(2)].map((_, i) => (
-        <div key={i} className="bg-surface-raised rounded-md p-5 h-56 border border-white/[0.06]" />
+        <div key={i} className="bg-surface-raised rounded-md p-5 h-56 border border-ink/[0.06]" />
       ))}
     </div>
   </div>

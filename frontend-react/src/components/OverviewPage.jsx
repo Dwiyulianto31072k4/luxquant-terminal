@@ -94,15 +94,15 @@ const IconGauge = ({ className = 'w-3.5 h-3.5' }) => (
 // ================================================================
 
 const CardShell = ({ children, className = '', hover = true }) => (
-  <div className={`relative bg-surface-raised rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-white/[0.12] transition-colors' : ''} ${className}`}>
+  <div className={`relative bg-surface-raised rounded-xl border border-ink/[0.06] overflow-hidden ${hover ? 'hover:border-ink/[0.12] transition-colors' : ''} ${className}`}>
     {children}
   </div>
 );
 
 const CardHead = ({ icon, label, right }) => (
-  <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between gap-3 flex-wrap">
+  <div className="px-4 sm:px-5 py-3.5 border-b border-ink/[0.06] bg-ink/[0.015] flex items-center justify-between gap-3 flex-wrap">
     <div className="flex items-center gap-2.5 min-w-0">
-      <span className="w-6 h-6 flex items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-text-primary/65 flex-shrink-0">{icon}</span>
+      <span className="w-6 h-6 flex items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.04] text-text-primary/65 flex-shrink-0">{icon}</span>
       <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary truncate">{label}</h3>
     </div>
     {right}
@@ -219,9 +219,9 @@ const OverviewPage = () => {
           <ShimmerStyles />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-surface-raised rounded-xl border border-white/[0.06] p-4 lg:p-5">
+              <div key={i} className="bg-surface-raised rounded-xl border border-ink/[0.06] p-4 lg:p-5">
                 <div className="lqsk h-2.5 w-20 mb-3"></div>
-                <div className="h-px bg-white/[0.06] mb-3"></div>
+                <div className="h-px bg-ink/[0.06] mb-3"></div>
                 <div className="lqsk h-7 w-28"></div>
               </div>
             ))}
@@ -252,8 +252,8 @@ const OverviewPage = () => {
 
           {/* KEY METRICS */}
           {data && (
-            <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.04]">
+            <div className="relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-ink/[0.04]">
                 <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon={<IconWallet />} />
                 <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon={<IconChart />} />
                 <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon={<IconCrown />} />
@@ -278,7 +278,7 @@ const OverviewPage = () => {
                     <IndicatorRow label={t('overview.eth_dom')} value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} opacity={0.85} />
                     <IndicatorRow label={t('overview.btc_dom')} value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} opacity={1.0} />
                     <IndicatorRow label={t('overview.stable_dom')} value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} opacity={0.55} />
-                    <div className="pt-3 border-t border-white/[0.06] space-y-2.5">
+                    <div className="pt-3 border-t border-ink/[0.06] space-y-2.5">
                       <div className="flex justify-between items-center">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.alt_mcap')}</span>
                         <span className="text-text-primary font-mono text-sm tabular-nums">{formatLargeNumber(data.altcoinMarketCap)}</span>
@@ -400,7 +400,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
                 href={`https://www.coingecko.com/en/categories/${cat.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] px-2 py-0.5 bg-white/[0.04] text-text-primary/70 border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] hover:text-text-primary transition-all rounded-sm"
+                className="font-mono text-[10px] px-2 py-0.5 bg-ink/[0.04] text-text-primary/70 border border-ink/[0.08] hover:bg-ink/[0.07] hover:border-ink/[0.14] hover:text-text-primary transition-all rounded-sm"
               >
                 {cat.name}
               </a>
@@ -409,7 +409,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
         )}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-ink/[0.06]">
         {/* HOT */}
         <div className="p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-3">
@@ -476,14 +476,14 @@ const DerivativesPulseCard = ({ data, t }) => {
                       {netLong ? 'Net Long' : 'Net Short'}
                     </span>
                   </div>
-                  <div className="relative flex h-3.5 overflow-hidden rounded-md bg-white/[0.04]">
+                  <div className="relative flex h-3.5 overflow-hidden rounded-md bg-ink/[0.04]">
                     <div className="bg-gradient-to-r from-emerald-500 to-emerald-400 flex items-center pl-1.5 transition-all duration-700" style={{ width: `${longPct}%` }}>
                       {longPct >= 16 && <span className="font-mono text-[9px] text-black/75 font-bold tabular-nums">{longPct}%</span>}
                     </div>
                     <div className="bg-gradient-to-l from-red-500 to-red-400 flex items-center justify-end pr-1.5 transition-all duration-700" style={{ width: `${shortPct}%` }}>
                       {shortPct >= 16 && <span className="font-mono text-[9px] text-black/75 font-bold tabular-nums">{shortPct}%</span>}
                     </div>
-                    <span className="absolute inset-y-0 left-1/2 w-px bg-white/15 pointer-events-none" />
+                    <span className="absolute inset-y-0 left-1/2 w-px bg-ink/15 pointer-events-none" />
                   </div>
                 </div>
               );
@@ -493,7 +493,7 @@ const DerivativesPulseCard = ({ data, t }) => {
 
         {/* OPEN INTEREST */}
         {oi && (
-          <div className="flex justify-between items-center py-2.5 px-3 bg-white/[0.02] border border-white/[0.06] mb-3 rounded-lg">
+          <div className="flex justify-between items-center py-2.5 px-3 bg-ink/[0.02] border border-ink/[0.06] mb-3 rounded-lg">
             <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.total_oi')}</span>
             <span className="text-text-primary font-mono text-base font-light tabular-nums">{formatLargeNumber(oi.total_usd)}</span>
           </div>
@@ -501,7 +501,7 @@ const DerivativesPulseCard = ({ data, t }) => {
 
         {/* FUNDING */}
         {funding && (
-          <div className="pt-2 border-t border-white/[0.06]">
+          <div className="pt-2 border-t border-ink/[0.06]">
             <div className="flex items-center justify-between mb-2.5">
               <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.funding')}</span>
               <span className={`font-mono text-[10px] tabular-nums ${funding.avg_rate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -543,7 +543,7 @@ const DerivativesPulseCard = ({ data, t }) => {
 const CoinListCard = ({ title, icon, coins, isLoser }) => (
   <CardShell>
     <CardHead icon={icon} label={title} />
-    <div className="divide-y divide-white/[0.04]">
+    <div className="divide-y divide-ink/[0.04]">
       {coins.map((coin, idx) => (
         <CoinRow key={idx} coin={coin} rank={idx + 1} isLoser={isLoser} />
       ))}
@@ -562,7 +562,7 @@ const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
       <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</span>
       <span className="text-text-primary font-mono text-sm tabular-nums">{value}</span>
     </div>
-    <div className="h-1.5 bg-white/[0.04] overflow-hidden rounded-full">
+    <div className="h-1.5 bg-ink/[0.04] overflow-hidden rounded-full">
       <div
         className="h-full transition-all duration-700 rounded-full bg-text-primary"
         style={{
@@ -602,8 +602,8 @@ const TriDown = ({ className = 'w-2 h-2' }) => (
 );
 
 const MetricCard = ({ label, value, change, icon }) => (
-  <div className="group bg-surface-raised flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
-    <span className="w-8 h-8 flex items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-text-primary/60 flex-shrink-0">{icon}</span>
+  <div className="group bg-surface-raised flex items-center gap-3 px-4 py-3.5 hover:bg-ink/[0.02] transition-colors">
+    <span className="w-8 h-8 flex items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.04] text-text-primary/60 flex-shrink-0">{icon}</span>
     <div className="min-w-0">
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted leading-tight truncate">{label}</p>
       <div className="flex items-baseline gap-2 mt-1.5">
@@ -619,17 +619,17 @@ const MetricCard = ({ label, value, change, icon }) => (
 );
 
 const CoinRow = ({ coin, rank, isLoser }) => (
-  <div className="flex items-center justify-between px-4 sm:px-5 py-3 hover:bg-white/[0.02] transition-colors group">
+  <div className="flex items-center justify-between px-4 sm:px-5 py-3 hover:bg-ink/[0.02] transition-colors group">
     <div className="flex items-center gap-3 min-w-0">
       <span className="font-mono text-[10px] text-text-muted/50 tabular-nums w-4 text-right flex-shrink-0">{rank}</span>
       <img
         src={coin.image}
         alt={coin.symbol}
-        className="w-7 h-7 rounded-full border border-white/[0.06] flex-shrink-0"
+        className="w-7 h-7 rounded-full border border-ink/[0.06] flex-shrink-0"
         onError={(e) => { e.target.style.display = 'none'; }}
       />
       <div className="min-w-0">
-        <p className="font-mono text-sm text-text-primary group-hover:text-white transition-colors">{coin.symbol.toUpperCase()}</p>
+        <p className="font-mono text-sm text-text-primary group-hover:text-text-primary transition-colors">{coin.symbol.toUpperCase()}</p>
         <p className="text-text-muted text-[10px] hidden sm:block truncate max-w-[140px]">{coin.name}</p>
       </div>
     </div>
@@ -651,7 +651,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
       href={cgUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="relative flex items-center justify-between py-2 px-2 hover:bg-white/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
+      className="relative flex items-center justify-between py-2 px-2 hover:bg-ink/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
     >
       <div className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? 'bg-red-500/[0.05]' : 'bg-emerald-500/[0.05]'}`} style={{ width: `${fillPct}%` }} />
       <div className="relative flex items-center gap-3 min-w-0 flex-1">
@@ -667,7 +667,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
             />
           ))}
         </div>
-        <span className="text-text-primary text-sm truncate group-hover:text-white transition-colors">{cat.name}</span>
+        <span className="text-text-primary text-sm truncate group-hover:text-text-primary transition-colors">{cat.name}</span>
       </div>
       <div className="relative flex items-center gap-3 flex-shrink-0">
         <span className="font-mono text-[10px] text-text-muted tabular-nums hidden sm:inline">

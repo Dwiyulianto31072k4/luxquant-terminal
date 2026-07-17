@@ -32,8 +32,8 @@ const COLORS = {
   down: "#f43f5e",
   wr: "#34d399",
   wrRaw: "rgba(52, 211, 153, 0.22)",
-  text: "rgba(255,255,255,0.40)",
-  grid: "rgba(255,255,255,0.04)",
+  text: "rgb(var(--ink) / 0.40)",
+  grid: "rgb(var(--ink) / 0.04)",
 };
 
 const timeToKey = (t) =>
@@ -471,7 +471,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                 className={`px-3 py-1 text-[10px] uppercase tracking-widest rounded border transition-colors ${
                   rangeId === r.id
                     ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
-                    : "border-white/10 text-text-primary/40 hover:text-text-primary/70"
+                    : "border-ink/10 text-text-primary/40 hover:text-text-primary/70"
                 }`}
               >
                 {r.label}
@@ -482,7 +482,7 @@ const WrVsBtcTab = ({ onDrill }) => {
               className={`ml-1 px-3 py-1 text-[10px] uppercase tracking-widest rounded border transition-colors ${
                 smoothOn
                   ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
-                  : "border-white/10 text-text-primary/40 hover:text-text-primary/70"
+                  : "border-ink/10 text-text-primary/40 hover:text-text-primary/70"
               }`}
               title="Toggle rolling smoothing on the WR line"
             >
@@ -491,26 +491,26 @@ const WrVsBtcTab = ({ onDrill }) => {
           </div>
           {stats && (
             <div className="flex flex-wrap gap-2">
-              <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-emerald-300">
+              <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-emerald-300">
                 WR {stats.wr ?? "—"}%
                 <span className="text-text-primary/30 ml-1">
                   · {range.label} · {stats.totalClosed.toLocaleString()} closed
                 </span>
               </span>
               {stats.best && (
-                <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
+                <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
                   Best <span className="text-emerald-300">{stats.best.win_rate}%</span>{" "}
                   <span className="text-text-primary/30">{stats.best.date}</span>
                 </span>
               )}
               {stats.worst && (
-                <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
+                <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
                   Worst <span className="text-rose-300">{stats.worst.win_rate}%</span>{" "}
                   <span className="text-text-primary/30">{stats.worst.date}</span>
                 </span>
               )}
               {stats.btcDelta != null && (
-                <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
+                <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
                   BTC{" "}
                   <span className={stats.btcDelta >= 0 ? "text-emerald-300" : "text-rose-300"}>
                     {stats.btcDelta >= 0 ? "+" : ""}
@@ -559,7 +559,7 @@ const WrVsBtcTab = ({ onDrill }) => {
         >
           {/* headline chips */}
           <div className="flex flex-wrap gap-2 mb-4">
-            <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-text-primary/70">
+            <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/70">
               Correlation r{" "}
               <span className={Math.abs(analysis.r) >= 0.4 ? "text-amber-300" : "text-text-primary/85"}>
                 {analysis.r >= 0 ? "+" : ""}
@@ -568,7 +568,7 @@ const WrVsBtcTab = ({ onDrill }) => {
               <span className="text-text-primary/35">({analysis.strength})</span>
             </span>
             {analysis.upWr != null && analysis.downWr != null && (
-              <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-text-primary/70">
+              <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/70">
                 BTC up days <span className="text-emerald-300">{analysis.upWr}%</span>
                 <span className="text-text-primary/35 mx-1.5">vs</span>
                 down days <span className="text-rose-300">{analysis.downWr}%</span>
@@ -602,8 +602,8 @@ const WrVsBtcTab = ({ onDrill }) => {
             <div className="text-[10px] uppercase tracking-widest text-text-primary/35 mb-2">
               WR by same-day BTC move
             </div>
-            <div className="rounded-lg border border-white/[0.06] overflow-hidden">
-              <div className="grid grid-cols-[1.2fr_0.55fr_0.7fr_0.8fr_0.85fr_1.3fr] gap-2 px-3 py-2 text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30 border-b border-white/[0.05]">
+            <div className="rounded-lg border border-ink/[0.06] overflow-hidden">
+              <div className="grid grid-cols-[1.2fr_0.55fr_0.7fr_0.8fr_0.85fr_1.3fr] gap-2 px-3 py-2 text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30 border-b border-ink/[0.05]">
                 <span>BTC day</span>
                 <span className="text-right">Days</span>
                 <span className="text-right">Closed</span>
@@ -614,7 +614,7 @@ const WrVsBtcTab = ({ onDrill }) => {
               {analysis.buckets.map((b) => (
                 <div
                   key={b.id}
-                  className="grid grid-cols-[1.2fr_0.55fr_0.7fr_0.8fr_0.85fr_1.3fr] gap-2 px-3 py-2 text-[11px] font-mono tabular-nums border-b border-white/[0.04] last:border-0 items-center"
+                  className="grid grid-cols-[1.2fr_0.55fr_0.7fr_0.8fr_0.85fr_1.3fr] gap-2 px-3 py-2 text-[11px] font-mono tabular-nums border-b border-ink/[0.04] last:border-0 items-center"
                 >
                   <span className="text-text-primary/70">{b.label}</span>
                   <span className="text-right text-text-primary/45">{b.days}</span>
@@ -653,7 +653,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                           {b.delta >= 0 ? "+" : ""}
                           {b.delta}pp
                         </span>
-                        <span className="w-20 h-1.5 rounded-full bg-white/[0.05] overflow-hidden flex">
+                        <span className="w-20 h-1.5 rounded-full bg-ink/[0.05] overflow-hidden flex">
                           <span
                             className="h-full rounded-full"
                             style={{
@@ -689,7 +689,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                   <button
                     key={d.date}
                     onClick={() => drillDay(d)}
-                    className="group text-left rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-amber-400/35 hover:bg-white/[0.04] transition p-3"
+                    className="group text-left rounded-lg border border-ink/[0.06] bg-ink/[0.02] hover:border-amber-400/35 hover:bg-ink/[0.04] transition p-3"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-mono text-text-primary/45">{d.date}</span>

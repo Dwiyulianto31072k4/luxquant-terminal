@@ -20,7 +20,7 @@ const SectionLabel = ({ children, subtitle, step }) => (
           <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
             {step}
           </span>
-          <span className="h-px w-3 bg-white/[0.08]" />
+          <span className="h-px w-3 bg-ink/[0.08]" />
         </>
       )}
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
@@ -54,14 +54,14 @@ const Toggle = ({ label, hint, checked, onChange, disabled }) => (
       className={`relative shrink-0 w-10 h-5 rounded-full transition-colors border ${
         checked
           ? "bg-gold-primary/80 border-gold-primary"
-          : "bg-white/[0.04] border-white/[0.08]"
+          : "bg-ink/[0.04] border-ink/[0.08]"
       }`}
     >
       <span
         className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${
           checked
             ? "translate-x-[20px] bg-surface-raised"
-            : "translate-x-0.5 bg-white/40"
+            : "translate-x-0.5 bg-ink/40"
         }`}
       />
     </button>
@@ -85,7 +85,7 @@ const NumberField = ({ label, value, onChange, min, max, step = 1, suffix = "", 
       min={min}
       max={max}
       step={step}
-      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono tabular-nums focus:outline-none focus:border-line/40 transition-colors"
+      className="w-full px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary font-mono tabular-nums focus:outline-none focus:border-line/40 transition-colors"
     />
     {hint && (
       <p className="text-[10px] font-mono text-text-muted/60 mt-1.5 leading-relaxed">
@@ -103,7 +103,7 @@ const SelectField = ({ label, value, onChange, options, hint }) => (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary font-mono focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+      className="w-full px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary font-mono focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value} className="bg-surface-raised text-text-primary">
@@ -171,7 +171,7 @@ export default function ConfigPanel({ account, onClose }) {
   // ── Loading ──
   if (!config) {
     return (
-      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
+      <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="w-8 h-8 border-2 border-line/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
         <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
@@ -185,12 +185,12 @@ export default function ConfigPanel({ account, onClose }) {
   // RENDER
   // ════════════════════════════════════════
   return (
-    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
       {/* Top hairline */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
       {/* ── STICKY HEADER ── */}
-      <div className="sticky top-0 z-20 bg-surface-raised/95 backdrop-blur border-b border-white/[0.06] px-5 py-4">
+      <div className="sticky top-0 z-20 bg-surface-raised/95 backdrop-blur border-b border-ink/[0.06] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-text-primary tracking-tight capitalize">
@@ -215,7 +215,7 @@ export default function ConfigPanel({ account, onClose }) {
             )}
             <button
               onClick={onClose}
-              className="px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-all"
+              className="px-3 py-2 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-ink/[0.15] transition-all"
             >
               Close
             </button>
@@ -230,9 +230,9 @@ export default function ConfigPanel({ account, onClose }) {
                       color: "rgb(var(--surface))",
                     }
                   : {
-                      background: "rgba(255,255,255,0.04)",
+                      background: "rgb(var(--ink) / 0.04)",
                       color: "rgba(155,155,155,0.5)",
-                      border: "1px solid rgba(255,255,255,0.06)",
+                      border: "1px solid rgb(var(--ink) / 0.06)",
                     }
               }
             >
@@ -503,10 +503,10 @@ export default function ConfigPanel({ account, onClose }) {
         </section>
 
         {/* ── STICKY FOOTER ── */}
-        <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-surface-raised/95 backdrop-blur border-t border-white/[0.06] flex gap-2">
+        <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-surface-raised/95 backdrop-blur border-t border-ink/[0.06] flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-md border border-white/[0.08] text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-all"
+            className="flex-1 px-4 py-2.5 rounded-md border border-ink/[0.08] text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-ink/[0.15] transition-all"
           >
             Close
           </button>
@@ -521,9 +521,9 @@ export default function ConfigPanel({ account, onClose }) {
                     color: "rgb(var(--surface))",
                   }
                 : {
-                    background: "rgba(255,255,255,0.04)",
+                    background: "rgb(var(--ink) / 0.04)",
                     color: "rgba(155,155,155,0.5)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    border: "1px solid rgb(var(--ink) / 0.06)",
                   }
             }
           >

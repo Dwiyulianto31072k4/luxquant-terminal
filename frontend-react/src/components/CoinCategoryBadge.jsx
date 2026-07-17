@@ -202,7 +202,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
         e.stopPropagation();
         if (onClick) onClick(coinData);
       }}
-      className="group flex items-center gap-1.5 max-w-full text-left rounded-md hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors px-1 -mx-1 py-0.5 flex-wrap"
+      className="group flex items-center gap-1.5 max-w-full text-left rounded-md hover:bg-ink/[0.03] active:bg-ink/[0.05] transition-colors px-1 -mx-1 py-0.5 flex-wrap"
       title="Click for full categorization details"
     >
       {/* Pill 1: Type (e.g., "✓ Utility" or "⚠ Meme") */}
@@ -215,7 +215,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
 
       {/* Pill 2: Sector (subtle, secondary) */}
       {sectorLabel && (
-        <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-white/[0.04] text-text-primary/60 border-white/10">
+        <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-ink/[0.04] text-text-primary/60 border-ink/10">
           {sectorLabel}
         </span>
       )}

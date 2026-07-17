@@ -110,7 +110,7 @@ const SectionHeader = ({ label, right }) => (
 
 const Card = ({ children, className = "", glow = false }) => (
   <div
-    className={`relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-lg ${
+    className={`relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-lg ${
       glow ? "shadow-[0_0_40px_-12px_rgba(212,175,55,0.15)]" : ""
     } ${className}`}
   >
@@ -163,10 +163,10 @@ const sortRows = (rows, sort, valFn) =>
 const TableSkeleton = ({ rows = 8, cols = 4 }) => (
   <tbody>
     {[...Array(rows)].map((_, i) => (
-      <tr key={i} className="border-b border-white/[0.05]">
+      <tr key={i} className="border-b border-ink/[0.05]">
         {[...Array(cols)].map((__, k) => (
           <td key={k} className="py-3 px-3">
-            <div className={`h-3 rounded bg-white/[0.05] animate-pulse ${k === 0 ? "w-2/3" : "w-12 ml-auto"}`} />
+            <div className={`h-3 rounded bg-ink/[0.05] animate-pulse ${k === 0 ? "w-2/3" : "w-12 ml-auto"}`} />
           </td>
         ))}
       </tr>
@@ -176,14 +176,14 @@ const TableSkeleton = ({ rows = 8, cols = 4 }) => (
 
 // Mobile card skeleton (shown < sm, in place of the table skeleton)
 const CardSkeleton = ({ rows = 6 }) => (
-  <div className="divide-y divide-white/[0.05]">
+  <div className="divide-y divide-ink/[0.05]">
     {[...Array(rows)].map((_, i) => (
       <div key={i} className="px-3 py-3.5">
-        <div className="h-3 w-1/2 bg-white/[0.05] rounded animate-pulse mb-3" />
+        <div className="h-3 w-1/2 bg-ink/[0.05] rounded animate-pulse mb-3" />
         <div className="grid grid-cols-3 gap-2">
-          <div className="h-3 bg-white/[0.04] rounded animate-pulse" />
-          <div className="h-3 bg-white/[0.04] rounded animate-pulse" />
-          <div className="h-3 bg-white/[0.04] rounded animate-pulse" />
+          <div className="h-3 bg-ink/[0.04] rounded animate-pulse" />
+          <div className="h-3 bg-ink/[0.04] rounded animate-pulse" />
+          <div className="h-3 bg-ink/[0.04] rounded animate-pulse" />
         </div>
       </div>
     ))}
@@ -201,9 +201,9 @@ const StatCell = ({ label, value, color = "text-text-primary", align = "left" })
 const IntensityBar = ({ value, max, gold = false }) => {
   const pct = Math.max(4, Math.min(100, ((value || 0) / (max || 1)) * 100));
   return (
-    <div className="h-1 w-full rounded-full bg-white/[0.05] overflow-hidden mt-1">
+    <div className="h-1 w-full rounded-full bg-ink/[0.05] overflow-hidden mt-1">
       <div
-        className={`h-full rounded-full transition-all duration-700 ${gold ? "bg-gold-primary/70" : "bg-white/30"}`}
+        className={`h-full rounded-full transition-all duration-700 ${gold ? "bg-gold-primary/70" : "bg-ink/30"}`}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -213,7 +213,7 @@ const IntensityBar = ({ value, max, gold = false }) => {
 const ShowMore = ({ expanded, total, onClick }) => (
   <button
     onClick={onClick}
-    className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted hover:text-gold-primary border-t border-white/[0.04] transition-colors"
+    className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted hover:text-gold-primary border-t border-ink/[0.04] transition-colors"
   >
     {expanded ? "Show less" : `Show all ${total}`}
   </button>
@@ -232,7 +232,7 @@ const SearchBox = ({ value, onChange, placeholder = "Search…" }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-line/40 focus:outline-none"
+      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-ink/30 font-mono text-[11px] focus:border-line/40 focus:outline-none"
     />
   </div>
 );
@@ -266,7 +266,7 @@ const IconWhale = () => (
 const Gauge = ({ value, label, sub, subColor, accent = "gold" }) => {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   const bar =
-    accent === "gold" ? "bg-gold-primary" : accent === "emerald" ? "bg-emerald-400" : "bg-white/60";
+    accent === "gold" ? "bg-gold-primary" : accent === "emerald" ? "bg-emerald-400" : "bg-ink/60";
   return (
     <Card className="p-4">
       <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70 mb-2">{label}</div>
@@ -276,7 +276,7 @@ const Gauge = ({ value, label, sub, subColor, accent = "gold" }) => {
         </span>
         {sub && <span className={`font-mono text-[10px] tabular-nums ${subColor || "text-text-muted/60"}`}>{sub}</span>}
       </div>
-      <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+      <div className="h-1 rounded-full bg-ink/[0.05] overflow-hidden">
         <div className={`h-full rounded-full ${bar} transition-all duration-700`} style={{ width: `${pct}%` }} />
       </div>
     </Card>
@@ -396,7 +396,7 @@ const SectorsTab = ({ q }) => {
         {/* Desktop / tablet table (≥ sm) */}
         <table className="hidden sm:table w-full border-collapse table-fixed">
           <thead>
-            <tr className="border-b border-white/[0.08]">
+            <tr className="border-b border-ink/[0.08]">
               <th className="py-2.5 px-2 sm:px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35 w-10">#</th>
               <Th label="Sector" sortKey="name" sort={sort} onSort={onSort} align="left" />
               <Th label="24h" sortKey="mcap_change_24h" sort={sort} onSort={onSort} className="w-24" />
@@ -415,7 +415,7 @@ const SectorsTab = ({ q }) => {
                   <tr
                     key={s.category_id}
                     onClick={() => setSelectedSector(s)}
-                    className="group border-b border-white/[0.05] hover:bg-gold-primary/[0.04] cursor-pointer transition-colors"
+                    className="group border-b border-ink/[0.05] hover:bg-gold-primary/[0.04] cursor-pointer transition-colors"
                   >
                     <td className="py-3 px-2 sm:px-3 font-mono text-xs tabular-nums text-text-muted/50">
                       {String(i + 1).padStart(2, "0")}
@@ -424,7 +424,7 @@ const SectorsTab = ({ q }) => {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="flex -space-x-1.5 shrink-0">
                           {(s.top_3_coins || []).slice(0, 3).map((url, k) => (
-                            <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-surface-raised bg-white/5" onError={(e) => (e.target.style.display = "none")} />
+                            <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-surface-raised bg-ink/5" onError={(e) => (e.target.style.display = "none")} />
                           ))}
                         </div>
                         <span className="text-text-primary text-sm truncate group-hover:text-gold-primary transition-colors">{s.name}</span>
@@ -458,7 +458,7 @@ const SectorsTab = ({ q }) => {
         <div className="sm:hidden">
           {loading && <CardSkeleton rows={8} />}
           {!loading && !err && rows.length > 0 && (
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-ink/[0.05]">
               {rows.map((s, i) => {
                 const isLeader = leaderIds.includes(s.category_id);
                 return (
@@ -476,7 +476,7 @@ const SectorsTab = ({ q }) => {
                       </span>
                       <div className="flex -space-x-1.5 shrink-0">
                         {(s.top_3_coins || []).slice(0, 3).map((url, k) => (
-                          <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-surface-raised bg-white/5" onError={(e) => (e.target.style.display = "none")} />
+                          <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-surface-raised bg-ink/5" onError={(e) => (e.target.style.display = "none")} />
                         ))}
                       </div>
                       <span className="text-text-primary text-sm truncate flex-1">{s.name}</span>
@@ -547,8 +547,8 @@ const FlowFilterChip = ({ active, gold, onClick, children }) => (
       active
         ? gold
           ? "bg-gold-primary/15 text-gold-primary border-line/40"
-          : "bg-white/[0.08] text-text-primary border-white/20"
-        : "bg-white/[0.04] text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
+          : "bg-ink/[0.08] text-text-primary border-ink/20"
+        : "bg-ink/[0.04] text-text-muted border-ink/[0.1] hover:text-text-primary hover:border-ink/20"
     }`}
   >
     {children}
@@ -561,7 +561,7 @@ const DexRow = ({ p }) => {
   const total = b + s || 1;
   const buyPct = (b / total) * 100;
   return (
-    <div className="px-4 py-3.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.05] last:border-b-0">
+    <div className="px-4 py-3.5 hover:bg-ink/[0.02] transition-colors border-b border-ink/[0.05] last:border-b-0">
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-text-primary text-sm font-medium truncate">{p.base_symbol || p.name}</span>
@@ -569,7 +569,7 @@ const DexRow = ({ p }) => {
             <span className={`shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
               p.flow_tag === "net_buying" ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/10"
               : p.flow_tag === "net_selling" ? "text-red-400 border-red-500/25 bg-red-500/10"
-              : "text-text-primary/60 border-white/[0.08] bg-white/[0.03]"
+              : "text-text-primary/60 border-ink/[0.08] bg-ink/[0.03]"
             }`}>
               {FLOW_LABEL[p.flow_tag]}
             </span>
@@ -702,7 +702,7 @@ const CoinsTab = ({ q }) => {
           {/* Desktop / tablet table (≥ sm) */}
           <table className="hidden sm:table w-full border-collapse table-fixed">
             <thead>
-              <tr className="border-b border-white/[0.08]">
+              <tr className="border-b border-ink/[0.08]">
                 <Th label="Coin" sortKey="symbol" sort={sort} onSort={onSort} align="left" />
                 <Th label="24h" sortKey="price_change_24h" sort={sort} onSort={onSort} className="w-24" />
                 <Th label="Flow / Vol" sortKey="flow_intensity" sort={sort} onSort={onSort} className="hidden md:table-cell w-28" />
@@ -726,9 +726,9 @@ const CoinsTab = ({ q }) => {
                       tabIndex={clickable ? 0 : undefined}
                       onClick={clickable ? () => openSignal(c) : undefined}
                       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSignal(c); } } : undefined}
-                      className={`group/row border-b border-white/[0.05] transition-colors ${
+                      className={`group/row border-b border-ink/[0.05] transition-colors ${
                         called ? "border-l-2 border-l-gold-primary/50" : "border-l-2 border-l-transparent"
-                      } ${clickable ? "cursor-pointer hover:bg-gold-primary/[0.06]" : "hover:bg-white/[0.02]"}`}
+                      } ${clickable ? "cursor-pointer hover:bg-gold-primary/[0.06]" : "hover:bg-ink/[0.02]"}`}
                     >
                       {/* Coin */}
                       <td className="py-3 px-2 sm:px-3">
@@ -766,7 +766,7 @@ const CoinsTab = ({ q }) => {
                       <td className="py-3 px-2 sm:px-3 text-right">
                         {c.turnover_tag && (
                           <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                            hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
+                            hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-ink/[0.08] bg-ink/[0.03]"
                           }`}>
                             {TURNOVER_LABEL[c.turnover_tag]}
                           </span>
@@ -783,7 +783,7 @@ const CoinsTab = ({ q }) => {
           <div className="sm:hidden">
             {loading && <CardSkeleton rows={8} />}
             {!loading && rows.length > 0 && (
-              <div className="divide-y divide-white/[0.05]">
+              <div className="divide-y divide-ink/[0.05]">
                 {shownCoins.map((c) => {
                   const called = c.is_luxquant_signal;
                   const clickable = called;
@@ -828,7 +828,7 @@ const CoinsTab = ({ q }) => {
                         <div className="justify-self-end">
                           {c.turnover_tag && (
                             <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                              hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
+                              hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-ink/[0.08] bg-ink/[0.03]"
                             }`}>
                               {TURNOVER_LABEL[c.turnover_tag]}
                             </span>
@@ -870,11 +870,11 @@ const CoinsTab = ({ q }) => {
 
         <Card glow>
           {dexLoading && (
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-ink/[0.04]">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="px-4 py-4">
-                  <div className="h-3 bg-white/[0.05] rounded w-1/3 animate-pulse mb-2" />
-                  <div className="h-1.5 bg-white/[0.03] rounded w-full animate-pulse" />
+                  <div className="h-3 bg-ink/[0.05] rounded w-1/3 animate-pulse mb-2" />
+                  <div className="h-1.5 bg-ink/[0.03] rounded w-full animate-pulse" />
                 </div>
               ))}
             </div>
@@ -884,10 +884,10 @@ const CoinsTab = ({ q }) => {
           )}
           {!dexLoading && dexPools.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2">
-              <div className="divide-y divide-white/[0.04] lg:border-r lg:border-white/[0.05]">
+              <div className="divide-y divide-ink/[0.04] lg:border-r lg:border-ink/[0.05]">
                 {shownDex.filter((_, i) => i % 2 === 0).map((p) => <DexRow key={p.pool_address} p={p} />)}
               </div>
-              <div className="divide-y divide-white/[0.04]">
+              <div className="divide-y divide-ink/[0.04]">
                 {shownDex.filter((_, i) => i % 2 === 1).map((p) => <DexRow key={p.pool_address} p={p} />)}
               </div>
             </div>
@@ -946,7 +946,7 @@ export default function MoneyFlowPage() {
       </div>
 
       {/* Tab bar + contextual search (underline tabs — UX best practice for content nav) */}
-      <div className="flex items-end justify-between gap-3 border-b border-white/[0.07] mb-6">
+      <div className="flex items-end justify-between gap-3 border-b border-ink/[0.07] mb-6">
         <div role="tablist" aria-label="Money Flow sections" className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
           {TABS.map((tb) => {
             const active = tab === tb.key;

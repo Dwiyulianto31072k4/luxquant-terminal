@@ -94,8 +94,8 @@ export default function TheRead({ data }) {
   return (
     <div className="space-y-4">
       {/* ════════ WHY THIS UPDATED — quiet event strip ════════ */}
-      <div className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-surface-raised p-3.5">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-[13px] text-text-secondary">
+      <div className="flex items-start gap-3 rounded-xl border border-ink/[0.07] bg-surface-raised p-3.5">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-ink/10 bg-ink/[0.04] text-[13px] text-text-secondary">
           ↻
         </span>
         <div className="min-w-0 flex-1">
@@ -106,8 +106,8 @@ export default function TheRead({ data }) {
             <span
               className={`rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.12em] ${
                 isAnomaly
-                  ? "border-white/15 bg-white/[0.06] text-text-primary/80"
-                  : "border-white/[0.1] bg-white/[0.03] text-text-muted/70"
+                  ? "border-ink/15 bg-ink/[0.06] text-text-primary/80"
+                  : "border-ink/[0.1] bg-ink/[0.03] text-text-muted/70"
               }`}
             >
               {isAnomaly ? "Market-move trigger" : "Baseline read"}
@@ -172,7 +172,7 @@ export default function TheRead({ data }) {
             <div className="flex w-full shrink-0 flex-col items-center gap-3 md:w-auto">
               <StanceGauge value={conf} dir={tactical.direction} />
               {drivers.length > 0 && (
-                <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-white/[0.06] bg-surface-secondary p-3.5">
+                <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted/60">Driver agreement</span>
                     <span className="font-mono text-[12px] tabular-nums text-text-primary/85">{aligned}/{drivers.length}</span>
@@ -201,7 +201,7 @@ export default function TheRead({ data }) {
 
           {/* driver breakdown — each driver, its number, and why it reads that way */}
           {drivers.length > 0 && (
-            <div className="mt-6 border-t border-white/[0.06] pt-5">
+            <div className="mt-6 border-t border-ink/[0.06] pt-5">
               <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/80">
                 What's driving the read — and why
               </p>
@@ -213,7 +213,7 @@ export default function TheRead({ data }) {
                   const ev = r.evidence?.[0];
                   const why = r.rationale || ev?.note || null;
                   return (
-                    <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
+                    <div key={r.key} className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[13px] font-semibold text-text-primary/90">{r.label}</span>
                         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
@@ -223,7 +223,7 @@ export default function TheRead({ data }) {
 
                       {/* the actual number behind the call */}
                       {ev ? (
-                        <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-white/[0.05] bg-black/25 px-2.5 py-1.5">
+                        <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-ink/[0.05] bg-scrim/25 px-2.5 py-1.5">
                           <span className="truncate text-[11.5px] text-text-primary/60">{ev.metric}</span>
                           <Num className="shrink-0 text-[12.5px] text-text-primary">{ev.value ?? "—"}</Num>
                         </div>
@@ -279,7 +279,7 @@ export default function TheRead({ data }) {
           <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             {drivers.map((r) => (
               (r.evidence?.length > 0) && (
-                <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
+                <div key={r.key} className="min-w-0 rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5">
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">{r.label}</span>
                     {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}
@@ -319,7 +319,7 @@ export default function TheRead({ data }) {
 
           {/* risk scenarios */}
           {risks.length > 0 && (
-            <div className="mt-5 border-t border-white/[0.06] pt-4">
+            <div className="mt-5 border-t border-ink/[0.06] pt-4">
               <button
                 onClick={() => setShowRisks((v) => !v)}
                 className="flex items-center gap-2 font-display text-[13px] font-semibold text-text-primary transition hover:text-text-secondary"
@@ -330,7 +330,7 @@ export default function TheRead({ data }) {
               {showRisks && (
                 <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                   {risks.map((rk, i) => (
-                    <div key={i} className="rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
+                    <div key={i} className="rounded-lg border border-ink/[0.05] bg-surface-secondary p-3.5">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
                         <span className="text-[13px] font-medium text-text-primary/90">{rk.title}</span>
                         <Tag tone={normDir(rk.severity) === "down" ? "down" : rk.severity === "high" ? "down" : rk.severity === "medium" ? "neutral" : "muted"}>
@@ -338,7 +338,7 @@ export default function TheRead({ data }) {
                         </Tag>
                       </div>
                       {rk.threshold ? (
-                        <p className="rounded-md border border-white/[0.06] bg-black/25 px-2.5 py-1.5 font-mono text-[11px] text-text-primary/70">
+                        <p className="rounded-md border border-ink/[0.06] bg-scrim/25 px-2.5 py-1.5 font-mono text-[11px] text-text-primary/70">
                           {rk.threshold}
                         </p>
                       ) : null}

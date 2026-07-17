@@ -80,7 +80,7 @@ const computeWhaleThreshold = (alerts) => {
 const typeStyle = (t) => {
   const gold = "bg-gold-primary/10 text-gold-primary border-line/25";
   const danger = "bg-red-500/10 text-red-400 border-red-500/25";
-  const neutral = "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
+  const neutral = "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 
   const map = {
     whale_transfer: gold,
@@ -117,7 +117,7 @@ const chainDot = (c) => {
     Optimism: "bg-rose-400",
     Sui: "bg-cyan-400",
   };
-  return map[c] || "bg-white/40";
+  return map[c] || "bg-ink/40";
 };
 
 
@@ -330,11 +330,11 @@ const OnchainPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 text-[11px] font-mono">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="uppercase tracking-[0.15em]">Live</span>
             </span>
-            <span className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
+            <span className="px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
               <span className="uppercase tracking-[0.15em] text-[10px]">Auto-refresh</span>
               <span className="ml-2 text-text-primary tabular-nums">60s</span>
             </span>
@@ -365,7 +365,7 @@ const OnchainPage = () => {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
+                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 {label}
@@ -393,7 +393,7 @@ const OnchainPage = () => {
                 className={`shrink-0 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
+                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 {label}
@@ -423,14 +423,14 @@ const OnchainPage = () => {
               placeholder="Search title or raw text..."
               value={search}
               onChange={handleSearch}
-              className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
+              className="w-full pl-9 pr-4 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
             />
           </div>
 
           <select
             value={chainFilter}
             onChange={(e) => handleChain(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Chain: All</option>
             {(stats?.by_blockchain || []).slice(0, 12).map((c) => (
@@ -443,7 +443,7 @@ const OnchainPage = () => {
           <select
             value={sourceFilter}
             onChange={(e) => handleSource(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Source: All</option>
             {(stats?.by_source || []).map((s) => (
@@ -456,7 +456,7 @@ const OnchainPage = () => {
           <select
             value={tokenFilter}
             onChange={(e) => handleToken(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+            className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Token: All</option>
             {(stats?.by_token || []).slice(0, 15).map((t) => (
@@ -559,7 +559,7 @@ const SectionHeader = ({ label, small = false }) => (
 // STAT CARD
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel, isLive, isGold }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
     <div className="relative z-10">
@@ -596,7 +596,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       className={`group relative cursor-pointer transition-colors rounded-md border overflow-hidden ${
         isHighlight
           ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-line/20 hover:border-line/40"
-          : "bg-surface-raised border-white/[0.06] hover:border-white/[0.12]"
+          : "bg-surface-raised border-ink/[0.06] hover:border-ink/[0.12]"
       }`}
     >
       {isHighlight && (
@@ -604,7 +604,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       )}
 
       <div className="flex items-center gap-3 p-3 sm:p-3.5">
-        <div className="shrink-0 w-10 h-10 rounded bg-white/[0.03] border border-white/[0.06] flex items-center justify-center overflow-hidden">
+        <div className="shrink-0 w-10 h-10 rounded bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center overflow-hidden">
           {alert.has_photo && alert.image_url ? (
             <img
               src={alert.image_url}
@@ -677,9 +677,9 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
 // SIDEBAR COMPONENTS
 // ════════════════════════════════════════════════════════════════
 const SidebarCard = ({ label, children }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="px-3.5 py-3 border-b border-white/[0.04]">
+    <div className="px-3.5 py-3 border-b border-ink/[0.04]">
       <span className="text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-mono">
         {label}
       </span>
@@ -701,7 +701,7 @@ const SidebarTrendingTokens = ({ stats, onTokenClick, activeToken }) => {
               key={t.token}
               onClick={() => onTokenClick(active ? "all" : t.token)}
               className={`w-full flex items-center justify-between py-1.5 px-2 rounded transition-colors ${
-                active ? "bg-gold-primary/[0.08]" : "hover:bg-white/[0.03]"
+                active ? "bg-gold-primary/[0.08]" : "hover:bg-ink/[0.03]"
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -745,7 +745,7 @@ const SidebarBlockchains = ({ stats, onChainClick, activeChain }) => {
               key={c.blockchain}
               onClick={() => onChainClick(active ? "all" : c.blockchain)}
               className={`relative w-full py-1.5 px-2 rounded transition-colors ${
-                active ? "bg-gold-primary/[0.08]" : "hover:bg-white/[0.03]"
+                active ? "bg-gold-primary/[0.08]" : "hover:bg-ink/[0.03]"
               }`}
             >
               <div
@@ -778,7 +778,7 @@ const SidebarLargestMoves = ({ stats }) => {
         {moves.map((m, i) => (
           <div
             key={i}
-            className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/[0.03] transition-colors"
+            className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-ink/[0.03] transition-colors"
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
@@ -820,7 +820,7 @@ const SidebarSources = ({ stats, onSourceClick, activeSource }) => {
               key={s.source}
               onClick={() => onSourceClick(active ? "all" : s.source)}
               className={`relative w-full py-1.5 px-2 rounded transition-colors ${
-                active ? "bg-gold-primary/[0.08]" : "hover:bg-white/[0.03]"
+                active ? "bg-gold-primary/[0.08]" : "hover:bg-ink/[0.03]"
               }`}
             >
               <div
@@ -866,20 +866,20 @@ const AlertModal = ({ alert, onClose }) => {
       className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-sm" />
 
       <div
-        className="relative w-full max-w-xl bg-surface-raised border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.65)] max-h-[min(92dvh,100%)] flex flex-col"
+        className="relative w-full max-w-xl bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] max-h-[min(92dvh,100%)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
 
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-md bg-black/40 border border-white/[0.06] flex items-center justify-center text-text-muted hover:text-text-primary hover:border-white/[0.15] transition-colors font-mono text-sm"
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-md bg-scrim/40 border border-ink/[0.06] flex items-center justify-center text-text-muted hover:text-text-primary hover:border-ink/[0.15] transition-colors font-mono text-sm"
         >
           ✕
         </button>
@@ -887,7 +887,7 @@ const AlertModal = ({ alert, onClose }) => {
         <div className="overflow-y-auto">
           {alert.image_url && (
             <div
-              className="bg-black/60 flex items-center justify-center border-b border-white/[0.04]"
+              className="bg-scrim/60 flex items-center justify-center border-b border-ink/[0.04]"
               style={{ minHeight: "160px", maxHeight: "400px" }}
             >
               <img
@@ -909,7 +909,7 @@ const AlertModal = ({ alert, onClose }) => {
                 {typeLabel(alert.alert_type)}
               </span>
               {alert.blockchain && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-text-primary/70 inline-flex items-center gap-1.5">
+                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-primary/70 inline-flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${chainDot(alert.blockchain)}`} />
                   {alert.blockchain}
                 </span>
@@ -920,14 +920,14 @@ const AlertModal = ({ alert, onClose }) => {
                 </span>
               )}
               {alert.source_name && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-text-primary/70">
+                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-primary/70">
                   {alert.source_name}
                 </span>
               )}
             </div>
 
             {alert.amount_usd && (
-              <div className="relative overflow-hidden bg-white/[0.02] border border-white/[0.06] rounded-md p-5">
+              <div className="relative overflow-hidden bg-ink/[0.02] border border-ink/[0.06] rounded-md p-5">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                 <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
                   Amount
@@ -946,7 +946,7 @@ const AlertModal = ({ alert, onClose }) => {
             {(alert.from_entity || alert.to_entity) && (
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
                 {alert.from_entity ? (
-                  <div className="p-3 rounded-md bg-white/[0.02] border border-white/[0.06]">
+                  <div className="p-3 rounded-md bg-ink/[0.02] border border-ink/[0.06]">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-1">
                       From
                     </p>
@@ -957,7 +957,7 @@ const AlertModal = ({ alert, onClose }) => {
                 ) : <div />}
                 <span className="text-text-muted/60 text-lg font-mono hidden sm:block">→</span>
                 {alert.to_entity ? (
-                  <div className="p-3 rounded-md bg-white/[0.02] border border-white/[0.06]">
+                  <div className="p-3 rounded-md bg-ink/[0.02] border border-ink/[0.06]">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-1">
                       To
                     </p>
@@ -970,7 +970,7 @@ const AlertModal = ({ alert, onClose }) => {
             )}
 
             {alert.raw_text && (
-              <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <div className="p-3.5 rounded-md bg-ink/[0.02] border border-ink/[0.04]">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
                   Raw
                 </p>
@@ -1039,7 +1039,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
-        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         ← Prev
       </button>
@@ -1058,7 +1058,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
             className={`min-w-[34px] h-8 px-2 rounded-md text-[11px] font-mono tabular-nums transition-all ${
               p === page
                 ? "bg-gold-primary/15 text-gold-primary border border-line/40"
-                : "border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15]"
+                : "border border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.15]"
             }`}
           >
             {p}
@@ -1068,7 +1068,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
-        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         Next →
       </button>
@@ -1086,16 +1086,16 @@ const LoadingSkeleton = () => (
     {[...Array(10)].map((_, i) => (
       <div
         key={i}
-        className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
+        className="bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 flex items-center gap-3"
       >
-        <div className="w-10 h-10 rounded bg-white/[0.03] shrink-0" />
+        <div className="w-10 h-10 rounded bg-ink/[0.03] shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/4" />
-          <div className="h-3 bg-white/[0.03] rounded w-3/4" />
+          <div className="h-3 bg-ink/[0.05] rounded w-1/4" />
+          <div className="h-3 bg-ink/[0.03] rounded w-3/4" />
         </div>
         <div className="w-20 space-y-1.5">
-          <div className="h-3 bg-white/[0.05] rounded" />
-          <div className="h-2 bg-white/[0.03] rounded w-2/3 ml-auto" />
+          <div className="h-3 bg-ink/[0.05] rounded" />
+          <div className="h-2 bg-ink/[0.03] rounded w-2/3 ml-auto" />
         </div>
       </div>
     ))}
@@ -1103,7 +1103,7 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = () => (
-  <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
+  <div className="relative bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center overflow-hidden">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-5 h-5 text-gold-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">

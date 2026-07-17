@@ -104,7 +104,7 @@ export const ContactReachPanel = ({
         <ChevronDownIcon
           size={15}
           style={{
-            color: 'rgba(255,255,255,0.4)',
+            color: 'rgb(var(--ink) / 0.4)',
             transform: open ? 'rotate(180deg)' : 'none',
             transition: 'transform .2s',
           }}

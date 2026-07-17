@@ -52,7 +52,7 @@ function LevelMeter({ spot, target, invalidation }) {
     <div className="w-full">
       <div className="relative mx-2 h-[56px]">
         {/* track */}
-        <div className="absolute inset-x-0 top-[30px] h-[4px] rounded-full bg-white/[0.06]" />
+        <div className="absolute inset-x-0 top-[30px] h-[4px] rounded-full bg-ink/[0.06]" />
         {/* gradient zone invalidation → target */}
         <div
           className="absolute top-[30px] h-[4px] rounded-full"
@@ -100,7 +100,7 @@ function LevelMeter({ spot, target, invalidation }) {
           <span className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums leading-none text-text-primary">
             {fmtUsd(s)}
           </span>
-          <span className="mt-[6px] h-[13px] w-[13px] rounded-full border-2 border-white bg-surface-raised shadow-[0_0_10px_rgba(255,255,255,0.35)]" />
+          <span className="mt-[6px] h-[13px] w-[13px] rounded-full border-2 border-white bg-surface-raised shadow-[0_0_10px_rgb(var(--ink)_/_0.35)]" />
         </div>
       </div>
     </div>
@@ -212,7 +212,7 @@ export default function CompassSnapshot({ className = "" }) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised ${className}`}
+      className={`relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised ${className}`}
     >
       {/* ── header ── */}
       <div className="flex flex-col gap-2.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between md:px-5 md:py-3">
@@ -223,7 +223,7 @@ export default function CompassSnapshot({ className = "" }) {
           className="group flex min-w-0 items-center gap-2.5 overflow-hidden text-left md:gap-3"
         >
           <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-text-secondary transition-transform duration-200 group-hover:bg-white/[0.06] group-hover:text-text-primary ${collapsed ? "" : "rotate-180"}`}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-ink/10 bg-ink/[0.04] text-text-secondary transition-transform duration-200 group-hover:bg-ink/[0.06] group-hover:text-text-primary ${collapsed ? "" : "rotate-180"}`}
             aria-hidden="true"
           >
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -257,19 +257,19 @@ export default function CompassSnapshot({ className = "" }) {
         <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center">
           <Link
             to="/ai-arena?tab=read"
-            className="whitespace-nowrap rounded-md border border-white/10 bg-white/[0.05] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-primary transition hover:bg-white/[0.08]"
+            className="whitespace-nowrap rounded-md border border-ink/10 bg-ink/[0.05] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-primary transition hover:bg-ink/[0.08]"
           >
             Full outlook →
           </Link>
           <Link
             to="/ai-arena?tab=chart"
-            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-transparent px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted transition hover:border-white/15 hover:text-text-primary"
+            className="whitespace-nowrap rounded-md border border-ink/[0.08] bg-transparent px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted transition hover:border-ink/15 hover:text-text-primary"
           >
             Chart →
           </Link>
           <Link
             to="/terminal/scan"
-            className="col-span-2 sm:col-span-1 whitespace-nowrap rounded-md border border-white/[0.08] bg-transparent px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted transition hover:border-white/15 hover:text-text-primary"
+            className="col-span-2 sm:col-span-1 whitespace-nowrap rounded-md border border-ink/[0.08] bg-transparent px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted transition hover:border-ink/15 hover:text-text-primary"
           >
             Terminal →
           </Link>
@@ -278,7 +278,7 @@ export default function CompassSnapshot({ className = "" }) {
 
       {/* ── body (collapsible) ── */}
       {!collapsed && (
-        <div className="border-t border-white/[0.06] px-3 pb-4 pt-3 md:px-5">
+        <div className="border-t border-ink/[0.06] px-3 pb-4 pt-3 md:px-5">
           <div className="grid gap-x-6 gap-y-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,1fr)]">
             {/* meter + explanation */}
             <div className="min-w-0">
@@ -297,7 +297,7 @@ export default function CompassSnapshot({ className = "" }) {
 
             {/* alt exposure card */}
             <div className="flex items-stretch">
-              <div className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+              <div className="w-full rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-4 py-3">
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">
                   Alt exposure
                 </div>
@@ -309,7 +309,7 @@ export default function CompassSnapshot({ className = "" }) {
 
           {/* ── driver detail: the numbers behind the 24h call ── */}
           {drivers.length > 0 && (
-            <div className="mt-3 border-t border-white/[0.05] pt-3">
+            <div className="mt-3 border-t border-ink/[0.05] pt-3">
               <div className="mb-2 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">
                 What's driving it — 24h drivers
               </div>
@@ -319,7 +319,7 @@ export default function CompassSnapshot({ className = "" }) {
                   const ev = r.evidence?.[0];
                   const strengthPct = Math.round((Number(r._s.strength) || 0) * 100);
                   return (
-                    <div key={r.key} className="min-w-0 rounded-md border border-white/[0.05] bg-surface-secondary px-2.5 py-2">
+                    <div key={r.key} className="min-w-0 rounded-md border border-ink/[0.05] bg-surface-secondary px-2.5 py-2">
                       <div className="flex items-center justify-between gap-1">
                         <span className="truncate font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted/60">{r.label}</span>
                         <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>{m.arrow}</span>
@@ -345,7 +345,7 @@ export default function CompassSnapshot({ className = "" }) {
 
           {/* ── why this report exists (event-driven trigger) ── */}
           {(whatChanged || triggerHuman) && (
-            <div className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
+            <div className="mt-3 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2">
               <div className="flex items-start gap-2">
                 <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-text-muted">
                   {isAnomaly ? "Triggered by" : "Why updated"}

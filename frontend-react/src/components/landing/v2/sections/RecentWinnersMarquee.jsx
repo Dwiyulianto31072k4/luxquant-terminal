@@ -395,19 +395,19 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
           -webkit-mask-image: linear-gradient(
             to right,
             transparent 0%,
-            rgba(0,0,0,0.35) 4%,
+            rgb(var(--scrim) / 0.35) 4%,
             #000 10%,
             #000 90%,
-            rgba(0,0,0,0.35) 96%,
+            rgb(var(--scrim) / 0.35) 96%,
             transparent 100%
           );
           mask-image: linear-gradient(
             to right,
             transparent 0%,
-            rgba(0,0,0,0.35) 4%,
+            rgb(var(--scrim) / 0.35) 4%,
             #000 10%,
             #000 90%,
-            rgba(0,0,0,0.35) 96%,
+            rgb(var(--scrim) / 0.35) 96%,
             transparent 100%
           );
         }
@@ -416,19 +416,19 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
             -webkit-mask-image: linear-gradient(
               to right,
               transparent 0%,
-              rgba(0,0,0,0.4) 5%,
+              rgb(var(--scrim) / 0.35) 5%,
               #000 12%,
               #000 88%,
-              rgba(0,0,0,0.4) 95%,
+              rgb(var(--scrim) / 0.35) 95%,
               transparent 100%
             );
             mask-image: linear-gradient(
               to right,
               transparent 0%,
-              rgba(0,0,0,0.4) 5%,
+              rgb(var(--scrim) / 0.35) 5%,
               #000 12%,
               #000 88%,
-              rgba(0,0,0,0.4) 95%,
+              rgb(var(--scrim) / 0.35) 95%,
               transparent 100%
             );
           }
@@ -462,7 +462,7 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
           position: relative;
           border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.12), 0 22px 52px -22px rgba(0,0,0,0.8);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.12), 0 22px 52px -22px rgb(var(--scrim) / 0.8);
           transition: box-shadow .3s ease, transform .3s ease;
         }
         .rwm-img { width: 100%; height: auto; display: block; }
@@ -472,7 +472,7 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
         }
         /* Dark: neutral hover shadow (no red glow) */
         [data-theme="dark"] .rwm-card:hover .rwm-img-wrap {
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.38), 0 28px 60px -18px rgba(0,0,0,0.75);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.38), 0 28px 60px -18px rgb(var(--scrim) / 0.75);
         }
         .rwm-meta { padding: 16px 4px 0; }
         .rwm-proof {
@@ -486,10 +486,10 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
         }
         .rwm-card:hover .rwm-proof { color: #f0d890; }
 
-        .rwm-skel { position: relative; overflow: hidden; background: rgba(255,255,255,0.045); }
+        .rwm-skel { position: relative; overflow: hidden; background: rgb(var(--ink) / 0.045); }
         .rwm-skel::after {
           content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+          background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.07), transparent);
           animation: rwmShimmer 1.4s infinite;
         }
         .rwm-skel-line { height: 11px; border-radius: 5px; }

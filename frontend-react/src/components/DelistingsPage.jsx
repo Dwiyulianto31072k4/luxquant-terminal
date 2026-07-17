@@ -96,7 +96,7 @@ export default function DelistingsPage() {
   const CallBtn = ({ x, compact }) => x.call_signal_id ? (
     <button onClick={(e) => openCall(e, x.call_signal_id)}
       title={x.call_after_announce ? 'LuxQuant called this after the delisting — open call' : 'Open LuxQuant call'}
-      className={`inline-flex items-center gap-1 rounded-md border font-mono text-[8.5px] uppercase tracking-wider px-1.5 py-0.5 transition-all ${x.call_after_announce ? 'bg-gold-primary/15 border-line/40 text-gold-primary hover:bg-gold-primary/25' : 'bg-white/[0.04] border-white/12 text-text-primary/60 hover:text-text-primary'} ${compact ? '' : ''}`}>
+      className={`inline-flex items-center gap-1 rounded-md border font-mono text-[8.5px] uppercase tracking-wider px-1.5 py-0.5 transition-all ${x.call_after_announce ? 'bg-gold-primary/15 border-line/40 text-gold-primary hover:bg-gold-primary/25' : 'bg-ink/[0.04] border-ink/12 text-text-primary/60 hover:text-text-primary'} ${compact ? '' : ''}`}>
       ⚡ Call
     </button>
   ) : null;
@@ -114,7 +114,7 @@ export default function DelistingsPage() {
       </div>
 
       {/* Tabs + search */}
-      <div className="flex items-end justify-between gap-3 border-b border-white/[0.07] mb-4">
+      <div className="flex items-end justify-between gap-3 border-b border-ink/[0.07] mb-4">
         <div className="flex items-center gap-4 sm:gap-5 overflow-x-auto no-scrollbar">
           {['all', ...(data.exchanges || [])].map((ex) => {
             const active = tab === ex;
@@ -132,7 +132,7 @@ export default function DelistingsPage() {
         </div>
         <div className="relative flex-shrink-0 w-36 sm:w-56 mb-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…"
-            className="w-full pl-3 pr-3 py-1.5 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[11px] focus:border-line/40 focus:outline-none" />
+            className="w-full pl-3 pr-3 py-1.5 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-ink/30 font-mono text-[11px] focus:border-line/40 focus:outline-none" />
         </div>
       </div>
 
@@ -146,7 +146,7 @@ export default function DelistingsPage() {
         <>
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-white/[0.08]">
+              <tr className="border-b border-ink/[0.08]">
                 <SortHead label="Token" k="token" align="left" />
                 <th className="py-2.5 px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35">Exchange</th>
                 <th className="hidden md:table-cell py-2.5 px-3 text-right font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35">Announce Px</th>
@@ -162,7 +162,7 @@ export default function DelistingsPage() {
                 return (
                   <tr key={`${x.id}-${x.token || i}`}
                     onClick={() => x.url && window.open(x.url, '_blank', 'noopener')}
-                    className={`border-b border-white/[0.05] transition-colors ${x.url ? 'hover:bg-white/[0.03] cursor-pointer' : ''}`}>
+                    className={`border-b border-ink/[0.05] transition-colors ${x.url ? 'hover:bg-ink/[0.03] cursor-pointer' : ''}`}>
                     {/* Token */}
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2.5">
@@ -222,10 +222,10 @@ export default function DelistingsPage() {
                   {(curPage - 1) * PAGE_SIZE + 1}–{Math.min(curPage * PAGE_SIZE, rows.length)} of {rows.length}
                 </span>
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage <= 1}
-                  className="px-2.5 py-1 rounded-md border border-white/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-line/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Prev</button>
+                  className="px-2.5 py-1 rounded-md border border-ink/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-line/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Prev</button>
                 <span className="font-mono text-[10px] tabular-nums text-text-primary/60 px-1">{curPage}/{totalPages}</span>
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={curPage >= totalPages}
-                  className="px-2.5 py-1 rounded-md border border-white/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-line/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Next</button>
+                  className="px-2.5 py-1 rounded-md border border-ink/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-line/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Next</button>
               </div>
             )}
           </div>

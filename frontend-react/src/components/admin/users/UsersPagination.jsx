@@ -20,7 +20,7 @@ const PaginationButton = ({ onClick, disabled, children, active = false, title }
     }}
     onMouseEnter={(e) => {
       if (!disabled && !active) {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+        e.currentTarget.style.background = 'rgb(var(--ink) / 0.03)';
         e.currentTarget.style.color = '#c9b59e';
       }
     }}
@@ -43,7 +43,7 @@ export const UsersPagination = ({ page, totalPages, total, onChange }) => {
       className="flex items-center justify-between px-3 py-2.5"
       style={{
         borderTop: `1px solid ${surface.base.border}`,
-        background: 'rgba(255,255,255,0.012)',
+        background: 'rgb(var(--ink) / 0.012)',
       }}
     >
       <p className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>

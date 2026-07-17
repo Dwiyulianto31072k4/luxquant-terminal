@@ -45,7 +45,7 @@ const NoDerivStrip = ({ noDeriv, onPair }) => {
   const { t } = useTranslation();
   if (!noDeriv.length) return null;
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] px-4 py-2.5 flex items-center gap-2 flex-wrap">
+    <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.01] px-4 py-2.5 flex items-center gap-2 flex-wrap">
       <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70 shrink-0">
         {t("terminal.viz.noDeriv")} · {noDeriv.length}
       </span>
@@ -119,8 +119,8 @@ export function OITab({ view, deriv, pairFc, openPair }) {
                     <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domX} allowDataOverflow tickFormatter={(v) => Math.round(v)} />
                     <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domY} allowDataOverflow tickFormatter={(v) => Math.round(v)} />
                     <Tooltip content={<ScatterTip xLabel="price 24h %" yLabel="OI Δ1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                    <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
-                    <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                    <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
+                    <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
                     <Scatter data={quad} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                       {quad.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                         <Cell
@@ -250,8 +250,8 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       </div>
 
       {/* Live liquidation tape */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-        <div className="px-3.5 py-2 border-b border-white/[0.04] flex items-center justify-between gap-2">
+      <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] overflow-hidden">
+        <div className="px-3.5 py-2 border-b border-ink/[0.04] flex items-center justify-between gap-2">
           <div>
             <div className="text-[12.5px] font-medium text-text-primary/90">Liquidations · live</div>
             <div className="text-[10px] text-text-muted/70">Forced closes stream · big prints = local extremes</div>
@@ -270,9 +270,9 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
             Quiet — no liquidations in the last window
           </div>
         ) : (
-          <div className="max-h-[260px] overflow-auto divide-y divide-white/[0.03] [scrollbar-width:thin]">
+          <div className="max-h-[260px] overflow-auto divide-y divide-ink/[0.03] [scrollbar-width:thin]">
             {events.map((e, i) => (
-              <div key={`${e.pair}-${e.ts}-${i}`} className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.02]">
+              <div key={`${e.pair}-${e.ts}-${i}`} className="flex items-center gap-2 px-3 py-1.5 hover:bg-ink/[0.02]">
                 <CoinLogo pair={e.pair} size={15} />
                 <span className="font-mono text-[11px] text-text-primary/85 w-16 truncate">{(e.pair || "").replace(/USDT$/i, "")}</span>
                 <span
@@ -308,8 +308,8 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                     <CartesianGrid stroke={GRID} vertical={false} />
                     <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(255,255,255,0.06)" }} />
-                    <ReferenceLine x="1" stroke="rgba(255,255,255,0.25)" strokeDasharray="3 3" />
+                    <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--ink) / 0.06)" }} />
+                    <ReferenceLine x="1" stroke="rgb(var(--ink) / 0.25)" strokeDasharray="3 3" />
                     <Bar
                       dataKey="count"
                       name="pairs"
@@ -327,7 +327,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                           key={i}
                           fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : "rgb(148 163 184)"}
                           fillOpacity={lsBin && Math.abs(lsBin.mid - b.mid) < 0.01 ? 1 : 0.75}
-                          stroke={lsBin && Math.abs(lsBin.mid - b.mid) < 0.01 ? "rgba(255,255,255,0.5)" : "transparent"}
+                          stroke={lsBin && Math.abs(lsBin.mid - b.mid) < 0.01 ? "rgb(var(--ink) / 0.5)" : "transparent"}
                           strokeWidth={1}
                           cursor="pointer"
                         />
@@ -337,8 +337,8 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                 </ResponsiveContainer>
               </div>
               {lsBin && (
-                <div className="mt-2 shrink-0 rounded-lg border border-white/[0.07] bg-white/[0.02]">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] px-2.5 py-1.5">
+                <div className="mt-2 shrink-0 rounded-lg border border-ink/[0.07] bg-ink/[0.02]">
+                  <div className="flex items-center justify-between gap-2 border-b border-ink/[0.05] px-2.5 py-1.5">
                     <span className="font-mono text-[10px] text-text-muted">
                       L/S {lsBin.lo.toFixed(2)}–{lsBin.hi.toFixed(2)}
                       <span className="ml-1.5 text-text-primary/70">{binPairs.length} pairs</span>
@@ -351,7 +351,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                       Clear
                     </button>
                   </div>
-                  <div className="max-h-[120px] overflow-y-auto divide-y divide-white/[0.04] [scrollbar-width:thin]">
+                  <div className="max-h-[120px] overflow-y-auto divide-y divide-ink/[0.04] [scrollbar-width:thin]">
                     {binPairs.length === 0 ? (
                       <div className="px-2.5 py-3 text-center font-mono text-[10px] text-text-muted">No pairs in band</div>
                     ) : (
@@ -360,7 +360,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                           key={p.pair}
                           type="button"
                           onClick={() => openPair?.(p.pair)}
-                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition hover:bg-white/[0.04]"
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition hover:bg-ink/[0.04]"
                         >
                           <CoinLogo pair={p.pair} size={16} />
                           <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-text-primary">
@@ -399,8 +399,8 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                   <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domX} allowDataOverflow tickFormatter={fmtAxis} />
                   <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domY} allowDataOverflow tickFormatter={fmtAxis} />
                   <Tooltip content={<ScatterTip xLabel="retail LSR" yLabel="top-trader LSR" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                  <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
-                  <ReferenceLine y={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                  <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
+                  <ReferenceLine y={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
                   <Scatter data={divPts} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                     {divPts.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                       <Cell key={i} fill={p.smart ? GOLD : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
@@ -572,7 +572,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
                 <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domY} allowDataOverflow tickFormatter={fmtAxis} />
                 <Tooltip content={<ScatterTip xLabel="funding %" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                 <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
                 <Scatter data={fundFc} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                   {fundFc.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                     <Cell key={i} fill={p.neg ? POS : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
@@ -700,13 +700,13 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                 onChange={setWin}
                 options={Object.keys(WINDOWS).map((w) => ({ id: w, label: w }))}
               />
-              <span className="h-4 w-px bg-white/[0.08]" />
+              <span className="h-4 w-px bg-ink/[0.08]" />
               <span className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gold-primary/25 bg-gold-primary/[0.08] font-mono text-[10px]">
                 <CoinLogo pair="BTCUSDT" size={14} />
                 <span className="text-gold-primary">BTC</span>
               </span>
               {selected.map((p, i) => (
-                <span key={p} className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] font-mono text-[10px]">
+                <span key={p} className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-ink/[0.08] bg-ink/[0.02] font-mono text-[10px]">
                   <CoinLogo pair={p} size={14} />
                   <span style={{ color: LINE_COLORS[i % LINE_COLORS.length] }}>{p.replace(/USDT$/i, "")}</span>
                   <button type="button" onClick={() => setSel(selected.filter((x) => x !== p))} className="text-text-muted hover:text-negative">×</button>
@@ -717,16 +717,16 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={t("terminal.viz.vsAdd")}
-                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-white/18 font-mono"
+                  className="w-28 bg-ink/[0.03] border border-ink/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-ink/18 font-mono"
                 />
                 {searchOpts.length > 0 && (
-                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-lg bg-surface border border-white/[0.1] shadow-xl p-1">
+                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-lg bg-surface border border-ink/[0.1] shadow-xl p-1">
                     {searchOpts.map((p) => (
                       <button
                         key={p}
                         type="button"
                         onClick={() => { if (selected.length < 10) setSel([...selected, p]); setQ(""); }}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.05] font-mono text-[10.5px] text-text-primary/85"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-ink/[0.05] font-mono text-[10.5px] text-text-primary/85"
                       >
                         <CoinLogo pair={p} size={14} /> {p.replace(/USDT$/i, "")}
                       </button>
@@ -746,7 +746,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                     <XAxis dataKey="t" tick={TICK_SM} axisLine={false} tickLine={false} minTickGap={40} />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
                     <Tooltip content={<DarkTip />} />
-                    <ReferenceLine y={100} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
+                    <ReferenceLine y={100} stroke="rgb(var(--ink) / 0.12)" strokeDasharray="3 3" />
                     <Line type="monotone" dataKey="BTCUSDT" name="BTC" stroke={GOLD} strokeWidth={2.2} dot={false} label={makeEndLabel("BTCUSDT", GOLD, chartData.length)} isAnimationActive={false} />
                     {selected.map((p, i) => (
                       <Line key={p} type="monotone" dataKey={p} name={p.replace(/USDT$/i, "")} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.5} dot={false} label={makeEndLabel(p, LINE_COLORS[i % LINE_COLORS.length], chartData.length)} isAnimationActive={false} />
@@ -872,8 +872,8 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
                 <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domX} allowDataOverflow tickFormatter={fmtAxis} />
                 <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domY} allowDataOverflow tickFormatter={fmtAxis} />
                 <Tooltip content={<ScatterTip xLabel="RS vs BTC %" yLabel="vol accel 1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                <ReferenceLine x={0} stroke="rgb(var(--ink) / 0.15)" />
+                <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
                 <Scatter data={scatter} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                   {scatter.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                     <Cell key={i} cursor="pointer" fill={p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} />
@@ -940,8 +940,8 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                 <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zSq.domY} allowDataOverflow tickFormatter={fmtAxis} label={{ value: "funding", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
                 <ZAxis type="number" dataKey="z" range={[24, 400]} />
                 <Tooltip content={<ScatterTip xLabel="L/S ratio" yLabel="funding %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" />
+                <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
                 <Scatter data={scatter} fillOpacity={0.6} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                   {scatter.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                     <Cell key={i} cursor="pointer" fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} />

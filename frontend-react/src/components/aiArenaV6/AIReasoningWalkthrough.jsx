@@ -104,9 +104,9 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
           isOpen
             ? { backgroundColor: "rgb(var(--accent))", color: "rgb(var(--surface-raised))" }
             : {
-                backgroundColor: "rgba(255,255,255,0.05)",
-                color: "rgba(255,255,255,0.6)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                backgroundColor: "rgb(var(--ink) / 0.05)",
+                color: "rgb(var(--ink) / 0.6)",
+                border: "1px solid rgb(var(--ink) / 0.1)",
               }
         }
       >
@@ -195,9 +195,9 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
                   const termKey = lookupTermKey(ev);
                   const chip = (
                     <span
-                      className={`text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-text-primary/70 transition-colors ${
+                      className={`text-[11px] font-mono px-2 py-0.5 rounded bg-ink/5 border border-ink/10 text-text-primary/70 transition-colors ${
                         termKey
-                          ? "cursor-help hover:bg-white/10 border-b border-dotted border-white/30"
+                          ? "cursor-help hover:bg-ink/10 border-b border-dotted border-ink/30"
                           : ""
                       }`}
                     >
@@ -325,7 +325,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
           AI Reasoning
         </h2>
         <CritiqueBanner critique={critique} />
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-8 text-center">
+        <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-8 text-center">
           <p className="text-text-primary/40 text-sm italic">
             Reasoning chain not available in this report
           </p>
@@ -402,7 +402,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
       <CritiqueBanner critique={critique} />
 
       {/* Reasoning steps */}
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+      <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-5">
         {reasoningChain.map((step, idx) => (
           <ReasoningStep
             key={idx}

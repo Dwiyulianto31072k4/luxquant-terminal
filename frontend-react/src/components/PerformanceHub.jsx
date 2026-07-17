@@ -163,7 +163,7 @@ const ViewLoader = () => (
     </div>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-xl border border-white/[0.07] p-4 space-y-2.5">
+        <div key={i} className="rounded-xl border border-ink/[0.07] p-4 space-y-2.5">
           <Skeleton className="h-2 w-14" />
           <Skeleton className="h-6 w-20" />
         </div>
@@ -197,7 +197,7 @@ const PerformanceHub = () => {
   };
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-3 lg:p-4 shadow-2xl shadow-black/40">
+    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 lg:p-4 shadow-2xl shadow-black/40">
       {/* ── breadcrumb strip ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -223,7 +223,7 @@ const PerformanceHub = () => {
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
                 on
                   ? "bg-gold-primary/15 text-gold-primary border-line/30"
-                  : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary"
+                  : "bg-ink/[0.03] text-text-muted border-ink/[0.06] hover:text-text-primary"
               }`}
             >
               <TabIcon id={item.id} />
@@ -236,7 +236,7 @@ const PerformanceHub = () => {
       <div className="flex gap-4 items-stretch lg:flex-1 lg:min-h-0">
         {/* ── Allium-style left sidebar ── */}
         <aside className="hidden lg:block w-[196px] shrink-0 lg:overflow-y-auto lg:pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <div className="rounded-lg bg-surface-raised border border-white/[0.07] overflow-hidden">
+          <div className="rounded-lg bg-surface-raised border border-ink/[0.07] overflow-hidden">
             <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <nav className="p-2 space-y-3">
               {GROUPS.map(({ g, items }) => (
@@ -255,8 +255,8 @@ const PerformanceHub = () => {
                           onClick={() => go(item)}
                           className={`relative w-full flex items-center pl-3 pr-2 py-2 rounded-md text-left text-[12.5px] transition-colors ${
                             on
-                              ? "bg-white/[0.04] text-gold-primary"
-                              : "text-text-primary/85 hover:bg-white/[0.04] hover:text-text-primary"
+                              ? "bg-ink/[0.04] text-gold-primary"
+                              : "text-text-primary/85 hover:bg-ink/[0.04] hover:text-text-primary"
                           }`}
                         >
                           {on && (

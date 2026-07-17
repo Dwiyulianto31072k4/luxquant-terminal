@@ -48,18 +48,23 @@ export default {
           // also lift above the old base. Theme/gold/bg unchanged.
           muted: withAlpha("--fg-muted"),
         },
-        // Container hairline/border colour — gold in Luxquant, neutral in Dark.
+        // Container hairline/border colour — gold in Luxquant, neutral in Dark/Bright.
         // Use for static card/panel borders; interactive gold stays gold-primary.
         line: withAlpha("--line"),
+        // Theme-aware overlay ink: WHITE on luxquant/dark, BLACK on bright.
+        // Prefer border-ink/10, bg-ink/[0.04] over border-white / bg-white.
+        ink: withAlpha("--ink"),
+        "ink-inv": withAlpha("--ink-inv"),
+        // Modal/page dimmer — always dark so content underneath recedes.
+        scrim: withAlpha("--scrim"),
         positive: withAlpha("--pos"),
         negative: withAlpha("--neg"),
         warning: withAlpha("--warn"),
         "brand-telegram": withAlpha("--tg"),
         // Flowscan semantic pair — used as text-profit / bg-loss/10 etc.
-        // across AI Research. Previously referenced but never defined,
-        // which silently stripped all green/red semantics from the UI.
-        profit: "#56c996",
-        loss: "#e07288",
+        // across AI Research. Theme-aware via pos/neg channels.
+        profit: withAlpha("--pos"),
+        loss: withAlpha("--neg"),
       },
       fontFamily: {
         display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -68,9 +73,11 @@ export default {
         sans: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        "gold-glow": "0 4px 20px rgba(212, 168, 83, 0.4)",
-        "positive-glow": "0 0 20px rgba(74, 222, 128, 0.3)",
-        "negative-glow": "0 0 20px rgba(248, 113, 113, 0.3)",
+        "gold-glow": "0 4px 20px rgb(var(--accent) / 0.35)",
+        "positive-glow": "0 0 20px rgb(var(--pos) / 0.28)",
+        "negative-glow": "0 0 20px rgb(var(--neg) / 0.28)",
+        // Soft card elevation for bright mode (also fine on dark)
+        desk: "0 1px 2px rgb(var(--scrim) / 0.06), 0 8px 24px rgb(var(--scrim) / 0.08)",
       },
     },
   },

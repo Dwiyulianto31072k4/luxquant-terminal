@@ -91,29 +91,29 @@ export default function BottomSheet({
     >
       <button
         type="button"
-        className="lq-bs-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="lq-bs-backdrop absolute inset-0 bg-scrim/80 backdrop-blur-sm"
         onClick={closeOnBackdrop ? requestClose : undefined}
         aria-label="Close overlay"
       />
 
       <div
-        className={`lq-bs-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full flex-col rounded-t-3xl border-t border-white/12 bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(90dvh,880px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-surface-raised sm:shadow-2xl ${maxWidth} ${className}`}
+        className={`lq-bs-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(90dvh,880px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:bg-surface-raised sm:shadow-2xl ${maxWidth} ${className}`}
         style={{ maxHeight: "min(92dvh, 100%)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
 
         {header ? (
-          <div className="shrink-0 border-b border-white/[0.06] px-5 py-3.5">{header}</div>
+          <div className="shrink-0 border-b border-ink/[0.06] px-5 py-3.5">{header}</div>
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
 
         {footer ? (
           <div
-            className="shrink-0 border-t border-white/10 bg-surface-raised px-4 pt-3 sm:bg-surface-raised sm:px-5"
+            className="shrink-0 border-t border-ink/10 bg-surface-raised px-4 pt-3 sm:bg-surface-raised sm:px-5"
             style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
           >
             {footer}
@@ -153,9 +153,9 @@ export default function BottomSheet({
 export const sheetOverlayClass =
   "fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4 sm:p-6";
 export const sheetCardClass =
-  "relative w-full max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl border-t border-white/12 bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-2xl sm:border sm:border-white/[0.08] sm:shadow-2xl";
+  "relative w-full max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-2xl";
 export const sheetHandle = (
   <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
-    <div className="h-1 w-10 rounded-full bg-white/25" />
+    <div className="h-1 w-10 rounded-full bg-ink/25" />
   </div>
 );

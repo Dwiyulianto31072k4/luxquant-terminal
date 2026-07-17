@@ -84,7 +84,7 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
 };
 
 const StatCard = ({ label, value, sub, color = "text-text-primary", icon }) => (
-  <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 flex-1 min-w-[100px]">
+  <div className="rounded-xl border border-ink/[0.07] bg-ink/[0.02] p-3 flex-1 min-w-[100px]">
     <div className="flex items-center gap-1.5 mb-1.5">
       {icon && <span className="text-text-muted opacity-70">{icon}</span>}
       <p className="text-[9px] text-text-muted uppercase tracking-[0.12em] font-medium">{label}</p>
@@ -126,10 +126,10 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
       onClick={() => !isCurrentSignal && onClickSignal && onClickSignal(call)}
       className={`
         rounded-xl border p-3 transition-colors
-        border-white/[0.07] bg-white/[0.015]
+        border-ink/[0.07] bg-ink/[0.015]
         ${isCurrentSignal
           ? "opacity-55 cursor-default"
-          : "cursor-pointer hover:bg-white/[0.04] hover:border-white/12"}
+          : "cursor-pointer hover:bg-ink/[0.04] hover:border-ink/12"}
       `}
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -138,7 +138,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
             {formatDate(call.created_at)}
           </span>
           {isCurrentSignal && (
-            <span className="text-[8px] text-text-secondary bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded font-medium">
+            <span className="text-[8px] text-text-secondary bg-ink/[0.06] border border-ink/10 px-1.5 py-0.5 rounded font-medium">
               Current
             </span>
           )}
@@ -150,7 +150,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
             </span>
           )}
           {isOpen ? (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.05] text-text-secondary font-medium border border-white/10">
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-ink/[0.05] text-text-secondary font-medium border border-ink/10">
               Open
             </span>
           ) : (
@@ -185,7 +185,7 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
           </span>
         </div>
         {call.risk_level && (
-          <span className="text-[8px] px-1.5 py-0.5 rounded font-medium bg-white/[0.04] text-text-muted border border-white/10">
+          <span className="text-[8px] px-1.5 py-0.5 rounded font-medium bg-ink/[0.04] text-text-muted border border-ink/10">
             {call.risk_level}
           </span>
         )}
@@ -200,14 +200,14 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
             return (
               <div
                 key={i}
-                className={`w-1.5 h-1.5 rounded-full ${isHit ? "bg-positive" : "bg-white/10"}`}
+                className={`w-1.5 h-1.5 rounded-full ${isHit ? "bg-positive" : "bg-ink/10"}`}
                 title={`TP${i + 1}: ${formatPrice(tp)}`}
               />
             );
           })}
           {call.stop1 && (
             <div
-              className={`w-1.5 h-1.5 rounded-full ml-0.5 ${isSl ? "bg-negative" : "bg-white/10"}`}
+              className={`w-1.5 h-1.5 rounded-full ml-0.5 ${isSl ? "bg-negative" : "bg-ink/10"}`}
               title={`SL: ${formatPrice(call.stop1)}`}
             />
           )}
@@ -271,10 +271,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         <div className="max-w-4xl mx-auto animate-pulse space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-20 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+              <div key={i} className="h-20 rounded-xl bg-ink/[0.03] border border-ink/[0.05]" />
             ))}
           </div>
-          <div className="h-32 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+          <div className="h-32 rounded-xl bg-ink/[0.03] border border-ink/[0.05]" />
         </div>
       </div>
     );
@@ -289,7 +289,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           <button
             type="button"
             onClick={() => fetchProfile(callLimit)}
-            className="px-4 py-2 bg-white/[0.05] text-text-primary text-xs font-medium rounded-lg border border-white/10 hover:bg-white/[0.08] transition-colors"
+            className="px-4 py-2 bg-ink/[0.05] text-text-primary text-xs font-medium rounded-lg border border-ink/10 hover:bg-ink/[0.08] transition-colors"
           >
             Retry
           </button>
@@ -383,7 +383,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           />
         </div>
 
-        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 sm:p-4">
+        <div className="rounded-xl border border-ink/[0.07] bg-ink/[0.02] p-3 sm:p-4">
           <p className="text-text-muted text-[9px] uppercase tracking-[0.12em] font-medium mb-3">
             Outcome distribution
           </p>
@@ -396,10 +396,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           <p className="text-text-secondary text-xs sm:text-sm font-medium flex items-center gap-2">
             Past calls
             {loading && (
-              <span className="inline-block w-3 h-3 border-2 border-white/15 border-t-white/50 rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-ink/15 border-t-white/50 rounded-full animate-spin" />
             )}
           </p>
-          <div className="flex items-center bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.08]">
+          <div className="flex items-center bg-ink/[0.03] rounded-lg p-0.5 border border-ink/[0.08]">
             {[3, 5, 10, "All"].map((n) => (
               <button
                 key={n}
@@ -407,7 +407,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
                 onClick={() => handleLimitChange(n === "All" ? 9999 : n)}
                 className={`px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-medium transition-colors ${
                   callLimit === (n === "All" ? 9999 : n)
-                    ? "bg-white/[0.1] text-text-primary"
+                    ? "bg-ink/[0.1] text-text-primary"
                     : "text-text-muted hover:text-text-primary"
                 }`}
               >

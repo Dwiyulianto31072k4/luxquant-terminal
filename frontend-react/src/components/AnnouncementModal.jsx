@@ -73,18 +73,18 @@ const AnnouncementModal = () => {
         style={{
           background: 'linear-gradient(160deg, #0d0405, #0a0506)',
           border: '1px solid rgb(var(--line) / 0.18)',
-          boxShadow: '0 -20px 60px rgba(0,0,0,0.65)',
+          boxShadow: '0 -20px 60px rgb(var(--scrim) / 0.35)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <style>{`@keyframes annSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@media(min-width:640px){@keyframes annSheetUp{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}}`}</style>
         <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* close */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-primary/70 hover:text-text-primary bg-black/30 hover:bg-black/50 transition-colors"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-primary/70 hover:text-text-primary bg-scrim/30 hover:bg-scrim/50 transition-colors"
           aria-label="Close"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@ const AnnouncementModal = () => {
 
         {/* sticky CTA footer — never covered by bottom nav / home indicator */}
         <div
-          className="shrink-0 border-t border-white/[0.06] px-6 pt-3 flex flex-col gap-2"
+          className="shrink-0 border-t border-ink/[0.06] px-6 pt-3 flex flex-col gap-2"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}
         >
           {ann.cta_label && ann.cta_url && (

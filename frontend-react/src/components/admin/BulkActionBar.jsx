@@ -114,13 +114,13 @@ export const BulkActionBar = ({
         background: 'rgba(18,9,13,0.95)',
         border: '1px solid rgb(var(--line) / 0.3)',
         boxShadow:
-          '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,168,83,0.15)',
+          '0 10px 40px rgb(var(--scrim) / 0.35), 0 0 0 1px rgba(212,168,83,0.15)',
       }}
     >
       {/* Selection summary */}
       <div
         className="flex items-center gap-2.5 pr-3"
-        style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderRight: '1px solid rgb(var(--ink) / 0.06)' }}
       >
         <span
           className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md text-xs font-bold tabular-nums"
@@ -192,8 +192,8 @@ export const BulkActionBar = ({
               <button
                 key={opt.key}
                 onClick={() => run(() => onBulkGrant(opt.key))}
-                className="w-full px-3 py-2.5 text-left text-xs text-text-primary hover:bg-white/5 transition-colors"
-                style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}
+                className="w-full px-3 py-2.5 text-left text-xs text-text-primary hover:bg-ink/5 transition-colors"
+                style={i > 0 ? { borderTop: '1px solid rgb(var(--ink) / 0.04)' } : {}}
               >
                 <span className="font-semibold">{opt.label}</span>
                 <span className="block text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
@@ -256,7 +256,7 @@ export const BulkActionBar = ({
                 className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold"
                 style={{
                   color: 'rgb(var(--fg-muted))',
-                  background: 'rgba(255,255,255,0.02)',
+                  background: 'rgb(var(--ink) / 0.02)',
                 }}
               >
                 Pick template — opens browser tabs
@@ -267,10 +267,10 @@ export const BulkActionBar = ({
                   <button
                     key={t.id}
                     onClick={() => handleSendTemplateClick(t)}
-                    className="w-full px-3 py-2 text-left text-xs text-text-primary hover:bg-white/5 transition-colors"
+                    className="w-full px-3 py-2 text-left text-xs text-text-primary hover:bg-ink/5 transition-colors"
                     style={
                       idx > 0
-                        ? { borderTop: '1px solid rgba(255,255,255,0.04)' }
+                        ? { borderTop: '1px solid rgb(var(--ink) / 0.04)' }
                         : {}
                     }
                   >
@@ -289,8 +289,8 @@ export const BulkActionBar = ({
       <button
         onClick={onClear}
         disabled={busy}
-        className="ml-1 w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 hover:bg-white/5"
-        style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}
+        className="ml-1 w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 hover:bg-ink/5"
+        style={{ background: 'rgb(var(--ink) / 0.04)', color: 'rgb(var(--fg-muted))' }}
         title="Clear selection"
       >
         <CloseIcon size={13} />

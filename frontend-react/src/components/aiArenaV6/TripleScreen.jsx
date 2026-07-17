@@ -121,7 +121,7 @@ function TimeframeCard({ screen }) {
             className="text-2xl font-semibold tabular-nums"
             style={{
               fontFamily: "JetBrains Mono, monospace",
-              color: "rgba(255,255,255,0.9)",
+              color: "rgb(var(--ink) / 0.9)",
             }}
           >
             {screen.timeframe}
@@ -160,7 +160,7 @@ function TimeframeCard({ screen }) {
 
       {/* Bottom metaphor */}
       {meta.desc && (
-        <p className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30 mt-3 pt-3 border-t border-white/5">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-text-primary/30 mt-3 pt-3 border-t border-ink/5">
           {meta.desc}
         </p>
       )}
@@ -185,7 +185,7 @@ export default function TripleScreen({ tripleScreen }) {
         >
           Triple Screen
         </h2>
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
+        <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
           <p className="text-text-primary/40 text-sm italic">
             No multi-timeframe data available
           </p>

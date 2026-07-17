@@ -13,7 +13,7 @@ export const COLORS = {
   bgElevated: 'rgba(28, 32, 40, 0.55)',
 
   border: 'rgba(212, 168, 83, 0.12)',
-  borderSubtle: 'rgba(255, 255, 255, 0.06)',
+  borderSubtle: 'rgb(var(--ink) / 0.06)',
   borderStrong: 'rgba(212, 168, 83, 0.25)',
 
   text: '#e8e6e1',
@@ -234,7 +234,7 @@ export function directionStyle(direction) {
 // ─────────────────────────────────────────────────────────────────────
 export function confidenceTier(confidence) {
   if (confidence == null || isNaN(confidence)) {
-    return { label: "UNKNOWN", color: "rgba(255,255,255,0.4)" };
+    return { label: "UNKNOWN", color: "rgb(var(--ink) / 0.4)" };
   }
   if (confidence >= 70) {
     return { label: "STRONG", color: "#22c55e" };
@@ -284,9 +284,9 @@ export function outcomeStyle(outcome) {
       };
     default:
       return {
-        fg: "rgba(255,255,255,0.5)",
-        bg: "rgba(255,255,255,0.05)",
-        border: "rgba(255,255,255,0.1)",
+        fg: "rgb(var(--ink) / 0.5)",
+        bg: "rgb(var(--ink) / 0.05)",
+        border: "rgb(var(--ink) / 0.1)",
         label: "—",
       };
   }

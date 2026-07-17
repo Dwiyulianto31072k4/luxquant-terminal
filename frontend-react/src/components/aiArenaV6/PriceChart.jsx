@@ -22,7 +22,7 @@ import Tooltip from "./Tooltip";
 // Visual tokens
 // ────────────────────────────────────────────────────────────
 const COLORS = {
-  bgTransparent: "rgba(0,0,0,0)",
+  bgTransparent: "rgb(var(--ink) / 0.0)",
   text: "#b8a89a",
   grid: "rgba(212, 168, 83, 0.04)",
   border: "rgba(212, 168, 83, 0.15)",
@@ -410,7 +410,7 @@ export default function PriceChart({ report }) {
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-white/30 to-transparent" />
+          <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-ink/30 to-transparent" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-display text-xl lg:text-2xl font-semibold text-text-primary">Projection Chart</h2>
@@ -440,14 +440,14 @@ export default function PriceChart({ report }) {
             </div>
           )}
 
-          <div className="flex rounded-md border border-white/[0.06] bg-white/[0.03] p-1">
+          <div className="flex rounded-md border border-ink/[0.06] bg-ink/[0.03] p-1">
             {TIMEFRAMES.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setTf(opt.value)}
                 className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all lg:px-3 lg:py-1.5 lg:text-xs ${
                   tf === opt.value
-                    ? "bg-white/10 text-text-primary"
+                    ? "bg-ink/10 text-text-primary"
                     : "text-text-muted hover:text-text-primary"
                 }`}
                 title={`${opt.label} · ${opt.sub}`}
@@ -477,17 +477,17 @@ export default function PriceChart({ report }) {
                   className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] transition ${
                     active
                       ? "border-line/30 bg-accent/10 text-accent"
-                      : "border-white/[0.06] bg-black/10 text-text-primary/35 hover:border-white/[0.12] hover:text-text-primary/65"
+                      : "border-ink/[0.06] bg-scrim/10 text-text-primary/35 hover:border-ink/[0.12] hover:text-text-primary/65"
                   }`}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-sm ${active ? "bg-accent" : "bg-white/20"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-sm ${active ? "bg-accent" : "bg-ink/20"}`} />
                   {label}
                 </button>
               );
             })}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-white/[0.06] bg-black/15 p-1.5 text-[10px] font-mono text-text-primary/45 lg:min-w-[390px]">
+        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-ink/[0.06] bg-scrim/15 p-1.5 text-[10px] font-mono text-text-primary/45 lg:min-w-[390px]">
           <DataBasis label="Candles" value="Live BTC" detail={`${tf} OHLCV`} />
           <DataBasis label="Projection" value={projection?.directionLabel || "Neutral"} detail="Compass read" />
           <DataBasis label="Liquidity" value={projection?.liquidityConfidence || "Model"} detail="Magnet map" />
@@ -502,8 +502,8 @@ export default function PriceChart({ report }) {
               onClick={() => setMaVisible((v) => ({ ...v, [key]: !v[key] }))}
               className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-all border ${
                 maVisible[key]
-                  ? "bg-bg-card/60 border-white/10 text-text-primary"
-                  : "bg-transparent border-white/5 text-text-muted hover:text-text-primary"
+                  ? "bg-bg-card/60 border-ink/10 text-text-primary"
+                  : "bg-transparent border-ink/5 text-text-muted hover:text-text-primary"
               }`}
             >
               <span
@@ -529,7 +529,7 @@ export default function PriceChart({ report }) {
 
         <div
           ref={containerRef}
-          className="w-full overflow-hidden rounded-md border border-white/[0.04] bg-surface"
+          className="w-full overflow-hidden rounded-md border border-ink/[0.04] bg-surface"
           style={{ height: "clamp(420px, 58vh, 640px)" }}
         />
 
@@ -550,7 +550,7 @@ export default function PriceChart({ report }) {
               <p className="text-negative text-xs">⚠ {error}</p>
               <button
                 onClick={() => fetchData(tf)}
-                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-white/10 border border-white/10 text-text-primary hover:bg-white/15 transition-all"
+                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-ink/10 border border-ink/10 text-text-primary hover:bg-ink/15 transition-all"
               >
                 Retry
               </button>
@@ -595,7 +595,7 @@ export default function PriceChart({ report }) {
 function ProjectionPanel({ projection, lastPrice }) {
   if (!projection) {
     return (
-      <div className="rounded-xl border border-white/[0.06] bg-black/15 p-4 text-sm text-text-primary/45">
+      <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4 text-sm text-text-primary/45">
         Projection detail is waiting for the latest Compass report.
       </div>
     );
@@ -603,7 +603,7 @@ function ProjectionPanel({ projection, lastPrice }) {
 
   const toneColor = directionColor(projection.direction);
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-xl border border-white/[0.08] bg-black/15 p-4 md:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid grid-cols-1 gap-3 rounded-xl border border-ink/[0.08] bg-scrim/15 p-4 md:grid-cols-[1.1fr_0.9fr]">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -626,7 +626,7 @@ function ProjectionPanel({ projection, lastPrice }) {
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {projection.reasons.slice(0, 4).map((reason, index) => (
-            <div key={`${reason.label}-${index}`} className="rounded-md border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+            <div key={`${reason.label}-${index}`} className="rounded-md border border-ink/[0.06] bg-ink/[0.025] px-3 py-2">
               <div className="text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">{reason.label}</div>
               <div className="mt-1 text-xs leading-5 text-text-primary/65">{reason.value}</div>
             </div>
@@ -658,7 +658,7 @@ function ProjectionPanel({ projection, lastPrice }) {
 
 function ProjectionStat({ label, value, hint, tone }) {
   return (
-    <div className="rounded-sm border border-white/[0.04] bg-surface-secondary p-3">
+    <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{label}</div>
       <div className="mt-1 font-mono text-lg font-semibold text-text-primary/90" style={{ color: tone ? directionColor(tone) : undefined }}>
         {value}
@@ -670,7 +670,7 @@ function ProjectionStat({ label, value, hint, tone }) {
 
 function DataBasis({ label, value, detail }) {
   return (
-    <div className="rounded-md border border-white/[0.05] bg-white/[0.025] px-2.5 py-2">
+    <div className="rounded-md border border-ink/[0.05] bg-ink/[0.025] px-2.5 py-2">
       <div className="text-[8px] uppercase tracking-[0.12em] text-text-primary/25">{label}</div>
       <div className="mt-1 text-text-primary/75">{value}</div>
       <div className="mt-0.5 text-[9px] text-text-primary/30">{detail}</div>
@@ -680,7 +680,7 @@ function DataBasis({ label, value, detail }) {
 
 function StatPill({ label, value, hint }) {
   return (
-    <div className="bg-bg-card/40 rounded-lg px-3 py-2 border border-white/5">
+    <div className="bg-bg-card/40 rounded-lg px-3 py-2 border border-ink/5">
       <p className="text-text-muted text-[9px] uppercase tracking-wider">{label}</p>
       <p className="text-text-primary font-mono text-sm font-semibold tabular-nums mt-0.5">
         {value ?? "—"}
@@ -695,8 +695,8 @@ function ChartReadPanel({ read }) {
   if (!read) return null;
   const toneColor = directionColor(read.direction);
   return (
-    <section className="relative mt-4 overflow-hidden rounded-md border border-line/15 bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
+    <section className="relative mt-4 overflow-hidden rounded-md border border-line/15 bg-surface-raised shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.06] p-4">
         <div className="max-w-4xl">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             AI chart reasoning
@@ -744,7 +744,7 @@ function ChartReadPanel({ read }) {
         </div>
       </div>
 
-      <div className="border-t border-white/[0.06] p-4">
+      <div className="border-t border-ink/[0.06] p-4">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/30">Technical tape</div>
@@ -764,7 +764,7 @@ function ChartReadPanel({ read }) {
 
 function MarketNumber({ item }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3">
+    <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.025] p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{item.label}</div>
       <div className="mt-1 font-mono text-base font-semibold tabular-nums text-text-primary/90">{item.value}</div>
       <div className="mt-1 text-[10px] leading-4 text-text-primary/45">{item.detail}</div>
@@ -774,7 +774,7 @@ function MarketNumber({ item }) {
 
 function ReasonRow({ item }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-black/15 p-3">
+    <div className="rounded-lg border border-ink/[0.06] bg-scrim/15 p-3">
       <div className="flex items-start gap-2">
         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-sm bg-accent" />
         <div>
@@ -788,7 +788,7 @@ function ReasonRow({ item }) {
 
 function MetricExplain({ metric }) {
   return (
-    <div className="rounded-sm border border-white/[0.04] bg-surface-secondary p-3">
+    <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">{metric.label}</div>
       <div className="mt-1 font-mono text-sm font-semibold text-text-primary/90">{metric.value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent/75">{metric.state}</div>
@@ -808,7 +808,7 @@ function ZoneChip({ label, zone, tint, accent, arrow, currentPrice }) {
       className="rounded-lg p-2.5 border relative overflow-hidden"
       style={{
         background: tint,
-        borderColor: inZone ? accent : "rgba(255,255,255,0.06)",
+        borderColor: inZone ? accent : "rgb(var(--ink) / 0.06)",
       }}
     >
       <div className="flex items-center justify-between mb-1">

@@ -113,7 +113,7 @@ const ASSET_CONFIG = [
 const AssetCard = ({ config, asset }) => {
   if (!asset) {
     return (
-      <div className="bg-bg-card/50 rounded-xl p-4 border border-white/5">
+      <div className="bg-bg-card/50 rounded-xl p-4 border border-ink/5">
         <div className="text-[10px] uppercase tracking-widest text-text-muted font-bold mb-1">
           {config.short}
         </div>
@@ -128,7 +128,7 @@ const AssetCard = ({ config, asset }) => {
   const corrInfo = corrInterp(corr);
 
   return (
-    <div className="bg-bg-card/50 rounded-xl p-4 border border-white/5 hover:border-line/15 transition-colors">
+    <div className="bg-bg-card/50 rounded-xl p-4 border border-ink/5 hover:border-line/15 transition-colors">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-base leading-none">{config.icon}</span>
         <span className="text-[10px] uppercase tracking-widest text-text-muted font-bold">
@@ -150,7 +150,7 @@ const AssetCard = ({ config, asset }) => {
       </div>
 
       {/* 30D change + correlation */}
-      <div className="mt-2 pt-2 border-t border-white/5 space-y-0.5">
+      <div className="mt-2 pt-2 border-t border-ink/5 space-y-0.5">
         <div className="flex justify-between text-[10px]">
           <span className="text-text-muted">30D</span>
           <span className={`font-mono ${changeColor(change30d)}`}>{fmtPct(change30d)}</span>
@@ -214,7 +214,7 @@ export default function MacroPulse() {
     return (
       <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-ink/40 to-ink/10 rounded" />
           <h2 className="font-display text-xl text-text-primary">Macro Pulse</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
@@ -229,14 +229,14 @@ export default function MacroPulse() {
     return (
       <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-ink/40 to-ink/10 rounded" />
           <h2 className="font-display text-xl text-text-primary">Macro Pulse</h2>
         </div>
         <div className="text-text-muted text-sm py-4">
           {error ? `Could not load macro data: ${error}` : "No macro data available."}
           <button
             onClick={fetchData}
-            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-text-primary hover:bg-white/[0.06] transition-colors"
+            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-text-primary hover:bg-ink/[0.06] transition-colors"
           >
             Retry
           </button>
@@ -282,7 +282,7 @@ export default function MacroPulse() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-ink/40 to-ink/10 rounded" />
           <div>
             <h2 className="font-display text-xl text-text-primary leading-tight">Macro Pulse</h2>
             <p className="text-text-muted text-[11px] mt-0.5 tracking-wide">
@@ -304,7 +304,7 @@ export default function MacroPulse() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
         {/* BTC reference card */}
         {btc && (
-          <div className="bg-white/[0.03] rounded-xl p-3 border border-line/15">
+          <div className="bg-ink/[0.03] rounded-xl p-3 border border-line/15">
             <div className="text-[9px] uppercase tracking-widest text-text-primary/80 font-bold mb-1">
               BTC Reference
             </div>
@@ -328,7 +328,7 @@ export default function MacroPulse() {
         )}
 
         {/* Regime detail */}
-        <div className="bg-bg-card/50 rounded-xl p-3 border border-white/5">
+        <div className="bg-bg-card/50 rounded-xl p-3 border border-ink/5">
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             Regime Snapshot
           </div>
@@ -339,7 +339,7 @@ export default function MacroPulse() {
       </div>
 
       {/* Narrative footer */}
-      <div className="pt-4 border-t border-white/5">
+      <div className="pt-4 border-t border-ink/5">
         <p className="text-[11px] text-text-muted leading-relaxed">{narrative}</p>
         {updated_at && (
           <p className="text-[9px] text-text-muted/60 font-mono mt-2">

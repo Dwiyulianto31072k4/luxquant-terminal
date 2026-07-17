@@ -35,7 +35,7 @@ function formatPp(value) {
 
 function MetricCard({ label, value, note, tone = "#f5c451" }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-black/20 p-3">
+    <div className="rounded-lg border border-ink/[0.06] bg-scrim/20 p-3">
       <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/35 mb-2">
         {label}
       </div>
@@ -61,7 +61,7 @@ function GateRow({ gate }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-0">
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-ink/[0.04] last:border-0">
       <div className="flex items-center gap-2 min-w-0">
         <span
           className="w-4 h-4 rounded-full border flex items-center justify-center text-[9px] shrink-0"
@@ -104,7 +104,7 @@ function SegmentTable({ segments }) {
           {segments.map((segment) => (
             <tr
               key={segment.segment}
-              className="border-t border-white/[0.04] text-[11px]"
+              className="border-t border-ink/[0.04] text-[11px]"
             >
               <td className="py-2 text-text-primary/60 capitalize">
                 {segment.segment.replaceAll("_", " ")}
@@ -146,7 +146,7 @@ function HorizonPanel({ horizon, data }) {
   );
 
   return (
-    <div className="min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
+    <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-ink/[0.015] p-4">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-primary/35">
@@ -211,7 +211,7 @@ function HorizonPanel({ horizon, data }) {
           </span>
           <span>initial review at {initialTarget}</span>
         </div>
-        <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-ink/[0.05] overflow-hidden">
           <div
             className="h-full rounded-full bg-accent"
             style={{ width: `${progress}%` }}
@@ -220,7 +220,7 @@ function HorizonPanel({ horizon, data }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <div className="min-w-0 rounded-lg border border-white/[0.05] bg-black/15 px-3">
+        <div className="min-w-0 rounded-lg border border-ink/[0.05] bg-scrim/15 px-3">
           <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/35 pt-3 pb-1">
             Activation gates
           </div>
@@ -228,7 +228,7 @@ function HorizonPanel({ horizon, data }) {
             <GateRow key={gate.key} gate={gate} />
           ))}
         </div>
-        <div className="min-w-0 overflow-hidden rounded-lg border border-white/[0.05] bg-black/15 px-3">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-ink/[0.05] bg-scrim/15 px-3">
           <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/35 pt-3 pb-1">
             Freshness segmentation
           </div>
@@ -250,7 +250,7 @@ export default function ModelCalibrationPanel({ data }) {
 
   if (!data) {
     return (
-      <section className="mb-8 rounded-xl border border-white/[0.06] bg-white/[0.015] p-5">
+      <section className="mb-8 rounded-xl border border-ink/[0.06] bg-ink/[0.015] p-5">
         <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent mb-2">
           Phase 5 · Model calibration
         </div>
@@ -263,7 +263,7 @@ export default function ModelCalibrationPanel({ data }) {
 
   return (
     <section className="min-w-0 mb-8">
-      <div className="min-w-0 rounded-xl border border-white/[0.06] bg-surface-secondary/80 p-4 md:p-5">
+      <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-surface-secondary/80 p-4 md:p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
           <div>
             <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent mb-1">
@@ -278,7 +278,7 @@ export default function ModelCalibrationPanel({ data }) {
               or replace the verdict.
             </p>
           </div>
-          <div className="flex gap-1 rounded-lg border border-white/[0.06] bg-black/20 p-1">
+          <div className="flex gap-1 rounded-lg border border-ink/[0.06] bg-scrim/20 p-1">
             {["24h", "72h"].map((item) => (
               <button
                 key={item}
@@ -286,7 +286,7 @@ export default function ModelCalibrationPanel({ data }) {
                 onClick={() => setHorizon(item)}
                 className="px-3 py-1.5 rounded-md text-[11px] font-mono transition-colors"
                 style={{
-                  color: horizon === item ? "#f5c451" : "rgba(255,255,255,.4)",
+                  color: horizon === item ? "#f5c451" : "rgb(var(--ink) / .4)",
                   backgroundColor:
                     horizon === item ? "rgba(245,196,81,.10)" : "transparent",
                 }}

@@ -20,12 +20,12 @@ const cleanText = (s) => {
 
 const WirePlaceholder = () => (
   <div className="relative flex w-full max-h-[min(32vh,220px)] min-h-[9rem] flex-col items-center justify-center bg-[#050505] select-none sm:max-h-[min(36vh,260px)] sm:min-h-[11rem]">
-    <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.08]" />
+    <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.08]" />
     <img src={LUXQUANT_LOGO} alt="LuxQuant" className="h-14 w-14 object-contain opacity-95" />
-    <span className="mt-2.5 font-mono text-[9px] uppercase tracking-[0.28em] text-white/75">
+    <span className="mt-2.5 font-mono text-[9px] uppercase tracking-[0.28em] text-ink/75">
       LuxQuant
     </span>
-    <span className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.22em] text-white/40">
+    <span className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.22em] text-ink/40">
       News
     </span>
   </div>
@@ -57,8 +57,8 @@ const NewsPreviewModal = ({ article, onClose }) => {
         Wire
       </span>
       {article.source ? (
-        <span className="inline-flex items-center gap-1.5 rounded border border-white/[0.1] bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
-          <span className="h-1 w-1 rounded-full bg-white/45" />
+        <span className="inline-flex items-center gap-1.5 rounded border border-ink/[0.1] bg-ink/[0.04] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
+          <span className="h-1 w-1 rounded-full bg-ink/45" />
           {article.source}
         </span>
       ) : null}
@@ -77,7 +77,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
           href={article.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-white/[0.14] active:scale-[0.99]"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/15 bg-ink/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-ink/[0.14] active:scale-[0.99]"
         >
           {t("btc.open_article")}
           <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,7 +88,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
       <button
         type="button"
         onClick={close}
-        className="h-11 shrink-0 rounded-lg border border-white/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-white/20 hover:text-text-primary sm:px-5"
+        className="h-11 shrink-0 rounded-lg border border-ink/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-ink/20 hover:text-text-primary sm:px-5"
       >
         Close
       </button>
@@ -120,11 +120,11 @@ const NewsPreviewModal = ({ article, onClose }) => {
           <WirePlaceholder />
         )}
         {sourceLabel ? (
-          <span className="pointer-events-none absolute bottom-3 right-3 rounded border border-white/10 bg-black/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/70">
+          <span className="pointer-events-none absolute bottom-3 right-3 rounded border border-ink/10 bg-scrim/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink/70">
             {sourceLabel}
           </span>
         ) : null}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-scrim/50 to-transparent" />
       </div>
 
       <div className="space-y-4 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6">

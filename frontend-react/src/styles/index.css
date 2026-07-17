@@ -11,16 +11,17 @@
 
 /* ── Global loading shimmer (LuxQuant loading system) ──────────────────
    Skeleton primitives & group sweep. Available app-wide so any component
-   can use `lqsk` / `lqsk-group` without injecting <ShimmerStyles/>. */
+   can use `lqsk` / `lqsk-group` without injecting <ShimmerStyles/>.
+   Uses --ink so bright mode shows dark shimmer bars, not invisible white. */
 @keyframes lqShimmer { 100% { transform: translateX(100%); } }
 @keyframes lqFadeIn { from { opacity: 0; } to { opacity: 1; } }
-.lqsk { position: relative; overflow: hidden; background: rgba(255,255,255,0.05); border-radius: 8px; }
+.lqsk { position: relative; overflow: hidden; background: rgb(var(--ink) / 0.06); border-radius: 8px; }
 .lqsk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.08), transparent);
   animation: lqShimmer 1.4s infinite; }
 .lqsk-group { position: relative; overflow: hidden; }
 .lqsk-group::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.07), transparent);
   animation: lqShimmer 1.6s infinite; }
 @media (prefers-reduced-motion: reduce) {
   .lqsk::after, .lqsk-group::after { animation: none; }
@@ -73,7 +74,11 @@
 }
 
 /* Layer 2 — SEMANTIC per theme (RGB channels).
-   Default (:root, no attribute) == Luxquant so first paint / SSR is correct. */
+   Default (:root, no attribute) == Luxquant so first paint / SSR is correct.
+
+   --ink  : translucent overlays / hairlines (WHITE on dark themes, BLACK on bright).
+            Use as border-ink/10, bg-ink/[0.04] — flips correctly on light mode.
+   --scrim: modal/page dimmers (always near-black so content underneath darkens). */
 :root,
 [data-theme="luxquant"] {
   --surface: 10 5 6;
@@ -93,6 +98,10 @@
   /* Container hairline/border colour. Gold in Luxquant (brand), neutral in
      Dark — boxes stay simple; gold remains reserved for interactive states. */
   --line: 212 168 83;
+  --ink: 255 255 255;
+  --scrim: 0 0 0;
+  /* Inverse ink — rare; e.g. text on solid accent chips that stay light */
+  --ink-inv: 10 5 6;
 }
 
 [data-theme="dark"] {
@@ -115,24 +124,38 @@
   --warn: 251 191 36;
   --tg: 0 136 204;
   --line: 128 128 138;
+  --ink: 255 255 255;
+  --scrim: 0 0 0;
+  --ink-inv: 5 5 6;
 }
 
 [data-theme="bright"] {
-  --surface: 250 250 250;
-  --surface-secondary: 244 244 246;
+  /*
+    Bright = paper desk (Linear / Notion / Stripe Dashboard light).
+    Surfaces stack: page (cool zinc) → secondary → pure white raised cards.
+    Text uses zinc-900/600/500 for WCAG AA on white (≥4.5:1 body).
+    Accent gold is darkened so it remains readable on white (not washed-out).
+    PnL greens/reds use 600–700 weights so they don't glow neon on paper.
+    --ink is near-black so legacy white/XX overlays become visible hairlines.
+  */
+  --surface: 246 246 248;
+  --surface-secondary: 238 238 242;
   --surface-raised: 255 255 255;
-  --surface-hover: 241 241 244;
-  --accent: 176 137 60;
-  --accent-light: 201 162 39;
-  --accent-dark: 139 105 20;
-  --fg: 20 20 20;
-  --fg-secondary: 82 82 91;
-  --fg-muted: 120 120 130;
-  --pos: 22 163 74;
-  --neg: 220 38 38;
-  --warn: 202 138 4;
-  --tg: 0 136 204;
-  --line: 63 63 72;
+  --surface-hover: 232 232 238;
+  --accent: 161 122 40;
+  --accent-light: 184 142 52;
+  --accent-dark: 120 90 28;
+  --fg: 24 24 27;
+  --fg-secondary: 63 63 70;
+  --fg-muted: 113 113 122;
+  --pos: 21 128 61;
+  --neg: 185 28 28;
+  --warn: 161 98 7;
+  --tg: 0 122 184;
+  --line: 161 161 170;
+  --ink: 9 9 11;
+  --scrim: 15 15 18;
+  --ink-inv: 255 255 255;
 }
 
 /* Legacy compatibility — existing var(--bg-primary), var(--positive) etc.
@@ -164,7 +187,16 @@
 
 /* Dark: glass panels sit on neutral surfaces, not warm glass. */
 [data-theme="dark"] {
-  --glass-bg: rgb(var(--surface-raised) / 0.6);
+  --glass-bg: rgb(var(--surface-raised) / 0.72);
+  --glass-border: rgb(var(--ink) / 0.1);
+}
+
+/* Bright: solid paper glass (no muddy translucent brown). */
+[data-theme="bright"] {
+  --glass-bg: rgb(var(--surface-raised) / 0.92);
+  --glass-border: rgb(var(--ink) / 0.1);
+  --gold-glow: rgb(var(--accent) / 0.22);
+  --border-gold: rgb(var(--accent) / 0.35);
 }
 
 * {
@@ -279,11 +311,39 @@ body::-webkit-scrollbar,
   background: rgb(var(--surface));
 }
 
-/* Bright theme: light neutral canvas (kept sane while Bright is hidden). */
+/* Bright theme: cool paper canvas, soft top wash (no maroon). */
 [data-theme="bright"] .luxury-bg {
   background:
-    radial-gradient(ellipse at 50% -10%, rgba(0, 0, 0, 0.03) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% -12%, rgb(var(--accent) / 0.04) 0%, transparent 50%),
     rgb(var(--surface));
+}
+
+/* Bright: selection, autofill, inputs — readable on paper */
+[data-theme="bright"] ::selection {
+  background: rgb(var(--accent) / 0.22);
+  color: rgb(var(--fg));
+}
+[data-theme="bright"] input,
+[data-theme="bright"] textarea,
+[data-theme="bright"] select {
+  color-scheme: light;
+}
+[data-theme="luxquant"] input,
+[data-theme="luxquant"] textarea,
+[data-theme="luxquant"] select,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  color-scheme: dark;
+}
+
+/* Bright: solid cards read better with a hairline + soft desk shadow */
+[data-theme="bright"] .glass-card {
+  background: rgb(var(--surface-raised));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 1px 2px rgb(var(--scrim) / 0.04), 0 8px 24px rgb(var(--scrim) / 0.06);
+  border-color: rgb(var(--ink) / 0.08);
 }
 
 /* Warm brand PAGE wash (landing hero backdrop). Warm maroon in Luxquant,
@@ -333,15 +393,15 @@ body::-webkit-scrollbar,
   background:
     radial-gradient(ellipse at 18% 0%, rgba(150, 28, 28, 0.28) 0%, transparent 55%),
     linear-gradient(160deg, #2c0d10 0%, #1c0809 38%, #110607 64%, #0a0506 100%);
-  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.85), 0 0 70px rgba(150, 28, 28, 0.12);
+  box-shadow: 0 -20px 60px rgb(var(--scrim) / 0.85), 0 0 70px rgba(150, 28, 28, 0.12);
 }
 [data-theme="dark"] .lux-warm-auth-sheet {
   background: rgb(var(--surface-secondary));
-  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 -20px 60px rgb(var(--scrim) / 0.85);
 }
 [data-theme="bright"] .lux-warm-auth-sheet {
   background: rgb(var(--surface-raised));
-  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -20px 60px rgb(var(--scrim) / 0.25);
 }
 
 /* Subtle red veil overlay (Register) — off outside Luxquant. */
@@ -478,7 +538,7 @@ body::-webkit-scrollbar,
 .signals-table td {
   padding: 16px 12px;
   font-size: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgb(var(--ink) / 0.06);
   vertical-align: middle;
 }
 
@@ -625,10 +685,10 @@ body::-webkit-scrollbar,
   left: 0;
   right: 0;
   z-index: 60;
-  background: rgba(10, 5, 6, 0.95);
+  background: rgb(var(--surface) / 0.94);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-top: 1px solid rgba(212, 168, 83, 0.1);
+  border-top: 1px solid rgb(var(--ink) / 0.1);
   padding: 8px;
   padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
 }
@@ -643,9 +703,16 @@ body::-webkit-scrollbar,
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(212, 168, 83, 0.3),
+    rgb(var(--line) / 0.35),
     transparent
   );
+}
+
+/* Bright: solid white chrome, soft shadow so nav lifts off page */
+[data-theme="bright"] .bottom-nav {
+  background: rgb(var(--surface-raised) / 0.96);
+  box-shadow: 0 -8px 28px rgb(var(--scrim) / 0.08);
+  border-top-color: rgb(var(--ink) / 0.08);
 }
 
 /* ==========================================

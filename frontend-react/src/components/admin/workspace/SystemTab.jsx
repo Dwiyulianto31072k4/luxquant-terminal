@@ -30,7 +30,7 @@ const HEALTH = {
   ok:      { label: 'Running',  color: palette.green[400],  Icon: CheckCircleIcon },
   warn:    { label: 'Busy',     color: palette.amber[400],  Icon: LoaderIcon },
   down:    { label: 'Failed',   color: palette.red[400],    Icon: XCircleIcon },
-  idle:    { label: 'Idle',     color: palette.warm[400],   Icon: ClockIcon },
+  idle:    { label: 'Idle',     color: 'rgb(var(--fg-muted))',   Icon: ClockIcon },
   unknown: { label: 'Unknown',  color: palette.orange[400], Icon: AlertTriangleIcon },
 };
 
@@ -77,7 +77,7 @@ const SummaryChip = ({ label, value, color }) => (
   </div>
 );
 
-const MetaPill = ({ children, color = palette.warm[300] }) => (
+const MetaPill = ({ children, color = 'rgb(var(--fg-secondary))' }) => (
   <span
     className="text-[10px] px-1.5 py-0.5 rounded tabular-nums"
     style={{ background: tint(color, 0.08), color: tint(color, 0.95), border: `1px solid ${tint(color, 0.15)}` }}
@@ -114,7 +114,7 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
   return (
     <div
       className="rounded-xl p-3.5 relative overflow-hidden"
-      style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(meta.color, svc.health === 'down' ? 0.4 : 0.14)}`, boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}
+      style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(meta.color, svc.health === 'down' ? 0.4 : 0.14)}`, boxShadow: '0 6px 20px rgb(var(--scrim) / 0.35)' }}
     >
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(meta.color, svc.health === 'down' ? 0.5 : 0.28)}, transparent)` }} />
       <div className="flex items-start justify-between gap-3">
@@ -128,7 +128,7 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
               <span className="text-[13px] font-semibold text-text-primary truncate">{svc.name}</span>
               {isTimer && <span className="text-[9px] uppercase tracking-wider px-1 rounded" style={{ background: tint(palette.blue[400], 0.12), color: palette.blue[400] }}>timer</span>}
             </div>
-            <p className="text-[11px] mt-0.5 truncate" style={{ color: palette.warm[400] }}>
+            <p className="text-[11px] mt-0.5 truncate" style={{ color: 'rgb(var(--fg-muted))' }}>
               {svc.description || svc.unit}
             </p>
           </div>
@@ -146,14 +146,14 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
         {svc.restarts > 0 && <MetaPill color={palette.orange[400]}>{svc.restarts} restart{svc.restarts > 1 ? 's' : ''}</MetaPill>}
         {mem && <MetaPill>{mem}</MetaPill>}
         {svc.main_pid && <MetaPill>pid {svc.main_pid}</MetaPill>}
-        {svc.unit_file_state && <MetaPill color={svc.unit_file_state === 'enabled' ? palette.green[400] : palette.warm[400]}>{svc.unit_file_state}</MetaPill>}
+        {svc.unit_file_state && <MetaPill color={svc.unit_file_state === 'enabled' ? palette.green[400] : 'rgb(var(--fg-muted))'}>{svc.unit_file_state}</MetaPill>}
       </div>
 
       {/* error tail */}
       {Array.isArray(svc.log_tail) && svc.log_tail.length > 0 && (
         <pre
           className="mt-2.5 ml-[18px] p-2 rounded text-[10px] leading-relaxed overflow-x-auto whitespace-pre-wrap"
-          style={{ background: 'rgba(0,0,0,0.35)', border: `1px solid ${tint(palette.red[400], 0.2)}`, color: palette.warm[200], maxHeight: 140 }}
+          style={{ background: 'rgb(var(--scrim) / 0.35)', border: `1px solid ${tint(palette.red[400], 0.2)}`, color: 'rgb(var(--fg-secondary))', maxHeight: 140 }}
         >
           {svc.log_tail.join('\n')}
         </pre>
@@ -253,10 +253,10 @@ export const SystemTab = () => {
   // ── systemctl unavailable (dev host) ──
   if (data && data.available === false) {
     return (
-      <div className="rounded-lg p-6 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${tint(palette.amber[400], 0.2)}` }}>
+      <div className="rounded-lg p-6 text-center" style={{ background: 'rgb(var(--ink) / 0.02)', border: `1px solid ${tint(palette.amber[400], 0.2)}` }}>
         <AlertTriangleIcon size={28} style={{ color: palette.amber[400] }} className="mx-auto mb-2" />
         <p className="text-sm text-text-primary font-semibold">Service monitor unavailable</p>
-        <p className="text-xs mt-1" style={{ color: palette.warm[400] }}>{data.reason || 'systemctl not reachable from the API host.'}</p>
+        <p className="text-xs mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>{data.reason || 'systemctl not reachable from the API host.'}</p>
       </div>
     );
   }
@@ -273,11 +273,11 @@ export const SystemTab = () => {
           <SummaryChip label="running" value={summary.ok} color={palette.green[400]} />
           {summary.warn > 0 && <SummaryChip label="busy" value={summary.warn} color={palette.amber[400]} />}
           {summary.down > 0 && <SummaryChip label="failed" value={summary.down} color={palette.red[400]} />}
-          <SummaryChip label="idle" value={summary.idle} color={palette.warm[400]} />
+          <SummaryChip label="idle" value={summary.idle} color={'rgb(var(--fg-muted))'} />
         </div>
         <div className="flex items-center gap-2.5">
           {lastUpdated && view === 'cards' && (
-            <span className="text-[10px]" style={{ color: palette.warm[500] }}>
+            <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
               updated {lastUpdated.toLocaleTimeString()}
             </span>
           )}
@@ -289,7 +289,7 @@ export const SystemTab = () => {
                 className="px-3.5 py-1.5 text-[11px] font-semibold capitalize"
                 style={view === v
                   ? { background: tint(palette.gold[300], 0.14), color: palette.gold[300] }
-                  : { background: 'transparent', color: palette.warm[400] }}
+                  : { background: 'transparent', color: 'rgb(var(--fg-muted))' }}
               >
                 {v}
               </button>
@@ -319,7 +319,7 @@ export const SystemTab = () => {
       {view === 'cards' && (
         <>
           {loading && !data && (
-            <div className="flex items-center justify-center py-16 gap-2" style={{ color: palette.warm[400] }}>
+            <div className="flex items-center justify-center py-16 gap-2" style={{ color: 'rgb(var(--fg-muted))' }}>
               <LoaderIcon size={18} className="animate-spin" />
               <span className="text-sm">Reading systemd…</span>
             </div>
@@ -328,9 +328,9 @@ export const SystemTab = () => {
           {grouped.map(([category, svcs]) => (
             <div key={category} className="mb-5">
               <div className="flex items-center gap-2 mb-2.5">
-                <ServerIcon size={12} style={{ color: palette.warm[300] }} />
-                <span className="text-[10px] uppercase tracking-[0.14em] font-semibold" style={{ color: palette.warm[300] }}>{category}</span>
-                <span className="text-[10px]" style={{ color: palette.warm[500] }}>· {svcs.length}</span>
+                <ServerIcon size={12} style={{ color: 'rgb(var(--fg-secondary))' }} />
+                <span className="text-[10px] uppercase tracking-[0.14em] font-semibold" style={{ color: 'rgb(var(--fg-secondary))' }}>{category}</span>
+                <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>· {svcs.length}</span>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
                 {svcs.map((svc) => (
@@ -346,18 +346,18 @@ export const SystemTab = () => {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-3 py-1.5 rounded-md text-[12px] disabled:opacity-40"
-                style={{ background: 'transparent', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[300] }}
+                style={{ background: 'transparent', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: 'rgb(var(--fg-secondary))' }}
               >
                 ← Prev
               </button>
-              <span className="text-[12px]" style={{ color: palette.warm[400] }}>
+              <span className="text-[12px]" style={{ color: 'rgb(var(--fg-muted))' }}>
                 Page <b style={{ color: palette.gold[300] }}>{page}</b> / {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1.5 rounded-md text-[12px] disabled:opacity-40"
-                style={{ background: 'transparent', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[300] }}
+                style={{ background: 'transparent', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: 'rgb(var(--fg-secondary))' }}
               >
                 Next →
               </button>
@@ -365,7 +365,7 @@ export const SystemTab = () => {
           )}
 
           {!loading && data && (data.services || []).length === 0 && (
-            <div className="text-center py-16 text-sm" style={{ color: palette.warm[400] }}>
+            <div className="text-center py-16 text-sm" style={{ color: 'rgb(var(--fg-muted))' }}>
               No LuxQuant units discovered on this host.
             </div>
           )}

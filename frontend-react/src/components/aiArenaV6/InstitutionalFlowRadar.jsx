@@ -94,7 +94,7 @@ const FlowHistoryBars = ({ history }) => {
           style={{
             top: HALF,
             height: 1,
-            background: "rgba(255, 255, 255, 0.15)",
+            background: "rgb(var(--ink) / 0.15)",
             zIndex: 1,
           }}
         />
@@ -194,7 +194,7 @@ export default function InstitutionalFlowRadar() {
     return (
       <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-ink/40 to-ink/10 rounded" />
           <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
@@ -209,14 +209,14 @@ export default function InstitutionalFlowRadar() {
     return (
       <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-ink/40 to-ink/10 rounded" />
           <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="text-text-muted text-sm py-4">
           {error ? `Could not load flow data: ${error}` : "No flow data available."}
           <button
             onClick={fetchData}
-            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-text-primary hover:bg-white/[0.06] transition-colors"
+            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-text-primary hover:bg-ink/[0.06] transition-colors"
           >
             Retry
           </button>
@@ -241,7 +241,7 @@ export default function InstitutionalFlowRadar() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-ink/40 to-ink/10 rounded" />
           <div>
             <h2 className="font-display text-xl text-text-primary leading-tight">
               Institutional Flow Radar
@@ -255,7 +255,7 @@ export default function InstitutionalFlowRadar() {
           <span className="text-[10px] text-text-muted font-mono">
             Last: {fmtDate(flows.last_date)}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-white/[0.06] border-line/30 text-text-primary">
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-ink/[0.06] border-line/30 text-text-primary">
             Live
           </span>
         </div>
@@ -264,7 +264,7 @@ export default function InstitutionalFlowRadar() {
       {/* Top metrics — 4 columns */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {/* Today's net flow */}
-        <div className="bg-bg-card/50 rounded-xl p-3 border border-white/5">
+        <div className="bg-bg-card/50 rounded-xl p-3 border border-ink/5">
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             Today's Net Flow
           </div>
@@ -281,7 +281,7 @@ export default function InstitutionalFlowRadar() {
         </div>
 
         {/* Streak */}
-        <div className="bg-bg-card/50 rounded-xl p-3 border border-white/5">
+        <div className="bg-bg-card/50 rounded-xl p-3 border border-ink/5">
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             Current Streak
           </div>
@@ -301,7 +301,7 @@ export default function InstitutionalFlowRadar() {
         </div>
 
         {/* 7D cumulative */}
-        <div className="bg-bg-card/50 rounded-xl p-3 border border-white/5">
+        <div className="bg-bg-card/50 rounded-xl p-3 border border-ink/5">
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             7D Cumulative
           </div>
@@ -316,7 +316,7 @@ export default function InstitutionalFlowRadar() {
         </div>
 
         {/* Coinbase Premium */}
-        <div className="bg-bg-card/50 rounded-xl p-3 border border-white/5">
+        <div className="bg-bg-card/50 rounded-xl p-3 border border-ink/5">
           <div className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-1">
             Coinbase Premium
           </div>
@@ -357,7 +357,7 @@ export default function InstitutionalFlowRadar() {
       )}
 
       {/* Narrative footer */}
-      <div className="mt-5 pt-4 border-t border-white/5">
+      <div className="mt-5 pt-4 border-t border-ink/5">
         <p className="text-[11px] text-text-muted leading-relaxed">
           {(() => {
             const flowDir = isPositive ? "Inflows" : "Outflows";

@@ -16,9 +16,9 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/authApi';
 
 const Section = ({ title, badge, children }) => (
-  <div className="overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.015]"
-    style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.3)' }}>
-    <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
+  <div className="overflow-hidden rounded-md border border-ink/[0.06] bg-ink/[0.015]"
+    style={{ boxShadow: 'inset 0 1px 2px -1px rgb(var(--scrim) / 0.3)' }}>
+    <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-ink/[0.05] bg-ink/[0.015]">
       <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-semibold">
         {title}
       </h2>
@@ -129,7 +129,7 @@ const VipGroupCard = ({ onToast }) => {
           {/* Action button — conditional */}
           <div className="flex-shrink-0">
             {!hasAccess ? (
-              <span className="px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider text-text-muted/50 border border-white/[0.06]">
+              <span className="px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider text-text-muted/50 border border-ink/[0.06]">
                 {t('vip.need_sub', 'Subscribe')}
               </span>
             ) : inGroup ? (
@@ -145,7 +145,7 @@ const VipGroupCard = ({ onToast }) => {
                 className="px-3 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold transition-all disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: 'rgb(var(--fg))', border: '1px solid rgba(0,136,204,0.3)' }}>
                 {loading
-                  ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mx-3" />
+                  ? <div className="w-3 h-3 border-2 border-ink/30 border-t-white rounded-full animate-spin mx-3" />
                   : t('vip.join', 'Join Group')}
               </button>
             )}

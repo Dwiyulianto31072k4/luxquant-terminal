@@ -45,8 +45,8 @@ const DurationOption = ({ Icon, label, desc, selected, onClick }) => (
     onClick={onClick}
     className="flex flex-col items-center justify-center gap-1.5 rounded-lg p-3 transition-colors"
     style={{
-      background: selected ? "rgba(212,168,83,0.1)" : "rgba(255,255,255,0.02)",
-      border: `1px solid ${selected ? "rgba(212,168,83,0.45)" : "rgba(255,255,255,0.06)"}`,
+      background: selected ? "rgba(212,168,83,0.1)" : "rgb(var(--ink) / 0.02)",
+      border: `1px solid ${selected ? "rgba(212,168,83,0.45)" : "rgb(var(--ink) / 0.06)"}`,
     }}
   >
     <Icon size={16} style={{ color: selected ? GOLD : "#6b5c52" }} />
@@ -66,7 +66,7 @@ const DateInput = ({ label, required, value, onChange, min, helper }) => (
       <input
         type="date" value={value} min={min} onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg py-2 pl-8 pr-3 font-mono text-xs text-text-primary outline-none focus:border-line/40"
-        style={{ background: "rgb(var(--surface-secondary))", border: `1px solid ${required ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`, colorScheme: "dark" }}
+        style={{ background: "rgb(var(--surface-secondary))", border: `1px solid ${required ? "rgba(212,168,83,0.2)" : "rgb(var(--ink) / 0.06)"}`, colorScheme: "dark" }}
       />
     </div>
     {helper && <p className="mt-1 text-[10px] text-text-muted/70">{helper}</p>}
@@ -185,7 +185,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
     <Modal isOpen={true} onClose={onClose} size="sm" padded={false} header={header} footer={footer}>
       <div className="space-y-4 px-5 py-5">
         {/* Mode toggle */}
-        <div className="flex rounded-lg p-0.5" style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex rounded-lg p-0.5" style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.06)" }}>
           <ModeTab active={mode === "quick"} onClick={() => { setMode("quick"); setError(null); }}>Quick Preset</ModeTab>
           <ModeTab active={mode === "custom"} onClick={() => { setMode("custom"); setError(null); }}>Custom Range</ModeTab>
         </div>
@@ -220,7 +220,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
           <input
             value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Payment via BCA, promo code XYZ"
             className="w-full rounded-lg px-3 py-2 text-xs text-text-primary outline-none focus:border-line/40"
-            style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ background: "rgb(var(--surface-secondary))", border: "1px solid rgb(var(--ink) / 0.06)" }}
           />
         </div>
 

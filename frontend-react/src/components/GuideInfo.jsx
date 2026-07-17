@@ -55,7 +55,7 @@ export const InfoTip = ({ text, title, side = 'top', className = '' }) => {
 
 // content row
 const Row = ({ title, desc, warn }) => (
-  <div className="py-3.5 border-b border-white/[0.06] last:border-0">
+  <div className="py-3.5 border-b border-ink/[0.06] last:border-0">
     {title && <p className="font-mono text-[11px] uppercase tracking-wider text-text-primary mb-1.5">{title}</p>}
     <p className="font-mono text-[12px] leading-relaxed text-text-muted normal-case tracking-normal">{desc}</p>
     {warn && (
@@ -130,29 +130,29 @@ export const GuideModal = ({ onClose }) => {
   const content = (
     <div
       className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{ zIndex: 100000, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(2px)' }}
+      style={{ zIndex: 100000, background: 'rgb(var(--scrim) / 0.72)', backdropFilter: 'blur(2px)' }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-line/25 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-line/25 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
         <button
           onClick={onClose}
           aria-label={t('guide.close')}
-          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-md text-text-muted/60 hover:text-text-primary hover:bg-white/[0.06] transition-colors"
+          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-md text-text-muted/60 hover:text-text-primary hover:bg-ink/[0.06] transition-colors"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
         <div className="flex flex-1 min-h-0">
           {/* LEFT: section nav */}
-          <div className="w-48 shrink-0 border-r border-white/[0.06] bg-white/[0.015] py-5 px-3 flex flex-col">
+          <div className="w-48 shrink-0 border-r border-ink/[0.06] bg-ink/[0.015] py-5 px-3 flex flex-col">
             <div className="px-2 mb-4">
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-line/50 text-gold-primary text-[9px] font-mono">?</span>
@@ -169,7 +169,7 @@ export const GuideModal = ({ onClose }) => {
                     className={`text-left px-3 py-2.5 rounded-md font-mono text-[11px] tracking-wide transition-all ${
                       on
                         ? 'bg-gold-primary/10 border border-line/30 text-gold-primary'
-                        : 'border border-transparent text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
+                        : 'border border-transparent text-text-muted hover:text-text-primary hover:bg-ink/[0.04]'
                     }`}
                   >
                     {s.label}
@@ -186,7 +186,7 @@ export const GuideModal = ({ onClose }) => {
 
           {/* RIGHT: content */}
           <div className="flex-1 min-w-0 flex flex-col">
-            <div className="px-6 pt-6 pb-4 border-b border-white/[0.06]">
+            <div className="px-6 pt-6 pb-4 border-b border-ink/[0.06]">
               <h2 className="font-display text-2xl text-text-primary tracking-tight">
                 {sections.find((s) => s.id === active)?.label}
               </h2>

@@ -39,8 +39,8 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
   // Loading skeleton
   if (loading) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.02] border border-white/5">
-        <div className="w-2 h-2 rounded-full bg-white/10 animate-pulse" />
+      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-ink/[0.02] border border-ink/5">
+        <div className="w-2 h-2 rounded-full bg-ink/10 animate-pulse" />
         <span className="text-[9px] text-text-muted">BTC corr…</span>
       </div>
     );

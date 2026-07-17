@@ -76,8 +76,8 @@ export default function CountryCurrencyPicker({
             <div
               className="relative w-full rounded-xl overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgb(var(--ink) / 0.03)',
+                border: '1px solid rgb(var(--ink) / 0.06)',
               }}
             >
               {/* Flag prefix */}
@@ -111,7 +111,7 @@ export default function CountryCurrencyPicker({
                 style={{
                   background: 'rgb(var(--surface-secondary))',
                   border: '1px solid rgb(var(--line) / 0.25)',
-                  boxShadow: '0 25px 50px rgba(0,0,0,0.6), 0 0 30px rgba(212,168,83,0.05)',
+                  boxShadow: '0 25px 50px rgb(var(--scrim) / 0.35), 0 0 30px rgba(212,168,83,0.05)',
                 }}
               >
                 {/* Clear option */}
@@ -187,7 +187,7 @@ export default function CountryCurrencyPicker({
             <div
               className="relative w-full rounded-xl overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.03)',
+                background: 'rgb(var(--ink) / 0.03)',
                 border: '1px solid rgb(var(--line) / 0.15)',
               }}
             >
@@ -221,7 +221,7 @@ export default function CountryCurrencyPicker({
                 style={{
                   background: 'rgb(var(--surface-secondary))',
                   border: '1px solid rgb(var(--line) / 0.25)',
-                  boxShadow: '0 25px 50px rgba(0,0,0,0.6), 0 0 30px rgba(212,168,83,0.05)',
+                  boxShadow: '0 25px 50px rgb(var(--scrim) / 0.35), 0 0 30px rgba(212,168,83,0.05)',
                 }}
               >
                 {filteredCurrencies.length === 0 ? (
@@ -235,7 +235,7 @@ export default function CountryCurrencyPicker({
                     return (
                       <Fragment key={code}>
                         {showDivider && (
-                          <div className="my-1 mx-3 border-t border-white/[0.04]" />
+                          <div className="my-1 mx-3 border-t border-ink/[0.04]" />
                         )}
                         <Combobox.Option
                           value={code}

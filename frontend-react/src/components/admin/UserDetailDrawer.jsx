@@ -127,7 +127,7 @@ const Section = ({ title, Icon, action, children }) => (
         {Icon && <Icon size={12} style={{ color: 'rgb(var(--accent))' }} />}
         <h4
           className="text-[10px] font-bold tracking-wider uppercase"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
+          style={{ color: 'rgb(var(--ink) / 0.5)' }}
         >
           {title}
         </h4>
@@ -142,13 +142,13 @@ const StatTile = ({ label, value, accent }) => (
   <div
     className="relative overflow-hidden rounded-lg px-3 py-2"
     style={{
-      background: 'rgba(255,255,255,0.02)',
-      border: '1px solid rgba(255,255,255,0.04)',
+      background: 'rgb(var(--ink) / 0.02)',
+      border: '1px solid rgb(var(--ink) / 0.04)',
     }}
   >
     <p
       className="text-[9px] uppercase tracking-wider font-semibold mb-0.5"
-      style={{ color: 'rgba(255,255,255,0.35)' }}
+      style={{ color: 'rgb(var(--ink) / 0.35)' }}
     >
       {label}
     </p>
@@ -264,9 +264,9 @@ const UserHero = ({ user }) => (
         <span
           className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
           style={{
-            background: 'rgba(255,255,255,0.04)',
+            background: 'rgb(var(--ink) / 0.04)',
             color: 'rgb(var(--fg-muted))',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid rgb(var(--ink) / 0.06)',
           }}
         >
           {user.auth_provider}
@@ -356,10 +356,10 @@ const ActivityPulse = ({ userId }) => {
       {/* 30-day sparkline */}
       <div
         className="rounded-lg px-3 py-2.5"
-        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+        style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.04)' }}
       >
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: 'rgb(var(--ink) / 0.35)' }}>
             Last 30 days
           </span>
           <span className="text-[9px]" style={{ color: 'rgb(var(--fg-muted))' }}>
@@ -374,7 +374,7 @@ const ActivityPulse = ({ userId }) => {
               className="flex-1 rounded-sm"
               style={{
                 height: `${Math.max(6, (p.count / maxC) * 100)}%`,
-                background: p.count > 0 ? '#2dd4bf' : 'rgba(255,255,255,0.05)',
+                background: p.count > 0 ? '#2dd4bf' : 'rgb(var(--ink) / 0.05)',
                 opacity: p.count > 0 ? 0.85 : 1,
               }}
             />
@@ -484,9 +484,9 @@ const computeVipDiagnosis = (user) => {
 };
 
 const SignalCell = ({ label, value, good }) => (
-  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px' }}>
-    <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</div>
-    <div className="text-[12px] font-medium" style={{ color: good === true ? '#34d399' : good === false ? '#f87171' : 'rgba(255,255,255,0.45)' }}>{value}</div>
+  <div style={{ background: 'rgb(var(--ink) / 0.03)', borderRadius: 6, padding: '8px' }}>
+    <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgb(var(--ink) / 0.35)' }}>{label}</div>
+    <div className="text-[12px] font-medium" style={{ color: good === true ? '#34d399' : good === false ? '#f87171' : 'rgb(var(--ink) / 0.45)' }}>{value}</div>
   </div>
 );
 
@@ -561,7 +561,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
           <SignalCell label="Telegram" value={d.signals.tg} good={tg} />
           <SignalCell label="VIP group" value={d.signals.group} good={inGroup ? true : (d.signals.group === 'n/a' ? null : false)} />
         </div>
-        <div className="text-[12px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{d.detail}</div>
+        <div className="text-[12px] leading-relaxed mb-3" style={{ color: 'rgb(var(--ink) / 0.6)' }}>{d.detail}</div>
 
         {canWrite && d.action === 'invite' && !inviteLink && (
           <div className="flex items-center gap-2 flex-wrap">
@@ -590,8 +590,8 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
           </button>
         )}
         {inviteLink && (
-          <div className="mt-2 p-2 rounded-md text-[11px] break-all" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgb(var(--pos))', border: '1px solid rgba(52,211,153,0.3)' }}>
-            <div className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Invite link (copied · valid 1 hour)</div>
+          <div className="mt-2 p-2 rounded-md text-[11px] break-all" style={{ background: 'rgb(var(--ink) / 0.04)', color: 'rgb(var(--pos))', border: '1px solid rgba(52,211,153,0.3)' }}>
+            <div className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgb(var(--ink) / 0.4)' }}>Invite link (copied · valid 1 hour)</div>
             {inviteLink}
           </div>
         )}
@@ -611,11 +611,11 @@ const TimelineRow = ({ icon: Icon, color, label, date, last }) => (
         style={{ background: `${color}1a`, border: `1px solid ${color}4d` }}>
         <Icon size={11} style={{ color }} />
       </div>
-      {!last && <div className="w-px flex-1 my-1" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+      {!last && <div className="w-px flex-1 my-1" style={{ background: 'rgb(var(--ink) / 0.08)' }} />}
     </div>
     <div className="pb-3 min-w-0">
       <div className="text-[12px] font-medium text-text-primary/80">{label}</div>
-      <div className="text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{date}</div>
+      <div className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.4)' }}>{date}</div>
     </div>
   </div>
 );
@@ -704,7 +704,7 @@ const FollowupTimeline = ({ userId }) => {
                     className="rounded-full mt-1"
                     style={{ width: 9, height: 9, background: st.color, boxShadow: `0 0 6px ${_fuRgba(st.color, 0.5)}` }}
                   />
-                  {!isLast && <span className="flex-1 w-px my-1" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+                  {!isLast && <span className="flex-1 w-px my-1" style={{ background: 'rgb(var(--ink) / 0.08)' }} />}
                 </div>
                 <div className="pb-4 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -986,8 +986,8 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 placeholder="username (without @)"
                 className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none font-mono"
                 style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgb(var(--scrim) / 0.3)',
+                  border: '1px solid rgb(var(--ink) / 0.1)',
                 }}
               />
               {user.telegram_username && (
@@ -1021,8 +1021,8 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 placeholder="username or numeric ID"
                 className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none font-mono"
                 style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgb(var(--scrim) / 0.3)',
+                  border: '1px solid rgb(var(--ink) / 0.1)',
                 }}
               />
               {user.discord_id && (
@@ -1049,8 +1049,8 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 placeholder="VIP customer, prefers TG. Pays annually on each renewal…"
                 className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none resize-none"
                 style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgb(var(--scrim) / 0.3)',
+                  border: '1px solid rgb(var(--ink) / 0.1)',
                 }}
               />
             </div>
@@ -1107,8 +1107,8 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
           <div
             className="text-xs p-3 rounded-lg whitespace-pre-wrap"
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.05)',
+              background: 'rgb(var(--ink) / 0.02)',
+              border: '1px solid rgb(var(--ink) / 0.05)',
               color: 'rgb(var(--fg-secondary))',
               lineHeight: '1.5',
             }}
@@ -1209,8 +1209,8 @@ const PaymentsTab = ({ data }) => {
               key={p.id}
               className="rounded-lg p-2.5"
               style={{
-                background: 'rgba(255,255,255,0.018)',
-                border: '1px solid rgba(255,255,255,0.04)',
+                background: 'rgb(var(--ink) / 0.018)',
+                border: '1px solid rgb(var(--ink) / 0.04)',
               }}
             >
               <div className="flex items-start justify-between gap-2 mb-1">
@@ -1491,7 +1491,7 @@ export const UserDetailDrawer = ({
       className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
-        background: 'rgba(0,0,0,0.75)',
+        background: 'rgb(var(--scrim) / 0.75)',
         backdropFilter: 'blur(8px)',
         zIndex: 2147483646,
       }}
@@ -1502,19 +1502,19 @@ export const UserDetailDrawer = ({
           background: 'rgb(var(--surface-raised))',
           border: '1px solid rgb(var(--line) / 0.25)',
           boxShadow:
-            '0 -20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
+            '0 -20px 60px rgb(var(--scrim) / 0.35), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* ── HEADER ── */}
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0 relative"
           style={{
             background: 'rgb(var(--surface-raised))',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            borderBottom: '1px solid rgb(var(--ink) / 0.05)',
           }}
         >
           <div
@@ -1570,7 +1570,7 @@ export const UserDetailDrawer = ({
             className="flex shrink-0 px-2 pt-1.5 overflow-x-auto"
             style={{
               background: 'rgb(var(--surface-secondary))',
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              borderBottom: '1px solid rgb(var(--ink) / 0.05)',
             }}
           >
             {TABS.map(({ id, label, Icon }) => {

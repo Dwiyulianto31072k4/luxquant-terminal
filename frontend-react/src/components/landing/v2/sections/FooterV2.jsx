@@ -140,7 +140,7 @@ export default function FooterV2({ onNav }) {
   };
 
   return (
-    <footer className="relative z-10 border-t border-white/[0.06] bg-transparent">
+    <footer className="relative z-10 border-t border-ink/[0.06] bg-transparent">
       <div className="mx-auto max-w-6xl px-5 pb-10 pt-14 sm:px-6 lg:px-8 lg:pt-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           {/* Brand + ecosystem logos */}
@@ -169,8 +169,8 @@ export default function FooterV2({ onNav }) {
                   role="listitem"
                   className={`group flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border transition duration-150 ${
                     e.light
-                      ? "border-white/[0.08] hover:border-white/20"
-                      : "border-white/[0.08] hover:border-white/18"
+                      ? "border-ink/[0.08] hover:border-ink/20"
+                      : "border-ink/[0.08] hover:border-ink/18"
                   } opacity-90 hover:opacity-100 hover:brightness-110`}
                   style={{ background: e.bg }}
                 >
@@ -218,7 +218,7 @@ export default function FooterV2({ onNav }) {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink/[0.06] pt-6 sm:flex-row sm:items-center">
           <p className="text-[11px] text-text-primary/25">
             © {new Date().getFullYear()} LuxQuant · Since 2023
           </p>

@@ -23,11 +23,11 @@ const statusStyle = (status) => {
   const map = {
     filled: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
     partial: "bg-gold-primary/10 text-gold-primary border-line/25",
-    placed: "bg-white/[0.04] text-text-primary/70 border-white/[0.08]",
-    pending: "bg-white/[0.04] text-text-muted border-white/[0.06]",
+    placed: "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]",
+    pending: "bg-ink/[0.04] text-text-muted border-ink/[0.06]",
     error: "bg-red-500/10 text-red-400 border-red-500/25",
   };
-  return map[status] || "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
+  return map[status] || "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
 
 
@@ -52,7 +52,7 @@ export default function PositionCard({ order, onClosed }) {
   const canClose = ["filled", "partial", "placed"].includes(order.status);
 
   return (
-    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">
+    <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md hover:border-ink/[0.12] transition-all">
       {/* Top hairline accent */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -69,10 +69,10 @@ export default function PositionCard({ order, onClosed }) {
                 >
                   {order.side}
                 </span>
-                <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-white/[0.04] border-white/[0.08] text-text-muted">
+                <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-muted">
                   {order.exchange_id}
                 </span>
-                <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-white/[0.04] border-white/[0.08] text-text-muted">
+                <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-muted">
                   {order.market_type}
                 </span>
               </div>
@@ -111,7 +111,7 @@ export default function PositionCard({ order, onClosed }) {
                 <div
                   key={i}
                   className={`flex-1 h-1 rounded-sm transition-all ${
-                    t.filled ? "bg-gold-primary" : "bg-white/[0.06]"
+                    t.filled ? "bg-gold-primary" : "bg-ink/[0.06]"
                   }`}
                   title={`${t.level}: ${fmtNum(t.price, 6)} (${t.qty_pct}%)`}
                 />
@@ -192,7 +192,7 @@ const PriceCell = ({ label, value, tone = "neutral" }) => {
   }[tone];
 
   return (
-    <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2">
+    <div className="bg-ink/[0.02] border border-ink/[0.04] rounded p-2">
       <p className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted mb-1">{label}</p>
       <p className={`font-mono text-xs tabular-nums ${valueColor}`}>{value}</p>
     </div>

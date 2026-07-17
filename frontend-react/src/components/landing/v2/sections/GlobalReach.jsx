@@ -626,7 +626,7 @@ function drawCityLabel(ctx, x, y, cityText, alpha = 0.5) {
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   ctx.fillStyle = `rgba(${COLORS.whiteSoft},${alpha})`;
-  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowColor = "rgb(var(--scrim) / 0.35)";
   ctx.shadowBlur = 10;
   ctx.fillText(cityText, x, y);
   ctx.restore();
@@ -788,7 +788,7 @@ function CanvasGlobe() {
       ambientGlow.addColorStop(0, glowDark ? "rgba(42,42,46,0.10)" : "rgba(70,30,28,0.12)");
       ambientGlow.addColorStop(0.32, glowDark ? "rgba(28,28,32,0.05)" : "rgba(45,20,20,0.06)");
       ambientGlow.addColorStop(0.62, glowDark ? "rgba(15,15,17,0.02)" : "rgba(22,11,11,0.025)");
-      ambientGlow.addColorStop(1, "rgba(0,0,0,0)");
+      ambientGlow.addColorStop(1, "rgb(var(--ink) / 0.0)");
       context.fillStyle = ambientGlow;
       context.fillRect(
         cx - radius * 1.9,

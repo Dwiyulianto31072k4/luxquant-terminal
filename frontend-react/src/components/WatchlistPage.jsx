@@ -193,7 +193,7 @@ const WatchlistPage = () => {
     if (r.startsWith('low')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
     if (r.startsWith('med') || r.startsWith('nor')) return 'bg-gold-primary/10 text-gold-primary border-line/25';
     if (r.startsWith('high')) return 'bg-red-500/10 text-red-400 border-red-500/25';
-    return 'bg-white/[0.04] text-text-primary/70 border-white/[0.08]';
+    return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
   };
 
   const riskLabel = (risk) => {
@@ -208,9 +208,9 @@ const WatchlistPage = () => {
   const statusStyle = (status) => {
     const s = status?.toLowerCase() || '';
     if (s.includes('loss') || s === 'sl') return 'bg-red-500/10 text-red-400 border-red-500/25';
-    if (s === 'open') return 'bg-white/[0.04] text-text-primary/70 border-white/[0.08]';
+    if (s === 'open') return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
     if (s.startsWith('tp') || s.includes('win')) return 'bg-gold-primary/10 text-gold-primary border-line/25';
-    return 'bg-white/[0.04] text-text-primary/70 border-white/[0.08]';
+    return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
   };
 
   const statusLabel = (status) => {
@@ -329,7 +329,7 @@ const WatchlistPage = () => {
           </div>
           {watchlist.length > 0 && (
             <div className="flex items-center gap-2 text-[11px] font-mono">
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
                 <span className={`w-1.5 h-1.5 rounded-full ${
                   pricesLoading ? 'bg-gold-primary animate-pulse' :
                   Object.keys(currentPrices).length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'
@@ -339,7 +339,7 @@ const WatchlistPage = () => {
                    Object.keys(currentPrices).length > 0 ? 'Live' : 'Offline'}
                 </span>
               </span>
-              <span className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
+              <span className="px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
                 <span className="uppercase tracking-[0.15em] text-[10px]">Refresh</span>
                 <span className="ml-2 text-text-primary tabular-nums">15s</span>
               </span>
@@ -389,7 +389,7 @@ const WatchlistPage = () => {
                     className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                       active
                         ? 'bg-gold-primary/15 text-gold-primary border-line/40'
-                        : 'bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]'
+                        : 'bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]'
                     }`}
                   >
                     {label}
@@ -417,14 +417,14 @@ const WatchlistPage = () => {
                   placeholder="Search by pair..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
+                  className="w-full pl-9 pr-4 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
                 />
               </div>
 
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value)}
-                className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+                className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.key} value={opt.key} className="bg-surface-raised text-text-primary">
@@ -476,13 +476,13 @@ const WatchlistPage = () => {
             {filteredWatchlist.length === 0 ? (
               <NoMatch />
             ) : (
-              <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+              <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-white/[0.06]">
+                      <tr className="border-b border-ink/[0.06]">
                         <Th align="center" width="40">
                           <span className="sr-only">Star</span>
                         </Th>
@@ -583,7 +583,7 @@ const SectionHeader = ({ label, small = false }) => (
 // STAT CARD
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel, isLive, isGold, isDanger }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="flex items-center justify-between mb-2">
@@ -649,8 +649,8 @@ const DesktopRow = ({
       {/* Main row */}
       <tr
         onClick={onToggle}
-        className={`group cursor-pointer transition-colors border-b border-white/[0.04] ${
-          isExpanded ? 'bg-gold-primary/[0.03]' : 'hover:bg-white/[0.02]'
+        className={`group cursor-pointer transition-colors border-b border-ink/[0.04] ${
+          isExpanded ? 'bg-gold-primary/[0.03]' : 'hover:bg-ink/[0.02]'
         }`}
       >
         {/* Star */}
@@ -676,7 +676,7 @@ const DesktopRow = ({
         {/* Current price */}
         <Td align="right">
           {pricesLoading && !currentPrice ? (
-            <div className="h-4 w-20 bg-white/[0.04] rounded animate-pulse ml-auto" />
+            <div className="h-4 w-20 bg-ink/[0.04] rounded animate-pulse ml-auto" />
           ) : currentPrice ? (
             <span className="text-text-primary font-mono text-sm tabular-nums">
               {formatPrice(currentPrice)}
@@ -786,7 +786,7 @@ const DesktopRow = ({
 
       {/* Expanded detail row */}
       {isExpanded && (
-        <tr className="bg-gradient-to-r from-gold-primary/[0.03] to-transparent border-b border-white/[0.04]">
+        <tr className="bg-gradient-to-r from-gold-primary/[0.03] to-transparent border-b border-ink/[0.04]">
           <td colSpan={11} className="px-4 py-4">
             <ExpandedDetail
               item={item}
@@ -893,7 +893,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
 
       {/* Volume */}
       {currentVol ? (
-        <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
             24H Volume
           </p>
@@ -902,7 +902,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           </p>
         </div>
       ) : item.volume_rank_num && item.volume_rank_den ? (
-        <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
             Volume Rank
           </p>
@@ -952,7 +952,7 @@ const MobileCard = ({
   return (
     <div
       onClick={onClick}
-      className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-3.5 cursor-pointer transition-all hover:border-white/[0.12] active:bg-white/[0.02]"
+      className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 cursor-pointer transition-all hover:border-ink/[0.12] active:bg-ink/[0.02]"
     >
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -984,7 +984,7 @@ const MobileCard = ({
         <div>
           <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">Current</p>
           {pricesLoading && !currentPrice ? (
-            <div className="h-3 w-14 bg-white/[0.04] rounded animate-pulse" />
+            <div className="h-3 w-14 bg-ink/[0.04] rounded animate-pulse" />
           ) : currentPrice ? (
             <p className="text-text-primary font-mono text-xs tabular-nums">{formatPrice(currentPrice)}</p>
           ) : (
@@ -1095,16 +1095,16 @@ const LoadingSkeleton = () => (
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
-        className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
+        className="bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 flex items-center gap-3"
       >
-        <div className="w-8 h-8 rounded bg-white/[0.03] shrink-0" />
+        <div className="w-8 h-8 rounded bg-ink/[0.03] shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/4" />
-          <div className="h-3 bg-white/[0.03] rounded w-3/4" />
+          <div className="h-3 bg-ink/[0.05] rounded w-1/4" />
+          <div className="h-3 bg-ink/[0.03] rounded w-3/4" />
         </div>
         <div className="w-20 space-y-1.5">
-          <div className="h-3 bg-white/[0.05] rounded" />
-          <div className="h-2 bg-white/[0.03] rounded w-2/3 ml-auto" />
+          <div className="h-3 bg-ink/[0.05] rounded" />
+          <div className="h-2 bg-ink/[0.03] rounded w-2/3 ml-auto" />
         </div>
       </div>
     ))}
@@ -1112,7 +1112,7 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = ({ onBrowse }) => (
-  <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
+  <div className="relative bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center overflow-hidden">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1137,7 +1137,7 @@ const EmptyState = ({ onBrowse }) => (
 );
 
 const NoMatch = () => (
-  <div className="relative bg-surface-raised border border-white/[0.06] rounded-md p-8 text-center">
+  <div className="relative bg-surface-raised border border-ink/[0.06] rounded-md p-8 text-center">
     <p className="text-text-muted text-sm font-mono uppercase tracking-[0.15em]">
       No matching signals
     </p>

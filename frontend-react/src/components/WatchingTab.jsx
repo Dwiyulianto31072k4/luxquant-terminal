@@ -48,7 +48,7 @@ const SectionHeader = ({ label }) => (
 );
 
 const StatCard = ({ label, value, sublabel, isGold }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">{label}</div>
@@ -192,7 +192,7 @@ const WatchingTab = () => {
               value={input}
               onChange={(e) => { setInput(e.target.value); setError(""); }}
               onKeyDown={handleKeyDown}
-              className="w-full pl-9 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono uppercase"
+              className="w-full pl-9 pr-4 py-2.5 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono uppercase"
             />
           </div>
           <button
@@ -239,9 +239,9 @@ const WatchingTab = () => {
         ) : items.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+          <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-ink/[0.04]">
               {items.map((item) => (
                 <CoinRow
                   key={item.id}
@@ -271,7 +271,7 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
   const isCalled = item.status === "CALLED";
 
   return (
-    <div className={`group flex items-center gap-3 px-4 py-3.5 transition-colors ${isCalled ? "bg-emerald-500/[0.04]" : "hover:bg-white/[0.02]"}`}>
+    <div className={`group flex items-center gap-3 px-4 py-3.5 transition-colors ${isCalled ? "bg-emerald-500/[0.04]" : "hover:bg-ink/[0.02]"}`}>
       {/* Coin */}
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <CoinLogo pair={item.symbol} size={34} />
@@ -334,20 +334,20 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
 const ListSkeleton = () => (
   <div className="space-y-1.5">
     {[...Array(4)].map((_, i) => (
-      <div key={i} className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-white/[0.04] animate-pulse shrink-0" />
+      <div key={i} className="bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-ink/[0.04] animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/4 animate-pulse" />
-          <div className="h-2 bg-white/[0.03] rounded w-1/6 animate-pulse" />
+          <div className="h-3 bg-ink/[0.05] rounded w-1/4 animate-pulse" />
+          <div className="h-2 bg-ink/[0.03] rounded w-1/6 animate-pulse" />
         </div>
-        <div className="h-5 w-16 bg-white/[0.04] rounded animate-pulse" />
+        <div className="h-5 w-16 bg-ink/[0.04] rounded animate-pulse" />
       </div>
     ))}
   </div>
 );
 
 const EmptyState = () => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

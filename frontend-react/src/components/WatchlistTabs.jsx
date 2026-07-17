@@ -49,7 +49,7 @@ const WatchlistTabs = () => {
                 className={`shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all duration-200 ${
                   active
                     ? "border-line/60 -translate-y-px"
-                    : "bg-white/[0.02] border-white/[0.07] hover:border-white/[0.15] hover:bg-white/[0.04]"
+                    : "bg-ink/[0.02] border-ink/[0.07] hover:border-ink/[0.15] hover:bg-ink/[0.04]"
                 }`}
                 style={
                   active
@@ -59,7 +59,7 @@ const WatchlistTabs = () => {
               >
                 <span
                   className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                    active ? "bg-black/15" : "bg-white/[0.04]"
+                    active ? "bg-scrim/15" : "bg-ink/[0.04]"
                   }`}
                 >
                   <svg

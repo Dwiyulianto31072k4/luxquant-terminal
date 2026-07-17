@@ -8,8 +8,8 @@ import {
 } from "./constants";
 
 const card =
-  "rounded-2xl border border-white/[0.08] bg-surface-secondary/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]";
-const mutedCard = "rounded-xl border border-white/[0.06] bg-white/[0.025]";
+  "rounded-2xl border border-ink/[0.08] bg-surface-secondary/80 shadow-[0_1px_0_rgb(var(--ink)_/_0.04)_inset]";
+const mutedCard = "rounded-xl border border-ink/[0.06] bg-ink/[0.025]";
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -26,7 +26,7 @@ function badgeTone(status) {
   if (["degraded", "stale", "guarded", "limited", "elevated", "medium", "neutral"].includes(value)) {
     return "border-amber-300/20 bg-amber-300/10 text-amber-200";
   }
-  return "border-white/10 bg-white/5 text-text-primary/45";
+  return "border-ink/10 bg-ink/5 text-text-primary/45";
 }
 
 function textTone(status) {
@@ -236,7 +236,7 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
   const exposure = marketModeCopy(contract?.market_mode);
   return (
     <section className={cx(card, "overflow-hidden")}>
-      <div className="border-b border-white/[0.06] px-5 py-4 md:px-6">
+      <div className="border-b border-ink/[0.06] px-5 py-4 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={dir}>24h outlook</Badge>
@@ -282,13 +282,13 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail })
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-white/[0.06] bg-black/15 p-3">
+            <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
               <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">72h</div>
               <div className={cx("mt-2 text-lg font-semibold", textTone(swing?.direction))}>
                 {directionLabel(swing?.direction)} {swing?.confidence ?? "-"}%
               </div>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-black/15 p-3">
+            <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
               <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">Daily outlook</div>
               <div className={cx("mt-2 text-lg font-semibold", textTone(cycle?.direction))}>
                 {directionLabel(cycle?.direction)} {cycle?.confidence ?? "-"}%
@@ -315,7 +315,7 @@ function MetricPreviewCard({ row, horizon, onDetail }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {metrics.slice(0, 4).map((item, index) => (
-          <div key={`${item.metric}-${index}`} className="rounded-lg border border-white/[0.05] bg-black/15 p-2.5">
+          <div key={`${item.metric}-${index}`} className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-2.5">
             <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">
               {item.metric}
             </div>
@@ -371,7 +371,7 @@ function NewsPreview({ eventRisk, onDetail }) {
           </div>
           <div className="space-y-2">
             {headlines.slice(0, 3).map((headline, index) => (
-              <div key={`${headline.title}-${index}`} className="rounded-xl border border-white/[0.06] bg-black/15 p-3">
+              <div key={`${headline.title}-${index}`} className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="text-sm text-text-primary/80">{headline.title}</div>
                   <Badge tone={headline.impact}>{headline.impact || "watch"}</Badge>
@@ -382,7 +382,7 @@ function NewsPreview({ eventRisk, onDetail }) {
               </div>
             ))}
             {!headlines.length && !events.length && (
-              <div className="rounded-xl border border-white/[0.06] bg-black/15 p-4 text-sm text-text-primary/45">
+              <div className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4 text-sm text-text-primary/45">
                 No headline or scheduled event detail is available in this cycle.
               </div>
             )}
@@ -453,7 +453,7 @@ function RiskList({ risks, onDetail }) {
             <Badge tone={risk.severity}>{risk.severity || "watch"}</Badge>
           </div>
           {risk.threshold && (
-            <div className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-text-primary/65">
+            <div className="rounded-lg border border-ink/[0.06] bg-scrim/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-text-primary/65">
               {risk.threshold}
             </div>
           )}
@@ -498,7 +498,7 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
             {cycleRows.map((row) => {
               const score = rowScore(row, "72h");
               return (
-                <div key={row.key} className="rounded-xl border border-white/[0.06] bg-black/15 p-3">
+                <div key={row.key} className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm text-text-primary/80">{row.label}</div>
                     <Badge tone={score.direction}>{readable(score.direction)}</Badge>
@@ -539,7 +539,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
               not override the 24h tape. Daily outlook is best refreshed after the BTC
               daily candle closes.
             </p>
-            <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/20 p-3">
+            <div className="mt-4 rounded-xl border border-ink/[0.06] bg-scrim/20 p-3">
               <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
                 Cadence
               </div>
@@ -555,7 +555,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {items.map((row) => (
-              <div key={row.key} className="rounded-xl border border-white/[0.06] bg-black/15 p-4">
+              <div key={row.key} className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-medium text-text-primary/85">{row.label}</div>
@@ -567,7 +567,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {(row.evidence || []).slice(0, 4).map((item, index) => (
-                    <div key={`${row.key}-${item.metric}-${index}`} className="rounded-lg border border-white/[0.05] bg-white/[0.025] p-2.5">
+                    <div key={`${row.key}-${item.metric}-${index}`} className="rounded-lg border border-ink/[0.05] bg-ink/[0.025] p-2.5">
                       <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-text-primary/30">
                         {item.metric}
                       </div>
@@ -588,7 +588,7 @@ function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
 
 function DetailTabRail({ activeTab, onChange, tabs }) {
   return (
-    <div className="border-b border-white/[0.06] bg-black/10 p-2">
+    <div className="border-b border-ink/[0.06] bg-scrim/10 p-2">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         {tabs.map((tab) => {
           const active = activeTab === tab.key;
@@ -601,7 +601,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
                 "group flex min-h-[64px] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                 active
                   ? "border-line/35 bg-accent/12 text-text-primary shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
-                  : "border-white/[0.06] bg-white/[0.018] text-text-primary/45 hover:border-white/[0.12] hover:bg-white/[0.045] hover:text-text-primary/75",
+                  : "border-ink/[0.06] bg-ink/[0.018] text-text-primary/45 hover:border-ink/[0.12] hover:bg-ink/[0.045] hover:text-text-primary/75",
               )}
             >
               <span
@@ -609,7 +609,7 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold",
                   active
                     ? "border-line/35 bg-accent/14 text-accent"
-                    : "border-white/[0.08] bg-black/15 text-text-primary/35 group-hover:text-text-primary/65",
+                    : "border-ink/[0.08] bg-scrim/15 text-text-primary/35 group-hover:text-text-primary/65",
                 )}
               >
                 {tab.icon}
@@ -629,15 +629,15 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
 function Modal({ title, children, onClose }) {
   if (!title) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/75 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-scrim/75 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[min(92dvh,100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-white/10 sm:border bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl"
+        className="max-h-[min(92dvh,100%)] w-full max-w-5xl overflow-hidden rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-b border-ink/[0.08] px-5 py-4">
           <div>
             <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">Detail breakdown</div>
             <h3 className="mt-1 text-xl font-semibold text-text-primary/90">{title}</h3>
@@ -645,7 +645,7 @@ function Modal({ title, children, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-text-primary/65 hover:bg-white/[0.08]"
+            className="rounded-lg border border-ink/10 bg-ink/[0.04] px-3 py-2 text-sm text-text-primary/65 hover:bg-ink/[0.08]"
           >
             Close
           </button>
@@ -659,7 +659,7 @@ function Modal({ title, children, onClose }) {
 function EvidenceRowDetail({ row, horizon }) {
   const score = rowScore(row, horizon);
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+    <div className="rounded-xl border border-ink/[0.07] bg-ink/[0.025] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-base font-medium text-text-primary/85">{row.label}</div>
@@ -668,26 +668,26 @@ function EvidenceRowDetail({ row, horizon }) {
         <Badge tone={score.direction}>{readable(score.direction)}</Badge>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-white/[0.05] bg-black/20 p-3">
+        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
           <div className="text-[9px] font-mono uppercase text-text-primary/30">Strength</div>
           <div className="mt-1 font-mono text-text-primary/80">{numberPct(score.strength)}</div>
         </div>
-        <div className="rounded-lg border border-white/[0.05] bg-black/20 p-3">
+        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
           <div className="text-[9px] font-mono uppercase text-text-primary/30">Weight</div>
           <div className="mt-1 font-mono text-text-primary/80">{Number(score.weight ?? 0).toFixed(2)}</div>
         </div>
-        <div className="rounded-lg border border-white/[0.05] bg-black/20 p-3">
+        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
           <div className="text-[9px] font-mono uppercase text-text-primary/30">Weighted score</div>
           <div className={cx("mt-1 font-mono", textTone(score.direction))}>{signedScore(score.weighted_score)}</div>
         </div>
-        <div className="rounded-lg border border-white/[0.05] bg-black/20 p-3">
+        <div className="rounded-lg border border-ink/[0.05] bg-scrim/20 p-3">
           <div className="text-[9px] font-mono uppercase text-text-primary/30">Data health</div>
           <div className={cx("mt-1 font-mono", textTone(row.source_health?.status))}>{readable(row.source_health?.status)}</div>
         </div>
       </div>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {(row.evidence || []).map((item, index) => (
-          <div key={`${item.metric}-${index}`} className="rounded-lg border border-white/[0.05] bg-black/15 p-3">
+          <div key={`${item.metric}-${index}`} className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-3">
             <div className="text-[10px] text-text-primary/35">{item.metric}</div>
             <div className="mt-1 font-mono text-sm text-text-primary/80">{item.value ?? "-"}</div>
             {item.note && <div className="mt-1 text-[10px] text-text-primary/35">{item.note}</div>}
@@ -734,7 +734,7 @@ function NewsModalContent({ eventRisk }) {
               href={headline.url || undefined}
               target="_blank"
               rel="noreferrer"
-              className="block rounded-xl border border-white/[0.06] bg-black/15 p-4 hover:bg-white/[0.04]"
+              className="block rounded-xl border border-ink/[0.06] bg-scrim/15 p-4 hover:bg-ink/[0.04]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="max-w-3xl text-sm text-text-primary/85">{headline.title}</div>
@@ -752,7 +752,7 @@ function NewsModalContent({ eventRisk }) {
         <h4 className="mb-3 text-sm font-semibold text-text-primary/85">Scheduled events</h4>
         <div className="grid gap-2 md:grid-cols-2">
           {events.map((event, index) => (
-            <div key={`${event.title}-${index}`} className="rounded-xl border border-white/[0.06] bg-black/15 p-4">
+            <div key={`${event.title}-${index}`} className="rounded-xl border border-ink/[0.06] bg-scrim/15 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="text-sm text-text-primary/85">{event.title}</div>
                 <Badge tone={event.impact}>{event.impact || "watch"}</Badge>
@@ -792,7 +792,7 @@ function LiquidityModalContent({ report }) {
           <h4 className="mb-3 text-sm font-semibold text-text-primary/85">Additional liquidity detail</h4>
           <div className="grid gap-2 md:grid-cols-2">
             {liquidityEntries.map(([key, value]) => (
-              <div key={key} className="rounded-lg border border-white/[0.05] bg-black/15 p-3">
+              <div key={key} className="rounded-lg border border-ink/[0.05] bg-scrim/15 p-3">
                 <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-primary/30">{readable(key)}</div>
                 <div className="mt-1 break-words font-mono text-sm text-text-primary/75">
                   {typeof value === "object" ? JSON.stringify(value) : String(value)}
@@ -876,7 +876,7 @@ export default function CompassBrief({
       />
 
       <section className={cx(card, "overflow-hidden")}>
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.06] px-5 py-4">
           <div>
             <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
               Detail workspace
@@ -945,7 +945,7 @@ export default function CompassBrief({
                   <h4 className="text-base font-medium text-text-primary/85">{risk.title}</h4>
                   <Badge tone={risk.severity}>{risk.severity || "watch"}</Badge>
                 </div>
-                {risk.threshold && <div className="mt-3 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 font-mono text-sm text-text-primary/70">{risk.threshold}</div>}
+                {risk.threshold && <div className="mt-3 rounded-lg border border-ink/[0.06] bg-scrim/20 px-3 py-2 font-mono text-sm text-text-primary/70">{risk.threshold}</div>}
                 {risk.why_matters && <p className="mt-3 text-sm leading-7 text-text-primary/50">{risk.why_matters}</p>}
               </div>
             ))}

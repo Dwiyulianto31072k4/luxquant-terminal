@@ -44,7 +44,7 @@ const fmtWhen = (s) => {
 function Spinner() {
   return (
     <div className="flex flex-1 items-center justify-center py-16">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-white/50" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink/10 border-t-white/50" />
     </div>
   );
 }
@@ -73,20 +73,20 @@ function SignalRow({ s, busy, onOpen }) {
       type="button"
       disabled={busy}
       onClick={() => onOpen(s)}
-      className="group grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-x-3 gap-y-1 border-b border-white/[0.045] px-3 py-3 text-left transition hover:bg-white/[0.035] active:bg-white/[0.05] disabled:opacity-60 sm:grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_5rem_1.25rem] sm:px-4 sm:py-2.5"
+      className="group grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-x-3 gap-y-1 border-b border-ink/[0.045] px-3 py-3 text-left transition hover:bg-ink/[0.035] active:bg-ink/[0.05] disabled:opacity-60 sm:grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_5rem_1.25rem] sm:px-4 sm:py-2.5"
     >
       {/* Token + meta */}
       <div className="flex min-w-0 items-center gap-2.5">
         <CoinLogo pair={s.pair} size={30} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate font-mono text-[13.5px] font-semibold text-text-primary group-hover:text-white">
+            <span className="truncate font-mono text-[13.5px] font-semibold text-text-primary group-hover:text-text-primary">
               {sym(s.pair)}
             </span>
             <span className="hidden font-mono text-[10px] text-text-primary/30 sm:inline">USDT</span>
             <OutcomeChip outcome={s.outcome} />
             {s.risk_level && (
-              <span className="hidden rounded border border-white/10 px-1 py-px font-mono text-[8px] uppercase text-text-muted sm:inline">
+              <span className="hidden rounded border border-ink/10 px-1 py-px font-mono text-[8px] uppercase text-text-muted sm:inline">
                 {s.risk_level}
               </span>
             )}
@@ -138,7 +138,7 @@ function SignalRow({ s, busy, onOpen }) {
       </div>
       <div className="hidden justify-end text-text-primary/20 transition group-hover:text-text-primary/45 sm:flex">
         {busy ? (
-          <span className="h-3.5 w-3.5 animate-spin rounded-full border border-white/20 border-t-white/60" />
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border border-ink/20 border-t-white/60" />
         ) : (
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5l7 7-7 7" />
@@ -245,15 +245,15 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     >
       {/* Dim behind — click closes list (not when SignalModal open) */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        className="absolute inset-0 bg-scrim/80 backdrop-blur-md"
         onClick={() => {
           if (!selectedSignal) onClose();
         }}
       />
 
-      <div className="relative z-10 flex h-[min(94dvh,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-white/[0.1] bg-surface-raised shadow-2xl sm:h-[min(88vh,820px)] sm:rounded-xl">
+      <div className="relative z-10 flex h-[min(94dvh,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(88vh,820px)] sm:rounded-xl">
         {/* ── Header ── */}
-        <header className="shrink-0 border-b border-white/[0.07] px-4 py-3 sm:px-5 sm:py-3.5">
+        <header className="shrink-0 border-b border-ink/[0.07] px-4 py-3 sm:px-5 sm:py-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
@@ -265,11 +265,11 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
               {data && (
                 <p className="mt-1 font-mono text-[11px] tabular-nums text-text-muted">
                   <span className="text-text-primary/90">{(data.win_rate ?? 0).toFixed(1)}% WR</span>
-                  <span className="mx-1.5 text-white/15">·</span>
+                  <span className="mx-1.5 text-ink/15">·</span>
                   {data.wins}/{data.count} resolved
                   {(data.losses ?? losers.length) > 0 && (
                     <>
-                      <span className="mx-1.5 text-white/15">·</span>
+                      <span className="mx-1.5 text-ink/15">·</span>
                       <span className="text-red-400/90">{data.losses ?? losers.length} stopped</span>
                     </>
                   )}
@@ -280,7 +280,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted transition hover:border-white/25 hover:text-text-primary"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-ink/10 text-text-muted transition hover:border-ink/25 hover:text-text-primary"
             >
               ✕
             </button>
@@ -297,8 +297,8 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
                   onClick={() => setTab(t.id)}
                   className={`rounded-md px-3 py-1.5 font-mono text-[11px] font-medium transition ${
                     on
-                      ? "bg-white/[0.12] text-text-primary shadow-sm"
-                      : "border border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/16 hover:text-text-primary"
+                      ? "bg-ink/[0.12] text-text-primary shadow-sm"
+                      : "border border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:border-ink/16 hover:text-text-primary"
                   }`}
                 >
                   {t.label}
@@ -318,7 +318,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
         {/* ── Column headers (desktop) ── */}
         {!loading && list.length > 0 && (
-          <div className="hidden shrink-0 grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_5rem_1.25rem] gap-x-3 border-b border-white/[0.05] bg-white/[0.015] px-4 py-2 sm:grid">
+          <div className="hidden shrink-0 grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_5rem_1.25rem] gap-x-3 border-b border-ink/[0.05] bg-ink/[0.015] px-4 py-2 sm:grid">
             <span className="font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
               Token
             </span>
@@ -378,7 +378,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
         {/* Footer */}
         {!loading && list.length > 0 && (
-          <footer className="shrink-0 border-t border-white/[0.06] bg-white/[0.015] px-4 py-2.5 sm:px-5">
+          <footer className="shrink-0 border-t border-ink/[0.06] bg-ink/[0.015] px-4 py-2.5 sm:px-5">
             <p className="font-mono text-[10px] text-text-muted/70">
               Showing {list.length}
               {tab !== "all" ? ` · ${tab}` : ""} · tap a row → Trade proof (unique signal link)

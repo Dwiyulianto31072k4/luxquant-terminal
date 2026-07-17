@@ -66,7 +66,7 @@ const Sparkline = ({ values, up }) => {
 
 // ─── KPI tile ────────────────────────────────────────────────────
 const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
-  <div className="relative rounded-xl bg-surface-raised border border-white/[0.07] px-4 py-3.5 flex flex-col">
+  <div className="relative rounded-xl bg-surface-raised border border-ink/[0.07] px-4 py-3.5 flex flex-col">
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">{label}</div>
     <div className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-text-primary/95"}`}>
@@ -165,7 +165,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
           <h1
             className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
             style={{
-              background: "linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 60%, rgba(212,168,83,0.85) 100%)",
+              background: "linear-gradient(135deg, #ffffff 0%, rgb(var(--ink) / 0.7) 60%, rgba(212,168,83,0.85) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -184,7 +184,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
         </div>
 
         <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-          <div className="flex items-center rounded-md overflow-hidden border border-white/[0.08]">
+          <div className="flex items-center rounded-md overflow-hidden border border-ink/[0.08]">
             {RANGE_OPTIONS.map((r) => (
               <button
                 key={r.value}
@@ -198,7 +198,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
             ))}
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08]">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-surface-raised border border-ink/[0.08]">
             <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">Sector</span>
             <select
               value={sector}
@@ -214,7 +214,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
           <button
             onClick={() => fetchData(days, sector)}
             disabled={loading}
-            className="px-3 py-2 rounded-md bg-surface-raised border border-white/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-line/30 hover:text-gold-primary transition disabled:opacity-50"
+            className="px-3 py-2 rounded-md bg-surface-raised border border-ink/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-line/30 hover:text-gold-primary transition disabled:opacity-50"
           >
             {loading ? "···" : "Refresh"}
           </button>
@@ -232,11 +232,11 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-[110px] rounded-lg bg-surface-raised border border-white/[0.06] animate-pulse" />
+              <div key={i} className="h-[110px] rounded-lg bg-surface-raised border border-ink/[0.06] animate-pulse" />
             ))}
           </div>
-          <div className="h-12 rounded-lg bg-surface-raised border border-white/[0.06] animate-pulse" />
-          <div className="h-96 rounded-lg bg-surface-raised border border-white/[0.06] animate-pulse" />
+          <div className="h-12 rounded-lg bg-surface-raised border border-ink/[0.06] animate-pulse" />
+          <div className="h-96 rounded-lg bg-surface-raised border border-ink/[0.06] animate-pulse" />
         </div>
       )}
 
@@ -286,7 +286,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
 
           {/* Tabs */}
           {!hideTabBar && (
-          <div className="flex items-center gap-1 border-b border-white/[0.07] overflow-x-auto">
+          <div className="flex items-center gap-1 border-b border-ink/[0.07] overflow-x-auto">
             {TAB_ITEMS.map((t) => {
               const isActive = activeTab === t.id;
               return (

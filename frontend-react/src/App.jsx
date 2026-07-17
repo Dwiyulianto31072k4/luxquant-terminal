@@ -268,7 +268,7 @@ function PremiumGate({ children }) {
             </button>
             <button
               onClick={() => navigate("/home")}
-              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-white/[0.03] text-text-muted border border-white/[0.06] hover:text-text-primary hover:bg-white/[0.06] transition-colors"
+              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-ink/[0.03] text-text-muted border border-ink/[0.06] hover:text-text-primary hover:bg-ink/[0.06] transition-colors"
             >
               Kembali
             </button>
@@ -463,7 +463,7 @@ const SidebarItem = ({
     <button
       onClick={onClick}
       className={`group relative w-full flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-md transition-colors ${
-        active ? "bg-white/[0.04]" : "bg-transparent hover:bg-white/[0.04]"
+        active ? "bg-ink/[0.04]" : "bg-transparent hover:bg-ink/[0.04]"
       }`}
     >
       {/* active indicator — thin gold (or red for admin) left bar */}
@@ -797,7 +797,7 @@ function AppShell({ children }) {
           Hairline divider always present (Flowscan style)
           ══════════════════════════════════════════════ */}
       <header
-        className={`sticky top-0 z-50 border-b border-white/[0.06] transition-colors duration-200 ${
+        className={`sticky top-0 z-50 border-b border-ink/[0.06] transition-colors duration-200 ${
           scrolled ? "bg-bg-primary/95 backdrop-blur-md" : "bg-transparent"
         }`}
       >
@@ -828,7 +828,7 @@ function AppShell({ children }) {
                 className="flex items-center gap-2 cursor-pointer group"
                 onClick={() => handleNav("/home")}
               >
-                <div className="w-8 h-8 lg:w-9 lg:h-9 relative rounded-sm overflow-hidden border border-white/[0.06]">
+                <div className="w-8 h-8 lg:w-9 lg:h-9 relative rounded-sm overflow-hidden border border-ink/[0.06]">
                   <img
                     src="/logo.png"
                     alt="LuxQuant"
@@ -855,7 +855,7 @@ function AppShell({ children }) {
                       className={`relative px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
                         active
                           ? "text-text-primary border-transparent"
-                          : "text-text-secondary border-transparent hover:text-text-primary hover:bg-white/[0.05] hover:border-white/[0.08]"
+                          : "text-text-secondary border-transparent hover:text-text-primary hover:bg-ink/[0.05] hover:border-ink/[0.08]"
                       }`}
                     >
                       {item.label}
@@ -880,14 +880,14 @@ function AppShell({ children }) {
             {/* RIGHT SIDE */}
             <div className="flex items-center gap-1.5 lg:gap-2">
               {/* EN/ZH toggle — Flowscan filter pill */}
-              <div className="flex items-center gap-0.5 p-0.5 mr-1 rounded-sm bg-white/[0.03] border border-white/[0.06]">
+              <div className="flex items-center gap-0.5 p-0.5 mr-1 rounded-sm bg-ink/[0.03] border border-ink/[0.06]">
                 {["en", "zh"].map((lang) => (
                   <button
                     key={lang}
                     onClick={() => i18n.changeLanguage(lang)}
                     className={`px-2 py-1 font-mono text-[10px] uppercase tracking-wider rounded-sm transition-colors ${
                       i18n.language?.startsWith(lang)
-                        ? "bg-white/10 text-text-primary border border-white/[0.08]"
+                        ? "bg-ink/10 text-text-primary border border-ink/[0.08]"
                         : "text-text-muted hover:text-text-primary border border-transparent"
                     }`}
                   >
@@ -912,12 +912,12 @@ function AppShell({ children }) {
           ══════════════════════════════════════════════ */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-scrim/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
       <div
-        className={`fixed top-14 left-0 bottom-16 w-72 z-50 bg-surface backdrop-blur-xl border-r border-white/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed top-14 left-0 bottom-16 w-72 z-50 bg-surface backdrop-blur-xl border-r border-ink/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -1395,7 +1395,7 @@ function AppShell({ children }) {
                       {/* Top hairline accent (Flowscan signature) */}
                       <div
                         className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
-                          active ? "via-white/50" : "via-gold-primary/50"
+                          active ? "via-ink/50" : "via-gold-primary/50"
                         } to-transparent`}
                       />
                       <span

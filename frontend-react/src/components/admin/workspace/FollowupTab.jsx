@@ -144,10 +144,10 @@ const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
     className="relative overflow-hidden text-left rounded-xl px-4 py-3 transition-all"
     style={{
       background: 'rgb(var(--surface-raised))',
-      border: `1px solid ${active ? `${accent}80` : 'rgba(255,255,255,0.07)'}`,
+      border: `1px solid ${active ? `${accent}80` : 'rgb(var(--ink) / 0.07)'}`,
     }}
     onMouseEnter={(e) => { if (!active) e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)'; }}
-    onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
+    onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = 'rgb(var(--ink) / 0.07)'; }}
   >
     <div
       className="absolute inset-x-0 top-0 h-px pointer-events-none"
@@ -156,7 +156,7 @@ const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
     <div className="relative flex items-center justify-between mb-1.5">
       <span
         className="text-[10px] uppercase tracking-wider font-semibold"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'rgb(var(--ink) / 0.4)' }}
       >
         {label}
       </span>
@@ -193,7 +193,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
       style={{
         background: 'rgb(var(--surface-raised))',
         border: `1px solid ${
-          due?.overdue && isOpen ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.07)'
+          due?.overdue && isOpen ? 'rgba(248,113,113,0.25)' : 'rgb(var(--ink) / 0.07)'
         }`,
       }}
     >
@@ -492,8 +492,8 @@ export const FollowupTab = ({ onRefreshStats }) => {
   const hasFilters = search || categoryFilter || priorityFilter || statusFilter !== 'open';
 
   const fieldStyle = (active) => ({
-    background: 'rgba(0,0,0,0.28)',
-    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'}`,
+    background: 'rgb(var(--scrim) / 0.28)',
+    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgb(var(--ink) / 0.06)'}`,
   });
 
   return (
@@ -587,7 +587,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         </div>
       ) : followups.length === 0 ? (
         <div className="relative text-center py-16 rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+          style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px dashed rgb(var(--ink) / 0.08)' }}>
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
             style={{ background: 'rgba(138,138,147,0.08)', filter: 'blur(40px)' }} />
           <div className="relative">

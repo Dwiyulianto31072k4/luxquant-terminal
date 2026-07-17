@@ -132,11 +132,11 @@ const DomainBadge = ({ domain, size = "sm" }) => {
   if (!domain) return null;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded border border-white/[0.1] bg-white/[0.04] font-mono uppercase tracking-[0.12em] text-text-muted ${
+      className={`inline-flex items-center gap-1.5 rounded border border-ink/[0.1] bg-ink/[0.04] font-mono uppercase tracking-[0.12em] text-text-muted ${
         size === "lg" ? "px-2 py-0.5 text-[10px]" : "px-1.5 py-0.5 text-[9px]"
       }`}
     >
-      <span className="h-1 w-1 rounded-full bg-white/45" />
+      <span className="h-1 w-1 rounded-full bg-ink/45" />
       {shortDomain(domain)}
     </span>
   );
@@ -178,7 +178,7 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden bg-[#050505]">
       {/* subtle top rule — terminal masthead, not a glow */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.08]" />
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.08]" />
       <div className={`relative z-10 flex flex-col items-center ${compact ? "gap-1.5" : "gap-2.5"}`}>
         <img
           src={LUXQUANT_LOGO}
@@ -187,14 +187,14 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
         />
         <div className="flex flex-col items-center gap-0.5">
           <span
-            className={`font-mono uppercase tracking-[0.28em] text-white/75 ${
+            className={`font-mono uppercase tracking-[0.28em] text-ink/75 ${
               compact ? "text-[7px]" : "text-[9px] sm:text-[10px]"
             }`}
           >
             LuxQuant
           </span>
           <span
-            className={`font-mono uppercase tracking-[0.22em] text-white/40 ${
+            className={`font-mono uppercase tracking-[0.22em] text-ink/40 ${
               compact ? "text-[6.5px]" : "text-[8px]"
             }`}
           >
@@ -203,7 +203,7 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
         </div>
       </div>
       {isHeadline ? (
-        <span className="absolute bottom-2 left-2 font-mono text-[8px] uppercase tracking-[0.16em] text-white/35">
+        <span className="absolute bottom-2 left-2 font-mono text-[8px] uppercase tracking-[0.16em] text-ink/35">
           Wire
         </span>
       ) : null}
@@ -225,8 +225,8 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
         className="absolute inset-0 opacity-25"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+            linear-gradient(rgb(var(--ink) / 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgb(var(--ink) / 0.03) 1px, transparent 1px)
           `,
           backgroundSize: "18px 18px",
         }}
@@ -242,7 +242,7 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
           <div
             className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center"
             style={{
-              background: "rgba(255,255,255,0.06)",
+              background: "rgb(var(--ink) / 0.06)",
               backdropFilter: "blur(8px)",
               border: `1px solid ${color}40`,
               boxShadow: `0 4px 20px ${color}30`,
@@ -348,7 +348,7 @@ const NewsModal = ({ item, onClose }) => {
     <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
       {/* Source mark */}
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.1] bg-white/[0.04] sm:h-9 sm:w-9"
+        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink/[0.1] bg-ink/[0.04] sm:h-9 sm:w-9"
         style={{ boxShadow: `inset 0 0 0 1px ${domainColor}22` }}
       >
         {faviconUrl && !faviconFailed ? (
@@ -372,17 +372,17 @@ const NewsModal = ({ item, onClose }) => {
           <span className="truncate font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
             {domainShort}
           </span>
-          <span className="h-1 w-1 shrink-0 rounded-full bg-white/25" />
+          <span className="h-1 w-1 shrink-0 rounded-full bg-ink/25" />
           <span className="font-mono text-[10px] tabular-nums text-text-muted">
             {timeAgo(item.created_at)}
           </span>
           {isPhoto ? (
-            <span className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+            <span className="rounded border border-ink/10 bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
               photo
             </span>
           ) : null}
           {isVideo ? (
-            <span className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+            <span className="rounded border border-ink/10 bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
               video
             </span>
           ) : null}
@@ -403,7 +403,7 @@ const NewsModal = ({ item, onClose }) => {
         <button
           type="button"
           onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-white/[0.14] active:scale-[0.99]"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/15 bg-ink/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-ink/[0.14] active:scale-[0.99]"
         >
           Read full article
           <svg className="h-3.5 w-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -414,7 +414,7 @@ const NewsModal = ({ item, onClose }) => {
       <button
         type="button"
         onClick={close}
-        className="h-11 shrink-0 rounded-lg border border-white/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-white/20 hover:text-text-primary sm:px-5"
+        className="h-11 shrink-0 rounded-lg border border-ink/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-ink/20 hover:text-text-primary sm:px-5"
       >
         Close
       </button>
@@ -465,9 +465,9 @@ const NewsModal = ({ item, onClose }) => {
           )}
         </div>
         {/* Bottom scrim + source chip — solid black, no page blur */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-scrim/70 via-scrim/25 to-transparent" />
         {domainLabel ? (
-          <span className="pointer-events-none absolute bottom-3 right-3 rounded border border-white/12 bg-black/75 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/75">
+          <span className="pointer-events-none absolute bottom-3 right-3 rounded border border-ink/12 bg-scrim/75 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink/75">
             {domainLabel}
           </span>
         ) : null}
@@ -478,7 +478,7 @@ const NewsModal = ({ item, onClose }) => {
         <header className="space-y-2.5">
           {category ? (
             <span
-              className="inline-flex items-center gap-1.5 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted"
+              className="inline-flex items-center gap-1.5 rounded border border-ink/[0.08] bg-ink/[0.03] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted"
             >
               <span className="opacity-80">{category.icon}</span>
               {category.label}
@@ -498,10 +498,10 @@ const NewsModal = ({ item, onClose }) => {
         {loading ? (
           <div className="lqsk-group space-y-2.5">
             <ShimmerStyles />
-            <div className="h-3 w-full rounded bg-white/5" />
-            <div className="h-3 w-5/6 rounded bg-white/5" />
-            <div className="h-3 w-4/6 rounded bg-white/5" />
-            <div className="h-3 w-3/4 rounded bg-white/5" />
+            <div className="h-3 w-full rounded bg-ink/5" />
+            <div className="h-3 w-5/6 rounded bg-ink/5" />
+            <div className="h-3 w-4/6 rounded bg-ink/5" />
+            <div className="h-3 w-3/4 rounded bg-ink/5" />
           </div>
         ) : summary ? (
           <section className="space-y-2">
@@ -523,7 +523,7 @@ const NewsModal = ({ item, onClose }) => {
             {keywords.slice(0, 12).map((kw, i) => (
               <span
                 key={i}
-                className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 font-mono text-[10px] text-text-muted"
+                className="rounded-md border border-ink/[0.08] bg-ink/[0.03] px-2 py-0.5 font-mono text-[10px] text-text-muted"
               >
                 #{kw}
               </span>
@@ -532,7 +532,7 @@ const NewsModal = ({ item, onClose }) => {
         ) : null}
 
         {fullText && fullText !== summary ? (
-          <section className="space-y-2.5 border-t border-white/[0.07] pt-5">
+          <section className="space-y-2.5 border-t border-ink/[0.07] pt-5">
             <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
               Article preview
             </h3>
@@ -556,7 +556,7 @@ const PulseTicker = ({ items, onSelect }) => {
   const ticker = items.slice(0, 12);
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/5 bg-black/20 group">
+    <div className="relative overflow-hidden rounded-xl border border-ink/5 bg-scrim/20 group">
       <style>{`
         @keyframes tickerScroll {
           0% { transform: translateX(0); }
@@ -648,9 +648,9 @@ const MediaBlock = ({ item, className = "", playSize = "md", compact = false }) 
       {hasVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span
-            className={`flex items-center justify-center rounded-full bg-black/60 border border-white/25 ${playCls}`}
+            className={`flex items-center justify-center rounded-full bg-scrim/60 border border-ink/25 ${playCls}`}
           >
-            <svg className={`${iconCls} text-white ml-0.5`} fill="currentColor" viewBox="0 0 24 24">
+            <svg className={`${iconCls} text-text-primary ml-0.5`} fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </span>
@@ -676,7 +676,7 @@ const LeadCard = ({ item, onSelect }) => (
         <span className="text-text-muted/35">·</span>
         <span className="font-mono text-[9px] text-text-muted/65">{timeAgo(item.created_at)}</span>
       </div>
-      <h2 className="font-display text-[18px] sm:text-[20px] lg:text-[22px] font-semibold leading-[1.22] tracking-tight text-text-primary group-hover:text-white transition-colors line-clamp-3">
+      <h2 className="font-display text-[18px] sm:text-[20px] lg:text-[22px] font-semibold leading-[1.22] tracking-tight text-text-primary group-hover:text-text-primary transition-colors line-clamp-3">
         {item.title}
       </h2>
       {item.description ? (
@@ -693,7 +693,7 @@ const StackStory = ({ item, onSelect }) => (
   <button
     type="button"
     onClick={() => onSelect(item)}
-    className="group w-full flex gap-2.5 text-left py-2 first:pt-0 last:pb-0 border-b border-white/[0.06] last:border-b-0"
+    className="group w-full flex gap-2.5 text-left py-2 first:pt-0 last:pb-0 border-b border-ink/[0.06] last:border-b-0"
   >
     <MediaBlock item={item} className="w-[72px] h-[54px] shrink-0 rounded-sm" playSize="sm" compact />
     <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
@@ -702,7 +702,7 @@ const StackStory = ({ item, onSelect }) => (
         <span className="text-text-muted/35"> · </span>
         {timeAgo(item.created_at)}
       </span>
-      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-white transition-colors">
+      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-text-primary transition-colors">
         {item.title}
       </h3>
     </div>
@@ -724,7 +724,7 @@ const SecondaryCard = ({ item, onSelect }) => (
         <span className="text-text-muted/35"> · </span>
         {timeAgo(item.created_at)}
       </span>
-      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-white transition-colors">
+      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-text-primary transition-colors">
         {item.title}
       </h3>
     </div>
@@ -736,7 +736,7 @@ const WireRow = ({ item, onSelect }) => (
   <button
     type="button"
     onClick={() => onSelect(item)}
-    className="group grid grid-cols-[48px_minmax(0,1fr)] sm:grid-cols-[48px_48px_84px_minmax(0,1fr)] gap-x-2.5 w-full py-1.5 text-left border-b border-white/[0.05] hover:bg-white/[0.025] transition-colors items-center"
+    className="group grid grid-cols-[48px_minmax(0,1fr)] sm:grid-cols-[48px_48px_84px_minmax(0,1fr)] gap-x-2.5 w-full py-1.5 text-left border-b border-ink/[0.05] hover:bg-ink/[0.025] transition-colors items-center"
   >
     <span className="font-mono text-[10px] tabular-nums text-text-muted/80 self-start pt-1">
       {timeAgo(item.created_at).replace(" ago", "")}
@@ -750,7 +750,7 @@ const WireRow = ({ item, onSelect }) => (
     <span className="hidden sm:block font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/70 truncate self-start pt-1">
       {sourceLabel(item)}
     </span>
-    <span className="font-display text-[13px] font-medium leading-snug text-text-primary group-hover:text-white transition-colors line-clamp-2 sm:line-clamp-1 min-w-0">
+    <span className="font-display text-[13px] font-medium leading-snug text-text-primary group-hover:text-text-primary transition-colors line-clamp-2 sm:line-clamp-1 min-w-0">
       <span className="sm:hidden font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted mr-1.5">
         {sourceLabel(item)}
       </span>
@@ -763,7 +763,7 @@ const ListRow = ({ item, onSelect }) => (
   <button
     type="button"
     onClick={() => onSelect(item)}
-    className="group relative w-full flex gap-2.5 py-2 text-left border-b border-white/[0.05]"
+    className="group relative w-full flex gap-2.5 py-2 text-left border-b border-ink/[0.05]"
   >
     <MediaBlock
       item={item}
@@ -775,7 +775,7 @@ const ListRow = ({ item, onSelect }) => (
       <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted">
         {sourceLabel(item)} · {timeAgo(item.created_at)}
       </span>
-      <h4 className="font-display text-[13px] font-medium leading-snug line-clamp-2 text-text-primary group-hover:text-white transition-colors">
+      <h4 className="font-display text-[13px] font-medium leading-snug line-clamp-2 text-text-primary group-hover:text-text-primary transition-colors">
         {item.title}
       </h4>
     </div>
@@ -812,7 +812,7 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
   return (
     <aside className="space-y-4">
       <div>
-        <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.1] pb-1.5 mb-1">
+        <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-ink/[0.1] pb-1.5 mb-1">
           Trending
         </h3>
         {topics.length === 0 ? (
@@ -824,12 +824,12 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
                 <button
                   type="button"
                   onClick={() => onSearchTopic(t.topic)}
-                  className="group flex w-full items-baseline gap-2 py-1.5 border-b border-white/[0.045] text-left hover:bg-white/[0.02]"
+                  className="group flex w-full items-baseline gap-2 py-1.5 border-b border-ink/[0.045] text-left hover:bg-ink/[0.02]"
                 >
                   <span className="font-mono text-[10px] tabular-nums text-text-muted/45 w-3.5 shrink-0">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="flex-1 text-[12px] leading-snug text-text-primary/90 group-hover:text-white transition-colors line-clamp-1">
+                  <span className="flex-1 text-[12px] leading-snug text-text-primary/90 group-hover:text-text-primary transition-colors line-clamp-1">
                     {t.topic}
                   </span>
                   <span className="font-mono text-[9.5px] tabular-nums text-text-muted/45">×{t.count}</span>
@@ -842,14 +842,14 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
 
       {topDomains.length > 0 && (
         <div>
-          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.1] pb-1.5 mb-1">
+          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-ink/[0.1] pb-1.5 mb-1">
             Sources
           </h3>
           <ul>
             {topDomains.map((d) => (
               <li
                 key={d.domain}
-                className="flex items-center justify-between py-1.5 border-b border-white/[0.045]"
+                className="flex items-center justify-between py-1.5 border-b border-ink/[0.045]"
               >
                 <span className="text-[11.5px] text-text-secondary truncate pr-2">{d.domain}</span>
                 <span className="font-mono text-[10px] tabular-nums text-text-muted shrink-0">{d.count}</span>
@@ -861,10 +861,10 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
 
       {stats && (
         <div>
-          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.1] pb-1.5 mb-1.5">
+          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-ink/[0.1] pb-1.5 mb-1.5">
             Desk pulse
           </h3>
-          <div className="grid grid-cols-3 gap-px bg-white/[0.06] border border-white/[0.06]">
+          <div className="grid grid-cols-3 gap-px bg-ink/[0.06] border border-ink/[0.06]">
             {[
               { l: "1h", v: stats.last_hour },
               { l: "6h", v: stats.last_6h },
@@ -896,7 +896,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
   return (
     <div className={horizontal ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" : "space-y-3"}>
       {topics.length > 0 && (
-        <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 relative overflow-hidden">
+        <div className="rounded-xl bg-ink/[0.02] border border-ink/[0.06] p-4 relative overflow-hidden">
           <div className="flex items-center gap-2 mb-3">
             <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">Trending</h3>
           </div>
@@ -908,13 +908,13 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                 onClick={() => onSearchTopic(t.topic)}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-mono transition-colors ${
                   i < 3
-                    ? "bg-white/[0.08] text-text-primary border border-white/12"
-                    : "bg-white/[0.03] text-text-muted border border-white/[0.06] hover:text-text-primary hover:border-white/12"
+                    ? "bg-ink/[0.08] text-text-primary border border-ink/12"
+                    : "bg-ink/[0.03] text-text-muted border border-ink/[0.06] hover:text-text-primary hover:border-ink/12"
                 }`}
               >
                 {i < 3 && (
                   <span
-                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/10 text-text-primary text-[8px] font-bold mr-1"
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-ink/10 text-text-primary text-[8px] font-bold mr-1"
                     style={{ verticalAlign: "middle" }}
                   >
                     {i + 1}
@@ -929,7 +929,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
       )}
 
       {topDomains.length > 0 && (
-        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+        <div className="rounded-xl bg-ink/[0.02] border border-ink/5 p-4">
           <div className="flex items-center gap-2 mb-3">
             
             <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Top Sources</h3>
@@ -951,7 +951,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                     </div>
                     <span className="text-[10px] text-text-muted font-mono tabular-nums">{d.count}</span>
                   </div>
-                  <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                  <div className="h-1 rounded-full bg-ink/5 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -968,7 +968,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
       )}
 
       {stats && (
-        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+        <div className="rounded-xl bg-ink/[0.02] border border-ink/5 p-4">
           <div className="flex items-center gap-2 mb-3">
             
             <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Activity</h3>
@@ -981,7 +981,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
             ].map((s) => (
               <div
                 key={s.l}
-                className="rounded-md bg-white/[0.02] border border-white/5 p-2 text-center"
+                className="rounded-md bg-ink/[0.02] border border-ink/5 p-2 text-center"
               >
                 <div className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
                   {s.l}
@@ -1012,8 +1012,8 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                         style={{
                           height: `${Math.max((h.count / max) * 100, 6)}%`,
                           background: isPeak
-                            ? "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.2))"
-                            : "linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.08))",
+                            ? "linear-gradient(180deg, rgb(var(--ink) / 0.55), rgb(var(--ink) / 0.2))"
+                            : "linear-gradient(180deg, rgb(var(--ink) / 0.25), rgb(var(--ink) / 0.08))",
                           boxShadow: "none",
                         }}
                         title={`${h.count} articles`}
@@ -1061,7 +1061,7 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
   const srcCount = stats?.top_domains?.length || 0;
 
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-surface-raised overflow-hidden">
+    <div className="rounded-xl border border-ink/[0.07] bg-surface-raised overflow-hidden">
       <button
         type="button"
         onClick={toggle}
@@ -1092,7 +1092,7 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
       </button>
 
       {open && (
-        <div className="px-3 sm:px-4 pb-4 pt-2 border-t border-white/[0.06]">
+        <div className="px-3 sm:px-4 pb-4 pt-2 border-t border-ink/[0.06]">
           <TrendingSidebar
             trending={trending}
             stats={stats}
@@ -1131,7 +1131,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-ink/[0.03] border border-ink/5 text-text-muted hover:text-text-primary hover:border-ink/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         ← Prev
       </button>
@@ -1146,8 +1146,8 @@ const Pagination = ({ page, totalPages, onChange }) => {
             onClick={() => onChange(p)}
             className={`w-9 h-9 rounded-lg text-[11px] font-mono font-medium transition-all ${
               p === page
-                ? "bg-white/[0.1] text-text-primary border border-white/15"
-                : "bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15"
+                ? "bg-ink/[0.1] text-text-primary border border-ink/15"
+                : "bg-ink/[0.03] border border-ink/5 text-text-muted hover:text-text-primary hover:border-ink/15"
             }`}
           >
             {p}
@@ -1157,7 +1157,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-ink/[0.03] border border-ink/5 text-text-muted hover:text-text-primary hover:border-ink/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >
         Next →
       </button>
@@ -1176,18 +1176,18 @@ const LoadingSkeleton = () => (
       <div className="lg:col-span-8 space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-7 space-y-3">
-            <div className="aspect-[16/10] bg-white/5" />
-            <div className="h-3 w-24 bg-white/5 rounded" />
-            <div className="h-6 w-5/6 bg-white/5 rounded" />
-            <div className="h-3 w-full bg-white/5 rounded" />
+            <div className="aspect-[16/10] bg-ink/5" />
+            <div className="h-3 w-24 bg-ink/5 rounded" />
+            <div className="h-6 w-5/6 bg-ink/5 rounded" />
+            <div className="h-3 w-full bg-ink/5 rounded" />
           </div>
           <div className="col-span-5 space-y-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex gap-3">
-                <div className="w-[88px] h-[66px] bg-white/5 shrink-0" />
+                <div className="w-[88px] h-[66px] bg-ink/5 shrink-0" />
                 <div className="flex-1 space-y-2 py-1">
-                  <div className="h-2 w-20 bg-white/5 rounded" />
-                  <div className="h-3 w-full bg-white/5 rounded" />
+                  <div className="h-2 w-20 bg-ink/5 rounded" />
+                  <div className="h-3 w-full bg-ink/5 rounded" />
                 </div>
               </div>
             ))}
@@ -1195,25 +1195,25 @@ const LoadingSkeleton = () => (
         </div>
         <div className="space-y-2 pt-4">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-10 bg-white/[0.03] border-b border-white/[0.04]" />
+            <div key={i} className="h-10 bg-ink/[0.03] border-b border-ink/[0.04]" />
           ))}
         </div>
       </div>
       <div className="lg:col-span-4 space-y-3">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-8 bg-white/[0.03] border-b border-white/[0.04]" />
+          <div key={i} className="h-8 bg-ink/[0.03] border-b border-ink/[0.04]" />
         ))}
       </div>
     </div>
     <div className="lg:hidden space-y-4">
-      <div className="aspect-[16/10] bg-white/5" />
-      <div className="h-5 w-4/5 bg-white/5 rounded" />
+      <div className="aspect-[16/10] bg-ink/5" />
+      <div className="h-5 w-4/5 bg-ink/5 rounded" />
       {[...Array(5)].map((_, i) => (
         <div key={i} className="flex gap-3">
-          <div className="w-[76px] h-[58px] bg-white/5 shrink-0" />
+          <div className="w-[76px] h-[58px] bg-ink/5 shrink-0" />
           <div className="flex-1 space-y-2 py-1">
-            <div className="h-2.5 bg-white/5 rounded w-full" />
-            <div className="h-2 bg-white/5 rounded w-1/3" />
+            <div className="h-2.5 bg-ink/5 rounded w-full" />
+            <div className="h-2 bg-ink/5 rounded w-1/3" />
           </div>
         </div>
       ))}
@@ -1328,7 +1328,7 @@ const FilterChip = ({ active, onClick, children, icon }) => {
       <button
         type="button"
         onClick={onClick}
-        className={`${base} bg-white/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]`}
+        className={`${base} bg-ink/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgb(var(--ink)_/_0.1)]`}
       >
         {icon && <Icon name={icon} className="w-3 h-3 opacity-80" />}
         {children}
@@ -1340,7 +1340,7 @@ const FilterChip = ({ active, onClick, children, icon }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`${base} text-text-muted hover:text-text-primary hover:bg-white/[0.04]`}
+      className={`${base} text-text-muted hover:text-text-primary hover:bg-ink/[0.04]`}
     >
       {icon && <Icon name={icon} className="w-3 h-3 opacity-70" />}
       {children}
@@ -1400,13 +1400,13 @@ const FilterBar = ({
           value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search headlines, topics, sources…"
-          className="w-full h-9 pl-9 pr-9 rounded-lg border border-white/[0.08] bg-surface-raised text-text-primary text-[12.5px] placeholder:text-text-muted/45 focus:outline-none focus:border-white/18 transition-colors"
+          className="w-full h-9 pl-9 pr-9 rounded-lg border border-ink/[0.08] bg-surface-raised text-text-primary text-[12.5px] placeholder:text-text-muted/45 focus:outline-none focus:border-ink/18 transition-colors"
         />
         {searchInput && (
           <button
             type="button"
             onClick={onClearSearch}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-white/[0.06]"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-ink/[0.06]"
             title="Clear search"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1418,7 +1418,7 @@ const FilterBar = ({
 
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 min-w-0">
         <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5"
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-ink/[0.07] bg-ink/[0.015] p-0.5"
           role="tablist"
           aria-label="Content type"
         >
@@ -1434,7 +1434,7 @@ const FilterBar = ({
         </div>
 
         <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5 min-w-0 overflow-x-auto no-scrollbar"
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-ink/[0.07] bg-ink/[0.015] p-0.5 min-w-0 overflow-x-auto no-scrollbar"
           role="tablist"
           aria-label="Topic"
         >
@@ -1701,7 +1701,7 @@ const CryptoNewsPage = () => {
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
       {/* Masthead — single tight row */}
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-white/[0.1] pb-2 mb-2.5">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-ink/[0.1] pb-2 mb-2.5">
         <div className="flex items-baseline gap-2.5 min-w-0">
           <h1 className="font-display text-[22px] sm:text-[24px] font-semibold tracking-tight text-text-primary leading-none">
             News
@@ -1749,7 +1749,7 @@ const CryptoNewsPage = () => {
       {loading ? (
         <LoadingSkeleton />
       ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center border-y border-white/[0.06]">
+        <div className="flex flex-col items-center justify-center py-16 text-center border-y border-ink/[0.06]">
           <p className="font-display text-text-primary text-base mb-1">No results</p>
           <p className="text-text-muted text-xs max-w-sm">
             {searchQuery
@@ -1765,12 +1765,12 @@ const CryptoNewsPage = () => {
           <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
             <div className="lg:col-span-9 min-w-0 space-y-5">
               {layout.lead && (
-                <section className="grid grid-cols-12 gap-5 border-b border-white/[0.09] pb-4">
+                <section className="grid grid-cols-12 gap-5 border-b border-ink/[0.09] pb-4">
                   <div className="col-span-12 md:col-span-7 min-w-0">
                     <LeadCard item={layout.lead} onSelect={openArticle} />
                   </div>
-                  <div className="col-span-12 md:col-span-5 md:border-l md:border-white/[0.07] md:pl-4 min-w-0 flex flex-col">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted mb-1 pb-1.5 border-b border-white/[0.07]">
+                  <div className="col-span-12 md:col-span-5 md:border-l md:border-ink/[0.07] md:pl-4 min-w-0 flex flex-col">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted mb-1 pb-1.5 border-b border-ink/[0.07]">
                       Also on the wire
                     </p>
                     <div className="flex-1">
@@ -1783,7 +1783,7 @@ const CryptoNewsPage = () => {
               )}
 
               {layout.midBand?.length > 0 && (
-                <section className="border-b border-white/[0.09] pb-4">
+                <section className="border-b border-ink/[0.09] pb-4">
                   <div className="grid grid-cols-4 gap-3">
                     {layout.midBand.map((it) => (
                       <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
@@ -1793,7 +1793,7 @@ const CryptoNewsPage = () => {
               )}
 
               <section>
-                <div className="flex items-baseline justify-between border-b border-white/[0.1] pb-1.5 mb-0.5">
+                <div className="flex items-baseline justify-between border-b border-ink/[0.1] pb-1.5 mb-0.5">
                   <h2 className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                     {layout.lead ? "Latest" : sectionLabel}
                   </h2>
@@ -1830,7 +1830,7 @@ const CryptoNewsPage = () => {
           <div className="lg:hidden space-y-3">
             {layout.lead && <LeadCard item={layout.lead} onSelect={openArticle} />}
             {layout.secondary.length > 0 && (
-              <div className="border-t border-white/[0.07] pt-0.5">
+              <div className="border-t border-ink/[0.07] pt-0.5">
                 {layout.secondary.map((it) => (
                   <StackStory key={it.id} item={it} onSelect={openArticle} />
                 ))}
@@ -1841,7 +1841,7 @@ const CryptoNewsPage = () => {
               stats={stats}
               onSearchTopic={handleSearchTopic}
             />
-            <div className="border-t border-white/[0.09] pt-0.5">
+            <div className="border-t border-ink/[0.09] pt-0.5">
               <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted py-1.5">
                 {layout.lead ? "Latest" : sectionLabel}
               </p>

@@ -294,7 +294,7 @@ export default function GlobalNetworkSection(){
               Every Continent.
             </span>
           </h2>
-          <p style={{color:"rgba(255,255,255,0.45)",fontSize:"clamp(13px,1.4vw,16px)",maxWidth:600,margin:"0 auto",lineHeight:1.7}}>
+          <p style={{color:"rgb(var(--ink) / 0.45)",fontSize:"clamp(13px,1.4vw,16px)",maxWidth:600,margin:"0 auto",lineHeight:1.7}}>
             Built and operated from Taiwan, our quantitative engine delivers real-time algorithmic signals to active users worldwide.
           </p>
         </div>
@@ -312,7 +312,7 @@ export default function GlobalNetworkSection(){
                 {s.value}
               </span>
               {/* 4. Label */}
-              <span style={{color:"rgba(255,255,255,0.4)",fontSize:"clamp(9px,1vw,12px)",textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:"monospace",marginTop:8}}>
+              <span style={{color:"rgb(var(--ink) / 0.4)",fontSize:"clamp(9px,1vw,12px)",textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:"monospace",marginTop:8}}>
                 {s.sub}
               </span>
             </div>

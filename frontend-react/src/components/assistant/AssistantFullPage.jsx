@@ -74,7 +74,7 @@ export default function AssistantFullPage() {
   return (
     <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+      <div className="flex items-center justify-between gap-3 border-b border-ink/10 pb-4">
         <div className="flex items-center gap-3 min-w-0">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold-primary/15 text-gold-primary">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z" /></svg>
@@ -89,13 +89,13 @@ export default function AssistantFullPage() {
           <select
             value={pageId}
             onChange={(e) => changePage(e.target.value)}
-            className="rounded-lg border border-white/10 bg-surface-raised px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-line/40 [color-scheme:dark]"
+            className="rounded-lg border border-ink/10 bg-surface-raised px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-line/40 [color-scheme:dark]"
           >
             {pages.map((p) => <option key={p.page_id} value={p.page_id}>{p.label}</option>)}
           </select>
           <button
             onClick={() => navigate(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:bg-white/5 hover:text-text-primary transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/10 text-text-muted hover:bg-ink/5 hover:text-text-primary transition-all"
             title="Back"
             aria-label="Back"
           >
@@ -116,7 +116,7 @@ export default function AssistantFullPage() {
                 <button
                   key={i}
                   onClick={() => send(s)}
-                  className="text-left rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-text-primary/80 hover:border-line/40 hover:bg-gold-primary/[0.06] hover:text-text-primary transition-all"
+                  className="text-left rounded-xl border border-ink/10 bg-ink/[0.03] px-4 py-3 text-[14px] text-text-primary/80 hover:border-line/40 hover:bg-gold-primary/[0.06] hover:text-text-primary transition-all"
                 >
                   {s}
                 </button>
@@ -130,7 +130,7 @@ export default function AssistantFullPage() {
             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
               m.role === 'user'
                 ? 'whitespace-pre-wrap bg-gold-primary text-surface-hover font-medium'
-                : 'bg-white/[0.05] text-text-primary/90 border border-white/5'
+                : 'bg-ink/[0.05] text-text-primary/90 border border-ink/5'
             }`}>
               {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => navigate(path))}</div> : m.content}
             </div>
@@ -139,7 +139,7 @@ export default function AssistantFullPage() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-white/[0.05] border border-white/5 px-4 py-3">
+            <div className="rounded-2xl bg-ink/[0.05] border border-ink/5 px-4 py-3">
               <span className="flex gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-gold-primary/70 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="h-1.5 w-1.5 rounded-full bg-gold-primary/70 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -151,7 +151,7 @@ export default function AssistantFullPage() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/10 pt-4">
+      <div className="border-t border-ink/10 pt-4">
         <div className="flex items-end gap-2">
           <textarea
             rows={1}
@@ -159,7 +159,7 @@ export default function AssistantFullPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask how to use this page…"
-            className="flex-1 resize-none rounded-xl border border-white/10 bg-surface-raised px-4 py-3 text-[14px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 max-h-32"
+            className="flex-1 resize-none rounded-xl border border-ink/10 bg-surface-raised px-4 py-3 text-[14px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 max-h-32"
           />
           <button
             onClick={() => send()}

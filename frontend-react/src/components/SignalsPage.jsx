@@ -132,11 +132,11 @@ const SectionHeader = ({ label, hint }) => (
 const ProductSwitcher = ({ active = "trades", onTerminal, onResearch }) => {
   const base =
     "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
-  const on = "bg-white/[0.1] text-text-primary shadow-sm";
-  const off = "text-text-muted hover:text-text-primary hover:bg-white/[0.04]";
+  const on = "bg-ink/[0.1] text-text-primary shadow-sm";
+  const off = "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]";
   return (
     <div
-      className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5"
+      className="inline-flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-0.5"
       role="navigation"
       aria-label="Product"
     >
@@ -155,7 +155,7 @@ const ProductSwitcher = ({ active = "trades", onTerminal, onResearch }) => {
 
 // Single KPI cell inside the ribbon
 const KpiCell = ({ label, value, valueColor = "text-text-primary", sub, edge }) => (
-  <div className={`min-w-0 px-4 py-3.5 sm:px-5 ${edge ? "" : "border-l border-white/[0.06]"}`}>
+  <div className={`min-w-0 px-4 py-3.5 sm:px-5 ${edge ? "" : "border-l border-ink/[0.06]"}`}>
     <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{label}</p>
     <p className={`mt-1.5 font-mono text-xl sm:text-2xl font-semibold tabular-nums leading-none tracking-tight ${valueColor}`}>
       {value}
@@ -1006,7 +1006,7 @@ const SignalsPage = () => {
               onTerminal={goTerminal}
               onResearch={() => navigate("/ai-arena")}
             />
-            <div className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span
                   className={`relative inline-flex h-1.5 w-1.5 rounded-full ${loading ? "bg-warning" : "bg-positive"}`}
@@ -1024,7 +1024,7 @@ const SignalsPage = () => {
         </div>
 
         {/* KPI ribbon — single desk strip (Bloomberg / exchange style) */}
-        <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
+        <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
           <div className="grid grid-cols-2 sm:grid-cols-4">
             <KpiCell
               edge
@@ -1119,7 +1119,7 @@ const SignalsPage = () => {
         };
         const openCoin = (c) => { const sig = findSignal(c.symbol); if (sig) openSignal(sig); else navigate('/money-flow'); };
         return (
-        <div className="mt-2.5 bg-white/[0.02] rounded-xl px-4 py-2.5">
+        <div className="mt-2.5 bg-ink/[0.02] rounded-xl px-4 py-2.5">
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <button onClick={() => setFlowOpen((v) => !v)} className="group flex items-center gap-2 min-w-0">
@@ -1135,7 +1135,7 @@ const SignalsPage = () => {
                   <select
                     value={flowCount}
                     onChange={(e) => setFlowCount(Number(e.target.value))}
-                    className="appearance-none pl-2 pr-6 py-1 bg-surface border border-white/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-white/20 cursor-pointer"
+                    className="appearance-none pl-2 pr-6 py-1 bg-surface border border-ink/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-ink/20 cursor-pointer"
                   >
                     {[10, 20, 30, 50].map((n) => <option key={n} value={n} className="bg-surface">Top {n}</option>)}
                   </select>
@@ -1159,7 +1159,7 @@ const SignalsPage = () => {
               <div className="overflow-x-auto no-scrollbar -mx-1">
                 <table className="w-full min-w-[640px] border-collapse">
                   <thead>
-                    <tr className="border-b border-white/[0.06]">
+                    <tr className="border-b border-ink/[0.06]">
                       <SortHead label="Coin" k="coin" align="left" />
                       <SortHead label="24h" k="chg" />
                       <SortHead label="Intensity" k="intensity" />
@@ -1176,7 +1176,7 @@ const SignalsPage = () => {
                       const sm = sig ? statusMeta(sig.status) : null;
                       return (
                         <tr key={c.coin_id || c.symbol} onClick={() => openCoin(c)}
-                          className="border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer transition-colors">
+                          className="border-b border-ink/[0.04] hover:bg-ink/[0.03] cursor-pointer transition-colors">
                           {/* Coin */}
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-2">
@@ -1192,8 +1192,8 @@ const SignalsPage = () => {
                           {/* Intensity + bar */}
                           <td className="py-2 px-2">
                             <div className="flex items-center justify-end gap-2">
-                              <div className="w-14 h-1 rounded-full bg-white/[0.07] overflow-hidden hidden sm:block">
-                                <div className="h-full rounded-full bg-gradient-to-r from-white/35 to-white/55" style={{ width: `${barW}%` }} />
+                              <div className="w-14 h-1 rounded-full bg-ink/[0.07] overflow-hidden hidden sm:block">
+                                <div className="h-full rounded-full bg-gradient-to-r from-ink/35 to-ink/55" style={{ width: `${barW}%` }} />
                               </div>
                               <span className="font-mono text-[11px] tabular-nums text-text-primary/70 w-9 text-right">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
                             </div>
@@ -1230,16 +1230,16 @@ const SignalsPage = () => {
       })()}
 
       {/* FILTER CONSOLE */}
-      <div className="bg-surface-raised rounded-md border border-white/[0.06] p-4 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-4 relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent" />
 
-        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-3">
+        <div className="flex items-center justify-between border-b border-ink/[0.06] pb-3 mb-3">
           <div className="flex items-center gap-2.5">
             {Icon.filter('w-3.5 h-3.5 text-text-muted')}
             <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary">Call Filter</h2>
             <button
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-line/30 text-text-primary/80 hover:bg-white/[0.06] hover:border-line/50 transition-all font-mono text-[9px] uppercase tracking-wider"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-line/30 text-text-primary/80 hover:bg-ink/[0.06] hover:border-line/50 transition-all font-mono text-[9px] uppercase tracking-wider"
             >
               <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-line/50 text-[8px] leading-none">?</span>
               {t('guide.button')}
@@ -1248,7 +1248,7 @@ const SignalsPage = () => {
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary"
+              className="flex items-center gap-1.5 px-3 py-1 bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/[0.06] hover:border-ink/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary"
             >
               {Icon.close('w-3 h-3')}
               Reset All
@@ -1257,13 +1257,13 @@ const SignalsPage = () => {
         </div>
 
         {/* ── TAB BAR — Watchlist + day tabs (full width, fade + panah kanan ala MEXC) ── */}
-        <div className="relative edge-fade-r border-b border-white/[0.07] mb-3">
+        <div className="relative edge-fade-r border-b border-ink/[0.07] mb-3">
           <div ref={tabScrollRef} className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12">
             {/* Watchlist (tanpa bintang biar hemat tempat) */}
             <button
               onClick={() => setShowWatchlistOnly((v) => !v)}
               className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                showWatchlistOnly ? 'text-text-primary border-white/30' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
+                showWatchlistOnly ? 'text-text-primary border-ink/30' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
               }`}
             >
               Watchlist
@@ -1280,7 +1280,7 @@ const SignalsPage = () => {
                   key={opt.value}
                   onClick={() => { setShowWatchlistOnly(false); toggleDateFilter(opt.value); }}
                   className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                    active ? 'text-text-primary border-white/30' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
+                    active ? 'text-text-primary border-ink/30' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
                   }`}
                 >
                   {opt.label}
@@ -1312,14 +1312,14 @@ const SignalsPage = () => {
               placeholder="Search pair (e.g. BTC, ETH, SOL)..."
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-surface border border-white/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-line/40 focus:outline-none focus:bg-white/[0.02] transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-line/40 focus:outline-none focus:bg-ink/[0.02] transition-all"
             />
           </div>
           <div className="relative flex-shrink-0">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="pl-3 pr-8 py-2 bg-surface border border-white/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-line/40 focus:outline-none appearance-none cursor-pointer transition-all"
+              className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-line/40 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-surface">{opt.label}</option>
@@ -1331,7 +1331,7 @@ const SignalsPage = () => {
           </div>
           <button
             onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-white/[0.08] hover:border-line/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-line/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
           >
             {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
             <span className="hidden sm:inline">{getOrderLabel()}</span>
@@ -1339,7 +1339,7 @@ const SignalsPage = () => {
         </div>
 
         {/* ADVANCED FILTERS TOGGLE */}
-        <div className="mt-5 pt-4 border-t border-white/[0.06]">
+        <div className="mt-5 pt-4 border-t border-ink/[0.06]">
           <button
             onClick={() => setShowAdvanced((v) => !v)}
             className="w-full flex items-center justify-between gap-2 group"
@@ -1351,7 +1351,7 @@ const SignalsPage = () => {
                 Advanced Filters
               </span>
               {advancedActiveCount > 0 && (
-                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-white/10 text-text-primary border border-line/30">
+                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-ink/10 text-text-primary border border-line/30">
                   {advancedActiveCount} active
                 </span>
               )}
@@ -1378,10 +1378,10 @@ const SignalsPage = () => {
               <button
                 key={i}
                 onClick={chip.clear}
-                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-white/[0.06] border border-line/30 text-text-primary font-mono text-[9px] uppercase tracking-wider hover:bg-white/12 transition-all"
+                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-ink/[0.06] border border-line/30 text-text-primary font-mono text-[9px] uppercase tracking-wider hover:bg-ink/12 transition-all"
               >
                 <span>{chip.label}</span>
-                <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/10 group-hover:bg-white/15 leading-none">×</span>
+                <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-ink/10 group-hover:bg-ink/15 leading-none">×</span>
               </button>
             ))}
           </div>
@@ -1414,14 +1414,14 @@ const SignalsPage = () => {
                         }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           isActive
-                            ? 'bg-white/10 border border-white/[0.08] text-text-primary'
-                            : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                            ? 'bg-ink/10 border border-ink/[0.08] text-text-primary'
+                            : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                         }`}
                       >
                         {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
                         <span>{opt.label}</span>
                         {opt.value === "updated" && updatedCount > 0 && !isActive && (
-                          <span className="px-1 py-0 bg-white/[0.06] text-text-primary text-[9px] tabular-nums rounded-sm">
+                          <span className="px-1 py-0 bg-ink/[0.06] text-text-primary text-[9px] tabular-nums rounded-sm">
                             {updatedCount}
                           </span>
                         )}
@@ -1432,11 +1432,11 @@ const SignalsPage = () => {
               </div>
 
               {/* Risk */}
-              <div className="lg:col-span-4 lg:border-l lg:border-white/[0.06] lg:pl-5">
+              <div className="lg:col-span-4 lg:border-l lg:border-ink/[0.06] lg:pl-5">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70">Risk Profile</span>
                 </div>
-                <div className="flex bg-white/[0.02] border border-white/[0.06] rounded-sm p-0.5">
+                <div className="flex bg-ink/[0.02] border border-ink/[0.06] rounded-sm p-0.5">
                   {riskOptions.map((opt) => {
                     const isActive = riskFilter === opt.value;
                     return (
@@ -1445,8 +1445,8 @@ const SignalsPage = () => {
                         onClick={() => setRiskFilter(opt.value)}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           isActive
-                            ? 'bg-white/10 text-text-primary'
-                            : 'text-text-primary/70 hover:text-text-primary hover:bg-white/[0.03]'
+                            ? 'bg-ink/10 text-text-primary'
+                            : 'text-text-primary/70 hover:text-text-primary hover:bg-ink/[0.03]'
                         }`}
                       >
                         {opt.dotColor && (
@@ -1461,7 +1461,7 @@ const SignalsPage = () => {
             </div>
 
             {/* Intelligence Filters */}
-            <div className="pt-5 border-t border-white/[0.06]">
+            <div className="pt-5 border-t border-ink/[0.06]">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-primary/70">Intelligence Filters<InfoTip side="bottom" title={t('guide.sec_intel')} text={t('guide.worth_d')} /></span>
                 <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/40">powered by coin intelligence</span>
@@ -1472,7 +1472,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     streakFilter === "hot"
                       ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                      : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
                   <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
@@ -1490,7 +1490,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     corrDecoupled
                       ? 'bg-purple-500/15 border border-purple-500/40 text-purple-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                      : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
                   <span className={corrDecoupled ? 'text-purple-400' : 'opacity-70'}>{Icon.zap('w-3 h-3')}</span>
@@ -1507,7 +1507,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     corrHighAlign
                       ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                      : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
                   <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
@@ -1525,7 +1525,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "worth_it"
                       ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                      : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
                   <span className={verdictFilter === "worth_it" ? 'text-emerald-400' : 'opacity-70'}>✓</span>
@@ -1542,7 +1542,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "avoid"
                       ? 'bg-red-500/15 border border-red-500/40 text-red-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                      : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
                   <span className={verdictFilter === "avoid" ? 'text-red-400' : 'opacity-70'}>⛔</span>
@@ -1558,7 +1558,7 @@ const SignalsPage = () => {
 
             {/* Pattern Filters */}
             {sortedTagsForChips.length > 0 && (
-              <div className="pt-5 border-t border-white/[0.06]">
+              <div className="pt-5 border-t border-ink/[0.06]">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-primary/70">Pattern Filters<InfoTip side="bottom" title={t('guide.pattern_t')} text={t('guide.pattern_d')} /></span>
                   <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/40">historical win rate · descriptive</span>
@@ -1579,14 +1579,14 @@ const SignalsPage = () => {
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           active
-                            ? 'bg-white/10 border border-line/40 text-text-primary'
-                            : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
+                            ? 'bg-ink/10 border border-line/40 text-text-primary'
+                            : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                         }`}
                       >
                         <span className="normal-case">{t.tag.replace(/_/g, ' ').toLowerCase()}</span>
                         <span className={`tabular-nums ${active ? 'text-text-primary' : wrCol}`}>{t.win_rate}%</span>
                         {cnt > 0 && (
-                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-white/12 text-text-primary' : 'bg-white/[0.06] text-text-primary/70'}`}>
+                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-ink/12 text-text-primary' : 'bg-ink/[0.06] text-text-primary/70'}`}>
                             {cnt}
                           </span>
                         )}
@@ -1599,7 +1599,7 @@ const SignalsPage = () => {
                     return (
                       <button
                         onClick={() => setShowAllTags((v) => !v)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-primary/70 hover:text-text-primary hover:border-white/[0.15] transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-ink/[0.02] border border-ink/[0.08] text-text-primary/70 hover:text-text-primary hover:border-ink/[0.15] transition-all"
                       >
                         {showAllTags ? 'Show less' : `Show all (${presentCount})`}
                       </button>

@@ -46,7 +46,7 @@ const getTypeToken = (type, data) => {
 const toneDot = (tone) => {
   if (tone === "gold") return "bg-gold-primary";
   if (tone === "danger") return "bg-red-400";
-  return "bg-white/40";
+  return "bg-ink/40";
 };
 
 
@@ -184,7 +184,7 @@ const NotificationBell = () => {
       {/* ── Bell Button ── */}
       <button
         onClick={handleToggle}
-        className="relative w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/[0.04] hover:border-white/[0.08] border border-transparent transition-all"
+        className="relative w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-ink/[0.04] hover:border-ink/[0.08] border border-transparent transition-all"
         title={t("notifications.title") || "Notifications"}
       >
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,12 +210,12 @@ const NotificationBell = () => {
               : "animate-in fade-in slide-in-from-top-2 duration-200"
           }`}
         >
-          <div className="relative overflow-hidden bg-surface-raised border border-white/[0.08] rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+          <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.08] rounded-md shadow-[0_20px_60px_rgb(var(--scrim) / 0.35)]">
             {/* Top hairline */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
             {/* ── Header ── */}
-            <div className="relative flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <div className="relative flex items-center justify-between px-4 py-3 border-b border-ink/[0.06]">
               <div className="flex items-center gap-2">
                 <h3 className="text-text-primary text-sm font-semibold tracking-tight">
                   {t("notifications.title") || "Notifications"}
@@ -257,7 +257,7 @@ const NotificationBell = () => {
             </div>
 
             {/* ── Footer ── */}
-            <div className="border-t border-white/[0.06]">
+            <div className="border-t border-ink/[0.06]">
               <button
                 onClick={handleViewAll}
                 className="w-full py-2.5 text-center text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80 hover:text-gold-primary hover:bg-gold-primary/[0.04] transition-all"
@@ -283,8 +283,8 @@ const PreviewRow = ({ notif, onClick, formatTimeAgo }) => {
   return (
     <div
       onClick={onClick}
-      className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer transition-colors border-b border-white/[0.04] last:border-0 ${
-        isUnread ? "bg-gold-primary/[0.03] hover:bg-gold-primary/[0.06]" : "hover:bg-white/[0.02]"
+      className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer transition-colors border-b border-ink/[0.04] last:border-0 ${
+        isUnread ? "bg-gold-primary/[0.03] hover:bg-gold-primary/[0.06]" : "hover:bg-ink/[0.02]"
       }`}
     >
       <span
@@ -324,10 +324,10 @@ const PreviewSkeleton = () => (
   <div className="p-4 space-y-3">
     {[...Array(3)].map((_, i) => (
       <div key={i} className="flex gap-2.5 animate-pulse">
-        <div className="w-1.5 h-1.5 bg-white/[0.06] rounded-full mt-1.5 shrink-0" />
+        <div className="w-1.5 h-1.5 bg-ink/[0.06] rounded-full mt-1.5 shrink-0" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-2.5 bg-white/[0.05] rounded w-2/3" />
-          <div className="h-2 bg-white/[0.03] rounded w-full" />
+          <div className="h-2.5 bg-ink/[0.05] rounded w-2/3" />
+          <div className="h-2 bg-ink/[0.03] rounded w-full" />
         </div>
       </div>
     ))}
@@ -336,7 +336,7 @@ const PreviewSkeleton = () => (
 
 const EmptyPreview = ({ t }) => (
   <div className="flex flex-col items-center py-8 text-center">
-    <div className="w-10 h-10 mb-3 rounded-md border border-white/[0.08] flex items-center justify-center">
+    <div className="w-10 h-10 mb-3 rounded-md border border-ink/[0.08] flex items-center justify-center">
       <svg
         className="w-4 h-4 text-text-muted/40"
         fill="none"

@@ -33,7 +33,7 @@ const symbolOf = (pair) =>
 const GainerCard = ({ item, onClick }) => (
   <button
     onClick={onClick}
-    className="relative text-left p-4 bg-surface-raised hover:bg-white/[0.025] transition-colors group w-full"
+    className="relative text-left p-4 bg-surface-raised hover:bg-ink/[0.025] transition-colors group w-full"
   >
     {/* open affordance — diagonal arrow, brightens on hover */}
     <svg
@@ -73,13 +73,13 @@ const GainerCard = ({ item, onClick }) => (
 const SkeletonCard = () => (
   <div className="p-4 bg-surface-raised animate-pulse">
     <div className="flex items-center gap-2.5 mb-3">
-      <div className="w-6 h-6 rounded-full bg-white/[0.06]" />
+      <div className="w-6 h-6 rounded-full bg-ink/[0.06]" />
       <div className="flex-1 space-y-1.5">
-        <div className="h-3 w-16 bg-white/[0.06] rounded" />
-        <div className="h-2.5 w-10 bg-white/[0.04] rounded" />
+        <div className="h-3 w-16 bg-ink/[0.06] rounded" />
+        <div className="h-2.5 w-10 bg-ink/[0.04] rounded" />
       </div>
     </div>
-    <div className="h-6 w-20 bg-white/[0.06] rounded" />
+    <div className="h-6 w-20 bg-ink/[0.06] rounded" />
   </div>
 );
 
@@ -235,7 +235,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
 
         <h2
           className="mt-5 font-bold text-text-primary text-3xl lg:text-5xl tracking-tight"
-          style={{ textShadow: "0 0 30px rgba(255,255,255,0.12)" }}
+          style={{ textShadow: "0 0 30px rgb(var(--ink) / 0.12)" }}
         >
           Top Gainers We Called
         </h2>
@@ -255,9 +255,9 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
               <Wrap
                 key={s.label}
                 onClick={s.onClick || undefined}
-                className={`group relative flex-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-center transition-all sm:p-4 lg:flex-none lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:text-left ${
+                className={`group relative flex-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-3 text-center transition-all sm:p-4 lg:flex-none lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:text-left ${
                   s.onClick
-                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-line/30 hover:bg-white/[0.035] lg:hover:translate-y-0 lg:hover:bg-transparent"
+                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-line/30 hover:bg-ink/[0.035] lg:hover:translate-y-0 lg:hover:bg-transparent"
                     : ""
                 }`}
               >
@@ -310,7 +310,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
         </div>
 
         {/* ── RIGHT: tabbed card ── */}
-        <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] p-5 lg:p-7 overflow-hidden">
+        <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] p-5 lg:p-7 overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
           {/* header: tabs (Daily · Weekly · Custom) + More */}
@@ -351,12 +351,12 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                 {pickerOpen && (
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setPickerOpen(false)} />
-                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-white/12 bg-surface-secondary p-3 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-ink/12 bg-surface-secondary p-3 shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)]">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Pick a date range</span>
                         <button onClick={() => setPickerOpen(false)} className="text-text-muted transition-colors hover:text-text-primary">✕</button>
                       </div>
-                      <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                      <div className="flex items-center gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.03] px-2 py-1.5">
                         <input
                           type="date"
                           value={customFrom}
@@ -380,7 +380,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
                           </span>
                           <button
                             onClick={clearCustom}
-                            className="rounded-md border border-white/10 px-2 py-0.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-text-primary"
+                            className="rounded-md border border-ink/10 px-2 py-0.5 font-mono text-[10px] text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary"
                           >
                             Clear
                           </button>
@@ -415,7 +415,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
 
           {/* hairline grid — auto-scroll ke atas (loop) + fade gradient (MEXC) */}
           {!hasData ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-white/[0.06] rounded-lg overflow-hidden">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-ink/[0.06] rounded-lg overflow-hidden">
               {Array.from({ length: 6 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))}
@@ -432,7 +432,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
             >
               {/* konten digandakan 2x → loop mulus (translateY -50%) */}
               <div
-                className="tg-marquee grid grid-cols-2 sm:grid-cols-3 gap-px bg-white/[0.06]"
+                className="tg-marquee grid grid-cols-2 sm:grid-cols-3 gap-px bg-ink/[0.06]"
                 style={{ animationDuration: `${items.length * 1.7}s` }}
               >
                 {[...items, ...items].map((item, i) => (
@@ -445,7 +445,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-white/[0.06] rounded-lg overflow-hidden">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-ink/[0.06] rounded-lg overflow-hidden">
               {items.map((item, i) => (
                 <GainerCard
                   key={`${item.pair}-${i}`}

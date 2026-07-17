@@ -45,7 +45,7 @@ function P({ children }) {
 
 function Code({ children }) {
   return (
-    <code className="rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[12px] text-text-primary/90">
+    <code className="rounded bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[12px] text-text-primary/90">
       {children}
     </code>
   );
@@ -59,7 +59,7 @@ function Tip({ tone = "info", children }) {
         ? "border-[#F6465D]/30 bg-[#F6465D]/[0.06]"
         : tone === "good"
           ? "border-[#0ECB81]/30 bg-[#0ECB81]/[0.05]"
-          : "border-white/[0.08] bg-white/[0.02]";
+          : "border-ink/[0.08] bg-ink/[0.02]";
   return (
     <div className={`rounded-lg border ${palette} px-4 py-3 text-xs leading-6 text-text-secondary`}>
       {children}
@@ -69,7 +69,7 @@ function Tip({ tone = "info", children }) {
 
 function Field({ label, children }) {
   return (
-    <div className="space-y-1.5 rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-3.5">
+    <div className="space-y-1.5 rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-4 py-3.5">
       <p className="text-[13px] font-semibold text-text-primary">{label}</p>
       <div className="text-xs leading-6 text-text-muted">{children}</div>
     </div>
@@ -84,7 +84,7 @@ function PresetCard({ name, audience, accent, items }) {
         ? "border-[#F3BA2F]/35"
         : "border-[#F6465D]/35";
   return (
-    <div className={`rounded-lg border ${ring} bg-white/[0.015] p-4`}>
+    <div className={`rounded-lg border ${ring} bg-ink/[0.015] p-4`}>
       <p className="text-base font-semibold text-text-primary">{name}</p>
       <p className="mt-1 text-[11px] uppercase tracking-wider text-text-muted">
         {audience}
@@ -119,7 +119,7 @@ function SectionHowItWorks() {
         </P>
       </div>
 
-      <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-4">
+      <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] p-4">
         <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80">
           Decision flow
         </p>
@@ -403,10 +403,10 @@ function SectionSpotVsFutures() {
       <Sub>Choosing your market</Sub>
       <H>Spot vs Futures</H>
 
-      <div className="overflow-hidden rounded-lg border border-white/[0.06]">
+      <div className="overflow-hidden rounded-lg border border-ink/[0.06]">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-white/[0.06] bg-white/[0.02] text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            <tr className="border-b border-ink/[0.06] bg-ink/[0.02] text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">
               <th className="px-3 py-2.5">Aspect</th>
               <th className="px-3 py-2.5">Spot</th>
               <th className="px-3 py-2.5">Futures</th>
@@ -422,7 +422,7 @@ function SectionSpotVsFutures() {
               ["Best for", "Swing 1–3 days, longs", "Scalps & swings, longs or shorts"],
               ["Minimum useful capital", "$50+", "$20+ (because of leverage)"],
             ].map((row) => (
-              <tr key={row[0]} className="border-b border-white/[0.04] last:border-0">
+              <tr key={row[0]} className="border-b border-ink/[0.04] last:border-0">
                 <td className="px-3 py-2.5 text-text-muted">{row[0]}</td>
                 <td className="px-3 py-2.5">{row[1]}</td>
                 <td className="px-3 py-2.5">{row[2]}</td>
@@ -615,7 +615,7 @@ function SectionFAQ() {
         {qa.map((item) => (
           <div
             key={item.q}
-            className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-3.5"
+            className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-4 py-3.5"
           >
             <p className="text-[13px] font-semibold text-text-primary">{item.q}</p>
             <p className="mt-1.5 text-xs leading-6 text-text-muted">{item.a}</p>
@@ -666,13 +666,13 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-sm" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative z-10 flex w-full max-w-[940px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-white/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative z-10 flex w-full max-w-[940px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgb(var(--scrim) / 0.35)]"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="relative w-full">
@@ -680,7 +680,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
           >
             <svg
               viewBox="0 0 24 24"
@@ -696,7 +696,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
 
           <div className="grid lg:grid-cols-[0.88fr_1.12fr]">
             {/* LEFT pane — navigation */}
-            <div className="border-b border-white/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-7">
+            <div className="border-b border-ink/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-7">
               <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Guide
               </p>
@@ -734,7 +734,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                     className={`whitespace-nowrap rounded-[3px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                       active === section.id
                         ? "border-line/35 bg-gold-primary/10 text-gold-primary"
-                        : "border-white/[0.07] text-text-muted"
+                        : "border-ink/[0.07] text-text-muted"
                     }`}
                   >
                     {section.label}
@@ -753,7 +753,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                         className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
                           selected
                             ? "bg-gold-primary/10 text-gold-primary"
-                            : "text-text-secondary hover:bg-white/[0.03] hover:text-text-primary"
+                            : "text-text-secondary hover:bg-ink/[0.03] hover:text-text-primary"
                         }`}
                       >
                         <span>{section.label}</span>
@@ -766,7 +766,7 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                 })}
               </ul>
 
-              <div className="mt-7 space-y-3 border-t border-white/[0.06] pt-5">
+              <div className="mt-7 space-y-3 border-t border-ink/[0.06] pt-5">
                 <p className="text-xs leading-5 text-text-muted">
                   All numbers in the guide reflect the actual fields shown
                   in your Settings panel.

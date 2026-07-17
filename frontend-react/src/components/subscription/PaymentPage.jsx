@@ -506,7 +506,7 @@ const PaymentPage = () => {
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                     style={{
                       background:
-                        "linear-gradient(135deg, rgba(255,255,255,0.1), transparent)",
+                        "linear-gradient(135deg, rgb(var(--ink) / 0.1), transparent)",
                     }}
                   />
                   <span className="relative">

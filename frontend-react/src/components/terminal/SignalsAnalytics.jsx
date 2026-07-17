@@ -100,18 +100,18 @@ function RegimeGauge({ macro, deriv, winRate, closedN, tpHitPct }) {
       : null;
 
   const comp = (lbl, score, raw, sub) => (
-    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-2">
+    <div className="rounded-lg border border-ink/[0.05] bg-ink/[0.02] px-2.5 py-2">
       <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/80">{lbl}</div>
       <div className="mt-0.5 font-mono text-[13px] tabular-nums text-text-primary">{raw}</div>
       {sub && <div className="mt-0.5 font-mono text-[8px] text-text-muted/55">{sub}</div>}
-      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ink/[0.06]">
         <div className="h-full rounded-full bg-text-primary/55" style={{ width: `${score || 0}%` }} />
       </div>
     </div>
   );
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
+    <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3.5">
       <div className="mb-2.5 flex items-end justify-between gap-3">
         <div>
           <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">Market regime</div>
@@ -619,7 +619,7 @@ export default function SignalsAnalytics() {
   return (
     <div className="space-y-2.5">
       {/* ── sticky toolbar (exchange-style: search · status · date · facets) ── */}
-      <div className="sticky top-0 z-30 flex items-center gap-1.5 flex-wrap bg-surface/95 backdrop-blur-md border-b border-white/[0.05] px-0.5 py-1.5 -mx-0.5">
+      <div className="sticky top-0 z-30 flex items-center gap-1.5 flex-wrap bg-surface/95 backdrop-blur-md border-b border-ink/[0.05] px-0.5 py-1.5 -mx-0.5">
         <div className="relative">
           <svg className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted/50" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="7" /><path d="M20 20l-3-3" strokeLinecap="round" />
@@ -628,7 +628,7 @@ export default function SignalsAnalytics() {
             value={filters.q}
             onChange={(e) => setF({ q: e.target.value })}
             placeholder={t("terminal.viz.searchPair")}
-            className="w-32 sm:w-40 bg-white/[0.03] border border-white/[0.07] rounded-md pl-7 pr-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted/45 focus:outline-none focus:border-white/18 font-mono"
+            className="w-32 sm:w-40 bg-ink/[0.03] border border-ink/[0.07] rounded-md pl-7 pr-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted/45 focus:outline-none focus:border-ink/18 font-mono"
           />
         </div>
 
@@ -642,7 +642,7 @@ export default function SignalsAnalytics() {
         />
 
         {/* Date window — last 7 days */}
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-ink/[0.03] border border-ink/[0.06]">
           <span className="hidden sm:inline px-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/55">Date</span>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const on = dayBuckets.includes(d);
@@ -655,7 +655,7 @@ export default function SignalsAnalytics() {
                 onClick={() => toggleDay(d)}
                 title={d === 0 ? "Today" : `${d} day${d > 1 ? "s" : ""} ago`}
                 className={`px-1.5 py-1 rounded-md font-mono text-[8.5px] tracking-wide transition-colors whitespace-nowrap ${
-                  on ? "bg-white/[0.1] text-text-primary font-semibold" : "text-text-muted/55 hover:text-text-primary"
+                  on ? "bg-ink/[0.1] text-text-primary font-semibold" : "text-text-muted/55 hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -712,7 +712,7 @@ export default function SignalsAnalytics() {
 
       {/* ── loading / error (only when nothing hydrated) ── */}
       {loading && !data && (
-        <div className="rounded-lg bg-surface-raised border border-white/[0.07] py-24 flex flex-col items-center gap-3">
+        <div className="rounded-lg bg-surface-raised border border-ink/[0.07] py-24 flex flex-col items-center gap-3">
           <div className="w-6 h-6 border border-line/20 border-t-gold-primary rounded-full animate-spin" />
           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.loading")}</span>
         </div>
@@ -868,7 +868,7 @@ export default function SignalsAnalytics() {
                           <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
-                          <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
+                          <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.2)" />
                           <Bar dataKey="tp1" name="TP1" stackId="a" fill="#2dd4a0" fillOpacity={0.9} />
                           <Bar dataKey="tp2" name="TP2" stackId="a" fill="rgb(var(--pos))" fillOpacity={0.9} />
                           <Bar dataKey="tp3" name="TP3" stackId="a" fill="#86efac" fillOpacity={0.9} />
@@ -904,7 +904,7 @@ export default function SignalsAnalytics() {
                 title={t("terminal.viz.sectionAnom")}
                 desc={t("terminal.viz.sectionAnomDesc")}
                 badge={
-                  <span className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                  <span className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-ink/[0.08] bg-ink/[0.02] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                     <span className={`w-1.5 h-1.5 rounded-full ${anomMeta.fresh ? "bg-positive animate-pulse" : "bg-warning"}`} />
                     {anomMeta.fresh ? "Live" : "Stale"}
                     {anomMeta.ageS != null && <span className="text-text-primary/50">· {anomMeta.ageS}s</span>}
@@ -946,12 +946,12 @@ export default function SignalsAnalytics() {
               </div>
 
               {/* Early edge desk — good structure not yet at high TP; click opens modal */}
-              <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
-                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/[0.05] bg-white/[0.015] px-3.5 py-2.5">
+              <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
+                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-ink/[0.05] bg-ink/[0.015] px-3.5 py-2.5">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[12.5px] font-medium text-text-primary">Early edge</span>
-                      <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                      <span className="rounded border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
                         {earlyEdge.length}
                       </span>
                     </div>
@@ -971,17 +971,17 @@ export default function SignalsAnalytics() {
                         key={s.signal_id || s.pair}
                         type="button"
                         onClick={() => openSignalRow(s)}
-                        className="group inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-white/18 hover:bg-white/[0.06]"
+                        className="group inline-flex items-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-ink/18 hover:bg-ink/[0.06]"
                       >
                         <CoinLogo pair={s.pair} size={18} />
-                        <span className="font-mono text-[11.5px] font-semibold text-text-primary group-hover:text-white">
+                        <span className="font-mono text-[11.5px] font-semibold text-text-primary group-hover:text-text-primary">
                           {(s.pair || "").replace(/USDT$/i, "")}
                         </span>
-                        <span className="rounded bg-white/[0.06] px-1 py-px font-mono text-[8.5px] uppercase tracking-wide text-text-muted">
+                        <span className="rounded bg-ink/[0.06] px-1 py-px font-mono text-[8.5px] uppercase tracking-wide text-text-muted">
                           {STATUS_LABEL[status] || status}
                         </span>
                         {golden && (
-                          <span className="rounded border border-white/10 px-1 py-px font-mono text-[8px] uppercase text-text-primary/55">
+                          <span className="rounded border border-ink/10 px-1 py-px font-mono text-[8px] uppercase text-text-primary/55">
                             golden
                           </span>
                         )}
@@ -1005,7 +1005,7 @@ export default function SignalsAnalytics() {
               </div>
 
               {anomMeta.hotN > 0 && (
-                <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised px-3.5 py-2.5">
+                <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised px-3.5 py-2.5">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
@@ -1016,7 +1016,7 @@ export default function SignalsAnalytics() {
                         key={p.pair}
                         type="button"
                         onClick={() => openPair(p.pair)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] py-1 pl-1.5 pr-2 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-ink/[0.1] bg-ink/[0.04] py-1 pl-1.5 pr-2 transition-colors hover:border-ink/20 hover:bg-ink/[0.08]"
                       >
                         <CoinLogo pair={p.pair} size={15} />
                         <span className="font-mono text-[10.5px] text-text-primary/85">
@@ -1064,7 +1064,7 @@ export default function SignalsAnalytics() {
                           </ScatterChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="flex flex-wrap items-center justify-center gap-3 pt-1.5 border-t border-white/[0.04] mt-1">
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-1.5 border-t border-ink/[0.04] mt-1">
                         {[
                           { c: GOLD, l: t("terminal.viz.legHot"), n: anomMeta.hotN },
                           { c: CYAN, l: t("terminal.viz.legDec"), n: anomMeta.decN },
@@ -1087,7 +1087,7 @@ export default function SignalsAnalytics() {
                   render={() =>
                     session.spikes.length === 0 ? (
                       <div className="py-14 text-center">
-                        <div className="mx-auto w-10 h-10 rounded-full border border-white/[0.06] bg-white/[0.02] flex items-center justify-center mb-3">
+                        <div className="mx-auto w-10 h-10 rounded-full border border-ink/[0.06] bg-ink/[0.02] flex items-center justify-center mb-3">
                           <span className="text-text-muted/50 text-lg leading-none">∅</span>
                         </div>
                         <div className="font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed">
@@ -1251,7 +1251,7 @@ export default function SignalsAnalytics() {
                         <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPeak.domX} allowDataOverflow tickFormatter={fmtAxis} />
                         <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPeak.domY} allowDataOverflow tickFormatter={fmtAxis} />
                         <Tooltip content={<ScatterTip xLabel="peak %" yLabel="now %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                        <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 150, y: 150 }]} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
+                        <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 150, y: 150 }]} stroke="rgb(var(--ink) / 0.2)" strokeDasharray="4 4" />
                         <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
                         <Scatter data={agg.peakPts} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                           {agg.peakPts.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
@@ -1360,7 +1360,7 @@ export default function SignalsAnalytics() {
                           <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zBeta.domY} allowDataOverflow tickFormatter={fmtAxis} />
                           <Tooltip content={<ScatterTip xLabel="β 30d" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                           <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
-                          <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                          <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" strokeDasharray="3 3" />
                           <Scatter data={agg.scatterBeta} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                             {agg.scatterBeta.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                               <Cell key={i} fill={p.dec ? CYAN : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
@@ -1425,7 +1425,7 @@ export default function SignalsAnalytics() {
                     <div style={{ height: Math.max(h, 260) }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={agg.sectors.filter((s) => s.sector !== "unclassified").slice(0, 7)} outerRadius="72%">
-                          <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                          <PolarGrid stroke="rgb(var(--ink) / 0.08)" />
                           <PolarAngleAxis dataKey="sector" tick={{ fill: AXIS, fontSize: 9.5, fontFamily: "JetBrains Mono" }} />
                           <Radar dataKey="count" name="signals" stroke="rgb(148 163 184)" fill="rgb(148 163 184)" fillOpacity={0.22} />
                           <Tooltip content={<DarkTip />} />
@@ -1502,13 +1502,13 @@ export default function SignalsAnalytics() {
                   unique.push(s);
                 });
                 return (
-                  <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.05] bg-white/[0.015] px-3.5 py-2.5">
+                  <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/[0.05] bg-ink/[0.015] px-3.5 py-2.5">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-[12.5px] font-medium text-text-primary">Sector signals</span>
                           {activeSec && (
-                            <span className="inline-flex items-center gap-1 rounded border border-white/[0.1] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-text-primary/80">
+                            <span className="inline-flex items-center gap-1 rounded border border-ink/[0.1] bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-text-primary/80">
                               <span className="opacity-70"><SectorGlyph sector={activeSec} /></span>
                               {activeSec}
                             </span>
@@ -1539,7 +1539,7 @@ export default function SignalsAnalytics() {
                         No signals in this sector for the current window
                       </div>
                     ) : (
-                      <div className="max-h-[360px] divide-y divide-white/[0.04] overflow-y-auto [scrollbar-width:thin]">
+                      <div className="max-h-[360px] divide-y divide-ink/[0.04] overflow-y-auto [scrollbar-width:thin]">
                         {unique.slice(0, 48).map((s) => {
                           const fc = pairFc[s.pair];
                           return (
@@ -1547,7 +1547,7 @@ export default function SignalsAnalytics() {
                               key={s.signal_id || s.pair}
                               type="button"
                               onClick={() => openSignalRow(s)}
-                              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-white/[0.03]"
+                              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-ink/[0.03]"
                             >
                               <CoinLogo pair={s.pair} size={22} />
                               <div className="min-w-0 flex-1">
@@ -1555,7 +1555,7 @@ export default function SignalsAnalytics() {
                                   <span className="truncate font-mono text-[12.5px] font-semibold text-text-primary">
                                     {(s.pair || "").replace(/USDT$/i, "")}
                                   </span>
-                                  <span className="rounded bg-white/[0.05] px-1 py-px font-mono text-[8.5px] uppercase text-text-muted">
+                                  <span className="rounded bg-ink/[0.05] px-1 py-px font-mono text-[8.5px] uppercase text-text-muted">
                                     {STATUS_LABEL[s.status] || s.status}
                                   </span>
                                 </div>

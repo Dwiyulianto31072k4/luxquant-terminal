@@ -17,9 +17,9 @@ const statusTone = {
     dot: "bg-red-400",
   },
   unknown: {
-    badge: "border-white/15 bg-white/5 text-text-primary/45",
+    badge: "border-ink/15 bg-ink/5 text-text-primary/45",
     text: "text-text-primary/45",
-    dot: "bg-white/35",
+    dot: "bg-ink/35",
   },
 };
 
@@ -56,7 +56,7 @@ function formatTimestamp(value) {
 function CheckCard({ check }) {
   const tone = statusTone[check?.status] || statusTone.unknown;
   return (
-    <div className="min-w-0 rounded-xl border border-white/[0.06] bg-black/15 p-3.5">
+    <div className="min-w-0 rounded-xl border border-ink/[0.06] bg-scrim/15 p-3.5">
       <div className="flex min-w-0 items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`} />
         <span className="truncate text-[11px] font-mono uppercase tracking-[0.12em] text-text-primary/35">
@@ -75,7 +75,7 @@ function CheckCard({ check }) {
 
 function AlertRow({ alert }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-black/10 px-3 py-2.5">
+    <div className="rounded-lg border border-ink/[0.06] bg-scrim/10 px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <span className={`text-[9px] font-mono uppercase tracking-wider ${severityTone[alert.severity] || severityTone.info}`}>
           {alert.severity || "info"}
@@ -97,7 +97,7 @@ function AlertRow({ alert }) {
 export default function OperationalStatusPanel({ data }) {
   if (!data) {
     return (
-      <section className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
+      <section className="min-w-0 rounded-2xl border border-ink/[0.06] bg-ink/[0.015] p-5">
         <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent">
           Phase 7 / Monitoring
         </div>
@@ -146,7 +146,7 @@ export default function OperationalStatusPanel({ data }) {
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-xl border border-white/[0.06] bg-black/10 p-3.5">
+        <div className="rounded-xl border border-ink/[0.06] bg-scrim/10 p-3.5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
               Active alerts
@@ -168,7 +168,7 @@ export default function OperationalStatusPanel({ data }) {
           )}
         </div>
 
-        <div className="rounded-xl border border-white/[0.06] bg-black/10 p-3.5">
+        <div className="rounded-xl border border-ink/[0.06] bg-scrim/10 p-3.5">
           <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/35">
             Latest report
           </div>

@@ -254,10 +254,10 @@ const MoreMenuDropdown = ({
     return (
       <button
         onClick={() => go(item.path)}
-        className="group relative w-full flex items-start gap-3 pl-3 pr-2.5 py-2 rounded-md hover:bg-white/[0.05] transition-colors text-left"
+        className="group relative w-full flex items-start gap-3 pl-3 pr-2.5 py-2 rounded-md hover:bg-ink/[0.05] transition-colors text-left"
       >
         {active && (
-          <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-white/70" />
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-ink/70" />
         )}
 
         <span
@@ -297,7 +297,7 @@ const MoreMenuDropdown = ({
         <div key={group.key} className="min-w-0">
           {/* column header — quiet mono eyebrow (no undefined GOLD) */}
           <div className="flex items-center gap-2 px-3 mb-1.5">
-            <span className="h-1 w-1 rounded-full flex-shrink-0 bg-white/50" />
+            <span className="h-1 w-1 rounded-full flex-shrink-0 bg-ink/50" />
             <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
               {group.label}
             </span>
@@ -326,7 +326,7 @@ const MoreMenuDropdown = ({
         className={`relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
           moreHasActive || open
             ? 'text-text-primary border-transparent'
-            : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-white/[0.05] hover:border-white/[0.08]'
+            : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-ink/[0.05] hover:border-ink/[0.08]'
         }`}
       >
         <span>{label}</span>
@@ -350,7 +350,7 @@ const MoreMenuDropdown = ({
         }`}
       >
         <div
-          className="lux-warm-panel relative w-[720px] max-w-[92vw] rounded-lg border border-white/[0.07] shadow-2xl shadow-black/50 overflow-hidden"
+          className="lux-warm-panel relative w-[720px] max-w-[92vw] rounded-lg border border-ink/[0.07] shadow-2xl shadow-black/50 overflow-hidden"
         >
           {/* Ambient depth glow — single, restrained */}
           <span className="lux-warm-glow absolute -top-24 -right-16 w-72 h-72 rounded-full pointer-events-none" />

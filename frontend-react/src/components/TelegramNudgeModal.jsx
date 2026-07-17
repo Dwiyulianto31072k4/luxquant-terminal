@@ -178,17 +178,17 @@ const TelegramNudgeModal = () => {
         style={{
           background: 'linear-gradient(160deg, #0d0405, #0a0506)',
           border: '1px solid rgb(var(--line) / 0.18)',
-          boxShadow: '0 -20px 60px rgba(0,0,0,0.65)',
+          boxShadow: '0 -20px 60px rgb(var(--scrim) / 0.35)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* close */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted/60 hover:text-text-primary hover:bg-white/[0.06] transition-colors"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted/60 hover:text-text-primary hover:bg-ink/[0.06] transition-colors"
           aria-label="Close"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,7 +230,7 @@ const TelegramNudgeModal = () => {
 
         {/* sticky CTA footer — never covered */}
         <div
-          className="shrink-0 border-t border-white/[0.06] px-6 pt-3 flex flex-col gap-2"
+          className="shrink-0 border-t border-ink/[0.06] px-6 pt-3 flex flex-col gap-2"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}
         >
           {isLink ? (
@@ -250,7 +250,7 @@ const TelegramNudgeModal = () => {
               style={{ background: 'linear-gradient(135deg, #0088cc, #006699)', color: 'rgb(var(--fg))', border: '1px solid rgba(0,136,204,0.3)' }}
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-ink/30 border-t-white rounded-full animate-spin" />
               ) : (
                 t('nudge.join_cta', 'Join VIP Group')
               )}

@@ -118,7 +118,7 @@ const MarketDashboard = () => {
       <div className="space-y-5 animate-[lqFadeIn_.25s_ease]" role="status" aria-label="Loading market data">
         <ShimmerStyles />
         {/* Hero price band */}
-        <div className="rounded-2xl border border-white/[0.06] p-5 flex flex-wrap items-center gap-4">
+        <div className="rounded-2xl border border-ink/[0.06] p-5 flex flex-wrap items-center gap-4">
           <Skeleton className="h-12 w-12 !rounded-full" />
           <div className="space-y-2">
             <Skeleton className="h-3 w-16" />
@@ -129,7 +129,7 @@ const MarketDashboard = () => {
         {/* Market cards grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-white/[0.05] p-4 space-y-2.5">
+            <div key={i} className="rounded-xl border border-ink/[0.05] p-4 space-y-2.5">
               <Skeleton className="h-2.5 w-16" />
               <Skeleton className="h-6 w-24" />
               <Skeleton className="h-2 w-12" />
@@ -294,7 +294,7 @@ const MarketDashboard = () => {
               <p className="text-text-muted text-sm mt-2">
                 {formatNumber(marketData.open_interest.btc)} BTC
               </p>
-              <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="mt-4 pt-4 border-t border-ink/10">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-text-muted text-sm">Funding Rate:</span>
                   <span className={`font-mono font-semibold ${getFundingColor(marketData.funding?.rate)}`}>
@@ -321,7 +321,7 @@ const MarketDashboard = () => {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-ink/5">
                 <th className="px-4 py-3 text-left text-xs text-gold-primary/70 uppercase tracking-wider">Symbol</th>
                 <th className="px-4 py-3 text-right text-xs text-gold-primary/70 uppercase tracking-wider">Funding Rate</th>
               </tr>
@@ -329,7 +329,7 @@ const MarketDashboard = () => {
             <tbody>
               {fundingRates.length > 0 ? (
                 fundingRates.map((item, idx) => (
-                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <tr key={idx} className="border-b border-ink/5 hover:bg-ink/5 transition-colors">
                     <td className="px-4 py-3">
                       <span className="font-semibold text-text-primary">
                         {item.symbol.replace('USDT', '')}

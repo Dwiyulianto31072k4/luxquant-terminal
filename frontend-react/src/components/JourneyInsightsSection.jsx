@@ -38,7 +38,7 @@ const SectionHeader = ({ icon, title, sample }) => (
 );
 
 const StatPill = ({ label, value, valueColor = "text-text-primary", sublabel }) => (
-  <div className="flex-1 min-w-[100px] bg-white/[0.02] border border-white/5 rounded-lg px-2.5 py-2">
+  <div className="flex-1 min-w-[100px] bg-ink/[0.02] border border-ink/5 rounded-lg px-2.5 py-2">
     <p className="text-[9px] text-text-primary/40 uppercase tracking-wider font-medium mb-0.5">
       {label}
     </p>
@@ -98,11 +98,11 @@ const JourneyInsightsSection = ({ pair }) => {
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="bg-surface-secondary/80 rounded-xl p-3 border border-white/5 animate-pulse">
-          <div className="h-3 bg-white/5 rounded w-1/3 mb-2" />
+        <div className="bg-surface-secondary/80 rounded-xl p-3 border border-ink/5 animate-pulse">
+          <div className="h-3 bg-ink/5 rounded w-1/3 mb-2" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-14 bg-white/[0.03] rounded" />
+              <div key={i} className="h-14 bg-ink/[0.03] rounded" />
             ))}
           </div>
         </div>
@@ -116,7 +116,7 @@ const JourneyInsightsSection = ({ pair }) => {
   if (data.available === false) {
     if (data.reason === "insufficient_data") {
       return (
-        <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+        <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
           <p className="text-text-primary/40 text-[10px] uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
             <span>📊</span>
             <span>Behavior Insights</span>
@@ -148,7 +148,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 1. Entry Behavior                          */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
         <SectionHeader
           icon="🚪"
           title="Entry Behavior"
@@ -197,12 +197,12 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 2. Time to Each TP                         */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
         <SectionHeader icon="⏱️" title="Time to Each TP" />
         <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full text-xs min-w-[400px]">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-ink/5">
                 <TableHeader>TP</TableHeader>
                 <TableHeader>Avg</TableHeader>
                 <TableHeader>Fastest</TableHeader>
@@ -212,7 +212,7 @@ const JourneyInsightsSection = ({ pair }) => {
             </thead>
             <tbody>
               {time_to_each_tp?.map((row) => (
-                <tr key={row.tp} className="border-b border-white/[0.03] last:border-0">
+                <tr key={row.tp} className="border-b border-ink/[0.03] last:border-0">
                   <Cell>
                     <span className="text-[11px] font-bold text-text-primary">{row.tp}</span>
                   </Cell>
@@ -246,12 +246,12 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 3. Drawdown Before Each TP                */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
         <SectionHeader icon="📉" title="Drawdown Before Each TP" />
         <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full text-xs min-w-[400px]">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-ink/5">
                 <TableHeader>Phase</TableHeader>
                 <TableHeader>Avg DD</TableHeader>
                 <TableHeader>Worst DD</TableHeader>
@@ -260,7 +260,7 @@ const JourneyInsightsSection = ({ pair }) => {
             </thead>
             <tbody>
               {drawdown_before_each_tp?.map((row) => (
-                <tr key={row.phase} className="border-b border-white/[0.03] last:border-0">
+                <tr key={row.phase} className="border-b border-ink/[0.03] last:border-0">
                   <Cell>
                     <span className="text-[11px] font-medium text-text-primary/80">{row.phase}</span>
                   </Cell>
@@ -292,12 +292,12 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 4. Hit Rate per TP                         */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
         <SectionHeader icon="🎯" title="Hit Rate per TP" />
         <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full text-xs min-w-[400px]">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-ink/5">
                 <TableHeader>TP</TableHeader>
                 <TableHeader>Hit Rate</TableHeader>
                 <TableHeader>Count</TableHeader>
@@ -323,7 +323,7 @@ const JourneyInsightsSection = ({ pair }) => {
                       ? "bg-yellow-500"
                       : "bg-red-500";
                 return (
-                  <tr key={row.tp} className="border-b border-white/[0.03] last:border-0">
+                  <tr key={row.tp} className="border-b border-ink/[0.03] last:border-0">
                     <Cell>
                       <span className={`text-[11px] font-bold ${isSL ? "text-red-300" : "text-text-primary"}`}>{row.tp}</span>
                     </Cell>
@@ -332,7 +332,7 @@ const JourneyInsightsSection = ({ pair }) => {
                         <span className={`text-[11px] font-mono font-bold ${rateColor}`}>
                           {rate !== null ? `${rate}%` : "—"}
                         </span>
-                        <div className="flex-1 max-w-[60px] h-1 rounded-full bg-white/5 overflow-hidden">
+                        <div className="flex-1 max-w-[60px] h-1 rounded-full bg-ink/5 overflow-hidden">
                           <div
                             className={`h-full ${barColor}`}
                             style={{ width: `${Math.min(100, rate || 0)}%` }}
@@ -361,7 +361,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 5. Peak Potential                          */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
         <SectionHeader icon="🚀" title="Peak Potential" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <StatPill
@@ -400,7 +400,7 @@ const JourneyInsightsSection = ({ pair }) => {
       {/* ──────────────────────────────────────── */}
       {/* 6. Risk Profile                            */}
       {/* ──────────────────────────────────────── */}
-      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
+      <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-ink/5">
         <SectionHeader icon="⚠️" title="Risk Profile" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
           <StatPill

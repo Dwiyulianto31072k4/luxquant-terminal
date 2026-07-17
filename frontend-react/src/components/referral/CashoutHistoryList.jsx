@@ -116,7 +116,7 @@ const CashoutRow = ({ item, onUpdate }) => {
     >
       {/* Main Row */}
       <div
-        className="p-4 sm:p-5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="p-4 sm:p-5 cursor-pointer hover:bg-ink/[0.02] transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between gap-3">

@@ -38,7 +38,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 items-start gap-3">
-        <IconBadge Icon={TrendingUpIcon} color="rgba(255,255,255,0.45)" size={38} iconSize={18} />
+        <IconBadge Icon={TrendingUpIcon} color="rgb(var(--ink) / 0.45)" size={38} iconSize={18} />
 
         <div className="min-w-0">
           <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
@@ -57,7 +57,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
         <button
           type="button"
           onClick={onAddManualPayment}
-          className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-white/[0.14]"
+          className="flex items-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-ink/[0.14]"
           title="Record a payment that was made out-of-band"
         >
           <PlusIcon size={12} />
@@ -103,8 +103,8 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
   <div
     className="relative text-center py-16 rounded-2xl overflow-hidden"
     style={{
-      background: 'rgba(255,255,255,0.015)',
-      border: '1px dashed rgba(255,255,255,0.08)',
+      background: 'rgb(var(--ink) / 0.015)',
+      border: '1px dashed rgb(var(--ink) / 0.08)',
     }}
   >
     <div

@@ -176,7 +176,7 @@ export default function CycleCompass({ report }) {
               ${COLORS.bearish} 95%
             )`,
             position: 'relative',
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.4)',
+            boxShadow: 'inset 0 1px 2px rgb(var(--scrim) / 0.35)',
           }}
         >
           {/* Phase boundaries (vertical ticks) */}
@@ -189,7 +189,7 @@ export default function CycleCompass({ report }) {
                 top: -2,
                 bottom: -2,
                 width: 1,
-                background: 'rgba(0,0,0,0.3)',
+                background: 'rgb(var(--scrim) / 0.3)',
               }}
             />
           ))}
@@ -301,7 +301,7 @@ export default function CycleCompass({ report }) {
                   style={{
                     height: 3,
                     marginTop: 6,
-                    background: 'rgba(255,255,255,0.05)',
+                    background: 'rgb(var(--ink) / 0.05)',
                     borderRadius: 2,
                     overflow: 'hidden',
                   }}

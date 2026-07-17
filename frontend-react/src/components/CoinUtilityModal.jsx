@@ -127,10 +127,10 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
           <div className="space-y-3 animate-pulse">
             <div className="h-24 rounded-xl bg-gold-primary/5" />
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              <div className="h-28 rounded-xl bg-white/5" />
-              <div className="h-28 rounded-xl bg-white/5" />
+              <div className="h-28 rounded-xl bg-ink/5" />
+              <div className="h-28 rounded-xl bg-ink/5" />
             </div>
-            <div className="h-20 rounded-xl bg-white/5" />
+            <div className="h-20 rounded-xl bg-ink/5" />
           </div>
         )}
 
@@ -160,7 +160,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
                   <span>{meta.label}</span>
                 </span>
                 {coinData.sector && (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold capitalize text-text-primary/80">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-ink/10 bg-ink/5 px-2.5 py-1 text-xs font-bold capitalize text-text-primary/80">
                     {coinData.sector}
                   </span>
                 )}
@@ -261,7 +261,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
             </div>
 
             {/* Disclaimer */}
-            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-surface-raised p-3">
+            <div className="flex items-start gap-2 rounded-lg border border-ink/5 bg-surface-raised p-3">
               <span className="mt-px text-gold-primary/60"><Icon d={IC.bulb} className="h-3.5 w-3.5" /></span>
               <p className="text-[9px] leading-relaxed text-text-muted sm:text-[10px]">
                 This categorization is for educational purposes only and is automatically generated. Each user should make their own decisions based on personal values, risk tolerance, and applicable regulations. Categorization is not financial, legal, or religious advice.

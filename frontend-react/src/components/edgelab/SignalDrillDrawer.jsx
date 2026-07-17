@@ -41,7 +41,7 @@ const OUTCOME_STYLE = {
 const DIST_ORDER = ["tp4", "tp3", "tp2", "tp1", "sl"];
 
 const OutcomeBadge = ({ outcome, size = 9 }) => {
-  const s = OUTCOME_STYLE[outcome] || { label: outcome || "—", c: "#888", bg: "rgba(255,255,255,0.06)" };
+  const s = OUTCOME_STYLE[outcome] || { label: outcome || "—", c: "#888", bg: "rgb(var(--ink) / 0.06)" };
   return (
     <span
       className="inline-flex items-center rounded-sm font-mono uppercase tracking-wider"
@@ -184,7 +184,7 @@ const TradeVsMarket = ({ s, btcHold }) => {
         {label}
       </span>
       <div className="relative flex-1 h-[14px]">
-        <div className="absolute inset-y-0 left-1/2 w-px bg-white/[0.14]" />
+        <div className="absolute inset-y-0 left-1/2 w-px bg-ink/[0.14]" />
         <div
           className="absolute top-1/2 -translate-y-1/2 h-[6px] rounded-full"
           style={
@@ -204,7 +204,7 @@ const TradeVsMarket = ({ s, btcHold }) => {
   );
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-3.5 py-3">
+    <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-3.5 py-3">
       <div className="flex items-baseline justify-between mb-2.5">
         <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
           Trade vs market · same window
@@ -222,10 +222,10 @@ const TradeVsMarket = ({ s, btcHold }) => {
           label="BTC held"
           value={btc}
           log={lb}
-          color="rgba(255,255,255,0.45)"
+          color="rgb(var(--ink) / 0.45)"
         />
       </div>
-      <div className="mt-3 pt-2.5 border-t border-white/[0.05] flex items-baseline justify-between">
+      <div className="mt-3 pt-2.5 border-t border-ink/[0.05] flex items-baseline justify-between">
         <span
           className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35"
           title="Signal peak minus the BTC move over the same created→resolved window"
@@ -265,7 +265,7 @@ const TradeJourney = ({ s }) => {
     captureBase && captureBase > 0 ? Math.round((realized / captureBase) * 100) : null;
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-3.5 py-3">
+    <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-3.5 py-3">
       <div className="flex items-baseline justify-between mb-2.5">
         <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">
           Trade journey · path to outcome
@@ -279,7 +279,7 @@ const TradeJourney = ({ s }) => {
             Ran up
           </span>
           <div className="relative flex-1 h-[12px]">
-            <div className="absolute inset-y-0 left-0 w-px bg-white/[0.14]" />
+            <div className="absolute inset-y-0 left-0 w-px bg-ink/[0.14]" />
             <div
               className="absolute top-1/2 -translate-y-1/2 left-0 h-[6px] rounded-full"
               style={{ width: `${up}%`, background: "rgba(52,211,153,0.65)" }}
@@ -294,7 +294,7 @@ const TradeJourney = ({ s }) => {
             Drew down
           </span>
           <div className="relative flex-1 h-[12px]">
-            <div className="absolute inset-y-0 left-0 w-px bg-white/[0.14]" />
+            <div className="absolute inset-y-0 left-0 w-px bg-ink/[0.14]" />
             <div
               className="absolute top-1/2 -translate-y-1/2 left-0 h-[6px] rounded-full"
               style={{ width: `${dn}%`, background: "rgba(248,113,113,0.6)" }}
@@ -308,7 +308,7 @@ const TradeJourney = ({ s }) => {
 
       {/* realized vs missed potential */}
       {realized != null && missed != null && (
-        <div className="mt-3 pt-2.5 border-t border-white/[0.05]">
+        <div className="mt-3 pt-2.5 border-t border-ink/[0.05]">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
               Banked vs left on table
@@ -319,7 +319,7 @@ const TradeJourney = ({ s }) => {
               </span>
             )}
           </div>
-          <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.05]">
+          <div className="flex h-2 rounded-full overflow-hidden bg-ink/[0.05]">
             {captureBase > 0 && (
               <>
                 <div
@@ -327,7 +327,7 @@ const TradeJourney = ({ s }) => {
                   title={`realized ${fmtPeak(realized)}`}
                 />
                 <div
-                  style={{ width: `${(missed / captureBase) * 100}%`, background: "rgba(255,255,255,0.12)" }}
+                  style={{ width: `${(missed / captureBase) * 100}%`, background: "rgb(var(--ink) / 0.12)" }}
                   title={`missed ${fmtPeak(missed)}`}
                 />
               </>
@@ -367,13 +367,13 @@ const PeakField = ({ signals, selectedId }) => {
         </span>
         <span className="text-[9px] font-mono text-text-primary/25">log scale</span>
       </div>
-      <div className="relative h-11 rounded-md border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+      <div className="relative h-11 rounded-md border border-ink/[0.06] bg-ink/[0.015] overflow-hidden">
         {/* baseline */}
-        <div className="absolute left-0 right-0 top-1/2 h-px bg-white/[0.07]" />
+        <div className="absolute left-0 right-0 top-1/2 h-px bg-ink/[0.07]" />
         {/* zero tick */}
         {zeroX != null && (
           <div
-            className="absolute top-1.5 bottom-1.5 w-px bg-white/[0.12]"
+            className="absolute top-1.5 bottom-1.5 w-px bg-ink/[0.12]"
             style={{ left: `${zeroX}%` }}
             title="0%"
           />
@@ -431,8 +431,8 @@ const SignalRow = ({ s, maxPeak, btcHold, selected, onSelect }) => {
       onClick={() => onSelect(s.signal_id)}
       className={`w-full text-left px-3 pt-2.5 pb-2 border-l-2 transition ${
         selected
-          ? "border-gold-primary bg-white/[0.045]"
-          : "border-transparent hover:bg-white/[0.03]"
+          ? "border-gold-primary bg-ink/[0.045]"
+          : "border-transparent hover:bg-ink/[0.03]"
       }`}
     >
       <div className="flex items-center gap-2.5">
@@ -460,7 +460,7 @@ const SignalRow = ({ s, maxPeak, btcHold, selected, onSelect }) => {
           {peak || "—"}
         </span>
       </div>
-      <div className="mt-1.5 ml-[34px] h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
+      <div className="mt-1.5 ml-[34px] h-[2px] rounded-full bg-ink/[0.04] overflow-hidden">
         <div
           className="h-full rounded-full"
           style={{ width: `${barPct}%`, background: isWin ? "rgba(16,185,129,0.45)" : "rgba(239,68,68,0.45)" }}
@@ -488,7 +488,7 @@ const DetailPane = ({ s, rank, total, allSignals, btc, btcSeries, opening, onOpe
       {onBack && (
         <button
           onClick={onBack}
-          className="md:hidden self-start mx-4 mt-3 px-2.5 py-1 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-wider text-text-primary/50 hover:text-text-primary"
+          className="md:hidden self-start mx-4 mt-3 px-2.5 py-1 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-wider text-text-primary/50 hover:text-text-primary"
         >
           ← List
         </button>
@@ -536,7 +536,7 @@ const DetailPane = ({ s, rank, total, allSignals, btc, btcSeries, opening, onOpe
         <PeakField signals={allSignals} selectedId={s.signal_id} />
 
         {/* timeline facts */}
-        <div className="rounded-lg border border-white/[0.06] divide-y divide-white/[0.04]">
+        <div className="rounded-lg border border-ink/[0.06] divide-y divide-ink/[0.04]">
           <div className="flex items-center justify-between px-3.5 py-2.5">
             <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-primary/30">Created</span>
             <span className="font-mono tabular-nums text-[12px] text-text-primary/75">{fmtDateTime(s.created_at)}</span>
@@ -580,7 +580,7 @@ const DetailPane = ({ s, rank, total, allSignals, btc, btcSeries, opening, onOpe
           disabled={opening}
           className={`w-full py-2.5 rounded-lg border text-[11px] font-mono uppercase tracking-[0.18em] transition flex items-center justify-center gap-2 ${
             opening
-              ? "border-white/[0.08] text-text-primary/30 cursor-wait"
+              ? "border-ink/[0.08] text-text-primary/30 cursor-wait"
               : "border-line/35 bg-gold-primary/[0.07] text-gold-primary hover:bg-gold-primary/[0.14]"
           }`}
         >
@@ -733,7 +733,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
       className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition border ${
         filter === id
           ? "border-line/40 bg-gold-primary/10 text-gold-primary"
-          : "border-white/[0.08] text-text-primary/45 hover:text-text-primary/80"
+          : "border-ink/[0.08] text-text-primary/45 hover:text-text-primary/80"
       }`}
     >
       {label}{count != null && <span className="opacity-50 ml-1">{count}</span>}
@@ -743,18 +743,18 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
   return createPortal(
     <div className="fixed inset-0 z-[150000] flex items-end justify-center sm:items-center p-0 sm:p-6">
       <div
-        className="absolute inset-0 bg-black/65 backdrop-blur-[3px] animate-[dfadeIn_120ms_ease-out]"
+        className="absolute inset-0 bg-scrim/65 backdrop-blur-[3px] animate-[dfadeIn_120ms_ease-out]"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-[88vh] bg-surface-raised border-t border-white/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="relative w-full max-w-5xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-[88vh] bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
         {/* ① header */}
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/[0.06] shrink-0">
+        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-ink/[0.06] shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[9px] tracking-[0.22em] font-mono uppercase text-gold-primary/60 mb-1">
@@ -764,7 +764,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
             </div>
             <button
               onClick={onClose}
-              className="shrink-0 w-8 h-8 rounded-md border border-white/[0.08] text-text-primary/50 hover:text-text-primary hover:border-white/25 transition flex items-center justify-center"
+              className="shrink-0 w-8 h-8 rounded-md border border-ink/[0.08] text-text-primary/50 hover:text-text-primary hover:border-ink/25 transition flex items-center justify-center"
               title="Close (Esc)"
             >
               <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -784,7 +784,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                   <span className="text-text-primary/35">{stats.wins}W / {stats.counts.sl}L</span>
                   {capped && <span className="text-amber-400/70">first {returned} of {aggTotal}</span>}
                 </div>
-                <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.05]">
+                <div className="flex h-2 rounded-full overflow-hidden bg-ink/[0.05]">
                   {DIST_ORDER.map((k) => {
                     const n = stats.counts[k];
                     if (!n) return null;
@@ -819,10 +819,10 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
             <div className="flex-1 p-5 sm:p-6 grid grid-cols-1 md:grid-cols-[300px_1fr] gap-4">
               <div className="space-y-2">
                 {[...Array(7)].map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+                  <div key={i} className="h-12 rounded-lg bg-ink/[0.02] border border-ink/[0.05] animate-pulse" />
                 ))}
               </div>
-              <div className="hidden md:block rounded-lg bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+              <div className="hidden md:block rounded-lg bg-ink/[0.02] border border-ink/[0.05] animate-pulse" />
             </div>
           )}
 
@@ -847,11 +847,11 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
             <>
               {/* ② left: toolbar + list */}
               <div
-                className={`w-full md:w-[300px] md:border-r border-white/[0.06] flex-col min-h-0 ${
+                className={`w-full md:w-[300px] md:border-r border-ink/[0.06] flex-col min-h-0 ${
                   mobileDetail ? "hidden md:flex" : "flex"
                 }`}
               >
-                <div className="px-3 py-2.5 border-b border-white/[0.05] flex items-center justify-between gap-2 flex-wrap shrink-0">
+                <div className="px-3 py-2.5 border-b border-ink/[0.05] flex items-center justify-between gap-2 flex-wrap shrink-0">
                   <div className="flex items-center gap-1.5">
                     <FilterChip id="all" label="All" count={stats.total} />
                     <FilterChip id="win" label="Wins" count={stats.wins} />
@@ -865,7 +865,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                     ⇅ {sort}
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto divide-y divide-white/[0.03]">
+                <div className="flex-1 overflow-y-auto divide-y divide-ink/[0.03]">
                   {view.length === 0 ? (
                     <div className="py-12 text-center text-text-primary/25 text-xs font-mono uppercase tracking-wider">
                       No signals
@@ -886,7 +886,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                     ))
                   )}
                 </div>
-                <div className="px-3 py-2 border-t border-white/[0.05] text-[9px] font-mono text-text-primary/25 shrink-0 hidden md:block">
+                <div className="px-3 py-2 border-t border-ink/[0.05] text-[9px] font-mono text-text-primary/25 shrink-0 hidden md:block">
                   ↑↓ navigate · Enter opens full breakdown
                 </div>
               </div>

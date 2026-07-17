@@ -29,7 +29,7 @@ const TB = ({ onClick, title, children, active }) => (
     title={title}
     onMouseDown={(e) => { e.preventDefault(); onClick(); }}
     className={`min-w-[30px] h-8 px-2 rounded-md text-xs font-semibold transition-colors ${
-      active ? 'bg-gold-primary/25 text-gold-primary' : 'text-text-secondary hover:bg-white/10 hover:text-text-primary'
+      active ? 'bg-gold-primary/25 text-gold-primary' : 'text-text-secondary hover:bg-ink/10 hover:text-text-primary'
     }`}
   >
     {children}
@@ -67,19 +67,19 @@ const RichEditor = ({ value, onChange }) => {
 
   return (
     <div className="rounded-xl border border-line/15 overflow-hidden bg-bg-card">
-      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-white/10 bg-black/20">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-ink/10 bg-scrim/20">
         <TB title="Bold" onClick={() => exec('bold')}><b>B</b></TB>
         <TB title="Italic" onClick={() => exec('italic')}><i>I</i></TB>
         <TB title="Underline" onClick={() => exec('underline')}><u>U</u></TB>
-        <span className="w-px h-5 bg-white/10 mx-1" />
+        <span className="w-px h-5 bg-ink/10 mx-1" />
         <TB title="Heading 2" onClick={() => block('H2')}>H2</TB>
         <TB title="Heading 3" onClick={() => block('H3')}>H3</TB>
         <TB title="Paragraph" onClick={() => block('P')}>¶</TB>
-        <span className="w-px h-5 bg-white/10 mx-1" />
+        <span className="w-px h-5 bg-ink/10 mx-1" />
         <TB title="Bullet list" onClick={() => exec('insertUnorderedList')}>•</TB>
         <TB title="Numbered list" onClick={() => exec('insertOrderedList')}>1.</TB>
         <TB title="Quote" onClick={() => block('BLOCKQUOTE')}>❝</TB>
-        <span className="w-px h-5 bg-white/10 mx-1" />
+        <span className="w-px h-5 bg-ink/10 mx-1" />
         <TB title="Link" onClick={addLink}>🔗</TB>
         <TB title="Image" onClick={addImage}>🖼</TB>
         <TB title="Clear format" onClick={() => exec('removeFormat')}>⌫</TB>
@@ -93,7 +93,7 @@ const RichEditor = ({ value, onChange }) => {
         data-placeholder="Write your article…"
       />
       <style>{`
-        .resource-rte:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,.25)}
+        .resource-rte:empty:before{content:attr(data-placeholder);color:rgb(var(--ink) / .25)}
         .resource-rte h2{font-size:1.25rem;font-weight:700;color:#fff;margin:.8em 0 .4em}
         .resource-rte h3{font-size:1.05rem;font-weight:600;color:#fff;margin:.7em 0 .35em}
         .resource-rte p{margin:.5em 0}
@@ -230,20 +230,20 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
   const showPreviewCard = (type === 'video' || type === 'link') && (coverPreview || embedHtml);
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-black/75 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-scrim/75 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
       <div
-        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
+        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-line/10 bg-bg-secondary/95 backdrop-blur">
           <h3 className="text-text-primary font-semibold text-base">
             {isEdit ? 'Edit Resource' : 'New Resource'}
           </h3>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-white/5 transition-colors">
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-ink/5 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -261,7 +261,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                 className={`p-3 rounded-xl border text-left transition-all ${
                   type === tt.id
                     ? 'bg-gold-primary/15 border-line/40'
-                    : 'bg-bg-card border-white/5 hover:border-line/20'
+                    : 'bg-bg-card border-ink/5 hover:border-line/20'
                 }`}
               >
                 <div className={`text-sm font-bold ${type === tt.id ? 'text-gold-primary' : 'text-text-primary'}`}>{tt.label}</div>
@@ -294,7 +294,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                 </button>
               </div>
               {showPreviewCard && (
-                <div className="mt-3 rounded-xl border border-white/10 overflow-hidden bg-bg-card">
+                <div className="mt-3 rounded-xl border border-ink/10 overflow-hidden bg-bg-card">
                   {coverPreview && (
                     <div className="w-full" style={{ aspectRatio: '16 / 9' }}>
                       <img src={coverPreview} alt="preview" className="w-full h-full object-cover" />
@@ -420,7 +420,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
               <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="accent-gold-primary w-4 h-4" />
               <span className="text-sm text-text-secondary">Featured (hero)</span>
             </label>
-            <div className="flex items-center gap-1 ml-auto bg-bg-card rounded-lg p-1 border border-white/5">
+            <div className="flex items-center gap-1 ml-auto bg-bg-card rounded-lg p-1 border border-ink/5">
               {['draft', 'published'].map((s) => (
                 <button
                   key={s}
@@ -443,7 +443,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-bg-card border border-ink/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">
               Cancel
             </button>
             <button

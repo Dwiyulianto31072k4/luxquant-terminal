@@ -35,10 +35,10 @@ const KpiTile = ({
       }`}
       style={{
         background: 'rgb(var(--surface-raised))',
-        border: `1px solid ${active ? `${accent}80` : 'rgba(255,255,255,0.07)'}`,
+        border: `1px solid ${active ? `${accent}80` : 'rgb(var(--ink) / 0.07)'}`,
       }}
       onMouseEnter={(e) => { if (isClickable && !active) e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)'; }}
-      onMouseLeave={(e) => { if (isClickable && !active) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
+      onMouseLeave={(e) => { if (isClickable && !active) e.currentTarget.style.borderColor = 'rgb(var(--ink) / 0.07)'; }}
     >
       {/* Top hairline (subtle gold) */}
       <div
@@ -51,7 +51,7 @@ const KpiTile = ({
       <div className="relative flex items-center justify-between mb-1.5">
         <span
           className="text-[10px] uppercase tracking-wider font-semibold"
-          style={{ color: 'rgba(255,255,255,0.42)' }}
+          style={{ color: 'rgb(var(--ink) / 0.42)' }}
         >
           {label}
         </span>
@@ -80,7 +80,7 @@ const KpiTile = ({
       {sub && (
         <p
           className="relative text-[10px] mt-1 tabular-nums truncate"
-          style={{ color: 'rgba(255,255,255,0.42)' }}
+          style={{ color: 'rgb(var(--ink) / 0.42)' }}
         >
           {sub}
         </p>
@@ -163,8 +163,8 @@ export const FinanceStatsGrid = ({
         <div
           className="px-3.5 py-2.5 rounded-lg"
           style={{
-            background: 'rgba(0,0,0,0.18)',
-            border: '1px solid rgba(255,255,255,0.04)',
+            background: 'rgb(var(--ink) / 0.18)',
+            border: '1px solid rgb(var(--ink) / 0.04)',
           }}
         >
           <div className="flex items-center gap-x-5 gap-y-2 flex-wrap text-[10.5px]">
@@ -215,7 +215,7 @@ const InfoStat = ({ label, value, accent }) => (
   <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
     <span
       className="uppercase tracking-wider font-semibold"
-      style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9.5px' }}
+      style={{ color: 'rgb(var(--ink) / 0.4)', fontSize: '9.5px' }}
     >
       {label}
     </span>
@@ -232,6 +232,6 @@ const Divider = () => (
   <span
     aria-hidden
     className="h-3 w-px"
-    style={{ background: 'rgba(255,255,255,0.08)' }}
+    style={{ background: 'rgb(var(--ink) / 0.08)' }}
   />
 );

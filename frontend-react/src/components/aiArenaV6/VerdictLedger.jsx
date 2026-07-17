@@ -31,7 +31,7 @@ function outcomeTone(value) {
     return "border-loss/25 bg-loss/10 text-loss";
   }
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
-    return "border-line/25 bg-white/[0.06] text-text-primary";
+    return "border-line/25 bg-ink/[0.06] text-text-primary";
   }
   return "border-amber-500/25 bg-amber-500/10 text-amber-400";
 }
@@ -146,7 +146,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   return (
     <Card>
       {/* ── header ── */}
-      <div className="border-b border-white/[0.06] p-5 md:p-6">
+      <div className="border-b border-ink/[0.06] p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <SectionHeader label="Evaluation · target-first" className="mb-2" />
@@ -159,7 +159,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             </p>
           </div>
           {/* landing-style win-rate donut */}
-          <div className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-surface-secondary px-5 py-3">
+          <div className="flex items-center gap-4 rounded-xl border border-ink/[0.06] bg-surface-secondary px-5 py-3">
             <Donut
               size={118}
               thickness={11}
@@ -181,7 +181,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                 Invalidated <span className="text-text-primary">{stats.invalidated_first ?? 0}</span>
               </div>
               <div className="flex items-center gap-1.5 text-text-muted/80">
-                <span className="h-2 w-2 rounded-full bg-white/[0.03]0" />
+                <span className="h-2 w-2 rounded-full bg-ink/[0.03]0" />
                 Tracking <span className="text-text-primary">{stats.pending ?? 0}</span>
               </div>
               <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/50">Target-first schema</div>
@@ -210,7 +210,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
       </div>
 
       {/* ── toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/20 px-4 py-3 md:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] bg-scrim/20 px-4 py-3 md:px-5">
         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/60">
           Showing <span className="text-text-primary/70">{filteredTotal ? start + 1 : 0}-{Math.min(filteredTotal, start + visible.length)}</span> of <span className="text-text-primary/70">{filteredTotal}</span>
           {loading && <span className="ml-2 text-text-primary/70">loading…</span>}
@@ -242,7 +242,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             <col />
           </colgroup>
           <thead>
-            <tr className="border-b border-white/[0.06] bg-white/[0.02] text-left">
+            <tr className="border-b border-ink/[0.06] bg-ink/[0.02] text-left">
               {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
                 <th
                   key={header}
@@ -260,7 +260,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               return (
                 <tr
                   key={item.projection_id || item.report_id}
-                  className="border-b border-white/[0.045] transition hover:bg-white/[0.03]"
+                  className="border-b border-ink/[0.045] transition hover:bg-ink/[0.03]"
                 >
                   <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted/60">
                     {start + index + 1}
@@ -317,7 +317,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           return (
             <div
               key={item.projection_id || item.report_id}
-              className="rounded-xl border border-white/[0.06] bg-surface-secondary p-3.5"
+              className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
@@ -378,7 +378,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
       )}
 
       {/* ── footer / pagination ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-4 md:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-4 md:px-5">
         <p className="max-w-2xl text-[11px] leading-5 text-text-muted/50">
           This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed into this scorecard.
         </p>

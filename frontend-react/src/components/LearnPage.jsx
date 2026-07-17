@@ -72,12 +72,12 @@ function TermPage({ slug }) {
       </div>
 
       {related.length > 0 && (
-        <div className="mt-10 border-t border-white/[0.08] pt-5">
+        <div className="mt-10 border-t border-ink/[0.08] pt-5">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">Related terms</h2>
           <div className="flex flex-wrap gap-2">
             {related.map((r) => (
               <Link key={r.slug} to={`/learn/${r.slug}`}
-                className="rounded-md border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
+                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
                 {r.term}
               </Link>
             ))}
@@ -142,7 +142,7 @@ function IndexPage() {
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {GLOSSARY.map((t) => (
           <Link key={t.slug} to={`/learn/${t.slug}`}
-            className="group rounded-xl border border-white/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-white/[0.02] transition-colors">
+            className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-ink/[0.02] transition-colors">
             <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{t.term}</h2>
             <p className="mt-1.5 text-[13px] text-text-primary/55 leading-relaxed line-clamp-3">{t.short}</p>
           </Link>

@@ -131,7 +131,7 @@ const LoginPage = () => {
         </div>
 
         {/* CONTENT — mobile: no card (MEXC style); desktop: glass card */}
-        <div className="lq-card-enter relative z-10 w-full max-w-[420px] lg:max-w-[448px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:block lg:min-h-0 px-2 lg:px-10 lg:py-14 lg:rounded-[1.9rem] lg:border lg:border-text-primary lg:bg-white lg:shadow-[0_30px_70px_-18px_rgba(0,0,0,0.6)]">
+        <div className="lq-card-enter relative z-10 w-full max-w-[420px] lg:max-w-[448px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:block lg:min-h-0 px-2 lg:px-10 lg:py-14 lg:rounded-[1.9rem] lg:border lg:border-text-primary lg:bg-white lg:shadow-[0_30px_70px_-18px_rgb(var(--scrim) / 0.35)]">
 
           {/* ── Desktop heading (small account line, dark on white) ── */}
           <div className="mb-9 hidden lg:block text-left">
@@ -179,7 +179,7 @@ const LoginPage = () => {
                 </button>
                 {showMore && (
                   <div className="mt-2 overflow-hidden rounded-[1.4rem]"
-                       style={{ background: 'rgb(var(--fg))', boxShadow: '0 16px 38px rgba(0,0,0,0.16)', animation: 'lq-item-in 0.26s cubic-bezier(0.16,1,0.3,1) both' }}>
+                       style={{ background: 'rgb(var(--fg))', boxShadow: '0 16px 38px rgb(var(--ink) / 0.16)', animation: 'lq-item-in 0.26s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <button type="button" onClick={handleDiscordLogin} disabled={discordLoading}
                             className="relative w-full flex items-center justify-center font-semibold transition-colors disabled:opacity-50"
                             style={{ padding: '16px 22px', color: 'rgb(var(--surface-hover))', fontSize: 'clamp(13.5px,1.7vw,15px)' }}
@@ -232,9 +232,9 @@ const LoginPage = () => {
 
             {/* or */}
             <div className="my-4 flex items-center gap-4">
-              <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              <div className="h-px flex-1" style={{ background: 'rgb(var(--ink) / 0.12)' }} />
               <span style={{ color: '#6f6f74', fontSize: 14 }}>or</span>
-              <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              <div className="h-px flex-1" style={{ background: 'rgb(var(--ink) / 0.12)' }} />
             </div>
 
             {/* Secondary — Google (dark pill) */}
@@ -262,11 +262,11 @@ const LoginPage = () => {
         {/* MOBILE — "More Options" bottom sheet (Discord), slides up */}
         {showMore && (
           <div className="fixed inset-0 z-[9998] lg:hidden" onClick={() => setShowMore(false)}>
-            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.62)', animation: 'lq-modal-fade 0.2s ease-out' }} />
+            <div className="absolute inset-0" style={{ background: 'rgb(var(--scrim) / 0.35)', animation: 'lq-modal-fade 0.2s ease-out' }} />
             <div className="absolute inset-x-0 bottom-0 rounded-t-[1.75rem] px-5 pb-9 pt-3"
                  onClick={e => e.stopPropagation()}
-                 style={{ background: 'rgb(var(--surface-hover))', borderTop: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -20px 60px rgba(0,0,0,0.6)', animation: 'lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)' }}>
-              <div className="mx-auto mb-5 h-1 w-10 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
+                 style={{ background: 'rgb(var(--surface-hover))', borderTop: '1px solid rgb(var(--ink) / 0.08)', boxShadow: '0 -20px 60px rgb(var(--scrim) / 0.35)', animation: 'lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)' }}>
+              <div className="mx-auto mb-5 h-1 w-10 rounded-full" style={{ background: 'rgb(var(--ink) / 0.2)' }} />
               <h3 className="mb-4 font-bold text-text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>More Options</h3>
               <PillButton variant="dark" icon={<DiscordIcon />} text={a('continue_discord')} onClick={handleDiscordLogin} loading={discordLoading} loadingText={a('connecting')} />
             </div>
@@ -289,10 +289,10 @@ const PillButton = ({ icon, text, onClick, loading = false, loadingText = 'Conne
       style={{
         padding: '16px 22px',
         fontSize: 'clamp(14px, 4.2vw, 16px)',
-        background: white ? '#ffffff' : 'rgba(255,255,255,0.06)',
+        background: white ? '#ffffff' : 'rgb(var(--ink) / 0.06)',
         color: white ? '#0a0a0a' : '#ffffff',
-        border: white ? '1px solid #ffffff' : '1px solid rgba(255,255,255,0.1)',
-        boxShadow: white ? '0 10px 26px rgba(0,0,0,0.4)' : 'none',
+        border: white ? '1px solid #ffffff' : '1px solid rgb(var(--ink) / 0.1)',
+        boxShadow: white ? '0 10px 26px rgb(var(--scrim) / 0.35)' : 'none',
       }}>
       {loading ? (
         <span className="flex items-center gap-2.5">
@@ -388,11 +388,11 @@ const TermsModal = ({ onClose }) => {
       <div className="lux-warm-auth-sheet relative w-full max-w-2xl flex flex-col rounded-t-3xl sm:rounded-[1.75rem] overflow-hidden"
            style={{
              maxHeight: 'min(92dvh, 100%)',
-             border: '1px solid rgba(255,255,255,0.08)',
+             border: '1px solid rgb(var(--ink) / 0.08)',
              animation: 'lq-modal-pop 0.3s cubic-bezier(0.16,1,0.3,1)',
            }}>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
 
         {/* Gold hairline */}
@@ -401,7 +401,7 @@ const TermsModal = ({ onClose }) => {
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 sm:px-9 pt-7 sm:pt-9 pb-5"
-             style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+             style={{ borderBottom: '1px solid rgb(var(--ink) / 0.07)' }}>
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Terms & Conditions
@@ -412,9 +412,9 @@ const TermsModal = ({ onClose }) => {
           </div>
           <button type="button" onClick={onClose} aria-label="Close"
                   className="flex items-center justify-center rounded-full transition-colors duration-200 flex-shrink-0 ml-4"
-                  style={{ width: 36, height: 36, color: 'rgb(var(--fg-muted))', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#9a8a7e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}>
+                  style={{ width: 36, height: 36, color: 'rgb(var(--fg-muted))', background: 'rgb(var(--ink) / 0.04)', border: '1px solid rgb(var(--ink) / 0.08)' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgb(var(--ink) / 0.22)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#9a8a7e'; e.currentTarget.style.borderColor = 'rgb(var(--ink) / 0.08)'; }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -440,10 +440,10 @@ const TermsModal = ({ onClose }) => {
 
         {/* Footer */}
         <div className="px-6 sm:px-9 py-4 flex items-center justify-end"
-             style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.25)' }}>
+             style={{ borderTop: '1px solid rgb(var(--ink) / 0.07)', background: 'rgb(var(--scrim) / 0.25)' }}>
           <button type="button" onClick={onClose}
                   className="rounded-full text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
-                  style={{ padding: '12px 30px', background: 'rgb(var(--fg))', color: 'rgb(var(--surface-raised))', boxShadow: '0 10px 24px rgba(0,0,0,0.4)' }}
+                  style={{ padding: '12px 30px', background: 'rgb(var(--fg))', color: 'rgb(var(--surface-raised))', boxShadow: '0 10px 24px rgb(var(--scrim) / 0.35)' }}
                   onMouseEnter={e => { e.currentTarget.style.background = '#ececef'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}>
             I understand
@@ -467,7 +467,7 @@ const LoginButton = ({ icon, text, onClick, loading = false, loadingText = 'Conn
       background: active ? '#0a0a0a' : '#f5f5f6',
       border: active ? '1px solid #0a0a0a' : '1px solid #e7e7ea',
       color: active ? '#ffffff' : '#18181b',
-      boxShadow: active ? '0 10px 24px rgba(0,0,0,0.22)' : 'none',
+      boxShadow: active ? '0 10px 24px rgb(var(--scrim) / 0.22)' : 'none',
       fontSize: 'clamp(13.5px, 1.7vw, 15px)',
     }}>
     {loading ? (

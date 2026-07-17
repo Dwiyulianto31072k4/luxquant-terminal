@@ -206,13 +206,13 @@ const FeatureSliderSection = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
         {/* MAC MOCKUP — Full centered */}
-        <div className="relative w-full max-w-[360px] sm:max-w-[500px] lg:max-w-[850px] mx-auto aspect-[16/10] bg-surface-raised rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+        <div className="relative w-full max-w-[360px] sm:max-w-[500px] lg:max-w-[850px] mx-auto aspect-[16/10] bg-surface-raised rounded-xl sm:rounded-2xl lg:rounded-3xl border border-ink/10 shadow-[0_20px_40px_rgb(var(--scrim) / 0.35)] lg:shadow-[0_30px_80px_rgb(var(--scrim) / 0.8)] overflow-hidden z-10 transition-all duration-500">
           {/* Browser chrome */}
-          <div className="h-6 lg:h-8 bg-surface-secondary flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
+          <div className="h-6 lg:h-8 bg-surface-secondary flex items-center px-4 gap-2 border-b border-ink/5 w-full absolute top-0 z-20">
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
-            <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-text-primary/30 font-mono tracking-widest">
+            <div className="mx-auto bg-scrim/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-text-primary/30 font-mono tracking-widest">
               luxquant.tw
             </div>
           </div>

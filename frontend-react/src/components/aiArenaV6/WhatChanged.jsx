@@ -28,7 +28,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         >
           What Changed
         </h2>
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
+        <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
           <p className="text-text-primary/40 text-sm italic">
             No previous report to compare against
           </p>
@@ -78,7 +78,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         className="rounded-xl p-5 relative overflow-hidden"
         style={{
           background:
-            "linear-gradient(135deg, rgba(245,196,81,0.04) 0%, rgba(255,255,255,0.02) 100%)",
+            "linear-gradient(135deg, rgba(245,196,81,0.04) 0%, rgb(var(--ink) / 0.02) 100%)",
           border: "1px solid rgba(245,196,81,0.15)",
         }}
       >

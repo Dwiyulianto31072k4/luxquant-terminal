@@ -880,7 +880,7 @@ const SignalModal = ({
 
   // Quiet status chips — outline, not neon fills
   const statusStyles = {
-    open: "bg-white/[0.06] text-text-secondary border border-white/10",
+    open: "bg-ink/[0.06] text-text-secondary border border-ink/10",
     tp1: "bg-positive/10 text-positive border border-positive/20",
     tp2: "bg-positive/10 text-positive border border-positive/20",
     tp3: "bg-positive/10 text-positive border border-positive/20",
@@ -971,7 +971,7 @@ const SignalModal = ({
       url: `https://www.okx.com/trade-swap/${coinSymbolLower}-usdt-swap`,
       logo: "https://static.okx.com/cdn/assets/imgs/226/DF679CE5D9C03767.png",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=okx.com&sz=64",
-      color: "from-white/5 to-gray-700/5 hover:border-white/20",
+      color: "from-ink/5 to-gray-700/5 hover:border-ink/20",
     },
     {
       name: "Bitget",
@@ -1055,8 +1055,8 @@ const SignalModal = ({
       icon: "•",
       active: true,
       color: "text-text-secondary",
-      border: "border-white/10",
-      bg: "bg-white/[0.04]",
+      border: "border-ink/10",
+      bg: "bg-ink/[0.04]",
     });
 
     // TPs go RIGHT of entry — unified green color for elegance
@@ -1288,7 +1288,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       return (
         <div className="p-3 space-y-2">
           <div className="lq-card p-6 min-h-[280px] flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mb-4 text-text-muted">
+            <div className="w-12 h-12 rounded-full bg-ink/[0.04] border border-ink/10 flex items-center justify-center mb-4 text-text-muted">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -1345,7 +1345,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono tabular-nums font-medium flex-shrink-0 border ${
                       up ? "bg-positive/10 text-positive border-positive/15" :
                       down ? "bg-negative/10 text-negative border-negative/15" :
-                      "bg-white/[0.03] text-text-muted border-white/10"
+                      "bg-ink/[0.03] text-text-muted border-ink/10"
                     }`}>
                       {up ? "+" : down ? "−" : ""}{Math.abs(pnlPct).toFixed(2)}%
                     </span>
@@ -1371,7 +1371,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {/* ── DEEP ANALYSIS ── */}
         {signalDetail?.enrichment && (
           <button type="button" onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-medium bg-white/[0.03] text-text-secondary border border-white/[0.08] hover:bg-white/[0.05] hover:text-text-primary transition-colors">
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-medium bg-ink/[0.03] text-text-secondary border border-ink/[0.08] hover:bg-ink/[0.05] hover:text-text-primary transition-colors">
             {Ic.cpu("w-3.5 h-3.5")}<span>Deep analysis</span>
           </button>
         )}
@@ -1391,7 +1391,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span className="flex items-center gap-1 min-w-0">
                     <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-semibold flex-shrink-0 ${
-                      tg.hit ? "bg-positive/20 text-positive" : "bg-white/[0.06] text-text-muted"
+                      tg.hit ? "bg-positive/20 text-positive" : "bg-ink/[0.06] text-text-muted"
                     }`}>{tg.hit ? "✓" : i + 1}</span>
                     <span className={`text-[10px] font-medium truncate ${tg.hit ? "text-positive" : "text-text-secondary"}`}>{tg.label}</span>
                   </span>
@@ -1436,11 +1436,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           const fundingPos = funding > 0;
           return (
             <div className="lq-card">
-              <div className="px-2.5 py-1.5 border-b border-white/[0.05] flex items-center gap-1.5">
+              <div className="px-2.5 py-1.5 border-b border-ink/[0.05] flex items-center gap-1.5">
                 <span className="text-[8.5px] uppercase tracking-[0.12em] text-text-muted font-medium">Derivatives · Perp</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
+              <div className="grid grid-cols-2 gap-px bg-ink/[0.04]">
                 <div className="p-2.5 bg-surface-raised">
                   <p className="text-[8px] text-text-muted uppercase tracking-wider mb-1">Funding</p>
                   <p className={`text-[12px] font-mono font-semibold leading-none tabular-nums ${fundingPos ? "text-negative" : "text-positive"}`}>
@@ -1463,11 +1463,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
               {/* L/S bar chart */}
               {lsLong !== null && lsShort !== null && (
-                <div className="px-2.5 py-2.5 border-t border-white/[0.05]">
+                <div className="px-2.5 py-2.5 border-t border-ink/[0.05]">
                   <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1.5">L/S · Top Traders</p>
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-mono font-bold text-positive w-8 flex-shrink-0">{lsLong}%</span>
-                    <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-white/5">
+                    <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-ink/5">
                       <div className="h-full bg-gradient-to-r from-green-500/80 to-green-400/55" style={{ width: `${lsLong}%` }} />
                       <div className="h-full bg-gradient-to-r from-red-400/55 to-red-500/80" style={{ width: `${lsShort}%` }} />
                     </div>
@@ -1481,7 +1481,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               )}
 
               {/* Links (tanpa disclaimer) */}
-              <div className="px-2.5 py-1.5 border-t border-white/[0.05] bg-black/20 flex items-center gap-1.5 flex-wrap">
+              <div className="px-2.5 py-1.5 border-t border-ink/[0.05] bg-scrim/20 flex items-center gap-1.5 flex-wrap">
                 {[
                   { label: "TradingView", url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P` },
                   { label: "Metrics", url: `/market-pulse?pair=${signal?.pair || ""}` },
@@ -1502,7 +1502,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {!derivMetrics && liveBlocked && (
           <div className="lq-card bg-surface-raised">
                         <div className="p-3 text-center">
-              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]">
+              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-ink/[0.05]">
                 <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
@@ -1535,7 +1535,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 border ${
                   signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-positive/10 text-positive border-positive/15" :
                   signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-negative/10 text-negative border-negative/15" :
-                  "bg-white/[0.04] text-text-secondary border-white/10"
+                  "bg-ink/[0.04] text-text-secondary border-ink/10"
                 }`}>{signal.risk_level}</span>
               </div>
             )}
@@ -1562,11 +1562,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           <div className="signal-modal-content">
             {/* Drag handle mobile */}
             <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="w-10 h-1 rounded-full bg-ink/20" />
             </div>
 
             {/* HEADER — exchange trade ticket style */}
-            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
+            <div className="z-10 flex-shrink-0 border-b border-ink/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <CoinLogo pair={signal?.pair} size={28} />
@@ -1577,7 +1577,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {signal?.pair}
                       </h2>
                       <span
-                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusStyles[signal?.status?.toLowerCase()] || "bg-white/[0.06] text-text-muted border border-white/10"}`}
+                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusStyles[signal?.status?.toLowerCase()] || "bg-ink/[0.06] text-text-muted border border-ink/10"}`}
                       >
                         {signal?.status?.toUpperCase()}
                       </span>
@@ -1600,7 +1600,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     onClick={() => setShowIndicatorGuide(true)}
     title="How to use indicator"
     aria-label="How to use indicator"
-    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-wide border border-white/10 text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-colors"
+    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-wide border border-ink/10 text-text-muted hover:text-text-primary hover:bg-ink/[0.04] transition-colors"
   >
     <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
     <span><span className="sm:hidden">Guide</span><span className="hidden sm:inline">Indicator guide</span></span>
@@ -1620,7 +1620,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
-                    className="mr-0.5 inline-flex items-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-text-primary/80 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
+                    className="mr-0.5 inline-flex items-center gap-1.5 rounded-md border border-ink/[0.1] bg-ink/[0.04] px-2 py-1 text-[10px] font-medium text-text-primary/80 transition hover:border-ink/20 hover:bg-ink/[0.08] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                   >
                     <span className="hidden sm:inline text-text-muted">Explore on</span>
                     <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-label="X" role="img">
@@ -1648,7 +1648,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         window.location.href = "/journal";
                       }, 300);
                     }}
-                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-text-primary/65 transition hover:bg-white/[0.04] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
+                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-ink/[0.08] px-2 py-1 text-[10px] font-medium text-text-primary/65 transition hover:bg-ink/[0.04] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                     title="Journal This Trade"
                   >
                     <svg
@@ -1668,7 +1668,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </button>
                   {/* END TOMBOL JOURNAL */}
 
-                  <div className="flex items-center bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.08]">
+                  <div className="flex items-center bg-ink/[0.03] rounded-lg p-0.5 border border-ink/[0.08]">
                     {[
                       { id: "chart", label: t("modal.chart"), icon: (
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
@@ -1687,7 +1687,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         key={id}
                         type="button"
                         onClick={() => { setActiveTab(id); onTabChange && onTabChange(id); }}
-                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-medium transition-colors whitespace-nowrap ${activeTab === id ? "bg-white/[0.1] text-text-primary" : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"}`}
+                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-medium transition-colors whitespace-nowrap ${activeTab === id ? "bg-ink/[0.1] text-text-primary" : "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]"}`}
                       >
                         {icon}
                         <span className="hidden sm:inline">{label}</span>
@@ -1697,7 +1697,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <button
                     type="button"
                     onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-md transition-colors flex-shrink-0 ml-1 sm:ml-2"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/10 rounded-md transition-colors flex-shrink-0 ml-1 sm:ml-2"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -1720,7 +1720,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-md transition-colors ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/10 rounded-md transition-colors ml-1"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
@@ -1731,12 +1731,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-md transition-colors ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/10 rounded-md transition-colors ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
                     {shareCopied && (
-                      <span className="absolute top-full right-0 mt-1.5 whitespace-nowrap px-2 py-1 rounded-md bg-surface-raised border border-white/10 text-text-primary text-[10px] font-medium shadow-lg z-20">
+                      <span className="absolute top-full right-0 mt-1.5 whitespace-nowrap px-2 py-1 rounded-md bg-surface-raised border border-ink/10 text-text-primary text-[10px] font-medium shadow-lg z-20">
                         Link copied
                       </span>
                     )}
@@ -1758,11 +1758,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         title={showIndicators ? "Hide indicators (MACD · RSI · BB)" : "Show indicators (MACD · RSI · BB)"}
                         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
                           showIndicators
-                            ? "bg-surface/80 border-white/15 text-text-primary"
-                            : "bg-surface/60 border-white/10 text-text-muted hover:text-text-primary"
+                            ? "bg-surface/80 border-ink/15 text-text-primary"
+                            : "bg-surface/60 border-ink/10 text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        <span className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-white/40" : "bg-white/15"}`}>
+                        <span className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-ink/40" : "bg-ink/15"}`}>
                           <span className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`} />
                         </span>
                         Indicators
@@ -1797,14 +1797,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </div>
 
                     {!entryImg && !afterImg ? (
-                      <div className="relative w-full h-[320px] sm:h-[400px] rounded-xl border border-white/[0.08] bg-surface-secondary overflow-hidden">
+                      <div className="relative w-full h-[320px] sm:h-[400px] rounded-xl border border-ink/[0.08] bg-surface-secondary overflow-hidden">
                         <div id="tv_chart_modal_side" className="absolute inset-0 w-full h-full" />
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-0 items-stretch">
                         {/* BEFORE */}
-                        <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
-                          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                        <div className="min-w-0 flex flex-col rounded-xl border border-ink/[0.08] bg-surface-secondary/40 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-ink/[0.06]">
                             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                               {t("modal.before_entry")}
                             </span>
@@ -1819,7 +1819,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               <button
                                 type="button"
                                 onClick={() => setLightboxImg(entryImg)}
-                                className="relative group h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] cursor-zoom-in"
+                                className="relative group h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] cursor-zoom-in"
                               >
                                 <img
                                   src={entryImg}
@@ -1829,7 +1829,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 />
                               </button>
                             ) : (
-                              <div className="flex h-[220px] sm:h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-white/10 text-text-muted">
+                              <div className="flex h-[220px] sm:h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-ink/10 text-text-muted">
                                 {Ic.clock("w-5 h-5 mb-2 opacity-50")}
                                 <p className="text-[11px]">Waiting for chart</p>
                               </div>
@@ -1839,7 +1839,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 type="button"
                                 disabled={!entryImg}
                                 onClick={() => entryImg && setLightboxImg(entryImg)}
-                                className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08] disabled:opacity-35 disabled:pointer-events-none"
+                                className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-ink/[0.08] disabled:opacity-35 disabled:pointer-events-none"
                               >
                                 Full size
                               </button>
@@ -1849,7 +1849,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                         {/* CENTER RAIL */}
                         <div className="hidden md:flex flex-col items-center justify-center px-2.5 shrink-0">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-surface-raised text-text-muted">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/[0.1] bg-surface-raised text-text-muted">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                             </svg>
@@ -1860,8 +1860,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         </div>
 
                         {/* AFTER */}
-                        <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
-                          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                        <div className="min-w-0 flex flex-col rounded-xl border border-ink/[0.08] bg-surface-secondary/40 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-ink/[0.06]">
                             <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${isStopped ? "text-negative" : "text-positive"}`}>
                               {t("modal.after")} · {statusLabel}
                             </span>
@@ -1889,11 +1889,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </div>
                           <div className="p-2 flex-1 flex flex-col">
                             {showInteractiveRight ? (
-                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c]">
+                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c]">
                                 <div id="tv_chart_modal_side" className="absolute inset-0 h-full w-full" />
                               </div>
                             ) : afterImg ? (
-                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c]">
+                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c]">
                                 <img
                                   src={afterImg}
                                   alt="Latest Chart"
@@ -1908,7 +1908,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 />
                               </div>
                             ) : (
-                              <div className="flex h-[220px] sm:h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-white/10 text-text-muted">
+                              <div className="flex h-[220px] sm:h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-ink/10 text-text-muted">
                                 {Ic.clock("w-5 h-5 mb-2 opacity-50")}
                                 <p className="text-[11px]">Waiting for chart</p>
                               </div>
@@ -1918,7 +1918,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <button
                                   type="button"
                                   onClick={() => setShowTV(true)}
-                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.12]"
+                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.12]"
                                 >
                                   <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
@@ -1929,7 +1929,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 <button
                                   type="button"
                                   onClick={() => setShowTV(false)}
-                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08]"
+                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-ink/[0.08]"
                                 >
                                   Show snapshot
                                 </button>
@@ -1938,7 +1938,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 type="button"
                                 disabled={!afterImg}
                                 onClick={() => afterImg && setLightboxImg(afterImg)}
-                                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
+                                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
                               >
                                 Full
                               </button>
@@ -1950,13 +1950,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Peak Price (FULL WIDTH) */}
                     {peakPrice && entryPrice > 0 && (
-                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-white/[0.06] bg-surface-raised px-4 py-3 sm:flex-row sm:gap-4">
+                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-ink/[0.06] bg-surface-raised px-4 py-3 sm:flex-row sm:gap-4">
                         <div className="flex flex-col items-center sm:items-end">
                           <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-right">
                             Highest after call
                           </span>
                         </div>
-                        <div className="hidden h-5 w-px bg-white/10 sm:block" />
+                        <div className="hidden h-5 w-px bg-ink/10 sm:block" />
                         <div className="flex items-center gap-3">
                           <span className="font-mono text-base font-semibold tabular-nums text-text-primary sm:text-lg">
                             ${formatPrice(peakPrice)}
@@ -1989,7 +1989,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   </div>
                                   {!isLast && (
                                     <div
-                                      className={`w-[2px] flex-1 min-h-[22px] ${nextReached ? "bg-white/25" : "bg-white/10"}`}
+                                      className={`w-[2px] flex-1 min-h-[22px] ${nextReached ? "bg-ink/25" : "bg-ink/10"}`}
                                     />
                                   )}
                                 </div>
@@ -2053,7 +2053,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b ${link.color} hover:bg-white/5 group`}
+                            className={`lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b ${link.color} hover:bg-ink/5 group`}
                           >
                             <img
                               src={link.logo}
@@ -2093,16 +2093,16 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {coinInfoLoading && (
                       <div className="lq-card p-3 sm:p-4 mb-4 sm:mb-5 animate-pulse">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-8 h-8 rounded-full bg-white/[0.04]" />
+                          <div className="w-8 h-8 rounded-full bg-ink/[0.04]" />
                           <div>
-                            <div className="h-4 bg-white/[0.04] rounded w-32 mb-1" />
-                            <div className="h-3 bg-white/5 rounded w-48" />
+                            <div className="h-4 bg-ink/[0.04] rounded w-32 mb-1" />
+                            <div className="h-3 bg-ink/5 rounded w-48" />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <div className="h-3 bg-white/5 rounded w-full" />
-                          <div className="h-3 bg-white/5 rounded w-5/6" />
-                          <div className="h-3 bg-white/5 rounded w-4/6" />
+                          <div className="h-3 bg-ink/5 rounded w-full" />
+                          <div className="h-3 bg-ink/5 rounded w-5/6" />
+                          <div className="h-3 bg-ink/5 rounded w-4/6" />
                         </div>
                       </div>
                     )}
@@ -2136,7 +2136,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </p>
                         )}
                         {coinInfo.market_data && (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-ink/5">
                             {coinInfo.market_data.current_price != null && (
                               <div>
                                 <p className="text-text-muted text-[9px] uppercase">
@@ -2258,13 +2258,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </div>
                         )}
                         {coinInfo.links && (
-                          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/5">
+                          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-ink/5">
                             {coinInfo.links.homepage && (
                               <a
                                 href={coinInfo.links.homepage}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-text-secondary hover:text-text-secondary bg-white/[0.04] px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-text-secondary hover:text-text-secondary bg-ink/[0.04] px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.globe("w-3 h-3")} {t("modal.website")}
                               </a>
@@ -2328,9 +2328,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     <div className="mb-4 sm:mb-5">
                       <div className="lq-card bg-gradient-to-br from-surface-secondary to-surface-secondary">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-line/10 bg-white/[0.03]">
+                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-line/10 bg-ink/[0.03]">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/10 flex items-center justify-center text-text-secondary">
+                            <div className="w-6 h-6 rounded-md bg-ink/[0.06] border border-ink/10 flex items-center justify-center text-text-secondary">
                               {Ic.cpu("w-3.5 h-3.5")}
                             </div>
                             <div>
@@ -2348,7 +2348,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
                               promptCopied
                                 ? "bg-positive/20 text-positive border border-positive/30"
-                                : "bg-white/[0.06] text-text-secondary border border-white/10 hover:bg-white/[0.08] hover:text-text-secondary active:scale-95"
+                                : "bg-ink/[0.06] text-text-secondary border border-ink/10 hover:bg-ink/[0.08] hover:text-text-secondary active:scale-95"
                             }`}
                           >
                             {promptCopied ? (
@@ -2395,7 +2395,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </pre>
                         </div>
                         {/* Footer hint */}
-                        <div className="px-3 sm:px-4 py-2 border-t border-line/10 bg-white/[0.02]">
+                        <div className="px-3 sm:px-4 py-2 border-t border-line/10 bg-ink/[0.02]">
                           <p className="text-[9px] sm:text-[10px] text-text-muted flex items-center gap-1.5">
                             <svg
                               className="w-3 h-3 text-text-muted flex-shrink-0"
@@ -2504,18 +2504,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
         <div
-          className="fixed inset-0 bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 bg-scrim/95 flex items-center justify-center p-4 cursor-zoom-out"
           style={{ zIndex: 300000 }}
           onClick={() => setLightboxImg(null)}
         >
           <img
             src={lightboxImg}
             alt="Fullscreen Chart"
-            className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl border border-white/10"
+            className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl border border-ink/10"
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-text-primary bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-text-primary bg-ink/10 hover:bg-ink/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
             onClick={() => setLightboxImg(null)}
           >
             <svg

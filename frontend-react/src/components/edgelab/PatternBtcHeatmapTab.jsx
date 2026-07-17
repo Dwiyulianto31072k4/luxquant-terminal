@@ -87,7 +87,7 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
 
       <Panel title="WR by pattern × BTC context" meta={`${patterns.length} patterns`} pad={false}>
         {/* header row */}
-        <div className="grid items-center px-5 py-2.5 border-b border-white/[0.05]"
+        <div className="grid items-center px-5 py-2.5 border-b border-ink/[0.05]"
              style={{ gridTemplateColumns: "minmax(150px,1.4fr) repeat(4,1fr) 56px", gap: "6px" }}>
           <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">Pattern</div>
           {BTC_CONTEXTS.map((c) => (
@@ -110,7 +110,7 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
                 const cell = p.cells[ctx];
                 if (!cell)
                   return (
-                    <div key={ctx} className="flex items-center justify-center rounded-md min-h-[40px] bg-white/[0.015]">
+                    <div key={ctx} className="flex items-center justify-center rounded-md min-h-[40px] bg-ink/[0.015]">
                       <span className="text-text-primary/12 text-xs">·</span>
                     </div>
                   );
@@ -147,11 +147,11 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
           ))}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/[0.05] flex items-center justify-between gap-3 flex-wrap">
+        <div className="px-5 py-3 border-t border-ink/[0.05] flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
             {WR_LEGEND.map((s, i) => (
               <span key={i} className="inline-flex items-center gap-1">
-                <span className="w-4 h-3 rounded-sm border border-white/10" style={{ background: s.c }} />
+                <span className="w-4 h-3 rounded-sm border border-ink/10" style={{ background: s.c }} />
                 {s.l}
               </span>
             ))}

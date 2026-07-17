@@ -156,7 +156,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
                 className="group relative cursor-pointer rounded-xl border p-5 transition-all duration-300 hover:-translate-y-0.5"
                 style={{
                   background: isHighlighted ? "linear-gradient(168deg, rgba(212,168,83,0.16) 0%, #0c0708 50%)" : "#0c0708",
-                  borderColor: isHighlighted ? "rgba(212,168,83,0.3)" : "rgba(255,255,255,0.06)",
+                  borderColor: isHighlighted ? "rgba(212,168,83,0.3)" : "rgb(var(--ink) / 0.06)",
                 }}
               >
                 {badge && (

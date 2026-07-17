@@ -27,22 +27,22 @@ const MEDIA_MASK = {
     to bottom,
     #000 0%,
     #000 42%,
-    rgba(0,0,0,0.94) 52%,
-    rgba(0,0,0,0.72) 62%,
-    rgba(0,0,0,0.42) 74%,
-    rgba(0,0,0,0.18) 86%,
-    rgba(0,0,0,0.05) 94%,
+    rgb(var(--scrim) / 0.94) 52%,
+    rgb(var(--scrim) / 0.72) 62%,
+    rgb(var(--scrim) / 0.35) 74%,
+    rgb(var(--ink) / 0.18) 86%,
+    rgb(var(--ink) / 0.05) 94%,
     transparent 100%
   )`,
   maskImage: `linear-gradient(
     to bottom,
     #000 0%,
     #000 42%,
-    rgba(0,0,0,0.94) 52%,
-    rgba(0,0,0,0.72) 62%,
-    rgba(0,0,0,0.42) 74%,
-    rgba(0,0,0,0.18) 86%,
-    rgba(0,0,0,0.05) 94%,
+    rgb(var(--scrim) / 0.94) 52%,
+    rgb(var(--scrim) / 0.72) 62%,
+    rgb(var(--scrim) / 0.35) 74%,
+    rgb(var(--ink) / 0.18) 86%,
+    rgb(var(--ink) / 0.05) 94%,
     transparent 100%
   )`,
 };
@@ -159,7 +159,7 @@ export default function HeroSlideVideo() {
             className="relative z-10 max-w-6xl font-bold leading-[1.02] tracking-[-0.03em] text-[2.55rem] sm:leading-[1.05] sm:text-[3.5rem] md:text-[4.2rem] lg:text-[5.1rem] xl:text-[5.7rem]"
             style={{
               textShadow:
-                "0 2px 30px rgba(0,0,0,0.42), 0 1px 4px rgba(0,0,0,0.3)",
+                "0 2px 30px rgb(var(--scrim) / 0.35), 0 1px 4px rgb(var(--scrim) / 0.3)",
             }}
           >
             <span className="block text-balance text-text-primary sm:whitespace-nowrap">
@@ -170,7 +170,7 @@ export default function HeroSlideVideo() {
               style={{
                 color: "rgb(var(--warn))",
                 textShadow:
-                  "0 0 18px rgba(255, 203, 46, 0.5), 0 6px 16px rgba(0,0,0,0.28)",
+                  "0 0 18px rgba(255, 203, 46, 0.5), 0 6px 16px rgb(var(--scrim) / 0.28)",
               }}
             >
               {HEADLINE_BOTTOM}
@@ -191,7 +191,7 @@ export default function HeroSlideVideo() {
           />
           <p
             className="mx-auto max-w-[23rem] text-balance px-1 text-[0.8rem] leading-snug text-text-primary/80 sm:max-w-2xl sm:px-0 sm:text-base sm:leading-relaxed sm:text-text-primary/82 lg:max-w-3xl lg:text-lg"
-            style={{ textShadow: "0 1px 14px rgba(0,0,0,0.78)" }}
+            style={{ textShadow: "0 1px 14px rgb(var(--scrim) / 0.78)" }}
           >
             {HERO_DESCRIPTION}
           </p>

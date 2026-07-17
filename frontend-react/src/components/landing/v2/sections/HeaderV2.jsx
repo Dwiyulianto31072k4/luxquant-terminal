@@ -116,7 +116,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
         className={[
           "mx-auto w-full border transition-all duration-500 ease-out",
           scrolled
-            ? "mt-3 max-w-[1280px] rounded-full border-white/[0.08] bg-surface/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+            ? "mt-3 max-w-[1280px] rounded-full border-ink/[0.08] bg-surface/80 shadow-[0_8px_32px_rgb(var(--scrim) / 0.35)] backdrop-blur-xl"
             : "mt-0 max-w-7xl rounded-none border-transparent bg-transparent",
         ].join(" ")}
       >
@@ -160,8 +160,8 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                       "shrink-0 rounded-md px-2.5 py-2 text-[12.5px] font-medium",
                       "tracking-[0.01em] transition-colors 2xl:px-3 2xl:text-[13px]",
                       active
-                        ? "bg-white/[0.04] text-gold-primary"
-                        : "text-text-primary/60 hover:bg-white/[0.03] hover:text-text-primary",
+                        ? "bg-ink/[0.04] text-gold-primary"
+                        : "text-text-primary/60 hover:bg-ink/[0.03] hover:text-text-primary",
                     ].join(" ")}
                   >
                     {item.label}
@@ -246,7 +246,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           "absolute left-3 right-3 top-full mt-2 overflow-hidden rounded-2xl",
           "bg-surface/95 backdrop-blur-3xl transition-all duration-500 ease-in-out",
           mobileOpen
-            ? "max-h-[82vh] border border-white/[0.08] opacity-100 shadow-2xl"
+            ? "max-h-[82vh] border border-ink/[0.08] opacity-100 shadow-2xl"
             : "max-h-0 border border-transparent opacity-0",
         ].join(" ")}
       >
@@ -261,7 +261,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                 onClick={() => handleNav(item.id)}
                 className={[
                   "block w-full rounded-lg px-4 py-3 text-left text-[15px] font-medium transition-colors",
-                  active ? "bg-white/[0.05] text-gold-primary" : "text-text-primary/85 hover:bg-white/[0.03] hover:text-gold-primary",
+                  active ? "bg-ink/[0.05] text-gold-primary" : "text-text-primary/85 hover:bg-ink/[0.03] hover:text-gold-primary",
                 ].join(" ")}
               >
                 {item.label}
@@ -270,7 +270,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           })}
 
           {/* App features — collapsible groups, collapsed by default */}
-          <div className="mt-2 space-y-0.5 border-t border-white/[0.06] pt-2">
+          <div className="mt-2 space-y-0.5 border-t border-ink/[0.06] pt-2">
             {MOBILE_FEATURES.map((grp) => {
               const open = !!openGroups[grp.group];
               return (
@@ -279,7 +279,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                     type="button"
                     onClick={() => toggleGroup(grp.group)}
                     aria-expanded={open}
-                    className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-[15px] font-medium text-text-primary/75 transition-colors hover:bg-white/[0.03] hover:text-text-primary"
+                    className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-[15px] font-medium text-text-primary/75 transition-colors hover:bg-ink/[0.03] hover:text-text-primary"
                   >
                     <span>{grp.group}</span>
                     <svg
@@ -296,7 +296,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                           key={it.path}
                           type="button"
                           onClick={() => goFeature(it.path)}
-                          className="block w-full rounded-lg px-4 py-2.5 text-left text-[14px] text-text-primary/60 transition-colors hover:bg-white/[0.03] hover:text-text-primary"
+                          className="block w-full rounded-lg px-4 py-2.5 text-left text-[14px] text-text-primary/60 transition-colors hover:bg-ink/[0.03] hover:text-text-primary"
                         >
                           {it.label}
                         </button>
@@ -309,12 +309,12 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           </div>
 
           {/* Auth */}
-          <div className={`mt-3 grid ${isAuthenticated ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-white/5 pt-4`}>
+          <div className={`mt-3 grid ${isAuthenticated ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-ink/5 pt-4`}>
             {!isAuthenticated && (
               <button
                 type="button"
                 onClick={goLogin}
-                className="rounded-full border border-white/15 px-4 py-2.5 text-[13px] font-medium text-text-primary/85 transition-colors hover:bg-white/[0.04]"
+                className="rounded-full border border-ink/15 px-4 py-2.5 text-[13px] font-medium text-text-primary/85 transition-colors hover:bg-ink/[0.04]"
               >
                 Log In
               </button>

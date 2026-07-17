@@ -162,10 +162,10 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
               className={[
                 "rounded-full transition-all duration-300",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/80",
-                "shadow-[0_2px_10px_rgba(0,0,0,0.45)]",
+                "shadow-[0_2px_10px_rgb(var(--scrim) / 0.35)]",
                 isActive
                   ? "h-2 w-8 bg-gold-primary shadow-[0_0_14px_rgba(212,168,83,0.55)]"
-                  : "h-2 w-2 bg-white/45 hover:bg-white/75",
+                  : "h-2 w-2 bg-ink/45 hover:bg-ink/75",
               ].join(" ")}
             />
           );

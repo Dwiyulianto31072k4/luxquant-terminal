@@ -94,7 +94,7 @@ const relativeTime = (iso) => {
 const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
   <div className="flex flex-wrap items-start justify-between gap-3">
     <div className="flex min-w-0 items-start gap-3">
-      <IconBadge Icon={ActivityIcon} color="rgba(255,255,255,0.45)" size={38} iconSize={18} />
+      <IconBadge Icon={ActivityIcon} color="rgb(var(--ink) / 0.45)" size={38} iconSize={18} />
 
       <div className="min-w-0">
         <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
@@ -119,7 +119,7 @@ const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
-        className="flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.08] disabled:opacity-50"
+        className="flex items-center gap-1.5 rounded-lg border border-ink/[0.1] bg-ink/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.08] disabled:opacity-50"
       >
         {refreshing ? <Spinner size={12} /> : <RefreshIcon size={12} />}
         Refresh
@@ -154,17 +154,17 @@ const FeatureFunnel = ({ funnel, loading }) => {
           <h3 className="text-sm font-semibold text-text-primary tracking-tight">
             Feature Reach
           </h3>
-          <span className="text-[10px]" style={{ color: palette.warm[500] }}>
+          <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
             last {funnel?.days ?? 30}d
           </span>
         </div>
-        <span className="text-[10px]" style={{ color: palette.warm[500] }}>
+        <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
           {funnel?.subscriber_base ?? 0} subs · {funnel?.free_base ?? 0} free
         </span>
       </div>
 
       {features.length === 0 ? (
-        <p className="text-xs py-6 text-center" style={{ color: palette.warm[500] }}>
+        <p className="text-xs py-6 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>
           No feature activity recorded yet in this window.
         </p>
       ) : (
@@ -178,7 +178,7 @@ const FeatureFunnel = ({ funnel, loading }) => {
                   <span className="text-[12px] font-medium text-text-primary">
                     {featureLabel(f.feature)}
                   </span>
-                  <span className="text-[10px] tabular-nums" style={{ color: palette.warm[400] }}>
+                  <span className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
                     {f.users_total} {f.users_total === 1 ? 'user' : 'users'} · {f.hits} hits
                   </span>
                 </div>
@@ -204,7 +204,7 @@ const FeatureFunnel = ({ funnel, loading }) => {
                       {f.pct_of_subscribers}% of subs
                     </span>
                     {f.users_free > 0 && (
-                      <span className="text-[10px] tabular-nums" style={{ color: palette.warm[400] }}>
+                      <span className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>
                         {f.users_free} free
                       </span>
                     )}
@@ -232,7 +232,7 @@ const ContactChips = ({ telegram, discord, email }) => {
   }
   if (chips.length === 0) {
     return (
-      <span className="text-[10px]" style={{ color: palette.warm[600] }}>
+      <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
         no contact
       </span>
     );
@@ -280,13 +280,13 @@ const TopFeatureTags = ({ features }) => {
 
 const ScoreBadge = ({ score }) => {
   const tone =
-    score >= 60 ? palette.green[400] : score >= 30 ? palette.amber[400] : palette.warm[400];
+    score >= 60 ? palette.green[400] : score >= 30 ? palette.amber[400] : 'rgb(var(--fg-muted))';
   return (
     <div className="flex flex-col items-center shrink-0">
       <span className="text-base font-light tabular-nums leading-none" style={{ color: tone }}>
         {score}
       </span>
-      <span className="text-[8px] uppercase tracking-wider" style={{ color: palette.warm[500] }}>
+      <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgb(var(--fg-muted))' }}>
         score
       </span>
     </div>
@@ -301,7 +301,7 @@ const HotLeadsPanel = ({ data, loading }) => {
         <FlameIcon size={14} style={{ color: palette.orange[400] }} />
         <h3 className="text-sm font-semibold text-text-primary tracking-tight">Hot Leads</h3>
       </div>
-      <p className="text-[11px] mb-4" style={{ color: palette.warm[500] }}>
+      <p className="text-[11px] mb-4" style={{ color: 'rgb(var(--fg-muted))' }}>
         Engaged free users — prime upgrade targets.
       </p>
 
@@ -330,11 +330,11 @@ const HotLeadsPanel = ({ data, loading }) => {
                   <span className="text-[12px] font-semibold text-text-primary truncate">
                     @{u.username}
                   </span>
-                  <span className="text-[9px]" style={{ color: palette.warm[500] }}>
+                  <span className="text-[9px]" style={{ color: 'rgb(var(--fg-muted))' }}>
                     joined {u.joined_days_ago != null ? `${u.joined_days_ago}d ago` : '—'}
                   </span>
                 </div>
-                <div className="text-[10px] mt-0.5" style={{ color: palette.warm[400] }}>
+                <div className="text-[10px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
                   {u.active_days_30d}d active · {u.events_30d} actions · seen {relativeTime(u.last_active_at)}
                 </div>
                 <TopFeatureTags features={u.top_features} />
@@ -361,7 +361,7 @@ const RiskTag = ({ item }) => {
     return (
       <span
         className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider"
-        style={{ background: tint(palette.warm[400], 0.1), color: palette.warm[300], border: `1px solid ${tint(palette.warm[400], 0.2)}` }}
+        style={{ background: tint(palette.warm[400], 0.1), color: 'rgb(var(--fg-secondary))', border: `1px solid ${tint(palette.warm[400], 0.2)}` }}
       >
         never logged in
       </span>
@@ -397,7 +397,7 @@ const AtRiskPanel = ({ data, loading }) => {
         <AlertTriangleIcon size={14} style={{ color: palette.red[400] }} />
         <h3 className="text-sm font-semibold text-text-primary tracking-tight">At-Risk Subscribers</h3>
       </div>
-      <p className="text-[11px] mb-4" style={{ color: palette.warm[500] }}>
+      <p className="text-[11px] mb-4" style={{ color: 'rgb(var(--fg-muted))' }}>
         Active subscribers gone quiet — re-engage before they churn.
       </p>
 
@@ -428,7 +428,7 @@ const AtRiskPanel = ({ data, loading }) => {
                   </span>
                   <RiskTag item={u} />
                 </div>
-                <div className="text-[10px] mt-0.5" style={{ color: palette.warm[400] }}>
+                <div className="text-[10px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
                   {u.role}
                   {u.last_active_at
                     ? ` · last seen ${relativeTime(u.last_active_at)}`
@@ -490,7 +490,7 @@ const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
               className="text-[9.5px] px-2 py-0.5 rounded font-medium"
               style={{
                 background: active ? tint(palette.gold[300], 0.12) : surface.base.bg,
-                color: active ? palette.gold[300] : palette.warm[400],
+                color: active ? palette.gold[300] : 'rgb(var(--fg-muted))',
                 border: `1px solid ${active ? tint(palette.gold[300], 0.25) : 'transparent'}`,
               }}
             >
@@ -500,7 +500,7 @@ const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
         })}
       </div>
     </div>
-    <p className="text-[11px] mb-3" style={{ color: palette.warm[500] }}>
+    <p className="text-[11px] mb-3" style={{ color: 'rgb(var(--fg-muted))' }}>
       Feature touches across the platform, newest first (hourly granularity).
     </p>
 
@@ -515,14 +515,14 @@ const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
         {events.map((e) => {
           const accent = featureAccent(e.feature);
           return (
-            <div key={e.id} className="flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-white/[0.02]">
+            <div key={e.id} className="flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-ink/[0.02]">
               <Avatar src={e.avatar_url} name={e.username} size="xs" tone={accent} />
               <div className="min-w-0 flex-1 text-[11.5px]">
                 <span className="font-medium text-text-primary truncate">{e.username || `#${e.user_id}`}</span>
-                <span style={{ color: palette.warm[500] }}> · </span>
+                <span style={{ color: 'rgb(var(--fg-muted))' }}> · </span>
                 <span style={{ color: accent }}>{featureLabel(e.feature)}</span>
               </div>
-              <span className="text-[9.5px] tabular-nums shrink-0" style={{ color: palette.warm[500] }}>
+              <span className="text-[9.5px] tabular-nums shrink-0" style={{ color: 'rgb(var(--fg-muted))' }}>
                 {relativeTime(e.occurred_at)}
               </span>
             </div>
@@ -562,7 +562,7 @@ const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindo
             return (
               <button key={wv.value} onClick={() => onWindow(wv.value)}
                 className="text-[9.5px] px-1.5 py-0.5 rounded font-medium"
-                style={{ background: active ? tint(palette.teal[400], 0.12) : surface.base.bg, color: active ? palette.teal[400] : palette.warm[400] }}>
+                style={{ background: active ? tint(palette.teal[400], 0.12) : surface.base.bg, color: active ? palette.teal[400] : 'rgb(var(--fg-muted))' }}>
                 {wv.label}
               </button>
             );
@@ -574,7 +574,7 @@ const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindo
             return (
               <button key={s.value} onClick={() => onSort(s.value)}
                 className="text-[9.5px] px-2 py-0.5 rounded font-medium"
-                style={{ background: active ? tint(palette.gold[300], 0.12) : surface.base.bg, color: active ? palette.gold[300] : palette.warm[400], border: `1px solid ${active ? tint(palette.gold[300], 0.25) : 'transparent'}` }}>
+                style={{ background: active ? tint(palette.gold[300], 0.12) : surface.base.bg, color: active ? palette.gold[300] : 'rgb(var(--fg-muted))', border: `1px solid ${active ? tint(palette.gold[300], 0.25) : 'transparent'}` }}>
                 {s.label}
               </button>
             );
@@ -582,7 +582,7 @@ const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindo
         </div>
       </div>
     </div>
-    <p className="text-[11px] mb-3" style={{ color: palette.warm[500] }}>
+    <p className="text-[11px] mb-3" style={{ color: 'rgb(var(--fg-muted))' }}>
       Who is active, when they were last seen, and their latest feature.
     </p>
 
@@ -595,19 +595,19 @@ const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindo
     ) : (
       <div className="max-h-[420px] overflow-y-auto pr-1">
         <div className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 px-2 pb-1.5 text-[8.5px] uppercase tracking-wider sticky top-0"
-          style={{ color: palette.warm[500], background: surface.raised.bg }}>
+          style={{ color: 'rgb(var(--fg-muted))', background: surface.raised.bg }}>
           <span>User</span><span>Last seen</span><span>Feature</span><span className="text-right">Events</span>
         </div>
         <div className="space-y-0.5">
           {users.map((u) => {
             const accent = featureAccent(u.last_feature || 'x');
             return (
-              <div key={u.user_id} className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 items-center px-2 py-1.5 rounded-md hover:bg-white/[0.02]">
+              <div key={u.user_id} className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 items-center px-2 py-1.5 rounded-md hover:bg-ink/[0.02]">
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar src={u.avatar_url} name={u.username} size="xs" tone={accent} />
                   <span className="text-[11.5px] font-medium text-text-primary truncate">{u.username || `#${u.user_id}`}</span>
                 </div>
-                <span className="text-[10.5px] tabular-nums" style={{ color: palette.warm[300] }}>{relativeTime(u.last_seen)}</span>
+                <span className="text-[10.5px] tabular-nums" style={{ color: 'rgb(var(--fg-secondary))' }}>{relativeTime(u.last_seen)}</span>
                 <span className="text-[10.5px] truncate" style={{ color: accent }}>{u.last_feature ? featureLabel(u.last_feature) : '—'}</span>
                 <span className="text-[11px] tabular-nums text-right text-text-primary">{u.event_count}</span>
               </div>
@@ -745,7 +745,7 @@ export const ActivityTab = () => {
       {/* Signups strip */}
       {overview && (
         <Surface variant="base" padding="p-3.5">
-          <div className="flex items-center gap-6 flex-wrap text-[11px]" style={{ color: palette.warm[300] }}>
+          <div className="flex items-center gap-6 flex-wrap text-[11px]" style={{ color: 'rgb(var(--fg-secondary))' }}>
             <span className="inline-flex items-center gap-1.5">
               <ClockIcon size={11} style={{ color: palette.teal[400] }} />
               Signups:
@@ -753,8 +753,8 @@ export const ActivityTab = () => {
             <span><strong className="text-text-primary tabular-nums">{overview.signups_today}</strong> today</span>
             <span><strong className="text-text-primary tabular-nums">{overview.signups_7d}</strong> this week</span>
             <span><strong className="text-text-primary tabular-nums">{overview.signups_30d}</strong> this month</span>
-            <span className="ml-auto" style={{ color: palette.warm[500] }}>
-              <strong className="tabular-nums" style={{ color: palette.warm[300] }}>{overview.total_users}</strong> total users
+            <span className="ml-auto" style={{ color: 'rgb(var(--fg-muted))' }}>
+              <strong className="tabular-nums" style={{ color: 'rgb(var(--fg-secondary))' }}>{overview.total_users}</strong> total users
             </span>
           </div>
         </Surface>

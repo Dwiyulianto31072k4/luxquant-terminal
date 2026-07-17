@@ -73,7 +73,7 @@ const chainDot = (chain) => {
     ethereum: "bg-blue-400",
     solana: "bg-purple-400",
   };
-  return map[chain] || "bg-white/40";
+  return map[chain] || "bg-ink/40";
 };
 
 // ── Semantic 3-tier transfer type style ──
@@ -84,7 +84,7 @@ const transferTypeStyle = (type) => {
     return "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
   if (type === "exchange_to_exchange")
     return "bg-gold-primary/10 text-gold-primary border-line/25";
-  return "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
+  return "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
 
 const transferTypeLabel = (type) => {
@@ -139,13 +139,13 @@ const FlowStrip = ({ flows, t }) => {
     ? "bg-emerald-400"
     : isBearish
     ? "bg-red-400"
-    : "bg-white/40";
+    : "bg-ink/40";
 
   const netFlow = flows.net_flow_usd || 0;
   const netColor = netFlow > 0 ? "text-emerald-400" : netFlow < 0 ? "text-red-400" : "text-text-primary/70";
 
   return (
-    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -196,7 +196,7 @@ const FlowStrip = ({ flows, t }) => {
   );
 };
 
-const Divider = () => <span className="hidden sm:inline h-3 w-px bg-white/[0.08]" />;
+const Divider = () => <span className="hidden sm:inline h-3 w-px bg-ink/[0.08]" />;
 
 const FlowItem = ({ label, value, sublabel, tone, valueColor }) => {
   const color = valueColor || {
@@ -221,7 +221,7 @@ const FlowItem = ({ label, value, sublabel, tone, valueColor }) => {
 // STAT CARD — Flowscan-exact pattern
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">
@@ -259,13 +259,13 @@ const TransactionRow = ({ tx, isNew, t }) => {
       href={tx.explorer_url || "#"}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group relative block transition-colors border-b border-white/[0.04] ${
-        isNew ? "bg-gold-primary/[0.04]" : "hover:bg-white/[0.02]"
+      className={`group relative block transition-colors border-b border-ink/[0.04] ${
+        isNew ? "bg-gold-primary/[0.04]" : "hover:bg-ink/[0.02]"
       }`}
     >
       <div className="flex items-center gap-3 px-3 sm:px-4 py-3">
         {/* Chain indicator (small dot) */}
-        <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded bg-white/[0.03] border border-white/[0.06]">
+        <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded bg-ink/[0.03] border border-ink/[0.06]">
           <span className={`w-2 h-2 rounded-full ${chainDot(tx.blockchain)}`} />
         </div>
 
@@ -318,9 +318,9 @@ const TransactionRow = ({ tx, isNew, t }) => {
 // SIDEBAR: BLOCKCHAIN BREAKDOWN
 // ════════════════════════════════════════════════════════════════
 const SidebarCard = ({ label, children }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="px-3.5 py-3 border-b border-white/[0.04]">
+    <div className="px-3.5 py-3 border-b border-ink/[0.04]">
       <span className="text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-mono">
         {label}
       </span>
@@ -345,7 +345,7 @@ const SidebarBlockchains = ({ byBlockchain }) => {
           return (
             <div
               key={chain}
-              className="relative py-1.5 px-2 rounded transition-colors hover:bg-white/[0.03]"
+              className="relative py-1.5 px-2 rounded transition-colors hover:bg-ink/[0.03]"
             >
               {/* Subtle background bar (gold tint, not rainbow) */}
               <div
@@ -400,7 +400,7 @@ const SidebarTopWallets = ({ label, wallets, t }) => {
           return (
             <div
               key={i}
-              className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/[0.03] transition-colors"
+              className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-ink/[0.03] transition-colors"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
@@ -433,16 +433,16 @@ const LoadingSkeleton = () => (
     {[...Array(8)].map((_, i) => (
       <div
         key={i}
-        className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.04]"
+        className="flex items-center gap-3 px-4 py-3 border-b border-ink/[0.04]"
       >
-        <div className="w-8 h-8 rounded bg-white/[0.03] animate-pulse shrink-0" />
+        <div className="w-8 h-8 rounded bg-ink/[0.03] animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/4 animate-pulse" />
-          <div className="h-2.5 bg-white/[0.03] rounded w-2/3 animate-pulse" />
+          <div className="h-3 bg-ink/[0.05] rounded w-1/4 animate-pulse" />
+          <div className="h-2.5 bg-ink/[0.03] rounded w-2/3 animate-pulse" />
         </div>
         <div className="w-20 space-y-1.5">
-          <div className="h-3 bg-white/[0.05] rounded animate-pulse" />
-          <div className="h-2 bg-white/[0.03] rounded w-2/3 ml-auto animate-pulse" />
+          <div className="h-3 bg-ink/[0.05] rounded animate-pulse" />
+          <div className="h-2 bg-ink/[0.03] rounded w-2/3 ml-auto animate-pulse" />
         </div>
       </div>
     ))}
@@ -573,7 +573,7 @@ export default function WhaleAlertPage() {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${
               autoRefresh
                 ? "bg-emerald-500/[0.08] border-emerald-500/25 text-emerald-400"
-                : "bg-white/[0.03] border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.12]"
+                : "bg-ink/[0.03] border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.12]"
             }`}
           >
             <span
@@ -587,7 +587,7 @@ export default function WhaleAlertPage() {
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted hover:text-text-primary hover:border-white/[0.12] disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-ink/[0.06] bg-ink/[0.03] text-text-muted hover:text-text-primary hover:border-ink/[0.12] disabled:opacity-50 transition-all"
           >
             <svg
               className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`}
@@ -647,7 +647,7 @@ export default function WhaleAlertPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
+                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 <span className="inline-flex items-center gap-1.5">
@@ -676,7 +676,7 @@ export default function WhaleAlertPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
+                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 {type.label}
@@ -704,7 +704,7 @@ export default function WhaleAlertPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
+                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 {opt.label}
@@ -720,11 +720,11 @@ export default function WhaleAlertPage() {
         <div className="lg:col-span-9 space-y-3">
           <SectionHeader label="Live Transactions" small />
 
-          <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+          <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
             {/* Tx count header */}
-            <div className="relative flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
+            <div className="relative flex items-center justify-between px-4 py-2.5 border-b border-ink/[0.06]">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
                   {transactions.length} {t("whale.transactions") || "transactions"}
@@ -798,13 +798,13 @@ export default function WhaleAlertPage() {
           {loading && (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
+                <div key={i} className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
                   <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
-                  <div className="h-3 bg-white/[0.05] rounded w-1/2 mb-3 animate-pulse" />
+                  <div className="h-3 bg-ink/[0.05] rounded w-1/2 mb-3 animate-pulse" />
                   <div className="space-y-2">
-                    <div className="h-3 bg-white/[0.03] rounded animate-pulse" />
-                    <div className="h-3 bg-white/[0.03] rounded w-3/4 animate-pulse" />
-                    <div className="h-3 bg-white/[0.03] rounded w-1/2 animate-pulse" />
+                    <div className="h-3 bg-ink/[0.03] rounded animate-pulse" />
+                    <div className="h-3 bg-ink/[0.03] rounded w-3/4 animate-pulse" />
+                    <div className="h-3 bg-ink/[0.03] rounded w-1/2 animate-pulse" />
                   </div>
                 </div>
               ))}

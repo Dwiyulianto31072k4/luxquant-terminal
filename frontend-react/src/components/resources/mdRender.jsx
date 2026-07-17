@@ -22,7 +22,7 @@ function renderInline(text, keyBase = 'i') {
     else if (m[3] !== undefined) nodes.push(<strong key={key} className="font-semibold text-text-primary">{m[3]}</strong>);
     else if (m[4] !== undefined) nodes.push(<em key={key}>{m[4]}</em>);
     else if (m[5] !== undefined) nodes.push(<em key={key}>{m[5]}</em>);
-    else if (m[6] !== undefined) nodes.push(<code key={key} className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[.85em] text-gold-primary/90">{m[6]}</code>);
+    else if (m[6] !== undefined) nodes.push(<code key={key} className="rounded bg-ink/10 px-1.5 py-0.5 font-mono text-[.85em] text-gold-primary/90">{m[6]}</code>);
     else if (m[7] !== undefined && m[8] !== undefined) {
       nodes.push(
         <a key={key} href={m[8]} target="_blank" rel="noopener noreferrer" className="text-gold-primary underline underline-offset-2 hover:text-gold-light">
@@ -95,7 +95,7 @@ export function renderRich(text) {
 
     if (t === '') { flushAll(); continue; }
 
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushAll(); blocks.push(<hr key={k++} className="my-4 border-white/10" />); continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushAll(); blocks.push(<hr key={k++} className="my-4 border-ink/10" />); continue; }
 
     const h = t.match(/^(#{1,6})\s+(.*)$/);
     if (h) {

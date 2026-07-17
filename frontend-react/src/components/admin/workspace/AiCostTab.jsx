@@ -29,7 +29,7 @@ const fmtTokens = (n) => {
 };
 
 const Card = ({ label, value, sub, accent }) => (
-  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+  <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-4">
     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary/45">{label}</p>
     <p className="mt-2 font-mono text-2xl font-semibold tabular-nums" style={{ color: accent || '#fff' }}>{value}</p>
     {sub && <p className="mt-1 font-mono text-[10px] text-text-primary/40">{sub}</p>}
@@ -89,7 +89,7 @@ export function AiCostTab() {
   return (
     <div className="space-y-6">
       {/* AI Assistant master switch */}
-      <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-primary">AI Assistant</p>
           <p className="mt-1 text-[11px] text-text-primary/45">
@@ -101,7 +101,7 @@ export function AiCostTab() {
         <button
           onClick={toggleAi}
           disabled={toggling || aiEnabled === null}
-          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${aiEnabled ? 'bg-emerald-500/80' : 'bg-white/15'}`}
+          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${aiEnabled ? 'bg-emerald-500/80' : 'bg-ink/15'}`}
           aria-label="Toggle AI Assistant"
           role="switch"
           aria-checked={!!aiEnabled}
@@ -112,7 +112,7 @@ export function AiCostTab() {
 
       {/* Range selector + refresh */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.02] p-1">
+        <div className="flex items-center gap-1 rounded-full border border-ink/[0.08] bg-ink/[0.02] p-1">
           {RANGES.map((d) => (
             <button
               key={d}
@@ -125,7 +125,7 @@ export function AiCostTab() {
             </button>
           ))}
         </div>
-        <button onClick={load} className="rounded-lg border border-white/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-text-primary/60 hover:text-text-primary hover:bg-white/5 transition-all">
+        <button onClick={load} className="rounded-lg border border-ink/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-text-primary/60 hover:text-text-primary hover:bg-ink/5 transition-all">
           Refresh
         </button>
       </div>
@@ -151,14 +151,14 @@ export function AiCostTab() {
             {summary.daily.length === 0 ? (
               <p className="font-mono text-xs text-text-primary/40">No usage recorded yet.</p>
             ) : (
-              <div className="flex items-end gap-1 h-32 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <div className="flex items-end gap-1 h-32 rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3">
                 {summary.daily.map((d) => (
                   <div key={d.date} className="group relative flex-1 flex flex-col items-center justify-end h-full">
                     <div
                       className="w-full rounded-t bg-gold-primary/60 hover:bg-gold-primary transition-all"
                       style={{ height: `${Math.max(2, (d.cost / maxDaily) * 100)}%` }}
                     />
-                    <div className="pointer-events-none absolute bottom-full mb-1 hidden group-hover:block whitespace-nowrap rounded bg-black/90 px-2 py-1 font-mono text-[9px] text-text-primary">
+                    <div className="pointer-events-none absolute bottom-full mb-1 hidden group-hover:block whitespace-nowrap rounded bg-scrim/90 px-2 py-1 font-mono text-[9px] text-text-primary">
                       {d.date} · {fmtUSD(d.cost)} · {fmtNum(d.calls)} calls
                     </div>
                   </div>
@@ -170,10 +170,10 @@ export function AiCostTab() {
           {/* By feature */}
           <div>
             <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary/45">Cost by feature</p>
-            <div className="overflow-hidden rounded-xl border border-white/[0.06]">
+            <div className="overflow-hidden rounded-xl border border-ink/[0.06]">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
+                  <tr className="border-b border-ink/[0.06] bg-ink/[0.02] font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
                     <th className="px-3 py-2">Feature</th>
                     <th className="px-3 py-2 text-right">Cost</th>
                     <th className="px-3 py-2 text-right">Calls</th>
@@ -184,7 +184,7 @@ export function AiCostTab() {
                   {summary.by_feature.length === 0 ? (
                     <tr><td colSpan={4} className="px-3 py-4 text-center font-mono text-xs text-text-primary/40">No data</td></tr>
                   ) : summary.by_feature.map((f) => (
-                    <tr key={f.feature} className="border-b border-white/[0.03] font-mono text-[11px] text-text-primary/80">
+                    <tr key={f.feature} className="border-b border-ink/[0.03] font-mono text-[11px] text-text-primary/80">
                       <td className="px-3 py-2 uppercase tracking-wider text-gold-primary/80">{f.feature}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtUSD(f.cost)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtNum(f.calls)}</td>
@@ -199,10 +199,10 @@ export function AiCostTab() {
           {/* Top users */}
           <div>
             <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary/45">Top users</p>
-            <div className="overflow-hidden rounded-xl border border-white/[0.06]">
+            <div className="overflow-hidden rounded-xl border border-ink/[0.06]">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
+                  <tr className="border-b border-ink/[0.06] bg-ink/[0.02] font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
                     <th className="px-3 py-2">User</th>
                     <th className="px-3 py-2 text-right">Questions</th>
                     <th className="px-3 py-2 text-right">Cost</th>
@@ -213,7 +213,7 @@ export function AiCostTab() {
                   {(summary.top_users || []).length === 0 ? (
                     <tr><td colSpan={4} className="px-3 py-4 text-center font-mono text-xs text-text-primary/40">No data</td></tr>
                   ) : summary.top_users.map((u, i) => (
-                    <tr key={i} className="border-b border-white/[0.03] font-mono text-[11px] text-text-primary/80">
+                    <tr key={i} className="border-b border-ink/[0.03] font-mono text-[11px] text-text-primary/80">
                       <td className={`px-3 py-2 ${u.user === 'anonymous' ? 'text-text-primary/40 italic' : 'text-text-primary/85'}`}>{u.user}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtNum(u.calls)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtUSD(u.cost)}</td>
@@ -228,10 +228,10 @@ export function AiCostTab() {
           {/* Recent calls */}
           <div>
             <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary/45">Recent calls</p>
-            <div className="overflow-hidden rounded-xl border border-white/[0.06]">
+            <div className="overflow-hidden rounded-xl border border-ink/[0.06]">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
+                  <tr className="border-b border-ink/[0.06] bg-ink/[0.02] font-mono text-[9px] uppercase tracking-wider text-text-primary/40">
                     <th className="px-3 py-2">Time (UTC)</th>
                     <th className="px-3 py-2">User</th>
                     <th className="px-3 py-2">Feature</th>
@@ -244,7 +244,7 @@ export function AiCostTab() {
                   {recent.length === 0 ? (
                     <tr><td colSpan={6} className="px-3 py-4 text-center font-mono text-xs text-text-primary/40">No calls yet</td></tr>
                   ) : recent.map((r, i) => (
-                    <tr key={i} className="border-b border-white/[0.03] font-mono text-[11px] text-text-primary/75">
+                    <tr key={i} className="border-b border-ink/[0.03] font-mono text-[11px] text-text-primary/75">
                       <td className="px-3 py-2 whitespace-nowrap text-text-primary/50">{r.ts}</td>
                       <td className={`px-3 py-2 whitespace-nowrap ${r.user === 'anonymous' ? 'text-text-primary/35 italic' : 'text-text-primary/70'}`}>{r.user || 'anonymous'}</td>
                       <td className="px-3 py-2 uppercase tracking-wider text-gold-primary/70">{r.feature}</td>

@@ -102,7 +102,7 @@ const ExpectedValueTab = ({ data, onDrill }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06]">
+              <tr className="border-b border-ink/[0.06]">
                 <th className="text-left px-4 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal">Pattern</th>
                 <SortHeader id="count" label="N" w={56} />
                 <SortHeader id="win_rate" label="WR" w={70} />
@@ -133,7 +133,7 @@ const ExpectedValueTab = ({ data, onDrill }) => {
                         win_rate: p.win_rate,
                       })
                     }
-                    className="border-b border-white/[0.03] hover:bg-white/[0.03] hover:shadow-[inset_2px_0_0_0_rgba(212,168,83,0.5)] cursor-pointer transition"
+                    className="border-b border-ink/[0.03] hover:bg-ink/[0.03] hover:shadow-[inset_2px_0_0_0_rgba(212,168,83,0.5)] cursor-pointer transition"
                   >
                     <td className="px-4 py-2.5 font-mono text-[13px] text-text-primary/85 whitespace-nowrap">
                       <span className="inline-flex items-center gap-2">
@@ -157,7 +157,7 @@ const ExpectedValueTab = ({ data, onDrill }) => {
                     {/* diverging bar */}
                     <td className="px-3 py-2.5">
                       <div className="relative h-3 w-full">
-                        <div className="absolute top-0 bottom-0 w-px bg-white/15" style={{ left: "50%" }} />
+                        <div className="absolute top-0 bottom-0 w-px bg-ink/15" style={{ left: "50%" }} />
                         {ev != null && (
                           <div
                             className="absolute top-1/2 -translate-y-1/2 h-2 rounded-sm transition-all duration-500"
@@ -177,7 +177,7 @@ const ExpectedValueTab = ({ data, onDrill }) => {
           </table>
         </div>
 
-        <div className="px-5 py-3 border-t border-white/[0.05] flex items-center gap-4 text-[10px] text-text-primary/35 font-mono flex-wrap">
+        <div className="px-5 py-3 border-t border-ink/[0.05] flex items-center gap-4 text-[10px] text-text-primary/35 font-mono flex-wrap">
           <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: TIER_COLORS.reliable }} /> reliable</span>
           <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: TIER_COLORS.moderate }} /> moderate</span>
           <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: TIER_COLORS.unreliable }} /> unreliable</span>

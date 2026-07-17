@@ -112,7 +112,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
             className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider border transition ${
               sectorF === s
                 ? "border-line/40 bg-gold-primary/10 text-gold-primary"
-                : "border-white/[0.08] text-text-primary/45 hover:text-text-primary/80"
+                : "border-ink/[0.08] text-text-primary/45 hover:text-text-primary/80"
             }`}
           >
             {s}
@@ -124,7 +124,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06]">
+              <tr className="border-b border-ink/[0.06]">
                 <th className="text-left px-4 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal">Coin</th>
                 <th className="text-left px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal">Sector</th>
                 <SortTh id="count" label="N" w={56} />
@@ -143,7 +143,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
                   <tr
                     key={c.pair}
                     onClick={() => onDrill?.({ dimension: "coin", key: c.pair, label: fmtPair(c.pair), total: c.count, wins: c.wins, win_rate: c.win_rate })}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.03] hover:shadow-[inset_2px_0_0_0_rgba(212,168,83,0.5)] cursor-pointer transition"
+                    className="border-b border-ink/[0.03] hover:bg-ink/[0.03] hover:shadow-[inset_2px_0_0_0_rgba(212,168,83,0.5)] cursor-pointer transition"
                   >
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       <span className="inline-flex items-center gap-2.5">
@@ -157,7 +157,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2 justify-end">
                         <span className="font-mono tabular-nums text-emerald-400/90 text-[13px]">{fmtPeak(c.median_peak)}</span>
-                        <div className="h-1.5 w-16 rounded-full bg-white/[0.05] overflow-hidden shrink-0">
+                        <div className="h-1.5 w-16 rounded-full bg-ink/[0.05] overflow-hidden shrink-0">
                           <div className="h-full rounded-full bg-emerald-400/50" style={{ width: `${barPct}%` }} />
                         </div>
                       </div>
@@ -171,7 +171,7 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
           </table>
         </div>
 
-        <div className="px-5 py-3 border-t border-white/[0.05] text-[10px] text-text-primary/35 font-mono">
+        <div className="px-5 py-3 border-t border-ink/[0.05] text-[10px] text-text-primary/35 font-mono">
           n ≥ 10 signals · median peak = entry→high potential (not realized) · click a coin to drill
         </div>
       </Panel>

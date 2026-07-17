@@ -115,7 +115,7 @@ const UserMenu = () => {
       case 'expired':
         return { label: t('userMenu.status_expired'), color: 'bg-red-500/15 text-red-400 border-red-500/20' };
       default:
-        return { label: t('userMenu.plan_free'), color: 'bg-white/10 text-text-muted border-white/10' };
+        return { label: t('userMenu.plan_free'), color: 'bg-ink/10 text-text-muted border-ink/10' };
     }
   };
 
@@ -158,7 +158,7 @@ const UserMenu = () => {
         className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${
           isOpen
             ? 'ring-2 ring-gold-primary/40 ring-offset-2 ring-offset-bg-primary'
-            : 'hover:ring-2 hover:ring-white/10 hover:ring-offset-1 hover:ring-offset-bg-primary'
+            : 'hover:ring-2 hover:ring-ink/10 hover:ring-offset-1 hover:ring-offset-bg-primary'
         }`}
       >
         {avatarUrl ? (
@@ -183,7 +183,7 @@ const UserMenu = () => {
       {/* ── Dropdown Panel ── */}
       {isOpen && (
         <div className={`absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden z-50 shadow-2xl shadow-black/60 ${isClosing ? 'user-menu-exit' : 'user-menu-enter'}`}
-          style={{ background: 'rgb(var(--surface-secondary))', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'rgb(var(--surface-secondary))', border: '1px solid rgb(var(--ink) / 0.07)' }}
         >
           <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -250,7 +250,7 @@ const UserMenu = () => {
             </div>
           </div>
 
-          <div className="mx-3 h-px bg-white/[0.05]" />
+          <div className="mx-3 h-px bg-ink/[0.05]" />
 
           {/* ─── Section 2: Account Menu ─── */}
           <div className="py-1.5 px-1.5">
@@ -275,7 +275,7 @@ const UserMenu = () => {
             />
           </div>
 
-          <div className="mx-3 h-px bg-white/[0.05]" />
+          <div className="mx-3 h-px bg-ink/[0.05]" />
 
           {/* ─── Section 3: Quick Links ─── */}
           <div className="py-1.5 px-1.5">
@@ -300,14 +300,14 @@ const UserMenu = () => {
           {/* ─── Appearance (admin-gated theme preview) ─── */}
           {canSwitchTheme && (
             <>
-              <div className="mx-3 h-px bg-white/[0.05]" />
+              <div className="mx-3 h-px bg-ink/[0.05]" />
               <div className="px-3 py-2.5">
                 <ThemeAppearancePicker />
               </div>
             </>
           )}
 
-          <div className="mx-3 h-px bg-white/[0.05]" />
+          <div className="mx-3 h-px bg-ink/[0.05]" />
 
           {/* ─── Logout ─── */}
           <div className="py-1.5 px-1.5">
@@ -336,7 +336,7 @@ const UserMenu = () => {
 const MenuItem = ({ icon, label, sublabel, onClick, badge }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-text-secondary hover:text-text-primary hover:bg-white/[0.05] transition-all group"
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-text-secondary hover:text-text-primary hover:bg-ink/[0.05] transition-all group"
   >
     <svg className="w-[18px] h-[18px] flex-shrink-0 text-text-muted group-hover:text-gold-primary/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {icon}

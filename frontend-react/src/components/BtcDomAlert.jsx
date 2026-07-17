@@ -76,7 +76,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
   const getStatusColor = (status) => {
     if (['tp1', 'tp2', 'tp3', 'closed_win', 'tp4'].includes(status)) return { bg: 'rgba(34,197,94,0.12)', text: '#22c55e', border: 'rgba(34,197,94,0.25)' };
     if (['closed_loss', 'sl'].includes(status)) return { bg: 'rgba(239,68,68,0.12)', text: '#ef4444', border: 'rgba(239,68,68,0.25)' };
-    return { bg: 'rgba(255,255,255,0.05)', text: '#fff', border: 'rgba(255,255,255,0.1)' };
+    return { bg: 'rgb(var(--ink) / 0.05)', text: '#fff', border: 'rgb(var(--ink) / 0.1)' };
   };
 
   const sc = getStatusColor(btcdomSignal.status);
@@ -165,7 +165,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
           </span>
           {btcdomSignal.last_update_at && (
             <>
-              <span className="w-px h-3 bg-white/10" />
+              <span className="w-px h-3 bg-ink/10" />
               <span className="flex items-center gap-1.5">
                 <span className="text-text-muted/50 uppercase tracking-wider text-[9px]">Update</span>
                 <strong className="font-mono font-medium" style={{ color: sc.text }}>{formatExactTime(btcdomSignal.last_update_at)}</strong>
@@ -216,7 +216,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                     <a href="https://www.binance.com/en/support/faq/what-is-bitcoin-dominance-btcdom-e3b1ab97a3e24df4b0e41a469ccf7a21"
                       target="_blank" rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-text-muted hover:text-text-primary hover:border-white/15 transition-all text-[9px] font-medium uppercase tracking-wider">
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-ink/[0.03] border border-ink/[0.07] text-text-muted hover:text-text-primary hover:border-ink/15 transition-all text-[9px] font-medium uppercase tracking-wider">
                       Learn {Icon.external('w-2.5 h-2.5')}
                     </a>
                     <button
@@ -230,17 +230,17 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
 
                 {/* Stat strip — compact inline, divided (secondary data) */}
                 <div className="flex items-stretch rounded-xl overflow-hidden bda-stagger"
-                  style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', '--d': '90ms' }}>
+                  style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px solid rgb(var(--ink) / 0.05)', '--d': '90ms' }}>
                   <div className="flex-1 px-4 py-3">
                     <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Entry</p>
                     <p className="text-text-primary font-mono text-[15px] font-semibold leading-none">{formatPrice(btcdomSignal.entry)}</p>
                   </div>
-                  <div className="w-px bg-white/[0.06]" />
+                  <div className="w-px bg-ink/[0.06]" />
                   <div className="flex-1 px-4 py-3">
                     <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Stop Loss</p>
                     <p className="font-mono text-[15px] font-semibold leading-none text-red-400/90">{formatPrice(btcdomSignal.stop1)}</p>
                   </div>
-                  <div className="w-px bg-white/[0.06]" />
+                  <div className="w-px bg-ink/[0.06]" />
                   <div className="flex-1 px-4 py-3">
                     <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Risk</p>
                     <p className="text-[15px] font-semibold leading-none" style={{ color: riskColor }}>{getRiskLabel(btcdomSignal.risk_level)}</p>
@@ -252,7 +252,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                   <div className="bda-stagger" style={{ '--d': '140ms' }}>
                     <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-3">Target Journey</p>
                     <div className="relative w-full px-1">
-                      <div className="absolute top-[4px] left-1 right-1 h-px bg-white/[0.08] rounded-full" />
+                      <div className="absolute top-[4px] left-1 right-1 h-px bg-ink/[0.08] rounded-full" />
                       <div className="absolute top-[4px] left-1 h-px rounded-full transition-all duration-1000"
                         style={{ width: progressWidth, background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.5)' }} />
                       <div className="relative flex justify-between items-start z-10">
@@ -271,7 +271,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
               </div>
 
               {/* RIGHT COLUMN ── action plan */}
-              <div className="lg:col-span-5 flex flex-col gap-4 lg:pl-6 lg:border-l border-white/[0.06] bda-stagger" style={{ '--d': '110ms' }}>
+              <div className="lg:col-span-5 flex flex-col gap-4 lg:pl-6 lg:border-l border-ink/[0.06] bda-stagger" style={{ '--d': '110ms' }}>
 
                 {/* Section label */}
                 <div className="flex items-center gap-2" style={{ color: accent }}>
@@ -295,7 +295,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                 <div className="flex flex-col gap-3.5 pt-1">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-text-muted"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      style={{ background: 'rgb(var(--ink) / 0.03)', border: '1px solid rgb(var(--ink) / 0.06)' }}>
                       {Icon.shield('w-3.5 h-3.5')}
                     </div>
                     <div>

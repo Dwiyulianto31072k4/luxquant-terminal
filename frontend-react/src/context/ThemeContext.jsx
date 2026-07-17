@@ -1,6 +1,6 @@
 // src/context/ThemeContext.jsx
 //
-// Theme system (M2). Drives the `data-theme` attribute on <html>, which flips
+// Theme system. Drives the `data-theme` attribute on <html>, which flips
 // the semantic colour tokens defined in styles/index.css.
 //
 // GATED ROLLOUT: while the feature is in testing, only admin staff can switch
@@ -13,18 +13,22 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import { isAdminStaff } from '../utils/roles';
 
-// THEMES = valid CSS themes; SELECTABLE = what a user may actually switch to.
-// Bright is temporarily NOT selectable while Dark is polished. Anyone whose
-// stored theme is a non-selectable one (e.g. a leftover 'bright') is migrated
-// back to the default so they can never get stuck in a hidden theme.
+// THEMES = valid CSS themes; SELECTABLE = what a gated user may switch to.
+// Bright is admin-preview only (GATE_TO_ADMINS) until product sign-off.
 const THEMES = ['luxquant', 'dark', 'bright'];
-const SELECTABLE_THEMES = ['luxquant', 'dark'];
+const SELECTABLE_THEMES = ['luxquant', 'dark', 'bright'];
 const DEFAULT_THEME = 'luxquant';
 const STORAGE_KEY = 'lq-theme';
 
 // While true, theme switching is limited to admin staff (admin/co_admin/founder).
 // Set to false to open the feature to all users.
 const GATE_TO_ADMINS = true;
+
+const THEME_COLOR = {
+  luxquant: '#0a0506',
+  dark: '#050506',
+  bright: '#f6f6f8',
+};
 
 const ThemeContext = createContext(null);
 
@@ -37,8 +41,6 @@ export const useTheme = () => {
 function readStored() {
   try {
     const t = localStorage.getItem(STORAGE_KEY);
-    // Only honour a stored theme that is still selectable — this migrates any
-    // leftover 'bright' (or unknown) value back to the default.
     return SELECTABLE_THEMES.includes(t) ? t : null;
   } catch {
     return null;
@@ -55,9 +57,15 @@ export const ThemeProvider = ({ children }) => {
   const effectiveTheme = canSwitchTheme ? theme : DEFAULT_THEME;
 
   // Apply to <html>; persist only for eligible users so members never carry a
-  // stored non-default theme.
+  // stored non-default theme. Also sync theme-color meta for mobile chrome.
   useEffect(() => {
     document.documentElement.dataset.theme = effectiveTheme;
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', THEME_COLOR[effectiveTheme] || THEME_COLOR.luxquant);
+    } catch {
+      /* ignore */
+    }
     if (canSwitchTheme) {
       try {
         localStorage.setItem(STORAGE_KEY, effectiveTheme);
@@ -80,6 +88,7 @@ export const ThemeProvider = ({ children }) => {
     theme: effectiveTheme,
     setTheme,
     themes: SELECTABLE_THEMES,
+    allThemes: THEMES,
     canSwitchTheme,
   };
 

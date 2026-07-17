@@ -10,7 +10,7 @@ import { GoldButton, GhostButton } from '../../autotrade/AutoTradeUI';
 
 const Field = ({ label, hint, required, children }) => (
   <div>
-    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
+    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--ink) / 0.4)' }}>
       {label}{required && <span style={{ color: 'rgb(var(--neg))' }}> *</span>}
       {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</span>}
     </label>
@@ -23,7 +23,7 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
   return (
     <button type="button" onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-all"
-      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
+      style={{ background: selected ? `${color}18` : 'rgb(var(--ink) / 0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgb(var(--ink) / 0.06)'}` }}>
       {Icon && <Icon size={12} />}
       {label}
     </button>
@@ -66,7 +66,7 @@ const TagsInput = ({ tags, onChange }) => {
     else if (e.key === 'Backspace' && input === '' && tags.length > 0) removeTag(tags[tags.length - 1]);
   };
   return (
-    <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg p-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
+    <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg p-2" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }}>
       {tags.map((t) => (
         <span key={t} className="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px]" style={{ background: 'rgba(212,168,83,0.08)', color: 'rgb(var(--accent))', border: '1px solid rgb(var(--line) / 0.22)' }}>
           #{t}
@@ -143,12 +143,12 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
       <div className="space-y-4">
         <Field label="Title" required>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Implement AI Arena v6 frontend" maxLength={200}
-            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
         </Field>
 
         <Field label="Description" hint="(optional)">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Detail, context, acceptance criteria…"
-            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
         </Field>
 
         <Field label="Category">
@@ -179,7 +179,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
 
         <Field label="Due Date" hint="(optional)">
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+            className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)', colorScheme: 'dark' }} />
         </Field>
 
         <Field label="Tags" hint="(Enter or comma to add)">
@@ -193,7 +193,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
         )}
 
         {isEdit && editingItem && (
-          <div className="space-y-0.5 rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}>
+          <div className="space-y-0.5 rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.04)', color: 'rgb(var(--fg-muted))' }}>
             <p>Created {new Date(editingItem.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {editingItem.creator && <> by @{editingItem.creator.username}</>}</p>
             {editingItem.completer && (

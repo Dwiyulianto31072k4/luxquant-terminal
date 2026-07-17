@@ -36,7 +36,7 @@ const statusesFor = (impact) => (impact === 'maintenance' ? MAINTENANCE_STATUSES
 const fmt = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return ''; } };
 
 // ── shared field styling ──────────────────────────────────────────────
-const fieldStyle = { background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgb(var(--fg))' };
+const fieldStyle = { background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.08)', color: 'rgb(var(--fg))' };
 const Field = (props) => (
   <input {...props} className="w-full rounded-md px-3 py-2 text-[13px] focus:outline-none placeholder:text-text-primary/30" style={fieldStyle} />
 );
@@ -93,25 +93,25 @@ function CreateForm({ components, onCreated, onError }) {
 
   return (
     <div className="rounded-xl p-4 sm:p-5 relative overflow-hidden mb-6"
-      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)' }}>
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], 0.4)}, transparent)` }} />
       <div className="flex items-center gap-2 mb-4">
         <PlusIcon size={13} style={{ color: palette.gold[300] }} />
         <span className="text-[11px] uppercase font-semibold tracking-[0.08em] text-text-primary/80">New Incident</span>
       </div>
 
-      <label className="block text-[11px] mb-1" style={{ color: palette.warm[400] }}>Title</label>
+      <label className="block text-[11px] mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>Title</label>
       <Field value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Signals delivery delayed" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
         <div>
-          <label className="block text-[11px] mb-1" style={{ color: palette.warm[400] }}>Impact</label>
+          <label className="block text-[11px] mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>Impact</label>
           <Select value={impact} onChange={(e) => setImpact(e.target.value)}>
             {IMPACTS.map((i) => <option key={i.v} value={i.v}>{i.label}</option>)}
           </Select>
         </div>
         <div>
-          <label className="block text-[11px] mb-1" style={{ color: palette.warm[400] }}>Starting status</label>
+          <label className="block text-[11px] mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>Starting status</label>
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
             {statusesFor(impact).map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
           </Select>
@@ -121,17 +121,17 @@ function CreateForm({ components, onCreated, onError }) {
       {impact === 'maintenance' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           <div>
-            <label className="block text-[11px] mb-1" style={{ color: palette.warm[400] }}>Scheduled from</label>
+            <label className="block text-[11px] mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>Scheduled from</label>
             <Field type="datetime-local" value={schedFor} onChange={(e) => setSchedFor(e.target.value)} />
           </div>
           <div>
-            <label className="block text-[11px] mb-1" style={{ color: palette.warm[400] }}>Until</label>
+            <label className="block text-[11px] mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>Until</label>
             <Field type="datetime-local" value={schedUntil} onChange={(e) => setSchedUntil(e.target.value)} />
           </div>
         </div>
       )}
 
-      <label className="block text-[11px] mb-1 mt-3" style={{ color: palette.warm[400] }}>Affected components</label>
+      <label className="block text-[11px] mb-1 mt-3" style={{ color: 'rgb(var(--fg-muted))' }}>Affected components</label>
       <div className="flex flex-wrap gap-2">
         {components.map((c) => {
           const on = affected.includes(c.key);
@@ -139,9 +139,9 @@ function CreateForm({ components, onCreated, onError }) {
             <button key={c.key} onClick={() => toggle(c.key)}
               className="px-2.5 py-1.5 rounded-md text-[12px] transition-colors"
               style={{
-                background: on ? tint(palette.gold[300], 0.15) : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${on ? tint(palette.gold[300], 0.3) : 'rgba(255,255,255,0.08)'}`,
-                color: on ? palette.gold[300] : palette.warm[200], transition: motion.base,
+                background: on ? tint(palette.gold[300], 0.15) : 'rgb(var(--ink) / 0.03)',
+                border: `1px solid ${on ? tint(palette.gold[300], 0.3) : 'rgb(var(--ink) / 0.08)'}`,
+                color: on ? palette.gold[300] : 'rgb(var(--fg-secondary))', transition: motion.base,
               }}>
               {c.name}
             </button>
@@ -149,7 +149,7 @@ function CreateForm({ components, onCreated, onError }) {
         })}
       </div>
 
-      <label className="block text-[11px] mb-1 mt-3" style={{ color: palette.warm[400] }}>First update (what users see)</label>
+      <label className="block text-[11px] mb-1 mt-3" style={{ color: 'rgb(var(--fg-muted))' }}>First update (what users see)</label>
       <textarea value={message} onChange={(e) => setMessage(e.target.value)}
         className="w-full rounded-md px-3 py-2 text-[13px] min-h-[70px] focus:outline-none placeholder:text-text-primary/30" style={fieldStyle}
         placeholder="e.g. We're investigating delays in signal delivery and will update shortly." />
@@ -170,31 +170,31 @@ function CreateForm({ components, onCreated, onError }) {
 // Incident card (admin)
 // ════════════════════════════════════════════════════════════════════
 function IncidentCard({ inc, busy, onUpdate, onDelete }) {
-  const accent = IMPACT_COLOR[inc.impact] || palette.warm[400];
+  const accent = IMPACT_COLOR[inc.impact] || 'rgb(var(--fg-muted))';
   const closed = isClosed(inc.status);
   const [newStatus, setNewStatus] = useState(inc.status);
   const [body, setBody] = useState('');
   const options = statusesFor(inc.impact);
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${closed ? 'rgba(255,255,255,0.07)' : tint(accent, 0.3)}` }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${closed ? 'rgb(var(--ink) / 0.07)' : tint(accent, 0.3)}` }}>
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(accent, 0.3)}, transparent)` }} />
       <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ background: closed ? 'transparent' : tint(accent, 0.05) }}>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13.5px] font-semibold text-text-primary truncate">{inc.title}</span>
             {inc.auto && (
-              <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: palette.warm[300], border: '1px solid rgba(255,255,255,0.08)' }}>Auto</span>
+              <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'rgb(var(--ink) / 0.06)', color: 'rgb(var(--fg-secondary))', border: '1px solid rgb(var(--ink) / 0.08)' }}>Auto</span>
             )}
           </div>
-          <div className="text-[10px] mt-0.5" style={{ color: palette.warm[400] }}>
+          <div className="text-[10px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
             {inc.impact} · {(inc.affected || []).join(', ') || 'no components'}
           </div>
         </div>
         <Badge status={inc.status} />
       </div>
 
-      <div className="px-4 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="px-4 py-3 border-t" style={{ borderColor: 'rgb(var(--ink) / 0.06)' }}>
         {!closed ? (
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="sm:w-44 shrink-0"><Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>{options.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}</Select></div>
@@ -206,16 +206,16 @@ function IncidentCard({ inc, busy, onUpdate, onDelete }) {
             </button>
           </div>
         ) : (
-          <p className="text-[12px]" style={{ color: palette.warm[400] }}>Closed — shown under “Past Incidents” on the public page.</p>
+          <p className="text-[12px]" style={{ color: 'rgb(var(--fg-muted))' }}>Closed — shown under “Past Incidents” on the public page.</p>
         )}
 
         {inc.updates?.length > 0 && (
-          <div className="mt-3 space-y-2 border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="mt-3 space-y-2 border-t pt-3" style={{ borderColor: 'rgb(var(--ink) / 0.06)' }}>
             {inc.updates.slice().reverse().map((u, i) => (
               <div key={i} className="text-[12px] flex flex-wrap items-baseline gap-x-2">
                 <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: accent }}>{LABEL[u.status] || u.status}</span>
-                <span className="text-[10px]" style={{ color: palette.warm[500] }}>{fmt(u.created_at)}</span>
-                {u.body && <span style={{ color: palette.warm[200] }}>{u.body}</span>}
+                <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{fmt(u.created_at)}</span>
+                {u.body && <span style={{ color: 'rgb(var(--fg-secondary))' }}>{u.body}</span>}
               </div>
             ))}
           </div>
@@ -275,7 +275,7 @@ export function StatusTab() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-[12px]" style={{ color: palette.warm[300] }}>
+        <div className="flex items-center gap-2 text-[12px]" style={{ color: 'rgb(var(--fg-secondary))' }}>
           <BellIcon size={13} style={{ color: palette.gold[300] }} />
           <span>Incidents shown on the public</span>
           <a href="/status" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold" style={{ color: palette.gold[300] }}>
@@ -284,7 +284,7 @@ export function StatusTab() {
           <span>page.</span>
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: palette.warm[200] }}>
+          style={{ background: 'rgb(var(--ink) / 0.04)', border: '1px solid rgb(var(--ink) / 0.08)', color: 'rgb(var(--fg-secondary))' }}>
           <RefreshIcon size={12} /> Refresh
         </button>
       </div>
@@ -299,13 +299,13 @@ export function StatusTab() {
       <CreateForm components={components} onCreated={load} onError={setErr} />
 
       {/* Active */}
-      <div className="text-[11px] uppercase font-semibold tracking-[0.08em] mb-3" style={{ color: palette.warm[300] }}>
+      <div className="text-[11px] uppercase font-semibold tracking-[0.08em] mb-3" style={{ color: 'rgb(var(--fg-secondary))' }}>
         Active {active.length > 0 && <span style={{ color: palette.amber[400] }}>· {active.length}</span>}
       </div>
       {loading ? (
-        <div className="py-8 text-center text-[13px]" style={{ color: palette.warm[400] }}>Loading…</div>
+        <div className="py-8 text-center text-[13px]" style={{ color: 'rgb(var(--fg-muted))' }}>Loading…</div>
       ) : active.length === 0 ? (
-        <div className="rounded-xl py-8 text-center text-[13px] mb-6" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', color: palette.warm[400] }}>
+        <div className="rounded-xl py-8 text-center text-[13px] mb-6" style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px solid rgb(var(--ink) / 0.06)', color: 'rgb(var(--fg-muted))' }}>
           <CheckCircleIcon size={18} style={{ color: palette.green[400], display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />
           No active incidents — all clear.
         </div>
@@ -318,7 +318,7 @@ export function StatusTab() {
       {/* Past */}
       {past.length > 0 && (
         <>
-          <div className="text-[11px] uppercase font-semibold tracking-[0.08em] mb-3" style={{ color: palette.warm[400] }}>Past</div>
+          <div className="text-[11px] uppercase font-semibold tracking-[0.08em] mb-3" style={{ color: 'rgb(var(--fg-muted))' }}>Past</div>
           <div className="space-y-3">
             {past.map((inc) => <IncidentCard key={inc.id} inc={inc} busy={busy} onUpdate={postUpdate} onDelete={remove} />)}
           </div>

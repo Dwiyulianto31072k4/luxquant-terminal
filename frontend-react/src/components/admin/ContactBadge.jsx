@@ -108,7 +108,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
     >
       <div
         className="flex items-center justify-center w-9 h-9 rounded-md shrink-0"
-        style={{ background: 'rgba(0,0,0,0.25)', color: cfg.color }}
+        style={{ background: 'rgb(var(--scrim) / 0.25)', color: cfg.color }}
       >
         <Icon size={18} colored />
       </div>
@@ -133,9 +133,9 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
             <span
               className="text-[8px] font-bold px-1.5 py-px rounded"
               style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'rgb(var(--ink) / 0.04)',
                 color: 'rgb(var(--fg-muted))',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid rgb(var(--ink) / 0.06)',
               }}
             >
               OAUTH
@@ -173,9 +173,9 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
           title="Copy"
           className="flex items-center justify-center w-7 h-7 rounded transition-colors"
           style={{
-            background: copied ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)',
+            background: copied ? 'rgba(52,211,153,0.12)' : 'rgb(var(--ink) / 0.03)',
             color: copied ? '#34d399' : '#8a7a6e',
-            border: `1px solid ${copied ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.06)'}`,
+            border: `1px solid ${copied ? 'rgba(52,211,153,0.25)' : 'rgb(var(--ink) / 0.06)'}`,
           }}
         >
           {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}

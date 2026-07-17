@@ -23,7 +23,7 @@ import {
 const STATUS = {
   pending: { label: 'Pending', color: palette.amber[400] },
   recorded: { label: 'Recorded', color: palette.green[400] },
-  waived: { label: 'Waived', color: palette.warm[400] },
+  waived: { label: 'Waived', color: 'rgb(var(--fg-muted))' },
 };
 
 const daysAgo = (iso) => {
@@ -190,7 +190,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
         }}
       >
         <CheckCircleIcon size={14} style={{ color: palette.green[400] }} />
-        <span className="text-[12px]" style={{ color: palette.warm[200] }}>
+        <span className="text-[12px]" style={{ color: 'rgb(var(--fg-secondary))' }}>
           Semua premium/subscriber (sejak 17 Jun 2026) sudah punya record bayar.
         </span>
       </div>
@@ -204,14 +204,14 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
         className="rounded-xl px-4 py-3 mb-1 flex items-center gap-2"
         style={{
           background: 'rgb(var(--surface-raised))',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid rgb(var(--ink) / 0.06)',
         }}
       >
         <div
           className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
           style={{ borderColor: 'rgba(212,168,83,0.25)', borderTopColor: palette.gold[300] }}
         />
-        <span className="text-[11px]" style={{ color: palette.warm[400] }}>
+        <span className="text-[11px]" style={{ color: 'rgb(var(--fg-muted))' }}>
           Checking payment gaps…
         </span>
       </div>
@@ -261,20 +261,20 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                 {users.length}
               </span>
             </div>
-            <p className="text-[10.5px] mt-0.5" style={{ color: palette.warm[400] }}>
+            <p className="text-[10.5px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
               Subscriber/premium aktif tanpa confirmed payment · aturan sejak 17 Jun 2026
             </p>
           </div>
           <div className="flex items-center gap-1.5 ml-1 flex-wrap">
             <SummaryPill label="pending" value={summary.pending ?? pending} color={palette.amber[400]} />
             <SummaryPill label="assigned" value={summary.assigned ?? 0} color={palette.blue[400]} />
-            <SummaryPill label="waived" value={summary.waived ?? 0} color={palette.warm[400]} />
+            <SummaryPill label="waived" value={summary.waived ?? 0} color={'rgb(var(--fg-muted))'} />
           </div>
         </div>
         <ChevronDownIcon
           size={16}
           style={{
-            color: palette.warm[400],
+            color: 'rgb(var(--fg-muted))',
             transform: open ? 'rotate(180deg)' : 'none',
             transition: 'transform .2s',
             flexShrink: 0,
@@ -283,16 +283,16 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
       </button>
 
       {open && (
-        <div className="px-3 pb-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+        <div className="px-3 pb-3 border-t" style={{ borderColor: 'rgb(var(--ink) / 0.05)' }}>
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-2 py-2.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <label className="inline-flex items-center gap-1.5 text-[11px] cursor-pointer select-none" style={{ color: palette.warm[300] }}>
+              <label className="inline-flex items-center gap-1.5 text-[11px] cursor-pointer select-none" style={{ color: 'rgb(var(--fg-secondary))' }}>
                 <input
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="rounded border-white/20"
+                  className="rounded border-ink/20"
                 />
                 {someSelected ? `${selected.size} selected` : 'Select all'}
               </label>
@@ -306,7 +306,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                     style={{
                       background: 'rgb(var(--surface-secondary))',
                       border: `1px solid ${tint(palette.warm[100], 0.14)}`,
-                      color: palette.warm[100],
+                      color: 'rgb(var(--fg))',
                     }}
                   >
                     <option value="">— bulk assign admin —</option>
@@ -324,7 +324,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                     style={{
                       background: 'rgb(var(--surface-secondary))',
                       border: `1px solid ${tint(palette.warm[100], 0.14)}`,
-                      color: palette.warm[100],
+                      color: 'rgb(var(--fg))',
                     }}
                   >
                     <option value="">— bulk status —</option>
@@ -356,7 +356,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
               onClick={load}
               className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10.5px]"
               style={{
-                color: palette.warm[400],
+                color: 'rgb(var(--fg-muted))',
                 border: `1px solid ${tint(palette.warm[100], 0.12)}`,
               }}
             >
@@ -369,7 +369,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
             className="hidden md:grid gap-2 px-2.5 pb-1.5 text-[9.5px] uppercase tracking-wider font-semibold"
             style={{
               gridTemplateColumns: '28px minmax(140px,1.4fr) 130px 110px minmax(160px,1.2fr)',
-              color: 'rgba(255,255,255,0.35)',
+              color: 'rgb(var(--ink) / 0.35)',
             }}
           >
             <span />
@@ -388,7 +388,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                   key={u.user_id}
                   className="rounded-lg p-2.5 md:px-2.5 md:py-2"
                   style={{
-                    background: isSel ? tint(palette.gold[300], 0.04) : 'rgba(255,255,255,0.02)',
+                    background: isSel ? tint(palette.gold[300], 0.04) : 'rgb(var(--ink) / 0.02)',
                     border: `1px solid ${isSel ? tint(palette.gold[300], 0.25) : tint(st.color, 0.18)}`,
                   }}
                 >
@@ -402,7 +402,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                       type="checkbox"
                       checked={isSel}
                       onChange={() => toggleOne(u.user_id)}
-                      className="rounded border-white/20 shrink-0"
+                      className="rounded border-ink/20 shrink-0"
                       aria-label={`Select ${u.username || u.user_id}`}
                     />
 
@@ -425,7 +425,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                           {u.role}
                         </span>
                       </div>
-                      <div className="text-[10.5px] mt-0.5" style={{ color: palette.warm[400] }}>
+                      <div className="text-[10.5px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
                         joined {daysAgo(u.created_at)}
                         {u.subscription_source ? ` · src: ${u.subscription_source}` : ''}
                         {u.assigned_admin_name ? ` · owner: ${u.assigned_admin_name}` : ''}
@@ -443,7 +443,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                       style={{
                         background: 'rgb(var(--surface-secondary))',
                         border: `1px solid ${tint(palette.warm[100], 0.14)}`,
-                        color: palette.warm[100],
+                        color: 'rgb(var(--fg))',
                       }}
                     >
                       <option value="">— assign admin —</option>
@@ -485,11 +485,11 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = 'payment-audit' }) => {
                         style={{
                           background: 'rgb(var(--surface-secondary))',
                           border: `1px solid ${tint(palette.warm[100], 0.12)}`,
-                          color: palette.warm[100],
+                          color: 'rgb(var(--fg))',
                         }}
                       />
                       {saving[u.user_id] && (
-                        <span className="text-[10px] shrink-0" style={{ color: palette.warm[500] }}>
+                        <span className="text-[10px] shrink-0" style={{ color: 'rgb(var(--fg-muted))' }}>
                           saving…
                         </span>
                       )}

@@ -99,7 +99,7 @@ const ImbalanceStrip = ({ imb }) => {
   );
 
   return (
-    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -114,7 +114,7 @@ const ImbalanceStrip = ({ imb }) => {
           </span>
         </div>
 
-        <span className="hidden sm:inline h-3 w-px bg-white/[0.08]" />
+        <span className="hidden sm:inline h-3 w-px bg-ink/[0.08]" />
 
         {/* Bid */}
         <div className="flex items-center gap-2 font-mono text-[11px]">
@@ -138,7 +138,7 @@ const ImbalanceStrip = ({ imb }) => {
           <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/50">
             Ratio
           </span>
-          <div className="w-24 h-1 rounded-sm overflow-hidden flex bg-white/[0.04]">
+          <div className="w-24 h-1 rounded-sm overflow-hidden flex bg-ink/[0.04]">
             <div
               className="h-full bg-emerald-400/60 transition-all duration-700"
               style={{ width: `${imb.bid_pct || 50}%` }}
@@ -189,7 +189,7 @@ const DepthChart = ({ depth, t }) => {
             <span className="font-mono text-[10px] w-[88px] text-right tabular-nums text-text-muted/80 truncate">
               {fmtP(a.price)}
             </span>
-            <div className="flex-1 h-[3px] rounded-sm relative bg-white/[0.02]">
+            <div className="flex-1 h-[3px] rounded-sm relative bg-ink/[0.02]">
               <div
                 className="absolute right-0 top-0 bottom-0 rounded-sm bg-red-400/25 transition-all duration-300"
                 style={{ width: `${pct}%` }}
@@ -219,7 +219,7 @@ const DepthChart = ({ depth, t }) => {
             <span className="font-mono text-[10px] w-[88px] text-right tabular-nums text-text-muted/80 truncate">
               {fmtP(b.price)}
             </span>
-            <div className="flex-1 h-[3px] rounded-sm relative bg-white/[0.02]">
+            <div className="flex-1 h-[3px] rounded-sm relative bg-ink/[0.02]">
               <div
                 className="absolute left-0 top-0 bottom-0 rounded-sm bg-emerald-400/25 transition-all duration-300"
                 style={{ width: `${pct}%` }}
@@ -267,7 +267,7 @@ const SRLevels = ({ sr, t }) => {
         )}
       </div>
 
-      <div className="h-px bg-white/[0.04]" />
+      <div className="h-px bg-ink/[0.04]" />
 
       {/* Support */}
       <div>
@@ -345,7 +345,7 @@ const WallsCard = ({ walls, total, type }) => {
                     </span>
                   </div>
                 </div>
-                <div className="h-[2px] rounded-sm bg-white/[0.03]">
+                <div className="h-[2px] rounded-sm bg-ink/[0.03]">
                   <div
                     className={`h-full rounded-sm bg-${color}-400/60 transition-all duration-500`}
                     style={{ width: `${pct}%` }}
@@ -369,7 +369,7 @@ const WallsCard = ({ walls, total, type }) => {
 // DERIVATIVES CARD (base wrapper)
 // ════════════════════════════════════════════════════════════════
 const DerivCard = ({ label, value, children, headerRight }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative">
       <div className="flex items-center justify-between mb-2">
@@ -427,7 +427,7 @@ const LiqCard = ({ data }) => {
       value={fmt(total)}
     >
       {/* Bar */}
-      <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-white/[0.03]">
+      <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-ink/[0.03]">
         <div className="h-full bg-emerald-400/70" style={{ width: `${lPct}%` }} />
         <div className="h-full bg-red-400/70" style={{ width: `${100 - lPct}%` }} />
       </div>
@@ -526,7 +526,7 @@ const FundingCard = ({ data }) => {
         ))}
       </div>
 
-      <div className="pt-2 border-t border-white/[0.04]">
+      <div className="pt-2 border-t border-ink/[0.04]">
         <p className="text-[10px] font-mono text-text-muted/60 text-center tabular-nums">
           {total.toLocaleString()} pairs tracked
         </p>
@@ -553,7 +553,7 @@ const LSCard = ({ data, symbol }) => {
       value={ratio.toFixed(2)}
     >
       {/* Compact bar */}
-      <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-white/[0.03]">
+      <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-ink/[0.03]">
         <div
           className="h-full bg-emerald-400/70 transition-all duration-700"
           style={{ width: `${lPct}%` }}
@@ -607,7 +607,7 @@ const OICard = ({ data }) => {
                 <span className="text-text-primary font-semibold">{b.symbol}</span>
                 <span className="text-text-muted tabular-nums">{fmt(b.oi_usd)}</span>
               </div>
-              <div className="h-[2px] rounded-sm bg-white/[0.03]">
+              <div className="h-[2px] rounded-sm bg-ink/[0.03]">
                 <div
                   className="h-full rounded-sm bg-gold-primary/70 transition-all duration-500"
                   style={{ width: `${pct}%` }}
@@ -630,16 +630,16 @@ const OICard = ({ data }) => {
 // SKELETON
 // ════════════════════════════════════════════════════════════════
 const SkeletonCard = ({ label }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
     <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-3">
       {label}
     </div>
     <div className="space-y-2">
-      <div className="h-6 bg-white/[0.05] rounded animate-pulse" />
-      <div className="h-2 bg-white/[0.03] rounded animate-pulse" />
-      <div className="h-2 bg-white/[0.03] rounded w-3/4 animate-pulse" />
-      <div className="h-2 bg-white/[0.03] rounded w-1/2 animate-pulse" />
+      <div className="h-6 bg-ink/[0.05] rounded animate-pulse" />
+      <div className="h-2 bg-ink/[0.03] rounded animate-pulse" />
+      <div className="h-2 bg-ink/[0.03] rounded w-3/4 animate-pulse" />
+      <div className="h-2 bg-ink/[0.03] rounded w-1/2 animate-pulse" />
     </div>
   </div>
 );
@@ -754,7 +754,7 @@ export default function OrderBookPage() {
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${
               autoRefresh
                 ? "bg-emerald-500/[0.08] border-emerald-500/25 text-emerald-400"
-                : "bg-white/[0.03] border-white/[0.06] text-text-muted hover:text-text-primary hover:border-white/[0.12]"
+                : "bg-ink/[0.03] border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.12]"
             }`}
           >
             <span
@@ -769,7 +769,7 @@ export default function OrderBookPage() {
 
           <button
             onClick={() => fetchOB(false)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted hover:text-text-primary hover:border-white/[0.12] transition-all"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-ink/[0.06] bg-ink/[0.03] text-text-muted hover:text-text-primary hover:border-ink/[0.12] transition-all"
           >
             <svg
               className="w-3 h-3"
@@ -799,7 +799,7 @@ export default function OrderBookPage() {
                 className={`px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
                     ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.12]"
+                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 {s.label}
@@ -854,7 +854,7 @@ export default function OrderBookPage() {
                 small
                 suffix={data.total_levels ? `${data.total_levels} levels` : null}
               />
-              <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+              <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                 <DepthChart depth={depth} t={t} />
               </div>
@@ -865,7 +865,7 @@ export default function OrderBookPage() {
               {/* S/R Levels */}
               <div>
                 <SectionHeader label="Support / Resistance" small />
-                <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4 mt-3">
+                <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 mt-3">
                   <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                   <SRLevels sr={sr} t={t} />
                 </div>
@@ -875,7 +875,7 @@ export default function OrderBookPage() {
               <div>
                 <SectionHeader label="Liquidity Walls" small />
                 <div className="grid grid-cols-1 gap-3 mt-3">
-                  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
+                  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
                     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
                     <WallsCard
                       walls={walls.buy}
@@ -883,7 +883,7 @@ export default function OrderBookPage() {
                       type="buy"
                     />
                   </div>
-                  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-4">
+                  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
                     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-400/30 to-transparent" />
                     <WallsCard
                       walls={walls.sell}

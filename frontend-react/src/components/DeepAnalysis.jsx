@@ -116,7 +116,7 @@ const Tag = ({ name, important = false }) => {
     if (tag.includes('GOLDEN_SETUP') || tag.includes('FVG_NEAR') || tag.includes('OB_NEAR') || tag.includes('HARMONIC_ALIGNED') || tag.includes('ALT_SEASON')) return 'bg-purple-500/15 text-purple-400 border-purple-500/30';
     if (tag.includes('RANGING') || tag.includes('NEUTRAL') || tag.includes('NORMAL') || tag.includes('UNKNOWN') || tag.includes('FLAT')) return 'bg-gray-500/15 text-gray-400 border-gray-500/30';
     if (tag.includes('FNG_EXTREME') || tag.includes('LIQ_VERY_LOW') || tag.includes('RISK_OFF')) return 'bg-red-500/10 text-red-300 border-red-500/20';
-    return 'bg-white/5 text-text-primary/70 border-white/10';
+    return 'bg-ink/5 text-text-primary/70 border-ink/10';
   };
 
   return (
@@ -133,14 +133,14 @@ const Tag = ({ name, important = false }) => {
 // ============================================================
 
 const FactRow = ({ label, value, subtle = false }) => (
-  <div className="flex items-center justify-between py-1 border-b border-white/5 last:border-b-0">
+  <div className="flex items-center justify-between py-1 border-b border-ink/5 last:border-b-0">
     <span className="text-[10px] text-text-muted uppercase tracking-wider">{label}</span>
     <span className={`text-[11px] font-mono ${subtle ? 'text-text-primary/60' : 'text-text-primary'}`}>{value}</span>
   </div>
 );
 
 const Section = ({ title, children }) => (
-  <div className="bg-surface-raised rounded-lg border border-white/5 p-3 space-y-1 h-full">
+  <div className="bg-surface-raised rounded-lg border border-ink/5 p-3 space-y-1 h-full">
     <p className="text-[9px] text-gold-primary/60 uppercase tracking-wider font-semibold mb-2">{title}</p>
     {children}
   </div>
@@ -198,7 +198,7 @@ const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {stats.map((s, i) => (
-          <div key={i} className="bg-surface-raised/70 rounded-lg border border-white/5 px-2.5 py-2">
+          <div key={i} className="bg-surface-raised/70 rounded-lg border border-ink/5 px-2.5 py-2">
             <p className="text-[8px] uppercase tracking-wider text-text-muted">{s.label}</p>
             <p className={`text-sm font-mono font-bold leading-tight ${s.color}`}>{s.value}</p>
             {s.sub && <p className="text-[8px] text-text-primary/40 truncate">{s.sub}</p>}
@@ -594,11 +594,11 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
           <div className="da-modal-content">
             {/* Drag handle mobile */}
             <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="w-10 h-1 rounded-full bg-ink/20" />
             </div>
 
             {/* HEADER */}
-            <div className="z-10 flex-shrink-0 border-b border-white/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
+            <div className="z-10 flex-shrink-0 border-b border-ink/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <CoinLogo pair={pair} size={30} />
@@ -658,7 +658,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
             {/* Tabs */}
             {v3Data && (
-              <div className="flex flex-shrink-0 border-b border-white/5 bg-surface-raised">
+              <div className="flex flex-shrink-0 border-b border-ink/5 bg-surface-raised">
                 {TABS.map((tab) => (
                   <button
                     key={tab.id}
@@ -677,7 +677,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
             {/* Snapshot selector (Entry vs Live) */}
             {v3Data && v3Data.live_snapshot && v3Data.live_updated_at && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-surface-raised border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center gap-2 px-4 py-2 bg-surface-raised border-b border-ink/5 flex-shrink-0">
                 <button
                   onClick={() => setShowLive(false)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition ${
@@ -751,7 +751,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                     {activeTab === 'context' && <ContextTabContent facts={facts} />}
 
                     {/* History expand */}
-                    <div className="pt-3 border-t border-white/5">
+                    <div className="pt-3 border-t border-ink/5">
                       <button
                         onClick={handleLoadHistory}
                         className="text-[10px] text-gold-primary hover:text-gold-light transition"
@@ -765,7 +765,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                             <p className="text-text-muted text-[10px]">No history yet</p>
                           )}
                           {history.map((entry, i) => (
-                            <div key={i} className="bg-surface-raised rounded border border-white/5 p-2">
+                            <div key={i} className="bg-surface-raised rounded border border-ink/5 p-2">
                               <p className="text-[9px] text-text-muted mb-1">
                                 {new Date(entry.recorded_at).toLocaleString()}
                               </p>
@@ -792,15 +792,15 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
       <style>{`
         /* MUST sit above SignalModal (200000) — nested shell */
         .da-modal-overlay { position: fixed; inset: 0; z-index: 210000; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
-        .da-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .da-modal-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / 0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
         .da-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; max-height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
         .da-modal-container > * { pointer-events: auto; }
-        .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0805; border-top: 1px solid rgba(255,255,255,0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -16px 48px rgba(0,0,0,0.55); animation: daUp .32s cubic-bezier(.16,1,.3,1); }
+        .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0805; border-top: 1px solid rgb(var(--ink) / 0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -16px 48px rgb(var(--scrim) / 0.35); animation: daUp .32s cubic-bezier(.16,1,.3,1); }
 
         @media(min-width:640px) {
           .da-modal-overlay { align-items: center; }
           .da-modal-container { align-items: center; padding: 12px; }
-          .da-modal-content { height: auto; min-height: 0; max-height: calc(100vh - 24px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 64px rgba(0,0,0,0.55); animation: daCI .3s cubic-bezier(.16,1,.3,1); }
+          .da-modal-content { height: auto; min-height: 0; max-height: calc(100vh - 24px); border-radius: 12px; border: 1px solid rgb(var(--ink) / 0.08); box-shadow: 0 24px 64px rgb(var(--scrim) / 0.35); animation: daCI .3s cubic-bezier(.16,1,.3,1); }
         }
         @media(min-width:1024px) {
           .da-modal-container { padding: 20px; }

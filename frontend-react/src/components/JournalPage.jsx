@@ -410,7 +410,7 @@ const JournalPage = () => {
           <h1
             className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
             style={{
-              background: "linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 60%, rgba(212,168,83,0.85) 100%)",
+              background: "linear-gradient(135deg, #ffffff 0%, rgb(var(--ink) / 0.7) 60%, rgba(212,168,83,0.85) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -428,7 +428,7 @@ const JournalPage = () => {
           <button
             onClick={handleExport}
             disabled={entries.length === 0}
-            className="flex items-center gap-2 h-9 px-3 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/85 hover:text-text-primary hover:border-white/[0.14] hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+            className="flex items-center gap-2 h-9 px-3 rounded-md border border-ink/[0.08] bg-ink/[0.03] text-text-muted/85 hover:text-text-primary hover:border-ink/[0.14] hover:bg-ink/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
           >
             <IconDownload className="h-3.5 w-3.5" />
             <span>Export Excel</span>
@@ -444,7 +444,7 @@ const JournalPage = () => {
       </header>
 
       {/* ═══ TAB STRIP ═══ */}
-      <nav className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-1 grid grid-cols-3 gap-1">
+      <nav className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-1 grid grid-cols-3 gap-1">
         <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")} icon={<IconBook className="h-3.5 w-3.5" />} label="History" count={entries.length} />
         <TabButton active={activeTab === "entry"} onClick={() => { if (!editId) resetForm(); setActiveTab("entry"); }} icon={<IconPencil className="h-3.5 w-3.5" />} label={editId ? "Edit Entry" : "New Entry"} />
         <TabButton active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")} icon={<IconChart className="h-3.5 w-3.5" />} label="Analytics" />
@@ -494,13 +494,13 @@ const TabButton = ({ active, onClick, icon, label, count }) => (
   <button
     onClick={onClick}
     className={`relative flex items-center justify-center gap-2 h-10 rounded-sm text-[11px] font-medium uppercase tracking-[0.14em] transition-all ${
-      active ? "bg-gold-primary/12 text-text-primary border border-line/30" : "text-text-muted/65 hover:text-text-primary border border-transparent hover:bg-white/[0.02]"
+      active ? "bg-gold-primary/12 text-text-primary border border-line/30" : "text-text-muted/65 hover:text-text-primary border border-transparent hover:bg-ink/[0.02]"
     }`}
   >
     {icon}
     <span>{label}</span>
     {count != null && (
-      <span className={`text-[9px] font-mono tabular-nums px-1.5 py-0.5 rounded-sm ${active ? "bg-gold-primary/20 text-gold-primary" : "bg-white/[0.05] text-text-muted/55"}`}>
+      <span className={`text-[9px] font-mono tabular-nums px-1.5 py-0.5 rounded-sm ${active ? "bg-gold-primary/20 text-gold-primary" : "bg-ink/[0.05] text-text-muted/55"}`}>
         {count}
       </span>
     )}
@@ -552,7 +552,7 @@ const HistoryView = ({
   // ─── Loading ───
   if (loading) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 text-center">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-10 text-center">
         <div className="text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
           Loading journal…
         </div>
@@ -594,7 +594,7 @@ const HistoryView = ({
 
 // ── Empty state ──────────────────────────────────────────
 const HistoryEmptyState = ({ onNewEntry }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 sm:p-16 text-center">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-10 sm:p-16 text-center">
     <div className="relative z-10 flex flex-col items-center gap-4">
       <div className="w-14 h-14 rounded-md border border-line/20 bg-gold-primary/[0.06] flex items-center justify-center text-gold-primary/70">
         <IconBook className="h-6 w-6" />
@@ -635,8 +635,8 @@ const MetricStrip = ({ stats }) => {
   ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
-      <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 divide-x divide-y sm:divide-y-0 divide-white/[0.04]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+      <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 divide-x divide-y sm:divide-y-0 divide-ink/[0.04]">
         {cells.map((cell, i) => (
           <MetricCell key={i} {...cell} />
         ))}
@@ -673,7 +673,7 @@ const EquityCurveCard = ({ points }) => {
   const hasData = points.length >= 2;
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
       <div className="relative z-10 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
@@ -697,7 +697,7 @@ const EquityCurveCard = ({ points }) => {
                 <span className="text-[9px] uppercase tracking-[0.18em] text-text-muted/55">Peak</span>
                 <span className="text-text-primary/85 mt-0.5">{fmtMoney(peakEq)}</span>
               </div>
-              <div className="w-px h-7 bg-white/[0.08]" />
+              <div className="w-px h-7 bg-ink/[0.08]" />
               <div className="flex flex-col items-end">
                 <span className="text-[9px] uppercase tracking-[0.18em] text-text-muted/55">Drawdown</span>
                 <span className={`mt-0.5 ${drawdown < -1 ? "text-red-400" : "text-text-primary/85"}`}>{fmtPct(drawdown, { sign: true })}</span>
@@ -752,10 +752,10 @@ const EquitySvg = ({ points }) => {
         </linearGradient>
       </defs>
       {grid.map((v, i) => (
-        <line key={i} x1={PAD.left} x2={W - PAD.right} y1={yAt(v)} y2={yAt(v)} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="2 3" />
+        <line key={i} x1={PAD.left} x2={W - PAD.right} y1={yAt(v)} y2={yAt(v)} stroke="rgb(var(--ink) / 0.04)" strokeWidth="1" strokeDasharray="2 3" />
       ))}
       {minV < 0 && maxV > 0 && (
-        <line x1={PAD.left} x2={W - PAD.right} y1={zeroY} y2={zeroY} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <line x1={PAD.left} x2={W - PAD.right} y1={zeroY} y2={zeroY} stroke="rgb(var(--ink) / 0.12)" strokeWidth="1" />
       )}
       <path d={areaPath} fill={`url(#eq-area${isProfit ? "" : "-neg"})`} />
       <path d={linePath} fill="none" stroke={accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -790,10 +790,10 @@ const FilterBar = ({
   ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
       <div className="relative z-10 p-3 flex flex-col gap-3">
         <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-white/[0.05]">
+          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-ink/[0.05]">
             <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-gold-primary/70 shrink-0" />
             <input
               type="text"
@@ -807,7 +807,7 @@ const FilterBar = ({
           <select
             value={filterStrategy}
             onChange={(e) => setFilterStrategy(e.target.value)}
-            className="h-9 px-2.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-white/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
+            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
           >
             <option value="all">All Strategy</option>
             {STRATEGY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -820,7 +820,7 @@ const FilterBar = ({
               setSortBy(field === "pnl" ? "pnl_usd" : field === "entry" ? "entry_at" : field);
               setSortOrder(order);
             }}
-            className="h-9 px-2.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-white/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
+            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
           >
             <option value="entry_at_desc">Newest first</option>
             <option value="entry_at_asc">Oldest first</option>
@@ -833,7 +833,7 @@ const FilterBar = ({
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 items-center pt-2.5 border-t border-white/[0.04]">
+        <div className="flex flex-wrap gap-1.5 items-center pt-2.5 border-t border-ink/[0.04]">
           <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted/55 mr-1">Status</span>
           {statuses.map((s) => (
             <button
@@ -842,7 +842,7 @@ const FilterBar = ({
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
                 filterStatus === s.v
                   ? "bg-gold-primary/15 text-text-primary border-line/40"
-                  : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
+                  : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
               }`}
             >
               {s.l}
@@ -861,7 +861,7 @@ const FilterBar = ({
 const TradeTable = ({ entries, onEdit, onDelete }) => {
   if (entries.length === 0) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-10 flex flex-col items-center gap-3">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-10 flex flex-col items-center gap-3">
         <IconFilter className="h-6 w-6 text-text-muted/30" />
         <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
           No trades match your filters
@@ -871,13 +871,13 @@ const TradeTable = ({ entries, onEdit, onDelete }) => {
   }
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
       <div className="relative z-10">
         {/* DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 border-b border-white/[0.06] bg-white/[0.015]">
+              <tr className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 border-b border-ink/[0.06] bg-ink/[0.015]">
                 <th className="px-4 py-2.5 text-left">Date</th>
                 <th className="px-4 py-2.5 text-left">Pair</th>
                 <th className="px-2 py-2.5 text-left">Dir</th>
@@ -898,12 +898,12 @@ const TradeTable = ({ entries, onEdit, onDelete }) => {
         </div>
 
         {/* MOBILE */}
-        <div className="md:hidden divide-y divide-white/[0.04]">
+        <div className="md:hidden divide-y divide-ink/[0.04]">
           {entries.map((e) => <MobileCard key={e.id} entry={e} onEdit={onEdit} />)}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-white/[0.06] flex items-center justify-between bg-white/[0.015]">
+        <div className="px-4 py-2 border-t border-ink/[0.06] flex items-center justify-between bg-ink/[0.015]">
           <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45">
             {entries.length} {entries.length === 1 ? "entry" : "entries"}
           </span>
@@ -925,7 +925,7 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
   return (
     <tr
       onClick={() => onEdit(entry)}
-      className="border-b border-white/[0.025] hover:bg-white/[0.025] cursor-pointer transition-colors group"
+      className="border-b border-ink/[0.025] hover:bg-ink/[0.025] cursor-pointer transition-colors group"
     >
       <td className="px-4 py-2.5 text-[11px] font-mono tabular-nums text-text-muted/75 whitespace-nowrap">
         {fmtDate(entry.entry_at)}
@@ -958,7 +958,7 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
       </td>
       <td className="px-3 py-2.5 text-center">
         {entry.emotions?.mood ? (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-sm bg-white/[0.04] text-[10px] font-mono text-text-muted/85" title={entry.emotions.mood}>
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-sm bg-ink/[0.04] text-[10px] font-mono text-text-muted/85" title={entry.emotions.mood}>
             {MOOD_GLYPH[entry.emotions.mood] || entry.emotions.mood[0]}
           </span>
         ) : <span className="text-text-muted/30 text-[10px] font-mono">—</span>}
@@ -987,7 +987,7 @@ const MobileCard = ({ entry, onEdit }) => {
   const pnlPositive = (entry.pnl_usd ?? 0) >= 0;
 
   return (
-    <button onClick={() => onEdit(entry)} className="w-full text-left px-4 py-3 hover:bg-white/[0.02] transition-colors">
+    <button onClick={() => onEdit(entry)} className="w-full text-left px-4 py-3 hover:bg-ink/[0.02] transition-colors">
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <CoinLogo pair={entry.pair} size={26} />
@@ -1077,7 +1077,7 @@ const CalendarHeatmap = ({ entries }) => {
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
       <div className="relative z-10 p-3.5">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -1096,11 +1096,11 @@ const CalendarHeatmap = ({ entries }) => {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={goPrev} className="w-6 h-6 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-text-primary hover:border-white/[0.14] transition-colors flex items-center justify-center">
+            <button onClick={goPrev} className="w-6 h-6 rounded-sm border border-ink/[0.06] bg-ink/[0.02] text-text-muted/60 hover:text-text-primary hover:border-ink/[0.14] transition-colors flex items-center justify-center">
               <IconChevL className="h-3 w-3" />
             </button>
-            <button onClick={goToday} className="h-6 px-2 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-text-primary hover:border-white/[0.14] transition-colors text-[9px] font-medium uppercase tracking-[0.15em]">Today</button>
-            <button onClick={goNext} className="w-6 h-6 rounded-sm border border-white/[0.06] bg-white/[0.02] text-text-muted/60 hover:text-text-primary hover:border-white/[0.14] transition-colors flex items-center justify-center">
+            <button onClick={goToday} className="h-6 px-2 rounded-sm border border-ink/[0.06] bg-ink/[0.02] text-text-muted/60 hover:text-text-primary hover:border-ink/[0.14] transition-colors text-[9px] font-medium uppercase tracking-[0.15em]">Today</button>
+            <button onClick={goNext} className="w-6 h-6 rounded-sm border border-ink/[0.06] bg-ink/[0.02] text-text-muted/60 hover:text-text-primary hover:border-ink/[0.14] transition-colors flex items-center justify-center">
               <IconChevR className="h-3 w-3" />
             </button>
           </div>
@@ -1119,12 +1119,12 @@ const CalendarHeatmap = ({ entries }) => {
             const data = dayMap[key];
             const isToday = key === todayKey;
 
-            let bg = "rgba(255,255,255,0.015)", textColor = "rgba(255,255,255,0.45)", border = "rgba(255,255,255,0.04)";
+            let bg = "rgb(var(--ink) / 0.015)", textColor = "rgb(var(--ink) / 0.45)", border = "rgb(var(--ink) / 0.04)";
             if (data) {
               const intensity = Math.min(Math.abs(data.pnl) / 200, 0.7) + 0.2;
               if (data.pnl > 0) { bg = `rgba(16,185,129,${intensity * 0.35})`; border = `rgba(16,185,129,${intensity * 0.4})`; textColor = "#34d399"; }
               else if (data.pnl < 0) { bg = `rgba(239,68,68,${intensity * 0.35})`; border = `rgba(239,68,68,${intensity * 0.4})`; textColor = "#f87171"; }
-              else { bg = "rgba(212,168,83,0.08)"; border = "rgba(212,168,83,0.2)"; textColor = "rgba(255,255,255,0.7)"; }
+              else { bg = "rgba(212,168,83,0.08)"; border = "rgba(212,168,83,0.2)"; textColor = "rgb(var(--ink) / 0.7)"; }
             }
             if (isToday) border = "rgba(212,168,83,0.6)";
 
@@ -1142,7 +1142,7 @@ const CalendarHeatmap = ({ entries }) => {
           })}
         </div>
 
-        <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/50">
+        <div className="mt-3 pt-2.5 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/50">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500/40 border border-emerald-500/40" />profit</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/40 border border-red-500/40" />loss</span>
@@ -1292,7 +1292,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
   if (selectedSignalId) {
     const lk = signals.find((s) => s.signal_id === selectedSignalId);
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-surface-secondary via-surface-raised to-surface-secondary border border-line/25 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-surface-secondary via-surface-raised to-surface-secondary border border-line/25 rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)]">
         <div className="relative z-10 p-3 flex items-center gap-3">
           <span className="w-8 h-8 rounded-md border border-line/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary flex-shrink-0">
             <IconLink className="h-3.5 w-3.5" />
@@ -1311,7 +1311,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
           </div>
           <button
             onClick={onClear}
-            className="h-7 px-2.5 rounded-sm border border-white/[0.08] bg-white/[0.03] text-text-muted/65 hover:text-red-300 hover:border-red-500/30 text-[10px] font-medium uppercase tracking-[0.15em] transition-all"
+            className="h-7 px-2.5 rounded-sm border border-ink/[0.08] bg-ink/[0.03] text-text-muted/65 hover:text-red-300 hover:border-red-500/30 text-[10px] font-medium uppercase tracking-[0.15em] transition-all"
           >
             Unlink
           </button>
@@ -1333,9 +1333,9 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-2 rounded-md overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/60 bg-surface-raised">
-          <div className="p-2 border-b border-white/[0.06]">
-            <label className="group flex h-9 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-white/[0.05]">
+        <div className="absolute z-50 top-full left-0 right-0 mt-2 rounded-md overflow-hidden border border-ink/[0.08] shadow-2xl shadow-black/60 bg-surface-raised">
+          <div className="p-2 border-b border-ink/[0.06]">
+            <label className="group flex h-9 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-ink/[0.05]">
               <IconSearch className="h-3.5 w-3.5 text-text-muted/55 shrink-0" />
               <input
                 type="text"
@@ -1357,7 +1357,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
                 <button
                   key={sig.signal_id}
                   onClick={() => handleSelect(sig)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.03] transition-all text-left border-b border-white/[0.025] last:border-0"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-ink/[0.03] transition-all text-left border-b border-ink/[0.025] last:border-0"
                 >
                   <CoinLogo pair={sig.pair} size={26} />
                   <div className="flex-1 min-w-0">
@@ -1384,7 +1384,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
               ))
             )}
           </div>
-          <div className="p-2 border-t border-white/[0.06]">
+          <div className="p-2 border-t border-ink/[0.06]">
             <button
               onClick={() => setOpen(false)}
               className="w-full h-7 text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/55 hover:text-text-primary transition-colors"
@@ -1411,8 +1411,8 @@ const LivePreviewBanner = ({ form, preview }) => {
     preview.pnl >= 0 ? "closed_win" : "closed_loss";
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
-      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-white/[0.04]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-ink/[0.04]">
         <PreviewCell label="P&L $" value={hasPnl ? fmtMoney(preview.pnl, { sign: true }) : "—"} accent={hasPnl ? (isPositive ? "emerald" : "red") : null} />
         <PreviewCell label="P&L %" value={preview.pct != null ? fmtPct(preview.pct, { sign: true }) : "—"} accent={preview.pct != null ? (preview.pct >= 0 ? "emerald" : "red") : null} />
         <PreviewCell label="R:R" value={preview.rr != null ? `${preview.rr >= 0 ? "+" : ""}${preview.rr.toFixed(2)}` : "—"} accent={preview.rr != null ? (preview.rr >= 1 ? "emerald" : preview.rr < 0 ? "red" : "white") : null} />
@@ -1445,7 +1445,7 @@ const PreviewCell = ({ label, value, accent, isStatus, statusKey }) => {
 // ════════════════════════════════════════════════════════════════
 
 const FormCard = ({ title, icon, description, children }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
@@ -1543,7 +1543,7 @@ const DirectionButton = ({ active, onClick, type }) => {
       className={`h-9 rounded-md text-[11px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center justify-center gap-1.5 ${
         active
           ? isLong ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40" : "bg-red-500/15 text-red-300 border-red-500/40"
-          : "bg-white/[0.03] text-text-muted/55 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
+          : "bg-ink/[0.03] text-text-muted/55 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
       }`}
     >
       {isLong ? <IconUpTri /> : <IconDownTri />}
@@ -1597,7 +1597,7 @@ const PsychologySection = ({ form, updateEmotion }) => (
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center gap-1.5 ${
                 form.emotions.mood === m
                   ? "bg-gold-primary/15 text-text-primary border-line/40"
-                  : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
+                  : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
               }`}
             >
               <span className="font-mono text-[11px] leading-none">{MOOD_GLYPH[m]}</span>
@@ -1626,10 +1626,10 @@ const SliderField = ({ label, value, onChange, leftLabel, rightLabel, color = "e
         <span className="text-sm font-light tabular-nums text-text-primary tracking-tight">{v}</span>
       </div>
       <div className="relative h-7 flex items-center">
-        <div className="absolute inset-x-0 h-1.5 rounded-full bg-white/[0.04] border border-white/[0.04]" />
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-ink/[0.04] border border-ink/[0.04]" />
         <div className="absolute h-1.5 rounded-full transition-all duration-150" style={{ width: `${pct}%`, background: colorVar.fill, boxShadow: `0 0 8px ${colorVar.glow}` }} />
         <div className="absolute inset-x-0 flex justify-between pointer-events-none">
-          {Array.from({ length: 11 }).map((_, i) => <div key={i} className="w-px h-2 bg-white/[0.05]" />)}
+          {Array.from({ length: 11 }).map((_, i) => <div key={i} className="w-px h-2 bg-ink/[0.05]" />)}
         </div>
         <input
           type="range" min="0" max="10" step="1"
@@ -1678,7 +1678,7 @@ const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "g
               type="button"
               onClick={() => onToggle(opt)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium tracking-tight transition-all border flex items-center gap-1.5 ${
-                active ? accentMap.active : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
+                active ? accentMap.active : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
               }`}
             >
               {active && <IconCheck className="h-2.5 w-2.5" />}
@@ -1696,7 +1696,7 @@ const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "g
 // ════════════════════════════════════════════════════════════════
 
 const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] sticky bottom-3 z-30 backdrop-blur-md">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] sticky bottom-3 z-30 backdrop-blur-md">
     <div className="relative z-10 p-3 flex items-center justify-between gap-2 flex-wrap">
       <div className="flex items-center gap-2">
         {onDelete && (
@@ -1712,7 +1712,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center h-9 px-3 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/85 hover:text-text-primary hover:border-white/[0.14] hover:bg-white/[0.05] transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+          className="flex items-center h-9 px-3 rounded-md border border-ink/[0.08] bg-ink/[0.03] text-text-muted/85 hover:text-text-primary hover:border-ink/[0.14] hover:bg-ink/[0.05] transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
         >
           Cancel
         </button>
@@ -1737,7 +1737,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
 const AnalyticsView = ({ stats, insights, entries }) => {
   if (!stats) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-12 text-center">
+      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-12 text-center">
         <div className="flex flex-col items-center gap-3">
           <IconChart className="h-7 w-7 text-text-muted/30" />
           <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
@@ -1839,7 +1839,7 @@ const AnalyticsHero = ({ stats, profitFactor, expectancy, closedCount }) => {
 const HeroCard = ({ label, value, sub, accent }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400", amber: "text-amber-400", white: "text-text-primary" };
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all hover:border-white/[0.10]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 transition-all hover:border-ink/[0.10]">
       <div className="relative z-10 flex flex-col gap-1">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
         <span className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none mt-1 ${colorMap[accent] || "text-text-primary"}`}>{value}</span>
@@ -1851,7 +1851,7 @@ const HeroCard = ({ label, value, sub, accent }) => {
 
 // ── AI Coach Insights ────────────────────────────────────
 const AICoachCard = ({ insights, stats, closedCount }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-surface-secondary to-surface-raised border border-line/15 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-surface-secondary to-surface-raised border border-line/15 rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)]">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="flex items-center gap-2.5 mb-3">
         <span className="w-7 h-7 rounded-md border border-line/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary">
@@ -1873,7 +1873,7 @@ const AICoachCard = ({ insights, stats, closedCount }) => (
       </div>
 
       {!insights || !insights.insights || insights.insights.length === 0 ? (
-        <div className="px-3 py-3 bg-white/[0.02] border border-white/[0.04] rounded-md">
+        <div className="px-3 py-3 bg-ink/[0.02] border border-ink/[0.04] rounded-md">
           <p className="text-[11.5px] text-text-muted/65 leading-relaxed">
             {closedCount < 3 ? (
               <>Log <span className="text-text-primary font-medium">{Math.max(0, 3 - closedCount)}</span> more closed trades to generate insights. Keep journaling — patterns emerge with data.</>
@@ -1918,7 +1918,7 @@ const PnlDistributionCard = ({ entries }) => {
   const max = Math.max(1, ...bins.counts);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">P&amp;L Distribution</h3>
@@ -1941,7 +1941,7 @@ const PnlDistributionCard = ({ entries }) => {
                   <div className="w-full flex flex-col-reverse h-32 relative">
                     <div
                       className={`w-full rounded-t-sm transition-all border-t ${
-                        isZero ? "bg-white/[0.02] border-white/[0.04]"
+                        isZero ? "bg-ink/[0.02] border-ink/[0.04]"
                         : isNeg ? "bg-red-500/30 border-red-500/50 group-hover:bg-red-500/40"
                         : "bg-emerald-500/30 border-emerald-500/50 group-hover:bg-emerald-500/40"
                       }`}
@@ -1979,7 +1979,7 @@ const StrategyBreakdownCard = ({ stats }) => {
   const maxAbsPnl = Math.max(1, ...data.map((d) => Math.abs(d.pnl)));
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Strategy Performance</h3>
@@ -2008,7 +2008,7 @@ const StrategyBreakdownCard = ({ stats }) => {
                       {row.winRate.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-white/[0.03] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-ink/[0.03] overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -2043,7 +2043,7 @@ const MoodPerformanceCard = ({ stats }) => {
   }, [stats]);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Mood Impact</h3>
@@ -2065,7 +2065,7 @@ const MoodPerformanceCard = ({ stats }) => {
                 <div key={row.name}>
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-sm bg-white/[0.04] text-[11px] font-mono text-text-muted/85 leading-none">
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-sm bg-ink/[0.04] text-[11px] font-mono text-text-muted/85 leading-none">
                         {MOOD_GLYPH[row.name]}
                       </span>
                       <span className="text-[11px] font-medium text-text-primary tracking-tight">{row.name}</span>
@@ -2077,7 +2077,7 @@ const MoodPerformanceCard = ({ stats }) => {
                       {row.hasData ? `${row.winRate.toFixed(0)}%` : "—"}
                     </span>
                   </div>
-                  <div className="h-1 rounded-full bg-white/[0.03] overflow-hidden">
+                  <div className="h-1 rounded-full bg-ink/[0.03] overflow-hidden">
                     {row.hasData && (
                       <div
                         className="h-full rounded-full"
@@ -2109,7 +2109,7 @@ const DayOfWeekCard = ({ stats }) => {
   const hasAny = data.some((d) => d.pnl !== 0);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 sm:p-5">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Day of Week</h3>
@@ -2126,10 +2126,10 @@ const DayOfWeekCard = ({ stats }) => {
               const isPos = row.pnl > 0;
               const isZero = row.pnl === 0;
               const intensity = isZero ? 0 : Math.min(Math.abs(row.pnl) / maxAbs, 1) * 0.5 + 0.18;
-              const bg = isZero ? "rgba(255,255,255,0.02)"
+              const bg = isZero ? "rgb(var(--ink) / 0.02)"
                 : isPos ? `rgba(16,185,129,${intensity})`
                 : `rgba(239,68,68,${intensity})`;
-              const border = isZero ? "rgba(255,255,255,0.04)"
+              const border = isZero ? "rgb(var(--ink) / 0.04)"
                 : isPos ? `rgba(16,185,129,${intensity + 0.15})`
                 : `rgba(239,68,68,${intensity + 0.15})`;
               return (
@@ -2187,7 +2187,7 @@ const StreaksRow = ({ stats }) => (
 const StreakCard = ({ label, value, sub, accent, icon }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4">
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
@@ -2211,8 +2211,8 @@ const JournalStyles = () => (
       min-width: 0;
       height: 36px;
       padding: 0 12px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
+      background: rgb(var(--ink) / 0.03);
+      border: 1px solid rgb(var(--ink) / 0.06);
       border-radius: 6px;
       color: #fff;
       font-size: 12px;
@@ -2225,11 +2225,11 @@ const JournalStyles = () => (
       font-family: inherit;
       line-height: 1.5;
     }
-    .form-input::placeholder { color: rgba(255,255,255,0.25); }
-    .form-input:hover { border-color: rgba(255,255,255,0.12); }
+    .form-input::placeholder { color: rgb(var(--ink) / 0.25); }
+    .form-input:hover { border-color: rgb(var(--ink) / 0.12); }
     .form-input:focus {
       border-color: rgba(212, 168, 83, 0.4);
-      background: rgba(255,255,255,0.05);
+      background: rgb(var(--ink) / 0.05);
     }
     .form-input-auto {
       background: rgba(212, 168, 83, 0.04);

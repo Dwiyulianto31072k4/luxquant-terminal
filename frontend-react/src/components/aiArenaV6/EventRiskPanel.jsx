@@ -18,7 +18,7 @@ const riskTone = {
   },
   unavailable: {
     label: "Unavailable",
-    badge: "border-white/10 bg-white/5 text-text-primary/40",
+    badge: "border-ink/10 bg-ink/5 text-text-primary/40",
     accent: "text-text-primary/40",
   },
 };
@@ -59,7 +59,7 @@ function SourceCard({ label, source }) {
   const status = source?.status || "unavailable";
   const count = source?.article_count ?? source?.event_count ?? 0;
   return (
-    <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
+    <div className="rounded-xl border border-ink/5 bg-scrim/10 p-3.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
           {label}
@@ -81,8 +81,8 @@ function ImpactBadge({ impact }) {
   const tone = {
     high: "border-red-400/20 bg-red-400/10 text-red-300",
     medium: "border-amber-300/20 bg-amber-300/10 text-amber-200",
-    low: "border-white/10 bg-white/5 text-text-primary/40",
-  }[value] || "border-white/10 bg-white/5 text-text-primary/40";
+    low: "border-ink/10 bg-ink/5 text-text-primary/40",
+  }[value] || "border-ink/10 bg-ink/5 text-text-primary/40";
   return (
     <span className={`rounded border px-1.5 py-0.5 text-[9px] font-mono uppercase ${tone}`}>
       {value}
@@ -93,7 +93,7 @@ function ImpactBadge({ impact }) {
 export default function EventRiskPanel({ data }) {
   if (!data) {
     return (
-      <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+      <section className="rounded-xl border border-ink/5 bg-ink/[0.02] p-5">
         <p className="text-sm text-text-primary/50">
           News and event-risk context is temporarily unavailable.
         </p>
@@ -110,7 +110,7 @@ export default function EventRiskPanel({ data }) {
   const penalty = data.confidence_adjustment?.penalty_points || 0;
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-white/[0.015] p-5 md:p-6">
+    <section className="rounded-2xl border border-ink/5 bg-ink/[0.015] p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-sky-300/70 mb-1">
@@ -132,7 +132,7 @@ export default function EventRiskPanel({ data }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <SourceCard label="News source" source={sources.news} />
         <SourceCard label="Calendar source" source={sources.calendar} />
-        <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
+        <div className="rounded-xl border border-ink/5 bg-scrim/10 p-3.5">
           <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
             Next 24 hours
           </div>
@@ -143,7 +143,7 @@ export default function EventRiskPanel({ data }) {
             {windows.next_24h?.high_impact_count || 0} high impact
           </div>
         </div>
-        <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
+        <div className="rounded-xl border border-ink/5 bg-scrim/10 p-3.5">
           <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
             Confidence guardrail
           </div>
@@ -166,7 +166,7 @@ export default function EventRiskPanel({ data }) {
           {topics.slice(0, 6).map((topic) => (
             <span
               key={topic.topic}
-              className="rounded-full border border-white/5 bg-white/[0.025] px-2.5 py-1 text-[10px] text-text-primary/55"
+              className="rounded-full border border-ink/5 bg-ink/[0.025] px-2.5 py-1 text-[10px] text-text-primary/55"
             >
               {topic.label} · {topic.article_count}
             </span>
@@ -175,14 +175,14 @@ export default function EventRiskPanel({ data }) {
       )}
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/5">
+        <div className="rounded-xl border border-ink/5 bg-scrim/10 overflow-hidden">
+          <div className="px-4 py-3 border-b border-ink/5">
             <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
               Upcoming economic events
             </div>
           </div>
           {events.length ? (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-ink/5">
               {events.slice(0, 5).map((event, index) => (
                 <div
                   key={`${event.title}-${event.scheduled_at}-${index}`}
@@ -211,14 +211,14 @@ export default function EventRiskPanel({ data }) {
           )}
         </div>
 
-        <div className="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/5">
+        <div className="rounded-xl border border-ink/5 bg-scrim/10 overflow-hidden">
+          <div className="px-4 py-3 border-b border-ink/5">
             <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
               Relevant headlines
             </div>
           </div>
           {headlines.length ? (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-ink/5">
               {headlines.slice(0, 6).map((headline, index) => {
                 const content = (
                   <>
@@ -239,7 +239,7 @@ export default function EventRiskPanel({ data }) {
                     href={headline.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="group block px-4 py-3 hover:bg-white/[0.02] transition-colors"
+                    className="group block px-4 py-3 hover:bg-ink/[0.02] transition-colors"
                   >
                     {content}
                   </a>

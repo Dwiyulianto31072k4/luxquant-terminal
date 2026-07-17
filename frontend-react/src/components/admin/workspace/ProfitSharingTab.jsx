@@ -21,7 +21,7 @@ const Stat = ({ label, value, color, sub }) => (
   <div className="rounded-xl p-3.5" style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(color, 0.18)}` }}>
     <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: tint(color, 0.8) }}>{label}</div>
     <div className="text-[20px] font-bold mt-1 tabular-nums" style={{ color }}>{value}</div>
-    {sub && <div className="text-[10px] mt-0.5" style={{ color: palette.warm[500] }}>{sub}</div>}
+    {sub && <div className="text-[10px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>{sub}</div>}
   </div>
 );
 
@@ -74,14 +74,14 @@ export const ProfitSharingTab = () => {
       {/* filter row */}
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <div>
-          <label className="block text-[10px] uppercase tracking-wider font-semibold mb-1" style={{ color: palette.warm[400] }}>From</label>
+          <label className="block text-[10px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>From</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[100] }} />
+            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: 'rgb(var(--fg))' }} />
         </div>
         <div>
-          <label className="block text-[10px] uppercase tracking-wider font-semibold mb-1" style={{ color: palette.warm[400] }}>To</label>
+          <label className="block text-[10px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgb(var(--fg-muted))' }}>To</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[100] }} />
+            className="text-[12px] rounded-md px-2 py-1.5 outline-none" style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: 'rgb(var(--fg))' }} />
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
           style={{ background: tint(palette.gold[300], 0.1), border: `1px solid ${tint(palette.gold[300], 0.28)}`, color: palette.gold[300] }}>
@@ -105,9 +105,9 @@ export const ProfitSharingTab = () => {
       {Object.keys(byScheme).length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {Object.entries(byScheme).map(([sc, v]) => (
-            <div key={sc} className="rounded-lg px-3 py-2 text-[11px]" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${tint(SCHEME_COLOR[sc] || palette.warm[400], 0.25)}` }}>
-              <span className="font-semibold" style={{ color: SCHEME_COLOR[sc] || palette.warm[300] }}>{SCHEME_LABEL[sc] || sc}</span>
-              <span style={{ color: palette.warm[400] }}> · {v.count} tx · gross {money(v.gross)} · kamu {money(v.owner)} · bigstar {money(v.bigstar)}</span>
+            <div key={sc} className="rounded-lg px-3 py-2 text-[11px]" style={{ background: 'rgb(var(--ink) / 0.02)', border: `1px solid ${tint(SCHEME_COLOR[sc] || palette.warm[400], 0.25)}` }}>
+              <span className="font-semibold" style={{ color: SCHEME_COLOR[sc] || 'rgb(var(--fg-secondary))' }}>{SCHEME_LABEL[sc] || sc}</span>
+              <span style={{ color: 'rgb(var(--fg-muted))' }}> · {v.count} tx · gross {money(v.gross)} · kamu {money(v.owner)} · bigstar {money(v.bigstar)}</span>
             </div>
           ))}
         </div>
@@ -115,16 +115,16 @@ export const ProfitSharingTab = () => {
 
       {/* table */}
       {loading && !data ? (
-        <div className="flex items-center justify-center py-16 gap-2" style={{ color: palette.warm[400] }}>
+        <div className="flex items-center justify-center py-16 gap-2" style={{ color: 'rgb(var(--fg-muted))' }}>
           <LoaderIcon size={18} className="animate-spin" /> <span className="text-sm">Loading…</span>
         </div>
       ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-sm" style={{ color: palette.warm[400] }}>Tidak ada pembayaran confirmed di periode ini.</div>
+        <div className="text-center py-16 text-sm" style={{ color: 'rgb(var(--fg-muted))' }}>Tidak ada pembayaran confirmed di periode ini.</div>
       ) : (
         <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${tint(palette.warm[100], 0.1)}` }}>
           <table className="w-full text-[11.5px]" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgb(var(--surface-secondary))', color: palette.warm[300] }}>
+              <tr style={{ background: 'rgb(var(--surface-secondary))', color: 'rgb(var(--fg-secondary))' }}>
                 {['Tgl', 'User', 'Metode', 'Skema', 'Gross', 'Sam', 'Kamu', 'Bigstar'].map((h) => (
                   <th key={h} className="text-left font-semibold px-2.5 py-2 whitespace-nowrap">{h}</th>
                 ))}
@@ -133,20 +133,20 @@ export const ProfitSharingTab = () => {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.payment_id} style={{ borderTop: `1px solid ${tint(palette.warm[100], 0.07)}` }}>
-                  <td className="px-2.5 py-1.5 whitespace-nowrap" style={{ color: palette.warm[300] }}>{fmtDate(r.created_at)}</td>
-                  <td className="px-2.5 py-1.5 truncate max-w-[140px]" style={{ color: palette.warm[100] }}>{r.username || `#${r.user_id}`}</td>
-                  <td className="px-2.5 py-1.5" style={{ color: palette.warm[400] }}>{r.method}</td>
+                  <td className="px-2.5 py-1.5 whitespace-nowrap" style={{ color: 'rgb(var(--fg-secondary))' }}>{fmtDate(r.created_at)}</td>
+                  <td className="px-2.5 py-1.5 truncate max-w-[140px]" style={{ color: 'rgb(var(--fg))' }}>{r.username || `#${r.user_id}`}</td>
+                  <td className="px-2.5 py-1.5" style={{ color: 'rgb(var(--fg-muted))' }}>{r.method}</td>
                   <td className="px-2.5 py-1.5">
                     <select value={r.scheme} disabled={busy[r.payment_id]}
                       onChange={(e) => retag(r.payment_id, e.target.value)}
                       className="text-[11px] rounded px-1.5 py-1 outline-none"
-                      style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(SCHEME_COLOR[r.scheme] || palette.warm[400], 0.3)}`, color: SCHEME_COLOR[r.scheme] || palette.warm[200] }}>
+                      style={{ background: 'rgb(var(--surface-secondary))', border: `1px solid ${tint(SCHEME_COLOR[r.scheme] || palette.warm[400], 0.3)}`, color: SCHEME_COLOR[r.scheme] || 'rgb(var(--fg-secondary))' }}>
                       <option value="regular" style={{ background: 'rgb(var(--surface-secondary))', color: 'rgb(var(--fg))' }}>Regular</option>
                       <option value="canada" style={{ background: 'rgb(var(--surface-secondary))', color: 'rgb(var(--fg))' }}>Canada</option>
                     </select>
                   </td>
                   <td className="px-2.5 py-1.5 tabular-nums" style={{ color: palette.gold[300] }}>{money(r.gross)}</td>
-                  <td className="px-2.5 py-1.5 tabular-nums" style={{ color: r.external ? palette.teal[400] : palette.warm[600] }}>{r.external ? money(r.external) : '—'}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums" style={{ color: r.external ? palette.teal[400] : 'rgb(var(--fg-muted))' }}>{r.external ? money(r.external) : '—'}</td>
                   <td className="px-2.5 py-1.5 tabular-nums font-semibold" style={{ color: palette.green[400] }}>{money(r.owner)}</td>
                   <td className="px-2.5 py-1.5 tabular-nums" style={{ color: palette.blue[400] }}>{money(r.bigstar)}</td>
                 </tr>

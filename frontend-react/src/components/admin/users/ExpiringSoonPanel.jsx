@@ -47,7 +47,7 @@ export const ExpiringSoonPanel = ({ expiringUsers, onExtend, onDm }) => {
         <ChevronDownIcon
           size={15}
           className="ml-auto transition-transform duration-200"
-          style={{ color: 'rgba(255,255,255,0.4)', transform: open ? 'rotate(180deg)' : 'none' }}
+          style={{ color: 'rgb(var(--ink) / 0.4)', transform: open ? 'rotate(180deg)' : 'none' }}
         />
       </button>
 
@@ -60,7 +60,7 @@ export const ExpiringSoonPanel = ({ expiringUsers, onExtend, onDm }) => {
               <div
                 key={u.id}
                 className="flex items-center justify-between py-2 px-3 rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.05)' }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Avatar name={u.username} tone={urgency} size="sm" />

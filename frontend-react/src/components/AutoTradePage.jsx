@@ -148,7 +148,7 @@ function MobileSectionPicker({ tabs, value, onChange }) {
                   setOpen(false);
                 }}
                 className={`flex w-full items-center gap-2.5 px-4 py-3 text-left font-mono text-[12px] uppercase tracking-[0.15em] transition-colors ${
-                  on ? "" : "text-text-muted active:bg-white/[0.04]"
+                  on ? "" : "text-text-muted active:bg-ink/[0.04]"
                 }`}
                 style={on ? { background: "rgba(212,168,83,0.10)", color: "rgb(var(--accent-light))" } : undefined}
               >
@@ -157,7 +157,7 @@ function MobileSectionPicker({ tabs, value, onChange }) {
                   style={
                     on
                       ? { background: "rgb(var(--accent))", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }
-                      : { background: "rgba(255,255,255,0.15)" }
+                      : { background: "rgb(var(--ink) / 0.15)" }
                   }
                 />
                 {item.label}
@@ -190,7 +190,7 @@ function SideNav({ tabs, value, onChange }) {
             onClick={() => onChange(item.id)}
             aria-current={on ? "page" : undefined}
             className={`group relative w-full rounded-md px-3 py-2 text-left transition-colors ${
-              on ? "" : "hover:bg-white/[0.03]"
+              on ? "" : "hover:bg-ink/[0.03]"
             }`}
             style={on ? { background: "rgba(212,168,83,0.10)" } : undefined}
           >
@@ -365,7 +365,7 @@ function AutoTradeControlCenter({
       </div>
 
       {/* Status chips — inline, scannable; long guidance only shows when not live */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/[0.07] px-4 py-2.5 lg:px-5">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink/[0.07] px-4 py-2.5 lg:px-5">
         <button type="button" onClick={onManageAccount} className="text-left">
           <StatusDot tone={accountValid ? "good" : "bad"}>
             Binance {accountValid ? "connected" : "needs attention"}
@@ -381,7 +381,7 @@ function AutoTradeControlCenter({
           Market {marketLabel || "disabled"}
         </StatusDot>
         {state.tone !== "good" ? (
-          <span className="w-full text-xs leading-5 text-text-muted sm:w-auto sm:border-l sm:border-white/[0.08] sm:pl-5">
+          <span className="w-full text-xs leading-5 text-text-muted sm:w-auto sm:border-l sm:border-ink/[0.08] sm:pl-5">
             {state.description}
           </span>
         ) : null}
@@ -515,11 +515,11 @@ function LoadingState() {
       {[1, 2, 3].map((item) => (
         <div
           key={item}
-          className="rounded-md border border-white/[0.06] bg-surface-raised p-5"
+          className="rounded-md border border-ink/[0.06] bg-surface-raised p-5"
         >
-          <div className="h-3 w-24 rounded bg-white/[0.05]" />
-          <div className="mt-4 h-8 w-2/3 rounded bg-white/[0.06]" />
-          <div className="mt-3 h-16 rounded bg-white/[0.03]" />
+          <div className="h-3 w-24 rounded bg-ink/[0.05]" />
+          <div className="mt-4 h-8 w-2/3 rounded bg-ink/[0.06]" />
+          <div className="mt-3 h-16 rounded bg-ink/[0.03]" />
         </div>
       ))}
     </div>
@@ -820,7 +820,7 @@ export default function AutoTradePage() {
             type="button"
             onClick={() => setShowHelp(true)}
             aria-label="Open AutoTrade guide"
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-text-muted transition-colors hover:border-line/30 hover:bg-gold-primary/[0.05] hover:text-gold-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/[0.08] text-text-muted transition-colors hover:border-line/30 hover:bg-gold-primary/[0.05] hover:text-gold-primary"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />

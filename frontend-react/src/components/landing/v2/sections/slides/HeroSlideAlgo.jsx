@@ -47,10 +47,10 @@ function IMacMockup({ src, alt, className = "" }) {
   return (
     <div className={`relative ${className}`}>
       {/* Black glass front — top + sides all black; only the chin is silver */}
-      <div className="relative overflow-hidden rounded-[13px] bg-black shadow-[0_44px_92px_rgba(0,0,0,0.62),0_0_70px_rgba(212,168,83,0.12)] ring-1 ring-white/[0.07] lg:rounded-[16px]">
+      <div className="relative overflow-hidden rounded-[13px] bg-black shadow-[0_44px_92px_rgb(var(--scrim) / 0.35),0_0_70px_rgba(212,168,83,0.12)] ring-1 ring-ink/[0.07] lg:rounded-[16px]">
         {/* thin black bezel around the screen */}
         <div className="p-[7px] sm:p-[8px] lg:p-[11px]">
-          <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-black ring-1 ring-white/[0.05] lg:rounded-[3px]">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-black ring-1 ring-ink/[0.05] lg:rounded-[3px]">
             <ScreenFallback size="h-14 w-14" opacity="opacity-25" />
             <img
               src={src}
@@ -61,7 +61,7 @@ function IMacMockup({ src, alt, className = "" }) {
             {/* screen glare */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.06]"
+              className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-tr from-transparent via-ink/[0.02] to-ink/[0.06]"
             />
           </div>
         </div>
@@ -107,7 +107,7 @@ function IMacMockup({ src, alt, className = "" }) {
       {/* floor contact shadow */}
       <div
         aria-hidden="true"
-        className="mx-auto -mt-1.5 h-3.5 w-[36%] rounded-[50%] bg-black/50 blur-md"
+        className="mx-auto -mt-1.5 h-3.5 w-[36%] rounded-[50%] bg-scrim/50 blur-md"
       />
     </div>
   );
@@ -118,7 +118,7 @@ function PhoneMockup({ src, alt, className = "" }) {
   return (
     <div className={`relative ${className}`}>
       {/* Silver aluminium side rail — ultra thin */}
-      <div className="rounded-[0.95rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgba(0,0,0,0.85),0_0_34px_rgba(212,168,83,0.12)] sm:rounded-[1.15rem] lg:rounded-[1.5rem] lg:p-[1.5px]">
+      <div className="rounded-[0.95rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgb(var(--scrim) / 0.85),0_0_34px_rgba(212,168,83,0.12)] sm:rounded-[1.15rem] lg:rounded-[1.5rem] lg:p-[1.5px]">
         {/* Thin black display bezel */}
         <div className="overflow-hidden rounded-[0.9rem] bg-black p-[1.5px] sm:rounded-[1.1rem] lg:rounded-[1.44rem] lg:p-[2px]">
           {/* Screen — height follows the screenshot's own ratio (no crop),
@@ -133,7 +133,7 @@ function PhoneMockup({ src, alt, className = "" }) {
             />
             {/* Dynamic Island — black pill centered in the status bar */}
             <div className="absolute inset-x-0 top-[5px] z-30 flex justify-center sm:top-[6px] lg:top-[9px]">
-              <div className="h-[8px] w-[30%] rounded-full bg-black shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:h-[9px] lg:h-[13px]" />
+              <div className="h-[8px] w-[30%] rounded-full bg-black shadow-[inset_0_0_0_1px_rgb(var(--ink)_/_0.04)] sm:h-[9px] lg:h-[13px]" />
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ function PhoneMockup({ src, alt, className = "" }) {
       {/* contact shadow */}
       <div
         aria-hidden="true"
-        className="mx-auto mt-1.5 h-2.5 w-[74%] rounded-[50%] bg-black/45 blur-md"
+        className="mx-auto mt-1.5 h-2.5 w-[74%] rounded-[50%] bg-scrim/45 blur-md"
       />
     </div>
   );
@@ -172,7 +172,7 @@ export default function HeroSlideAlgo() {
       {/* Headline — white + gold accent (matches other sections) */}
       <h1
         className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-text-primary text-[2.05rem] sm:text-[2.8rem] lg:whitespace-nowrap lg:text-[3.2rem] xl:text-[3.8rem]"
-        style={{ textShadow: "0 2px 30px rgba(0,0,0,0.35)" }}
+        style={{ textShadow: "0 2px 30px rgb(var(--scrim) / 0.35)" }}
       >
         Data Meets{" "}
         <span className="bg-gradient-to-r from-gold-light via-gold-primary to-accent-dark bg-clip-text text-transparent">
@@ -212,7 +212,7 @@ export default function HeroSlideAlgo() {
           {/* warm floor glow */}
           <div className="absolute bottom-[7%] left-1/2 h-28 w-[64%] -translate-x-1/2 rounded-[50%] bg-gold-primary/[0.10] blur-[80px]" />
           {/* horizon line */}
-          <div className="absolute bottom-[11%] left-1/2 h-px w-[78%] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+          <div className="absolute bottom-[11%] left-1/2 h-px w-[78%] -translate-x-1/2 bg-gradient-to-r from-transparent via-ink/[0.08] to-transparent" />
         </div>
 
         {/* Devices standing on the same floor */}

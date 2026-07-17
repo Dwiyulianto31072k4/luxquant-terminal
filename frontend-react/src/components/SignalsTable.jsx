@@ -113,7 +113,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-white/[0.08] hover:border-line/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-ink/[0.08] hover:border-line/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -124,9 +124,9 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 z-50 bg-surface-raised border border-white/[0.1] rounded-md shadow-2xl overflow-hidden">
+        <div className="absolute right-0 mt-2 w-56 z-50 bg-surface-raised border border-ink/[0.1] rounded-md shadow-2xl overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-ink/[0.06]">
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary">Visible Columns</span>
             <button
               onClick={onReset}
@@ -144,11 +144,11 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
                   key={c.key}
                   onClick={() => { if (!isLast) onToggle(c.key); }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 font-mono text-[11px] transition-colors ${
-                    isLast ? 'cursor-not-allowed opacity-60' : 'hover:bg-white/[0.04]'
+                    isLast ? 'cursor-not-allowed opacity-60' : 'hover:bg-ink/[0.04]'
                   }`}
                 >
                   <span className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
-                    active ? 'bg-gold-primary/20 border-line/50 text-gold-primary' : 'border-white/[0.15] text-transparent'
+                    active ? 'bg-gold-primary/20 border-line/50 text-gold-primary' : 'border-ink/[0.15] text-transparent'
                   }`}>
                     <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="20 6 9 17 4 12" />
@@ -577,7 +577,7 @@ const SignalsTable = ({
       cls = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
       label = s.toUpperCase();
     } else {
-      cls = 'bg-white/[0.04] text-text-primary/75 border-white/[0.06]';
+      cls = 'bg-ink/[0.04] text-text-primary/75 border-ink/[0.06]';
       label = status || '-';
     }
     return (
@@ -668,7 +668,7 @@ const SignalsTable = ({
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
 
     return (
-      <div className="relative bg-surface-raised rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-line/30">
+      <div className="relative bg-surface-raised rounded-md border border-ink/[0.06] overflow-hidden transition-all hover:border-line/30">
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
         {/* COLLAPSED — overview, tap to expand */}
@@ -742,7 +742,7 @@ const SignalsTable = ({
 
         {/* EXPANDED — detail + open full signal */}
         {open ? (
-          <div className="border-t border-white/[0.06] p-3 space-y-3">
+          <div className="border-t border-ink/[0.06] p-3 space-y-3">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
                 {getRiskLabel(signal.risk_level)}
@@ -765,7 +765,7 @@ const SignalsTable = ({
             </div>
 
             {signal.last_update_at ? (
-              <div className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-sm">
+              <div className="flex items-center justify-between px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-sm">
                 <div className="flex items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-amber-400/60" />
                   {getUpdateTypeBadge(signal.last_update_type)}
@@ -776,12 +776,12 @@ const SignalsTable = ({
               </div>
             ) : null}
 
-            <div className="grid grid-cols-3 gap-2 bg-white/[0.02] border border-white/[0.06] p-3 rounded-sm">
+            <div className="grid grid-cols-3 gap-2 bg-ink/[0.02] border border-ink/[0.06] p-3 rounded-sm">
               <div>
                 <p className="font-mono text-[9px] uppercase tracking-wider text-text-primary/45 mb-1">Entry</p>
                 <p className="text-text-primary font-mono text-[12px] tabular-nums font-medium">{formatPrice(signal.entry)}</p>
               </div>
-              <div className="text-center border-x border-white/[0.04]">
+              <div className="text-center border-x border-ink/[0.04]">
                 <p className="font-mono text-[9px] uppercase tracking-wider text-text-primary/45 mb-1">Current</p>
                 {currentPrice ? (
                   <p className={`font-mono text-[12px] tabular-nums font-medium ${priceChange !== null ? (priceChange >= 0 ? "text-emerald-400" : "text-red-400") : "text-text-primary"}`}>
@@ -812,7 +812,7 @@ const SignalsTable = ({
               ].map((tp, i) => {
                 const pct = tp.value ? calcPct(tp.value, signal.entry) : null;
                 return (
-                  <div key={i} className="text-center bg-white/[0.015] border border-white/[0.06] py-1.5 px-1 rounded-sm">
+                  <div key={i} className="text-center bg-ink/[0.015] border border-ink/[0.06] py-1.5 px-1 rounded-sm">
                     <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">{tp.label}</p>
                     <p className="text-text-primary/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : "—"}</p>
                     {pct != null ? (
@@ -846,7 +846,7 @@ const SignalsTable = ({
               </span>
             </div>
 
-            <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+            <div className="flex items-center justify-between gap-2 border-t border-ink/[0.06] pt-3">
               <button
                 onClick={() => onRowClick && onRowClick(signal)}
                 className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary hover:text-gold-light"
@@ -883,20 +883,20 @@ const SignalsTable = ({
     <div className="lqsk-group space-y-3">
       <ShimmerStyles />
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-surface-raised rounded-md p-4 border border-white/[0.06]">
+        <div key={i} className="bg-surface-raised rounded-md p-4 border border-ink/[0.06]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/[0.04] rounded-full" />
+              <div className="w-8 h-8 bg-ink/[0.04] rounded-full" />
               <div>
-                <div className="h-3 w-16 bg-white/[0.04] rounded mb-1.5" />
-                <div className="h-2 w-10 bg-white/[0.04] rounded" />
+                <div className="h-3 w-16 bg-ink/[0.04] rounded mb-1.5" />
+                <div className="h-2 w-10 bg-ink/[0.04] rounded" />
               </div>
             </div>
-            <div className="h-5 w-16 bg-white/[0.04] rounded-sm" />
+            <div className="h-5 w-16 bg-ink/[0.04] rounded-sm" />
           </div>
-          <div className="h-14 w-full bg-white/[0.03] rounded-sm mb-3" />
-          <div className="h-7 w-full bg-white/[0.03] rounded-sm mb-3" />
-          <div className="h-3 w-full bg-white/[0.03] rounded" />
+          <div className="h-14 w-full bg-ink/[0.03] rounded-sm mb-3" />
+          <div className="h-7 w-full bg-ink/[0.03] rounded-sm mb-3" />
+          <div className="h-3 w-full bg-ink/[0.03] rounded" />
         </div>
       ))}
     </div>
@@ -908,10 +908,10 @@ const SignalsTable = ({
         {loading ? (
           <MobileLoadingSkeleton />
         ) : signals?.length === 0 ? (
-          <div className="bg-surface-raised rounded-md p-8 border border-white/[0.06] text-center relative overflow-hidden">
+          <div className="bg-surface-raised rounded-md p-8 border border-ink/[0.06] text-center relative overflow-hidden">
             <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
             <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center">
                 <EmptyStateIcon />
               </div>
               <p className="text-text-primary font-mono text-sm">No signals found</p>
@@ -931,14 +931,14 @@ const SignalsTable = ({
               <button
                 onClick={() => onPageChange(page - 1)}
                 disabled={page <= 1}
-                className="px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
+                className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
               >
                 Prev
               </button>
               <button
                 onClick={() => onPageChange(page + 1)}
                 disabled={page >= totalPages}
-                className="px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
+                className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
               >
                 Next
               </button>
@@ -968,7 +968,7 @@ const SignalsTable = ({
           `}</style>
           <div className="overflow-x-auto">
             <table className={`sig-t sig-${density} w-full text-left whitespace-nowrap`}>
-              <thead className="border-b border-white/[0.08]">
+              <thead className="border-b border-ink/[0.08]">
                 <tr>
                   <th className="py-3 px-4 w-10 text-center"></th>
                   <SortableHeader field="pair" label="Pair" />
@@ -1019,10 +1019,10 @@ const SignalsTable = ({
               <tbody>
                 {loading ? (
                   [...Array(10)].map((_, i) => (
-                    <tr key={i} className="border-b border-white/[0.03]">
+                    <tr key={i} className="border-b border-ink/[0.03]">
                       {[...Array(visibleColCount + 1)].map((_, j) => (
                         <td key={j} className="py-4 px-4">
-                          <div className="h-3 bg-white/[0.04] rounded animate-pulse"></div>
+                          <div className="h-3 bg-ink/[0.04] rounded animate-pulse"></div>
                         </td>
                       ))}
                     </tr>
@@ -1031,7 +1031,7 @@ const SignalsTable = ({
                   <tr>
                     <td colSpan={visibleColCount + 1} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-14 h-14 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-full bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center">
                           <EmptyStateIcon />
                         </div>
                         <p className="text-text-primary font-mono text-sm">No signals found</p>
@@ -1054,7 +1054,7 @@ const SignalsTable = ({
                       <tr
                         key={signal.signal_id || idx}
                         onClick={() => onRowClick && onRowClick(signal)}
-                        className="border-b border-white/[0.05] hover:bg-white/[0.03] cursor-pointer transition-colors group"
+                        className="border-b border-ink/[0.05] hover:bg-ink/[0.03] cursor-pointer transition-colors group"
                       >
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <StarButton signalId={signal.signal_id} isStarred={watchlistIds.includes(signal.signal_id)} onToggle={handleStarToggle} />
@@ -1075,7 +1075,7 @@ const SignalsTable = ({
                         {visibleCols.current_price && (
                           <td className="py-3 px-4 text-right">
                             {pricesLoading && !currentPrice ? (
-                              <div className="h-3 w-16 bg-white/[0.04] rounded animate-pulse ml-auto" />
+                              <div className="h-3 w-16 bg-ink/[0.04] rounded animate-pulse ml-auto" />
                             ) : currentPrice ? (
                               <div className="flex flex-col items-end">
                                 <span className={`font-mono text-sm tabular-nums font-medium ${currentPriceColor}`}>
@@ -1267,7 +1267,7 @@ const SignalsTable = ({
                                         <p className="font-mono text-[10px] leading-relaxed text-text-primary/75 normal-case tracking-normal mb-2">
                                           Full assessment based on win-rate history, streaks &amp; more.
                                         </p>
-                                        <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-white/[0.06]">
+                                        <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-ink/[0.06]">
                                           <div>
                                             <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">Win Rate</p>
                                             <p className="font-mono text-[11px] tabular-nums" style={{ color: v.coin.win_rate >= 70 ? '#34d399' : v.coin.win_rate >= 50 ? '#fbbf24' : '#f87171' }}>{v.coin.win_rate}%</p>
@@ -1356,7 +1356,7 @@ const SignalsTable = ({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-white/[0.06] bg-white/[0.015]">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-ink/[0.06] bg-ink/[0.015]">
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/75">
                 Page {page} of {totalPages}
               </p>
@@ -1364,14 +1364,14 @@ const SignalsTable = ({
                 <button
                   onClick={() => onPageChange(page - 1)}
                   disabled={page <= 1}
-                  className="px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
+                  className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
                 >
                   Prev
                 </button>
                 <button
                   onClick={() => onPageChange(page + 1)}
                   disabled={page >= totalPages}
-                  className="px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
+                  className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
                 >
                   Next
                 </button>
@@ -1402,7 +1402,7 @@ const SignalsTable = ({
             <button
               onClick={() => setShowNotice(false)}
               aria-label="Dismiss"
-              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-sm text-text-primary/45 hover:text-text-primary hover:bg-white/[0.06] transition-colors"
+              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-sm text-text-primary/45 hover:text-text-primary hover:bg-ink/[0.06] transition-colors"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 18L18 6M6 6l12 12" />

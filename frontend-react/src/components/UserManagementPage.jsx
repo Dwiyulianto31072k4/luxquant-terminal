@@ -143,7 +143,7 @@ const PageHeader = ({ stats, onCleanup }) => (
         Users · Members, roles, and access
       </p>
       <h1 className="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight text-text-primary lg:text-2xl">
-        <UsersIcon size={22} className="text-text-muted" style={{ color: 'rgba(255,255,255,0.45)' }} />
+        <UsersIcon size={22} className="text-text-muted" style={{ color: 'rgb(var(--ink) / 0.45)' }} />
         User Management
       </h1>
       <p className="mt-1.5 text-sm text-text-muted">
@@ -529,7 +529,7 @@ const UserManagementPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <p
             className="text-[9.5px] uppercase tracking-[0.16em] font-semibold"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgb(var(--ink) / 0.35)' }}
           >
             Member directory
           </p>
@@ -558,8 +558,8 @@ const UserManagementPage = () => {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            background: 'rgba(255,255,255,0.012)',
-            border: '1px solid rgba(255,255,255,0.05)',
+            background: 'rgb(var(--ink) / 0.012)',
+            border: '1px solid rgb(var(--ink) / 0.05)',
           }}
         >
           <UsersTable

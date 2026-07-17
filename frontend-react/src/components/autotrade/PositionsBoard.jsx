@@ -161,7 +161,7 @@ function PortfolioCharts({ trackedSpot, manualSpot, futures }) {
           <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={exposure} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <CartesianGrid stroke="rgb(var(--ink) / 0.05)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: "#848E9C", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis dataKey="symbol" type="category" tick={{ fill: "#848E9C", fontSize: 10 }} axisLine={false} tickLine={false} width={74} />
                 <Tooltip formatter={(value) => fmtUsd(value)} />
@@ -247,7 +247,7 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
 
       {/* Detail — revealed inline on tap */}
       {open ? (
-        <div className="border-t border-white/[0.06] px-4 pb-4 pt-3">
+        <div className="border-t border-ink/[0.06] px-4 pb-4 pt-3">
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             <StatusBadge tone="info">AutoTrade</StatusBadge>
             <StatusBadge tone={protectionTone(position)}>
@@ -263,7 +263,7 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
             <Metric label="Take profit" value={fmtNum(position.take_profit, 8)} tone="good" />
             <Metric label="Stop loss" value={fmtNum(position.stop_loss, 8)} tone="bad" />
           </div>
-          <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+          <div className="mt-4 flex items-center justify-between gap-2 border-t border-ink/[0.06] pt-3">
             <button
               type="button"
               onClick={() => onOpen(position)}
@@ -306,7 +306,7 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-ink/[0.06]">
               {[
                 "Symbol",
                 "Status",
@@ -340,7 +340,7 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") onOpen(position);
                 }}
-                className="cursor-pointer border-b border-white/[0.04] last:border-0 hover:bg-white/[0.035] focus:bg-white/[0.035] focus:outline-none"
+                className="cursor-pointer border-b border-ink/[0.04] last:border-0 hover:bg-ink/[0.035] focus:bg-ink/[0.035] focus:outline-none"
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
@@ -403,7 +403,7 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
 
 function DetailRow({ label, value, tone = "" }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/[0.05] py-2.5 last:border-0">
+    <div className="flex items-start justify-between gap-4 border-b border-ink/[0.05] py-2.5 last:border-0">
       <span className="text-xs text-text-muted">{label}</span>
       <span className={`max-w-[65%] text-right font-mono text-xs text-text-primary/90 ${tone}`}>{value ?? "—"}</span>
     </div>
@@ -412,7 +412,7 @@ function DetailRow({ label, value, tone = "" }) {
 
 function DetailPanel({ title, children }) {
   return (
-    <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] p-4">
+    <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.015] p-4">
       <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary">{title}</p>
       {children}
     </div>
@@ -429,13 +429,13 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
   const canOpenSignal = Boolean(signal.luxquant_signal_id);
 
   return (
-    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-5xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.09] sm:border bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-scrim/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-5xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-ink/[0.09] sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-surface-raised" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="overflow-hidden">
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.06] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/[0.06] p-5">
             <div className="flex items-center gap-3">
               <CoinLogo pair={position.symbol} size={42} />
               <div>
@@ -461,11 +461,11 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
               >
                 Open full signal
               </button>
-              <button type="button" onClick={onClose} className="h-9 w-9 rounded-full text-text-muted hover:bg-white/[0.06] hover:text-text-primary">×</button>
+              <button type="button" onClick={onClose} className="h-9 w-9 rounded-full text-text-muted hover:bg-ink/[0.06] hover:text-text-primary">×</button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-px border-b border-white/[0.06] bg-white/[0.04] md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px border-b border-ink/[0.06] bg-ink/[0.04] md:grid-cols-4">
             <div className="bg-surface-raised p-4"><Metric label="Capital at entry" value={fmtUsd(position.entry_notional_usdt)} /></div>
             <div className="bg-surface-raised p-4"><Metric label="Value now" value={fmtUsd(position.current_value_usdt)} /></div>
             <div className="bg-surface-raised p-4"><Metric label="Quantity" value={fmtNum(position.quantity, 8)} /></div>
@@ -530,7 +530,7 @@ function FuturesPositions({ positions }) {
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-ink/[0.06]">
               {["Symbol", "Side", "Size", "Entry", "PnL", "Leverage", "Margin"].map((heading, index) => (
                 <th
                   key={heading}
@@ -547,7 +547,7 @@ function FuturesPositions({ positions }) {
             {positions.map((position) => {
               const long = Number(position.positionAmt || 0) > 0;
               return (
-                <tr key={position.symbol} className="border-b border-white/[0.04] last:border-0">
+                <tr key={position.symbol} className="border-b border-ink/[0.04] last:border-0">
                   <td className="px-4 py-3 font-mono text-text-primary">{position.symbol}</td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={long ? "good" : "bad"}>{long ? "Long" : "Short"}</StatusBadge>
@@ -584,7 +584,7 @@ function ManualBalances({ balances, selectedAssets, onToggleAsset, busy }) {
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-ink/[0.06]">
               {["", "Asset", "Source", "Free", "Locked", "USDT Value"].map((heading, index) => (
                 <th
                   key={heading}
@@ -599,7 +599,7 @@ function ManualBalances({ balances, selectedAssets, onToggleAsset, busy }) {
           </thead>
           <tbody>
             {balances.map((balance) => (
-              <tr key={balance.asset} className="border-b border-white/[0.04] last:border-0">
+              <tr key={balance.asset} className="border-b border-ink/[0.04] last:border-0">
                 <td className="px-4 py-3">
                   {balance.asset !== "USDT" ? (
                     <input
@@ -636,10 +636,10 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
   if (!action) return null;
   const matches = confirmation.trim().toUpperCase() === action.phrase;
   return (
-    <div className="fixed inset-0 z-[100010] flex items-end justify-center sm:items-center bg-black/85 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-surface-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[100010] flex items-end justify-center sm:items-center bg-scrim/85 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-xl border-t border-[#F6465D]/30 sm:border bg-surface-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex justify-center -mt-1 mb-3 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F6465D]">Irreversible exchange action</p>
         <h3 className="mt-2 text-xl font-semibold text-text-primary">{action.title}</h3>
@@ -653,11 +653,11 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
             autoFocus
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
-            className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-sm text-text-primary outline-none focus:border-[#F6465D]/50"
+            className="mt-2 w-full rounded-md border border-ink/10 bg-scrim/40 px-3 py-2.5 font-mono text-sm text-text-primary outline-none focus:border-[#F6465D]/50"
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={busy} className="rounded-md border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted hover:text-text-primary">
+          <button type="button" onClick={onClose} disabled={busy} className="rounded-md border border-ink/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted hover:text-text-primary">
             Cancel
           </button>
           <EmergencyButton disabled={!matches || busy} onClick={() => onConfirm(confirmation)}>
@@ -841,7 +841,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
                 onClick={() => setSelectedAssets(
                   selectedAssets.length === convertibleAssets.length ? [] : convertibleAssets,
                 )}
-                className="rounded-md border border-white/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted hover:text-text-primary"
+                className="rounded-md border border-ink/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted hover:text-text-primary"
               >
                 {selectedAssets.length === convertibleAssets.length ? "Clear selection" : "Select all assets"}
               </button>
@@ -891,7 +891,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
         onConfirm={runDangerAction}
       />
       {openingSignal && (
-        <div className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/70 font-mono text-xs uppercase tracking-[0.16em] text-gold-primary">
+        <div className="fixed inset-0 z-[100001] flex items-center justify-center bg-scrim/70 font-mono text-xs uppercase tracking-[0.16em] text-gold-primary">
           Loading full signal…
         </div>
       )}

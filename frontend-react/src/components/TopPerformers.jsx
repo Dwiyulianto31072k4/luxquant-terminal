@@ -142,27 +142,27 @@ const TopPerformers = () => {
     return (
       <div className="mb-10">
         <ShimmerStyles />
-        <div className="lqsk-group relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
-          <div className="border-b border-white/[0.06] px-4 py-4 sm:px-5">
-            <div className="h-5 w-36 rounded bg-white/[0.05]" />
-            <div className="mt-2 h-3 w-52 rounded bg-white/[0.03]" />
+        <div className="lqsk-group relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+          <div className="border-b border-ink/[0.06] px-4 py-4 sm:px-5">
+            <div className="h-5 w-36 rounded bg-ink/[0.05]" />
+            <div className="mt-2 h-3 w-52 rounded bg-ink/[0.03]" />
           </div>
-          <div className="flex gap-4 border-b border-white/[0.06] px-4 py-3 sm:px-5">
+          <div className="flex gap-4 border-b border-ink/[0.06] px-4 py-3 sm:px-5">
             {[...Array(4)].map((_, j) => (
-              <div key={j} className="h-3 w-16 rounded bg-white/[0.05]" />
+              <div key={j} className="h-3 w-16 rounded bg-ink/[0.05]" />
             ))}
           </div>
-          <div className="divide-y divide-white/[0.04] px-4 sm:px-5">
+          <div className="divide-y divide-ink/[0.04] px-4 sm:px-5">
             {[...Array(8)].map((_, j) => (
               <div key={j} className="flex items-center gap-3 py-3.5">
-                <div className="h-4 w-4 shrink-0 rounded bg-white/[0.04]" />
-                <div className="h-8 w-8 shrink-0 rounded-full bg-white/[0.05]" />
+                <div className="h-4 w-4 shrink-0 rounded bg-ink/[0.04]" />
+                <div className="h-8 w-8 shrink-0 rounded-full bg-ink/[0.05]" />
                 <div className="min-w-0 flex-1">
-                  <div className="h-3.5 w-20 rounded bg-white/[0.05]" />
-                  <div className="mt-1.5 h-2.5 w-28 rounded bg-white/[0.03]" />
+                  <div className="h-3.5 w-20 rounded bg-ink/[0.05]" />
+                  <div className="mt-1.5 h-2.5 w-28 rounded bg-ink/[0.03]" />
                 </div>
-                <div className="hidden h-5 w-16 rounded bg-white/[0.03] sm:block" />
-                <div className="h-4 w-14 shrink-0 rounded bg-white/[0.05]" />
+                <div className="hidden h-5 w-16 rounded bg-ink/[0.03] sm:block" />
+                <div className="h-4 w-14 shrink-0 rounded bg-ink/[0.05]" />
               </div>
             ))}
           </div>
@@ -187,16 +187,16 @@ const TopPerformers = () => {
   return (
     <div className="mb-10 relative">
       {/* Timeless desk panel — hairline border only, no gold edge glow */}
-      <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
+      <div className="relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
         {/* Title strip */}
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.015] px-4 py-3.5 sm:px-5 sm:py-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
               <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
                 Top Gainers
               </h2>
               {resultCount > 0 && (
-                <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                <span className="rounded border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
                   {resultCount}
                 </span>
               )}
@@ -222,7 +222,7 @@ const TopPerformers = () => {
 
         {/* Category tabs + range — toolbar */}
         {data && data.top_gainers?.length > 0 && (
-          <div className="border-b border-white/[0.06]">
+          <div className="border-b border-ink/[0.06]">
             <div
               className="no-scrollbar flex gap-0 overflow-x-auto px-2 sm:px-3"
               role="tablist"
@@ -253,11 +253,11 @@ const TopPerformers = () => {
               })}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.04] px-3 py-2 sm:px-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/[0.04] px-3 py-2 sm:px-4">
               <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/55">
                 Range
               </span>
-              <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-white/[0.07] bg-black/20 p-0.5">
+              <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-ink/[0.07] bg-scrim/20 p-0.5">
                 {presets.map(({ key, short }) => {
                   const on = activeFilter === key;
                   return (
@@ -267,7 +267,7 @@ const TopPerformers = () => {
                       onClick={() => handlePresetClick(key)}
                       className={`shrink-0 rounded-[5px] px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-wide transition sm:px-3 sm:text-[11px] ${
                         on
-                          ? 'bg-white/[0.1] text-text-primary shadow-sm'
+                          ? 'bg-ink/[0.1] text-text-primary shadow-sm'
                           : 'text-text-muted hover:text-text-primary/75'
                       }`}
                     >
@@ -279,7 +279,7 @@ const TopPerformers = () => {
             </div>
 
             {showCustom && (
-              <div className="grid grid-cols-2 gap-2 border-t border-white/[0.04] bg-white/[0.01] px-3 py-2.5 sm:flex sm:flex-wrap sm:items-end sm:px-4">
+              <div className="grid grid-cols-2 gap-2 border-t border-ink/[0.04] bg-ink/[0.01] px-3 py-2.5 sm:flex sm:flex-wrap sm:items-end sm:px-4">
                 <label className="flex min-w-0 flex-col gap-1">
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                     {t('top.from')}
@@ -288,7 +288,7 @@ const TopPerformers = () => {
                     type="date"
                     value={customFrom}
                     onChange={(e) => setCustomFrom(e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-white/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-ink/25 focus:outline-none"
                   />
                 </label>
                 <label className="flex min-w-0 flex-col gap-1">
@@ -299,14 +299,14 @@ const TopPerformers = () => {
                     type="date"
                     value={customTo}
                     onChange={(e) => setCustomTo(e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-white/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-ink/25 focus:outline-none"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={handleCustomApply}
                   disabled={!customFrom || !customTo}
-                  className="col-span-2 rounded-md border border-white/15 bg-white/[0.08] py-2 text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.12] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-5"
+                  className="col-span-2 rounded-md border border-ink/15 bg-ink/[0.08] py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.12] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-5"
                 >
                   {t('top.apply')}
                 </button>
@@ -328,11 +328,11 @@ const TopPerformers = () => {
               <div
                 role="status"
                 aria-live="polite"
-                className={`mx-3 mt-2 flex items-center gap-2.5 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 sm:mx-4 transition-all duration-400 ${
+                className={`mx-3 mt-2 flex items-center gap-2.5 overflow-hidden rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 sm:mx-4 transition-all duration-400 ${
                   isProofHintClosing ? 'max-h-0 opacity-0 border-transparent py-0 mt-0' : 'max-h-20 opacity-100 animate-[proofHintIn_.28s_ease-out]'
                 }`}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-text-primary/65">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.04] text-text-primary/65">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
                     <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
                   </svg>
@@ -345,7 +345,7 @@ const TopPerformers = () => {
             )}
 
             {/* Column headers — desk table */}
-            <div className="hidden border-b border-white/[0.05] px-4 py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3 sm:px-5">
+            <div className="hidden border-b border-ink/[0.05] px-4 py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3 sm:px-5">
               <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
                 #
               </span>
@@ -367,7 +367,7 @@ const TopPerformers = () => {
               <span />
             </div>
 
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-ink/[0.04]">
               {displayed.map((item, idx) => {
                 const rank = idx + 1;
                 const gainUp = (item.gain_pct || 0) >= 0;
@@ -385,7 +385,7 @@ const TopPerformers = () => {
                       }
                     }}
                     style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
-                    className="tp-row group cursor-pointer transition-colors hover:bg-white/[0.028] active:bg-white/[0.04] focus-visible:bg-white/[0.03] focus-visible:outline-none"
+                    className="tp-row group cursor-pointer transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none"
                   >
                     {/* Desktop row */}
                     <div className="hidden items-center gap-3 px-4 py-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:px-5">
@@ -395,7 +395,7 @@ const TopPerformers = () => {
                         <CoinLogo pair={cleanPair(item.pair)} size={30} />
                         <div className="min-w-0">
                           <div className="flex min-w-0 items-baseline gap-1.5">
-                            <span className="truncate font-mono text-[13.5px] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-white">
+                            <span className="truncate font-mono text-[13.5px] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-text-primary">
                               {coinSymbol(item.pair)}
                             </span>
                             <span className="shrink-0 font-mono text-[10px] text-text-primary/28">
@@ -459,7 +459,7 @@ const TopPerformers = () => {
                             {coinSymbol(item.pair)}
                           </span>
                           {multi && (
-                            <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1 font-mono text-[9px] text-text-primary/45">
+                            <span className="rounded border border-ink/[0.08] bg-ink/[0.03] px-1 font-mono text-[9px] text-text-primary/45">
                               ×{item.signal_count}
                             </span>
                           )}
@@ -498,7 +498,7 @@ const TopPerformers = () => {
             )}
 
             {displayed.length > 0 && (
-              <div className="flex items-center justify-between gap-3 border-t border-white/[0.05] px-4 py-2.5 sm:px-5">
+              <div className="flex items-center justify-between gap-3 border-t border-ink/[0.05] px-4 py-2.5 sm:px-5">
                 <p className="font-mono text-[10px] text-text-muted/55">
                   Tap a row to open call proof
                 </p>
@@ -548,7 +548,7 @@ const Spark = ({ data, up = true, compact = false }) => {
   const height = compact ? 20 : 28;
   const pad = compact ? 2 : 3;
   if (!Array.isArray(data) || data.length < 2) {
-    return <div className={`flex w-full items-center ${compact ? 'h-5' : 'h-7'}`}><span className="h-px w-full bg-white/[0.06]" /></div>;
+    return <div className={`flex w-full items-center ${compact ? 'h-5' : 'h-7'}`}><span className="h-px w-full bg-ink/[0.06]" /></div>;
   }
   const w = 100, h = height;
   const min = Math.min(...data), max = Math.max(...data);
@@ -720,20 +720,20 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
 
   const modalContent = (
     <div className={`fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-3 lg:p-5 ${isClosing ? "animate-[smBO_.2s_ease-in_forwards]" : "animate-[smBI_.25s_ease-out]"}`}>
-      <div className="absolute inset-0 bg-black/75" onClick={handleClose} />
+      <div className="absolute inset-0 bg-scrim/75" onClick={handleClose} />
       <div
-        className={`relative flex h-[min(92dvh,100%)] max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-white/[0.08] bg-surface-raised shadow-2xl lg:max-w-[1200px] sm:h-auto sm:max-h-[min(90dvh,900px)] sm:rounded-xl ${
+        className={`relative flex h-[min(92dvh,100%)] max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.08] bg-surface-raised shadow-2xl lg:max-w-[1200px] sm:h-auto sm:max-h-[min(90dvh,900px)] sm:rounded-xl ${
           isClosing
             ? "animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]"
             : "animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.28s_cubic-bezier(.16,1,.3,1)]"
         }`}
       >
         <div className="flex shrink-0 justify-center pt-2 sm:hidden">
-          <div className="h-1 w-9 rounded-full bg-white/20" />
+          <div className="h-1 w-9 rounded-full bg-ink/20" />
         </div>
 
         {/* Header — exchange trade ticket */}
-        <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.06] px-3 py-2.5 sm:px-4">
+        <div className="flex shrink-0 items-center gap-2 border-b border-ink/[0.06] px-3 py-2.5 sm:px-4">
           <CoinLogo pair={pair} size={28} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -744,7 +744,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                 </span>
               )}
               {detail?.risk_level && (
-                <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-text-primary/50">
+                <span className="rounded border border-ink/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-text-primary/50">
                   {detail.risk_level}
                 </span>
               )}
@@ -758,7 +758,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               href={xUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.04] px-2 text-[11px] font-medium text-text-primary/80 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-text-primary sm:px-2.5"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-ink/[0.1] bg-ink/[0.04] px-2 text-[11px] font-medium text-text-primary/80 transition hover:border-ink/20 hover:bg-ink/[0.08] hover:text-text-primary sm:px-2.5"
               title={`Explore $${xCash} on X`}
             >
               <span className="hidden sm:inline text-text-muted">Explore on</span>
@@ -768,7 +768,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               <button
                 type="button"
                 onClick={() => onOpenHistory(item)}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-white/[0.04] hover:text-text-primary sm:px-2.5"
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-ink/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-ink/[0.04] hover:text-text-primary sm:px-2.5"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span className="hidden sm:inline">History</span>
@@ -776,7 +776,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             ) : (
               <a
                 href={historyHref}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-white/[0.04] hover:text-text-primary sm:px-2.5"
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-ink/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-ink/[0.04] hover:text-text-primary sm:px-2.5"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span className="hidden sm:inline">History</span>
@@ -785,7 +785,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             <button
               type="button"
               onClick={handleClose}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-text-primary/45 transition hover:bg-white/[0.04] hover:text-text-primary"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/[0.08] text-text-primary/45 transition hover:bg-ink/[0.04] hover:text-text-primary"
               aria-label="Close"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -794,7 +794,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
         </div>
 
         {multi && (
-          <div className="flex shrink-0 items-center justify-center gap-2 border-b border-white/[0.05] px-3 py-2">
+          <div className="flex shrink-0 items-center justify-center gap-2 border-b border-ink/[0.05] px-3 py-2">
             <button
               type="button"
               onClick={() => onNavigate(currentIndex - 1)}
@@ -810,7 +810,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                   type="button"
                   onClick={() => onNavigate(i)}
                   className={`h-6 min-w-[1.5rem] rounded px-1 font-mono text-[10px] tabular-nums ${
-                    i === currentIndex ? "bg-white/15 text-text-primary" : "text-text-primary/35 hover:text-text-primary/70"
+                    i === currentIndex ? "bg-ink/15 text-text-primary" : "text-text-primary/35 hover:text-text-primary/70"
                   }`}
                 >
                   {i + 1}
@@ -831,7 +831,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/50" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/10 border-t-white/50" />
             </div>
           ) : detail?.is_redacted ? (
             <div className="mx-auto max-w-sm py-12 text-center">
@@ -851,13 +851,13 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             <div className="space-y-4 pb-2">
               {/* Compact metrics strip */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-lg border border-white/[0.06] bg-surface-raised px-3 py-2">
+                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Entry</p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {detail.entry > 0 ? `$${formatPrice(detail.entry)}` : "—"}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/[0.06] bg-surface-raised px-3 py-2">
+                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">Peak</p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {peakPrice ? `$${formatPrice(peakPrice)}` : "—"}
@@ -868,7 +868,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                     )}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/[0.06] bg-surface-raised px-3 py-2">
+                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">{t("top.duration")}</p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold text-text-primary">
                     {detail.updates?.length > 0
@@ -876,7 +876,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                       : "Active"}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/[0.06] bg-surface-raised px-3 py-2">
+                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">{t("top.risk")}</p>
                   <p
                     className={`mt-0.5 font-mono text-[13px] font-semibold ${
@@ -903,14 +903,14 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                   </span>
                 </div>
                 {!hasAnyImg ? (
-                  <div className="relative h-[300px] overflow-hidden rounded-xl border border-white/[0.08] bg-surface-secondary sm:h-[400px]">
+                  <div className="relative h-[300px] overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-secondary sm:h-[400px]">
                     <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-0 items-stretch">
                     {/* BEFORE */}
-                    <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                    <div className="min-w-0 flex flex-col rounded-xl border border-ink/[0.08] bg-surface-secondary/40 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-ink/[0.06]">
                         <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                           {t("top.before")}
                         </span>
@@ -925,12 +925,12 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                           <button
                             type="button"
                             onClick={() => setLightboxImg(entryImg)}
-                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px] cursor-zoom-in"
+                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px] cursor-zoom-in"
                           >
                             <img src={entryImg} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
                           </button>
                         ) : (
-                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#0a0a0c] text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
+                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-ink/10 bg-[#0a0a0c] text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
                             {t("top.waiting_ss")}
                           </div>
                         )}
@@ -939,7 +939,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             type="button"
                             disabled={!entryImg}
                             onClick={() => entryImg && setLightboxImg(entryImg)}
-                            className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08] disabled:opacity-35 disabled:pointer-events-none"
+                            className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-ink/[0.08] disabled:opacity-35 disabled:pointer-events-none"
                           >
                             Full size
                           </button>
@@ -948,7 +948,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                     </div>
 
                     <div className="hidden md:flex flex-col items-center justify-center px-2.5 shrink-0">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-surface-raised text-text-muted">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/[0.1] bg-surface-raised text-text-muted">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                         </svg>
@@ -959,8 +959,8 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                     </div>
 
                     {/* AFTER */}
-                    <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                    <div className="min-w-0 flex flex-col rounded-xl border border-ink/[0.08] bg-surface-secondary/40 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-ink/[0.06]">
                         <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${isStopped ? "text-loss" : "text-positive"}`}>
                           {t("top.after")} · {status === "open" ? t("top.latest") : sLabel(status)}
                         </span>
@@ -988,11 +988,11 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                       </div>
                       <div className="p-2 flex-1 flex flex-col">
                         {showInteractiveRight ? (
-                          <div className="relative h-[200px] overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
+                          <div className="relative h-[200px] overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
                             <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
                           </div>
                         ) : afterImg ? (
-                          <div className="relative h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
+                          <div className="relative h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
                             <img
                               src={afterImg}
                               alt=""
@@ -1007,7 +1007,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             />
                           </div>
                         ) : (
-                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-white/10 text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
+                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-ink/10 text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
                             {t("top.waiting_ss")}
                           </div>
                         )}
@@ -1016,7 +1016,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             <button
                               type="button"
                               onClick={() => setShowTV(true)}
-                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.12]"
+                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.12]"
                             >
                               <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
@@ -1027,7 +1027,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             <button
                               type="button"
                               onClick={() => setShowTV(false)}
-                              className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08]"
+                              className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-ink/[0.08]"
                             >
                               Show snapshot
                             </button>
@@ -1036,7 +1036,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                             type="button"
                             disabled={!afterImg}
                             onClick={() => afterImg && setLightboxImg(afterImg)}
-                            className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
+                            className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
                           >
                             Full
                           </button>
@@ -1052,7 +1052,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
                   {t("top.journey")}
                 </p>
-                <div className="rounded-lg border border-white/[0.06] bg-surface-raised p-3 sm:p-4">
+                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised p-3 sm:p-4">
                   <div className="sm:hidden space-y-0">
                     {events.map((ev, i) => {
                       const c = themeColors[ev.key] || themeColors.gold;
@@ -1062,14 +1062,14 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                           <div className="flex flex-col items-center">
                             <div className={`flex h-7 w-7 items-center justify-center rounded-full text-text-primary ${c.dot}`}>
                               {i === 0 ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
                               ) : ev.isSL ? (
                                 <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                               ) : (
                                 <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                               )}
                             </div>
-                            {!isLast && <div className="my-0.5 w-px flex-1 min-h-[12px] bg-white/10" />}
+                            {!isLast && <div className="my-0.5 w-px flex-1 min-h-[12px] bg-ink/10" />}
                           </div>
                           <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-2.5"}`}>
                             <div className="flex flex-wrap items-center gap-1.5">
@@ -1095,11 +1095,11 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                         return (
                           <div key={i} className="relative flex flex-1 flex-col items-center">
                             {!isLast && (
-                              <div className="absolute left-1/2 top-[14px] h-px w-full bg-white/10" />
+                              <div className="absolute left-1/2 top-[14px] h-px w-full bg-ink/10" />
                             )}
                             <div className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-text-primary ${c.dot}`}>
                               {i === 0 ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
                               ) : ev.isSL ? (
                                 <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                               ) : (
@@ -1170,7 +1170,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
 
       {lightboxImg && (
         <div
-          className="fixed inset-0 z-[200000] flex cursor-zoom-out items-center justify-center bg-black/95 p-4"
+          className="fixed inset-0 z-[200000] flex cursor-zoom-out items-center justify-center bg-scrim/95 p-4"
           onClick={() => setLightboxImg(null)}
         >
           <img
@@ -1196,7 +1196,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
 };
 
 const StatBlock = ({ label, value, valueClass = "text-text-primary" }) => (
-  <div className="flex flex-col items-center justify-center rounded-lg border border-white/[0.06] bg-surface-raised px-2 py-2.5 text-center">
+  <div className="flex flex-col items-center justify-center rounded-lg border border-ink/[0.06] bg-surface-raised px-2 py-2.5 text-center">
     <span className="mb-1 font-mono text-[9px] uppercase tracking-wider text-text-muted">{label}</span>
     <span className={`font-mono text-[12px] font-semibold sm:text-[13px] ${valueClass}`}>{value}</span>
   </div>

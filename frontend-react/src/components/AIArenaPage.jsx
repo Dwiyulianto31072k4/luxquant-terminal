@@ -100,19 +100,19 @@ function Header({ report, onRefresh, history, onSelectReport }) {
           {sentimentCfg.icon} {sentimentCfg.label} · {report.confidence}%
         </div>
         {/* Bias */}
-        <div className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold bg-white/[0.04] text-text-muted border border-white/5">
+        <div className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold bg-ink/[0.04] text-text-muted border border-ink/5">
           {report.bias_direction || 'NEUTRAL'}
         </div>
         {/* Generated ago */}
         <div className="text-[10px] text-text-muted">{timeAgo(report.timestamp)}</div>
         {/* Refresh */}
-        <button onClick={onRefresh} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-text-muted hover:text-gold-primary transition-colors" title="Refresh">
+        <button onClick={onRefresh} className="p-1.5 rounded-lg hover:bg-ink/[0.06] text-text-muted hover:text-gold-primary transition-colors" title="Refresh">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
         </button>
         {/* Previous reports dropdown */}
         {history.length > 1 && (
           <div className="relative">
-            <button onClick={() => setDropdownOpen(!dropdownOpen)} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-white/[0.04] text-text-muted hover:bg-white/[0.08] border border-white/5 transition-colors flex items-center gap-1">
+            <button onClick={() => setDropdownOpen(!dropdownOpen)} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-ink/[0.04] text-text-muted hover:bg-ink/[0.08] border border-ink/5 transition-colors flex items-center gap-1">
               Previous
               <svg className={`w-3 h-3 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
@@ -124,7 +124,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
                   const isCurrent = r.id === report.id;
                   return (
                     <button key={r.id} onClick={() => { onSelectReport(r); setDropdownOpen(false); }}
-                      className={`w-full text-left px-3 py-2.5 border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-colors ${isCurrent ? 'bg-gold-primary/10' : ''}`}>
+                      className={`w-full text-left px-3 py-2.5 border-b border-ink/5 last:border-0 hover:bg-ink/[0.04] transition-colors ${isCurrent ? 'bg-gold-primary/10' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs">{s.icon}</span>
@@ -168,13 +168,13 @@ function BlufHero({ report }) {
 
       {/* 3 key data points */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-ink/[0.04]">
           <span className="text-[10px] text-text-muted uppercase tracking-wider">Bias</span>
           <span className="text-sm font-bold" style={{ color: sentimentCfg.color }}>
             {primaryBias.direction || report.bias_direction || 'NEUTRAL'} ({primaryBias.confidence || report.confidence}%)
           </span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-ink/[0.04]">
           <span className="text-[10px] text-text-muted uppercase tracking-wider">Alignment</span>
           <span className="text-sm font-bold text-text-primary">
             {alignment.overall?.replace('_', ' ').toUpperCase() || 'N/A'}
@@ -184,7 +184,7 @@ function BlufHero({ report }) {
           </span>
         </div>
         {whatChanged && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04]">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-ink/[0.04]">
             <span className="text-[10px] text-text-muted uppercase tracking-wider">Changed</span>
             <span className="text-[11px] text-text-secondary">
               {whatChanged.diffs?.filter(d => !d.unchanged).slice(0, 2).map(d => {
@@ -427,11 +427,11 @@ function PriceChart({ activeTF, onTFChange }) {
   return (
     <div className="glass-card rounded-2xl border border-line/10 overflow-hidden">
       {/* TF Tabs + Legend */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 flex-wrap gap-2">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-ink/5 flex-wrap gap-2">
         <div className="flex items-center gap-1">
           {[{ key: '1D', label: 'Daily', sub: 'Tide' }, { key: '4H', label: '4H', sub: 'Wave' }, { key: '1H', label: '1H', sub: 'Ripple' }].map(tf => (
             <button key={tf.key} onClick={() => onTFChange(tf.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-line/30' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04] border border-transparent'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-line/30' : 'text-text-muted hover:text-text-primary hover:bg-ink/[0.04] border border-transparent'}`}>
               {tf.label} <span className="text-[9px] opacity-60">({tf.sub})</span>
             </button>
           ))}
@@ -457,7 +457,7 @@ function PriceChart({ activeTF, onTFChange }) {
       </div>
 
       {/* RSI */}
-      <div className="border-t border-white/5 px-4 py-1">
+      <div className="border-t border-ink/5 px-4 py-1">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[9px] text-text-muted font-semibold uppercase tracking-wider">RSI (14)</span>
           {tech.rsi_14 != null && (
@@ -470,7 +470,7 @@ function PriceChart({ activeTF, onTFChange }) {
       </div>
 
       {/* Tech summary strip */}
-      <div className="flex items-center gap-3 px-4 py-2 border-t border-white/5 overflow-x-auto text-[10px] text-text-muted">
+      <div className="flex items-center gap-3 px-4 py-2 border-t border-ink/5 overflow-x-auto text-[10px] text-text-muted">
         {tech.ema_bullish_cross != null && <span>EMA Cross: <span className={tech.ema_bullish_cross ? 'text-green-400' : 'text-red-400'}>{tech.ema_bullish_cross ? 'Bullish' : 'Bearish'}</span></span>}
         {tech.golden_cross != null && <span>Golden Cross: <span className={tech.golden_cross ? 'text-green-400' : 'text-red-400'}>{tech.golden_cross ? 'Yes' : 'No'}</span></span>}
         {tech.volume_ratio != null && <span>Vol: <span className="text-text-primary">{tech.volume_ratio}x</span></span>}
@@ -607,26 +607,26 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
 
       {/* Top metrics row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+        <div className="rounded-xl p-3 bg-ink/[0.02] border border-ink/5">
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Today's Net Flow</div>
           <div className={`text-lg font-bold ${total >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {total !== null && total !== undefined ? `${total >= 0 ? '+' : ''}$${total.toFixed(1)}M` : 'N/A'}
           </div>
         </div>
-        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+        <div className="rounded-xl p-3 bg-ink/[0.02] border border-ink/5">
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Streak</div>
           <div className={`text-lg font-bold ${isInflow ? 'text-green-400' : 'text-red-400'}`}>
             {streakDays > 0 ? `${streakDays}d ${isInflow ? '↑' : '↓'}` : '—'}
           </div>
           <div className="text-[9px] text-text-muted">{flow.streak_direction || 'none'}</div>
         </div>
-        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+        <div className="rounded-xl p-3 bg-ink/[0.02] border border-ink/5">
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">7d Cumulative</div>
           <div className={`text-lg font-bold ${cum7d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {cum7d !== null && cum7d !== undefined ? `${cum7d >= 0 ? '+' : ''}$${cum7d.toFixed(0)}M` : 'N/A'}
           </div>
         </div>
-        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+        <div className="rounded-xl p-3 bg-ink/[0.02] border border-ink/5">
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Coinbase Premium</div>
           <div className="text-lg font-bold" style={{ color: cbSignalColor }}>
             {cbPct !== null && cbPct !== undefined ? `${cbPct >= 0 ? '+' : ''}${cbPct.toFixed(3)}%` : 'N/A'}
@@ -679,7 +679,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
               const v = tc.flow_usd_m;
               const isPos = v >= 0;
               return (
-                <div key={i} className="px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 flex items-center gap-2">
+                <div key={i} className="px-2.5 py-1.5 rounded-lg bg-ink/[0.03] border border-ink/5 flex items-center gap-2">
                   <span className="text-xs font-bold text-text-primary">{tc.fund}</span>
                   <span className={`text-[11px] font-medium ${isPos ? 'text-green-400' : 'text-red-400'}`}>
                     {isPos ? '+' : ''}${v.toFixed(1)}M
@@ -752,7 +752,7 @@ function MacroPulse({ macro, macroLive }) {
           const current = live.current;
           const isUp = (delta || 0) > 0;
           return (
-            <div key={row.key} className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+            <div key={row.key} className="rounded-xl p-3 bg-ink/[0.02] border border-ink/5">
               <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">{row.label}</div>
               {current && (
                 <div className="text-sm text-text-primary font-medium">
@@ -804,7 +804,7 @@ function WhatChanged({ data }) {
           if (d.unchanged) return null;
           const isPositive = typeof d.delta_pct === 'number' ? d.delta_pct > 0 : false;
           return (
-            <div key={i} className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5">
+            <div key={i} className="px-3 py-2 rounded-lg bg-ink/[0.03] border border-ink/5">
               <div className="text-[9px] text-text-muted uppercase tracking-wider">{d.metric}</div>
               <div className="text-xs text-text-primary font-medium mt-0.5">
                 {d.from_fmt || String(d.from)} → {d.to_fmt || String(d.to)}
@@ -885,7 +885,7 @@ function SourcesFooter({ report }) {
       <div className="flex items-center justify-center gap-2 flex-wrap">
         {ALL_SOURCES.map(src => (
           <a key={src} href={SOURCE_LINKS[src]} target="_blank" rel="noopener noreferrer"
-            className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-white/[0.03] text-text-muted hover:text-gold-primary hover:bg-gold-primary/10 transition-colors">
+            className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-ink/[0.03] text-text-muted hover:text-gold-primary hover:bg-gold-primary/10 transition-colors">
             {src}
           </a>
         ))}

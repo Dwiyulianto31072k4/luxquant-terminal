@@ -95,7 +95,7 @@ export default function TerminalLayout() {
           <span className="font-medium text-text-primary/80 truncate">{t(tabKey(active))}</span>
         </div>
         <div
-          className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5"
+          className="inline-flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-0.5"
           role="navigation"
           aria-label="Product"
         >
@@ -107,8 +107,8 @@ export default function TerminalLayout() {
             const isOn = item.key === "terminal";
             const cls = `inline-flex items-center rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
               isOn
-                ? "bg-white/[0.1] text-text-primary shadow-sm"
-                : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"
+                ? "bg-ink/[0.1] text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]"
             }`;
             return isOn ? (
               <span key={item.key} className={cls} aria-current="page">{item.label}</span>
@@ -129,8 +129,8 @@ export default function TerminalLayout() {
             onClick={() => go(id, route)}
             className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
               active === id
-                ? "bg-white/[0.1] text-text-primary"
-                : "text-text-muted hover:text-text-primary hover:bg-white/[0.03]"
+                ? "bg-ink/[0.1] text-text-primary"
+                : "text-text-muted hover:text-text-primary hover:bg-ink/[0.03]"
             }`}
           >
             <TabIcon id={id} />
@@ -141,7 +141,7 @@ export default function TerminalLayout() {
 
       <div className="flex gap-3 items-stretch lg:flex-1 lg:min-h-0">
         {/* ── slim left nav (no boxed panel) ── */}
-        <aside className="hidden lg:block w-[168px] shrink-0 lg:overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <aside className="hidden lg:block w-[168px] shrink-0 lg:overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-ink/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           <nav className="pr-1 space-y-2.5">
             {GROUPS.map(({ g, items }) => (
               <div key={g}>
@@ -155,12 +155,12 @@ export default function TerminalLayout() {
                       onClick={() => go(id, route)}
                       className={`relative w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 rounded-md text-left text-[12px] transition-colors ${
                         active === id
-                          ? "bg-white/[0.06] text-text-primary"
-                          : "text-text-primary/75 hover:bg-white/[0.03] hover:text-text-primary"
+                          ? "bg-ink/[0.06] text-text-primary"
+                          : "text-text-primary/75 hover:bg-ink/[0.03] hover:text-text-primary"
                       }`}
                     >
                       {active === id && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-white/70" />
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-ink/70" />
                       )}
                       <span className={active === id ? "text-text-primary" : "text-text-muted/70"}>
                         <TabIcon id={id} />
@@ -175,7 +175,7 @@ export default function TerminalLayout() {
         </aside>
 
         {/* ── content scroll region ── */}
-        <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+        <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--ink)_/_0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
           <SignalStatusProvider>
             <Outlet />
             <GlobalSignalModalHost />

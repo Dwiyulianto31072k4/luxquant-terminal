@@ -607,9 +607,9 @@ const MarketPulsePageInner = () => {
             aria-expanded={sidebarOpen}
             aria-label="Show side panel"
             title="Show side panel"
-            className="mp-sidebar-rail group relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-line/30 transition-colors"
+            className="mp-sidebar-rail group relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md hover:border-line/30 transition-colors"
           >
-            <span className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
+            <span className="flex items-center justify-center w-6 h-6 rounded-md border border-ink/[0.08] bg-ink/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
               <IconChevronsLeft className="h-3.5 w-3.5" />
             </span>
             <span className="mp-rail-label text-[9px] font-semibold uppercase tracking-[0.22em] text-text-muted/60 group-hover:text-text-primary transition-colors">
@@ -648,7 +648,7 @@ export default MarketPulsePage;
 const PulseTape = ({ items, onSelect }) => {
   const tape = [...items, ...items];
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
       <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-surface-raised to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface-raised to-transparent z-10 pointer-events-none" />
       <div className="flex gap-8 py-2.5 animate-pulse-tape whitespace-nowrap relative z-0">
@@ -696,7 +696,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
     adRatio == null ? "—" : adRatio === Infinity ? "∞" : adRatio.toFixed(2);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] px-4 py-3">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] px-4 py-3">
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
         {/* Verdict */}
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -715,7 +715,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
 
         {/* Diverging bar */}
         <div className="flex-1 min-w-0">
-          <div className="h-2 rounded-full overflow-hidden bg-white/[0.05] flex">
+          <div className="h-2 rounded-full overflow-hidden bg-ink/[0.05] flex">
             <div className="bg-emerald-500/80 transition-all duration-500" style={{ width: `${bullPct}%` }} />
             <div className="bg-red-500/80 transition-all duration-500" style={{ width: `${bearPct}%` }} />
           </div>
@@ -730,7 +730,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
         </div>
 
         {/* A/D ratio */}
-        <div className="flex-shrink-0 flex items-center gap-1.5 border-t sm:border-t-0 sm:border-l border-white/[0.06] pt-2 sm:pt-0 sm:pl-5">
+        <div className="flex-shrink-0 flex items-center gap-1.5 border-t sm:border-t-0 sm:border-l border-ink/[0.06] pt-2 sm:pt-0 sm:pl-5">
           <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45">A/D</span>
           <span className="text-sm font-mono tabular-nums font-medium text-text-primary leading-none">{adDisplay}</span>
         </div>
@@ -744,7 +744,7 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
 // ════════════════════════════════════════════════════════
 
 const StatCardShell = ({ children }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-white/[0.10] hover:bg-surface-secondary">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 transition-all duration-200 hover:border-ink/[0.10] hover:bg-surface-secondary">
     <div className="relative z-10 h-full flex flex-col">{children}</div>
   </div>
 );
@@ -828,7 +828,7 @@ const KpiBullBear = ({ ratio }) => {
       </div>
       {ratio.total > 0 && (
         <div className="mt-auto pt-3">
-          <div className="h-1 rounded-full overflow-hidden bg-white/[0.04] flex">
+          <div className="h-1 rounded-full overflow-hidden bg-ink/[0.04] flex">
             <div
               className="bg-emerald-500/80 transition-all duration-500"
               style={{ width: `${ratio.bullPct}%` }}
@@ -925,7 +925,7 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(biggest.pair)}
-      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-secondary border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-4 transition-all duration-200 hover:border-line/30 hover:bg-surface-secondary cursor-pointer"
+      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 transition-all duration-200 hover:border-line/30 hover:bg-surface-secondary cursor-pointer"
     >
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between mb-1.5">
@@ -969,11 +969,11 @@ const ControlBar = ({
   timeframeFilter, setTimeframeFilter,
   coinDetail, timeAgo, openChartModal,
 }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)]">
+  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)]">
     <div className="relative z-10 p-4 flex flex-col gap-3">
       {/* Row 1: Search + active coin pills */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-        <label className="group flex h-9 min-w-0 md:w-52 flex-shrink-0 items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-white/[0.05]">
+        <label className="group flex h-9 min-w-0 md:w-52 flex-shrink-0 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-ink/[0.05]">
           <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-gold-primary/70 shrink-0" />
           <input
             type="text"
@@ -998,14 +998,14 @@ const ControlBar = ({
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-all border ${
                   isSelected
                     ? "bg-gold-primary/15 text-text-primary border-line/40"
-                    : "bg-white/[0.03] text-text-muted/80 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
+                    : "bg-ink/[0.03] text-text-muted/80 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
                 }`}
               >
                 <CoinLogo pair={pair} size={14} />
                 <span className="font-medium tracking-tight">{symbol}</span>
                 <span
                   className={`text-[9px] font-mono tabular-nums px-1 rounded-sm ${
-                    isSelected ? "bg-gold-primary/20 text-gold-primary" : "bg-white/[0.05] text-text-muted/55"
+                    isSelected ? "bg-gold-primary/20 text-gold-primary" : "bg-ink/[0.05] text-text-muted/55"
                   }`}
                 >
                   {count}
@@ -1017,7 +1017,7 @@ const ControlBar = ({
       </div>
 
       {/* Row 2: Source + Timeframe filter pills */}
-      <div className="flex flex-wrap gap-1.5 items-center pt-3 border-t border-white/[0.04]">
+      <div className="flex flex-wrap gap-1.5 items-center pt-3 border-t border-ink/[0.04]">
         <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted/55 mr-1">
           Source
         </span>
@@ -1034,7 +1034,7 @@ const ControlBar = ({
           />
         ))}
 
-        <div className="w-px h-3.5 bg-white/[0.08] mx-2" />
+        <div className="w-px h-3.5 bg-ink/[0.08] mx-2" />
 
         <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted/55 mr-1">
           TF
@@ -1081,7 +1081,7 @@ const FilterPill = ({ active, onClick, label }) => (
     className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
       active
         ? "bg-gold-primary/15 text-text-primary border-line/40"
-        : "bg-white/[0.03] text-text-muted/70 border-white/[0.06] hover:border-white/[0.14] hover:text-text-primary"
+        : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
     }`}
   >
     {label}
@@ -1143,7 +1143,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
 const DetailStat = ({ label, value, accent }) => {
   const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
   return (
-    <div className="bg-surface-secondary rounded-md p-2.5 text-center border border-white/[0.04]">
+    <div className="bg-surface-secondary rounded-md p-2.5 text-center border border-ink/[0.04]">
       <p className={`text-sm font-mono font-medium tabular-nums leading-none ${colorMap[accent] || "text-text-primary"}`}>
         {value}
       </p>
@@ -1199,7 +1199,7 @@ const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
 
 // ── Segmented control (mode switch + side filter) — Flowscan pill group ──
 const SegGroup = ({ options, value, onChange }) => (
-  <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+  <div className="flex bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
     {options.map((opt) => {
       const active = value === opt.value;
       const activeClass =
@@ -1286,7 +1286,7 @@ const FeedEmpty = ({ label = "No events match your filters" }) => (
 const SplitColHeader = ({ dir, count }) => {
   const isPump = dir === "pump";
   return (
-    <div className="px-3 py-2 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.015] flex-shrink-0">
+    <div className="px-3 py-2 border-b border-ink/[0.06] flex items-center justify-between bg-ink/[0.015] flex-shrink-0">
       <span
         className={`text-[10px] font-semibold uppercase tracking-[0.16em] flex items-center gap-1.5 ${
           isPump ? "text-emerald-400" : "text-red-400"
@@ -1330,9 +1330,9 @@ const ActivityFeedPanel = ({
       ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)] mp-feed-card">
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)] mp-feed-card">
       {/* Header strip */}
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.015] flex-shrink-0 relative z-10 flex-wrap">
+      <div className="px-4 py-3 border-b border-ink/[0.06] flex items-center justify-between gap-3 bg-ink/[0.015] flex-shrink-0 relative z-10 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
@@ -1369,7 +1369,7 @@ const ActivityFeedPanel = ({
               aria-expanded={sidebarOpen}
               aria-label={sidebarOpen ? "Hide side panel" : "Show side panel"}
               title={sidebarOpen ? "Hide side panel" : "Show side panel"}
-              className="hidden lg:inline-flex items-center justify-center w-7 h-7 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
+              className="hidden lg:inline-flex items-center justify-center w-7 h-7 rounded-md border border-ink/[0.06] bg-ink/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
             >
               {sidebarOpen ? <IconChevronsRight className="h-3.5 w-3.5" /> : <IconChevronsLeft className="h-3.5 w-3.5" />}
             </button>
@@ -1424,7 +1424,7 @@ const ActivityFeedPanel = ({
       )}
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-white/[0.06] text-center bg-white/[0.015] flex-shrink-0 relative z-10">
+      <div className="px-4 py-2 border-t border-ink/[0.06] text-center bg-ink/[0.015] flex-shrink-0 relative z-10">
         <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/45">
           Auto-refresh · 10s
         </span>
@@ -1445,7 +1445,7 @@ const FeedRow = ({
   return (
     <div
       onClick={onSelect}
-      className={`relative grid grid-cols-[26px_minmax(0,1fr)_auto] md:grid-cols-[26px_minmax(0,1fr)_70px_22px_44px] items-center gap-3 px-4 py-2.5 hover:bg-white/[0.025] transition-colors cursor-pointer border-l-2 border-b border-white/[0.03] ${
+      className={`relative grid grid-cols-[26px_minmax(0,1fr)_auto] md:grid-cols-[26px_minmax(0,1fr)_70px_22px_44px] items-center gap-3 px-4 py-2.5 hover:bg-ink/[0.025] transition-colors cursor-pointer border-l-2 border-b border-ink/[0.03] ${
         isSelected ? "bg-gold-primary/[0.04] border-l-gold-primary" : ""
       }`}
       style={{
@@ -1532,14 +1532,14 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
   return (
     <div
       onClick={onSelectCoin}
-      className={`px-4 py-2 border-b border-white/[0.04] flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-white/[0.025] ${
+      className={`px-4 py-2 border-b border-ink/[0.04] flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-ink/[0.025] ${
         isSelected ? "bg-gold-primary/[0.05]" : "bg-gold-primary/[0.015]"
       }`}
     >
       <CoinLogo pair={group.pair} size={26} />
       <div className="flex-1 flex items-center gap-2 min-w-0">
         <span className="text-text-primary text-[12.5px] font-medium tracking-tight">{symbol}</span>
-        <span className="text-[9px] text-text-muted/55 px-1.5 py-0.5 bg-white/[0.04] rounded-sm font-mono uppercase tracking-wider">
+        <span className="text-[9px] text-text-muted/55 px-1.5 py-0.5 bg-ink/[0.04] rounded-sm font-mono uppercase tracking-wider">
           ×{group.events.length} events
         </span>
         {called && (
@@ -1564,7 +1564,7 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
       </span>
       <button
         onClick={onToggle}
-        className="w-[22px] h-[22px] rounded-sm border border-white/[0.08] text-text-muted/60 hover:text-text-primary hover:border-white/20 transition-colors flex items-center justify-center"
+        className="w-[22px] h-[22px] rounded-sm border border-ink/[0.08] text-text-muted/60 hover:text-text-primary hover:border-ink/20 transition-colors flex items-center justify-center"
       >
         {expanded ? <IconChevronUp className="h-2.5 w-2.5" /> : <IconChevronDown className="h-2.5 w-2.5" />}
       </button>
@@ -1578,7 +1578,7 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
   return (
     <div
       onClick={onSelect}
-      className="grid grid-cols-[12px_minmax(0,1fr)_22px_44px] items-center gap-3 px-4 py-2 pl-14 border-b border-white/[0.025] hover:bg-white/[0.02] transition-colors cursor-pointer border-l-2"
+      className="grid grid-cols-[12px_minmax(0,1fr)_22px_44px] items-center gap-3 px-4 py-2 pl-14 border-b border-ink/[0.025] hover:bg-ink/[0.02] transition-colors cursor-pointer border-l-2"
       style={{ borderLeftColor: "rgba(212,168,83,0.4)" }}
     >
       <span className="text-text-muted/35 text-[9px] font-mono">→</span>
@@ -1675,7 +1675,7 @@ function HeatCell(props) {
         </foreignObject>
       )}
       {med && (
-        <text x={x + 4} y={y + 11} fill="rgba(255,255,255,0.5)" fontSize={8.5} fontFamily="ui-monospace, monospace">×{eventCount}</text>
+        <text x={x + 4} y={y + 11} fill="rgb(var(--ink) / 0.5)" fontSize={8.5} fontFamily="ui-monospace, monospace">×{eventCount}</text>
       )}
       {called && med && (
         <text x={x + width - 4} y={y + 11} textAnchor="end" fill="#e8c877" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em">CALL</text>
@@ -1703,7 +1703,7 @@ function HeatTreemap({ data, height, onPick }) {
     const d = payload[0]?.payload || {};
     if (!d.name) return null;
     return (
-      <div className="rounded-md border border-white/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
+      <div className="rounded-md border border-ink/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
         <div className="font-medium text-text-primary mb-0.5">{stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}</div>
         <div className="font-mono" style={{ color: d.isBull ? "#6ee7b7" : "#fca5a5" }}>{d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%</div>
         <div className="font-mono text-text-muted">{d.eventCount} events</div>
@@ -1744,7 +1744,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
   };
 
   const SortToggle = ({ big = false }) => (
-    <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+    <div className="flex bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
       {["events", "pct"].map((k) => (
         <button
           key={k}
@@ -1758,7 +1758,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
   );
 
   const Legend = () => (
-    <div className="mt-3 pt-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
+    <div className="mt-3 pt-2 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
       <span className="uppercase tracking-[0.15em]">
         Size = activity · Color = direction · <span className="text-gold-primary/80">gold = LuxQuant call</span>
       </span>
@@ -1781,7 +1781,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
               <button
                 onClick={() => setExpanded(true)}
                 title="Expand heatmap"
-                className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-ink/[0.06] bg-ink/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
@@ -1796,18 +1796,18 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
 
       {expanded && createPortal(
         <div
-          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-6"
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-scrim/80 backdrop-blur-sm sm:items-center sm:p-6"
           onClick={() => setExpanded(false)}
           role="dialog"
           aria-modal="true"
           aria-label="Heatmap expanded"
         >
           <div
-            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-white/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-line/25 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
+            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-ink/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgb(var(--scrim) / 0.35)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-line/25 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-1 flex justify-center sm:hidden" aria-hidden="true">
-              <div className="h-1 w-10 rounded-full bg-white/20" />
+              <div className="h-1 w-10 rounded-full bg-ink/20" />
             </div>
             <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent sm:block" />
             <div className="mb-3 flex shrink-0 items-center justify-between sm:mb-4">
@@ -1821,7 +1821,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
                 <SortToggle big />
                 <button
                   onClick={() => setExpanded(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-text-muted hover:border-white/25 hover:text-text-primary"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
                   aria-label="Close"
                 >
                   ✕
@@ -1847,7 +1847,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
 // ════════════════════════════════════════════════════════
 
 const PanelShell = ({ children, className = "" }) => (
-  <div className={`relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-surface-raised border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] p-3.5 ${className}`}>
+  <div className={`relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-3.5 ${className}`}>
     <div className="relative z-10 h-full flex flex-col">{children}</div>
   </div>
 );
@@ -1875,7 +1875,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
     <PanelHeader
       title="Most Active"
       right={
-        <div className="flex gap-0.5 bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+        <div className="flex gap-0.5 bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
           {["1h", "4h", "24h"].map((p) => (
             <button
               key={p}
@@ -1901,7 +1901,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
           <button
             key={coin.pair}
             onClick={() => onSelect(coin.pair)}
-            className="w-full grid grid-cols-[14px_22px_minmax(0,1fr)_auto] items-center gap-2 py-1.5 px-1 rounded-sm hover:bg-white/[0.025] transition-colors text-left border-b border-white/[0.03] last:border-b-0"
+            className="w-full grid grid-cols-[14px_22px_minmax(0,1fr)_auto] items-center gap-2 py-1.5 px-1 rounded-sm hover:bg-ink/[0.025] transition-colors text-left border-b border-ink/[0.03] last:border-b-0"
           >
             <span className="text-[9px] text-text-muted/40 text-center font-mono tabular-nums">
               {String(i + 1).padStart(2, "0")}
@@ -1959,7 +1959,7 @@ const FlashMovesPanel = ({ moves, onSelect }) => (
           <button
             key={i}
             onClick={() => onSelect(fm.pair)}
-            className="w-full grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-center gap-2 py-1.5 px-1 rounded-sm hover:bg-white/[0.025] transition-colors text-left border-b border-white/[0.03] last:border-b-0"
+            className="w-full grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-center gap-2 py-1.5 px-1 rounded-sm hover:bg-ink/[0.025] transition-colors text-left border-b border-ink/[0.03] last:border-b-0"
             style={{ opacity }}
           >
             <CoinLogo pair={fm.pair} size={18} />
@@ -2016,7 +2016,7 @@ const SummaryPanel = ({ daily, className = "" }) => {
 
       {bull + bear > 0 && (
         <div className="mt-2">
-          <div className="h-1 rounded-full overflow-hidden bg-white/[0.04] flex">
+          <div className="h-1 rounded-full overflow-hidden bg-ink/[0.04] flex">
             <div
               className="bg-emerald-500/80"
               style={{ width: `${bullPct}%` }}
@@ -2050,7 +2050,7 @@ const SummaryPanel = ({ daily, className = "" }) => {
 
 const SummaryCell = ({ label, value, accent }) => {
   const colorMap = {
-    white: "text-text-primary bg-white/[0.03] border-white/[0.04]",
+    white: "text-text-primary bg-ink/[0.03] border-ink/[0.04]",
     emerald: "text-emerald-400 bg-emerald-500/[0.05] border-emerald-500/15",
     red: "text-red-400 bg-red-500/[0.05] border-red-500/15",
   };
@@ -2073,15 +2073,15 @@ const FeedSkeleton = () => (
     {[...Array(8)].map((_, i) => (
       <div
         key={i}
-        className="px-4 py-2.5 flex items-center gap-3 border-b border-white/[0.03]"
+        className="px-4 py-2.5 flex items-center gap-3 border-b border-ink/[0.03]"
         style={{ opacity: 1 - i * 0.1 }}
       >
-        <div className="w-[26px] h-[26px] rounded-full bg-white/[0.04]" />
+        <div className="w-[26px] h-[26px] rounded-full bg-ink/[0.04]" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-2.5 bg-white/[0.04] rounded-sm w-1/3" />
-          <div className="h-2 bg-white/[0.03] rounded-sm w-1/2" />
+          <div className="h-2.5 bg-ink/[0.04] rounded-sm w-1/3" />
+          <div className="h-2 bg-ink/[0.03] rounded-sm w-1/2" />
         </div>
-        <div className="w-16 h-5 bg-white/[0.04] rounded-sm" />
+        <div className="w-16 h-5 bg-ink/[0.04] rounded-sm" />
       </div>
     ))}
   </div>
@@ -2320,7 +2320,7 @@ const CoinChartModal = ({ pair, onClose }) => {
           ? "animate-[mpfade-out_.18s_ease-in_forwards]"
           : "animate-[mpfade-in_.22s_ease-out]"
       } items-end sm:items-start sm:px-6 md:px-8 sm:pt-[72px] sm:pb-6`}
-      style={{ backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)" }}
+      style={{ backgroundColor: "rgb(var(--scrim) / 0.78)", backdropFilter: "blur(8px)" }}
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
@@ -2328,16 +2328,16 @@ const CoinChartModal = ({ pair, onClose }) => {
     >
       {/* Mobile: bottom sheet (Top Gainers Filters grammar). Desktop: centered panel. */}
       <div
-        className={`relative flex w-full max-w-[1180px] flex-col overflow-hidden bg-surface-raised shadow-[0_-12px_40px_rgba(0,0,0,0.55)] min-h-0 ${
+        className={`relative flex w-full max-w-[1180px] flex-col overflow-hidden bg-surface-raised shadow-[0_-12px_40px_rgb(var(--scrim) / 0.35)] min-h-0 ${
           isClosing
             ? "animate-[mpsheet-out_.2s_ease-in_forwards] sm:animate-[mppanel-out_.18s_ease-in_forwards]"
             : "animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
-        } h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-white/10 sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-surface-raised sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8)]`}
+        } h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-ink/10 sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:bg-surface-raised sm:shadow-[0_24px_80px_-12px_rgb(var(--scrim) / 0.8)]`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grab handle — mobile only */}
         <div className="flex justify-center pt-2.5 pb-0.5 sm:hidden shrink-0" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/20" />
+          <div className="h-1 w-10 rounded-full bg-ink/20" />
         </div>
 
         {/* Top accent line — desktop */}
@@ -2347,7 +2347,7 @@ const CoinChartModal = ({ pair, onClose }) => {
         />
 
         {/* Header */}
-        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.015] flex-shrink-0 relative z-10">
+        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-ink/[0.06] flex items-center justify-between gap-3 bg-ink/[0.015] flex-shrink-0 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
             <CoinLogo pair={pair} size={36} />
             <div className="min-w-0">
@@ -2385,7 +2385,7 @@ const CoinChartModal = ({ pair, onClose }) => {
 
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-md bg-white/[0.03] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center text-text-muted hover:text-text-primary transition-all flex-shrink-0"
+            className="w-8 h-8 rounded-md bg-ink/[0.03] border border-ink/[0.08] hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center text-text-muted hover:text-text-primary transition-all flex-shrink-0"
             aria-label="Close"
           >
             <IconClose />
@@ -2393,8 +2393,8 @@ const CoinChartModal = ({ pair, onClose }) => {
         </div>
 
         {/* Toolbar */}
-        <div className="px-4 sm:px-5 py-2 border-b border-white/[0.04] flex items-center justify-between gap-3 bg-white/[0.01] flex-shrink-0 flex-wrap relative z-10">
-          <div className="flex items-center gap-1 bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+        <div className="px-4 sm:px-5 py-2 border-b border-ink/[0.04] flex items-center justify-between gap-3 bg-ink/[0.01] flex-shrink-0 flex-wrap relative z-10">
+          <div className="flex items-center gap-1 bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
             {intervals.map((it) => (
               <button
                 key={it.v}
@@ -2414,7 +2414,7 @@ const CoinChartModal = ({ pair, onClose }) => {
             href={tvFullUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.12em] border bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary hover:border-white/[0.14] transition-all flex items-center gap-1.5"
+            className="px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.12em] border bg-ink/[0.03] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.14] transition-all flex items-center gap-1.5"
           >
             <IconExternal />
             <span>Open in TradingView</span>
@@ -2422,12 +2422,12 @@ const CoinChartModal = ({ pair, onClose }) => {
         </div>
 
         {/* Chart — Flowscan chart-surface bg */}
-        <div className="relative flex-1 min-h-0 min-w-0 bg-surface border-y border-white/[0.04] shadow-[inset_0_2px_6px_-2px_rgba(0,0,0,0.4)]">
+        <div className="relative flex-1 min-h-0 min-w-0 bg-surface border-y border-ink/[0.04] shadow-[inset_0_2px_6px_-2px_rgb(var(--scrim) / 0.35)]">
           <div ref={tvContainerRef} className="w-full h-full" />
         </div>
 
         {/* Metrics footer — 4 cells */}
-        <div className="border-t border-white/[0.06] bg-white/[0.015] px-4 sm:px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-2 flex-shrink-0 relative z-10">
+        <div className="border-t border-ink/[0.06] bg-ink/[0.015] px-4 sm:px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-2 flex-shrink-0 relative z-10">
           <Metric24h ticker={metrics.ticker} />
           <MetricFunding funding={metrics.funding} />
           <MetricOI oi={metrics.openInterest} />
@@ -2447,7 +2447,7 @@ const CoinChartModal = ({ pair, onClose }) => {
           </p>
         </div>
 
-        <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-white/[0.01] flex-shrink-0 relative z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-2">
+        <div className="px-4 sm:px-5 py-2 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-ink/[0.01] flex-shrink-0 relative z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-2">
           <span className="uppercase tracking-[0.15em]">
             Chart · TradingView · Metrics · Binance Futures
           </span>
@@ -2455,7 +2455,7 @@ const CoinChartModal = ({ pair, onClose }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="sm:hidden rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 active:scale-95"
+            className="sm:hidden rounded-lg border border-ink/10 bg-ink/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 active:scale-95"
           >
             Close
           </button>
@@ -2472,7 +2472,7 @@ const CoinChartModal = ({ pair, onClose }) => {
 // ════════════════════════════════════════════════════════
 
 const MetricCellShell = ({ label, children }) => (
-  <div className="bg-surface-secondary rounded-sm px-2.5 py-2 border border-white/[0.05] min-h-[64px] flex flex-col justify-between">
+  <div className="bg-surface-secondary rounded-sm px-2.5 py-2 border border-ink/[0.05] min-h-[64px] flex flex-col justify-between">
     <p className="text-text-muted/55 text-[9px] uppercase tracking-[0.18em] font-mono">
       {label}
     </p>
@@ -2585,7 +2585,7 @@ const MetricLS = ({ ratio }) => {
         <p className="text-sm font-mono font-medium tabular-nums text-text-muted/40 leading-none mt-1">
           —
         </p>
-        <div className="h-1 mt-2 rounded-full bg-white/[0.04]" />
+        <div className="h-1 mt-2 rounded-full bg-ink/[0.04]" />
       </MetricCellShell>
     );
   }
@@ -2596,7 +2596,7 @@ const MetricLS = ({ ratio }) => {
         <span className="text-text-muted/35 mx-1">/</span>
         <span className="text-red-400">{ratio.shortPct.toFixed(0)}%</span>
       </p>
-      <div className="h-1 mt-2 rounded-full overflow-hidden bg-white/[0.04] flex">
+      <div className="h-1 mt-2 rounded-full overflow-hidden bg-ink/[0.04] flex">
         <div className="bg-emerald-500/80" style={{ width: `${ratio.longPct}%` }} />
         <div className="bg-red-500/80" style={{ width: `${ratio.shortPct}%` }} />
       </div>
@@ -2678,7 +2678,7 @@ const PulseStyles = () => (
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1px;
-      background: rgba(255,255,255,0.05);
+      background: rgb(var(--ink) / 0.05);
     }
     .mp-split-col {
       display: flex;

@@ -270,7 +270,7 @@ const DesktopTable = ({
 }) => (
   <table className="w-full text-sm">
     <thead>
-      <tr style={{ background: 'rgba(255,255,255,0.018)' }}>
+      <tr style={{ background: 'rgb(var(--ink) / 0.018)' }}>
         <th className="px-3 py-2.5 w-10" style={{ borderBottom: `1px solid ${surface.base.border}` }}>
           <input
             type="checkbox"
@@ -286,7 +286,7 @@ const DesktopTable = ({
               i === 5 ? 'text-right' : 'text-left'
             } ${i === 1 || i === 3 ? 'hidden md:table-cell' : ''} ${i === 4 ? 'hidden lg:table-cell' : ''}`}
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'rgb(var(--ink) / 0.4)',
               borderBottom: `1px solid ${surface.base.border}`,
             }}
           >
@@ -307,7 +307,7 @@ const DesktopTable = ({
               transition: motion.base,
             }}
             onMouseEnter={(e) => {
-              if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.015)';
+              if (!isSelected) e.currentTarget.style.background = 'rgb(var(--ink) / 0.015)';
             }}
             onMouseLeave={(e) => {
               if (!isSelected) e.currentTarget.style.background = 'transparent';
@@ -484,14 +484,14 @@ export const UsersTable = ({
       style={{
         background: surface.base.bg,
         border: `1px solid ${surface.base.border}`,
-        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.04)',
+        boxShadow: 'inset 0 1px 0 0 rgb(var(--ink) / 0.04)',
       }}
     >
       <div
         className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{
           background:
-            'linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent)',
+            'linear-gradient(to right, transparent, rgb(var(--ink) / 0.08), transparent)',
         }}
       />
 

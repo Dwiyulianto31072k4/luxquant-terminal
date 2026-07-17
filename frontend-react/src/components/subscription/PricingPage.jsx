@@ -26,7 +26,7 @@ const TelegramIcon = ({ className = "h-3.5 w-3.5" }) => (
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-white/[0.06] last:border-0">
+    <div className="border-b border-ink/[0.06] last:border-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -48,7 +48,7 @@ function FaqItem({ q, a }) {
 
 function SkeletonCards() {
   return (
-    <div className="mx-auto grid max-w-5xl gap-px overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.04] sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mx-auto grid max-w-5xl gap-px overflow-hidden rounded-2xl border border-ink/[0.06] bg-ink/[0.04] sm:grid-cols-2 lg:grid-cols-4">
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className="h-[380px] animate-pulse bg-surface-raised/80" />
       ))}
@@ -363,8 +363,8 @@ const PricingPage = () => {
         ) : (
           <>
             {/* Plans — one continuous panel (Anthropic / OpenAI style), not floating boxes */}
-            <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.015] backdrop-blur-[2px]">
-              <div className="grid divide-y divide-white/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+            <div className="overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015] backdrop-blur-[2px]">
+              <div className="grid divide-y divide-ink/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
                 {/* Free */}
                 <article className={cardBase}>
                   <div className="mb-8">
@@ -386,7 +386,7 @@ const PricingPage = () => {
                   <ul className="mb-10 flex-1 space-y-3">
                     {freeFeatures.map((f) => (
                       <li key={f} className="flex gap-2.5 text-[13px] leading-snug text-text-primary/45">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" tone="rgba(255,255,255,0.25)" />
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" tone="rgb(var(--ink) / 0.25)" />
                         {f}
                       </li>
                     ))}
@@ -394,7 +394,7 @@ const PricingPage = () => {
                   <button
                     type="button"
                     onClick={() => navigate(isAuthenticated ? "/" : "/login")}
-                    className="mt-auto w-full rounded-lg border border-white/[0.1] py-2.5 text-[13px] font-medium text-text-primary/70 transition hover:border-white/20 hover:text-text-primary"
+                    className="mt-auto w-full rounded-lg border border-ink/[0.1] py-2.5 text-[13px] font-medium text-text-primary/70 transition hover:border-ink/20 hover:text-text-primary"
                   >
                     {t("pricing.free_cta")}
                   </button>
@@ -410,7 +410,7 @@ const PricingPage = () => {
                     <article
                       key={plan.id}
                       className={`${cardBase} ${
-                        recommended ? "bg-white/[0.025] ring-1 ring-inset ring-gold-primary/25" : ""
+                        recommended ? "bg-ink/[0.025] ring-1 ring-inset ring-gold-primary/25" : ""
                       } ${current ? "bg-emerald-500/[0.03]" : ""}`}
                     >
                       <div className="mb-8">
@@ -473,8 +473,8 @@ const PricingPage = () => {
                             current
                               ? "border border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-400/90"
                               : recommended
-                                ? "bg-white text-surface hover:bg-white/90"
-                                : "border border-white/[0.12] text-text-primary/85 hover:border-white/25 hover:bg-white/[0.03]"
+                                ? "bg-white text-surface hover:bg-ink/90"
+                                : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
                           }`}
                         >
                           {creating && selectedPlan === plan.id
@@ -519,7 +519,7 @@ const PricingPage = () => {
 
               {/* Segmented control — wraps on narrow screens, no swipe table */}
               <div
-                className="mb-6 grid grid-cols-4 gap-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-1"
+                className="mb-6 grid grid-cols-4 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
                 role="tablist"
                 aria-label={t("pricing.compare_title")}
               >
@@ -544,7 +544,7 @@ const PricingPage = () => {
                 })}
               </div>
 
-              <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.07] px-1">
+              <ul className="divide-y divide-ink/[0.06] rounded-xl border border-ink/[0.07] px-1">
                 {compareMatrix.map((row) => {
                   const raw = row[includeTab];
                   const v = formatIncludeValue(raw);
@@ -589,7 +589,7 @@ const PricingPage = () => {
               >
                 {t("pricing.faq_title")}
               </h2>
-              <div className="border-t border-white/[0.06]">
+              <div className="border-t border-ink/[0.06]">
                 {faqs.map((f) => (
                   <FaqItem key={f.q} q={f.q} a={f.a} />
                 ))}

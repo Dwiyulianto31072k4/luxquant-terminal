@@ -35,7 +35,7 @@ const Toggle = ({ on, locked, onClick }) => (
     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-all ${
       on
         ? "bg-gold-primary/80 border-gold-primary"
-        : "bg-white/[0.04] border-white/[0.1]"
+        : "bg-ink/[0.04] border-ink/[0.1]"
     } ${locked ? "opacity-50 cursor-pointer" : "cursor-pointer hover:border-line/40"}`}
     title={locked ? "Link Telegram first" : undefined}
   >
@@ -143,7 +143,7 @@ const NotificationSettings = ({ t, navigate }) => {
           </div>
         </div>
       ) : (
-        <div className="rounded-md border border-white/[0.06] bg-white/[0.01] p-3">
+        <div className="rounded-md border border-ink/[0.06] bg-ink/[0.01] p-3">
           <p className="text-xs text-text-muted leading-relaxed">
             Telegram linked. Make sure you've started{" "}
             <span className="font-mono text-gold-primary/80">@LuxQuantAlert_Bot</span>{" "}
@@ -165,20 +165,20 @@ const NotificationSettings = ({ t, navigate }) => {
       {loading ? (
         <div className="space-y-2">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-12 rounded-md bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+            <div key={i} className="h-12 rounded-md bg-ink/[0.02] border border-ink/[0.05] animate-pulse" />
           ))}
         </div>
       ) : (
         grouped.map((g) => (
           <div key={g.group} className="space-y-2.5">
             <SectionHeader label={g.label} />
-            <div className="rounded-md border border-white/[0.06] divide-y divide-white/[0.04] overflow-hidden">
+            <div className="rounded-md border border-ink/[0.06] divide-y divide-ink/[0.04] overflow-hidden">
               {g.rows.map((item) => {
                 const tgLocked = !telegramLinked || !item.telegram_eligible;
                 return (
                   <div
                     key={item.type}
-                    className={`flex items-center justify-between gap-4 px-4 py-3 bg-white/[0.01] transition-opacity ${
+                    className={`flex items-center justify-between gap-4 px-4 py-3 bg-ink/[0.01] transition-opacity ${
                       savingType === item.type ? "opacity-60" : ""
                     }`}
                   >

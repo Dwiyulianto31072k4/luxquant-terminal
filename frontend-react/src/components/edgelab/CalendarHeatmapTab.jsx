@@ -170,8 +170,8 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
                         }
                         className={`relative aspect-square rounded-md border flex flex-col items-center justify-center px-0.5 transition ${
                           has
-                            ? "cursor-pointer border-white/[0.06] hover:ring-1 hover:ring-gold-primary/60 hover:border-line/30"
-                            : "cursor-default border-white/[0.03]"
+                            ? "cursor-pointer border-ink/[0.06] hover:ring-1 hover:ring-gold-primary/60 hover:border-line/30"
+                            : "cursor-default border-ink/[0.03]"
                         } ${cell.isToday ? "ring-1 ring-gold-primary/70" : ""}`}
                         style={{ background: bg, opacity: cell.inRange ? 1 : 0.25 }}
                       >
@@ -198,10 +198,10 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
         </div>
 
         {/* legend */}
-        <div className="mt-5 pt-3.5 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
+        <div className="mt-5 pt-3.5 border-t border-ink/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
           {WR_LEGEND.map((s, i) => (
             <span key={i} className="inline-flex items-center gap-1">
-              <span className="w-3.5 h-3 rounded-[2px] border border-white/10" style={{ background: s.c }} />
+              <span className="w-3.5 h-3 rounded-[2px] border border-ink/10" style={{ background: s.c }} />
               {s.l}
             </span>
           ))}

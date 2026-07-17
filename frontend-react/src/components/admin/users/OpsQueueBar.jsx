@@ -117,8 +117,8 @@ export const OpsQueueBar = ({
     <div
       className="rounded-xl px-3 py-2.5 flex flex-col gap-2.5"
       style={{
-        background: 'rgba(255,255,255,0.015)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgb(var(--ink) / 0.015)',
+        border: '1px solid rgb(var(--ink) / 0.06)',
       }}
     >
       {/* Cross-domain queue → Finance */}
@@ -126,7 +126,7 @@ export const OpsQueueBar = ({
         <div className="flex flex-wrap items-center gap-2">
           <span
             className="text-[9.5px] uppercase tracking-[0.14em] font-semibold"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgb(var(--ink) / 0.35)' }}
           >
             Finance queue
           </span>
@@ -159,7 +159,7 @@ export const OpsQueueBar = ({
         <div className="flex flex-wrap items-center gap-1.5">
           <span
             className="text-[9.5px] uppercase tracking-[0.14em] font-semibold mr-0.5"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgb(var(--ink) / 0.35)' }}
           >
             Anomalies
           </span>
@@ -190,13 +190,13 @@ export const OpsQueueBar = ({
 
         <span
           className="hidden sm:inline-block w-px h-4"
-          style={{ background: 'rgba(255,255,255,0.08)' }}
+          style={{ background: 'rgb(var(--ink) / 0.08)' }}
         />
 
         <div className="flex flex-wrap items-center gap-1.5">
           <span
             className="text-[9.5px] uppercase tracking-[0.14em] font-semibold mr-0.5"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgb(var(--ink) / 0.35)' }}
           >
             CRM
           </span>

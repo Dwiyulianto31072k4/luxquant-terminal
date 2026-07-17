@@ -65,7 +65,7 @@ export const RiskGauge = ({ score, size = 'sm' }) => {
   return (
     <div className={`relative ${isSm ? 'w-8 h-8' : 'w-16 h-16'}`}>
       <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-        <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={isSm ? "3" : "2.5"} />
+        <circle cx="18" cy="18" r="15" fill="none" stroke="rgb(var(--ink) / 0.04)" strokeWidth={isSm ? "3" : "2.5"} />
         <circle cx="18" cy="18" r="15" fill="none" stroke={c} strokeWidth={isSm ? "3" : "2.5"}
           strokeDasharray={`${pct * 0.94} 100`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.8s ease' }} />
       </svg>
@@ -119,7 +119,7 @@ export const MonthlyLineChart = ({ data }) => {
 };
 
 const Section = ({ title, children, className = "" }) => (
-  <div className={`relative rounded-xl p-4 bg-white/[0.02] border border-white/[0.06] overflow-hidden ${className}`}>
+  <div className={`relative rounded-xl p-4 bg-ink/[0.02] border border-ink/[0.06] overflow-hidden ${className}`}>
     <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
     <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70 mb-3">{title}</p>
     {children}
@@ -192,7 +192,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
           <div className="cdm-content" style={{ '--vc': vc }}>
             {/* Drag handle (mobile) */}
             <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="w-10 h-1 rounded-full bg-ink/20" />
             </div>
 
             {/* ── HEADER (sticky) ── */}
@@ -245,7 +245,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 {/* Stat cards (values = semantic) */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   {statCards.map((s,i) => (
-                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-line/25 transition-colors">
+                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-line/25 transition-colors">
                       <p className="text-[8px] uppercase tracking-widest text-text-muted mb-1.5 text-center">{s.l}</p>
                       <div className="flex items-center gap-1">
                         <p className="font-mono font-extrabold text-[15px]" style={{ color:s.c }}>{s.v}</p>
@@ -256,7 +256,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 </div>
 
                 {/* Outcome distribution — donut multi-warna (data pct + count dipertahankan) */}
-                <div className="relative rounded-xl border border-white/[0.06] p-4 bg-white/[0.02] overflow-hidden">
+                <div className="relative rounded-xl border border-ink/[0.06] p-4 bg-ink/[0.02] overflow-hidden">
                   <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
                   <div className="flex justify-between items-end mb-1">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Outcome Distribution</p>
@@ -277,7 +277,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     return (
                       <div className="flex items-center gap-5 mt-2">
                         <svg width="118" height="118" viewBox="0 0 42 42" className="flex-shrink-0">
-                          <circle cx="21" cy="21" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="5" />
+                          <circle cx="21" cy="21" r="15.915" fill="none" stroke="rgb(var(--ink) / 0.05)" strokeWidth="5" />
                           {segs.map(s => (
                             <circle key={s.k} cx="21" cy="21" r="15.915" fill="none" stroke={JC[s.k]} strokeWidth="5"
                               strokeDasharray={`${s.pct} ${100 - s.pct}`} strokeDashoffset={25 - s.offset} strokeLinecap="butt" />
@@ -305,7 +305,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
                 {/* AI insight (left accent = severity, semantic) */}
                 {coin.insight && (
-                  <div className="relative p-4 pl-5 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                  <div className="relative p-4 pl-5 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-ink/[0.02] border border-ink/[0.06] overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: st.text }} />
                     <div className="flex items-center gap-2 mb-2.5">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={st.text} strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -326,7 +326,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                         const isNow = apiFlow === currentFlow;
                         return (
                           <div key={apiFlow} className={`p-3 rounded-lg text-center flex flex-col justify-center ${isNow ? 'shadow-inner' : ''}`}
-                            style={{ background:isNow?fc.bg:'rgba(255,255,255,0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(212,168,83,0.08)'}` }}>
+                            style={{ background:isNow?fc.bg:'rgb(var(--ink) / 0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(212,168,83,0.08)'}` }}>
                             <p className="text-[8px] uppercase tracking-widest font-bold mb-1.5" style={{ color:isNow?fc.text:'#8a8577' }}>
                               {fc.label.toUpperCase()} MARKET {isNow&&<span className="animate-pulse">●</span>}
                             </p>
@@ -410,7 +410,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                           <div key={day} className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
                             <span className="font-mono text-[10px] font-bold tabular-nums" style={{ color:col }}>{wr}%</span>
                             {/* bar track */}
-                            <div className="w-full h-20 flex items-end rounded-md bg-white/[0.02] overflow-hidden">
+                            <div className="w-full h-20 flex items-end rounded-md bg-ink/[0.02] overflow-hidden">
                               <div
                                 className="w-full rounded-t-md transition-all"
                                 style={{
@@ -470,7 +470,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Signal History</p>
                       <p className="text-[10px] text-text-muted font-mono">{total} signals total</p>
                     </div>
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                    <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] overflow-hidden">
                       <div className="overflow-x-auto cdm-scroll">
                         <table className="w-full text-left border-collapse min-w-[500px]">
                           <thead className="bg-surface-raised border-b border-line/15">
@@ -539,15 +539,15 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
       <style>{`
         .cdm-overlay { position: fixed; inset: 0; z-index: 100050; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
         @supports(height:100dvh) { .cdm-overlay { height: 100dvh; } }
-        .cdm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); animation: cdmBI .25s ease-out; }
+        .cdm-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / 0.85); animation: cdmBI .25s ease-out; }
         .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
         .cdm-container > * { pointer-events: auto; }
-        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0805; border-top: 1px solid rgba(255,255,255,0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: cdmUp .32s cubic-bezier(.16,1,.3,1); box-shadow: 0 -16px 48px rgba(0,0,0,.55); }
+        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0805; border-top: 1px solid rgb(var(--ink) / 0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: cdmUp .32s cubic-bezier(.16,1,.3,1); box-shadow: 0 -16px 48px rgba(0,0,0,.55); }
 
         @media(min-width:640px) {
           .cdm-overlay { align-items: center; }
           .cdm-container { align-items: center; padding: 16px; }
-          .cdm-content { height: auto; min-height: 0; max-height: calc(100vh - 32px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 64px rgba(0,0,0,.55); animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
+          .cdm-content { height: auto; min-height: 0; max-height: calc(100vh - 32px); border-radius: 12px; border: 1px solid rgb(var(--ink) / 0.08); box-shadow: 0 24px 64px rgba(0,0,0,.55); animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
         }
         @media(min-width:1024px) {
           .cdm-container { padding: 24px; }

@@ -118,7 +118,7 @@ function Icon({ name, className = "h-[18px] w-[18px]" }) {
 
 function IconChip({ name, size = "h-9 w-9", ic = "h-[18px] w-[18px]" }) {
   return (
-    <span className={`flex ${size} flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035]`}>
+    <span className={`flex ${size} flex-shrink-0 items-center justify-center rounded-xl border border-ink/10 bg-ink/[0.035]`}>
       <Icon name={name} className={ic} />
     </span>
   );
@@ -150,13 +150,13 @@ const FEATURES = [
 
 const hideOnError = (e) => { e.currentTarget.style.display = "none"; };
 
-const CARD = "rounded-2xl border border-white/[0.08] bg-surface-raised";
+const CARD = "rounded-2xl border border-ink/[0.08] bg-surface-raised";
 
 /* ════════════════════ DESKTOP CARDS (solid / timeless) ════════════════════ */
 
 function InputCard({ item }) {
   return (
-    <div className={`group relative flex items-center gap-3 p-3.5 transition-colors duration-200 hover:border-white/20 ${CARD}`}>
+    <div className={`group relative flex items-center gap-3 p-3.5 transition-colors duration-200 hover:border-ink/20 ${CARD}`}>
       <IconChip name={item.icon} size="h-11 w-11" ic="h-[20px] w-[20px]" />
       <div className="min-w-0">
         <h4 className="text-[12.5px] font-semibold uppercase tracking-wide text-text-primary">{item.title}</h4>
@@ -182,11 +182,11 @@ function StageNode({ icon, title, subtitle, dataWire, accent = false }) {
 function TerminalPanel() {
   return (
     <div className={`w-full p-5 ${CARD}`}>
-      <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-4">
+      <div className="flex items-center gap-2.5 border-b border-ink/[0.08] pb-4">
         <img src="/logo.png" alt="" className="h-6 w-6 rounded" onError={hideOnError} />
         <span className="text-[13px] font-semibold tracking-[0.13em] text-text-primary">LUXQUANT TERMINAL</span>
       </div>
-      <div className="mt-3 divide-y divide-white/[0.05]">
+      <div className="mt-3 divide-y divide-ink/[0.05]">
         {FEATURES.map((f) => (
           <div key={f.t} data-wire="out" className="group flex items-center gap-3 py-2.5">
             <IconChip name={f.icon} size="h-9 w-9" ic="h-[18px] w-[18px]" />
@@ -198,7 +198,7 @@ function TerminalPanel() {
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
+      <div className="mt-3 flex items-center justify-between border-t border-ink/[0.06] pt-3">
         <span className="text-[10.5px] text-text-muted">Markets · Portfolio · Journal · News · Calendar</span>
         <span className="flex items-center gap-1 text-[11px] font-medium text-gold-primary/90">
           &amp; more <Chevron className="h-3.5 w-3.5" />
@@ -353,8 +353,8 @@ function Step({ n, accent = false, line = true, children }) {
   return (
     <li className="flex gap-4">
       <div className="flex flex-col items-center">
-        <span className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-surface-raised font-mono text-[13px] font-medium ${accent ? "border-line/40 text-gold-primary" : "border-white/15 text-text-primary/55"}`}>{n}</span>
-        {line && <span className="my-1.5 w-px flex-1 bg-white/10" />}
+        <span className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-surface-raised font-mono text-[13px] font-medium ${accent ? "border-line/40 text-gold-primary" : "border-ink/15 text-text-primary/55"}`}>{n}</span>
+        {line && <span className="my-1.5 w-px flex-1 bg-ink/10" />}
       </div>
       <div className="flex-1 pb-6">{children}</div>
     </li>
@@ -446,7 +446,7 @@ export default function Architecture() {
 
         <Step n={4} line={false}>
           <div className={`p-4 ${CARD}`}>
-            <div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-3">
+            <div className="mb-3 flex items-center gap-2 border-b border-ink/10 pb-3">
               <img src="/logo.png" alt="" className="h-5 w-5 rounded" onError={hideOnError} />
               <span className="text-[12px] font-medium uppercase tracking-wide text-text-primary">LuxQuant Terminal</span>
             </div>
@@ -458,7 +458,7 @@ export default function Architecture() {
                 </div>
               ))}
             </div>
-            <p className="mt-3.5 border-t border-white/[0.06] pt-3 text-[11px] font-medium text-gold-primary/85">+ Markets, Portfolio, Journal &amp; more</p>
+            <p className="mt-3.5 border-t border-ink/[0.06] pt-3 text-[11px] font-medium text-gold-primary/85">+ Markets, Portfolio, Journal &amp; more</p>
           </div>
         </Step>
       </ol>

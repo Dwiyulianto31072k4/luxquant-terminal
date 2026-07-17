@@ -228,17 +228,17 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
             </div>
 
             <div className="relative mb-4 grid grid-cols-2 gap-2">
-              <div className="rounded-lg p-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="rounded-lg p-2.5" style={{ background: "rgb(var(--ink) / 0.03)", border: "1px solid rgb(var(--ink) / 0.05)" }}>
                 <p className="text-[9px] uppercase tracking-wider text-text-muted">Entry Price</p>
                 <p className="mt-0.5 font-mono text-sm font-semibold text-text-primary">{fmtPrice(data.entry_price)}</p>
               </div>
-              <div className="rounded-lg p-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="rounded-lg p-2.5" style={{ background: "rgb(var(--ink) / 0.03)", border: "1px solid rgb(var(--ink) / 0.05)" }}>
                 <p className="text-[9px] uppercase tracking-wider text-text-muted">Mark Price</p>
                 <p className="mt-0.5 font-mono text-sm font-semibold text-text-primary">{fmtPrice(data.mark_price)}</p>
               </div>
             </div>
 
-            <div className="relative mt-4 flex items-center justify-between pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="relative mt-4 flex items-center justify-between pt-4" style={{ borderTop: "1px solid rgb(var(--ink) / 0.08)" }}>
               <div>
                 <p className="mb-1 text-[9px] uppercase tracking-widest text-text-muted">Start auto-trading at</p>
                 <p className="font-display text-sm font-bold text-text-primary">luxquant.tw</p>
@@ -273,7 +273,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
               <GhostButton onClick={handleCopy} disabled={copyState === "copying"} className="flex items-center justify-center gap-2">
                 {copyState === "copying" ? (
                   <>
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink/30 border-t-white" />
                     Copying…
                   </>
                 ) : copyState === "copied" ? (
@@ -301,7 +301,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                 href={deeplinkUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full rounded-md border border-white/5 px-4 py-2.5 text-center text-xs font-semibold text-text-muted transition hover:bg-white/5 hover:text-text-primary"
+                className="block w-full rounded-md border border-ink/5 px-4 py-2.5 text-center text-xs font-semibold text-text-muted transition hover:bg-ink/5 hover:text-text-primary"
               >
                 <svg className="-mt-0.5 mr-1.5 inline h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />

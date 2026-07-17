@@ -104,14 +104,14 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
 
   const content = (
     <div className="lq-guide-root fixed inset-0 flex items-end sm:items-center justify-center" style={{ zIndex: 210000 }} onClick={onClose}>
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-scrim/85 backdrop-blur-sm" />
 
       <div
-        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-line/40 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
+        className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-line/40 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-30 bg-surface" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* ─── Header ─── */}
         <div className="sticky top-0 z-20 bg-surface/95 backdrop-blur border-b border-line/20 px-5 sm:px-7 py-4 flex items-center justify-between">
@@ -145,7 +145,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
           {/* Indicator cards grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
             {indicators.map((ind) => (
-              <div key={ind.name} className="flex flex-col bg-surface-raised border border-white/[0.06] rounded-xl p-4 hover:border-line/20 transition-colors">
+              <div key={ind.name} className="flex flex-col bg-surface-raised border border-ink/[0.06] rounded-xl p-4 hover:border-line/20 transition-colors">
                 <div className="flex items-start justify-between mb-2.5 gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-gold-primary flex-shrink-0">{ind.icon("w-4 h-4")}</span>
@@ -188,7 +188,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
 
           {/* Timeframe + Risk — two columns */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="bg-surface-raised border border-white/[0.06] rounded-xl p-4">
+            <div className="bg-surface-raised border border-ink/[0.06] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-gold-primary">{I.clock("w-4 h-4")}</span>
                 <h3 className="text-text-primary font-bold text-sm">Timeframe</h3>
@@ -221,7 +221,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
 
       <style>{`
         @media (min-width: 640px) {
-          .lq-guide-card { box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 50px rgba(212,168,83,0.12); animation: lqGuideIn .3s cubic-bezier(.16,1,.3,1); }
+          .lq-guide-card { box-shadow: 0 25px 60px rgb(var(--scrim) / 0.35), 0 0 50px rgba(212,168,83,0.12); animation: lqGuideIn .3s cubic-bezier(.16,1,.3,1); }
         }
         @keyframes lqGuideIn { from { opacity: 0; transform: scale(.97) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
       `}</style>

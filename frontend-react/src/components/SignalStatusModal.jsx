@@ -20,7 +20,7 @@ const fmtPct0 = (v) => (v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFi
 
 function Stat({ label, val, tone }) {
   return (
-    <div className="flex min-h-[38px] items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5">
+    <div className="flex min-h-[38px] items-center justify-between gap-2 rounded-lg border border-ink/[0.07] bg-ink/[0.03] px-2.5 py-1.5">
       <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/75">
         {label}
       </span>
@@ -61,20 +61,20 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
       {/* Backdrop */}
       <button
         type="button"
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-[ssFade_.2s_ease-out]"
+        className="absolute inset-0 bg-scrim/80 backdrop-blur-sm animate-[ssFade_.2s_ease-out]"
         onClick={onClose}
         aria-label="Close overlay"
       />
 
       {/* Sheet: pinned to bottom on mobile so CTAs never sit under tab bar */}
       <div
-        className="absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-white/12 bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(85vh,620px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-line/30 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
+        className="absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(85vh,620px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-line/30 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
         style={{ maxHeight: "min(90dvh, 640px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
         <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
 
         {/* Scroll body */}
@@ -83,7 +83,7 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
         {/* ALWAYS-visible action bar */}
         {footer && (
           <div
-            className="shrink-0 border-t border-white/10 bg-surface-raised px-4 pt-3 sm:bg-surface-raised sm:px-5 sm:pb-4"
+            className="shrink-0 border-t border-ink/10 bg-surface-raised px-4 pt-3 sm:bg-surface-raised sm:px-5 sm:pb-4"
             style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
           >
             {footer}
@@ -138,7 +138,7 @@ export default function GlobalSignalModalHost() {
           <button
             type="button"
             onClick={close}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-text-muted"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/10 text-text-muted"
             aria-label="Close"
           >
             ✕
@@ -210,14 +210,14 @@ export default function GlobalSignalModalHost() {
                       ? "border-positive/40 text-positive"
                       : dir === "BEARISH"
                         ? "border-negative/40 text-negative"
-                        : "border-white/15 text-text-primary/60"
+                        : "border-ink/15 text-text-primary/60"
                   }`}
                 >
                   {dir}
                 </span>
               )}
               {risk && (
-                <span className="rounded border border-white/15 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-text-primary/55">
+                <span className="rounded border border-ink/15 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-text-primary/55">
                   {risk} risk
                 </span>
               )}
@@ -231,7 +231,7 @@ export default function GlobalSignalModalHost() {
           <button
             type="button"
             onClick={close}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-text-muted"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-ink/10 text-text-muted"
             aria-label="Close"
           >
             ✕
@@ -273,7 +273,7 @@ export default function GlobalSignalModalHost() {
         <button
           type="button"
           onClick={close}
-          className="rounded-xl border border-white/15 px-4 py-3.5 text-[13px] font-medium text-text-primary/75 active:scale-[0.99]"
+          className="rounded-xl border border-ink/15 px-4 py-3.5 text-[13px] font-medium text-text-primary/75 active:scale-[0.99]"
         >
           Close
         </button>

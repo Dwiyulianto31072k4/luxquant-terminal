@@ -30,8 +30,8 @@ const EMPTY = {
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
 const inputCls =
-  'w-full px-3 py-2 rounded-md bg-white/[0.03] border border-white/[0.08] text-text-primary text-xs ' +
-  'placeholder:text-text-primary/30 focus:outline-none focus:border-white/20 transition-colors';
+  'w-full px-3 py-2 rounded-md bg-ink/[0.03] border border-ink/[0.08] text-text-primary text-xs ' +
+  'placeholder:text-text-primary/30 focus:outline-none focus:border-ink/20 transition-colors';
 const labelCls = 'block text-[10px] uppercase tracking-wider text-text-primary/40 font-mono mb-1.5';
 
 export const AnnouncementsTab = () => {
@@ -122,7 +122,7 @@ export const AnnouncementsTab = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SectionHeader title={editing === 'new' ? 'New Announcement' : `Edit Announcement #${editing}`} />
-          <button onClick={cancel} className="p-1.5 rounded-md hover:bg-white/[0.06] text-text-primary/50 hover:text-text-primary transition-colors">
+          <button onClick={cancel} className="p-1.5 rounded-md hover:bg-ink/[0.06] text-text-primary/50 hover:text-text-primary transition-colors">
             <CloseIcon size={16} />
           </button>
         </div>
@@ -149,7 +149,7 @@ export const AnnouncementsTab = () => {
             <label className={labelCls}>Image (optional)</label>
             <div className="flex items-center gap-2">
               <input className={inputCls} value={form.image_url} onChange={(e) => set('image_url', e.target.value)} placeholder="Paste image URL or upload →" />
-              <label className="shrink-0 px-3 py-2 rounded-md bg-white/[0.04] border border-white/[0.08] text-text-primary/70 text-[10px] uppercase tracking-wider font-mono cursor-pointer hover:bg-white/[0.07] transition-colors">
+              <label className="shrink-0 px-3 py-2 rounded-md bg-ink/[0.04] border border-ink/[0.08] text-text-primary/70 text-[10px] uppercase tracking-wider font-mono cursor-pointer hover:bg-ink/[0.07] transition-colors">
                 {uploading ? '...' : 'Upload'}
                 <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
               </label>
@@ -257,10 +257,10 @@ export const AnnouncementsTab = () => {
         <div className="lqsk-group space-y-2">
           {[...Array(4)].map((_, i) => (
             <Surface key={i} className="p-4 flex items-center gap-3">
-              <div className="h-9 w-9 rounded-md bg-white/[0.05]" />
+              <div className="h-9 w-9 rounded-md bg-ink/[0.05]" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-1/3 rounded bg-white/[0.05]" />
-                <div className="h-2.5 w-2/3 rounded bg-white/[0.03]" />
+                <div className="h-3 w-1/3 rounded bg-ink/[0.05]" />
+                <div className="h-2.5 w-2/3 rounded bg-ink/[0.03]" />
               </div>
             </Surface>
           ))}
@@ -285,10 +285,10 @@ export const AnnouncementsTab = () => {
                   {a.ends_at && <><span>·</span><span>ends {fmtDate(a.ends_at)}</span></>}
                 </div>
               </div>
-              <button onClick={() => openEdit(a)} className="p-1.5 rounded-md hover:bg-white/[0.06] text-text-primary/50 hover:text-text-primary transition-colors">
+              <button onClick={() => openEdit(a)} className="p-1.5 rounded-md hover:bg-ink/[0.06] text-text-primary/50 hover:text-text-primary transition-colors">
                 <EditIcon size={14} />
               </button>
-              <button onClick={() => del(a.id)} className="p-1.5 rounded-md hover:bg-white/[0.06] text-text-primary/50 hover:text-red-400 transition-colors">
+              <button onClick={() => del(a.id)} className="p-1.5 rounded-md hover:bg-ink/[0.06] text-text-primary/50 hover:text-red-400 transition-colors">
                 <TrashIcon size={14} />
               </button>
             </Surface>

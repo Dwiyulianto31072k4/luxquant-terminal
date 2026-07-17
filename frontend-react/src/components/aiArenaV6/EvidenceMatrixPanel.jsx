@@ -4,7 +4,7 @@ const directionTone = {
   bullish: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
   bearish: "border-red-400/20 bg-red-400/10 text-red-300",
   neutral: "border-amber-300/20 bg-amber-300/10 text-amber-200",
-  unavailable: "border-white/10 bg-white/5 text-text-primary/35",
+  unavailable: "border-ink/10 bg-ink/5 text-text-primary/35",
 };
 
 const healthTone = {
@@ -65,7 +65,7 @@ function StrengthBar({ value, direction }) {
       <div className="flex items-center justify-between text-[10px] font-mono text-text-primary/45 mb-1">
         <span>{formatPct(safe)}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-ink/5 overflow-hidden">
         <div
           className="h-full rounded-full"
           style={{ width: `${safe * 100}%`, backgroundColor: color }}
@@ -122,7 +122,7 @@ function ChangeNote({ changes, horizon }) {
 
 function SummaryCard({ label, value, note, tone = "text-text-primary" }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-black/10 p-3.5">
+    <div className="rounded-xl border border-ink/5 bg-scrim/10 p-3.5">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
         {label}
       </div>
@@ -151,7 +151,7 @@ export default function EvidenceMatrixPanel({ data }) {
 
   if (!data) {
     return (
-      <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+      <section className="rounded-xl border border-ink/5 bg-ink/[0.02] p-5">
         <p className="text-sm text-text-primary/50">
           Evidence matrix will appear after the next Compass report.
         </p>
@@ -160,7 +160,7 @@ export default function EvidenceMatrixPanel({ data }) {
   }
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-white/[0.015] p-5 md:p-6">
+    <section className="rounded-2xl border border-ink/5 bg-ink/[0.015] p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-violet-300/70 mb-1">
@@ -175,7 +175,7 @@ export default function EvidenceMatrixPanel({ data }) {
             override it.
           </p>
         </div>
-        <div className="inline-flex rounded-lg border border-white/5 bg-black/20 p-1">
+        <div className="inline-flex rounded-lg border border-ink/5 bg-scrim/20 p-1">
           {["24h", "72h"].map((item) => (
             <button
               key={item}
@@ -240,9 +240,9 @@ export default function EvidenceMatrixPanel({ data }) {
         </span>
       </div>
 
-      <div className="hidden md:block overflow-x-auto rounded-xl border border-white/5">
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-ink/5">
         <table className="w-full min-w-[920px] text-left">
-          <thead className="bg-white/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-primary/35">
+          <thead className="bg-ink/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-primary/35">
             <tr>
               <th className="px-4 py-3">Layer</th>
               <th className="px-4 py-3">Condition</th>
@@ -258,7 +258,7 @@ export default function EvidenceMatrixPanel({ data }) {
               return (
                 <tr
                   key={row.key}
-                  className={`border-t border-white/5 align-top ${
+                  className={`border-t border-ink/5 align-top ${
                     conflicts.has(row.key) ? "bg-amber-300/[0.025]" : ""
                   }`}
                 >
@@ -310,7 +310,7 @@ export default function EvidenceMatrixPanel({ data }) {
               className={`rounded-xl border p-4 ${
                 conflicts.has(row.key)
                   ? "border-amber-300/15 bg-amber-300/[0.025]"
-                  : "border-white/5 bg-black/10"
+                  : "border-ink/5 bg-scrim/10"
               }`}
             >
               <div className="flex items-start justify-between gap-3">

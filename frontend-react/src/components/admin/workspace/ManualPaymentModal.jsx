@@ -34,9 +34,9 @@ const StepHeader = ({ num, title, complete, locked }) => (
     <span
       className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums"
       style={{
-        background: complete ? 'rgba(52,211,153,0.18)' : locked ? 'rgba(255,255,255,0.04)' : 'rgba(212,168,83,0.16)',
+        background: complete ? 'rgba(52,211,153,0.18)' : locked ? 'rgb(var(--ink) / 0.04)' : 'rgba(212,168,83,0.16)',
         color: complete ? '#34d399' : locked ? '#4a3f39' : '#d4a853',
-        border: `1px solid ${complete ? 'rgba(52,211,153,0.32)' : locked ? 'rgba(255,255,255,0.06)' : 'rgba(212,168,83,0.3)'}`,
+        border: `1px solid ${complete ? 'rgba(52,211,153,0.32)' : locked ? 'rgb(var(--ink) / 0.06)' : 'rgba(212,168,83,0.3)'}`,
       }}
     >
       {complete ? <CheckMini /> : num}
@@ -47,7 +47,7 @@ const StepHeader = ({ num, title, complete, locked }) => (
 
 const Field = ({ label, hint, error, children }) => (
   <div className="space-y-1">
-    <label className="block text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</label>
+    <label className="block text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--ink) / 0.5)' }}>{label}</label>
     {children}
     {hint && !error && <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</p>}
     {error && <p className="flex items-center gap-1 text-[10px]" style={{ color: 'rgb(var(--neg))' }}><AlertTriangleIcon size={10} />{error}</p>}
@@ -58,7 +58,7 @@ const TextInput = ({ value, onChange, placeholder, mono, disabled, autoFocus }) 
   <input
     type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} autoFocus={autoFocus}
     className={`w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${mono ? 'font-mono tabular-nums' : ''}`}
-    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}
+    style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }}
   />
 );
 
@@ -98,7 +98,7 @@ const TxStep = ({ txHash, setTxHash, verifying, verifyResult, verifyError, onVer
           <button
             onClick={onVerify} disabled={!looksValid || verifying}
             className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ background: looksValid ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgba(255,255,255,0.04)', color: looksValid ? '#0a0506' : '#6b5c52' }}>
+            style={{ background: looksValid ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgb(var(--ink) / 0.04)', color: looksValid ? '#0a0506' : '#6b5c52' }}>
             {verifying && <span className="h-3 w-3 animate-spin rounded-full border-2" style={{ borderColor: 'rgba(10,5,6,0.3)', borderTopColor: '#0a0506' }} />}
             {verifying ? 'Inspecting on BSC…' : 'Verify on BSC'}
           </button>
@@ -120,7 +120,7 @@ const TxStep = ({ txHash, setTxHash, verifying, verifyResult, verifyError, onVer
             )}
             {tx?.confirmations !== null && <Pill tone={tx.confirmations >= 12 ? 'green' : 'amber'}>{tx.confirmations} confirmations</Pill>}
           </div>
-          <div className="space-y-1.5 rounded-lg p-3 text-[11px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="space-y-1.5 rounded-lg p-3 text-[11px]" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.05)' }}>
             <Row label="Amount" value={tx?.amount ? `${tx.amount} USDT` : '—'} mono valueColor="#d4a853" big />
             <Row label="From" value={tx?.from} mono copyable />
             <Row label="To" value={tx?.to} mono copyable />
@@ -166,7 +166,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
 
   return (
     <div className="mt-3 rounded-lg p-2.5"
-      style={{ background: overriding ? 'rgba(212,168,83,0.04)' : 'rgba(255,255,255,0.02)', border: `1px solid ${overriding ? 'rgba(212,168,83,0.22)' : 'rgba(255,255,255,0.05)'}` }}>
+      style={{ background: overriding ? 'rgba(212,168,83,0.04)' : 'rgb(var(--ink) / 0.02)', border: `1px solid ${overriding ? 'rgba(212,168,83,0.22)' : 'rgb(var(--ink) / 0.05)'}` }}>
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--accent))' }}>
@@ -184,7 +184,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
         <>
           <input type="date" value={value} onChange={(e) => onChange(e.target.value)} max={new Date().toISOString().slice(0, 10)}
             className="w-full rounded-md px-2.5 py-1.5 font-mono text-xs text-text-primary focus:outline-none"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgb(var(--line) / 0.25)', colorScheme: 'dark' }} />
+            style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--line) / 0.25)', colorScheme: 'dark' }} />
           {diffDays !== 0 && txDateStr && (
             <p className="mt-1.5 flex items-center gap-1 text-[10px]" style={{ color: 'rgb(var(--warn))' }}>
               <AlertTriangleIcon size={10} />
@@ -209,7 +209,7 @@ const Row = ({ label, value, mono, valueColor, big, copyable }) => (
     <div className="flex min-w-0 items-center gap-1.5">
       <span className={`truncate ${mono ? 'font-mono tabular-nums' : ''} ${big ? 'text-sm font-semibold' : ''}`} style={{ color: valueColor || '#fff' }}>{value || '—'}</span>
       {copyable && value && (
-        <button onClick={() => navigator.clipboard?.writeText(String(value)).catch(() => {})} className="rounded p-1 hover:bg-white/5" style={{ color: 'rgb(var(--fg-muted))' }} title="Copy">
+        <button onClick={() => navigator.clipboard?.writeText(String(value)).catch(() => {})} className="rounded p-1 hover:bg-ink/5" style={{ color: 'rgb(var(--fg-muted))' }} title="Copy">
           <CopyIcon size={10} />
         </button>
       )}
@@ -253,7 +253,7 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
             {[{ id: 'existing', label: 'Existing user' }, { id: 'new', label: 'Create new' }].map((opt) => (
               <button key={opt.id} onClick={() => setMode(opt.id)}
                 className="flex-1 rounded-md py-2 text-[11px] font-semibold uppercase tracking-wider transition-all"
-                style={{ background: mode === opt.id ? 'rgba(212,168,83,0.12)' : 'rgba(255,255,255,0.02)', color: mode === opt.id ? '#d4a853' : '#8a7a6e', border: `1px solid ${mode === opt.id ? 'rgba(212,168,83,0.32)' : 'rgba(255,255,255,0.06)'}` }}>
+                style={{ background: mode === opt.id ? 'rgba(212,168,83,0.12)' : 'rgb(var(--ink) / 0.02)', color: mode === opt.id ? '#d4a853' : '#8a7a6e', border: `1px solid ${mode === opt.id ? 'rgba(212,168,83,0.32)' : 'rgb(var(--ink) / 0.06)'}` }}>
                 {opt.label}
               </button>
             ))}
@@ -279,14 +279,14 @@ const UserStep = ({ locked, mode, setMode, selectedUser, setSelectedUser, newUse
                   <div className="relative">
                     <SearchIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgb(var(--fg-muted))' }} />
                     <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search username, email, or telegram…"
-                      className="w-full rounded-md py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                      className="w-full rounded-md py-2 pl-9 pr-3 text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
                   </div>
                   {searching && <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>Searching…</p>}
                   {!searching && results.length > 0 && (
-                    <div className="max-h-56 overflow-y-auto rounded-lg" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="max-h-56 overflow-y-auto rounded-lg" style={{ background: 'rgb(var(--scrim) / 0.2)', border: '1px solid rgb(var(--ink) / 0.05)' }}>
                       {results.map((u, i) => (
-                        <button key={u.id} onClick={() => setSelectedUser(u)} className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-white/5"
-                          style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}>
+                        <button key={u.id} onClick={() => setSelectedUser(u)} className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-ink/5"
+                          style={i > 0 ? { borderTop: '1px solid rgb(var(--ink) / 0.04)' } : {}}>
                           <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: 'rgba(212,168,83,0.12)', color: 'rgb(var(--accent))' }}>{u.username[0].toUpperCase()}</span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[11.5px] font-semibold text-text-primary">@{u.username}<span className="ml-1 text-[9px] font-normal" style={{ color: 'rgb(var(--fg-muted))' }}>#{u.id}</span></p>
@@ -351,7 +351,7 @@ const PlanStep = ({ locked, plans, selectedPlanId, setSelectedPlanId, suggestedP
               const amountMatch = txAmount && Math.abs(Number(p.price_usdt) - Number(txAmount)) < 0.5;
               return (
                 <button key={p.id} onClick={() => setSelectedPlanId(p.id)} className="rounded-lg p-2.5 text-left transition-all"
-                  style={{ background: isSelected ? 'rgba(212,168,83,0.10)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isSelected ? 'rgba(212,168,83,0.40)' : 'rgba(255,255,255,0.05)'}` }}>
+                  style={{ background: isSelected ? 'rgba(212,168,83,0.10)' : 'rgb(var(--ink) / 0.02)', border: `1px solid ${isSelected ? 'rgba(212,168,83,0.40)' : 'rgb(var(--ink) / 0.05)'}` }}>
                   <div className="mb-1 flex items-center justify-between">
                     <p className="text-[12px] font-semibold tracking-tight" style={{ color: isSelected ? '#d4a853' : '#fff' }}>{p.label}</p>
                     {isSuggested && !isSelected && <Pill tone="green">Match</Pill>}
@@ -383,8 +383,8 @@ const NoteStep = ({ locked, note, setNote }) => {
       {!locked && (
         <Field label="Reason / context" hint={`Min ${NOTE_MIN_CHARS} chars. Why is this being recorded manually?`}>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="User contacted on Telegram, paid directly to wallet before invoice was generated…"
-            className="w-full resize-none rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
-          <p className="mt-1 text-right text-[9.5px] tabular-nums" style={{ color: complete ? '#34d399' : 'rgba(255,255,255,0.4)' }}>{note.length} / {NOTE_MIN_CHARS}+</p>
+            className="w-full resize-none rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
+          <p className="mt-1 text-right text-[9.5px] tabular-nums" style={{ color: complete ? '#34d399' : 'rgb(var(--ink) / 0.4)' }}>{note.length} / {NOTE_MIN_CHARS}+</p>
         </Field>
       )}
     </section>
@@ -408,7 +408,7 @@ const MethodSelector = ({ method, setMethod }) => (
         const active = method === m.id;
         return (
           <button key={m.id} onClick={() => setMethod(m.id)} className="rounded-lg py-2 text-[11px] font-semibold uppercase tracking-wider transition-all"
-            style={{ background: active ? 'rgba(212,168,83,0.16)' : 'rgba(255,255,255,0.02)', color: active ? '#d4a853' : '#8a7a6e', border: `1px solid ${active ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
+            style={{ background: active ? 'rgba(212,168,83,0.16)' : 'rgb(var(--ink) / 0.02)', color: active ? '#d4a853' : '#8a7a6e', border: `1px solid ${active ? 'rgba(212,168,83,0.4)' : 'rgb(var(--ink) / 0.08)'}` }}>
             {m.label}
           </button>
         );
@@ -437,7 +437,7 @@ const OffchainStep = ({ method, offAmount, setOffAmount, idrAmount, setIdrAmount
       </Field>
       <Field label="Payment date (optional)" hint="Leave blank = today">
         <input type="date" value={paymentDateOverride || ''} onChange={(e) => setPaymentDateOverride(e.target.value)}
-          className="w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+          className="w-full rounded-md px-2.5 py-2 text-xs text-text-primary focus:outline-none focus:ring-1" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
       </Field>
     </div>
   </div>

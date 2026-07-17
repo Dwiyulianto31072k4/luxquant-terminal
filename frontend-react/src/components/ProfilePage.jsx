@@ -321,7 +321,7 @@ const ProfilePage = () => {
           </p>
         </div>
         {user?.id && (
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/[0.03] border border-white/[0.06]">
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-ink/[0.03] border border-ink/[0.06]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
               ID #{user.id}
@@ -358,7 +358,7 @@ const ProfilePage = () => {
                 <div className="relative group">
                   <div onClick={handleAvatarClick}
                     className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-line/20 hover:border-line/50 transition-all relative"
-                    style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.4)' }}>
+                    style={{ boxShadow: 'inset 0 1px 2px -1px rgb(var(--scrim) / 0.35)' }}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
@@ -366,9 +366,9 @@ const ProfilePage = () => {
                         <span className="text-3xl font-light text-bg-primary">{initial}</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center gap-1">
+                    <div className="absolute inset-0 bg-scrim/70 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center gap-1">
                       {uploadingAvatar ? (
-                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <div className="w-6 h-6 border-2 border-ink/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
                           <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
@@ -404,14 +404,14 @@ const ProfilePage = () => {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/50 text-sm font-mono">@</span>
                       <input type="text" value={username} onChange={handleUsernameChange} maxLength={50}
                         className="w-full pl-8 pr-3 py-2.5 rounded-md text-sm text-text-primary font-mono focus:outline-none transition-all"
-                        style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${usernameError ? 'rgba(248,113,113,0.4)' : usernameChanged ? 'rgba(212,168,83,0.3)' : 'rgba(255,255,255,0.06)'}` }} />
+                        style={{ background: 'rgb(var(--ink) / 0.03)', border: `1px solid ${usernameError ? 'rgba(248,113,113,0.4)' : usernameChanged ? 'rgba(212,168,83,0.3)' : 'rgb(var(--ink) / 0.06)'}` }} />
                     </div>
                     <button onClick={handleSaveUsername} disabled={!usernameChanged || saving || !!usernameError}
                       className="px-4 py-2.5 rounded-md font-mono text-[10px] uppercase tracking-wider font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                       style={{
-                        background: usernameChanged && !usernameError ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgba(255,255,255,0.03)',
+                        background: usernameChanged && !usernameError ? 'linear-gradient(135deg, #d4a853, #8b6914)' : 'rgb(var(--ink) / 0.03)',
                         color: usernameChanged && !usernameError ? '#0a0506' : '#4a3f39',
-                        border: '1px solid rgba(255,255,255,0.04)'
+                        border: '1px solid rgb(var(--ink) / 0.04)'
                       }}>
                       {saving ? <div className="w-3.5 h-3.5 border-2 border-bg-primary/30 border-t-bg-primary rounded-full animate-spin" /> : t('profile.save', 'Save')}
                     </button>
@@ -425,7 +425,7 @@ const ProfilePage = () => {
                   <label className="block font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mb-2">
                     {t('profile.email', 'Email')}
                   </label>
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm" style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px solid rgb(var(--ink) / 0.03)' }}>
                     <svg className="w-3.5 h-3.5 text-text-muted/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
                     <span className="text-text-muted/60 font-mono text-xs truncate">{user?.email || '-'}</span>
                   </div>
@@ -569,9 +569,9 @@ const ProfilePage = () => {
 // ─────────────────────────────────────────────────────────────────────
 
 const Section = ({ title, badge, children }) => (
-  <div className="overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.015]"
-    style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.3)' }}>
-    <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
+  <div className="overflow-hidden rounded-md border border-ink/[0.06] bg-ink/[0.015]"
+    style={{ boxShadow: 'inset 0 1px 2px -1px rgb(var(--scrim) / 0.3)' }}>
+    <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-ink/[0.05] bg-ink/[0.015]">
       <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-semibold">
         {title}
       </h2>
@@ -589,8 +589,8 @@ const KpiCard = ({ label, value, accent = 'default', mono = false }) => {
     default: 'text-text-primary',
   };
   return (
-    <div className="rounded-md border border-white/[0.06] bg-white/[0.015] px-3 py-2.5 sm:px-4 sm:py-3"
-      style={{ boxShadow: 'inset 0 1px 2px -1px rgba(0,0,0,0.3)' }}>
+    <div className="rounded-md border border-ink/[0.06] bg-ink/[0.015] px-3 py-2.5 sm:px-4 sm:py-3"
+      style={{ boxShadow: 'inset 0 1px 2px -1px rgb(var(--scrim) / 0.3)' }}>
       <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/60 mb-1">{label}</p>
       <p className={`text-sm sm:text-base font-light tabular-nums truncate ${mono ? 'font-mono' : ''} ${accentClasses[accent] || accentClasses.default}`}>
         {value}
@@ -600,8 +600,8 @@ const KpiCard = ({ label, value, accent = 'default', mono = false }) => {
 };
 
 const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink, onUnlink, linking, canUnlink, linkLabel, unlinkLabel, replaceMode }) => (
-  <div className="flex items-center justify-between p-3 rounded-md transition-all hover:bg-white/[0.02]"
-    style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)' }}>
+  <div className="flex items-center justify-between p-3 rounded-md transition-all hover:bg-ink/[0.02]"
+    style={{ background: 'rgb(var(--ink) / 0.01)', border: '1px solid rgb(var(--ink) / 0.04)' }}>
     <div className="flex items-center gap-3 min-w-0 flex-1">
       <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0"
         style={{ background: iconBg, border: `1px solid ${iconBorder}` }}>
@@ -631,7 +631,7 @@ const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink,
           className={`px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 ${
             replaceMode
               ? 'text-amber-400/80 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-500/35'
-              : 'text-text-primary border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+              : 'text-text-primary border border-ink/10 bg-ink/5 hover:bg-ink/10 hover:border-ink/20'
           }`}>
           {linking ? <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mx-2" /> : linkLabel}
         </button>

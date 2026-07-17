@@ -45,9 +45,9 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
   const videoBody = resource.content || resource.excerpt;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-black/85 backdrop-blur-sm p-0 sm:p-6 lg:p-10" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-scrim/85 backdrop-blur-sm p-0 sm:p-6 lg:p-10" onClick={onClose}>
       <div
-        className={`relative w-full bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl flex flex-col overflow-hidden ${
+        className={`relative w-full bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl flex flex-col overflow-hidden ${
           isArticle ? 'max-w-3xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]' : 'max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)]'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -55,13 +55,13 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
       >
         <style>{`@keyframes modalIn{from{transform:translateY(100%)}to{transform:translateY(0)}}@media(min-width:640px){@keyframes modalIn{from{opacity:0;transform:scale(.98) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}}`}</style>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-line/10 bg-bg-primary/50 flex-shrink-0">
-          <button onClick={onClose} className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-xl transition-all flex items-center gap-2">
+          <button onClick={onClose} className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-ink/5 rounded-xl transition-all flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -108,7 +108,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             <div className="px-5 sm:px-8 py-6 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
               <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1 mb-2">{resource.title}</h1>
-              <div className="text-xs text-text-muted mb-4 pb-4 border-b border-white/10">
+              <div className="text-xs text-text-muted mb-4 pb-4 border-b border-ink/10">
                 {resource.author_name && <span>{resource.author_name} · </span>}{fmtDate(resource.published_at || resource.created_at)}
               </div>
               {videoBody && (
@@ -128,7 +128,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             <article className="px-5 sm:px-10 py-8 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
               <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-2 mb-3">{resource.title}</h1>
-              <div className="flex items-center gap-2 text-xs text-text-muted mb-6 pb-6 border-b border-white/10">
+              <div className="flex items-center gap-2 text-xs text-text-muted mb-6 pb-6 border-b border-ink/10">
                 {resource.author_name && <span className="text-text-secondary font-medium">{resource.author_name}</span>}
                 <span>·</span>
                 <span>{fmtDate(resource.published_at || resource.created_at)}</span>
@@ -136,7 +136,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
               </div>
               {loading ? (
                 <div className="space-y-3 animate-pulse">
-                  {[...Array(6)].map((_, i) => <div key={i} className="h-4 rounded bg-white/5" style={{ width: `${70 + (i % 3) * 10}%` }} />)}
+                  {[...Array(6)].map((_, i) => <div key={i} className="h-4 rounded bg-ink/5" style={{ width: `${70 + (i % 3) * 10}%` }} />)}
                 </div>
               ) : resource.content_format === 'markdown' ? (
                 <div className="resource-prose text-text-secondary text-[15px] leading-relaxed">
@@ -159,7 +159,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
               .resource-prose a{color:#d4a853;text-decoration:underline}
               .resource-prose img{max-width:100%;border-radius:12px;margin:1em 0}
               .resource-prose blockquote{border-left:3px solid rgb(var(--line) / .5);padding-left:1em;margin:1em 0;color:#c9b59e;font-style:italic}
-              .resource-prose code{background:rgba(255,255,255,.08);padding:.1em .4em;border-radius:4px;font-size:.9em}
+              .resource-prose code{background:rgb(var(--ink) / .08);padding:.1em .4em;border-radius:4px;font-size:.9em}
             `}</style>
           </div>
         )}

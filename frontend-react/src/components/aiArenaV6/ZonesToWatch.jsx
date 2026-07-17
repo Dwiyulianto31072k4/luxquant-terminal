@@ -137,7 +137,7 @@ function ZoneCard({ zone, currentPrice }) {
           className="text-xl font-semibold tabular-nums"
           style={{
             fontFamily: "JetBrains Mono, monospace",
-            color: "rgba(255,255,255,0.9)",
+            color: "rgb(var(--ink) / 0.9)",
           }}
         >
           {formatPrice(low)} <span className="text-text-primary/40">–</span>{" "}
@@ -160,8 +160,8 @@ function ZoneCard({ zone, currentPrice }) {
       {/* Liquidity note */}
       {zone.liquidity_note && (
         <div
-          className="mt-3 pt-3 border-t border-white/5 flex items-start gap-2"
-          style={{ borderColor: "rgba(255,255,255,0.05)" }}
+          className="mt-3 pt-3 border-t border-ink/5 flex items-start gap-2"
+          style={{ borderColor: "rgb(var(--ink) / 0.05)" }}
         >
           <span className="text-[10px] mt-0.5">💧</span>
           <p className="text-[11px] text-text-primary/55 leading-relaxed font-mono">
@@ -210,7 +210,7 @@ function PriceLadder({ zones, currentPrice }) {
       {/* Vertical track */}
       <div
         className="absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2"
-        style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+        style={{ backgroundColor: "rgb(var(--ink) / 0.08)" }}
       />
 
       {/* Zone bands */}
@@ -281,7 +281,7 @@ export default function ZonesToWatch({ zones, currentPrice }) {
         >
           Zones to Watch
         </h2>
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
+        <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
           <p className="text-text-primary/40 text-sm italic">No zones defined</p>
         </div>
       </section>

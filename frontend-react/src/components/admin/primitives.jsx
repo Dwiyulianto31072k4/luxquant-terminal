@@ -77,7 +77,7 @@ export const Surface = React.forwardRef(
           borderRadius: cornerRadius,
           transition: doHover ? motion.slow : undefined,
           boxShadow: variant === 'base'
-            ? 'inset 0 1px 0 0 rgba(255,255,255,0.04)'
+            ? 'inset 0 1px 0 0 rgb(var(--ink) / 0.04)'
             : undefined,
           ...style,
         }}
@@ -88,7 +88,7 @@ export const Surface = React.forwardRef(
         } : onMouseEnter}
         onMouseLeave={doHover ? (e) => {
           e.currentTarget.style.borderColor = preset.border;
-          e.currentTarget.style.boxShadow = variant === 'base' ? 'inset 0 1px 0 0 rgba(255,255,255,0.04)' : 'none';
+          e.currentTarget.style.boxShadow = variant === 'base' ? 'inset 0 1px 0 0 rgb(var(--ink) / 0.04)' : 'none';
           onMouseLeave?.(e);
         } : onMouseLeave}
         {...rest}
@@ -97,7 +97,7 @@ export const Surface = React.forwardRef(
           <div
             className="absolute inset-x-0 top-0 h-px pointer-events-none"
             style={{
-              background: `linear-gradient(to right, transparent, ${preset.topGlow || 'rgba(255,255,255,0.08)'}, transparent)`,
+              background: `linear-gradient(to right, transparent, ${preset.topGlow || 'rgb(var(--ink) / 0.08)'}, transparent)`,
             }}
           />
         )}
@@ -116,7 +116,7 @@ export const Card = Surface;
 // TopHairline — standalone, for elements that need it without Surface
 // ════════════════════════════════════════════════════════════════════
 
-export const TopHairline = ({ color = 'rgba(255,255,255,0.08)' }) => (
+export const TopHairline = ({ color = 'rgb(var(--ink) / 0.08)' }) => (
   <div
     className="absolute inset-x-0 top-0 h-px pointer-events-none"
     style={{ background: `linear-gradient(to right, transparent, ${color}, transparent)` }}
@@ -153,9 +153,9 @@ export const Eyebrow = ({ children, align = 'left', className = '' }) => {
     <span
       className={`inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted ${className}`}
     >
-      <span className="h-px w-6 bg-gradient-to-r from-transparent to-white/25" />
+      <span className="h-px w-6 bg-gradient-to-r from-transparent to-ink/25" />
       {children}
-      {centered && <span className="h-px w-6 bg-gradient-to-l from-transparent to-white/25" />}
+      {centered && <span className="h-px w-6 bg-gradient-to-l from-transparent to-ink/25" />}
     </span>
   );
 };
@@ -239,8 +239,8 @@ export const StatTile = ({
       onClick={onClick}
       disabled={!onClick}
       className={`group relative w-full overflow-hidden rounded-xl border bg-surface-raised p-3.5 text-left transition-colors ${
-        onClick ? 'cursor-pointer hover:border-white/[0.12]' : ''
-      } ${active ? 'border-white/20' : 'border-white/[0.07]'} ${className}`}
+        onClick ? 'cursor-pointer hover:border-ink/[0.12]' : ''
+      } ${active ? 'border-ink/20' : 'border-ink/[0.07]'} ${className}`}
     >
       <div className="mb-2 flex items-center justify-between">
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
@@ -252,7 +252,7 @@ export const StatTile = ({
       </div>
       <p className="font-mono text-2xl font-semibold tabular-nums leading-none tracking-tight text-text-primary">
         {loading ? (
-          <span className="lqsk inline-block h-6 w-12 rounded bg-white/[0.08]" />
+          <span className="lqsk inline-block h-6 w-12 rounded bg-ink/[0.08]" />
         ) : (
           value ?? '—'
         )}
@@ -393,7 +393,7 @@ export const Badge = ({
   style = {},
   ...rest
 }) => {
-  let palette_ = { color: 'rgb(var(--fg))', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.1)' };
+  let palette_ = { color: 'rgb(var(--fg))', bg: 'rgb(var(--ink) / 0.06)', border: 'rgb(var(--ink) / 0.1)' };
 
   if (variant === 'role' && value && semantic.role[value]) palette_ = semantic.role[value];
   else if (variant === 'status' && value && semantic.status[value]) palette_ = semantic.status[value];
@@ -444,8 +444,8 @@ export const Pill = ({ children, active, tone, onClick, className = '' }) => {
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium tracking-wide transition-colors ${className} ${
         active
-          ? 'border border-white/20 bg-white/[0.1] text-text-primary'
-          : 'border border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/14 hover:text-text-primary'
+          ? 'border border-ink/20 bg-ink/[0.1] text-text-primary'
+          : 'border border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:border-ink/14 hover:text-text-primary'
       }`}
       style={tone && active ? { color: t, borderColor: tint(t, 0.4), background: tint(t, 0.12) } : undefined}
     >
@@ -522,17 +522,17 @@ export const Button = React.forwardRef(
       primary: {
         background: 'rgb(var(--fg) / 0.92)',
         color: 'rgb(var(--surface))',
-        border: '1px solid rgba(255,255,255,0.2)',
+        border: '1px solid rgb(var(--ink) / 0.2)',
       },
       secondary: {
-        background: 'rgba(255,255,255,0.04)',
-        color: 'rgba(255,255,255,0.82)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgb(var(--ink) / 0.04)',
+        color: 'rgb(var(--ink) / 0.82)',
+        border: '1px solid rgb(var(--ink) / 0.12)',
       },
       ghost: {
         background: 'transparent',
         color: typography.body.muted,
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid rgb(var(--ink) / 0.10)',
       },
       danger: {
         background: 'rgba(248,113,113,0.12)',
@@ -696,7 +696,7 @@ export const EmptyState = ({
     {Icon && (
       <div className="relative mb-5">
         <div
-          className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.1] bg-white/[0.04]"
+          className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-ink/[0.1] bg-ink/[0.04]"
         >
           <Icon size={28} style={{ color: tone, opacity: 0.75 }} />
         </div>
@@ -712,7 +712,7 @@ export const EmptyState = ({
       <button
         type="button"
         onClick={action.onClick}
-        className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-white/[0.14]"
+        className="mt-5 inline-flex items-center gap-2 rounded-lg border border-ink/15 bg-ink/[0.1] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-ink/[0.14]"
       >
         {action.Icon && <action.Icon size={13} />}
         {action.label}
@@ -744,7 +744,7 @@ export const LoadingState = ({ label = 'Loading...', tone = NEUTRAL, className =
   </div>
 );
 
-export const Skeleton = ({ className = '', tone = 'rgba(255,255,255,0.05)', style = {} }) => (
+export const Skeleton = ({ className = '', tone = 'rgb(var(--ink) / 0.05)', style = {} }) => (
   <div
     className={`lqsk rounded ${className}`}
     style={{ background: tone, ...style }}
@@ -840,7 +840,7 @@ export const Select = ({ label, value, onChange, options, className = '', ...res
     {label && (
       <label
         className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'rgb(var(--ink) / 0.4)' }}
       >
         {label}
       </label>
@@ -912,7 +912,7 @@ export const Bar3D = ({ pct = 0, tone, heightClass = 'h-2.5', className = '' }) 
   return (
     <div
       className={`relative flex-1 overflow-hidden ${heightClass} ${className}`}
-      style={{ background: 'rgba(0,0,0,0.4)', borderRadius: radius.pill, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.55)' }}
+      style={{ background: 'rgb(var(--scrim) / 0.35)', borderRadius: radius.pill, boxShadow: 'inset 0 1px 2px rgb(var(--scrim) / 0.35)' }}
     >
       <div
         className="h-full"
@@ -921,8 +921,8 @@ export const Bar3D = ({ pct = 0, tone, heightClass = 'h-2.5', className = '' }) 
           borderRadius: radius.pill,
           background: isGold ? gradient.goldBar : `linear-gradient(180deg, ${tint(tone, 0.95)}, ${tint(tone, 0.6)})`,
           boxShadow: isGold
-            ? 'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgba(212,168,83,0.4)'
-            : `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 8px ${tint(tone, 0.4)}`,
+            ? 'inset 0 1px 0 rgb(var(--ink) / 0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgba(212,168,83,0.4)'
+            : `inset 0 1px 0 rgb(var(--ink) / 0.4), 0 0 8px ${tint(tone, 0.4)}`,
         }}
       />
     </div>

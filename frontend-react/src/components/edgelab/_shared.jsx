@@ -24,12 +24,12 @@ export const TIER_LABELS = {
 
 // ─── Win-rate → color (shared scale across all heatmaps) ─────────
 export const wrColor = (wr, total = 1) => {
-  if (!total) return "rgba(255,255,255,0.025)";
-  if (wr === null || wr === undefined) return "rgba(255,255,255,0.05)";
+  if (!total) return "rgb(var(--ink) / 0.025)";
+  if (wr === null || wr === undefined) return "rgb(var(--ink) / 0.05)";
   if (wr >= 90) return "rgba(16,185,129,0.62)";
   if (wr >= 75) return "rgba(16,185,129,0.42)";
   if (wr >= 60) return "rgba(16,185,129,0.26)";
-  if (wr >= 50) return "rgba(255,255,255,0.09)";
+  if (wr >= 50) return "rgb(var(--ink) / 0.09)";
   if (wr >= 35) return "rgba(239,68,68,0.28)";
   return "rgba(239,68,68,0.5)";
 };
@@ -37,7 +37,7 @@ export const wrColor = (wr, total = 1) => {
 export const WR_LEGEND = [
   { l: "<35", c: "rgba(239,68,68,0.5)" },
   { l: "35–50", c: "rgba(239,68,68,0.28)" },
-  { l: "50–60", c: "rgba(255,255,255,0.09)" },
+  { l: "50–60", c: "rgb(var(--ink)_/_0.09)" },
   { l: "60–75", c: "rgba(16,185,129,0.26)" },
   { l: "75–90", c: "rgba(16,185,129,0.42)" },
   { l: "≥90", c: "rgba(16,185,129,0.62)" },
@@ -45,10 +45,10 @@ export const WR_LEGEND = [
 
 // ─── Panel chrome ────────────────────────────────────────────────
 export const Panel = ({ children, className = "", title, meta, pad = true }) => (
-  <div className={`relative rounded-lg bg-surface-raised border border-white/[0.07] ${className}`}>
+  <div className={`relative rounded-lg bg-surface-raised border border-ink/[0.07] ${className}`}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/35 to-transparent" />
     {title && (
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.05]">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-ink/[0.05]">
         <div className="text-[10px] tracking-[0.22em] font-mono uppercase text-text-primary/45">{title}</div>
         {meta && <div className="text-[9px] font-mono uppercase tracking-wider text-text-primary/30">{meta}</div>}
       </div>
@@ -61,10 +61,10 @@ export const Panel = ({ children, className = "", title, meta, pad = true }) => 
 export const Methodology = ({ title, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] overflow-hidden">
+    <div className="rounded-lg border border-ink/[0.05] bg-ink/[0.015] overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-white/[0.02] transition group"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-ink/[0.02] transition group"
       >
         <span className="flex items-center gap-2 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/60 group-hover:text-gold-primary/85 transition">
           <span className="text-text-primary/25">ⓘ</span> {title}
@@ -72,7 +72,7 @@ export const Methodology = ({ title, children, defaultOpen = false }) => {
         <span className={`text-text-primary/30 text-[10px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
       {open && (
-        <div className="px-4 pb-3.5 pt-0.5 text-xs text-text-primary/60 leading-relaxed border-t border-white/[0.04]">
+        <div className="px-4 pb-3.5 pt-0.5 text-xs text-text-primary/60 leading-relaxed border-t border-ink/[0.04]">
           {children}
         </div>
       )}
@@ -146,7 +146,7 @@ export const WrLegend = ({ note }) => (
     <span>WR</span>
     {WR_LEGEND.map((s, i) => (
       <span key={i} className="inline-flex items-center gap-1">
-        <span className="w-4 h-3 rounded-sm border border-white/10" style={{ background: s.c }} />
+        <span className="w-4 h-3 rounded-sm border border-ink/10" style={{ background: s.c }} />
         {s.l}
       </span>
     ))}

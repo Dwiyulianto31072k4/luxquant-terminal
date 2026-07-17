@@ -90,11 +90,11 @@ const MarketingHeader = ({ onCreate }) => (
 
 const StatCard = ({ label, value, accent, Icon }) => (
   <div className="relative overflow-hidden rounded-xl px-4 py-3"
-    style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
+    style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)' }}>
     <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
       style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.2), transparent)' }} />
     <div className="flex items-center justify-between mb-1.5">
-      <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgb(var(--ink) / 0.4)' }}>
         {label}
       </span>
       {Icon && (
@@ -127,14 +127,14 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
 
   return (
     <div className="relative overflow-hidden rounded-xl p-4 transition-colors"
-      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)' }}>
       <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.2), transparent)' }} />
 
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(0,0,0,0.3)', color: platCfg.color, border: '1px solid rgba(255,255,255,0.06)' }}>
+            style={{ background: 'rgb(var(--scrim) / 0.3)', color: platCfg.color, border: '1px solid rgb(var(--ink) / 0.06)' }}>
             <PlatIcon size={15} {...(campaign.platform === 'telegram' || campaign.platform === 'discord' ? { colored: true } : {})} />
           </div>
           <div className="min-w-0">
@@ -168,7 +168,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
           </span>
         </div>
 
-        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgb(var(--ink) / 0.04)' }}>
           <div className="h-full transition-all"
             style={{
               width: `${Math.min(100, pct)}%`,
@@ -191,7 +191,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
       <div className="flex items-center gap-2 flex-wrap mb-3 text-[10px]">
         {(campaign.start_date || campaign.end_date) && (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded"
-            style={{ background: 'rgba(255,255,255,0.02)', color: 'rgb(var(--fg-muted))', border: '1px solid rgba(255,255,255,0.04)' }}>
+            style={{ background: 'rgb(var(--ink) / 0.02)', color: 'rgb(var(--fg-muted))', border: '1px solid rgb(var(--ink) / 0.04)' }}>
             <ClockIcon size={10} />
             {formatDate(campaign.start_date)} → {formatDate(campaign.end_date)}
           </span>
@@ -345,8 +345,8 @@ export const MarketingTab = ({ onRefreshStats }) => {
   const hasFilters = search || statusFilter || platformFilter;
 
   const fieldStyle = (active) => ({
-    background: 'rgba(0,0,0,0.28)',
-    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'}`,
+    background: 'rgb(var(--scrim) / 0.28)',
+    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgb(var(--ink) / 0.06)'}`,
   });
 
   return (
@@ -409,7 +409,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
         </div>
       ) : campaigns.length === 0 ? (
         <div className="relative text-center py-16 rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+          style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px dashed rgb(var(--ink) / 0.08)' }}>
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
             style={{ background: 'rgba(138,138,147,0.08)', filter: 'blur(40px)' }} />
           <div className="relative">

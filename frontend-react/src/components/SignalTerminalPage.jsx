@@ -295,7 +295,7 @@ export default function SignalTerminalPage() {
       {view === "treemap" && <MacroStrip macro={macro} sectors={sectors} model={model} />}
 
       {/* Main stage */}
-      <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised p-3 sm:p-4">
+      <div className="relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-3 sm:p-4">
         {model.length === 0 ? (
           <div className="flex h-[360px] items-center justify-center font-mono text-xs text-text-primary/40">
             {loading ? "Loading signals…" : "No signals match the current filters."}
@@ -316,7 +316,7 @@ export default function SignalTerminalPage() {
       {/* Screener */}
       <Screener model={model} onPick={pick} />
 
-      <p className="border-t border-white/[0.05] pt-2.5 font-mono text-[10px] leading-relaxed text-text-primary/30">
+      <p className="border-t border-ink/[0.05] pt-2.5 font-mono text-[10px] leading-relaxed text-text-primary/30">
         Filters mirror Potential Trades · live prices via Binance Futures proxy · click any tile for call proof
       </p>
     </div>
@@ -351,23 +351,23 @@ function SignalDetailModal({ d, onClose, onFull }) {
   const st = ST_META[d.status] || { label: (d.status || "—").toUpperCase(), color: "rgb(var(--fg-secondary))", desc: "" };
   const sign = (v) => (v == null ? "text-text-primary/90" : v >= 0 ? "text-positive" : "text-negative");
   const Stat = ({ label, val, tone }) => (
-    <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-3 py-2.5">
+    <div className="rounded-xl bg-ink/[0.02] border border-ink/[0.06] px-3 py-2.5">
       <div className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
       <div className={`font-mono tabular-nums text-[15px] mt-1 ${tone || "text-text-primary/90"}`}>{val}</div>
     </div>
   );
   return (
     <div
-      className="fixed inset-0 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 flex items-end justify-center bg-scrim/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       style={{ zIndex: 200000 }}
       onClick={onClose}
     >
       <div
-        className="relative max-h-[min(92dvh,100%)] w-full max-w-[540px] overflow-auto rounded-t-2xl border-t border-white/[0.1] bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-xl sm:border sm:shadow-2xl sm:shadow-black/60"
+        className="relative max-h-[min(92dvh,100%)] w-full max-w-[540px] overflow-auto rounded-t-2xl border-t border-ink/[0.1] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-xl sm:border sm:shadow-2xl sm:shadow-black/60"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex justify-center bg-surface-raised pb-0 pt-2.5 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
 
         <div className="flex items-center gap-3 px-5 pt-4 sm:pt-5">
@@ -379,7 +379,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
             </div>
             <div className="mt-1.5 flex items-center gap-1.5">
               {d.risk && (
-                <span className="rounded-sm border border-white/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-primary/60">
+                <span className="rounded-sm border border-ink/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-primary/60">
                   {d.risk} risk
                 </span>
               )}
@@ -392,7 +392,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
           </div>
           <button
             onClick={onClose}
-            className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-text-muted hover:border-white/25 hover:text-text-primary"
+            className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
           >
             ✕
           </button>
@@ -430,16 +430,16 @@ function SignalDetailModal({ d, onClose, onFull }) {
           <Stat label="Live Price" val={d.price ? "$" + fmtPrice(d.price) : "—"} />
         </div>
 
-        <div className="mt-4 flex items-center gap-2 border-t border-white/[0.06] px-5 py-4">
+        <div className="mt-4 flex items-center gap-2 border-t border-ink/[0.06] px-5 py-4">
           <button
             onClick={onFull}
-            className="flex-1 rounded-lg border border-white/15 bg-white/[0.1] py-2.5 text-[13px] font-semibold text-text-primary transition hover:bg-white/[0.14]"
+            className="flex-1 rounded-lg border border-ink/15 bg-ink/[0.1] py-2.5 text-[13px] font-semibold text-text-primary transition hover:bg-ink/[0.14]"
           >
             Open full signal →
           </button>
           <button
             onClick={onClose}
-            className="rounded-lg border border-white/12 px-4 py-2.5 text-[13px] text-text-primary/70 transition hover:border-white/25"
+            className="rounded-lg border border-ink/12 px-4 py-2.5 text-[13px] text-text-primary/70 transition hover:border-ink/25"
           >
             Close
           </button>
@@ -455,7 +455,7 @@ function Enc({ label, value, onChange }) {
     <label className="flex items-center gap-2">
       <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface border border-white/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-line/40 cursor-pointer">
+        className="appearance-none bg-surface border border-ink/[0.1] rounded-lg font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-6 focus:outline-none focus:border-line/40 cursor-pointer">
         {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-surface">{m.lbl}</option>)}
       </select>
     </label>
@@ -467,13 +467,13 @@ function FilterBar({ filters, setF }) {
   const chip = (on) =>
     `font-mono text-[10px] uppercase tracking-wide px-2.5 py-1.5 rounded-md border transition-colors cursor-pointer ${
       on
-        ? "text-text-primary border-white/20 bg-white/[0.1] font-semibold"
-        : "text-text-primary/55 border-white/[0.08] bg-white/[0.02] hover:border-white/16 hover:text-text-primary/80"
+        ? "text-text-primary border-ink/20 bg-ink/[0.1] font-semibold"
+        : "text-text-primary/55 border-ink/[0.08] bg-ink/[0.02] hover:border-ink/16 hover:text-text-primary/80"
     }`;
   const sel =
-    "appearance-none bg-white/[0.03] border border-white/[0.08] rounded-md font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-7 focus:outline-none focus:border-white/20 cursor-pointer";
+    "appearance-none bg-ink/[0.03] border border-ink/[0.08] rounded-md font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-7 focus:outline-none focus:border-ink/20 cursor-pointer";
   return (
-    <div className="sticky top-0 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-surface-raised/95 p-2.5 backdrop-blur-md">
+    <div className="sticky top-0 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.06] bg-surface-raised/95 p-2.5 backdrop-blur-md">
       <div className="relative">
         <svg className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-primary/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="8" />
@@ -483,7 +483,7 @@ function FilterBar({ filters, setF }) {
           value={filters.searchPair}
           onChange={(e) => setF({ searchPair: e.target.value })}
           placeholder="Search pair…"
-          className="w-36 rounded-md border border-white/[0.08] bg-white/[0.03] py-1.5 pl-8 pr-2.5 font-mono text-[11px] text-text-primary focus:border-white/20 focus:outline-none sm:w-40"
+          className="w-36 rounded-md border border-ink/[0.08] bg-ink/[0.03] py-1.5 pl-8 pr-2.5 font-mono text-[11px] text-text-primary focus:border-ink/20 focus:outline-none sm:w-40"
         />
       </div>
       <select className={sel} value={filters.statusFilter} onChange={(e) => setF({ statusFilter: e.target.value })}>
@@ -536,7 +536,7 @@ function MacroStrip({ macro, sectors }) {
     return (
       <div className="text-center">
         <svg width="56" height="56" viewBox="0 0 56 56">
-          <circle cx="28" cy="28" r={R} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="5" />
+          <circle cx="28" cy="28" r={R} fill="none" stroke="rgb(var(--ink) / .08)" strokeWidth="5" />
           <circle
             cx="28"
             cy="28"
@@ -563,7 +563,7 @@ function MacroStrip({ macro, sectors }) {
   const maxAbs = Math.max(...topSectors.map((s) => Math.abs(s.mcap_change_24h ?? 0)), 1);
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-      <div className="rounded-xl border border-white/[0.06] bg-surface-raised p-4">
+      <div className="rounded-xl border border-ink/[0.06] bg-surface-raised p-4">
         <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
           Dominance & Altseason
         </div>
@@ -573,7 +573,7 @@ function MacroStrip({ macro, sectors }) {
           {gauge(macro?.altseason_index, "#94a3b8", "Altseason")}
         </div>
       </div>
-      <div className="rounded-xl border border-white/[0.06] bg-surface-raised p-4 lg:col-span-2">
+      <div className="rounded-xl border border-ink/[0.06] bg-surface-raised p-4 lg:col-span-2">
         <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
           Sector Rotation · Δ Market Cap 24h
         </div>
@@ -589,7 +589,7 @@ function MacroStrip({ macro, sectors }) {
                   <SectorGlyph sector={s.name} />
                   <span className="truncate">{s.name}</span>
                 </span>
-                <div className="h-2.5 flex-1 overflow-hidden rounded bg-white/[0.04]">
+                <div className="h-2.5 flex-1 overflow-hidden rounded bg-ink/[0.04]">
                   <div
                     className="h-full rounded"
                     style={{
@@ -642,14 +642,14 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
         const showLabel = r.w > 30 && r.h > 16;
         return (
           <div key={d.signal_id} onClick={() => onPick(d)} title={`${d.sym} · ${METRICS[colorBy].fmt(METRICS[colorBy].get(d))}`}
-            className="absolute rounded-md overflow-hidden cursor-pointer border border-black/40 hover:outline hover:outline-1 hover:outline-white/60 transition-transform hover:-translate-y-0.5"
+            className="absolute rounded-md overflow-hidden cursor-pointer border border-black/40 hover:outline hover:outline-1 hover:outline-ink/60 transition-transform hover:-translate-y-0.5"
             style={{ left: r.x, top: r.y, width: r.w - 3, height: r.h - 3, background: colorByMetric(d, colorBy, model) }}>
             <div className="absolute inset-0 p-1.5 flex flex-col justify-between">
               <div className="flex items-center gap-1 min-w-0">
                 {big && <CoinLogo pair={d.pair} size={Math.min(18, Math.max(12, fs))} />}
-                {showLabel && <div className="font-mono font-bold leading-none text-text-primary truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{d.sym}</div>}
+                {showLabel && <div className="font-mono font-bold leading-none text-text-primary truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgb(var(--scrim) / 0.35)" }}>{d.sym}</div>}
               </div>
-              {big && <div className="font-mono leading-none text-text-primary/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
+              {big && <div className="font-mono leading-none text-text-primary/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgb(var(--scrim) / 0.35)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
             </div>
           </div>
         );
@@ -749,10 +749,10 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
     if (cx == null || cy == null) return null;
     return (
       <g style={{ cursor: "pointer" }} onClick={() => onPick(payload.d)}>
-        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke={payload.sc || "rgba(0,0,0,0.55)"} strokeWidth={payload.sc ? 2 : 0.6} />
+        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke={payload.sc || "rgb(var(--scrim) / 0.35)"} strokeWidth={payload.sc ? 2 : 0.6} />
         {payload.lab && (
           <text x={cx} y={cy - payload.r - 3} textAnchor="middle" fontFamily="monospace" fontSize={9.5} fontWeight="700"
-            fill="#fff" stroke="rgba(0,0,0,0.9)" strokeWidth={2.6} paintOrder="stroke" pointerEvents="none">{payload.lab}</text>
+            fill="#fff" stroke="rgb(var(--scrim) / 0.9)" strokeWidth={2.6} paintOrder="stroke" pointerEvents="none">{payload.lab}</text>
         )}
       </g>
     );
@@ -776,9 +776,9 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
             tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(my)}
             label={{ value: my.lbl, angle: -90, position: "insideLeft", offset: 6, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
           <ZAxis type="number" dataKey="z" range={[26, 460]} />
-          <ReferenceLine x={xMed} stroke="rgba(255,255,255,0.18)" strokeDasharray="5 5" />
-          <ReferenceLine y={yMed} stroke="rgba(255,255,255,0.18)" strokeDasharray="5 5" />
-          <Tooltip cursor={{ strokeDasharray: "3 3", stroke: "rgba(255,255,255,0.25)" }} content={<BubbleTip colorBy={colorKey} />} />
+          <ReferenceLine x={xMed} stroke="rgb(var(--ink) / 0.18)" strokeDasharray="5 5" />
+          <ReferenceLine y={yMed} stroke="rgb(var(--ink) / 0.18)" strokeDasharray="5 5" />
+          <Tooltip cursor={{ strokeDasharray: "3 3", stroke: "rgb(var(--ink) / 0.25)" }} content={<BubbleTip colorBy={colorKey} />} />
           <Scatter data={data} shape={<Dot />} isAnimationActive={false} />
         </ScatterChart>
       </ResponsiveContainer>
@@ -814,7 +814,7 @@ function Matrix({ model, onPick }) {
   const [dir, setDir] = useState(-1);
   const rows = [...model].sort((a, b) => ((METRICS[sortK].get(a) ?? -1e9) - (METRICS[sortK].get(b) ?? -1e9)) * dir);
   return (
-    <div className="max-h-[560px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+    <div className="max-h-[560px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
       <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
         <thead>
           <tr>
@@ -841,7 +841,7 @@ function Matrix({ model, onPick }) {
             <tr key={d.signal_id}>
               <td
                 onClick={() => onPick(d)}
-                className="sticky left-0 z-10 cursor-pointer bg-surface px-3 py-1 font-mono text-[12px] font-bold text-text-primary hover:text-white"
+                className="sticky left-0 z-10 cursor-pointer bg-surface px-3 py-1 font-mono text-[12px] font-bold text-text-primary hover:text-text-primary"
               >
                 <span className="flex items-center gap-2">
                   <CoinLogo pair={d.pair} size={20} />
@@ -881,19 +881,19 @@ function SectorView({ model, colorBy, onPick }) {
         const list = [...groups[k]].sort((a, b) => (METRICS[colorBy].get(b) ?? 0) - (METRICS[colorBy].get(a) ?? 0));
         const mx = Math.max(...list.map((d) => Math.abs(METRICS[colorBy].get(d) ?? 0)), 1);
         return (
-          <div key={k} className="bg-surface border border-white/[0.06] rounded-xl p-3">
+          <div key={k} className="bg-surface border border-ink/[0.06] rounded-xl p-3">
             <div className="font-mono text-xs font-semibold text-text-primary mb-0.5">{k} risk</div>
             <div className="font-mono text-[9px] uppercase tracking-wide text-text-primary/35 mb-2">{list.length} signals</div>
-            <div className="max-h-[300px] space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+            <div className="max-h-[300px] space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
               {list.map((d) => {
                 const v = METRICS[colorBy].get(d) ?? 0;
                 return (
                   <div key={d.signal_id} onClick={() => onPick(d)} className="group flex cursor-pointer items-center gap-2">
                     <span className="flex w-20 shrink-0 items-center gap-1.5">
                       <CoinLogo pair={d.pair} size={15} />
-                      <span className="truncate font-mono text-[11px] text-text-primary/70 group-hover:text-white">{d.sym}</span>
+                      <span className="truncate font-mono text-[11px] text-text-primary/70 group-hover:text-text-primary">{d.sym}</span>
                     </span>
-                    <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
+                    <div className="flex-1 h-3.5 rounded bg-ink/[0.04] overflow-hidden">
                       <div className="h-full rounded" style={{ width: `${(Math.abs(v) / mx) * 100}%`, background: colorByMetric(d, colorBy, model) }} />
                     </div>
                     <span className="font-mono text-[10px] w-14 text-right text-text-primary/70">{METRICS[colorBy].fmt(v)}</span>
@@ -914,7 +914,7 @@ function MetricPick({ label, value, onChange }) {
     <label className="flex items-center gap-1.5">
       <span className="font-mono text-[9px] uppercase tracking-widest text-text-primary/35">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface-raised border border-white/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-line/40 cursor-pointer">
+        className="appearance-none bg-surface-raised border border-ink/[0.12] rounded-md font-mono text-[11px] text-text-primary/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-line/40 cursor-pointer">
         {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-surface">{m.lbl}</option>)}
       </select>
     </label>
@@ -930,8 +930,8 @@ function ExploreView({ model, onPick }) {
   const toggle = (on) =>
     `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${
       on
-        ? "text-text-primary bg-white/[0.1] border-white/20 font-semibold"
-        : "text-text-primary/55 bg-white/[0.02] border-white/[0.1] hover:border-white/20"
+        ? "text-text-primary bg-ink/[0.1] border-ink/20 font-semibold"
+        : "text-text-primary/55 bg-ink/[0.02] border-ink/[0.1] hover:border-ink/20"
     }`;
   return (
     <>
@@ -963,12 +963,12 @@ function Screener({ model, onPick }) {
   });
   const stColor = (s) => ({ open: "#60a5fa", tp1: "#34d399", tp2: "#34d399", tp3: "#34d399", closed_win: "#34d399", closed_loss: "#f87171" }[s] || "#9ca3af");
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
-      <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.015] px-4 py-2.5">
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+      <div className="flex items-center justify-between border-b border-ink/[0.06] bg-ink/[0.015] px-4 py-2.5">
         <span className="text-[12.5px] font-medium text-text-primary/90">Signal Screener</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{model.length} pairs</span>
       </div>
-      <div className="max-h-[440px] overflow-auto px-2 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+      <div className="max-h-[440px] overflow-auto px-2 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
         <table className="w-full border-collapse font-mono text-[11px]">
           <thead>
             <tr>
@@ -979,7 +979,7 @@ function Screener({ model, onPick }) {
                     setDir(sortK === k ? -dir : -1);
                     setSortK(k);
                   }}
-                  className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 cursor-pointer whitespace-nowrap border-b border-white/[0.08] bg-surface-raised px-2 py-2 text-[9px] font-medium uppercase tracking-wide text-text-primary/40 hover:text-text-primary`}
+                  className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 cursor-pointer whitespace-nowrap border-b border-ink/[0.08] bg-surface-raised px-2 py-2 text-[9px] font-medium uppercase tracking-wide text-text-primary/40 hover:text-text-primary`}
                 >
                   {l}
                   {sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
@@ -989,32 +989,32 @@ function Screener({ model, onPick }) {
           </thead>
           <tbody>
             {rows.map((d) => (
-              <tr key={d.signal_id} onClick={() => onPick(d)} className="cursor-pointer hover:bg-white/[0.03]">
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-left">
+              <tr key={d.signal_id} onClick={() => onPick(d)} className="cursor-pointer hover:bg-ink/[0.03]">
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-left">
                   <span className="flex items-center gap-1.5">
                     <CoinLogo pair={d.pair} size={16} />
                     <span className="font-bold text-text-primary">{d.sym}</span>
                   </span>
                 </td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right">
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right">
                   <span className="rounded px-1.5 py-0.5 text-[9px] uppercase" style={{ color: stColor(d.status), border: `1px solid ${stColor(d.status)}` }}>
                     {d.status}
                   </span>
                 </td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right" style={{ color: d.price_change_24h >= 0 ? "#34d399" : "#f87171" }}>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right" style={{ color: d.price_change_24h >= 0 ? "#34d399" : "#f87171" }}>
                   {d.price_change_24h >= 0 ? "+" : ""}
                   {d.price_change_24h.toFixed(1)}%
                 </td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right" style={{ color: d.from_call == null ? "#8a8478" : d.from_call >= 0 ? "#34d399" : "#f87171" }}>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right" style={{ color: d.from_call == null ? "#8a8478" : d.from_call >= 0 ? "#34d399" : "#f87171" }}>
                   {d.from_call == null ? "—" : (d.from_call >= 0 ? "+" : "") + d.from_call.toFixed(1) + "%"}
                 </td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right text-text-primary/90">
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/90">
                   {d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}
                 </td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right text-text-primary/80">{(d.flow_intensity * 100).toFixed(1)}%</td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right text-text-primary/80">{d.btc_align ?? "—"}</td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right text-emerald-400/90">+{d.max_target.toFixed(0)}%</td>
-                <td className="border-b border-white/[0.04] px-2 py-1.5 text-right text-text-primary/80">${shortNum(d.market_cap)}</td>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/80">{(d.flow_intensity * 100).toFixed(1)}%</td>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/80">{d.btc_align ?? "—"}</td>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-emerald-400/90">+{d.max_target.toFixed(0)}%</td>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/80">${shortNum(d.market_cap)}</td>
               </tr>
             ))}
           </tbody>

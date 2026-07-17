@@ -68,7 +68,7 @@ function SeverityDots({ count, color }) {
           key={i}
           className="w-1.5 h-1.5 rounded-full"
           style={{
-            backgroundColor: i <= count ? color : "rgba(255,255,255,0.1)",
+            backgroundColor: i <= count ? color : "rgb(var(--ink) / 0.1)",
           }}
         />
       ))}
@@ -133,8 +133,8 @@ function ScenarioCard({ scenario }) {
           <div
             className="text-sm font-mono px-2.5 py-2 rounded leading-relaxed"
             style={{
-              backgroundColor: "rgba(0,0,0,0.25)",
-              color: "rgba(255,255,255,0.85)",
+              backgroundColor: "rgb(var(--scrim) / 0.25)",
+              color: "rgb(var(--ink) / 0.85)",
               borderLeft: `2px solid ${style.color}`,
             }}
           >
@@ -175,7 +175,7 @@ export default function RiskWatch({ riskScenarios }) {
         >
           Risk Watch
         </h2>
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
+        <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-6 text-center">
           <p className="text-text-primary/40 text-sm italic">
             No specific risk scenarios identified
           </p>

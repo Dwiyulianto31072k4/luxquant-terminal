@@ -62,7 +62,7 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         )}
         {resource.type === 'video' && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur flex items-center justify-center border border-white/20">
+            <div className="w-16 h-16 rounded-full bg-scrim/50 backdrop-blur flex items-center justify-center border border-ink/20">
               <svg className="w-7 h-7 text-text-primary ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </div>
           </div>
@@ -107,13 +107,13 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         <div className="absolute top-3 left-3"><TypeBadge type={resource.type} /></div>
         {isVideo && (
           <div className="absolute inset-0 flex items-center justify-center opacity-90 group-hover:opacity-100 transition">
-            <div className="w-12 h-12 rounded-full bg-black/55 backdrop-blur flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-full bg-scrim/55 backdrop-blur flex items-center justify-center border border-ink/20 group-hover:scale-110 transition-transform">
               <svg className="w-5 h-5 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </div>
           </div>
         )}
         {resource.type === 'link' && (
-          <div className="absolute top-3 right-3 p-1 rounded bg-black/50 text-text-primary/80">
+          <div className="absolute top-3 right-3 p-1 rounded bg-scrim/50 text-text-primary/80">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </div>
         )}
@@ -142,10 +142,10 @@ const AdminActions = ({ resource, onEdit, onDelete }) => (
     {resource.status === 'draft' && (
       <span className="px-2 py-1 bg-amber-500/80 text-black text-[9px] font-bold rounded-lg">DRAFT</span>
     )}
-    <button onClick={(e) => { e.stopPropagation(); onEdit(resource); }} className="p-1.5 bg-black/70 backdrop-blur rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20" title="Edit">
+    <button onClick={(e) => { e.stopPropagation(); onEdit(resource); }} className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20" title="Edit">
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
     </button>
-    <button onClick={(e) => { e.stopPropagation(); onDelete(resource); }} className="p-1.5 bg-black/70 backdrop-blur rounded-lg text-red-400 hover:text-red-300 border border-red-500/20" title="Delete">
+    <button onClick={(e) => { e.stopPropagation(); onDelete(resource); }} className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-red-400 hover:text-red-300 border border-red-500/20" title="Delete">
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
     </button>
   </div>
@@ -267,7 +267,7 @@ const ResourcesPage = () => {
                 key={tab.id}
                 onClick={() => { setActiveType(tab.id); setLoading(true); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-line/30' : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-line/20'
+                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-line/30' : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-line/20'
                 }`}
               >
                 {tab.label}
@@ -277,7 +277,7 @@ const ResourcesPage = () => {
         </div>
 
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1 border-t border-white/5">
+          <div className="flex flex-wrap gap-2 pt-1 border-t border-ink/5">
             <button onClick={() => { setActiveCategory('all'); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === 'all' ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-text-primary'}`}>
               All categories
             </button>
@@ -327,15 +327,15 @@ const ResourcesPage = () => {
 
       {/* Delete confirm */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
           <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-red-500/30 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
-              <div className="h-1 w-10 rounded-full bg-white/25" />
+              <div className="h-1 w-10 rounded-full bg-ink/25" />
             </div>
             <h3 className="text-text-primary font-semibold text-center mb-2">Delete resource?</h3>
             <p className="text-text-muted text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 bg-bg-card border border-ink/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors">Delete</button>
             </div>
           </div>

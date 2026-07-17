@@ -107,7 +107,7 @@ export default function Modal({
   const hasChrome = Boolean(header || simpleHeader);
   const hairlineBg = accentColor
     ? `linear-gradient(to right, transparent, ${accentColor}, transparent)`
-    : "linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent)";
+    : "linear-gradient(to right, transparent, rgb(var(--ink) / 0.12), transparent)";
 
   const node = (
     <div
@@ -144,11 +144,11 @@ export default function Modal({
           from { opacity: 1; transform: scale(1); }
           to { opacity: 0; transform: scale(.97) translateY(10px); }
         }
-        .lqm-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
+        .lqm-scroll { scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / 0.12) transparent; }
         .lqm-scroll::-webkit-scrollbar { width: 6px; }
         .lqm-scroll::-webkit-scrollbar-track { background: transparent; }
-        .lqm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 6px; }
-        .lqm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+        .lqm-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.1); border-radius: 6px; }
+        .lqm-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink) / 0.18); }
         @media (max-width: 639px) {
           .lqm-root.lqm-animate .lqm-card.lqm-sheet {
             animation: lqmSheetIn .32s cubic-bezier(.16,1,.3,1) forwards;
@@ -169,7 +169,7 @@ export default function Modal({
 
       {/* Scrim — blur lives ONLY here, never on the card */}
       <div
-        className="lqm-scrim absolute inset-0 bg-black/80"
+        className="lqm-scrim absolute inset-0 bg-scrim/80"
         style={{
           WebkitBackdropFilter: "blur(10px)",
           backdropFilter: "blur(10px)",
@@ -190,7 +190,7 @@ export default function Modal({
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
-          className={`lqm-card pointer-events-auto relative flex w-full flex-col overflow-hidden border border-white/[0.1] shadow-[0_28px_80px_rgba(0,0,0,0.65)] isolate ${
+          className={`lqm-card pointer-events-auto relative flex w-full flex-col overflow-hidden border border-ink/[0.1] shadow-[0_28px_80px_rgb(var(--scrim) / 0.35)] isolate ${
             SIZES[size] || SIZES.md
           } ${
             placement === "bottom"
@@ -204,7 +204,7 @@ export default function Modal({
         >
           {placement === "bottom" ? (
             <div className="flex shrink-0 justify-center pb-0.5 pt-2.5 sm:hidden" aria-hidden="true">
-              <span className="h-1 w-10 rounded-full bg-white/25" />
+              <span className="h-1 w-10 rounded-full bg-ink/25" />
             </div>
           ) : null}
 
@@ -218,7 +218,7 @@ export default function Modal({
           {/* Sticky header — solid, isolation, never under page blur */}
           {header ? (
             <div
-              className={`relative z-20 flex shrink-0 items-center border-b border-white/[0.07] px-4 py-3 sm:px-5 sm:py-3.5 ${
+              className={`relative z-20 flex shrink-0 items-center border-b border-ink/[0.07] px-4 py-3 sm:px-5 sm:py-3.5 ${
                 showClose ? "pr-12 sm:pr-14" : ""
               }`}
               style={{ background: "rgb(var(--surface-raised))" }}
@@ -227,7 +227,7 @@ export default function Modal({
             </div>
           ) : simpleHeader ? (
             <div
-              className={`relative z-20 shrink-0 border-b border-white/[0.07] px-5 py-4 sm:px-6 ${
+              className={`relative z-20 shrink-0 border-b border-ink/[0.07] px-5 py-4 sm:px-6 ${
                 showClose ? "pr-12 sm:pr-14" : ""
               }`}
               style={{ background: "rgb(var(--surface-raised))" }}
@@ -259,7 +259,7 @@ export default function Modal({
               type="button"
               onClick={requestClose}
               aria-label="Close"
-              className={`absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.1] text-text-muted transition hover:border-white/20 hover:bg-white/[0.06] hover:text-text-primary sm:right-4 ${
+              className={`absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-ink/[0.1] text-text-muted transition hover:border-ink/20 hover:bg-ink/[0.06] hover:text-text-primary sm:right-4 ${
                 placement === "bottom" && !hasChrome
                   ? "top-3 sm:top-3.5"
                   : hasChrome
@@ -288,7 +288,7 @@ export default function Modal({
           {/* Sticky footer — solid + safe-area */}
           {footer ? (
             <div
-              className="relative z-20 shrink-0 border-t border-white/[0.07] px-4 pt-3 sm:px-5"
+              className="relative z-20 shrink-0 border-t border-ink/[0.07] px-4 pt-3 sm:px-5"
               style={{
                 background: "rgb(var(--surface-raised))",
                 paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))",

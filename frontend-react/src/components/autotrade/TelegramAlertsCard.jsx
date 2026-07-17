@@ -110,7 +110,7 @@ export default function TelegramAlertsCard({ status, loadError = "", onUpdated }
       </div>
 
       {!unavailable && telegram.linked && preferences.enabled ? (
-        <div className="mt-4 grid gap-2 border-t border-white/[0.06] pt-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-4 grid gap-2 border-t border-ink/[0.06] pt-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
             ["execution_failed", "Execution failed"],
             ["risk_limit", "Risk limits"],

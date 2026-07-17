@@ -11,8 +11,8 @@ const FAQ_DATA = LANDING_FAQ;
 function Row({ index, q, a, open, onToggle }) {
   return (
     <div
-      className={`overflow-hidden border-b border-white/[0.07] transition-colors ${
-        open ? "bg-white/[0.02]" : ""
+      className={`overflow-hidden border-b border-ink/[0.07] transition-colors ${
+        open ? "bg-ink/[0.02]" : ""
       }`}
     >
       <button
@@ -85,7 +85,7 @@ export default function FaqV2() {
         </p>
       </div>
 
-      <div className="border-t border-white/[0.07]">
+      <div className="border-t border-ink/[0.07]">
         {FAQ_DATA.map((item, i) => (
           <Row
             key={i}

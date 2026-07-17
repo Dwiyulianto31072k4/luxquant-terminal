@@ -60,7 +60,7 @@ const HelpSupportModal = ({ isOpen, onClose }) => {
         </p>
 
         {/* Topics */}
-        <div className="mb-5 space-y-2 rounded-xl border border-white/[0.05] bg-white/[0.02] p-3 text-left">
+        <div className="mb-5 space-y-2 rounded-xl border border-ink/[0.05] bg-ink/[0.02] p-3 text-left">
           {TOPICS.map((key) => (
             <div key={key} className="flex items-start gap-2.5">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gold-primary/10">

@@ -244,22 +244,22 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       }}
       className="group grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-lg transition-colors cursor-pointer"
       style={{
-        background: 'rgba(255,255,255,0.018)',
+        background: 'rgb(var(--ink) / 0.018)',
         border: `1px solid ${
-          payment.is_stale ? 'rgba(248,113,113,0.20)' : 'rgba(255,255,255,0.05)'
+          payment.is_stale ? 'rgba(248,113,113,0.20)' : 'rgb(var(--ink) / 0.05)'
         }`,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.035)';
+        e.currentTarget.style.background = 'rgb(var(--ink) / 0.035)';
         e.currentTarget.style.borderColor = payment.is_stale
           ? 'rgba(248,113,113,0.32)'
           : 'rgba(212,168,83,0.18)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.018)';
+        e.currentTarget.style.background = 'rgb(var(--ink) / 0.018)';
         e.currentTarget.style.borderColor = payment.is_stale
           ? 'rgba(248,113,113,0.20)'
-          : 'rgba(255,255,255,0.05)';
+          : 'rgb(var(--ink) / 0.05)';
       }}
     >
       {/* User */}
@@ -384,9 +384,9 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       }}
       className="p-3 rounded-xl space-y-2.5 cursor-pointer transition-colors"
       style={{
-        background: 'rgba(255,255,255,0.02)',
+        background: 'rgb(var(--ink) / 0.02)',
         border: `1px solid ${
-          payment.is_stale ? 'rgba(248,113,113,0.22)' : 'rgba(255,255,255,0.06)'
+          payment.is_stale ? 'rgba(248,113,113,0.22)' : 'rgb(var(--ink) / 0.06)'
         }`,
       }}
     >
@@ -427,7 +427,7 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
 
       <div
         className="flex items-center justify-between gap-2 pt-2 text-[10.5px] flex-wrap"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}
+        style={{ borderTop: '1px solid rgb(var(--ink) / 0.04)', color: 'rgb(var(--fg-muted))' }}
       >
         <span
           style={{ color: payment.verified_at ? '#d4a853' : '#6b5c52' }}
@@ -449,7 +449,7 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
 
       <div
         className="pt-1.5"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+        style={{ borderTop: '1px solid rgb(var(--ink) / 0.04)' }}
       >
         <QuickActions
           payment={payment}
@@ -477,7 +477,7 @@ export const PaymentsTable = ({
     <div className="space-y-1.5">
       <div
         className="hidden md:grid grid-cols-12 gap-2 px-3 py-2 text-[9px] uppercase tracking-wider font-semibold"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'rgb(var(--ink) / 0.4)' }}
       >
         <div className="col-span-3">User</div>
         <div className="col-span-2">Plan / Amount</div>

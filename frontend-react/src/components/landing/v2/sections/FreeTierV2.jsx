@@ -35,7 +35,7 @@ export default function FreeTierV2() {
           clipped (tucked into the panel), MEXC-style. The phone wrapper does
           the clipping: top reaches above the card, bottom ends at the card. */}
       <div className="relative mx-auto max-w-5xl">
-        <div className="relative rounded-3xl border border-white/[0.08] bg-surface-raised shadow-[0_18px_50px_rgba(0,0,0,0.5)]">
+        <div className="relative rounded-3xl border border-ink/[0.08] bg-surface-raised shadow-[0_18px_50px_rgb(var(--scrim) / 0.35)]">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
           {/* PHONE — mobile: sits inside the card, top peeking, bottom fades
@@ -63,7 +63,7 @@ export default function FreeTierV2() {
                   href={TG_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative flex-shrink-0 rounded-2xl bg-white p-3 shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-transform duration-300 hover:-translate-y-0.5"
+                  className="group relative flex-shrink-0 rounded-2xl bg-white p-3 shadow-[0_8px_24px_rgb(var(--scrim) / 0.35)] transition-transform duration-300 hover:-translate-y-0.5"
                   aria-label="Scan or open the LuxQuant Telegram channel"
                 >
                   <QRCodeSVG value={TG_LINK} size={124} level="H" bgColor="#ffffff" fgColor="#0a0506" />
@@ -88,7 +88,7 @@ export default function FreeTierV2() {
                   href={TG_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-text-primary transition-all duration-300 hover:border-line/40 hover:bg-white/[0.06] hover:text-gold-primary"
+                  className="group inline-flex items-center gap-2.5 rounded-full border border-ink/15 bg-ink/[0.03] px-6 py-3 text-sm font-semibold text-text-primary transition-all duration-300 hover:border-line/40 hover:bg-ink/[0.06] hover:text-gold-primary"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />

@@ -17,7 +17,7 @@ import { GoldButton, GhostButton } from '../../autotrade/AutoTradeUI';
 
 const Field = ({ label, hint, required, children }) => (
   <div>
-    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
+    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--ink) / 0.4)' }}>
       {label}
       {required && <span style={{ color: 'rgb(var(--neg))' }}> *</span>}
       {hint && <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>{hint}</span>}
@@ -31,7 +31,7 @@ const PickOption = ({ value, currentValue, onClick, label, color, Icon }) => {
   return (
     <button type="button" onClick={onClick}
       className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-all"
-      style={{ background: selected ? `${color}18` : 'rgba(255,255,255,0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgba(255,255,255,0.06)'}` }}>
+      style={{ background: selected ? `${color}18` : 'rgb(var(--ink) / 0.02)', color: selected ? color : 'rgb(var(--fg-muted))', border: `1px solid ${selected ? `${color}45` : 'rgb(var(--ink) / 0.06)'}` }}>
       {Icon && <Icon size={11} />}
       {label}
     </button>
@@ -61,10 +61,10 @@ const STATUSES = [
 ];
 
 const inputCls = "w-full rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none";
-const inputStyle = { background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' };
+const inputStyle = { background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.08)' };
 
 const LineItemRow = ({ item, onChange, onDelete }) => (
-  <div className="space-y-2 rounded-lg p-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+  <div className="space-y-2 rounded-lg p-2.5" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.05)' }}>
     <div className="grid grid-cols-2 gap-2">
       <input type="text" value={item.label || ''} onChange={(e) => onChange({ ...item, label: e.target.value })} placeholder="Label (e.g. Boost post #1)" className={inputCls} style={inputStyle} />
       <input type="number" step="0.01" min="0" value={item.amount ?? ''} onChange={(e) => onChange({ ...item, amount: parseFloat(e.target.value) || 0 })} placeholder="Amount ($)" className={`${inputCls} tabular-nums`} style={inputStyle} />
@@ -170,12 +170,12 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
       <div className="space-y-4">
         <Field label="Campaign Name" required>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Twitter Promo Q2 2026" maxLength={200}
-            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
         </Field>
 
         <Field label="Description" hint="(optional)">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Goal, target audience, or strategy summary…"
-            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            className="w-full resize-none rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
         </Field>
 
         <Field label="Platform">
@@ -197,11 +197,11 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="Budget (USD)">
             <input type="number" step="0.01" min="0" value={budgetUsd} onChange={(e) => setBudgetUsd(e.target.value)} placeholder="0.00"
-              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
           </Field>
           <Field label="Spent (USD)">
             <input type="number" step="0.01" min="0" value={spentUsd} onChange={(e) => setSpentUsd(e.target.value)} placeholder="0.00"
-              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              className="w-full rounded-lg px-3 py-2 text-xs tabular-nums text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)' }} />
             {lineItemsTotal > 0 && lineItemsTotal !== parseFloat(spentUsd) && (
               <button type="button" onClick={() => setSpentUsd(String(lineItemsTotal))} className="mt-1 text-[10px] hover:underline" style={{ color: 'rgb(var(--accent))' }}>
                 Sync from line items: ${lineItemsTotal.toFixed(2)}
@@ -213,18 +213,18 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="Start Date" hint="(optional)">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)', colorScheme: 'dark' }} />
           </Field>
           <Field label="End Date" hint="(optional)">
             <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+              className="w-full rounded-lg px-3 py-2 font-mono text-xs text-text-primary focus:outline-none" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.1)', colorScheme: 'dark' }} />
           </Field>
         </div>
 
         {/* Line Items */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--ink) / 0.4)' }}>
               Line Items <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>({lineItems.length})</span>
             </label>
             <button type="button" onClick={() => setLineItems([...lineItems, { label: '', amount: 0, date: '', note: '' }])}
@@ -233,7 +233,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             </button>
           </div>
           {lineItems.length === 0 ? (
-            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', color: 'rgb(var(--fg-muted))' }}>
+            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px dashed rgb(var(--ink) / 0.06)', color: 'rgb(var(--fg-muted))' }}>
               No line items yet. Click "Add Item" to track a spending breakdown.
             </div>
           ) : (
@@ -249,7 +249,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         {/* Custom Metadata */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--ink) / 0.4)' }}>
               Custom Fields <span className="ml-1 lowercase tracking-normal" style={{ color: 'rgb(var(--fg-muted))' }}>({metadata.length})</span>
             </label>
             <button type="button" onClick={() => setMetadata([...metadata, { key: '', value: '' }])}
@@ -258,7 +258,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             </button>
           </div>
           {metadata.length === 0 ? (
-            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', color: 'rgb(var(--fg-muted))' }}>
+            <div className="rounded-lg py-4 text-center text-[10px]" style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px dashed rgb(var(--ink) / 0.06)', color: 'rgb(var(--fg-muted))' }}>
               Custom fields: add any KPI/metric (impressions, conversions, ROI, tags, etc.).
             </div>
           ) : (
@@ -277,7 +277,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         )}
 
         {isEdit && editingItem && (
-          <div className="rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgb(var(--fg-muted))' }}>
+          <div className="rounded-md px-3 py-2 text-[10px]" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.04)', color: 'rgb(var(--fg-muted))' }}>
             <p>Created {new Date(editingItem.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {editingItem.creator && <> by @{editingItem.creator.username}</>}</p>
           </div>

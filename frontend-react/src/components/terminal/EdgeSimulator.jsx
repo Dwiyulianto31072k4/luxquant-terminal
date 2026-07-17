@@ -140,8 +140,8 @@ export function EdgeTab() {
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openDrill(p.pattern)}>
         <circle cx={cx} cy={cy} r={r} fill={evColor(p.expected_value)} fillOpacity={active ? 0.85 : 0.5}
-          stroke={active ? GOLD : "rgba(0,0,0,0.5)"} strokeWidth={active ? 1.6 : 0.6} />
-        {show && <text x={cx} y={cy - r - 3} textAnchor="middle" fontFamily="monospace" fontSize={8.5} fill="rgba(255,255,255,0.6)" pointerEvents="none">{nice(p.pattern)}</text>}
+          stroke={active ? GOLD : "rgb(var(--scrim) / 0.35)"} strokeWidth={active ? 1.6 : 0.6} />
+        {show && <text x={cx} y={cy - r - 3} textAnchor="middle" fontFamily="monospace" fontSize={8.5} fill="rgb(var(--ink) / 0.6)" pointerEvents="none">{nice(p.pattern)}</text>}
       </g>
     );
   };
@@ -150,7 +150,7 @@ export function EdgeTab() {
     <>
       <SectionBand title={t("terminal.viz.tabEdge")} desc={t("terminal.viz.edgeDesc")} />
 
-      <div className="flex items-center gap-1 rounded-md bg-surface-raised border border-white/[0.1] p-0.5 w-fit">
+      <div className="flex items-center gap-1 rounded-md bg-surface-raised border border-ink/[0.1] p-0.5 w-fit">
         <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.edgeLookback")}</span>
         {[7, 30, 90].map((dv) => (
           <button key={dv} onClick={() => setDays(dv)}
@@ -163,7 +163,7 @@ export function EdgeTab() {
       {loading ? (
         <Warming text={t("terminal.viz.edgeLoading")} />
       ) : pev.length === 0 ? (
-        <div className="rounded-2xl bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.edgeEmpty")}</div>
+        <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.edgeEmpty")}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
@@ -175,12 +175,12 @@ export function EdgeTab() {
 
           {/* ── Edge Economics — the money math (all-time) ── */}
           {economics && (
-            <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
+            <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
               <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-[12.5px] text-text-primary/90">Edge Economics</div>
-                  <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
+                  <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-ink/[0.1] p-0.5">
                     {[["7d", "7D"], ["30d", "30D"], ["ytd", "YTD"], ["all", "ALL"]].map(([v, lbl]) => (
                       <button key={v} onClick={() => setEconRange(v)}
                         className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted hover:text-text-primary"}`}>
@@ -204,7 +204,7 @@ export function EdgeTab() {
                   return (
                     <div key={tt.k} className="flex items-center gap-2">
                       <span className="w-9 font-mono text-[10px] font-bold" style={{ color: tt.color }}>{tt.k}</span>
-                      <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
+                      <div className="flex-1 h-3.5 rounded bg-ink/[0.04] overflow-hidden">
                         <div className="h-full rounded" style={{ width: `${share}%`, background: tt.color, opacity: 0.85 }} />
                       </div>
                       <span className="w-12 text-right font-mono text-[10px] text-text-primary/70">{share.toFixed(0)}%</span>
@@ -216,7 +216,7 @@ export function EdgeTab() {
             </div>
           )}
 
-          <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
+          <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
             <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
               <div className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeMapTitle")}</div>
@@ -251,9 +251,9 @@ export function EdgeTab() {
           </div>
 
           {sel && (
-            <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
+            <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-              <div className="px-4 py-2.5 border-b border-white/[0.06] flex items-center justify-between gap-3">
+              <div className="px-4 py-2.5 border-b border-ink/[0.06] flex items-center justify-between gap-3">
                 <span className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeDrillTitle")} <span className="text-gold-primary">{nice(sel)}</span></span>
                 <button onClick={() => { setSel(null); setDrill(null); }} className="font-mono text-[10px] text-text-muted hover:text-text-primary shrink-0">✕</button>
               </div>
@@ -266,7 +266,7 @@ export function EdgeTab() {
                       const win = s.outcome && s.outcome !== "sl";
                       const pk = s.peak_pct;
                       return (
-                        <div key={s.signal_id || i} className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.06] px-2.5 py-1.5">
+                        <div key={s.signal_id || i} className="flex items-center gap-2 rounded-lg bg-ink/[0.02] border border-ink/[0.06] px-2.5 py-1.5">
                           <CoinLogo pair={s.pair} size={18} />
                           <span className="font-mono text-[11px] text-text-primary/85 truncate">{(s.pair || "").replace(/USDT$/i, "")}</span>
                           <span className={`ml-auto font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-sm ${win ? "text-positive bg-positive/10" : "text-negative bg-negative/10"}`}>{win ? (s.outcome || "win") : "sl"}</span>
@@ -276,7 +276,7 @@ export function EdgeTab() {
                     })}
                   </div>
                   {drill.win_rate != null && (
-                    <div className="px-4 py-2.5 border-t border-white/[0.06] font-mono text-[10px] text-text-muted">
+                    <div className="px-4 py-2.5 border-t border-ink/[0.06] font-mono text-[10px] text-text-muted">
                       {drill.count} signals · <span className="text-text-primary/80">{drill.win_rate.toFixed(1)}% win rate</span>
                       {baseline != null && (
                         <span> · vs baseline {baseline.toFixed(1)}% (<span style={{ color: drill.win_rate >= baseline ? "rgb(var(--pos))" : "rgb(var(--neg))" }}>{drill.win_rate >= baseline ? "+" : ""}{(drill.win_rate - baseline).toFixed(1)}pp</span>)</span>

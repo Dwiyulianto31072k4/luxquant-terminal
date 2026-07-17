@@ -53,7 +53,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
             loading="lazy"
           />
           {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+          <div className="absolute inset-0 bg-scrim/0 group-hover:bg-scrim/30 transition-colors flex items-center justify-center">
             <svg className="w-3 h-3 text-text-primary opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
             </svg>
@@ -121,7 +121,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
               />
               {/* Zoom icon */}
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-full bg-scrim/60 flex items-center justify-center">
                   <svg className="w-3 h-3 text-text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                   </svg>
@@ -186,7 +186,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
               loading="lazy"
             />
             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="px-3 py-1.5 rounded-lg bg-black/70 text-text-primary text-xs font-medium flex items-center gap-1.5">
+              <div className="px-3 py-1.5 rounded-lg bg-scrim/70 text-text-primary text-xs font-medium flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                 </svg>
@@ -230,12 +230,12 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = 'ca
 const Lightbox = ({ src, pair, onClose }) => {
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] bg-scrim/90 flex items-center justify-center p-4"
       onClick={onClose}
     >
       {/* Close button */}
       <button 
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-text-primary transition-colors z-10"
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-ink/10 hover:bg-ink/20 flex items-center justify-center text-text-primary transition-colors z-10"
         onClick={onClose}
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -12,10 +12,17 @@
       (function () {
         try {
           var t = localStorage.getItem('lq-theme');
-          // Only luxquant/dark are selectable right now; migrate anything else
-          // (e.g. a leftover 'bright') to the default so no one is stuck.
-          var ok = ['luxquant', 'dark'];
-          document.documentElement.dataset.theme = ok.indexOf(t) > -1 ? t : 'luxquant';
+          // Admin-selectable themes (members never persist a non-default).
+          var ok = ['luxquant', 'dark', 'bright'];
+          var theme = ok.indexOf(t) > -1 ? t : 'luxquant';
+          document.documentElement.dataset.theme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.setAttribute(
+              'content',
+              theme === 'bright' ? '#f6f6f8' : theme === 'dark' ? '#050506' : '#0a0506'
+            );
+          }
         } catch (e) {
           document.documentElement.dataset.theme = 'luxquant';
         }

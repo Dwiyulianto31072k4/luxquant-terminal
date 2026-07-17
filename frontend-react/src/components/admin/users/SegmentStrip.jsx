@@ -43,15 +43,15 @@ export const SegmentStrip = ({ filters, stats, defaults, onSelect }) => {
             onClick={() => onSelect({ ...defaults, ...seg.filter })}
             className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-medium transition-colors ${
               isActive
-                ? 'border border-white/20 bg-white/[0.1] text-text-primary'
-                : 'border border-white/[0.07] bg-white/[0.025] text-text-muted hover:border-white/12 hover:text-text-primary'
+                ? 'border border-ink/20 bg-ink/[0.1] text-text-primary'
+                : 'border border-ink/[0.07] bg-ink/[0.025] text-text-muted hover:border-ink/12 hover:text-text-primary'
             }`}
           >
             {seg.label}
             {count != null && (
               <span
                 className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums ${
-                  isActive ? 'bg-white/[0.12] text-text-primary/80' : 'bg-white/[0.05] text-text-muted/70'
+                  isActive ? 'bg-ink/[0.12] text-text-primary/80' : 'bg-ink/[0.05] text-text-muted/70'
                 }`}
               >
                 {count}

@@ -109,14 +109,14 @@ function LoadingSkeleton() {
     <div className="space-y-3 animate-pulse">
       <div className="h-24 rounded-xl bg-gold-primary/5" />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 rounded-lg bg-white/[0.03]" />)}
+        {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 rounded-lg bg-ink/[0.03]" />)}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-16 rounded-lg bg-white/[0.03]" />)}
+        {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-16 rounded-lg bg-ink/[0.03]" />)}
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="h-32 rounded-lg bg-white/[0.03]" />
-        <div className="h-32 rounded-lg bg-white/[0.03]" />
+        <div className="h-32 rounded-lg bg-ink/[0.03]" />
+        <div className="h-32 rounded-lg bg-ink/[0.03]" />
       </div>
     </div>
   );
@@ -163,7 +163,7 @@ function AnalysisBody({ data }) {
       )}
 
       {interpretation?.summary && (
-        <div className="rounded-lg border border-white/5 bg-surface-raised p-3">
+        <div className="rounded-lg border border-ink/5 bg-surface-raised p-3">
           <p className="mb-1.5 text-[9px] font-medium uppercase tracking-wider text-text-muted">Summary</p>
           <p className="text-xs leading-relaxed text-text-primary/85">{interpretation.summary}</p>
         </div>
@@ -248,11 +248,11 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
             <Icon d={IC.flame} className="h-2.5 w-2.5" /> EXTENDED
           </span>
         )}
-        <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-text-primary/60">
+        <span className="inline-flex items-center gap-1 rounded border border-ink/10 bg-ink/[0.03] px-2 py-0.5 text-[9px] font-medium text-text-primary/60">
           {regimeLabel}
         </span>
         {confidence && confidence !== "insufficient_data" && (
-          <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-text-primary/40">
+          <span className="inline-flex items-center gap-1 rounded border border-ink/10 bg-ink/[0.03] px-2 py-0.5 text-[9px] font-medium text-text-primary/40">
             {confidence} confidence
           </span>
         )}
@@ -303,7 +303,7 @@ function KeyObservations({ observations }) {
       <p className="mb-2 text-[9px] font-medium uppercase tracking-wider text-text-muted">Key Observations</p>
       <div className="space-y-1.5">
         {observations.map((obs, i) => (
-          <div key={i} className="rounded-lg border border-white/5 bg-surface-raised px-3 py-2">
+          <div key={i} className="rounded-lg border border-ink/5 bg-surface-raised px-3 py-2">
             <p className="text-[11px] leading-relaxed text-text-primary/85">{obs}</p>
           </div>
         ))}
@@ -333,7 +333,7 @@ function ActionableHints({ interpretation }) {
       <p className="mb-2 text-[9px] font-medium uppercase tracking-wider text-text-muted">Trade Guidance</p>
       <div className="space-y-1.5">
         {items.map((item, i) => (
-          <div key={i} className="flex items-start gap-2.5 rounded-lg border border-white/5 bg-surface-raised px-3 py-2">
+          <div key={i} className="flex items-start gap-2.5 rounded-lg border border-ink/5 bg-surface-raised px-3 py-2">
             <span className="mt-0.5">
               <IconBadge d={item.d} color={item.color} size={22} />
             </span>
@@ -360,7 +360,7 @@ function BtcContextBlock({ btc_context }) {
   return (
     <div>
       <p className="mb-2 text-[9px] font-medium uppercase tracking-wider text-text-muted">BTC Context (at signal time)</p>
-      <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/5 bg-surface-raised p-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-ink/5 bg-surface-raised p-3 sm:grid-cols-4">
         <SnapshotItem label="Price" value={fmtPrice(btc_context.price)} />
         <SnapshotItem label="RSI 14" value={fmt(btc_context.rsi_14, 1)} />
         <SnapshotItem label="24h Δ" value={fmtPct(btc_context.change_24h_pct)} valueClass={changeColor} />
@@ -381,7 +381,7 @@ function MetaFooter({ sample_size, confidence, data_source, snapshot_at }) {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 text-[10px] sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 border-t border-ink/5 pt-2 text-[10px] sm:grid-cols-4">
       <div>
         <p className="text-text-muted">Sample size</p>
         <p className="font-mono text-text-primary/70">{sample_size ?? 0} samples</p>
@@ -412,7 +412,7 @@ function MetricCard({ label, value, hint, digits = 2, signed = false, suffix = "
     display = display + suffix;
   }
   return (
-    <div className="rounded-lg border border-white/5 bg-surface-raised p-2">
+    <div className="rounded-lg border border-ink/5 bg-surface-raised p-2">
       <div className="text-[8px] uppercase tracking-wider text-text-muted">{label}</div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-text-primary">{display}</div>
       <div className="text-[8px] text-text-primary/30">{hint}</div>

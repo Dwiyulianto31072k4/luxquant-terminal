@@ -146,7 +146,7 @@ export const QuickSendPopover = ({
               background: 'rgb(var(--surface-secondary))',
               border: '1px solid rgb(var(--line) / 0.25)',
               boxShadow:
-                '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08)',
+                '0 25px 50px -12px rgb(var(--scrim) / 0.9), 0 0 0 1px rgba(212,168,83,0.08)',
             }
       }
     >
@@ -156,7 +156,7 @@ export const QuickSendPopover = ({
           className="flex items-center justify-between px-5 py-3 shrink-0 relative"
           style={{
             background: 'linear-gradient(180deg, #14080d, #12090d)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid rgb(var(--ink) / 0.06)',
           }}
         >
           <div
@@ -194,7 +194,7 @@ export const QuickSendPopover = ({
         <div>
           <p
             className="text-[10px] uppercase tracking-wider font-semibold mb-2"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'rgb(var(--ink) / 0.4)' }}
           >
             Pick Template
           </p>
@@ -209,10 +209,10 @@ export const QuickSendPopover = ({
                   style={{
                     background: isSelected
                       ? 'rgba(212,168,83,0.08)'
-                      : 'rgba(255,255,255,0.02)',
+                      : 'rgb(var(--ink) / 0.02)',
                     borderColor: isSelected
                       ? 'rgba(212,168,83,0.4)'
-                      : 'rgba(255,255,255,0.05)',
+                      : 'rgb(var(--ink) / 0.05)',
                   }}
                 >
                   <p
@@ -238,7 +238,7 @@ export const QuickSendPopover = ({
           <div>
             <p
               className="text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'rgb(var(--ink) / 0.4)' }}
             >
               Compose Custom Message
             </p>
@@ -252,8 +252,8 @@ export const QuickSendPopover = ({
               }
               className="w-full px-3 py-2 rounded-md text-xs text-text-primary focus:outline-none resize-none font-mono"
               style={{
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgb(var(--scrim) / 0.3)',
+                border: '1px solid rgb(var(--ink) / 0.1)',
               }}
             />
             <p className="text-[10px] mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>
@@ -289,16 +289,16 @@ export const QuickSendPopover = ({
           <div
             className="rounded-lg overflow-hidden"
             style={{
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.05)',
+              background: 'rgb(var(--scrim) / 0.3)',
+              border: '1px solid rgb(var(--ink) / 0.05)',
             }}
           >
             {/* Preview header */}
             <div
               className="flex items-center justify-between px-3 py-2 gap-2"
               style={{
-                background: 'rgba(255,255,255,0.02)',
-                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                background: 'rgb(var(--ink) / 0.02)',
+                borderBottom: '1px solid rgb(var(--ink) / 0.04)',
               }}
             >
               <div className="flex items-center gap-1.5 min-w-0">
@@ -342,11 +342,11 @@ export const QuickSendPopover = ({
             {rendered.subject && (
               <div
                 className="px-3 py-2"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                style={{ borderBottom: '1px solid rgb(var(--ink) / 0.04)' }}
               >
                 <p
                   className="text-[10px] uppercase tracking-wider font-semibold mb-0.5"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                  style={{ color: 'rgb(var(--ink) / 0.4)' }}
                 >
                   Subject
                 </p>
@@ -379,10 +379,10 @@ export const QuickSendPopover = ({
               style={{
                 background: copied
                   ? 'rgba(52,211,153,0.12)'
-                  : 'rgba(255,255,255,0.04)',
+                  : 'rgb(var(--ink) / 0.04)',
                 color: copied ? '#34d399' : '#fff',
                 border: `1px solid ${
-                  copied ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.1)'
+                  copied ? 'rgba(52,211,153,0.3)' : 'rgb(var(--ink) / 0.1)'
                 }`,
               }}
             >
@@ -409,14 +409,14 @@ export const QuickSendPopover = ({
     <div
       className="fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       style={{
-        background: 'rgba(0,0,0,0.7)',
+        background: 'rgb(var(--scrim) / 0.7)',
         backdropFilter: 'blur(6px)',
       }}
       onClick={(e) => e.target === e.currentTarget && onClose && onClose()}
     >
       <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl sm:max-w-none">
         <div className="flex justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {content}
       </div>

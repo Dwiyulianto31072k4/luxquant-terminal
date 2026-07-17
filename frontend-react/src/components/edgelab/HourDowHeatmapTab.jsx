@@ -108,9 +108,9 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
                             : "cursor-default"
                         }`}
                         style={{
-                          background: has ? wrColor(wr, total) : "rgba(255,255,255,0.015)",
+                          background: has ? wrColor(wr, total) : "rgb(var(--ink) / 0.015)",
                           opacity: dim ? 0.5 : 1,
-                          border: has ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(255,255,255,0.02)",
+                          border: has ? "1px solid rgb(var(--ink) / 0.06)" : "1px solid rgb(var(--ink) / 0.02)",
                         }}
                         title={
                           has
@@ -138,10 +138,10 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
         </div>
 
         {/* legend */}
-        <div className="mt-5 pt-3.5 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
+        <div className="mt-5 pt-3.5 border-t border-ink/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-text-primary/40">
           {WR_LEGEND.map((s, i) => (
             <span key={i} className="inline-flex items-center gap-1">
-              <span className="w-3.5 h-3 rounded-[2px] border border-white/10" style={{ background: s.c }} />
+              <span className="w-3.5 h-3 rounded-[2px] border border-ink/10" style={{ background: s.c }} />
               {s.l}
             </span>
           ))}

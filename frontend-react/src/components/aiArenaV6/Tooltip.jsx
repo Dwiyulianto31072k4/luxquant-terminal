@@ -207,7 +207,7 @@ export default function Tooltip({ termKey, children, position = 'top' }) {
             backdropFilter: 'blur(8px)',
             border: `1px solid ${COLORS.borderStrong}`,
             borderRadius: 6,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 24px rgb(var(--scrim) / 0.35)',
             fontSize: 11,
             fontFamily: FONTS.body,
             lineHeight: 1.5,

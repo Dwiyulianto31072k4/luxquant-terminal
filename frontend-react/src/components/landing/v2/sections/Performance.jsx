@@ -146,7 +146,7 @@ function pearson(xs, ys) {
 
 function Card({ className = "", children }) {
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised p-5 transition-all duration-300 hover:border-line/25 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${className}`}>
+    <div className={`group relative overflow-hidden rounded-2xl border border-ink/[0.07] bg-surface-raised p-5 transition-all duration-300 hover:border-line/25 hover:shadow-[0_14px_34px_rgb(var(--scrim) / 0.35)] ${className}`}>
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       {children}
     </div>
@@ -175,7 +175,7 @@ function PeriodFilterPopover({
         className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors sm:w-auto ${
           eventId || customOn
             ? "border-line/50 text-text-primary"
-            : "border-white/10 text-text-muted hover:border-white/25 hover:text-text-primary"
+            : "border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
         }`}
       >
         <span className="max-w-[140px] truncate sm:max-w-[110px]">
@@ -192,7 +192,7 @@ function PeriodFilterPopover({
           {/* Fixed on mobile so Card overflow + right-0 never shove the panel off-screen.
               Desktop: anchor under the button. */}
           <div
-            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-white/12 bg-surface-secondary p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.7)] sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
+            className="fixed left-1/2 top-[18%] z-50 w-[min(300px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl border border-ink/12 bg-surface-secondary p-3 text-left shadow-[0_20px_50px_rgb(var(--scrim) / 0.7)] sm:absolute sm:left-auto sm:right-0 sm:top-9 sm:w-[280px] sm:translate-x-0"
             role="dialog"
             aria-label="Market period filter"
           >
@@ -205,7 +205,7 @@ function PeriodFilterPopover({
                   setCustomStart("");
                   setCustomEnd("");
                 }}
-                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-white/20 focus:border-line/50"
+                className="w-full appearance-none rounded-lg border border-ink/10 bg-ink/[0.03] py-2 pl-3 pr-8 font-mono text-[11px] text-text-primary outline-none transition-colors hover:border-ink/20 focus:border-line/50"
               >
                 <option value="" className="bg-surface-secondary">All / none</option>
                 <optgroup label="Bull" className="bg-surface-secondary">
@@ -233,8 +233,8 @@ function PeriodFilterPopover({
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/30">or custom dates</span>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-lg sm:border sm:border-white/10 sm:bg-white/[0.03] sm:px-2 sm:py-1.5">
-              <label className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-lg sm:border sm:border-ink/10 sm:bg-ink/[0.03] sm:px-2 sm:py-1.5">
+              <label className="flex flex-col gap-1 rounded-lg border border-ink/10 bg-ink/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
                 <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted sm:hidden">From</span>
                 <input
                   type="date"
@@ -248,7 +248,7 @@ function PeriodFilterPopover({
                 />
               </label>
               <span className="hidden font-mono text-[10px] text-text-muted sm:inline">→</span>
-              <label className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
+              <label className="flex flex-col gap-1 rounded-lg border border-ink/10 bg-ink/[0.03] px-2 py-1.5 sm:flex-1 sm:border-0 sm:bg-transparent sm:p-0">
                 <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted sm:hidden">To</span>
                 <input
                   type="date"
@@ -272,7 +272,7 @@ function PeriodFilterPopover({
                     setCustomStart("");
                     setCustomEnd("");
                   }}
-                  className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-text-primary"
+                  className="flex-1 rounded-lg border border-ink/10 px-2 py-1.5 font-mono text-[10px] text-text-muted transition-colors hover:border-ink/25 hover:text-text-primary"
                 >
                   Clear
                 </button>
@@ -302,12 +302,12 @@ function InfoTip({ info }) {
         aria-label={`What is ${info.title}?`}
         onClick={() => setOpen((o) => !o)}
         onBlur={() => setOpen(false)}
-        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-white/25 font-mono text-[9px] font-bold leading-none text-text-muted transition-colors hover:border-line/70 hover:text-gold-primary"
+        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-ink/25 font-mono text-[9px] font-bold leading-none text-text-muted transition-colors hover:border-line/70 hover:text-gold-primary"
       >
         i
       </button>
       {open && (
-        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-white/15 bg-surface-secondary/[0.98] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-md">
+        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-ink/15 bg-surface-secondary/[0.98] p-3 text-left shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)] backdrop-blur-md">
           <p className="mb-1.5 text-[11px] font-semibold text-text-primary">{info.title}</p>
           {info.lines.map((ln, i) => (
             <p key={i} className="mb-1.5 text-[11px] leading-snug text-text-primary/60 last:mb-0">{ln}</p>
@@ -340,7 +340,7 @@ function CardHead({ title, sub, right, info }) {
 function Spinner() {
   return (
     <div className="flex h-full min-h-[140px] items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10" style={{ borderTopColor: C.gold }} />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink/10" style={{ borderTopColor: C.gold }} />
     </div>
   );
 }
@@ -349,8 +349,8 @@ function Spinner() {
 function Bar3D({ pct, className = "h-2.5" }) {
   return (
     <div
-      className={`relative flex-1 overflow-hidden rounded-full bg-black/40 ${className}`}
-      style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.55)" }}
+      className={`relative flex-1 overflow-hidden rounded-full bg-scrim/40 ${className}`}
+      style={{ boxShadow: "inset 0 1px 2px rgb(var(--scrim) / 0.35)" }}
     >
       <div
         className="h-full rounded-full"
@@ -358,7 +358,7 @@ function Bar3D({ pct, className = "h-2.5" }) {
           width: `${Math.max(pct || 0, 3)}%`,
           background: "linear-gradient(180deg, #f6e0a0 0%, #e7c373 34%, #cba24f 68%, #a8842f 100%)",
           boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgba(212,168,83,0.4)",
+            "inset 0 1px 0 rgb(var(--ink) / 0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgba(212,168,83,0.4)",
         }}
       />
     </div>
@@ -396,7 +396,7 @@ function TabIcon({ id, className = "h-4 w-4" }) {
 
 function Seg({ items, value, onChange }) {
   return (
-    <div className="flex rounded-lg border border-white/10 p-0.5 font-mono text-[10px]">
+    <div className="flex rounded-lg border border-ink/10 p-0.5 font-mono text-[10px]">
       {items.map((it) => (
         <button
           key={it}
@@ -676,7 +676,7 @@ export default function Performance({ data }) {
                 })}
               </div>
             </div>
-            <p className="mt-3 border-t border-white/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
+            <p className="mt-3 border-t border-ink/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
               Avg P/L · TP1–TP3 = actual target gains · <span className="text-text-primary">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
             </p>
             </>
@@ -702,7 +702,7 @@ export default function Performance({ data }) {
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-[12.5px] font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm ${
                   on
                     ? "border-line/50 bg-gold-primary/[0.12] text-text-primary shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
-                    : "border-white/10 bg-white/[0.02] text-text-muted hover:border-white/25 hover:text-text-primary"
+                    : "border-ink/10 bg-ink/[0.02] text-text-muted hover:border-ink/25 hover:text-text-primary"
                 }`}
               >
                 <TabIcon id={tb.id} className={`h-[15px] w-[15px] flex-shrink-0 ${on ? "text-gold-primary" : ""}`} />
@@ -782,7 +782,7 @@ export default function Performance({ data }) {
                     <stop offset="100%" stopColor={C.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--ink) / 0.05)" vertical={false} />
                 <XAxis dataKey="date" stroke={C.muted} fontSize={10} tickLine={false} axisLine={false} interval={Math.ceil(trendData.length / 7)} dy={8} minTickGap={24} tickFormatter={(d) => new Date(d).toLocaleDateString("en", { month: "short", year: "2-digit" })} />
                 <YAxis yAxisId="wr" stroke={C.muted} fontSize={10} domain={[0, 100]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
                 <YAxis yAxisId="btc" orientation="right" hide={!showBtc} stroke={C.muted} fontSize={9} width={34} domain={[btcMin, btcMax]} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tickLine={false} axisLine={false} />
@@ -792,12 +792,12 @@ export default function Performance({ data }) {
                 {!showBtc && <Area yAxisId="wr" type="monotone" dataKey="wr" stroke="none" fill="url(#wrFill)" />}
                 <Line yAxisId="wr" type="monotone" dataKey="wr" stroke={C.gold} strokeWidth={2.2} dot={false} activeDot={{ r: 4, fill: C.gold, stroke: "#0a0506", strokeWidth: 2 }} />
                 <Tooltip
-                  cursor={{ stroke: "rgba(255,255,255,0.18)", strokeWidth: 1 }}
+                  cursor={{ stroke: "rgb(var(--ink) / 0.18)", strokeWidth: 1 }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-white/15 bg-surface-secondary/95 p-2.5 backdrop-blur-md">
+                      <div className="rounded-lg border border-ink/15 bg-surface-secondary/95 p-2.5 backdrop-blur-md">
                         <p className="text-[11px] font-semibold text-text-primary">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</p>
                         <p className="mt-1 text-[12px]" style={{ color: C.gold }}>{pct(d.wr)} win rate <span className="text-text-muted">· {d.closed} closed</span></p>
                         {showBtc && d.c != null && (
@@ -835,7 +835,7 @@ export default function Performance({ data }) {
 
         {/* BTC × WR analysis */}
         {showBtc && corr != null && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/[0.06] pt-4 font-mono text-[11px]">
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-ink/[0.06] pt-4 font-mono text-[11px]">
             <span className="text-text-muted">
               On BTC <span style={{ color: C.win }}>up</span> days WR <b className="text-text-primary">{pct(upWR)}</b>
             </span>
@@ -900,7 +900,7 @@ export default function Performance({ data }) {
                 </div>
               ))}
               {timing?.peak_potential && (
-                <p className="mt-1 border-t border-white/[0.06] pt-3 font-mono text-[10px] text-text-muted">
+                <p className="mt-1 border-t border-ink/[0.06] pt-3 font-mono text-[10px] text-text-muted">
                   avg peak excursion <span style={{ color: C.gold }}>{bigPct(timing.peak_potential.avg_peak_excursion_pct)}</span> · time in profit <span className="text-text-primary">{pct(timing.risk_profile?.avg_time_in_profit_pct)}</span>
                 </p>
               )}
@@ -918,7 +918,7 @@ export default function Performance({ data }) {
         {coins.length ? (
           <div className="grid gap-2.5 sm:grid-cols-2">
             {coins.map((c) => (
-              <div key={c.pair} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] px-3.5 py-2.5 transition-colors hover:border-line/25">
+              <div key={c.pair} className="flex items-center gap-3 rounded-xl border border-ink/[0.06] bg-ink/[0.015] px-3.5 py-2.5 transition-colors hover:border-line/25">
                 <CoinLogo pair={c.pair} size={30} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-text-primary">

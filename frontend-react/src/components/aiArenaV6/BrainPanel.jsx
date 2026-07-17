@@ -152,13 +152,13 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
             type="button"
             aria-label={b.aria}
             onClick={b.fn}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-surface-secondary/90 text-[14px] text-text-primary backdrop-blur transition hover:border-line/50 hover:bg-white/[0.06] md:h-9 md:w-9 md:text-[15px]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary/90 text-[14px] text-text-primary backdrop-blur transition hover:border-line/50 hover:bg-ink/[0.06] md:h-9 md:w-9 md:text-[15px]"
           >
             {b.label}
           </button>
         ))}
       </div>
-      <div className="absolute left-2.5 top-2.5 z-10 max-w-[calc(100%-4rem)] rounded-md border border-white/[0.07] bg-black/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/70 backdrop-blur">
+      <div className="absolute left-2.5 top-2.5 z-10 max-w-[calc(100%-4rem)] rounded-md border border-ink/[0.07] bg-scrim/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/70 backdrop-blur">
         <span className="md:hidden">drag · pinch · tap</span>
         <span className="hidden md:inline">drag to pan · scroll to zoom · click a node</span>
       </div>
@@ -167,7 +167,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-lg border border-white/[0.05] bg-surface active:cursor-grabbing sm:h-[420px] md:h-auto"
+        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-lg border border-ink/[0.05] bg-surface active:cursor-grabbing sm:h-[420px] md:h-auto"
         style={{ minHeight: 300 }}
         role="img"
         aria-label="Interactive Compass brain graph"
@@ -243,7 +243,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
                   x={node.x}
                   y={node.y + (node.y >= CY ? node.r + 22 : -node.r - 14)}
                   textAnchor="middle"
-                  fill="rgba(255,255,255,0.82)"
+                  fill="rgb(var(--ink) / 0.82)"
                   fontSize="12"
                   fontFamily="JetBrains Mono, monospace"
                 >
@@ -289,7 +289,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
       {/* tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-20 max-w-[260px] rounded-lg border border-line/25 bg-surface-secondary/95 px-3 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur"
+          className="pointer-events-none absolute z-20 max-w-[260px] rounded-lg border border-line/25 bg-surface-secondary/95 px-3 py-2 shadow-[0_8px_30px_rgb(var(--scrim) / 0.35)] backdrop-blur"
           style={{ left: Math.min(tooltip.x, (wrapRef.current?.clientWidth || 400) - 270), top: tooltip.y }}
         >
           {tooltip.lines.map((line, i) => (
@@ -390,7 +390,7 @@ export default function BrainPanel() {
 
             {/* selection detail */}
             {selectedLesson && (
-              <div className="mt-4 rounded-xl border border-line/25 bg-white/[0.04] p-4">
+              <div className="mt-4 rounded-xl border border-line/25 bg-ink/[0.04] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-display text-[15px] font-semibold text-text-primary">{shortLessonName(selectedLesson.id)}</span>
                   <Tag tone={STATUS_TONE[String(selectedLesson.status)] || "muted"}>{selectedLesson.status}</Tag>
@@ -428,8 +428,8 @@ export default function BrainPanel() {
                     onClick={() => setSelected(isSel ? null : lesson.id)}
                     className={`w-full rounded-xl border p-3.5 text-left transition ${
                       isSel
-                        ? "border-line/45 bg-white/[0.06]"
-                        : "border-white/[0.05] bg-surface-secondary hover:border-white/[0.14]"
+                        ? "border-line/45 bg-ink/[0.06]"
+                        : "border-ink/[0.05] bg-surface-secondary hover:border-ink/[0.14]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -439,7 +439,7 @@ export default function BrainPanel() {
                       <Tag tone={STATUS_TONE[String(lesson.status)] || "muted"}>{lesson.status}</Tag>
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-[12px] leading-5 text-text-muted">{lesson.prompt_line}</p>
-                    <div className="mt-2.5 flex h-[7px] overflow-hidden rounded-full bg-white/[0.05]">
+                    <div className="mt-2.5 flex h-[7px] overflow-hidden rounded-full bg-ink/[0.05]">
                       <span className="h-full" style={{ width: `${winPct}%`, background: COLOR.profit }} />
                       <span className="h-full" style={{ width: `${100 - winPct}%`, background: COLOR.loss, opacity: 0.7 }} />
                     </div>
@@ -465,7 +465,7 @@ export default function BrainPanel() {
               <SectionHeader label="Recent postmortems" />
               <div className="space-y-2">
                 {postmortems.slice(0, 6).map((pm) => (
-                  <div key={pm.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-surface-secondary px-3 py-2.5">
+                  <div key={pm.id} className="flex items-center justify-between gap-3 rounded-lg border border-ink/[0.05] bg-surface-secondary px-3 py-2.5">
                     <div className="min-w-0">
                       <div className="truncate font-mono text-[11px] text-text-primary/75">{pm.id}</div>
                       <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/60">

@@ -151,7 +151,7 @@ const TipsPage = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeCategory === 'all'
                   ? 'bg-gold-primary/20 text-gold-primary border border-line/30'
-                  : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-line/20'
+                  : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-line/20'
               }`}
             >
               {t('tips.all')}
@@ -163,7 +163,7 @@ const TipsPage = () => {
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeCategory === cat
                     ? 'bg-gold-primary/20 text-gold-primary border border-line/30'
-                    : 'bg-bg-card text-text-muted border border-white/5 hover:text-text-primary hover:border-line/20'
+                    : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-line/20'
                 }`}
               >
                 {cat === 'General' ? t('tips.general') : cat}
@@ -243,13 +243,13 @@ const TipsPage = () => {
 
                   {/* Category Badge */}
                   <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-1 bg-black/60 backdrop-blur-sm text-gold-primary text-[10px] font-bold rounded-lg border border-line/20">
+                    <span className="px-2.5 py-1 bg-scrim/60 backdrop-blur-sm text-gold-primary text-[10px] font-bold rounded-lg border border-line/20">
                       {tip.category === 'General' ? t('tips.general') : tip.category}
                     </span>
                   </div>
 
                   {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-scrim/0 group-hover:bg-scrim/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="bg-gold-primary/90 rounded-full p-3 shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
                       <svg className="w-6 h-6 text-bg-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -286,7 +286,7 @@ const TipsPage = () => {
                   <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingTip(tip); setShowUploadModal(true); }}
-                      className="p-1.5 bg-black/70 backdrop-blur-sm rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/40 transition-all"
+                      className="p-1.5 bg-scrim/70 backdrop-blur-sm rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/40 transition-all"
                       title={t('tips.edit')}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -295,7 +295,7 @@ const TipsPage = () => {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteConfirm(tip.id); }}
-                      className="p-1.5 bg-black/70 backdrop-blur-sm rounded-lg text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 transition-all"
+                      className="p-1.5 bg-scrim/70 backdrop-blur-sm rounded-lg text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 transition-all"
                       title={t('tips.delete')}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -312,10 +312,10 @@ const TipsPage = () => {
 
       {/* Delete Confirmation */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
           <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-red-500/30 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
-              <div className="h-1 w-10 rounded-full bg-white/25" />
+              <div className="h-1 w-10 rounded-full bg-ink/25" />
             </div>
             <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-red-500/10 flex items-center justify-center">
               <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -327,7 +327,7 @@ const TipsPage = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors"
+                className="flex-1 py-2.5 bg-bg-card border border-ink/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors"
               >
                 {t('tips.cancel')}
               </button>
@@ -386,17 +386,17 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/80 backdrop-blur-sm p-0 sm:p-6 lg:p-10"
+      className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/80 backdrop-blur-sm p-0 sm:p-6 lg:p-10"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] sm:h-full sm:max-h-[90vh] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
+        className="relative w-full max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] sm:h-full sm:max-h-[90vh] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: 'modalIn .25s ease-out' }}
       >
         <style>{`@keyframes modalIn{from{transform:translateY(100%)}to{transform:translateY(0)}}@media(min-width:640px){@keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}}`}</style>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
@@ -404,7 +404,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onClose}
-              className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-xl transition-all flex items-center gap-2"
+              className="p-2 -ml-1 text-text-muted hover:text-text-primary hover:bg-ink/5 rounded-xl transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -547,16 +547,16 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border max-w-lg w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.65)]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border max-w-lg w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="flex items-center justify-between px-6 py-4 border-b border-line/10">
           <h3 className="text-text-primary font-semibold text-base">
             {isEdit ? t('tips.edit_module_title') : t('tips.upload_new_title')}
           </h3>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-white/5 transition-colors">
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-ink/5 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -677,7 +677,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-bg-card border border-white/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors"
+              className="flex-1 py-3 bg-bg-card border border-ink/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors"
             >
               {t('tips.cancel')}
             </button>

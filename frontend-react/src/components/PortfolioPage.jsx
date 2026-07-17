@@ -13,7 +13,7 @@ function fmtUsd(value) {
 
 function StatCard({ label, value, hint }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-bg-card p-4">
+    <div className="rounded-xl border border-ink/5 bg-bg-card p-4">
       <p className="mb-2 text-xs uppercase tracking-wider text-text-muted">{label}</p>
       <p className="text-2xl font-display font-bold text-text-primary">{value}</p>
       <p className="mt-1 text-xs text-text-muted">{hint}</p>
@@ -63,14 +63,14 @@ export default function PortfolioPage() {
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-white/5 bg-bg-card p-4 space-y-2.5">
+            <div key={i} className="rounded-xl border border-ink/5 bg-bg-card p-4 space-y-2.5">
               <Skeleton className="h-2.5 w-20" />
               <Skeleton className="h-6 w-24" />
               <Skeleton className="h-2 w-16" />
             </div>
           ))}
         </div>
-        <div className="rounded-2xl border border-white/5 bg-bg-card p-5">
+        <div className="rounded-2xl border border-ink/5 bg-bg-card p-5">
           <Skeleton className="h-4 w-36 mb-4" />
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -140,7 +140,7 @@ export default function PortfolioPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-white/5 bg-bg-card p-5">
+      <div className="rounded-2xl border border-ink/5 bg-bg-card p-5">
         <h2 className="mb-3 text-base font-display font-bold text-text-primary">
           Futures positions
         </h2>
@@ -165,7 +165,7 @@ export default function PortfolioPage() {
               </thead>
               <tbody>
                 {portfolio.futures.positions.map((position) => (
-                  <tr key={position.symbol} className="border-t border-white/5">
+                  <tr key={position.symbol} className="border-t border-ink/5">
                     <td className="px-3 py-2 font-mono text-text-primary">{position.symbol}</td>
                     <td className="px-3 py-2 font-mono text-text-primary">{position.positionAmt}</td>
                     <td className="px-3 py-2 font-mono text-text-primary">{position.entryPrice}</td>

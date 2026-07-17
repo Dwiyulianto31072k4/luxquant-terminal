@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 const SWATCH = {
   luxquant: 'linear-gradient(145deg, #1a0a0c 0%, #3d1a12 55%, #d4a853 160%)',
   dark: 'linear-gradient(145deg, #050506 0%, #141416 60%, #8a8a96 160%)',
+  bright: 'linear-gradient(145deg, #f6f6f8 0%, #ffffff 45%, #a17a28 160%)',
 };
 
 /**
@@ -35,6 +36,12 @@ export function ThemeAppearancePicker({ className = '' }) {
       hint: t('userMenu.theme_dark_hint', { defaultValue: 'Neutral' }),
       swatch: SWATCH.dark,
     },
+    {
+      key: 'bright',
+      label: t('userMenu.theme_bright', { defaultValue: 'Bright' }),
+      hint: t('userMenu.theme_bright_hint', { defaultValue: 'Paper desk' }),
+      swatch: SWATCH.bright,
+    },
   ];
 
   return (
@@ -43,7 +50,7 @@ export function ThemeAppearancePicker({ className = '' }) {
         {t('userMenu.appearance', { defaultValue: 'Appearance' })}
       </p>
       <div
-        className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.07] bg-white/[0.02] p-1"
+        className="grid grid-cols-3 gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-1"
         role="radiogroup"
         aria-label={t('userMenu.appearance', { defaultValue: 'Appearance' })}
       >
@@ -57,40 +64,24 @@ export function ThemeAppearancePicker({ className = '' }) {
               aria-checked={on}
               onClick={() => setTheme(o.key)}
               className={[
-                'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all',
+                'flex flex-col items-center gap-1.5 rounded-lg px-1.5 py-2 text-center transition-all sm:flex-row sm:items-center sm:gap-2 sm:px-2 sm:text-left',
                 on
-                  ? 'bg-white/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]'
-                  : 'text-text-muted hover:bg-white/[0.04] hover:text-text-primary',
+                  ? 'bg-ink/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgb(var(--ink)/0.1)]'
+                  : 'text-text-muted hover:bg-ink/[0.04] hover:text-text-primary',
               ].join(' ')}
             >
               <span
                 className={[
-                  'h-7 w-7 shrink-0 rounded-full border shadow-inner',
-                  on ? 'border-white/30' : 'border-white/10',
+                  'h-6 w-6 shrink-0 rounded-full border shadow-inner sm:h-7 sm:w-7',
+                  on ? 'border-ink/30' : 'border-ink/10',
                 ].join(' ')}
                 style={{ background: o.swatch }}
                 aria-hidden
               />
               <span className="min-w-0">
-                <span className="block text-[13px] font-medium leading-tight">{o.label}</span>
-                <span className="mt-0.5 block text-[10px] leading-tight text-text-muted/70">{o.hint}</span>
+                <span className="block text-[11px] font-medium leading-tight sm:text-[13px]">{o.label}</span>
+                <span className="mt-0.5 hidden text-[10px] leading-tight text-text-muted/70 sm:block">{o.hint}</span>
               </span>
-              {on ? (
-                <svg
-                  className="ml-auto h-3.5 w-3.5 shrink-0 text-text-primary/70"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden
-                >
-                  <path
-                    d="M3.5 8.5 6.5 11.5 12.5 4.5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : null}
             </button>
           );
         })}

@@ -96,8 +96,8 @@ export const SetRoleModal = ({ user, onClose, onSetRole }) => {
                 onClick={() => setRole(opt.value)}
                 className="w-full text-left rounded-lg px-3 py-2.5 transition-colors"
                 style={{
-                  background: active ? `${opt.tone}14` : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${active ? `${opt.tone}55` : 'rgba(255,255,255,0.06)'}`,
+                  background: active ? `${opt.tone}14` : 'rgb(var(--ink) / 0.02)',
+                  border: `1px solid ${active ? `${opt.tone}55` : 'rgb(var(--ink) / 0.06)'}`,
                 }}
               >
                 <div className="flex items-center justify-between gap-2">

@@ -336,14 +336,14 @@ function MapFlow({ topo, onAction }) {
           zoomOnPinch
           panOnDrag
         >
-          <Background gap={22} size={1} color="rgba(255,255,255,0.05)" />
+          <Background gap={22} size={1} color="rgb(var(--ink) / 0.05)" />
           <MiniMap
             className="lqf-mini"
             pannable zoomable
             nodeColor={(n) => n.data?.color || '#8a7a6e'}
             nodeStrokeWidth={0}
             maskColor="rgba(10,5,6,0.6)"
-            style={{ background: 'rgb(var(--surface))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}
+            style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--ink) / 0.08)', borderRadius: 8 }}
           />
           <Controls showInteractive={false} />
         </ReactFlow>
@@ -367,7 +367,7 @@ function MapFlow({ topo, onAction }) {
 
 const CSS = `
 .lqf-root{position:relative}
-.lqf-box{position:relative;border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#0c0709,#0a0506);height:clamp(440px,64vh,660px)}
+.lqf-box{position:relative;border:1px solid rgb(var(--ink) / .07);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#0c0709,#0a0506);height:clamp(440px,64vh,660px)}
 .lqf-box::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(212,168,83,.45),transparent);z-index:5;pointer-events:none}
 .lqf-box .react-flow__renderer,.lqf-box .react-flow{background:transparent}
 .lqf-ping{animation:lqfping 1.5s ease-out infinite}
@@ -375,13 +375,13 @@ const CSS = `
 
 /* React Flow control chrome → dark/gold */
 .lqf-box .react-flow__controls{box-shadow:0 6px 20px rgba(0,0,0,.4);border-radius:8px;overflow:hidden}
-.lqf-box .react-flow__controls-button{background:#140a0e;border-bottom:1px solid rgba(255,255,255,.08);width:28px;height:28px}
+.lqf-box .react-flow__controls-button{background:#140a0e;border-bottom:1px solid rgb(var(--ink) / .08);width:28px;height:28px}
 .lqf-box .react-flow__controls-button:hover{background:#20121a}
 .lqf-box .react-flow__controls-button svg{fill:#d4a853;max-width:14px;max-height:14px}
 .lqf-mini{bottom:12px;right:12px}
 
 /* legend */
-.lqf-legend{position:absolute;bottom:12px;left:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:#a8967e;background:rgba(10,5,6,.72);padding:8px 12px;border:1px solid rgba(255,255,255,.07);border-radius:10px;z-index:4;max-width:60%}
+.lqf-legend{position:absolute;bottom:12px;left:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:#a8967e;background:rgba(10,5,6,.72);padding:8px 12px;border:1px solid rgb(var(--ink) / .07);border-radius:10px;z-index:4;max-width:60%}
 .lqf-legend span{display:inline-flex;align-items:center;gap:6px}
 .lqf-lz{width:18px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
 
@@ -391,7 +391,7 @@ const CSS = `
 .lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#100b09,#0a0605);border:1px solid rgb(var(--line) / .22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
 @keyframes lqpop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
 .lqm-card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(212,168,83,.5),transparent);z-index:2}
-.lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0a0a0a;color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}
+.lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgb(var(--ink) / .12);background:#0a0a0a;color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}
 .lqm-close:hover{color:#fff;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.14)}
 .lqd-body{padding:22px;overflow-y:auto}
 .lqd-body h3{font-size:18px;font-weight:600;margin:0 0 3px;color:#f5f0e8;padding-right:34px}
@@ -400,16 +400,16 @@ const CSS = `
 .lqd-back{background:transparent;border:none;color:#a8967e;font-size:12px;cursor:pointer;padding:0 0 10px}
 .lqd-back:hover{color:#f5f0e8}
 .lqd-statwrap{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
-.lqd-svc{border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px;margin-top:10px;cursor:pointer;background:rgba(255,255,255,.015);transition:.15s}
-.lqd-svc:hover{border-color:rgba(212,168,83,.35);background:rgba(255,255,255,.04);transform:translateY(-1px)}
+.lqd-svc{border:1px solid rgb(var(--ink) / .07);border-radius:12px;padding:12px 14px;margin-top:10px;cursor:pointer;background:rgb(var(--ink) / .015);transition:.15s}
+.lqd-svc:hover{border-color:rgba(212,168,83,.35);background:rgb(var(--ink) / .04);transform:translateY(-1px)}
 .lqd-st{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;color:#f5f0e8}
 .lqd-sd{font-size:11px;color:#a8967e;margin-top:3px;line-height:1.4}
 .lqd-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .lqd-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .lqd-pill{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600}
-.lqd-kv{display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);color:#f5f0e8}
+.lqd-kv{display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid rgb(var(--ink) / .06);color:#f5f0e8}
 .lqd-kv span:first-child{color:#a8967e}
-.lqd-conn{font-size:12px;padding:8px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);color:#f5f0e8}
+.lqd-conn{font-size:12px;padding:8px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgb(var(--ink) / .06);color:#f5f0e8}
 .lqd-line{width:16px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
 .lqd-acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .lqd-cbtn{font-size:12px;font-weight:600;padding:9px 16px;border-radius:9px;cursor:pointer;border:1px solid;background:transparent;transition:.15s}

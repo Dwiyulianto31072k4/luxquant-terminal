@@ -120,7 +120,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
     <div className="flex items-center gap-3 min-w-0">
       <div className="flex -space-x-1.5 shrink-0">
         {(sector?.top_3_coins || []).slice(0, 3).map((url, k) => (
-          <img key={k} src={url} alt="" className="w-6 h-6 rounded-full border border-surface-raised bg-white/5" onError={(e) => (e.target.style.display = "none")} />
+          <img key={k} src={url} alt="" className="w-6 h-6 rounded-full border border-surface-raised bg-ink/5" onError={(e) => (e.target.style.display = "none")} />
         ))}
       </div>
       <div className="min-w-0">
@@ -138,12 +138,12 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" placement="bottom" padded={false} header={header}>
       {/* Toolbar: search + count */}
-      <div className="sticky top-0 z-10 bg-surface-raised flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-white/[0.06]">
+      <div className="sticky top-0 z-10 bg-surface-raised flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-ink/[0.06]">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search coin…"
-          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-surface-secondary border border-white/[0.08] rounded-md text-text-primary placeholder-white/30 font-mono text-[12px] focus:border-line/40 focus:outline-none"
+          className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-surface-secondary border border-ink/[0.08] rounded-md text-text-primary placeholder-ink/30 font-mono text-[12px] focus:border-line/40 focus:outline-none"
         />
         <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/70">
           {coins.length} coins{luxCount ? ` · ${luxCount} call` : ""}
@@ -151,7 +151,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
       </div>
 
       {/* Column header */}
-      <div className="grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 px-4 sm:px-5 py-2 border-b border-white/[0.06]">
+      <div className="grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 px-4 sm:px-5 py-2 border-b border-ink/[0.06]">
         <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/35">#</span>
         <SortBtn label="Coin" k="symbol" />
         <SortBtn label="24h" k="price_change_24h" className="justify-self-end flex-row-reverse" />
@@ -168,7 +168,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
           {q ? `No coins match "${q}".` : "No coins in this narrative."}
         </div>
       ) : (
-        <div className="divide-y divide-white/[0.05]">
+        <div className="divide-y divide-ink/[0.05]">
           {rows.map((c, i) => {
             const called = c.is_luxquant_signal;
             const isLoading = loadingSym === c.symbol;
@@ -184,7 +184,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                 className={`group grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 items-center px-4 sm:px-5 py-2.5 cursor-pointer transition-colors ${
                   called
                     ? "border-l-2 border-line/50 hover:bg-gold-primary/[0.06]"
-                    : "border-l-2 border-transparent hover:bg-white/[0.03]"
+                    : "border-l-2 border-transparent hover:bg-ink/[0.03]"
                 }`}
               >
                 <span className="font-mono text-[11px] tabular-nums text-text-muted/40">
@@ -192,9 +192,9 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                 </span>
                 <div className="flex items-center gap-2.5 min-w-0">
                   {c.image ? (
-                    <img src={c.image} alt="" className="w-6 h-6 rounded-full bg-white/5 flex-shrink-0" onError={(e) => (e.target.style.display = "none")} />
+                    <img src={c.image} alt="" className="w-6 h-6 rounded-full bg-ink/5 flex-shrink-0" onError={(e) => (e.target.style.display = "none")} />
                   ) : (
-                    <span className="w-6 h-6 rounded-full bg-white/5 flex-shrink-0" />
+                    <span className="w-6 h-6 rounded-full bg-ink/5 flex-shrink-0" />
                   )}
                   <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>
                     {c.symbol}
@@ -225,7 +225,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
         </div>
       )}
 
-      <p className="px-4 sm:px-5 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/40 border-t border-white/[0.05]">
+      <p className="px-4 sm:px-5 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/40 border-t border-ink/[0.05]">
         Tap any coin to view its markets on CoinGecko · <span className="text-gold-primary/70">Call</span> = has a LuxQuant signal · Data: CoinGecko
       </p>
     </Modal>

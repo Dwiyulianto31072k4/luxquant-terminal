@@ -28,14 +28,14 @@ const TOP_MCAP = ["BTC", "ETH", "BNB", "SOL", "XRP", "TRX", "DOGE", "ADA", "HYPE
 function Spinner() {
   return (
     <div className="flex h-full min-h-[180px] items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10" style={{ borderTopColor: C.gold }} />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink/10" style={{ borderTopColor: C.gold }} />
     </div>
   );
 }
 
 function StatTile({ label, value, accent }) {
   return (
-    <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/25 hover:shadow-[0_10px_26px_rgba(0,0,0,0.5)]">
+    <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/25 hover:shadow-[0_10px_26px_rgb(var(--scrim) / 0.35)]">
       <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
       <p className="mt-1.5 text-xl font-bold tabular-nums transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left lg:text-2xl" style={{ color: accent || "#fff" }}>{value}</p>
     </div>
@@ -142,10 +142,10 @@ export default function CoinSpotlight() {
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised shadow-[0_8px_28px_rgba(0,0,0,0.45)]">
+      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.07] bg-surface-raised shadow-[0_8px_28px_rgb(var(--scrim) / 0.35)]">
         <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         {/* ── chip rail + search ── */}
-        <div className="flex flex-col gap-3 border-b border-white/[0.06] p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 border-b border-ink/[0.06] p-4 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <div ref={railRef} className="flex gap-2 overflow-x-auto pb-1 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {coins.slice(0, 40).map((c) => {
@@ -157,7 +157,7 @@ export default function CoinSpotlight() {
                     className={`flex flex-shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 transition-all duration-200 hover:-translate-y-0.5 ${
                       on
                         ? "border-line/50 bg-gold-primary/[0.12] shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
-                        : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.05]"
+                        : "border-ink/10 bg-ink/[0.02] hover:border-ink/25 hover:bg-ink/[0.05]"
                     }`}
                   >
                     <CoinLogo pair={c.pair} size={20} />
@@ -171,7 +171,7 @@ export default function CoinSpotlight() {
             <button
               onClick={() => railRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
               aria-label="Scroll coins"
-              className="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-surface-secondary text-text-muted shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all hover:scale-105 hover:border-line/50 hover:text-gold-primary"
+              className="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-ink/15 bg-surface-secondary text-text-muted shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)] transition-all hover:scale-105 hover:border-line/50 hover:text-gold-primary"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -180,7 +180,7 @@ export default function CoinSpotlight() {
           </div>
 
           <div className="relative sm:w-48">
-            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-full border border-ink/10 bg-ink/[0.03] px-3 py-1.5">
               <svg className="h-3.5 w-3.5 flex-shrink-0 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" />
               </svg>
@@ -198,13 +198,13 @@ export default function CoinSpotlight() {
 
             {/* live preview dropdown (handles similar names) */}
             {query && (
-              <div className="absolute right-0 top-full z-30 mt-1.5 max-h-72 w-60 overflow-y-auto rounded-xl border border-white/12 bg-surface-raised p-1 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+              <div className="absolute right-0 top-full z-30 mt-1.5 max-h-72 w-60 overflow-y-auto rounded-xl border border-ink/12 bg-surface-raised p-1 shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)]">
                 {filtered.length ? (
                   filtered.slice(0, 14).map((c) => (
                     <button
                       key={c.pair}
                       onClick={() => { setSel(c.pair); setQuery(""); }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.06]"
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-ink/[0.06]"
                     >
                       <CoinLogo pair={c.pair} size={20} />
                       <span className="text-[12px] font-semibold text-text-primary">{sym(c.pair)}<span className="ml-1 font-mono text-[9px] text-text-muted">USDT</span></span>
@@ -214,7 +214,7 @@ export default function CoinSpotlight() {
                 ) : (
                   <button
                     onClick={submitSearch}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
                   >
                     Try “{query.toUpperCase().replace(/USDT$/, "")}USDT” →
                   </button>
@@ -266,7 +266,7 @@ export default function CoinSpotlight() {
               {/* donut + time-to-TP */}
               <div className="mt-3 grid gap-3 lg:grid-cols-2">
                 {/* outcome donut */}
-                <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+                <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/20 hover:shadow-[0_12px_30px_rgb(var(--scrim) / 0.35)]">
                   <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">Outcome distribution</p>
                   <div className="flex items-center gap-5">
                     <div className="relative h-32 w-32 flex-shrink-0">
@@ -301,13 +301,13 @@ export default function CoinSpotlight() {
                       ))}
                     </div>
                   </div>
-                  <p className="mt-3 border-t border-white/[0.05] pt-2.5 font-mono text-[8.5px] leading-relaxed text-text-muted">
+                  <p className="mt-3 border-t border-ink/[0.05] pt-2.5 font-mono text-[8.5px] leading-relaxed text-text-muted">
                     Avg P/L · TP1–TP3 = actual target gains · <span className="text-text-secondary">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss.
                   </p>
                 </div>
 
                 {/* time to each TP */}
-                <div className="group rounded-xl border border-white/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+                <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-line/20 hover:shadow-[0_12px_30px_rgb(var(--scrim) / 0.35)]">
                   <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">Time to each TP</p>
                   <div className="space-y-2.5">
                     {ttp.map((t) => (
@@ -316,20 +316,20 @@ export default function CoinSpotlight() {
                           <span className="font-mono text-[11px] font-bold" style={{ color: C.gold }}>{t.tp}</span>
                           <span className="font-mono text-[12px] font-semibold tabular-nums text-text-primary">{t.avg_human || "—"}</span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-black/40" style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.55)" }}>
+                        <div className="h-2 overflow-hidden rounded-full bg-scrim/40" style={{ boxShadow: "inset 0 1px 2px rgb(var(--scrim) / 0.35)" }}>
                           <div
                             className="h-full rounded-full"
                             style={{
                               width: `${Math.max(((t.avg_seconds || 0) / maxSec) * 100, 3)}%`,
                               background: "linear-gradient(180deg, #f6e0a0 0%, #e7c373 40%, #a8842f 100%)",
-                              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5), 0 0 6px rgba(212,168,83,0.35)",
+                              boxShadow: "inset 0 1px 0 rgb(var(--ink) / 0.5), 0 0 6px rgba(212,168,83,0.35)",
                             }}
                           />
                         </div>
                       </div>
                     ))}
                   </div>
-                  <p className="mt-3 border-t border-white/[0.06] pt-2.5 font-mono text-[10px] text-text-muted">
+                  <p className="mt-3 border-t border-ink/[0.06] pt-2.5 font-mono text-[10px] text-text-muted">
                     smooth entry <span className="text-text-primary">{pct(entry.smooth_entry_rate_pct)}</span> · time in profit <span className="text-text-primary">{pct(risk.avg_time_in_profit_pct)}</span>
                   </p>
                 </div>

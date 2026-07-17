@@ -63,7 +63,7 @@ function formatBasis(value, basis) {
 function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
   if (pageCount <= 1) return null;
   const btn =
-    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-line/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+    "rounded-md border border-ink/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-line/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-ink/[0.1] disabled:hover:text-text-secondary";
   return (
     <div className="flex items-center justify-between gap-3 px-1 pt-1">
       <span className="font-mono text-[11px] text-text-muted">
@@ -87,7 +87,7 @@ function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
 function ChartTooltip({ active, payload, label, basis }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md border border-white/[0.08] bg-surface-raised px-3 py-2 shadow-xl">
+    <div className="rounded-md border border-ink/[0.08] bg-surface-raised px-3 py-2 shadow-xl">
       <p className="font-mono text-[10px] text-text-muted">{label}</p>
       <p className={`mt-1 font-mono text-sm ${pnlClass(payload[0]?.value)}`}>
         {formatBasis(payload[0]?.value, basis)}
@@ -104,13 +104,13 @@ function TradeDetailModal({ trade, onClose, basis }) {
   const exitOrder = (trade.orders || []).find((order) => order.side === "SELL");
 
   return (
-    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-4xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-white/[0.08] sm:border bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-scrim/80 p-0 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-4xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-xl border-t border-ink/[0.08] sm:border bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden sticky top-0 z-10 bg-surface-raised" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="overflow-hidden">
-          <div className="flex items-start justify-between border-b border-white/[0.06] p-5">
+          <div className="flex items-start justify-between border-b border-ink/[0.06] p-5">
             <div className="flex items-center gap-3">
               <CoinLogo pair={trade.symbol} size={40} />
               <div>
@@ -125,10 +125,10 @@ function TradeDetailModal({ trade, onClose, basis }) {
                 </p>
               </div>
             </div>
-            <button type="button" onClick={onClose} className="h-8 w-8 rounded-full text-text-muted hover:bg-white/[0.06] hover:text-text-primary">×</button>
+            <button type="button" onClick={onClose} className="h-8 w-8 rounded-full text-text-muted hover:bg-ink/[0.06] hover:text-text-primary">×</button>
           </div>
 
-          <div className="grid grid-cols-2 gap-px border-b border-white/[0.06] bg-white/[0.04] md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px border-b border-ink/[0.06] bg-ink/[0.04] md:grid-cols-4">
             <ModalMetric label="Final PnL" value={formatBasis(valueFor(trade, basis), basis)} tone={pnlClass(valueFor(trade, basis))} />
             <ModalMetric label="Fee" value={fmtUsd(trade.fees_usdt)} />
             <ModalMetric label="Quantity" value={fmtNum(trade.quantity, 8)} />
@@ -188,7 +188,7 @@ function ModalMetric({ label, value, tone = "text-text-primary", compact = false
 
 function DetailPanel({ title, children }) {
   return (
-    <div className="rounded-md border border-white/[0.06] bg-white/[0.015] p-4">
+    <div className="rounded-md border border-ink/[0.06] bg-ink/[0.015] p-4">
       <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary">{title}</p>
       {children}
     </div>
@@ -197,7 +197,7 @@ function DetailPanel({ title, children }) {
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/[0.04] py-2 last:border-0">
+    <div className="flex items-start justify-between gap-4 border-b border-ink/[0.04] py-2 last:border-0">
       <span className="text-xs text-text-muted">{label}</span>
       <span className="max-w-[65%] break-all text-right font-mono text-xs text-text-primary/85">{value}</span>
     </div>
@@ -258,7 +258,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionHeader label="Live Trade Performance" />
-        <div className="flex rounded-md border border-white/[0.08] bg-black/20 p-1">
+        <div className="flex rounded-md border border-ink/[0.08] bg-scrim/20 p-1">
           {[["nominal", "USDT"], ["percent", "%"]].map(([value, label]) => (
             <button
               key={value}
@@ -300,7 +300,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
                         <stop offset="100%" stopColor={COLORS.gold} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <CartesianGrid stroke="rgb(var(--ink) / 0.05)" vertical={false} />
                     <XAxis dataKey="date" tick={{ fill: COLORS.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: COLORS.muted, fontSize: 10 }} axisLine={false} tickLine={false} width={48} />
                     <Tooltip content={<ChartTooltip basis={basis} />} />
@@ -324,7 +324,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {outcomes.map((item) => (
-                  <div key={item.name} className="rounded border border-white/[0.06] p-3">
+                  <div key={item.name} className="rounded border border-ink/[0.06] p-3">
                     <p className="text-xs text-text-muted">{item.name}</p>
                     <p className="mt-1 font-mono text-lg text-text-primary">{item.value}</p>
                   </div>
@@ -343,7 +343,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyData}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <CartesianGrid stroke="rgb(var(--ink) / 0.05)" vertical={false} />
                   <XAxis dataKey="date" tick={{ fill: COLORS.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: COLORS.muted, fontSize: 10 }} axisLine={false} tickLine={false} width={48} />
                   <Tooltip content={<ChartTooltip basis={basis} />} />
@@ -407,7 +407,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06]">
+                  <tr className="border-b border-ink/[0.06]">
                     {["Closed", "Symbol", "Result", "Qty", "Entry", "Exit", "Fee", "PnL", "Duration"].map((heading, index) => (
                       <th key={heading} className={`px-4 py-3 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted ${index >= 3 ? "text-right" : "text-left"}`}>
                         {heading}
@@ -420,7 +420,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
                     <tr
                       key={trade.id}
                       onClick={() => setSelectedTrade(trade)}
-                      className="cursor-pointer border-b border-white/[0.04] transition-colors last:border-0 hover:bg-gold-primary/[0.04]"
+                      className="cursor-pointer border-b border-ink/[0.04] transition-colors last:border-0 hover:bg-gold-primary/[0.04]"
                     >
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-text-muted">{fmtDateTime(trade.closed_at)}</td>
                       <td className="px-4 py-3">

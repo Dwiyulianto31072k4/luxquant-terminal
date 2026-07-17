@@ -19,7 +19,7 @@ export default function PhoneMockup({
   return (
     <div className={`relative ${className}`}>
       {/* Silver aluminium side rail — ultra thin */}
-      <div className="rounded-[2.3rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgba(0,0,0,0.85),0_0_34px_rgba(212,168,83,0.12)] sm:rounded-[2.6rem] lg:rounded-[2.9rem] lg:p-[1.5px]">
+      <div className="rounded-[2.3rem] bg-gradient-to-b from-text-primary via-text-secondary to-text-primary p-[1px] shadow-[0_24px_56px_rgb(var(--scrim) / 0.85),0_0_34px_rgba(212,168,83,0.12)] sm:rounded-[2.6rem] lg:rounded-[2.9rem] lg:p-[1.5px]">
         {/* Thin black display bezel */}
         <div className="overflow-hidden rounded-[2.2rem] bg-black p-[1.5px] sm:rounded-[2.5rem] lg:rounded-[2.8rem] lg:p-[2px]">
           {/* Screen — follows the screenshot's own ratio (no crop) */}
@@ -34,7 +34,7 @@ export default function PhoneMockup({
                 aspect-ratio, so it stays a correct iPhone island at any size
                 instead of a flat bar on larger renders) */}
             <div className="absolute inset-x-0 top-[2.4%] z-30 flex justify-center">
-              <div className="aspect-[3.4/1] w-[31%] rounded-full bg-black shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" />
+              <div className="aspect-[3.4/1] w-[31%] rounded-full bg-black shadow-[inset_0_0_0_1px_rgb(var(--ink)_/_0.06)]" />
             </div>
           </div>
         </div>
@@ -53,7 +53,7 @@ export default function PhoneMockup({
       {children}
 
       {/* contact shadow */}
-      <div aria-hidden="true" className="mx-auto mt-1.5 h-2.5 w-[74%] rounded-[50%] bg-black/45 blur-md" />
+      <div aria-hidden="true" className="mx-auto mt-1.5 h-2.5 w-[74%] rounded-[50%] bg-scrim/45 blur-md" />
     </div>
   );
 }

@@ -116,7 +116,7 @@ const Header = ({ activeTab, setActiveTab }) => {
 
               {/* Search button — Flowscan ⌘K pattern */}
               <button
-                className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] text-text-muted hover:text-text-primary transition-colors"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/[0.06] hover:border-ink/[0.12] text-text-muted hover:text-text-primary transition-colors"
                 aria-label="Search"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -124,7 +124,7 @@ const Header = ({ activeTab, setActiveTab }) => {
                   <path d="m21 21-4.3-4.3" />
                 </svg>
                 <span className="font-mono text-[11px] uppercase tracking-wider">Search</span>
-                <kbd className="hidden lg:inline-flex items-center justify-center font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-white/[0.04] border border-white/[0.06] text-text-muted/70">
+                <kbd className="hidden lg:inline-flex items-center justify-center font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-ink/[0.04] border border-ink/[0.06] text-text-muted/70">
                   ⌘K
                 </kbd>
               </button>

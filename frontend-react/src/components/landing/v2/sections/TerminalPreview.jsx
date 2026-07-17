@@ -211,9 +211,9 @@ export default function TerminalPreview() {
 
         <div className="relative mx-auto w-full max-w-[420px] sm:max-w-[560px] lg:max-w-[800px]">
           {/* iMac body: black glass + silver chin */}
-          <div className="relative overflow-hidden rounded-[12px] bg-black shadow-[0_40px_90px_rgba(0,0,0,0.6),0_0_70px_rgba(212,168,83,0.1)] ring-1 ring-white/[0.07] lg:rounded-[16px]">
+          <div className="relative overflow-hidden rounded-[12px] bg-black shadow-[0_40px_90px_rgb(var(--scrim) / 0.35),0_0_70px_rgba(212,168,83,0.1)] ring-1 ring-ink/[0.07] lg:rounded-[16px]">
             <div className="p-[7px] sm:p-[8px] lg:p-[11px]">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-surface ring-1 ring-white/[0.05] lg:rounded-[3px]">
+              <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-surface ring-1 ring-ink/[0.05] lg:rounded-[3px]">
                 {/* feature screenshots — cross-fade */}
                 {FEATURES.map((f, idx) => (
                   <img
@@ -269,7 +269,7 @@ export default function TerminalPreview() {
               <path d="M52,0 L98,0 Q95,12 92,22 Q102,33 126,42 Q132,44 132,46.5 Q132,49 128,49 L22,49 Q18,49 18,46.5 Q18,44 24,42 Q48,33 58,22 Q55,12 52,0 Z" fill="url(#tpImacStandShade)" />
             </svg>
           </div>
-          <div aria-hidden="true" className="mx-auto -mt-1.5 h-3.5 w-[36%] rounded-[50%] bg-black/50 blur-md" />
+          <div aria-hidden="true" className="mx-auto -mt-1.5 h-3.5 w-[36%] rounded-[50%] bg-scrim/50 blur-md" />
         </div>
       </div>
     </section>

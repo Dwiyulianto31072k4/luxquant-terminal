@@ -109,14 +109,14 @@ const SignalJourneyExtended = ({ signalId }) => {
         <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
           📊 Detailed Journey
         </h4>
-        <div className="bg-surface-raised rounded-xl border border-white/5 p-4 space-y-3 animate-pulse">
-          <div className="h-3 bg-white/5 rounded w-1/3" />
+        <div className="bg-surface-raised rounded-xl border border-ink/5 p-4 space-y-3 animate-pulse">
+          <div className="h-3 bg-ink/5 rounded w-1/3" />
           <div className="grid grid-cols-3 gap-2">
-            <div className="h-16 bg-white/5 rounded" />
-            <div className="h-16 bg-white/5 rounded" />
-            <div className="h-16 bg-white/5 rounded" />
+            <div className="h-16 bg-ink/5 rounded" />
+            <div className="h-16 bg-ink/5 rounded" />
+            <div className="h-16 bg-ink/5 rounded" />
           </div>
-          <div className="h-32 bg-white/5 rounded" />
+          <div className="h-32 bg-ink/5 rounded" />
         </div>
       </div>
     );
@@ -162,7 +162,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
           📊 Detailed Journey
         </h4>
-        <div className="bg-surface-raised rounded-xl border border-white/5 p-4 text-center">
+        <div className="bg-surface-raised rounded-xl border border-ink/5 p-4 text-center">
           <p className="text-text-muted text-xs">
             Price-action data unavailable for this pair. Detailed journey requires kline data from Binance or Bybit.
           </p>
@@ -189,7 +189,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           </span>
         )}
         {data.coverage_status === "frozen" && (
-          <span className="text-[9px] text-text-muted bg-white/5 px-2 py-0.5 rounded border border-white/5 font-mono uppercase tracking-wider">
+          <span className="text-[9px] text-text-muted bg-ink/5 px-2 py-0.5 rounded border border-ink/5 font-mono uppercase tracking-wider">
             Frozen (post-TP4)
           </span>
         )}
@@ -204,7 +204,7 @@ const SignalJourneyExtended = ({ signalId }) => {
         {/* ════════════════════════════════════════ */}
         {/* SECTION 1: ENTRY PHASE                    */}
         {/* ════════════════════════════════════════ */}
-        <div className="bg-surface-raised rounded-xl border border-white/5 p-4">
+        <div className="bg-surface-raised rounded-xl border border-ink/5 p-4">
           <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mb-3">
             Entry Phase
           </p>
@@ -256,18 +256,18 @@ const SignalJourneyExtended = ({ signalId }) => {
         {/* ════════════════════════════════════════ */}
         {/* SECTION 2: TIMELINE                       */}
         {/* ════════════════════════════════════════ */}
-        <div className="bg-surface-raised rounded-xl border border-white/5 p-4">
+        <div className="bg-surface-raised rounded-xl border border-ink/5 p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
               Price Action Timeline
             </p>
             <div className="flex items-center gap-3 text-[9px] text-text-muted">
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                <span className="w-1.5 h-1.5 rounded-full bg-ink/60" />
                 Confirmed
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white/20" />
+                <span className="w-1.5 h-1.5 rounded-full bg-ink/30 ring-1 ring-ink/20" />
                 Detected
               </span>
             </div>
@@ -295,14 +295,14 @@ const SignalJourneyExtended = ({ signalId }) => {
         {/* SECTION 3: OUTCOME                        */}
         {/* ════════════════════════════════════════ */}
         {outcome && (
-          <div className="bg-surface-raised rounded-xl border border-white/5 p-4">
+          <div className="bg-surface-raised rounded-xl border border-ink/5 p-4">
             <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mb-3">
               Outcome
             </p>
 
             {/* Summary sentence */}
             {outcome.summary_sentence && (
-              <p className="text-text-primary/80 text-xs sm:text-sm leading-relaxed mb-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+              <p className="text-text-primary/80 text-xs sm:text-sm leading-relaxed mb-3 p-3 bg-ink/[0.02] rounded-lg border border-ink/5">
                 {outcome.summary_sentence}
               </p>
             )}
@@ -332,7 +332,7 @@ const SignalJourneyExtended = ({ signalId }) => {
             {/* Bottom stats: Time in profit + Worst drawdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {outcome.pct_time_above_entry !== null && outcome.pct_time_above_entry !== undefined && (
-                <div className="px-3 py-2 bg-white/[0.02] rounded-lg border border-white/5">
+                <div className="px-3 py-2 bg-ink/[0.02] rounded-lg border border-ink/5">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold">
                       Time in Profit
@@ -341,7 +341,7 @@ const SignalJourneyExtended = ({ signalId }) => {
                       {Number(outcome.pct_time_above_entry).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
+                  <div className="w-full h-1 rounded-full bg-ink/5 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all"
                       style={{ width: `${Math.min(100, Number(outcome.pct_time_above_entry))}%` }}
@@ -350,7 +350,7 @@ const SignalJourneyExtended = ({ signalId }) => {
                 </div>
               )}
               {outcome.worst_drawdown_pct !== null && outcome.worst_drawdown_pct !== undefined && (
-                <div className="px-3 py-2 bg-white/[0.02] rounded-lg border border-white/5">
+                <div className="px-3 py-2 bg-ink/[0.02] rounded-lg border border-ink/5">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold">
                       Worst Drawdown
@@ -381,7 +381,7 @@ const SignalJourneyExtended = ({ signalId }) => {
 // ────────────────────────────────────────────────────────────
 
 const StatCell = ({ label, value, valueColor = "text-text-primary", sublabel }) => (
-  <div className="px-3 py-2.5 bg-white/[0.02] rounded-lg border border-white/5">
+  <div className="px-3 py-2.5 bg-ink/[0.02] rounded-lg border border-ink/5">
     <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-1">
       {label}
     </p>
@@ -397,7 +397,7 @@ const TimelineRow = ({ event, isLast }) => {
   return (
     <div className="flex items-start gap-3 relative">
       {/* Vertical connector line */}
-      {!isLast && <div className="absolute left-[7px] top-6 bottom-[-8px] w-px bg-white/10" />}
+      {!isLast && <div className="absolute left-[7px] top-6 bottom-[-8px] w-px bg-ink/10" />}
 
       {/* Dot indicator */}
       <div className="flex-shrink-0 mt-1">

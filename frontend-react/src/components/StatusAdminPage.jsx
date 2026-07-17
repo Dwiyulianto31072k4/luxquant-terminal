@@ -38,7 +38,7 @@ const isClosed = (s) => s === "resolved" || s === "completed";
 const statusesFor = (impact) => (impact === "maintenance" ? MAINTENANCE_STATUSES : INCIDENT_STATUSES);
 
 const inputCls =
-  "w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-line/40";
+  "w-full bg-ink/[0.03] border border-ink/[0.08] rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-line/40";
 const btnCls =
   "px-4 py-2 rounded-md font-mono text-[11px] uppercase tracking-wider transition-colors disabled:opacity-40";
 
@@ -143,7 +143,7 @@ export default function StatusAdminPage() {
             <a href="/status" target="_blank" rel="noreferrer" className="text-gold-primary hover:underline">/status</a> page.
           </p>
         </div>
-        <button onClick={load} className={`${btnCls} bg-white/[0.05] text-text-secondary hover:text-text-primary`}>
+        <button onClick={load} className={`${btnCls} bg-ink/[0.05] text-text-secondary hover:text-text-primary`}>
           Refresh
         </button>
       </div>
@@ -153,7 +153,7 @@ export default function StatusAdminPage() {
       )}
 
       {/* ── Create incident ─────────────────────────────── */}
-      <section className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5 mb-8">
+      <section className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-4 sm:p-5 mb-8">
         <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-4">New Incident</div>
 
         <label className="block text-[11px] text-text-muted mb-1">Title</label>
@@ -196,7 +196,7 @@ export default function StatusAdminPage() {
               className={`px-2.5 py-1.5 rounded-md text-[12px] border transition-colors ${
                 affected.includes(c.key)
                   ? "bg-gold-primary/15 text-gold-primary border-line/30"
-                  : "bg-white/[0.03] text-text-secondary border-white/[0.08] hover:text-text-primary"
+                  : "bg-ink/[0.03] text-text-secondary border-ink/[0.08] hover:text-text-primary"
               }`}
             >
               {c.name}
@@ -245,13 +245,13 @@ function IncidentAdminCard({ inc, busy, onUpdate, onDelete }) {
   const options = statusesFor(inc.impact);
 
   return (
-    <div className="rounded-lg border overflow-hidden" style={{ borderColor: closed ? "rgba(255,255,255,0.08)" : `${accent}40` }}>
+    <div className="rounded-lg border overflow-hidden" style={{ borderColor: closed ? "rgb(var(--ink) / 0.08)" : `${accent}40` }}>
       <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ background: closed ? "transparent" : `${accent}0d` }}>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[14px] text-text-primary/95 truncate">{inc.title}</span>
             {inc.auto && (
-              <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.06] text-text-muted border border-white/[0.08] flex-shrink-0">
+              <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-ink/[0.06] text-text-muted border border-ink/[0.08] flex-shrink-0">
                 Auto
               </span>
             )}
@@ -266,7 +266,7 @@ function IncidentAdminCard({ inc, busy, onUpdate, onDelete }) {
         </span>
       </div>
 
-      <div className="px-4 py-3 border-t border-white/[0.06]">
+      <div className="px-4 py-3 border-t border-ink/[0.06]">
         {!closed ? (
           <>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -291,7 +291,7 @@ function IncidentAdminCard({ inc, busy, onUpdate, onDelete }) {
         )}
 
         {inc.updates?.length > 0 && (
-          <div className="mt-3 space-y-2 border-t border-white/[0.06] pt-3">
+          <div className="mt-3 space-y-2 border-t border-ink/[0.06] pt-3">
             {inc.updates.slice().reverse().map((u, i) => (
               <div key={i} className="text-[12px]">
                 <span className="font-mono text-[10px] uppercase tracking-wider mr-2" style={{ color: accent }}>{LABEL[u.status] || u.status}</span>

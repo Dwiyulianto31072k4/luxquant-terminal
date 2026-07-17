@@ -31,7 +31,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
         className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{
           background:
-            'linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent)',
+            'linear-gradient(to right, transparent, rgb(var(--ink) / 0.05), transparent)',
         }}
       />
 
@@ -40,14 +40,14 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3"
         style={{ transition: motion.base }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.015)')}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgb(var(--ink) / 0.015)')}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         <div className="flex items-center gap-2.5">
-          <FilterIcon size={14} style={{ color: activeCount > 0 ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.4)' }} />
+          <FilterIcon size={14} style={{ color: activeCount > 0 ? 'rgb(var(--ink) / 0.75)' : 'rgb(var(--ink) / 0.4)' }} />
           <span className="text-xs font-semibold text-text-primary tracking-tight">Filters</span>
           {activeCount > 0 && (
-            <span className="rounded-full border border-white/15 bg-white/[0.08] px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary/80">
+            <span className="rounded-full border border-ink/15 bg-ink/[0.08] px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary/80">
               {activeCount} active
             </span>
           )}

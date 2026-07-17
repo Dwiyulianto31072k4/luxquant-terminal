@@ -78,7 +78,7 @@ function computeConfluence(briefs) {
 function LayerCard({ title, icon, brief, accent, termKey }) {
   if (!brief) {
     return (
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+      <div className="rounded-xl border border-ink/5 bg-ink/[0.02] p-5">
         <div className="text-sm text-text-primary/40 font-mono uppercase tracking-wider mb-2">
           {title}
         </div>
@@ -94,13 +94,13 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
     : null;
 
   return (
-    <div className="rounded-xl border border-white/5 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-5 hover:border-white/10 transition-colors">
+    <div className="rounded-xl border border-ink/5 bg-gradient-to-b from-ink/[0.04] to-ink/[0.01] p-5 hover:border-ink/10 transition-colors">
       {/* Header: icon + title + direction */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">{icon}</span>
           <Tooltip termKey={termKey}>
-            <span className="text-xs text-text-primary/50 font-mono uppercase tracking-wider cursor-help border-b border-dotted border-white/20">
+            <span className="text-xs text-text-primary/50 font-mono uppercase tracking-wider cursor-help border-b border-dotted border-ink/20">
               {title}
             </span>
           </Tooltip>
@@ -124,7 +124,7 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
             </span>
             <span style={{ color: accent }}>{strengthPct}%</span>
           </div>
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-1 bg-ink/5 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
@@ -161,11 +161,11 @@ function LayerCard({ title, icon, brief, accent, termKey }) {
 
       {/* Notable metrics chips */}
       {brief.notable_metrics && brief.notable_metrics.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/5">
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-ink/5">
           {brief.notable_metrics.slice(0, 2).map((metric, idx) => (
             <span
               key={idx}
-              className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/5 text-text-primary/50"
+              className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink/5 border border-ink/5 text-text-primary/50"
             >
               {metric}
             </span>
@@ -203,7 +203,7 @@ function ConfluenceBanner({ summary }) {
           {summary.label}
         </span>
         <Tooltip termKey="confluence">
-          <span className="text-xs text-text-primary/60 font-mono cursor-help border-b border-dotted border-white/20">
+          <span className="text-xs text-text-primary/60 font-mono cursor-help border-b border-dotted border-ink/20">
             Cross-layer confluence
           </span>
         </Tooltip>
@@ -248,7 +248,7 @@ export default function ThreeLayerConfluence({ layerBriefs, overallSetup }) {
           Three-Layer Confluence
         </h2>
         <Tooltip termKey="confluence">
-          <span className="text-xs text-text-primary/40 font-mono cursor-help border-b border-dotted border-white/20">
+          <span className="text-xs text-text-primary/40 font-mono cursor-help border-b border-dotted border-ink/20">
             What is this?
           </span>
         </Tooltip>
@@ -284,7 +284,7 @@ export default function ThreeLayerConfluence({ layerBriefs, overallSetup }) {
 
       {/* Overall setup narrative */}
       {overallSetup && (
-        <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4">
+        <div className="rounded-lg border border-ink/5 bg-ink/[0.02] p-4">
           <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-1">
             Overall Setup
           </div>

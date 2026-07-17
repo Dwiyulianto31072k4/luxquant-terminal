@@ -185,7 +185,7 @@ export const SectionBand = ({ title, desc, badge }) => (
 // Metric tile — large number, tiny label, optional sub (Aero Economics density)
 export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => (
   <div
-    className={`group relative min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.02] transition-colors hover:border-white/[0.1] hover:bg-white/[0.03] ${
+    className={`group relative min-w-0 rounded-xl border border-ink/[0.06] bg-ink/[0.02] transition-colors hover:border-ink/[0.1] hover:bg-ink/[0.03] ${
       compact ? "px-3 py-2.5" : "px-3.5 py-3"
     }`}
   >
@@ -216,7 +216,7 @@ export const Chip = ({ active, onClick, children, size = "sm" }) => (
     } ${
       active
         ? "bg-gold-primary text-surface-hover border-gold-primary font-semibold"
-        : "bg-transparent text-text-muted border-white/[0.08] hover:text-text-primary hover:border-white/16"
+        : "bg-transparent text-text-muted border-ink/[0.08] hover:text-text-primary hover:border-ink/16"
     }`}
   >
     {children}
@@ -225,7 +225,7 @@ export const Chip = ({ active, onClick, children, size = "sm" }) => (
 
 // Segmented control (TradingView / exchange-style filter group)
 export const SegControl = ({ options, value, onChange, className = "" }) => (
-  <div className={`inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] ${className}`}>
+  <div className={`inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-ink/[0.03] border border-ink/[0.06] ${className}`}>
     {options.map((o) => {
       const id = typeof o === "string" ? o : o.id;
       const label = typeof o === "string" ? o : o.label;
@@ -237,7 +237,7 @@ export const SegControl = ({ options, value, onChange, className = "" }) => (
           onClick={() => onChange(id)}
           className={`px-2 py-1 rounded-md font-mono text-[9px] uppercase tracking-wide transition-colors whitespace-nowrap ${
             active
-              ? "bg-white/[0.1] text-text-primary font-semibold shadow-sm"
+              ? "bg-ink/[0.1] text-text-primary font-semibold shadow-sm"
               : "text-text-muted hover:text-text-primary"
           }`}
         >
@@ -252,7 +252,7 @@ export const IconBtn = ({ onClick, title, children }) => (
   <button
     onClick={onClick}
     title={title}
-    className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.02] text-text-muted hover:text-text-primary hover:border-white/16 hover:bg-white/[0.04] transition-colors font-mono text-[12px] leading-none"
+    className="w-7 h-7 flex items-center justify-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:text-text-primary hover:border-ink/16 hover:bg-ink/[0.04] transition-colors font-mono text-[12px] leading-none"
   >
     {children}
   </button>
@@ -271,8 +271,8 @@ export function FilterMulti({ label, options, selected, onChange }) {
         onClick={() => setOpen((o) => !o)}
         className={`flex items-center gap-1.5 px-2 py-1 rounded-md border transition-colors ${
           selected.length
-            ? "bg-white/[0.06] border-white/15 text-text-primary"
-            : "bg-white/[0.02] border-white/[0.07] text-text-muted hover:border-white/12 hover:text-text-primary"
+            ? "bg-ink/[0.06] border-ink/15 text-text-primary"
+            : "bg-ink/[0.02] border-ink/[0.07] text-text-muted hover:border-ink/12 hover:text-text-primary"
         }`}
       >
         <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/80">{label}</span>
@@ -284,18 +284,18 @@ export function FilterMulti({ label, options, selected, onChange }) {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute z-40 mt-1 left-0 min-w-[176px] max-h-64 overflow-y-auto rounded-lg bg-surface border border-white/[0.1] shadow-2xl shadow-black/50 p-1.5">
+          <div className="absolute z-40 mt-1 left-0 min-w-[176px] max-h-64 overflow-y-auto rounded-lg bg-surface border border-ink/[0.1] shadow-2xl shadow-black/50 p-1.5">
             {selected.length > 0 && (
               <button
                 type="button"
                 onClick={() => onChange([])}
-                className="w-full text-left px-2 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-white/[0.04]"
+                className="w-full text-left px-2 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-ink/[0.04]"
               >
                 Clear
               </button>
             )}
             {options.map((o) => (
-              <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.04] cursor-pointer">
+              <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-ink/[0.04] cursor-pointer">
                 <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-gold-primary w-3 h-3" />
                 <span className="font-mono text-[11px] text-text-primary/85 capitalize">{String(o).replace(/_/g, " ")}</span>
               </label>
@@ -353,7 +353,7 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
         className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm border font-mono text-[9px] uppercase tracking-wider transition-colors ${
           activeKey === e.key
             ? "border-line/40 bg-gold-primary/10 text-gold-primary"
-            : "border-white/[0.06] text-text-muted hover:text-text-primary"
+            : "border-ink/[0.06] text-text-muted hover:text-text-primary"
         }`}
       >
         <span className="w-1.5 h-1.5 rounded-sm" style={{ background: e.color }} />
@@ -414,7 +414,7 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
   const overlay = big
     ? createPortal(
         <div
-          className="fixed inset-0 flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6 md:p-8"
+          className="fixed inset-0 flex items-center justify-center bg-scrim/80 p-3 backdrop-blur-md sm:p-6 md:p-8"
           style={{ zIndex: 200000 }}
           role="dialog"
           aria-modal="true"
@@ -422,10 +422,10 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex h-[min(94vh,960px)] w-full max-w-[1480px] flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-surface shadow-2xl shadow-black/70"
+            className="relative flex h-[min(94vh,960px)] w-full max-w-[1480px] flex-col overflow-hidden rounded-2xl border border-ink/[0.1] bg-surface shadow-2xl shadow-black/70"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.06] bg-white/[0.02] px-5 py-4">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-5 py-4">
               <div className="min-w-0">
                 <div className="text-[17px] font-medium tracking-tight text-text-primary">{title}</div>
                 {desc && (
@@ -450,8 +450,8 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
 
   return (
     <>
-      <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02]">
-        <div className="flex items-start justify-between gap-2 border-b border-white/[0.04] px-3.5 py-2.5">
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-ink/[0.06] bg-ink/[0.02]">
+        <div className="flex items-start justify-between gap-2 border-b border-ink/[0.04] px-3.5 py-2.5">
           <div className="min-w-0">
             <div className="text-[12.5px] font-medium leading-snug text-text-primary/90">{title}</div>
             {desc && (
@@ -619,7 +619,7 @@ export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
               {i + 1}
             </span>
             <span className="w-28 shrink-0"><CoinPill pair={d.pair} onPair={onPair} /></span>
-            <span className={`flex-1 ${start ? "h-[18px]" : "h-4"} rounded-md bg-white/[0.03] overflow-hidden relative`}>
+            <span className={`flex-1 ${start ? "h-[18px]" : "h-4"} rounded-md bg-ink/[0.03] overflow-hidden relative`}>
               <span
                 className="absolute top-0 bottom-0 rounded-md transition-[width] duration-300"
                 style={
@@ -638,7 +638,7 @@ export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
                       }
                 }
               />
-              {!start && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-white/15" />}
+              {!start && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-ink/15" />}
             </span>
             <span
               className={`w-[4.25rem] shrink-0 text-right font-mono text-[11px] tabular-nums font-medium ${
@@ -671,7 +671,7 @@ export function SectorBars({ data, dataKey, color, fmt, onPick, diverging = fals
               <SectorGlyph sector={d.sector} />
               <span className="truncate">{d.sector}</span>
             </span>
-            <span className="flex-1 h-4 rounded-sm bg-white/[0.03] overflow-hidden relative">
+            <span className="flex-1 h-4 rounded-sm bg-ink/[0.03] overflow-hidden relative">
               {diverging ? (
                 <span
                   className="absolute top-0 bottom-0 rounded-sm"
@@ -680,7 +680,7 @@ export function SectorBars({ data, dataKey, color, fmt, onPick, diverging = fals
               ) : (
                 <span className="absolute top-0 bottom-0 left-0 rounded-sm" style={{ background: c, opacity: 0.75, width: `${w}%` }} />
               )}
-              {diverging && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-white/15" />}
+              {diverging && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-ink/15" />}
             </span>
             <span className="w-14 shrink-0 text-right font-mono text-[10px] tabular-nums" style={{ color: c }}>
               {fmt(v)}

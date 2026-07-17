@@ -96,11 +96,11 @@ const RegisterPage = () => {
         {/* GLASSMORPHISM WRAPPER */}
         <div className="relative z-10 w-full max-w-md px-5 py-5 sm:px-10 sm:py-10 rounded-[2rem] transition-all duration-500 mt-16 sm:mt-20 lg:mt-10 mb-6 sm:mb-8"
              style={{ 
-               background: 'rgba(255, 255, 255, 0.02)', 
+               background: 'rgb(var(--ink) / 0.02)', 
                border: '1px solid rgb(var(--line) / 0.08)',
                backdropFilter: 'blur(20px)',
                WebkitBackdropFilter: 'blur(20px)',
-               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+               boxShadow: '0 25px 50px -12px rgb(var(--scrim) / 0.35)'
              }}>
 
           {/* Heading */}
@@ -144,12 +144,12 @@ const RegisterPage = () => {
               <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>{a('password')}</label>
               <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder={a('password_min')} />
               {password && (
-                <div className="mt-2 bg-black/30 p-2 rounded-xl border border-white/5 transition-all">
+                <div className="mt-2 bg-scrim/30 p-2 rounded-xl border border-ink/5 transition-all">
                   <div className="flex items-center gap-3">
                     <span className="text-[11px] font-bold uppercase tracking-wider w-12 text-right transition-colors" style={{ color: strength.color }}>{strength.label}</span>
                     <div className="flex-1 flex gap-1.5">
                       {[1,2,3,4].map(l => (
-                        <div key={l} className="h-1.5 flex-1 rounded-full transition-all duration-300" style={{ background: l <= strength.level ? strength.color : 'rgba(255,255,255,0.08)' }} />
+                        <div key={l} className="h-1.5 flex-1 rounded-full transition-all duration-300" style={{ background: l <= strength.level ? strength.color : 'rgb(var(--ink) / 0.08)' }} />
                       ))}
                     </div>
                   </div>
@@ -294,14 +294,14 @@ const FlagBadgesCompact = () => (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px 3px 5px',
           borderRadius: 999,
-          background: 'rgba(255,255,255,0.06)',
+          background: 'rgb(var(--ink) / 0.06)',
           backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          border: '1px solid rgb(var(--ink) / 0.09)',
+          boxShadow: '0 4px 20px rgb(var(--scrim) / 0.3)',
           whiteSpace: 'nowrap',
         }}>
           <span style={{ fontSize: 12, lineHeight: 1 }}>{f.emoji}</span>
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.7)', fontFamily: "'Space Grotesk', sans-serif" }}>{f.name}</span>
+          <span style={{ fontSize: 10, fontWeight: 500, color: 'rgb(var(--ink) / 0.7)', fontFamily: "'Space Grotesk', sans-serif" }}>{f.name}</span>
         </div>
       </div>
     ))}
@@ -315,16 +315,16 @@ const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
     {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: 'rgb(var(--fg-secondary))' }}>{label}</label>}
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
       className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
-      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgb(var(--line) / 0.15)' }}
+      style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--line) / 0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
         e.target.style.boxShadow = '0 0 0 4px rgba(212,168,83,0.15)';
-        e.target.style.background = 'rgba(0,0,0,0.5)';
+        e.target.style.background = 'rgb(var(--scrim) / 0.35)';
       }}
       onBlur={e => { 
         e.target.style.borderColor = 'rgba(212,168,83,0.15)'; 
         e.target.style.boxShadow = 'none';
-        e.target.style.background = 'rgba(0,0,0,0.3)';
+        e.target.style.background = 'rgb(var(--scrim) / 0.3)';
       }} />
   </div>
 );
@@ -333,16 +333,16 @@ const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
   <div className="relative group">
     <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
       className="w-full px-4 py-3 sm:py-3.5 pr-12 rounded-2xl text-text-primary text-sm focus:outline-none transition-all duration-300"
-      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgb(var(--line) / 0.15)' }}
+      style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--line) / 0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
         e.target.style.boxShadow = '0 0 0 4px rgba(212,168,83,0.15)';
-        e.target.style.background = 'rgba(0,0,0,0.5)';
+        e.target.style.background = 'rgb(var(--scrim) / 0.35)';
       }}
       onBlur={e => { 
         e.target.style.borderColor = 'rgba(212,168,83,0.15)'; 
         e.target.style.boxShadow = 'none';
-        e.target.style.background = 'rgba(0,0,0,0.3)';
+        e.target.style.background = 'rgb(var(--scrim) / 0.3)';
       }} />
     <button type="button" onClick={toggle} className="absolute right-4 top-1/2 p-1 rounded-md transition-all" style={{ transform: 'translateY(-50%)', color: 'rgb(var(--fg-muted))', background: 'transparent' }}
       onMouseEnter={e => { e.currentTarget.style.color = '#d4a853'; e.currentTarget.style.background = 'rgba(212,168,83,0.1)'; }} 
@@ -379,9 +379,9 @@ const Divider = ({ text }) => (
 const SocialBtn = ({ icon, text }) => (
   <button type="button"
     className="w-full py-3 sm:py-3.5 rounded-2xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 shadow-sm"
-    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgb(var(--line) / 0.15)', color: 'rgb(var(--fg-secondary))' }}
+    style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--line) / 0.15)', color: 'rgb(var(--fg-secondary))' }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; e.currentTarget.style.background = 'rgba(212,168,83,0.08)'; e.currentTarget.style.color = '#fff'; }}
-    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = '#b8a89a'; }}>
+    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.15)'; e.currentTarget.style.background = 'rgb(var(--ink) / 0.02)'; e.currentTarget.style.color = '#b8a89a'; }}>
     {icon} <span>{text}</span>
   </button>
 );

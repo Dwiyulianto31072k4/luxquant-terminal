@@ -33,7 +33,7 @@ const IMPACTS = ['All', 'High', 'Medium', 'Low', 'Holiday'];
 const IMPACT_STYLE = {
   High:    { color: 'rgb(var(--neg))', bg: 'rgba(224,114,136,0.08)', border: 'rgba(224,114,136,0.25)', dot: '#e07288' },
   Medium:  { color: 'rgb(var(--accent))', bg: 'rgba(240,180,80,0.08)',  border: 'rgba(240,180,80,0.25)',  dot: '#f0b450' },
-  Low:     { color: 'rgb(var(--fg-muted))', bg: 'rgba(154,138,125,0.06)', border: 'rgba(255,255,255,0.06)', dot: '#9a8a7d' },
+  Low:     { color: 'rgb(var(--fg-muted))', bg: 'rgba(154,138,125,0.06)', border: 'rgb(var(--ink) / 0.06)', dot: '#9a8a7d' },
   Holiday: { color: 'rgb(var(--accent))', bg: 'rgba(212,168,83,0.06)',  border: 'rgba(212,168,83,0.20)',  dot: '#d4a853' },
 };
 
@@ -259,7 +259,7 @@ const MacroCalendarPage = () => {
         </p>
         <button
           onClick={loadEvents}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-text-muted hover:text-text-primary font-mono text-[10px] uppercase tracking-wider transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/[0.06] text-text-muted hover:text-text-primary font-mono text-[10px] uppercase tracking-wider transition-colors"
         >
           <IconRefresh />
           {t('calendar.refresh')}
@@ -267,7 +267,7 @@ const MacroCalendarPage = () => {
       </div>
 
       {/* ── TYPE TABS — Flowscan filter pill ── */}
-      <div className="flex items-center gap-1 p-1 rounded-sm bg-surface-raised border border-white/[0.06] overflow-x-auto">
+      <div className="flex items-center gap-1 p-1 rounded-sm bg-surface-raised border border-ink/[0.06] overflow-x-auto">
         {TABS.map(tab => {
           const active = activeTab === tab.key;
           const Icon = TAB_ICONS[tab.key];
@@ -280,15 +280,15 @@ const MacroCalendarPage = () => {
               onClick={() => setActiveTab(tab.key)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap ${
                 active
-                  ? "bg-white/10 text-text-primary border border-white/[0.08]"
-                  : "text-text-muted hover:text-text-primary border border-transparent hover:bg-white/[0.03]"
+                  ? "bg-ink/10 text-text-primary border border-ink/[0.08]"
+                  : "text-text-muted hover:text-text-primary border border-transparent hover:bg-ink/[0.03]"
               }`}
             >
               <Icon active={active} />
               {isZh ? tab.labelZh : tab.label}
               {countNum != null && (
                 <span className={`font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm border ${
-                  active ? 'bg-gold-primary/10 text-gold-primary border-line/25' : 'bg-white/[0.04] text-text-muted/70 border-white/[0.04]'
+                  active ? 'bg-gold-primary/10 text-gold-primary border-line/25' : 'bg-ink/[0.04] text-text-muted/70 border-ink/[0.04]'
                 }`}>
                   {countNum}
                 </span>
@@ -350,8 +350,8 @@ const MacroCalendarPage = () => {
                 onClick={() => setSelectedImpact(impact)}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   active
-                    ? "bg-white/10 text-text-primary border border-white/[0.08]"
-                    : "bg-white/[0.03] text-text-muted hover:text-text-primary hover:bg-white/[0.06] border border-white/[0.04]"
+                    ? "bg-ink/10 text-text-primary border border-ink/[0.08]"
+                    : "bg-ink/[0.03] text-text-muted hover:text-text-primary hover:bg-ink/[0.06] border border-ink/[0.04]"
                 }`}
               >
                 {cfg && (
@@ -391,9 +391,9 @@ const MacroCalendarPage = () => {
               </button>
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="bg-surface-raised rounded-md border border-white/[0.06] p-12 text-center relative overflow-hidden">
+            <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-12 text-center relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-              <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-surface-secondary border border-white/[0.06] flex items-center justify-center">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-surface-secondary border border-ink/[0.06] flex items-center justify-center">
                 <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
                   <path d="M16 2v4M8 2v4M3 10h18" />
@@ -442,7 +442,7 @@ const MacroCalendarPage = () => {
           {newsLoading ? (
             <NewsSkeleton />
           ) : news.length === 0 ? (
-            <div className="bg-surface-raised rounded-md border border-white/[0.06] p-6 text-center">
+            <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-6 text-center">
               <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
                 {isZh ? '暂无新闻' : 'No news available'}
               </p>
@@ -492,14 +492,14 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
 
   return (
     <div className={`bg-surface-raised rounded-md overflow-hidden border relative ${
-      isToday ? 'border-line/30' : 'border-white/[0.06]'
+      isToday ? 'border-line/30' : 'border-ink/[0.06]'
     }`}>
       {isToday && (
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
       )}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2.5 px-4 py-3 transition-colors hover:bg-white/[0.02]"
+        className="w-full flex items-center gap-2.5 px-4 py-3 transition-colors hover:bg-ink/[0.02]"
       >
         <svg
           className={`w-3 h-3 text-text-muted transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
@@ -541,7 +541,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
               <IconBoltMini />
             </span>
           )}
-          <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-text-muted/80 border border-white/[0.04]">
+          <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-ink/[0.04] text-text-muted/80 border border-ink/[0.04]">
             {events.length}
           </span>
         </div>
@@ -550,7 +550,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
       {expanded && (
         <div>
           {/* Desktop header */}
-          <div className="hidden sm:grid grid-cols-[64px_28px_1fr_90px_100px] gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60 border-t border-white/[0.04] bg-surface-secondary">
+          <div className="hidden sm:grid grid-cols-[64px_28px_1fr_90px_100px] gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60 border-t border-ink/[0.04] bg-surface-secondary">
             <span>{t('calendar.th_time')}</span>
             <span></span>
             <span>{t('calendar.th_event')}</span>
@@ -640,8 +640,8 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
 
   return (
     <div
-      className={`relative transition-colors duration-150 border-t border-white/[0.03] ${
-        isPast ? 'opacity-30' : 'hover:bg-white/[0.02]'
+      className={`relative transition-colors duration-150 border-t border-ink/[0.03] ${
+        isPast ? 'opacity-30' : 'hover:bg-ink/[0.02]'
       }`}
     >
       {/* Left bar — color by type */}
@@ -683,7 +683,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
           </p>
           {/* Symbol */}
           {event.type !== 'macro' && event.symbol && (
-            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-text-muted/80 border border-white/[0.04] shrink-0">
+            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-ink/[0.04] text-text-muted/80 border border-ink/[0.04] shrink-0">
               {event.symbol}
             </span>
           )}
@@ -725,7 +725,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
             </p>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap font-mono tabular-nums">
               {event.type !== 'macro' && event.symbol && (
-                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-text-muted/80 border border-white/[0.04]">
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-ink/[0.04] text-text-muted/80 border border-ink/[0.04]">
                   {event.symbol}
                 </span>
               )}
@@ -784,7 +784,7 @@ const NewsItem = ({ article }) => {
       href={article.link}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-white/[0.06] hover:border-line/25 hover:bg-white/[0.02] transition-all duration-200"
+      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-ink/[0.06] hover:border-line/25 hover:bg-ink/[0.02] transition-all duration-200"
     >
       {article.image && (
         <div className="w-20 h-14 rounded-sm overflow-hidden shrink-0 bg-surface-secondary">
@@ -831,7 +831,7 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
     default: "text-text-primary",
   };
   return (
-    <div className="bg-surface-raised rounded-md border border-white/[0.06] p-3 relative overflow-hidden">
+    <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-3 relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
       <div className="flex items-center justify-between mb-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
@@ -841,7 +841,7 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
           <StatIcon type={icon} />
         </div>
       </div>
-      <div className="h-px bg-white/[0.04] mb-2" />
+      <div className="h-px bg-ink/[0.04] mb-2" />
       <p className={`font-mono text-xl font-light tabular-nums leading-none ${colorStyles[color]}`}>
         {value}
       </p>
@@ -855,9 +855,9 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
 // ══════════════════════════════════════
 const CalendarSkeleton = () => (
   <div className="space-y-2.5">
-    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgb(var(--ink) / .06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, di) => (
-      <div key={di} className="bg-surface-raised rounded-md overflow-hidden border border-white/[0.06]">
+      <div key={di} className="bg-surface-raised rounded-md overflow-hidden border border-ink/[0.06]">
         <div className="px-4 py-3 flex items-center gap-3">
           <div className="skel w-3 h-3" />
           <div className="skel w-36 h-3" />
@@ -865,7 +865,7 @@ const CalendarSkeleton = () => (
           <div className="skel w-8 h-3" />
         </div>
         {di < 2 && [...Array(3)].map((_, ei) => (
-          <div key={ei} className="px-4 py-2.5 flex items-center gap-3 border-t border-white/[0.03]">
+          <div key={ei} className="px-4 py-2.5 flex items-center gap-3 border-t border-ink/[0.03]">
             <div className="skel w-10 h-3" />
             <div className="skel w-5 h-5" />
             <div className="skel flex-1 h-3" />
@@ -878,9 +878,9 @@ const CalendarSkeleton = () => (
 
 const NewsSkeleton = () => (
   <div className="space-y-2">
-    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgb(var(--ink) / .06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex gap-3 p-2.5 rounded-sm bg-surface-raised border border-white/[0.06]">
+      <div key={i} className="flex gap-3 p-2.5 rounded-sm bg-surface-raised border border-ink/[0.06]">
         <div className="skel w-20 h-14" />
         <div className="flex-1 space-y-1.5 py-0.5">
           <div className="skel w-16 h-2.5" />

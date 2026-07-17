@@ -64,7 +64,7 @@ export function renderInline(text, onLink) {
   while ((m = re.exec(text))) {
     if (m.index > last) nodes.push(...linkify(text.slice(last, m.index), onLink, `t${i++}`));
     if (m[2] !== undefined) nodes.push(<strong key={`b${i++}`} className="font-semibold text-gold-primary">{linkify(m[2], onLink, `bi${i}`)}</strong>);
-    else if (m[3] !== undefined) nodes.push(<code key={`c${i++}`} className="rounded bg-white/10 px-1 py-0.5 font-mono text-[12px] text-gold-primary/90">{m[3]}</code>);
+    else if (m[3] !== undefined) nodes.push(<code key={`c${i++}`} className="rounded bg-ink/10 px-1 py-0.5 font-mono text-[12px] text-gold-primary/90">{m[3]}</code>);
     last = re.lastIndex;
   }
   if (last < text.length) nodes.push(...linkify(text.slice(last), onLink, `e${i++}`));
@@ -101,7 +101,7 @@ export function renderMarkdown(text, onLink) {
   for (let raw of lines) {
     const t = raw.trimEnd().trim();
     if (t === '') { flushPara(); flushList(); continue; }
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushPara(); flushList(); blocks.push(<div key={k++} className="my-1 h-px bg-white/10" />); continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushPara(); flushList(); blocks.push(<div key={k++} className="my-1 h-px bg-ink/10" />); continue; }
 
     const h = t.match(/^(#{1,6})\s+(.*)$/);
     if (h) { flushPara(); flushList(); blocks.push(<p key={k++} className="mt-1 font-semibold text-text-primary">{renderInline(h[2], onLink)}</p>); continue; }

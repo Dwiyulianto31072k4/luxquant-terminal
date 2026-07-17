@@ -182,7 +182,7 @@ const BadgePill = ({ count, accent, active }) => (
 // ════════════════════════════════════════════════════════════════════
 
 const TabBar = ({ activeTab, badges, onSelect }) => (
-  <div className="mb-5 border-b border-white/[0.07]">
+  <div className="mb-5 border-b border-ink/[0.07]">
     <div className="no-scrollbar flex items-center gap-1 overflow-x-auto sm:gap-2">
       {TABS.map((t) => {
         const on = t.id === activeTab;
@@ -195,14 +195,14 @@ const TabBar = ({ activeTab, badges, onSelect }) => (
             className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1 transition-colors sm:px-3 ${
               on
                 ? 'border-text-primary text-text-primary'
-                : 'border-transparent text-text-muted hover:border-white/15 hover:text-text-primary/85'
+                : 'border-transparent text-text-muted hover:border-ink/15 hover:text-text-primary/85'
             }`}
           >
             <span className="inline-flex items-center gap-2">
               <t.Icon
                 size={14}
                 className={on ? 'text-text-primary' : 'text-text-muted/70'}
-                style={{ color: on ? 'rgb(var(--fg))' : 'rgba(255,255,255,0.4)' }}
+                style={{ color: on ? 'rgb(var(--fg))' : 'rgb(var(--ink) / 0.4)' }}
               />
               <span className={`text-[13px] tracking-tight ${on ? 'font-semibold' : 'font-medium'}`}>
                 {t.label}
@@ -335,7 +335,7 @@ const AdminWorkspacePage = () => {
       </div>
 
       {viewOnly && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2.5">
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-ink/[0.1] bg-ink/[0.03] px-3.5 py-2.5">
           <ShieldIcon size={14} className="mt-0.5 shrink-0 text-text-muted" style={{ color: NEUTRAL }} />
           <div>
             <p className="text-[12px] font-semibold text-text-primary/90">
@@ -354,11 +354,11 @@ const AdminWorkspacePage = () => {
 
       {/* active tab descriptor */}
       <div className="mb-5 hidden items-center gap-2 sm:flex">
-        <activeTabDef.Icon size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
+        <activeTabDef.Icon size={13} style={{ color: 'rgb(var(--ink) / 0.45)' }} />
         <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary/80">
           {activeTabDef.label}
         </span>
-        <span className="inline-block h-1 w-1 rounded-full bg-white/25" />
+        <span className="inline-block h-1 w-1 rounded-full bg-ink/25" />
         <span className="text-[12px] text-text-muted">{activeTabDef.description}</span>
       </div>
 

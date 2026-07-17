@@ -66,7 +66,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
   return (
     <div
       className={`rounded-lg p-3 transition-colors ${dragMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)', opacity: isDone ? 0.7 : 1 }}
+      style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)', opacity: isDone ? 0.7 : 1 }}
       draggable={dragMode}
       onDragStart={(e) => {
         if (dragMode) {
@@ -96,7 +96,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         </span>
         {due && (
           <span className="px-1.5 py-0.5 rounded tabular-nums flex items-center gap-1"
-            style={{ background: 'rgba(255,255,255,0.02)', color: 'rgb(var(--fg-muted))', border: '1px solid rgba(255,255,255,0.04)' }}>
+            style={{ background: 'rgb(var(--ink) / 0.02)', color: 'rgb(var(--fg-muted))', border: '1px solid rgb(var(--ink) / 0.04)' }}>
             <ClockIcon size={9} /> {due}
           </span>
         )}
@@ -159,8 +159,8 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
   return (
     <div className="flex flex-col rounded-xl"
       style={{
-        background: isDragOver ? `${column.color}10` : 'rgba(255,255,255,0.015)',
-        border: `1px solid ${isDragOver ? `${column.color}45` : 'rgba(255,255,255,0.05)'}`,
+        background: isDragOver ? `${column.color}10` : 'rgb(var(--ink) / 0.015)',
+        border: `1px solid ${isDragOver ? `${column.color}45` : 'rgb(var(--ink) / 0.05)'}`,
         minHeight: 200,
       }}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDragOver(true); }}
@@ -171,7 +171,7 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
         const todoId = parseInt(e.dataTransfer.getData('text/plain'), 10);
         if (todoId) onDrop(todoId, column.id);
       }}>
-      <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: '1px solid rgb(var(--ink) / 0.04)' }}>
         <div className="flex items-center gap-2">
           <Icon size={12} style={{ color: column.color }} />
           <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: column.color }}>{column.label}</span>
@@ -191,7 +191,7 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
 
       <div className="flex-1 p-2 space-y-2 overflow-y-auto">
         {todos.length === 0 ? (
-          <div className="text-center py-6 text-[10px] rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.06)', color: 'rgb(var(--fg-muted))' }}>
+          <div className="text-center py-6 text-[10px] rounded-lg" style={{ border: '1px dashed rgb(var(--ink) / 0.06)', color: 'rgb(var(--fg-muted))' }}>
             Drop a card here
           </div>
         ) : (
@@ -335,8 +335,8 @@ export const TodoTab = ({ onRefreshStats }) => {
   const hasFilters = search || categoryFilter || priorityFilter;
 
   const fieldStyle = (active) => ({
-    background: 'rgba(0,0,0,0.28)',
-    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'}`,
+    background: 'rgb(var(--scrim) / 0.28)',
+    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgb(var(--ink) / 0.06)'}`,
   });
 
   return (
@@ -358,7 +358,7 @@ export const TodoTab = ({ onRefreshStats }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg p-0.5" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex rounded-lg p-0.5" style={{ background: 'rgb(var(--scrim) / 0.3)', border: '1px solid rgb(var(--ink) / 0.06)' }}>
             {[{ id: 'list', label: 'List' }, { id: 'kanban', label: 'Kanban' }].map((v) => (
               <button key={v.id} onClick={() => setView(v.id)}
                 className="px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-all"
@@ -430,7 +430,7 @@ export const TodoTab = ({ onRefreshStats }) => {
         </div>
       ) : todos.length === 0 ? (
         <div className="relative text-center py-16 rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+          style={{ background: 'rgb(var(--ink) / 0.015)', border: '1px dashed rgb(var(--ink) / 0.08)' }}>
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
             style={{ background: 'rgba(251,146,60,0.08)', filter: 'blur(40px)' }} />
           <div className="relative">

@@ -96,7 +96,7 @@ function SecretField({ label, value, onChange, placeholder }) {
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 pr-14 font-mono text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-line/40 focus:outline-none"
+          className="w-full rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3.5 py-2.5 pr-14 font-mono text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-line/40 focus:outline-none"
         />
         <button
           type="button"
@@ -186,13 +186,13 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
 
   const modal = (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-sm" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative z-10 flex w-full max-w-[820px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-white/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgba(0,0,0,0.65)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative z-10 flex w-full max-w-[820px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgb(var(--scrim) / 0.35)]"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div
@@ -202,7 +202,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-text-primary"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -211,7 +211,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid lg:grid-cols-[0.92fr_1.08fr]">
             {/* LEFT: guidance */}
-            <div className="border-b border-white/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-8">
+            <div className="border-b border-ink/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-8">
               <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Exchange
               </p>
@@ -257,7 +257,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
               </div>
 
               {/* IP access restriction */}
-              <div className="mt-7 border-t border-white/[0.06] pt-5">
+              <div className="mt-7 border-t border-ink/[0.06] pt-5">
                 <p className="text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                   IP access restriction
                 </p>
@@ -290,7 +290,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                       }))
                     }
                     placeholder="My Binance Account"
-                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-line/40 focus:outline-none"
+                    className="w-full rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted/30 transition-colors focus:border-line/40 focus:outline-none"
                   />
                 </div>
 

@@ -106,7 +106,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
                 <button
                   onClick={() => setText("")}
                   className="rounded-md px-2 py-1 text-[10px] font-semibold"
-                  style={{ background: "rgba(255,255,255,0.04)", color: "rgb(var(--fg-muted))" }}
+                  style={{ background: "rgb(var(--ink) / 0.04)", color: "rgb(var(--fg-muted))" }}
                 >
                   Clear
                 </button>
@@ -121,8 +121,8 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
               placeholder="Type your message… (or pick a template above and edit it)"
               className="w-full resize-none rounded-lg p-3 text-sm text-text-primary outline-none"
               style={{
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${tooLong ? "rgba(246,70,93,0.5)" : "rgba(255,255,255,0.1)"}`,
+                background: "rgb(var(--ink) / 0.03)",
+                border: `1px solid ${tooLong ? "rgba(246,70,93,0.5)" : "rgb(var(--ink) / 0.1)"}`,
               }}
             />
             <div className="mt-1 flex items-center justify-between">

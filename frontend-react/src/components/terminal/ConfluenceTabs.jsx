@@ -107,7 +107,7 @@ function FngBadge({ value, label }) {
     : value <= 55 ? GOLD : value <= 75 ? "#a3e635" : POS;
   const pos = Math.max(2, Math.min(98, value));
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2.5 flex items-center gap-3">
+    <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] px-3.5 py-2.5 flex items-center gap-3">
       <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted shrink-0">Fear &amp; Greed</span>
       <div className="relative flex-1 min-w-[100px]">
         <div className="h-1.5 rounded-full" style={{ background: "linear-gradient(90deg,#ef4444,#f59e0b,#eab308,#a3e635,#22c55e)" }} />
@@ -149,7 +149,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
     <button
       type="button"
       onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
-      className="group text-left rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.035] transition-all overflow-hidden flex flex-col"
+      className="group text-left rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/[0.12] hover:bg-ink/[0.035] transition-all overflow-hidden flex flex-col"
     >
       {/* header — pair · direction · PnL · status */}
       <div className="px-3.5 pt-3.5 flex items-center gap-2.5">
@@ -162,7 +162,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
           </div>
         </div>
         <div className="ml-auto text-right shrink-0">
-          <div className="font-mono text-[16px] tabular-nums leading-none" style={{ color: fc == null ? "rgba(255,255,255,0.35)" : fc >= 0 ? POS : NEG }}>
+          <div className="font-mono text-[16px] tabular-nums leading-none" style={{ color: fc == null ? "rgb(var(--ink) / 0.35)" : fc >= 0 ? POS : NEG }}>
             {fc == null ? "—" : fmtPct(fc)}
           </div>
           <div className="mt-1.5 flex justify-end">
@@ -176,7 +176,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
         {hasIntel ? (
           <span className="flex items-center gap-2">
             {[["4H", v3.h4], ["1H", v3.h1], ["15m", v3.m15]].map(([lbl, tr]) => (
-              <span key={lbl} title={`${lbl}: ${tr || "?"}`} style={{ color: TREND_DOT[tr] || "rgba(255,255,255,0.28)" }}>
+              <span key={lbl} title={`${lbl}: ${tr || "?"}`} style={{ color: TREND_DOT[tr] || "rgb(var(--ink) / 0.28)" }}>
                 {lbl}
               </span>
             ))}
@@ -193,7 +193,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
         </div>
       )}
 
-      <div className="mt-auto px-3.5 pt-2 pb-3 mt-2.5 border-t border-white/[0.04] flex items-center gap-2 font-mono text-[9.5px] min-h-[14px]">
+      <div className="mt-auto px-3.5 pt-2 pb-3 mt-2.5 border-t border-ink/[0.04] flex items-center gap-2 font-mono text-[9.5px] min-h-[14px]">
         {warns.length > 0 && (
           <span className="flex items-center gap-1.5 min-w-0 text-warning">
             <span className="w-1 h-1 rounded-full shrink-0 bg-warning" />
@@ -202,7 +202,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
         )}
         {flowChips.length > 0 && (
           <span className="ml-auto flex items-center gap-1.5 shrink-0"
-            style={{ color: fscore.conflict ? NEG : fscore.support ? POS : "rgba(255,255,255,0.4)" }}>
+            style={{ color: fscore.conflict ? NEG : fscore.support ? POS : "rgb(var(--ink) / 0.4)" }}>
             <span>{flowChips.map((c) => c.k).join(" · ")}</span>
             <span>{fscore.conflict ? "!" : fscore.support ? "✓" : ""}</span>
           </span>
@@ -316,8 +316,8 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       </div>
 
       {coiled.length > 0 && (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-          <div className="px-3.5 py-2 flex items-baseline justify-between gap-3 border-b border-white/[0.04]">
+        <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] overflow-hidden">
+          <div className="px-3.5 py-2 flex items-baseline justify-between gap-3 border-b border-ink/[0.04]">
             <span className="text-[12.5px] font-medium text-text-primary">{t("terminal.viz.coiledTitle")}</span>
             <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">{coiled.length}</span>
           </div>
@@ -328,12 +328,12 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
                 key={s.signal_id}
                 type="button"
                 onClick={() => (openSignalRow ? openSignalRow(s) : openPair(s.pair))}
-                className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] hover:border-white/15 px-2 py-1.5 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg bg-ink/[0.03] border border-ink/[0.07] hover:border-ink/15 px-2 py-1.5 transition-colors"
               >
                 <CoinLogo pair={s.pair} size={16} />
                 <span className="font-mono text-[11px] text-text-primary/90">{s.pair.replace(/USDT$/i, "")}</span>
                 {golden && <span className="px-1 rounded bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase">golden</span>}
-                {!golden && htf && <span className="px-1 rounded bg-white/[0.06] text-text-muted font-mono text-[7.5px] uppercase">htf</span>}
+                {!golden && htf && <span className="px-1 rounded bg-ink/[0.06] text-text-muted font-mono text-[7.5px] uppercase">htf</span>}
                 <span className={`font-mono text-[10.5px] tabular-nums ${fc >= 0 ? "text-positive" : "text-negative"}`}>{fmtPct(fc)}</span>
               </button>
             ))}
@@ -350,7 +350,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       </div>
 
       {rankedCards.length === 0 ? (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted px-6">
+        <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted px-6">
           {t("terminal.viz.confEmpty")}
         </div>
       ) : (

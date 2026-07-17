@@ -61,7 +61,7 @@ function Row({ label, hint, children }) {
 
 function GuardCard({ title, children }) {
   return (
-    <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-4">
+    <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.02] p-4">
       <p className="mb-4 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-light">
         {title}
       </p>
@@ -254,7 +254,7 @@ export default function ConfigurationStudio({
           Strategy configuration
         </h2>
         <p className="mt-1 text-sm text-text-secondary">{statusText}</p>
-        <p className="mt-3 border-t border-white/[0.06] pt-3 text-xs text-text-muted">
+        <p className="mt-3 border-t border-ink/[0.06] pt-3 text-xs text-text-muted">
           Start and pause AutoTrade from the engine control at the top of the page.
         </p>
       </Card>
@@ -288,7 +288,7 @@ export default function ConfigurationStudio({
             onChange={(value) => patch({ futures_enabled: value })}
           />
         </div>
-        <div className="mt-4 border-t border-white/[0.06] pt-4">
+        <div className="mt-4 border-t border-ink/[0.06] pt-4">
           <Toggle
             label="Dry run (simulation)"
             hint={
@@ -336,7 +336,7 @@ export default function ConfigurationStudio({
         </div>
 
         {draft.futures_enabled ? (
-          <div className="mt-5 border-t border-white/[0.06] pt-5">
+          <div className="mt-5 border-t border-ink/[0.06] pt-5">
             <SectionTitle>Futures</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <Row label="Leverage" hint="1×–125×">
@@ -434,7 +434,7 @@ export default function ConfigurationStudio({
           Risk limits
         </SectionTitle>
 
-        <div className="mb-5 flex flex-col gap-3 border-b border-white/[0.06] pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-3 border-b border-ink/[0.06] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h4 className="text-base font-semibold text-text-primary">
               Portfolio protection

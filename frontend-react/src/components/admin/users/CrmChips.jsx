@@ -31,7 +31,7 @@ export const CrmChips = ({ active, onToggle }) => (
   <div className="flex flex-wrap items-center gap-2">
     <span
       className="text-[10px] uppercase tracking-[0.15em] font-semibold mr-1"
-      style={{ color: 'rgba(255,255,255,0.4)' }}
+      style={{ color: 'rgb(var(--ink) / 0.4)' }}
     >
       CRM
     </span>

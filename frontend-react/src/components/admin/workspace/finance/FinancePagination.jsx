@@ -15,9 +15,9 @@ export const FinancePagination = ({ page, totalPages, total, onChange }) => {
       aria-label={title}
       className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-[10.5px] font-semibold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       style={{
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgb(var(--ink) / 0.04)',
         color: 'rgb(var(--fg-secondary))',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid rgb(var(--ink) / 0.07)',
       }}
     >
       {children}
@@ -27,7 +27,7 @@ export const FinancePagination = ({ page, totalPages, total, onChange }) => {
   return (
     <div
       className="flex items-center justify-between gap-3 pt-3 flex-wrap"
-      style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+      style={{ borderTop: '1px solid rgb(var(--ink) / 0.05)' }}
     >
       <p className="text-[10.5px]" style={{ color: 'rgb(var(--fg-muted))' }}>
         Page{' '}

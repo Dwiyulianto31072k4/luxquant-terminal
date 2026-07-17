@@ -71,7 +71,7 @@ const TickerBar = () => {
   const items = [...prices, ...prices, ...prices];
 
   return (
-    <div className="w-full bg-black/60 backdrop-blur-md border-b border-line/10 overflow-hidden h-10 flex items-center">
+    <div className="w-full bg-scrim/60 backdrop-blur-md border-b border-line/10 overflow-hidden h-10 flex items-center">
       <div className="flex animate-[tickerScroll_40s_linear_infinite] whitespace-nowrap gap-8 px-4">
         {items.map((coin, i) => (
           <div
@@ -286,7 +286,7 @@ const TestimonialsCarousel = () => {
                     : "opacity-0 translate-x-8 pointer-events-none"
                 }`}
               >
-                <div className="relative h-full bg-surface-raised rounded-md border border-white/10 p-6 lg:p-8 overflow-hidden">
+                <div className="relative h-full bg-surface-raised rounded-md border border-ink/10 p-6 lg:p-8 overflow-hidden">
                   {/* Hairline gold accent on top */}
                   <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
 
@@ -320,7 +320,7 @@ const TestimonialsCarousel = () => {
                     </div>
 
                     {/* User ID badge (top right) */}
-                    <span className="text-text-muted text-[9px] font-mono tracking-widest bg-white/[0.04] border border-white/10 rounded-sm px-2 py-1 flex-shrink-0">
+                    <span className="text-text-muted text-[9px] font-mono tracking-widest bg-ink/[0.04] border border-ink/10 rounded-sm px-2 py-1 flex-shrink-0">
                       {t.id}
                     </span>
                   </div>
@@ -331,7 +331,7 @@ const TestimonialsCarousel = () => {
                   </p>
 
                   {/* Footer stats (mono) */}
-                  <div className="absolute bottom-6 left-6 right-6 lg:bottom-8 lg:left-8 lg:right-8 flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                  <div className="absolute bottom-6 left-6 right-6 lg:bottom-8 lg:left-8 lg:right-8 flex items-center justify-between pt-4 border-t border-ink/[0.06]">
                     <div>
                       <p className="text-text-muted text-[9px] uppercase tracking-[0.18em] mb-0.5">
                         Signals Traded
@@ -358,7 +358,7 @@ const TestimonialsCarousel = () => {
         {/* ── Arrow controls (desktop) ── */}
         <button
           onClick={goPrev}
-          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 w-9 h-9 items-center justify-center rounded-md text-text-primary/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-line/30 transition-all"
+          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 w-9 h-9 items-center justify-center rounded-md text-text-primary/40 hover:text-gold-primary hover:bg-ink/[0.03] border border-ink/10 hover:border-line/30 transition-all"
           aria-label="Previous testimonial"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -367,7 +367,7 @@ const TestimonialsCarousel = () => {
         </button>
         <button
           onClick={goNext}
-          className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 w-9 h-9 items-center justify-center rounded-md text-text-primary/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-line/30 transition-all"
+          className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 w-9 h-9 items-center justify-center rounded-md text-text-primary/40 hover:text-gold-primary hover:bg-ink/[0.03] border border-ink/10 hover:border-line/30 transition-all"
           aria-label="Next testimonial"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -395,7 +395,7 @@ const TestimonialsCarousel = () => {
               className={`h-1.5 rounded-sm transition-all duration-300 ${
                 idx === activeIdx
                   ? "w-8 bg-gold-primary"
-                  : "w-1.5 bg-white/15 hover:bg-white/30"
+                  : "w-1.5 bg-ink/15 hover:bg-ink/30"
               }`}
               aria-label={`Go to testimonial ${idx + 1}`}
             />
@@ -446,7 +446,7 @@ const FAQ_DATA = [
 const FAQItem = ({ q, a, isOpen, onClick }) => (
   <div
     className={`bg-surface-raised border rounded-md overflow-hidden mb-2 transition-all duration-300 ${
-      isOpen ? "border-line/30" : "border-white/[0.06] hover:border-white/[0.12]"
+      isOpen ? "border-line/30" : "border-ink/[0.06] hover:border-ink/[0.12]"
     }`}
   >
     <button
@@ -470,7 +470,7 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
     <div
       className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}
     >
-      <div className="px-5 pb-4 text-text-secondary text-sm leading-relaxed border-t border-white/[0.06] pt-4 font-mono">
+      <div className="px-5 pb-4 text-text-secondary text-sm leading-relaxed border-t border-ink/[0.06] pt-4 font-mono">
         {a}
       </div>
     </div>
@@ -509,7 +509,7 @@ const PromoFlyingCoins = ({ gainers }) => {
       }}
     >
       <div
-        className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-line/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)] min-w-[140px]"
+        className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-line/30 shadow-[0_8px_32px_rgb(var(--scrim) / 0.35),0_0_15px_rgba(212,168,83,0.15)] min-w-[140px]"
         style={{
           background: "rgba(10,5,6,0.85)",
           backdropFilter: "blur(14px)",
@@ -604,7 +604,7 @@ const TelegramPromo = ({ gainers }) => {
 
           <div className="relative w-[240px] lg:w-[280px] aspect-[9/19.5] z-10 group">
             {/* Phone bezel */}
-            <div className="absolute inset-0 bg-surface border-[6px] lg:border-[8px] border-surface-hover rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+            <div className="absolute inset-0 bg-surface border-[6px] lg:border-[8px] border-surface-hover rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgb(var(--scrim) / 0.8)]">
               {/* Dynamic island */}
               <div className="absolute top-0 inset-x-0 z-30">
                 <div className="w-[35%] h-[16px] lg:h-[20px] bg-surface-secondary mx-auto rounded-b-xl lg:rounded-b-2xl" />
@@ -617,7 +617,7 @@ const TelegramPromo = ({ gainers }) => {
                   className="w-full h-full object-cover opacity-90"
                   onError={(e) => { e.target.style.display = "none"; }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-scrim/60 via-transparent to-transparent z-10 pointer-events-none" />
               </div>
             </div>
             <PromoFlyingCoins gainers={gainers} />
@@ -1002,7 +1002,7 @@ export const LivePerformanceStats = ({ data }) => {
               className={`relative overflow-hidden rounded-md p-3 lg:p-4 bg-surface-raised border transition-all ${
                 card.isAccent
                   ? "border-line/25 group-hover:border-line/50"
-                  : "border-white/[0.06] group-hover:border-line/20"
+                  : "border-ink/[0.06] group-hover:border-line/20"
               }`}
             >
               {/* Hairline accent on top for accent card */}
@@ -1012,7 +1012,7 @@ export const LivePerformanceStats = ({ data }) => {
               <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-[0.18em] font-medium mb-2">
                 {card.label}
               </p>
-              <div className="h-px bg-white/[0.04] mb-2" />
+              <div className="h-px bg-ink/[0.04] mb-2" />
               <p
                 className={`text-2xl lg:text-3xl font-bold font-mono leading-none tabular-nums ${card.colorClass}`}
               >
@@ -1030,7 +1030,7 @@ export const LivePerformanceStats = ({ data }) => {
         {/* Performance Trend Chart (2/3) */}
         <div
           onClick={goPerf}
-          className="lg:col-span-2 relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-white/10 hover:border-line/30 transition-all cursor-pointer"
+          className="lg:col-span-2 relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-ink/10 hover:border-line/30 transition-all cursor-pointer"
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <div className="flex justify-between items-start">
@@ -1054,7 +1054,7 @@ export const LivePerformanceStats = ({ data }) => {
         {/* Outcome Distribution (1/3) — flat segmented Hydromancer-style */}
         <div
           onClick={goPerf}
-          className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-white/10 hover:border-line/30 transition-all cursor-pointer"
+          className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-ink/10 hover:border-line/30 transition-all cursor-pointer"
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <h3 className="text-text-primary font-semibold text-base lg:text-lg mb-1 tracking-tight">
@@ -1066,7 +1066,7 @@ export const LivePerformanceStats = ({ data }) => {
           {outcomeTotal > 0 ? (
             <div className="space-y-5">
               {/* Flat segmented bar with hairline gaps */}
-              <div className="h-2.5 flex bg-bg-card/40 border border-white/5 rounded-sm overflow-hidden">
+              <div className="h-2.5 flex bg-bg-card/40 border border-ink/5 rounded-sm overflow-hidden">
                 {outcomeItems
                   .filter((i) => i.count > 0)
                   .map((item, idx, arr) => {
@@ -1135,7 +1135,7 @@ export const LivePerformanceStats = ({ data }) => {
           ════════════════════════════════════════ */}
       <div
         onClick={goPerf}
-        className="relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-white/10 hover:border-line/30 transition-all mb-4 cursor-pointer"
+        className="relative overflow-hidden rounded-md p-4 lg:p-6 bg-surface-raised border border-ink/10 hover:border-line/30 transition-all mb-4 cursor-pointer"
       >
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-5 gap-3">
@@ -1148,7 +1148,7 @@ export const LivePerformanceStats = ({ data }) => {
             </p>
           </div>
           {riskDist.length > 0 && (
-            <div className="flex items-center gap-3 bg-bg-card/30 px-3 py-2 rounded-sm border border-white/5">
+            <div className="flex items-center gap-3 bg-bg-card/30 px-3 py-2 rounded-sm border border-ink/5">
               {riskDist.map((rd) => (
                 <div key={rd.risk_level} className="flex items-center gap-1.5">
                   <div
@@ -1334,7 +1334,7 @@ const PhoneFlyingCoins = ({ gainers }) => {
           backdropFilter: "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
           boxShadow:
-            "0 8px 32px rgba(0,0,0,0.6), 0 0 15px rgba(212,168,83,0.15)",
+            "0 8px 32px rgb(var(--scrim) / 0.35), 0 0 15px rgba(212,168,83,0.15)",
         }}
       >
         <div className="flex items-center gap-2">
@@ -1492,7 +1492,7 @@ const LandingPage = () => {
       <TickerBar />
 
       <header
-        className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? "bg-surface/85 backdrop-blur-xl border-b border-line/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]" : "bg-transparent"}`}
+        className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? "bg-surface/85 backdrop-blur-xl border-b border-line/10 shadow-[0_10px_30px_rgb(var(--scrim) / 0.35)]" : "bg-transparent"}`}
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
@@ -1595,12 +1595,12 @@ const LandingPage = () => {
               <button
                 key={id}
                 onClick={() => scrollTo(id)}
-                className="block w-full text-left text-text-primary/70 hover:text-gold-primary hover:bg-white/[0.03] px-4 py-3 rounded-xl text-sm font-medium tracking-wide transition-colors"
+                className="block w-full text-left text-text-primary/70 hover:text-gold-primary hover:bg-ink/[0.03] px-4 py-3 rounded-xl text-sm font-medium tracking-wide transition-colors"
               >
                 {label}
               </button>
             ))}
-            <div className="pt-4 mt-2 border-t border-white/5">
+            <div className="pt-4 mt-2 border-t border-ink/5">
               <button
                 onClick={isAuthenticated ? goTerminal : goLogin}
                 className="w-full py-3.5 rounded-xl font-bold text-xs text-center uppercase tracking-widest flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(212,168,83,0.15)]"
@@ -1723,7 +1723,7 @@ const LandingPage = () => {
               {/* Ghost CTA — outline */}
               <button
                 onClick={() => scrollTo("performance-top")}
-                className="group px-6 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 text-text-primary/80 hover:text-text-primary border border-white/10 hover:border-white/25 hover:bg-white/[0.03]"
+                className="group px-6 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 text-text-primary/80 hover:text-text-primary border border-ink/10 hover:border-ink/25 hover:bg-ink/[0.03]"
               >
                 <span className="tracking-wide">View Performance</span>
                 <svg
@@ -1759,10 +1759,10 @@ const LandingPage = () => {
                 }}
                 className="w-full relative z-10"
               >
-                <div className="relative w-full aspect-[16/10] bg-surface-raised rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-surface-hover overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
+                <div className="relative w-full aspect-[16/10] bg-surface-raised rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-surface-hover overflow-hidden shadow-[0_20px_50px_rgb(var(--scrim) / 0.8),0_0_30px_rgba(212,168,83,0.15)]">
                   <div className="absolute inset-0 border border-black rounded-t-lg lg:rounded-t-3xl overflow-hidden bg-bg-primary">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[12%] h-[10px] lg:h-[18px] bg-surface-raised rounded-b-sm lg:rounded-b-md z-30 flex justify-center items-center">
-                      <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-white/10" />
+                      <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-ink/10" />
                     </div>
                     <img
                       src="/mockups/hero-mac-dashboard.png"
@@ -1782,7 +1782,7 @@ const LandingPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="relative w-[104%] -left-[2%] h-1.5 lg:h-3 bg-gradient-to-b from-[#4a4a4a] to-surface-raised rounded-b-sm lg:rounded-b-lg border-b border-white/10 flex justify-center shadow-2xl z-20">
+                <div className="relative w-[104%] -left-[2%] h-1.5 lg:h-3 bg-gradient-to-b from-[#4a4a4a] to-surface-raised rounded-b-sm lg:rounded-b-lg border-b border-ink/10 flex justify-center shadow-2xl z-20">
                   <div className="w-[15%] h-[1px] lg:h-1 bg-surface-hover rounded-b-sm" />
                 </div>
               </div>
@@ -1792,7 +1792,7 @@ const LandingPage = () => {
                   style={{ animation: "floatPhone 5s ease-in-out infinite 1s" }}
                   className="w-full h-full relative group"
                 >
-                  <div className="absolute inset-0 bg-black rounded-[1.8rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-surface-hover overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,168,83,0.3)]">
+                  <div className="absolute inset-0 bg-black rounded-[1.8rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-surface-hover overflow-hidden shadow-[0_25px_60px_rgb(var(--scrim) / 0.9),0_0_40px_rgba(212,168,83,0.3)]">
                     <div className="absolute top-0 inset-x-0 z-30">
                       <div className="w-[35%] h-[12px] lg:h-[20px] bg-black mx-auto rounded-b-lg lg:rounded-b-2xl" />
                     </div>
@@ -1815,7 +1815,7 @@ const LandingPage = () => {
                       </div>
                     </div>
                     <div className="absolute bottom-[3px] lg:bottom-[5px] inset-x-0 z-30 flex justify-center">
-                      <div className="w-[35%] h-[3px] lg:h-[4px] bg-white/20 rounded-full" />
+                      <div className="w-[35%] h-[3px] lg:h-[4px] bg-ink/20 rounded-full" />
                     </div>
                   </div>
 
@@ -1913,7 +1913,7 @@ const LandingPage = () => {
               Pipeline
             </span>
           </h2>
-          <p className="text-text-secondary text-xs lg:text-sm max-w-2xl mx-auto font-mono bg-black/40 py-2 px-4 rounded-md border border-white/5 inline-block">
+          <p className="text-text-secondary text-xs lg:text-sm max-w-2xl mx-auto font-mono bg-scrim/40 py-2 px-4 rounded-md border border-ink/5 inline-block">
             // RAW_DATA <span className="text-gold-primary mx-1">→</span>{" "}
             SANITIZATION <span className="text-gold-primary mx-1">→</span>{" "}
             ALPHA_MODEL <span className="text-gold-primary mx-1">→</span>{" "}
@@ -1948,7 +1948,7 @@ const LandingPage = () => {
             ].map((node, i) => (
               <div
                 key={i}
-                className="group bg-surface-raised backdrop-blur-md border border-white/5 hover:border-line/30 p-4 rounded-md transition-all duration-300 relative overflow-hidden"
+                className="group bg-surface-raised backdrop-blur-md border border-ink/5 hover:border-line/30 p-4 rounded-md transition-all duration-300 relative overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gold-primary/20 group-hover:bg-gold-primary transition-colors" />
                 <span className="text-gold-primary/60 font-mono text-[9px] mb-1 block">
@@ -1971,8 +1971,8 @@ const LandingPage = () => {
             />
           </div>
 
-          <div className="w-[120px] xl:w-[140px] bg-surface border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <div className="w-[120px] xl:w-[140px] bg-surface border border-ink/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/20 to-transparent" />
             <svg
               className="w-6 h-6 text-text-primary/50 mb-3"
               fill="none"
@@ -1993,7 +1993,7 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div className="flex-1 h-px bg-white/10 relative mx-2 xl:mx-4 flex-shrink-1 min-w-[30px]">
+          <div className="flex-1 h-px bg-ink/10 relative mx-2 xl:mx-4 flex-shrink-1 min-w-[30px]">
             <div
               className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{ animation: "data-stream-right 2s linear infinite 0.5s" }}
@@ -2002,12 +2002,12 @@ const LandingPage = () => {
 
           <div className="relative flex items-center justify-center flex-shrink-0 z-20 mx-2">
             {/* Static accent ring (no spin, just visual frame) */}
-            <div className="absolute w-[220px] h-[220px] xl:w-[260px] xl:h-[260px] rounded-md border border-white/[0.04]" />
+            <div className="absolute w-[220px] h-[220px] xl:w-[260px] xl:h-[260px] rounded-md border border-ink/[0.04]" />
             <div className="absolute w-[180px] h-[180px] xl:w-[210px] xl:h-[210px] rounded-md border border-line/10" />
 
             {/* Core engine box — pulse + scanline retained */}
             <div
-              className="relative w-40 h-40 xl:w-48 xl:h-48 bg-surface-raised rounded-md border-[1.5px] border-white/10 flex flex-col items-center justify-center overflow-hidden"
+              className="relative w-40 h-40 xl:w-48 xl:h-48 bg-surface-raised rounded-md border-[1.5px] border-ink/10 flex flex-col items-center justify-center overflow-hidden"
               style={{ animation: "core-pulse 4s ease-in-out infinite" }}
             >
               <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay" />
@@ -2039,14 +2039,14 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="flex-1 h-px bg-white/10 relative mx-2 xl:mx-4 flex-shrink-1 min-w-[30px]">
+          <div className="flex-1 h-px bg-ink/10 relative mx-2 xl:mx-4 flex-shrink-1 min-w-[30px]">
             <div
               className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{ animation: "data-stream-right 2s linear infinite 1s" }}
             />
           </div>
 
-          <div className="w-[120px] xl:w-[140px] bg-surface border border-white/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
+          <div className="w-[120px] xl:w-[140px] bg-surface border border-ink/10 rounded-md flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-0.5 transition-transform">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
             <svg
               className="w-6 h-6 text-gold-primary/70 mb-3"
@@ -2071,7 +2071,7 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div className="flex-1 h-px bg-white/10 relative mx-2 xl:mx-4 flex-shrink-1 min-w-[30px]">
+          <div className="flex-1 h-px bg-ink/10 relative mx-2 xl:mx-4 flex-shrink-1 min-w-[30px]">
             <div
               className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{ animation: "data-stream-right 2s linear infinite 1.5s" }}
@@ -2082,7 +2082,7 @@ const LandingPage = () => {
             <div className="bg-surface-raised rounded-md border border-line/20 p-5 relative overflow-hidden">
               {/* Subtle hairline highlight on top */}
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-              <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <div className="flex items-center justify-between border-b border-ink/10 pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
                   <span className="text-text-primary font-mono text-[10px] xl:text-xs font-bold tracking-widest">
@@ -2094,7 +2094,7 @@ const LandingPage = () => {
                 </span>
               </div>
               <div className="space-y-3 font-mono">
-                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                <div className="flex justify-between items-end border-b border-ink/5 pb-2">
                   <div>
                     <p className="text-text-muted text-[8px] uppercase tracking-wider mb-0.5">
                       Payload Status
@@ -2103,7 +2103,7 @@ const LandingPage = () => {
                   </div>
                   <span className="text-gold-primary text-[9px]">200 OK</span>
                 </div>
-                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                <div className="flex justify-between items-end border-b border-ink/5 pb-2">
                   <div>
                     <p className="text-text-muted text-[8px] uppercase tracking-wider mb-0.5">
                       Potential Trade
@@ -2137,7 +2137,7 @@ const LandingPage = () => {
             ].map((node, i) => (
               <div
                 key={i}
-                className="bg-surface-raised border border-white/10 rounded-lg p-3 text-center shadow-lg"
+                className="bg-surface-raised border border-ink/10 rounded-lg p-3 text-center shadow-lg"
               >
                 <span className="text-gold-primary/60 font-mono text-[7px] mb-1 block">
                   {node.id}
@@ -2152,14 +2152,14 @@ const LandingPage = () => {
             ))}
           </div>
 
-          <div className="w-px h-8 bg-white/10 relative my-1">
+          <div className="w-px h-8 bg-ink/10 relative my-1">
             <div
               className="absolute top-0 left-[-1px] w-[3px] h-1/2 bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{ animation: "data-stream-down 1.5s linear infinite" }}
             />
           </div>
 
-          <div className="w-[160px] bg-surface border border-white/10 rounded-md flex flex-col items-center justify-center p-3 relative z-20">
+          <div className="w-[160px] bg-surface border border-ink/10 rounded-md flex flex-col items-center justify-center p-3 relative z-20">
             <svg
               className="w-5 h-5 text-text-primary/50 mb-1.5"
               fill="none"
@@ -2178,7 +2178,7 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div className="w-px h-8 bg-white/10 relative my-1">
+          <div className="w-px h-8 bg-ink/10 relative my-1">
             <div
               className="absolute top-0 left-[-1px] w-[3px] h-1/2 bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{
@@ -2190,7 +2190,7 @@ const LandingPage = () => {
           <div className="relative w-48 h-48 flex items-center justify-center z-20 my-4">
             <div className="absolute w-[200px] h-[200px] rounded-md border border-line/10" />
             <div
-              className="relative w-32 h-32 bg-surface-raised rounded-md border border-white/20 flex flex-col items-center justify-center"
+              className="relative w-32 h-32 bg-surface-raised rounded-md border border-ink/20 flex flex-col items-center justify-center"
               style={{ animation: "core-pulse 4s ease-in-out infinite" }}
             >
               <svg
@@ -2214,14 +2214,14 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="w-px h-8 bg-white/10 relative my-1">
+          <div className="w-px h-8 bg-ink/10 relative my-1">
             <div
               className="absolute top-0 left-[-1px] w-[3px] h-1/2 bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{ animation: "data-stream-down 1.5s linear infinite 1s" }}
             />
           </div>
 
-          <div className="w-[160px] bg-surface border border-white/10 rounded-md flex items-center justify-center gap-3 p-3 relative z-20">
+          <div className="w-[160px] bg-surface border border-ink/10 rounded-md flex items-center justify-center gap-3 p-3 relative z-20">
             <svg
               className="w-5 h-5 text-gold-primary/70"
               fill="none"
@@ -2245,7 +2245,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="w-px h-8 bg-white/10 relative my-1">
+          <div className="w-px h-8 bg-ink/10 relative my-1">
             <div
               className="absolute top-0 left-[-1px] w-[3px] h-1/2 bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]"
               style={{
@@ -2256,7 +2256,7 @@ const LandingPage = () => {
 
           <div className="bg-surface-raised rounded-md border border-line/20 p-4 w-full max-w-[320px] relative z-20 overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-2 mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
                 <span className="text-text-primary font-mono text-[10px] font-bold tracking-widest">
@@ -2444,7 +2444,7 @@ const LandingPage = () => {
                   href="https://t.me/LuxQuantSignal"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-line/30 transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-ink/[0.06] hover:border-line/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-[#229ED9]/10 border border-[#229ED9]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#229ED9]/20 transition-colors">
                     <svg className="w-4 h-4 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
@@ -2465,9 +2465,9 @@ const LandingPage = () => {
                   href="https://x.com/luxquantcrypto"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-line/30 transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-ink/[0.06] hover:border-line/30 transition-all"
                 >
-                  <div className="w-9 h-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/10 transition-colors">
+                  <div className="w-9 h-9 rounded-md bg-ink/5 border border-ink/10 flex items-center justify-center flex-shrink-0 group-hover:bg-ink/10 transition-colors">
                     <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
@@ -2486,7 +2486,7 @@ const LandingPage = () => {
                   href="https://instagram.com/luxquant.tw"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-white/[0.06] hover:border-line/30 transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-surface-raised border border-ink/[0.06] hover:border-line/30 transition-all"
                 >
                   <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#833AB4]/20 via-[#FD1D1D]/20 to-warning/20 border border-[#FD1D1D]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[#833AB4]/30 group-hover:via-[#FD1D1D]/30 group-hover:to-warning/30 transition-colors">
                     <svg className="w-4 h-4 text-text-primary" viewBox="0 0 24 24" fill="currentColor">
@@ -2506,7 +2506,7 @@ const LandingPage = () => {
           </div>
 
           {/* Hairline divider */}
-          <div className="h-px bg-white/[0.06] mb-6" />
+          <div className="h-px bg-ink/[0.06] mb-6" />
 
           {/* Bottom row: copyright + disclaimer */}
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">

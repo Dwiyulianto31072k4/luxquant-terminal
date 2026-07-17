@@ -39,7 +39,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
+      <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="w-8 h-8 border-2 border-line/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
         <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
@@ -52,7 +52,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
   // ── Empty ──
   if (orders.length === 0) {
     return (
-      <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
+      <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <p className="text-text-primary text-sm font-medium mb-1">No trade history yet</p>
         <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
@@ -63,7 +63,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
   }
 
   return (
-    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md">
+    <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
       {/* ════════════════════════════════════ */}
@@ -72,7 +72,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-ink/[0.06]">
               <Th>Date</Th>
               <Th>Pair</Th>
               <Th>Exchange</Th>
@@ -91,7 +91,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
               return (
                 <tr
                   key={o.id}
-                  className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                  className="border-b border-ink/[0.04] hover:bg-ink/[0.02] transition-colors"
                 >
                   {/* Date */}
                   <td className="px-3 py-3 text-text-muted/70 text-[10px] font-mono tabular-nums whitespace-nowrap">
@@ -155,7 +155,7 @@ export default function TradeHistoryTable({ orders = [], loading }) {
       {/* ════════════════════════════════════ */}
       {/* MOBILE: Card layout                  */}
       {/* ════════════════════════════════════ */}
-      <div className="md:hidden divide-y divide-white/[0.04]">
+      <div className="md:hidden divide-y divide-ink/[0.04]">
         {orders.map((o) => {
           const pnl = Number(o.realized_pnl || 0);
           const pnlColor = pnl >= 0 ? "text-emerald-400" : "text-red-400";

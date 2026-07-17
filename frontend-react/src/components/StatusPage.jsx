@@ -123,7 +123,7 @@ function OverallBanner({ overall, label, counts = {} }) {
 
 function ComponentRow({ c }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-4 border-b last:border-b-0" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+    <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-4 border-b last:border-b-0" style={{ borderColor: "rgb(var(--ink) / 0.06)" }}>
       <div className="min-w-0">
         <div className="text-[14px] text-text-primary/90">{c.name}</div>
         {c.description && <div className="text-[12px] mt-0.5 truncate" style={{ color: palette.warm[400] }}>{c.description}</div>}
@@ -139,18 +139,18 @@ function IncidentCard({ inc, past = false }) {
   const headColor = closed ? palette.green[400] : accent;
   const updates = inc.updates?.length > 0 ? inc.updates.slice().reverse() : [];
   return (
-    <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: past ? "rgba(255,255,255,0.07)" : tint(accent, 0.3), background: "rgb(var(--surface-raised))" }}>
+    <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: past ? "rgb(var(--ink) / 0.07)" : tint(accent, 0.3), background: "rgb(var(--surface-raised))" }}>
       <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(headColor, 0.5)}, transparent)` }} />
       <div className="px-5 py-4 sm:px-6 sm:py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[14px] sm:text-[15px] text-text-primary/95 font-medium">{inc.title}</span>
-              {inc.auto && <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.05)", color: palette.warm[300], border: "1px solid rgba(255,255,255,0.08)" }}>Auto-detected</span>}
+              {inc.auto && <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgb(var(--ink) / 0.05)", color: palette.warm[300], border: "1px solid rgb(var(--ink) / 0.08)" }}>Auto-detected</span>}
             </div>
             {inc.affected?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {inc.affected.map((k) => <span key={k} className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.04)", color: palette.warm[400], border: "1px solid rgba(255,255,255,0.06)" }}>{k.replace(/_/g, " ")}</span>)}
+                {inc.affected.map((k) => <span key={k} className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgb(var(--ink) / 0.04)", color: palette.warm[400], border: "1px solid rgb(var(--ink) / 0.06)" }}>{k.replace(/_/g, " ")}</span>)}
               </div>
             )}
           </div>
@@ -168,10 +168,10 @@ function IncidentCard({ inc, past = false }) {
 
         {/* ── timeline: each update is a dated node on a connecting rail ── */}
         {updates.length > 0 && (
-          <div className="mt-4 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: "rgb(var(--ink) / 0.06)" }}>
             <div className="relative">
               {updates.length > 1 && (
-                <span className="absolute left-[6px] top-2 bottom-2 w-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+                <span className="absolute left-[6px] top-2 bottom-2 w-px" style={{ background: "rgb(var(--ink) / 0.1)" }} />
               )}
               <div className="space-y-4">
                 {updates.map((u, i) => {
@@ -200,7 +200,7 @@ const SectionLabel = ({ children }) => (
   <div className="flex items-center gap-2 mb-3">
     <span className="h-px w-4" style={{ background: tint(palette.gold[300], 0.4) }} />
     <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: tint(palette.gold[300], 0.8) }}>{children}</span>
-    <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
+    <span className="h-px flex-1" style={{ background: "rgb(var(--ink) / 0.06)" }} />
   </div>
 );
 
@@ -263,10 +263,10 @@ export default function StatusPage() {
       <div className="luxury-bg" />
 
       {/* top bar */}
-      <header className="relative z-10 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+      <header className="relative z-10 border-b" style={{ borderColor: "rgb(var(--ink) / 0.06)" }}>
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-sm overflow-hidden border" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+            <div className="w-7 h-7 rounded-sm overflow-hidden border" style={{ borderColor: "rgb(var(--ink) / 0.06)" }}>
               <img src="/logo-512.png" alt="LuxQuant" className="w-full h-full object-cover" />
             </div>
             <span className="text-[14px] font-normal text-text-primary tracking-tight group-hover:text-gold-primary transition-colors">LuxQuant Status</span>
@@ -315,7 +315,7 @@ export default function StatusPage() {
             {/* full-width single column — status-page convention, no empty side rail */}
             <section className="mt-8">
               <SectionLabel>Components</SectionLabel>
-              <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "rgb(var(--surface-raised))" }}>
+              <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgb(var(--ink) / 0.07)", background: "rgb(var(--surface-raised))" }}>
                 <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
                 {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
               </div>
@@ -326,7 +326,7 @@ export default function StatusPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <span className="h-px w-4" style={{ background: tint(palette.gold[300], 0.4) }} />
                   <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: tint(palette.gold[300], 0.8) }}>Past Incidents</span>
-                  <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
+                  <span className="h-px flex-1" style={{ background: "rgb(var(--ink) / 0.06)" }} />
                   <span className="font-mono text-[10px] tabular-nums whitespace-nowrap" style={{ color: palette.warm[500] }}>{pastAll.length} total</span>
                 </div>
                 <div className="space-y-3">
@@ -339,7 +339,7 @@ export default function StatusPage() {
                       onClick={() => setPastPage((p) => Math.max(0, p - 1))}
                       disabled={safePage <= 0}
                       className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-text-primary"
-                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgb(var(--surface-raised))", color: palette.warm[300] }}
+                      style={{ borderColor: "rgb(var(--ink) / 0.1)", background: "rgb(var(--surface-raised))", color: palette.warm[300] }}
                     >
                       <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                       Prev
@@ -349,7 +349,7 @@ export default function StatusPage() {
                       onClick={() => setPastPage((p) => Math.min(pastPages - 1, p + 1))}
                       disabled={safePage >= pastPages - 1}
                       className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-text-primary"
-                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgb(var(--surface-raised))", color: palette.warm[300] }}
+                      style={{ borderColor: "rgb(var(--ink) / 0.1)", background: "rgb(var(--surface-raised))", color: palette.warm[300] }}
                     >
                       Next
                       <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>

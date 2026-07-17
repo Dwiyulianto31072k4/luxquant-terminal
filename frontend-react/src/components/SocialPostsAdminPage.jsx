@@ -61,7 +61,7 @@ const elapsedLabel = (startedAt) => {
 };
 
 const StatusBadge = ({ status }) => {
-  const s = STATUS_STYLE[status] || { bg: "rgba(255,255,255,0.08)", fg: "#9ca3af", label: (status || "").toUpperCase() };
+  const s = STATUS_STYLE[status] || { bg: "rgb(var(--ink) / 0.08)", fg: "#9ca3af", label: (status || "").toUpperCase() };
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[10px] tracking-[0.12em]"
@@ -111,7 +111,7 @@ const CostBar = ({ cost }) => {
           className={`text-[9px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border ${
             tracking === "actual"
               ? "bg-green-500/10 text-green-400 border-green-500/25"
-              : "bg-white/[0.04] text-text-muted border-white/10"
+              : "bg-ink/[0.04] text-text-muted border-ink/10"
           }`}
           title={cost.note || ""}
         >
@@ -124,7 +124,7 @@ const CostBar = ({ cost }) => {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {cards.map((c, i) => (
-          <div key={i} className="rounded-lg bg-black/25 border border-white/[0.08] px-3 py-2.5">
+          <div key={i} className="rounded-lg bg-scrim/25 border border-ink/[0.08] px-3 py-2.5">
             <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-text-muted">{c.label}</p>
             <p className="text-text-primary text-[16px] font-semibold mt-0.5">{c.value}</p>
             {c.sub && <p className="text-[10px] text-text-muted/70 mt-0.5">{c.sub}</p>}
@@ -182,7 +182,7 @@ const GenerationConsole = ({
       ? "border-line/35"
       : isDone
         ? "border-green-500/30"
-        : "border-white/[0.08]";
+        : "border-ink/[0.08]";
 
   const glow = isRunning
     ? "shadow-[0_0_40px_-12px_rgba(212,168,83,0.45)]"
@@ -201,7 +201,7 @@ const GenerationConsole = ({
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            "linear-gradient(rgb(var(--ink) / 0.5) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--ink) / 0.5) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
@@ -218,7 +218,7 @@ const GenerationConsole = ({
                     ? "bg-red-500/15 border-red-500/40"
                     : isDone
                       ? "bg-green-500/15 border-green-500/40"
-                      : "bg-white/[0.04] border-white/10"
+                      : "bg-ink/[0.04] border-ink/10"
               }`}
             >
               {isRunning ? (
@@ -260,7 +260,7 @@ const GenerationConsole = ({
 
           {/* Controls */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center rounded-lg border border-white/[0.08] bg-black/30 overflow-hidden">
+            <div className="flex items-center rounded-lg border border-ink/[0.08] bg-scrim/30 overflow-hidden">
               <label className="sr-only" htmlFor="gen-news-id">News ID</label>
               <input
                 id="gen-news-id"
@@ -270,7 +270,7 @@ const GenerationConsole = ({
                 placeholder="News ID (optional)"
                 className="w-32 sm:w-36 px-3 py-2 bg-transparent text-text-primary text-[12px] placeholder:text-text-muted/50 focus:outline-none disabled:opacity-50"
               />
-              <div className="w-px self-stretch bg-white/[0.08]" />
+              <div className="w-px self-stretch bg-ink/[0.08]" />
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
@@ -294,7 +294,7 @@ const GenerationConsole = ({
 
         {/* Active / recent job panel */}
         {(isRunning || isDone || isError || job) && (
-          <div className="rounded-lg border border-white/[0.07] bg-black/35 p-3.5 sm:p-4 space-y-3.5">
+          <div className="rounded-lg border border-ink/[0.07] bg-scrim/35 p-3.5 sm:p-4 space-y-3.5">
             {/* Progress bar + meta */}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -323,7 +323,7 @@ const GenerationConsole = ({
                 </div>
               </div>
 
-              <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-1.5 rounded-full bg-ink/[0.06] overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ease-out ${
                     isError
@@ -356,7 +356,7 @@ const GenerationConsole = ({
                           ? "bg-gold-primary/10 border-line/35 text-gold-primary"
                           : done
                             ? "bg-green-500/8 border-green-500/20 text-green-400/90"
-                            : "bg-white/[0.02] border-white/[0.06] text-text-muted/70"
+                            : "bg-ink/[0.02] border-ink/[0.06] text-text-muted/70"
                     }`}
                   >
                     <span
@@ -367,7 +367,7 @@ const GenerationConsole = ({
                             ? "bg-gold-primary text-black"
                             : done
                               ? "bg-green-500 text-text-primary"
-                              : "bg-white/10 text-text-muted"
+                              : "bg-ink/10 text-text-muted"
                       }`}
                     >
                       {failed ? "!" : done ? "✓" : active ? "·" : i + 1}
@@ -401,7 +401,7 @@ const GenerationConsole = ({
         )}
 
         {!job && !isRunning && (
-          <div className="rounded-lg border border-dashed border-white/[0.08] bg-black/20 px-3.5 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <div className="rounded-lg border border-dashed border-ink/[0.08] bg-scrim/20 px-3.5 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {[
               "Pick news",
               "Extract & enrich",
@@ -411,7 +411,7 @@ const GenerationConsole = ({
               "Save draft",
             ].map((label, i) => (
               <span key={label} className="inline-flex items-center gap-1.5 text-[10px] font-mono text-text-muted/80">
-                <span className="w-4 h-4 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-[8px] text-text-muted">
+                <span className="w-4 h-4 rounded-full bg-ink/[0.05] border border-ink/10 flex items-center justify-center text-[8px] text-text-muted">
                   {i + 1}
                 </span>
                 {label}
@@ -430,7 +430,7 @@ const ImageCard = ({ post, onOpen }) => {
   return (
     <button
       onClick={() => onOpen(post)}
-      className="group relative rounded-lg overflow-hidden bg-black/30 border border-white/[0.08] hover:border-line/40 transition-colors text-left"
+      className="group relative rounded-lg overflow-hidden bg-scrim/30 border border-ink/[0.08] hover:border-line/40 transition-colors text-left"
     >
       {post.image_url ? (
         <img
@@ -440,7 +440,7 @@ const ImageCard = ({ post, onOpen }) => {
           className="w-full aspect-[4/5] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
       ) : (
-        <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-3 text-center bg-gradient-to-b from-black/40 to-black/70">
+        <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-3 text-center bg-gradient-to-b from-scrim/40 to-scrim/70">
           <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-amber-300/90">
             {waiting ? "Waiting for assets" : "No image"}
           </span>
@@ -565,7 +565,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   };
 
   return (
-    <div className="rounded-xl border border-amber-400/20 bg-gradient-to-b from-amber-500/[0.07] to-black/40 p-3.5 space-y-3">
+    <div className="rounded-xl border border-amber-400/20 bg-gradient-to-b from-amber-500/[0.07] to-scrim/40 p-3.5 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-gold-primary">
@@ -607,7 +607,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       )}
 
       {pending.length > 0 && (
-        <div className="rounded-lg bg-black/35 border border-amber-400/25 px-3 py-2.5 space-y-1.5">
+        <div className="rounded-lg bg-scrim/35 border border-amber-400/25 px-3 py-2.5 space-y-1.5">
           <p className="text-[11px] font-semibold text-amber-200">
             Upload before generate ({pending.length}):
           </p>
@@ -630,7 +630,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               className={`rounded-lg border px-2.5 py-2 ${
                 needAction
                   ? "border-amber-400/30 bg-amber-500/[0.06]"
-                  : "border-white/[0.07] bg-white/[0.02]"
+                  : "border-ink/[0.07] bg-ink/[0.02]"
               }`}
             >
               <div className="flex items-start gap-2">
@@ -686,7 +686,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                       type="button"
                       disabled={!!busy}
                       onClick={() => confirmAsset(item)}
-                      className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-white/15 text-text-muted hover:text-text-primary hover:border-white/25 disabled:opacity-40"
+                      className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-ink/15 text-text-muted hover:text-text-primary hover:border-ink/25 disabled:opacity-40"
                     >
                       {busy === `confirm:${item.name}` ? "…" : "Confirm library file"}
                     </button>
@@ -715,7 +715,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         onClick={reRender}
         className={`w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border transition-colors disabled:opacity-40 ${
           data.needs_materials
-            ? "bg-white/[0.04] text-text-muted border-white/10"
+            ? "bg-ink/[0.04] text-text-muted border-ink/10"
             : "bg-gold-primary text-black border-line/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
         }`}
         title={data.needs_materials ? "Upload / confirm all materials first" : undefined}
@@ -744,7 +744,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
+      className="fixed inset-0 z-[100] bg-scrim/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
       onClick={onClose}
     >
       <button
@@ -756,11 +756,11 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
       </button>
 
       <div
-        className="relative flex flex-col md:flex-row w-full max-w-[880px] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-white/10 sm:border shadow-[0_-20px_60px_rgba(0,0,0,0.65)]"
+        className="relative flex flex-col md:flex-row w-full max-w-[880px] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute top-2.5 left-0 right-0 z-20 flex justify-center pointer-events-none sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* Left — post image (contained, never overflows) */}
         <div className="md:w-[55%] flex-shrink-0 bg-black flex items-center justify-center min-h-0 max-h-[42vh] md:max-h-none overflow-hidden">
@@ -785,10 +785,10 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
         </div>
 
         {/* Right — IG-style caption column (flexes to remaining width) */}
-        <div className="flex-1 min-w-0 flex flex-col bg-surface-raised border-t md:border-t-0 md:border-l border-white/10 min-h-0">
+        <div className="flex-1 min-w-0 flex flex-col bg-surface-raised border-t md:border-t-0 md:border-l border-ink/10 min-h-0">
           {/* account header */}
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.08]">
-            <img src={IG_AVATAR} alt="" className="w-8 h-8 rounded-full object-contain bg-white/5 p-1 flex-shrink-0" />
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-ink/[0.08]">
+            <img src={IG_AVATAR} alt="" className="w-8 h-8 rounded-full object-contain bg-ink/5 p-1 flex-shrink-0" />
             <div className="flex items-center gap-1 min-w-0 mr-auto">
               <span className="text-text-primary text-[13px] font-semibold truncate">{IG_HANDLE}</span>
               <VerifiedTick />
@@ -812,7 +812,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                   {showPrompt ? "▾ hide image prompt" : "▸ image prompt"}
                 </button>
                 {showPrompt && (
-                  <p className="mt-1 text-[11px] text-text-muted leading-relaxed bg-black/30 rounded p-2 border border-white/5">
+                  <p className="mt-1 text-[11px] text-text-muted leading-relaxed bg-scrim/30 rounded p-2 border border-ink/5">
                     {post.image_prompt}
                   </p>
                 )}
@@ -867,7 +867,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           </div>
 
           {/* actions */}
-          <div className="px-4 py-3 border-t border-white/[0.08] flex items-center gap-3">
+          <div className="px-4 py-3 border-t border-ink/[0.08] flex items-center gap-3">
             <button
               disabled={busy}
               onClick={() => onDelete(post.id)}
@@ -1090,7 +1090,7 @@ const SocialPostsAdminPage = () => {
             onClick={() => setStatus(tab.key)}
             className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors border ${
               status === tab.key
-                ? "bg-white/[0.08] text-text-primary border-white/15"
+                ? "bg-ink/[0.08] text-text-primary border-ink/15"
                 : "bg-transparent text-text-muted border-transparent hover:text-text-primary"
             }`}
           >
@@ -1099,7 +1099,7 @@ const SocialPostsAdminPage = () => {
         ))}
         <button
           onClick={load}
-          className="ml-auto px-3 py-1.5 rounded-lg text-[12px] text-text-muted hover:text-text-primary border border-white/[0.08] transition-colors"
+          className="ml-auto px-3 py-1.5 rounded-lg text-[12px] text-text-muted hover:text-text-primary border border-ink/[0.08] transition-colors"
         >
           ↻ Refresh
         </button>

@@ -101,12 +101,12 @@ function PostPage({ slug }) {
       </div>
 
       {relatedTerms.length > 0 && (
-        <div className="mt-10 border-t border-white/[0.08] pt-5">
+        <div className="mt-10 border-t border-ink/[0.08] pt-5">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">Terms in this article</h2>
           <div className="flex flex-wrap gap-2">
             {relatedTerms.map((r) => (
               <Link key={r.slug} to={`/learn/${r.slug}`}
-                className="rounded-md border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
+                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
                 {r.term}
               </Link>
             ))}
@@ -171,7 +171,7 @@ function IndexPage() {
       <div className="mt-7 space-y-3">
         {POSTS.map((p) => (
           <Link key={p.slug} to={`/blog/${p.slug}`}
-            className="group block rounded-xl border border-white/[0.07] bg-surface-raised p-5 hover:border-line/30 hover:bg-white/[0.02] transition-colors">
+            className="group block rounded-xl border border-ink/[0.07] bg-surface-raised p-5 hover:border-line/30 hover:bg-ink/[0.02] transition-colors">
             <p className="font-mono text-[11px] text-text-muted">{fmtDate(p.date)} · {p.readingTime} read</p>
             <h2 className="mt-1.5 text-[17px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{p.title}</h2>
             <p className="mt-1.5 text-[13.5px] text-text-primary/55 leading-relaxed">{p.excerpt}</p>

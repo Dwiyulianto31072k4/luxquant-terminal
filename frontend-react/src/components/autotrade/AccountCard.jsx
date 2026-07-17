@@ -92,7 +92,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
   const brand = EXCHANGE_BRANDING[account.exchange_id] || { color: "rgb(var(--accent))", logo: null };
 
   return (
-    <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all">
+    <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md hover:border-ink/[0.12] transition-all">
       {/* Top hairline accent */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -101,7 +101,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-md flex items-center justify-center overflow-hidden p-1 border border-white/[0.06] bg-white/[0.02]"
+              className="w-10 h-10 rounded-md flex items-center justify-center overflow-hidden p-1 border border-ink/[0.06] bg-ink/[0.02]"
             >
               {brand.logo ? (
                 <img
@@ -140,7 +140,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
             className={`relative w-10 h-5 rounded-full transition-colors border ${
               isEnabled
                 ? "bg-gold-primary/80 border-gold-primary"
-                : "bg-white/[0.04] border-white/[0.08]"
+                : "bg-ink/[0.04] border-ink/[0.08]"
             } disabled:opacity-50`}
             title={isEnabled ? "Autotrade ON" : "Autotrade OFF"}
           >
@@ -148,7 +148,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
               className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${
                 isEnabled
                   ? "translate-x-[20px] bg-surface-raised"
-                  : "translate-x-0.5 bg-white/40"
+                  : "translate-x-0.5 bg-ink/40"
               }`}
             />
           </button>
@@ -156,15 +156,15 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
 
         {/* ── Info grid (Mode · API Key · Status) ── */}
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2.5">
+          <div className="bg-ink/[0.02] border border-ink/[0.04] rounded p-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">Mode</p>
             <p className="text-text-primary font-mono text-xs capitalize tabular-nums">{account.trading_mode}</p>
           </div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2.5">
+          <div className="bg-ink/[0.02] border border-ink/[0.04] rounded p-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">API Key</p>
             <p className="text-text-primary font-mono text-[11px] tabular-nums truncate">{account.api_key_masked || "••••"}</p>
           </div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded p-2.5">
+          <div className="bg-ink/[0.02] border border-ink/[0.04] rounded p-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">Status</p>
             <p className={`font-mono text-xs ${isEnabled ? "text-gold-primary" : "text-text-muted"}`}>
               {isEnabled ? "Active" : "Paused"}
@@ -196,7 +196,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
             </button>
           </div>
 
-          <div className="relative overflow-hidden bg-white/[0.02] border border-white/[0.06] rounded p-3.5">
+          <div className="relative overflow-hidden bg-ink/[0.02] border border-ink/[0.06] rounded p-3.5">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
             <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1.5">Total USD</p>
             <p className="text-2xl font-mono tabular-nums text-text-primary">{fmtUsd(totalBalance)}</p>
@@ -234,7 +234,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           <button
             onClick={handleTest}
             disabled={loading.test}
-            className="flex-1 px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-50 transition-all"
+            className="flex-1 px-3 py-2 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-50 transition-all"
           >
             {loading.test ? "Testing…" : "Test"}
           </button>

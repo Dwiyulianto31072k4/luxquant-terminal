@@ -49,7 +49,7 @@ function statusTone(status) {
   if (value === "degraded" || value === "stale") {
     return "border-amber-300/20 bg-amber-300/10 text-amber-200";
   }
-  return "border-white/10 bg-white/5 text-text-primary/45";
+  return "border-ink/10 bg-ink/5 text-text-primary/45";
 }
 
 function formatAge(timestamp) {
@@ -73,11 +73,11 @@ function stanceMeta(direction) {
 function ProductSwitcher({ active = "research" }) {
   const base =
     "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
-  const on = "bg-white/[0.1] text-text-primary shadow-sm";
-  const off = "text-text-muted hover:text-text-primary hover:bg-white/[0.04]";
+  const on = "bg-ink/[0.1] text-text-primary shadow-sm";
+  const off = "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]";
   return (
     <div
-      className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5"
+      className="inline-flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-0.5"
       role="navigation"
       aria-label="Product"
     >
@@ -130,7 +130,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-3.5 text-[13px] font-medium text-text-primary transition hover:bg-white/[0.09] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.05] px-3.5 text-[13px] font-medium text-text-primary transition hover:bg-ink/[0.09] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className={refreshing ? "animate-spin" : ""}>
               <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -141,7 +141,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
       </div>
 
       {/* Ticker strip — price / stance / age */}
-      <div className="flex flex-wrap items-stretch overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised divide-x divide-white/[0.06]">
+      <div className="flex flex-wrap items-stretch overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised divide-x divide-ink/[0.06]">
         {Number.isFinite(btcPrice) && btcPrice > 0 && (
           <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
             <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">BTC / USDT</div>
@@ -183,7 +183,7 @@ function LoadingState() {
       </div>
 
       {/* Verdict hero */}
-      <div className="mb-5 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6">
+      <div className="mb-5 rounded-2xl border border-ink/[0.06] bg-ink/[0.015] p-6">
         <div className="mb-6 flex flex-wrap items-center gap-4">
           <Skeleton className="h-14 w-14 !rounded-full shrink-0" />
           <div className="space-y-2">
@@ -194,7 +194,7 @@ function LoadingState() {
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2 rounded-lg border border-white/[0.05] p-3">
+            <div key={i} className="space-y-2 rounded-lg border border-ink/[0.05] p-3">
               <Skeleton className="h-2 w-14" />
               <Skeleton className="h-5 w-20" />
             </div>
@@ -221,7 +221,7 @@ function LoadingState() {
 
       {/* Status caption — Compass is generating, keep the context */}
       <div className="mt-6 flex items-center justify-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-pulse" />
+        <span className="h-1.5 w-1.5 rounded-full bg-ink/40 animate-pulse" />
         <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-primary/40">
           Building the latest Compass read…
         </span>
@@ -243,7 +243,7 @@ function ErrorState({ error, onRetry }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-5 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-text-primary/75 hover:bg-white/[0.08]"
+          className="mt-5 rounded-lg border border-ink/10 bg-ink/[0.04] px-4 py-2 text-sm text-text-primary/75 hover:bg-ink/[0.08]"
         >
           Try again
         </button>
@@ -282,7 +282,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
   }, [activeTab]);
 
   return (
-    <nav className="sticky top-0 z-40 -mx-4 border-b border-white/[0.07] bg-surface/92 backdrop-blur-md md:-mx-6 xl:-mx-10">
+    <nav className="sticky top-0 z-40 -mx-4 border-b border-ink/[0.07] bg-surface/92 backdrop-blur-md md:-mx-6 xl:-mx-10">
       <div className="relative">
         <div
           ref={scrollRef}
@@ -299,7 +299,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
                 title={tab.description}
                 className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-3 text-[14px] font-medium transition-colors ${
                   active
-                    ? "border-white/80 text-text-primary"
+                    ? "border-ink/80 text-text-primary"
                     : "border-transparent text-text-primary/45 hover:text-text-primary/80"
                 }`}
               >
@@ -327,7 +327,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
             type="button"
             onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
             aria-label="Show more tabs"
-            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-secondary text-text-primary/70 transition hover:border-white/20 hover:text-text-primary"
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-ink/10 bg-surface-secondary text-text-primary/70 transition hover:border-ink/20 hover:text-text-primary"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5l7 7-7 7" />
@@ -341,7 +341,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
 
 function ChartPanel({ report }) {
   return (
-    <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-4 md:p-5">
+    <section className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-4 md:p-5">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
@@ -354,7 +354,7 @@ function ChartPanel({ report }) {
             Live candles with Compass magnets, zones, and invalidation levels.
           </p>
         </div>
-        <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-right font-mono text-[10px] text-text-muted">
+        <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2 text-right font-mono text-[10px] text-text-muted">
           <div className="uppercase tracking-[0.14em]">Basis</div>
           <div className="mt-1 text-text-primary/70">BTC candles + report</div>
         </div>
@@ -421,7 +421,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   if (!archive) {
     return (
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-6">
+      <section className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-6">
         <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
           Report library
         </div>
@@ -437,8 +437,8 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
-        <div className="border-b border-white/[0.06] p-5 md:p-6">
+      <section className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
+        <div className="border-b border-ink/[0.06] p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
@@ -452,7 +452,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
-              <div className="rounded-sm border border-white/[0.04] bg-surface-secondary px-3 py-2">
+              <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Reports</div>
                 <div className="mt-1 text-text-primary/80">{items.length}</div>
               </div>
@@ -460,7 +460,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">PDF ready</div>
                 <div className="mt-1 text-profit">{readyCount}</div>
               </div>
-              <div className="rounded-sm border border-white/[0.04] bg-surface-secondary px-3 py-2">
+              <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary px-3 py-2">
                 <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Latest</div>
                 <div className="mt-1 text-text-primary/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
               </div>
@@ -474,7 +474,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
         </div>
 
         {items.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/15 px-4 py-3 md:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] bg-scrim/15 px-4 py-3 md:px-5">
             <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-primary/35">
               Showing <span className="text-text-primary/65">{pageStart + 1}-{pageEnd}</span> of <span className="text-text-primary/65">{items.length}</span>
             </div>
@@ -483,7 +483,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 type="button"
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={page <= 1}
-                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
+                className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-ink/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Prev
               </button>
@@ -494,8 +494,8 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                   onClick={() => setPage(pageNumber)}
                   className={`h-8 min-w-8 rounded-md border px-2 transition ${
                     pageNumber === page
-                      ? "border-white/20 bg-white/[0.1] text-text-primary"
-                      : "border-white/[0.07] bg-black/20 text-text-primary/40 hover:border-white/[0.14] hover:text-text-primary/70"
+                      ? "border-ink/20 bg-ink/[0.1] text-text-primary"
+                      : "border-ink/[0.07] bg-scrim/20 text-text-primary/40 hover:border-ink/[0.14] hover:text-text-primary/70"
                   }`}
                 >
                   {pageNumber}
@@ -505,7 +505,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 type="button"
                 onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
                 disabled={page >= pageCount}
-                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
+                className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-ink/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Next
               </button>
@@ -528,7 +528,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
             return (
               <article
                 key={item.report_id}
-                className={`group relative overflow-hidden rounded-sm border border-white/[0.06] bg-surface-secondary p-4 transition ${ringClass} hover:bg-accent/[0.035]`}
+                className={`group relative overflow-hidden rounded-sm border border-ink/[0.06] bg-surface-secondary p-4 transition ${ringClass} hover:bg-accent/[0.035]`}
               >
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/45 to-transparent opacity-60" />
                 <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-accent/10 blur-3xl transition group-hover:bg-accent/15" />
@@ -536,7 +536,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 <div className="relative flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-white/[0.08] bg-black/20 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+                      <span className="rounded-md border border-ink/[0.08] bg-scrim/20 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
                         #{pageStart + index + 1}
                       </span>
                       <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
@@ -561,21 +561,21 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 </p>
 
                 <div className="relative mt-4 grid gap-2 text-xs md:grid-cols-3">
-                  <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
+                  <div className="rounded-sm border border-ink/[0.04] bg-scrim/25 p-3">
                     <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Below magnet</div>
                     <div className="mt-1 font-mono text-text-primary/75">{formatMoney(item.nearest_magnet_below)}</div>
                   </div>
-                  <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
+                  <div className="rounded-sm border border-ink/[0.04] bg-scrim/25 p-3">
                     <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Above magnet</div>
                     <div className="mt-1 font-mono text-text-primary/75">{formatMoney(item.nearest_magnet_above)}</div>
                   </div>
-                  <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
+                  <div className="rounded-sm border border-ink/[0.04] bg-scrim/25 p-3">
                     <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Event risk</div>
                     <div className="mt-1 font-mono text-text-primary/75">{readableLabel(item.event_risk)}</div>
                   </div>
                 </div>
 
-                <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+                <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] pt-4">
                   <span
                     className={`rounded-sm border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${
                       item.pdf_ready
@@ -589,7 +589,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-white/15 bg-white/[0.08] px-3.5 text-[12px] font-semibold leading-none text-text-primary transition hover:bg-white/[0.12] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-ink/15 bg-ink/[0.08] px-3.5 text-[12px] font-semibold leading-none text-text-primary transition hover:bg-ink/[0.12] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
                     {loading ? "Opening…" : "Open reader →"}
                   </button>
@@ -627,11 +627,11 @@ function ReportPdfModal({ modal, onClose }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/55 to-transparent" />
 
-      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-line/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
+      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-line/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgb(var(--scrim) / 0.82)] ring-1 ring-ink/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-white/25" />
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
-        <header className="shrink-0 border-b border-white/[0.08] bg-surface-raised/98 px-3 py-2.5 md:px-4">
+        <header className="shrink-0 border-b border-ink/[0.08] bg-surface-raised/98 px-3 py-2.5 md:px-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -641,7 +641,7 @@ function ReportPdfModal({ modal, onClose }) {
                 <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
                   {readableLabel(direction)} {confidence ?? "-"}%
                 </span>
-                <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/45">
+                <span className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/45">
                   {generatedLabel}
                 </span>
               </div>
@@ -654,7 +654,7 @@ function ReportPdfModal({ modal, onClose }) {
                 href={modal.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+                className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-ink/[0.16] hover:bg-ink/[0.08]"
               >
                 New tab
               </a>
@@ -668,7 +668,7 @@ function ReportPdfModal({ modal, onClose }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+                className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-ink/[0.16] hover:bg-ink/[0.08]"
               >
                 Close
               </button>
@@ -677,7 +677,7 @@ function ReportPdfModal({ modal, onClose }) {
         </header>
 
         <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,17vw,286px)_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-surface-raised/92 p-2.5 lg:block">
+          <aside className="hidden min-h-0 border-r border-ink/[0.08] bg-surface-raised/92 p-2.5 lg:block">
             <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
               <div className="rounded-2xl border border-line/15 bg-accent/[0.045] p-4">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
@@ -695,7 +695,7 @@ function ReportPdfModal({ modal, onClose }) {
                 <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
               </div>
 
-              <div className="mt-auto rounded-2xl border border-white/[0.08] bg-black/20 p-3">
+              <div className="mt-auto rounded-2xl border border-ink/[0.08] bg-scrim/20 p-3">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
                   Reader mode
                 </div>
@@ -838,8 +838,8 @@ function CompassPdfViewer({ url, title }) {
   const zoomIn = () => setZoom((value) => Math.min(1.45, Number((value + 0.1).toFixed(2))));
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.10] bg-surface-raised shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-surface-raised/95 px-3 py-2 md:px-4">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-ink/[0.10] bg-surface-raised shadow-[0_18px_70px_rgb(var(--scrim) / 0.35)_inset]" ref={shellRef}>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-ink/[0.08] bg-surface-raised/95 px-3 py-2 md:px-4">
         <div className="min-w-0">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
             Fit reader
@@ -853,26 +853,26 @@ function CompassPdfViewer({ url, title }) {
             type="button"
             onClick={() => goToPage(-1)}
             disabled={currentPage <= 1}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07] disabled:opacity-35"
+            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07] disabled:opacity-35"
           >
             Prev
           </button>
-          <span className="rounded-md border border-white/[0.08] bg-black/25 px-2.5 py-1.5 text-text-primary/55">
+          <span className="rounded-md border border-ink/[0.08] bg-scrim/25 px-2.5 py-1.5 text-text-primary/55">
             {currentPage} / {pageCount || "-"}
           </span>
           <button
             type="button"
             onClick={() => goToPage(1)}
             disabled={!pageCount || currentPage >= pageCount}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07] disabled:opacity-35"
+            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07] disabled:opacity-35"
           >
             Next
           </button>
-          <span className="mx-1 hidden h-5 w-px bg-white/[0.08] sm:block" />
+          <span className="mx-1 hidden h-5 w-px bg-ink/[0.08] sm:block" />
           <button
             type="button"
             onClick={zoomOut}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07]"
+            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07]"
           >
             -
           </button>
@@ -886,7 +886,7 @@ function CompassPdfViewer({ url, title }) {
           <button
             type="button"
             onClick={zoomIn}
-            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-white/[0.07]"
+            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07]"
           >
             +
           </button>
@@ -900,7 +900,7 @@ function CompassPdfViewer({ url, title }) {
         {status === "loading" && (
           <div className="flex h-full min-h-[420px] items-center justify-center text-center">
             <div>
-              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-[#d4a853]" />
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-ink/10 border-t-[#d4a853]" />
               <div className="font-mono text-xs uppercase tracking-[0.18em] text-text-primary/35">
                 Rendering PDF
               </div>
@@ -1003,8 +1003,8 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
   }, [pdf, pageNumber, availableWidth, zoom]);
 
   return (
-    <article className="mx-auto overflow-hidden rounded-xl border border-white/[0.10] bg-surface-raised shadow-[0_22px_90px_rgba(0,0,0,0.55)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
-      <div className="flex items-center justify-between border-b border-white/[0.06] bg-surface-raised px-3 py-2 font-mono text-[10px] text-text-primary/35">
+    <article className="mx-auto overflow-hidden rounded-xl border border-ink/[0.10] bg-surface-raised shadow-[0_22px_90px_rgb(var(--scrim) / 0.35)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
+      <div className="flex items-center justify-between border-b border-ink/[0.06] bg-surface-raised px-3 py-2 font-mono text-[10px] text-text-primary/35">
         <span>Page {pageNumber}</span>
         <span>{pageNumber} / {pageCount}</span>
       </div>
@@ -1027,7 +1027,7 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
 
 function ReaderMetric({ label, value }) {
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-black/20 p-3">
+    <div className="rounded-xl border border-ink/[0.07] bg-scrim/20 p-3">
       <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">
         {label}
       </div>
@@ -1281,7 +1281,7 @@ export default function AIArenaPageV6() {
 
         <ReportPdfModal modal={pdfModal} onClose={closePdfModal} />
 
-        <footer className="border-t border-white/[0.06] pt-6 text-center">
+        <footer className="border-t border-ink/[0.06] pt-6 text-center">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] leading-relaxed text-text-muted/40">
             LuxQuant BTC Compass · decision support only, not financial advice
           </p>

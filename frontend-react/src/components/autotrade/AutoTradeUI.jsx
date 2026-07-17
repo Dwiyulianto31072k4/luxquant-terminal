@@ -87,7 +87,7 @@ export function SectionHeader({ label, hint, right }) {
 export function Card({ children, className = "", hover = false, padded = true }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-md border border-white/[0.06] bg-surface-raised ${
+      className={`relative overflow-hidden rounded-md border border-ink/[0.06] bg-surface-raised ${
         padded ? "p-4 lg:p-5" : ""
       } ${
         hover
@@ -116,14 +116,14 @@ export function StatCard({
       className={`relative overflow-hidden rounded-md border bg-surface-raised p-4 lg:p-5 transition-all duration-200 hover:-translate-y-0.5 ${
         accent
           ? "border-line/25 hover:border-line/40"
-          : "border-white/[0.06] hover:border-line/20"
+          : "border-ink/[0.06] hover:border-line/20"
       }`}
     >
       <span className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted mb-2 truncate">
         {label}
       </p>
-      <div className="h-px bg-white/[0.06] mb-3" />
+      <div className="h-px bg-ink/[0.06] mb-3" />
       <p
         className={`font-mono text-2xl lg:text-3xl font-light tabular-nums leading-none ${valueColor}`}
       >
@@ -180,7 +180,7 @@ const TAG_TONES = {
   warn: "bg-gold-primary/10 text-gold-primary",
   bad: "bg-[#F6465D]/10 text-[#F6465D]",
   info: "bg-[#5B8DEF]/12 text-[#5B8DEF]",
-  neutral: "bg-white/[0.05] text-text-secondary",
+  neutral: "bg-ink/[0.05] text-text-secondary",
 };
 
 export function StatusBadge({ tone = "neutral", children }) {
@@ -212,7 +212,7 @@ export function Toggle({ label, hint, checked, onChange, disabled = false }) {
       className={`flex w-full items-center justify-between gap-4 rounded-md border px-4 py-3 text-left transition-colors ${
         checked
           ? "border-line/20 bg-gold-primary/[0.04]"
-          : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]"
+          : "border-ink/[0.06] bg-ink/[0.02] hover:border-ink/[0.1]"
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
     >
       <span className="min-w-0">
@@ -223,11 +223,11 @@ export function Toggle({ label, hint, checked, onChange, disabled = false }) {
       </span>
       <span
         className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200 ${
-          checked ? "bg-gold-primary" : "bg-white/[0.12]"
+          checked ? "bg-gold-primary" : "bg-ink/[0.12]"
         }`}
       >
         <span
-          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.4)] transition-transform duration-200 ${
+          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgb(var(--scrim) / 0.35)] transition-transform duration-200 ${
             checked ? "translate-x-5" : "translate-x-0"
           }`}
         />
@@ -272,7 +272,7 @@ export function GhostButton({
 }) {
   const tones = {
     neutral:
-      "border-white/[0.08] text-text-muted hover:text-text-primary hover:border-white/[0.16]",
+      "border-ink/[0.08] text-text-muted hover:text-text-primary hover:border-ink/[0.16]",
     gold: "border-line/25 text-gold-primary hover:bg-gold-primary/[0.08]",
     danger: "border-red-500/25 text-red-400 hover:bg-red-500/[0.08]",
   };
@@ -306,7 +306,7 @@ export function Field({ label, hint, children }) {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-text-primary transition-colors focus:outline-none focus:border-line/40";
+  "w-full rounded-md border border-ink/[0.06] bg-ink/[0.02] px-3 py-2 text-sm text-text-primary transition-colors focus:outline-none focus:border-line/40";
 
 export function Select({ value, onChange, options }) {
   return (
@@ -373,7 +373,7 @@ export function TextInput({ value, onChange, placeholder }) {
 // ────────────────────────────────────────────────────────────────
 export function Segmented({ value, onChange, options }) {
   return (
-    <div className="flex gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] p-1">
+    <div className="flex gap-1 rounded-md border border-ink/[0.06] bg-ink/[0.02] p-1">
       {options.map((option) => {
         const active = String(value) === String(option.value);
         return (
@@ -406,7 +406,7 @@ export function PillToggle({ active, onClick, children }) {
       className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors ${
         active
           ? "border-line/30 bg-gold-primary/10 text-gold-primary"
-          : "border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/[0.16] hover:text-text-primary"
+          : "border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:border-ink/[0.16] hover:text-text-primary"
       }`}
     >
       {children}
@@ -422,7 +422,7 @@ export function Notice({ tone = "info", children }) {
     error: "border-red-500/25 bg-red-500/[0.05] text-red-400",
     success: "border-emerald-500/25 bg-emerald-500/[0.05] text-emerald-400",
     warn: "border-line/20 bg-gold-primary/[0.04] text-gold-primary/90",
-    info: "border-white/[0.08] bg-white/[0.02] text-text-muted",
+    info: "border-ink/[0.08] bg-ink/[0.02] text-text-muted",
   };
   return (
     <div
@@ -441,7 +441,7 @@ export function EmptyState({ icon, title, hint, action }) {
     <Card className="text-center" padded>
       <div className="flex flex-col items-center gap-3 py-6">
         {icon ? (
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02] text-2xl">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.02] text-2xl">
             {icon}
           </div>
         ) : null}

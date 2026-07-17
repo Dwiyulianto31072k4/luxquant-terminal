@@ -28,7 +28,7 @@ function FlowRow({ r, max, color }) {
     <div className="flex items-center gap-2.5 py-1.5">
       <CoinLogo pair={r.symbol} size={22} />
       <div className="w-14 shrink-0 text-[12.5px] text-text-primary/90 truncate">{r.symbol}</div>
-      <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
+      <div className="flex-1 h-2 rounded-full bg-ink/[0.04] overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${w}%`, background: color, opacity: 0.75 }} />
       </div>
       <div className="w-16 shrink-0 text-right font-mono text-[11px]" style={{ color }}>
@@ -41,7 +41,7 @@ function FlowRow({ r, max, color }) {
 function FlowColumn({ title, sub, rows, color }) {
   const max = rows.reduce((a, r) => Math.max(a, Math.abs(r.net_inflow_usd || 0)), 0);
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-surface-raised p-3">
+    <div className="rounded-lg border border-ink/[0.06] bg-surface-raised p-3">
       <div className="mb-2">
         <div className="text-[13px] text-text-primary/90">{title}</div>
         <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70">{sub}</div>
@@ -120,7 +120,7 @@ export function TokenFlowTab({ view }) {
       </div>
 
       {empty ? (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
+        <div className="rounded-lg border border-ink/[0.06] bg-ink/[0.01] px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
           {scope === "market"
             ? "No token-flow data yet — worker refreshes ~every 6h"
             : "No token-flow for your active calls — switch to Market to see all"}

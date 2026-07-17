@@ -23,14 +23,14 @@ export const ShimmerStyles = () => (
     @keyframes lqBreathe { 0%,100% { opacity:.85; transform: scale(1); } 50% { opacity:1; transform: scale(1.04); } }
     @keyframes lqBarSlide { 0% { left:-40%; } 100% { left:100%; } }
     @keyframes lqFadeIn { from { opacity:0; } to { opacity:1; } }
-    .lqsk { position: relative; overflow: hidden; background: rgba(255,255,255,0.05); border-radius: 8px; }
+    .lqsk { position: relative; overflow: hidden; background: rgb(var(--ink) / 0.05); border-radius: 8px; }
     .lqsk::after { content:""; position:absolute; inset:0; transform: translateX(-100%);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+      background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.07), transparent);
       animation: lqShimmer 1.4s infinite; }
     /* Group shimmer: one sweep across an existing multi-bar skeleton block */
     .lqsk-group { position: relative; overflow: hidden; }
     .lqsk-group::after { content:""; position:absolute; inset:0; transform: translateX(-100%); pointer-events:none;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.06), transparent);
       animation: lqShimmer 1.6s infinite; }
   `}</style>
 );
@@ -94,7 +94,7 @@ export function LoadingScreen({ label = "Loading LuxQuant", fullscreen = true })
             LuxQuant
           </span>
           {/* Indeterminate shimmer bar */}
-          <div style={{ position: "relative", width: 140, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{ position: "relative", width: 140, height: 2, borderRadius: 2, background: "rgb(var(--ink) / 0.08)", overflow: "hidden" }}>
             <span
               style={{
                 position: "absolute", top: 0, bottom: 0, width: "40%", borderRadius: 2,
@@ -142,7 +142,7 @@ export function PageSkeleton() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-4 space-y-3">
+          <div key={i} className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] p-4 space-y-3">
             <Skeleton className="h-2 w-16" />
             <Skeleton className="h-6 w-24" />
             <Skeleton className="h-1 w-full" />
@@ -151,13 +151,13 @@ export function PageSkeleton() {
       </div>
 
       {/* Data list / table */}
-      <div className="rounded-lg border border-white/[0.06] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+      <div className="rounded-lg border border-ink/[0.06] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink/[0.06]">
           <Skeleton className="h-2.5 w-28" />
           <Skeleton className="h-2.5 w-16" />
         </div>
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.04]">
+          <div key={i} className="flex items-center gap-3 px-4 py-3.5 border-b border-ink/[0.04]">
             <Skeleton className="h-7 w-7 !rounded-full shrink-0" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-3 w-1/3" />

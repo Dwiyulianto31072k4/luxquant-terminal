@@ -271,7 +271,7 @@ function symbolsPreview(items) {
 function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
   if (pageCount <= 1) return null;
   const btn =
-    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-line/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+    "rounded-md border border-ink/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-line/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-ink/[0.1] disabled:hover:text-text-secondary";
   return (
     <div className="flex items-center justify-between gap-3 px-1 pt-1">
       <span className="font-mono text-[11px] text-text-muted">
@@ -298,7 +298,7 @@ function EventRow({ item, selected, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(open ? null : item.id)}
-      className="grid w-full gap-1 px-4 py-3 text-left transition-colors hover:bg-white/[0.02] md:grid-cols-[130px_1fr_140px] md:gap-3"
+      className="grid w-full gap-1 px-4 py-3 text-left transition-colors hover:bg-ink/[0.02] md:grid-cols-[130px_1fr_140px] md:gap-3"
     >
       <span className="font-mono text-[11px] text-text-muted">
         {fmtDateTime(item.created_at)}
@@ -319,7 +319,7 @@ function EventRow({ item, selected, onSelect }) {
           {item.presentation.description}
         </span>
         {open ? (
-          <span className="mt-2 block rounded border border-white/[0.06] bg-black/20 p-3 font-mono text-[10px] leading-5 text-text-muted">
+          <span className="mt-2 block rounded border border-ink/[0.06] bg-scrim/20 p-3 font-mono text-[10px] leading-5 text-text-muted">
             Event: {item.action}
             <br />
             Source: {item.presentation.source}
@@ -345,7 +345,7 @@ function GroupRow({ group, expanded, onToggle, selected, onSelect }) {
       <button
         type="button"
         onClick={onToggle}
-        className="grid w-full gap-1 px-4 py-3 text-left transition-colors hover:bg-white/[0.02] md:grid-cols-[130px_1fr_140px] md:gap-3"
+        className="grid w-full gap-1 px-4 py-3 text-left transition-colors hover:bg-ink/[0.02] md:grid-cols-[130px_1fr_140px] md:gap-3"
       >
         <span className="font-mono text-[11px] text-text-muted">
           {fmtTime(last.created_at)} – {fmtTime(first.created_at)}
@@ -373,7 +373,7 @@ function GroupRow({ group, expanded, onToggle, selected, onSelect }) {
         </span>
       </button>
       {expanded ? (
-        <div className="divide-y divide-white/[0.04] border-t border-white/[0.05] bg-white/[0.01]">
+        <div className="divide-y divide-ink/[0.04] border-t border-ink/[0.05] bg-ink/[0.01]">
           {items.map((item) => (
             <EventRow
               key={item.id}
@@ -500,7 +500,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
                 className={`rounded-[3px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                   filter === id
                     ? "border-line/35 bg-gold-primary/10 text-gold-primary"
-                    : "border-white/[0.07] text-text-muted hover:text-text-primary"
+                    : "border-ink/[0.07] text-text-muted hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -519,7 +519,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
       ) : (
         <>
           <Card padded={false}>
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-ink/[0.05]">
               {pagedRows.map((row) =>
                 row.type === "group" ? (
                   <GroupRow

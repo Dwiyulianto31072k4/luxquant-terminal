@@ -27,7 +27,7 @@ export const SidePanel = ({
   const header = (
     <div className="flex min-w-0 items-center gap-2.5">
       {Icon && (
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] bg-ink/[0.04]">
           <Icon size={14} className="text-text-muted" />
         </span>
       )}

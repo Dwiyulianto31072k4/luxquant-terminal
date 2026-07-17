@@ -42,7 +42,7 @@ const MarketConditionLineChart = ({ timeline }) => {
           </linearGradient>
         </defs>
         {[0, 0.5, 1].map((f, i) => (
-          <line key={i} x1={padX} x2={W - padX} y1={padY + f * (H - padY * 2)} y2={padY + f * (H - padY * 2)} stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+          <line key={i} x1={padX} x2={W - padX} y1={padY + f * (H - padY * 2)} y2={padY + f * (H - padY * 2)} stroke="rgb(var(--ink) / 0.03)" strokeWidth="0.5" />
         ))}
         <path d={areaD} fill="url(#flowGrad)" />
         <path d={pathD} fill="none" stroke="#d4a853" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
@@ -68,7 +68,7 @@ const CoinRow = ({ coin, rank, verdict, onClick }) => {
   const rs = coin.risk_score || 0;
   return (
     <div onClick={onClick}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all hover:bg-white/[0.03] active:scale-[0.99] group"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all hover:bg-ink/[0.03] active:scale-[0.99] group"
       style={{ borderLeft: `2px solid ${vc}40` }}>
       <span className="w-5 text-center text-[10px] font-bold flex-shrink-0" style={{ color: rank <= 3 ? '#d4a853' : '#6b5c52' }}>{rank}</span>
       <CoinLogo pair={coin.pair} size={28} />
@@ -189,7 +189,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
 
       {!collapsed && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-surface-raised border border-white/[0.05] rounded-xl p-4 shadow-sm">
+          <div className="bg-surface-raised border border-ink/[0.05] rounded-xl p-4 shadow-sm">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">LuxQuant Winrate (Last 7 Days)</p>
 
@@ -201,7 +201,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
               </div>
 
             </div>
-            <div className="bg-white/[0.01] border border-white/[0.02] rounded-xl p-3 overflow-x-auto">
+            <div className="bg-ink/[0.01] border border-ink/[0.02] rounded-xl p-3 overflow-x-auto">
               <div className="min-w-[400px]">
                 <MarketConditionLineChart timeline={data.flow_timeline} />
               </div>

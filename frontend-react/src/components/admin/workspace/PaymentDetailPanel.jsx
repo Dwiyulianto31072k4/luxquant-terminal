@@ -43,10 +43,10 @@ const PANEL = {
   card: '#0a0805',
   inset: '#0c0a07',
   raised: '#100c08',
-  border: 'rgba(255,255,255,0.08)',
-  borderSoft: 'rgba(255,255,255,0.06)',
+  border: 'rgb(var(--ink) / 0.08)',
+  borderSoft: 'rgb(var(--ink) / 0.06)',
   hairline: 'linear-gradient(to right, transparent, rgba(212,168,83,0.45), transparent)',
-  label: 'rgba(255,255,255,0.42)',
+  label: 'rgb(var(--ink) / 0.42)',
   muted: '#8a7a6e',
   text: '#f5f0e8',
 };
@@ -128,7 +128,7 @@ const ExchangeRow = ({ exchangeName, walletLabel }) => {
   return (
     <div
       className="flex items-center justify-between gap-3 py-2"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: '1px solid rgb(var(--ink) / 0.04)' }}
     >
       <span
         className="text-[10px] uppercase tracking-wider shrink-0"
@@ -181,9 +181,9 @@ const TONE = {
     iconBg: '#c2410c',
   },
   muted: {
-    color: 'rgba(255,255,255,0.72)',
+    color: 'rgb(var(--ink) / 0.72)',
     bg: '#0c0a07',
-    border: 'rgba(255,255,255,0.12)',
+    border: 'rgb(var(--ink) / 0.12)',
     iconBg: '#120f0c',
   },
   gold: {
@@ -206,7 +206,7 @@ const ActionBtn = ({ Icon, label, tone = 'gold', onClick, disabled, busy, classN
         background: t.bg,
         color: t.color,
         border: `1px solid ${t.border}`,
-        boxShadow: tone === 'gold' ? '0 4px 14px rgba(212,168,83,0.22)' : '0 2px 8px rgba(0,0,0,0.35)',
+        boxShadow: tone === 'gold' ? '0 4px 14px rgba(212,168,83,0.22)' : '0 2px 8px rgb(var(--scrim) / 0.35)',
       }}
     >
       {busy ? (
@@ -218,7 +218,7 @@ const ActionBtn = ({ Icon, label, tone = 'gold', onClick, disabled, busy, classN
         <span
           className="inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0"
           style={{
-            background: t.solidIcon ? 'rgba(0,0,0,0.12)' : t.iconBg,
+            background: t.solidIcon ? 'rgb(var(--ink) / 0.12)' : t.iconBg,
             color: t.color,
           }}
         >
@@ -380,7 +380,7 @@ const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
 const PaymentDateRow = ({ verifiedAt }) => (
   <div
     className="flex items-center justify-between gap-3 py-2.5"
-    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+    style={{ borderBottom: '1px solid rgb(var(--ink) / 0.04)' }}
   >
     <span
       className="text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5"
@@ -706,7 +706,7 @@ export const PaymentDetailPanel = ({
             {/* Danger zone: void (recoverable) / delete (permanent) / restore */}
             <div
               className="mt-2 pt-2 grid grid-cols-2 gap-2"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ borderTop: '1px solid rgb(var(--ink) / 0.06)' }}
             >
               {p?.is_deleted ? (
                 <ActionBtn
@@ -947,9 +947,9 @@ export const PaymentDetailPanel = ({
                 <pre
                   className="rounded-lg p-2.5 text-[10px] font-mono overflow-x-auto max-h-60 overflow-y-auto"
                   style={{
-                    background: 'rgba(0,0,0,0.4)',
+                    background: 'rgb(var(--scrim) / 0.35)',
                     color: 'rgb(var(--fg-secondary))',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid rgb(var(--ink) / 0.06)',
                   }}
                 >
                   {JSON.stringify(payment.bscscan_data, null, 2)}
@@ -964,9 +964,9 @@ export const PaymentDetailPanel = ({
               <pre
                 className="rounded-lg p-3 text-[10.5px] font-mono whitespace-pre-wrap leading-relaxed"
                 style={{
-                  background: 'rgba(0,0,0,0.30)',
+                  background: 'rgb(var(--scrim) / 0.3)',
                   color: 'rgb(var(--fg-secondary))',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid rgb(var(--ink) / 0.06)',
                   maxHeight: 220,
                   overflowY: 'auto',
                 }}

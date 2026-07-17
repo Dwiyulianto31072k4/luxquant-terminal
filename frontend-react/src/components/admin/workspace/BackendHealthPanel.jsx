@@ -45,7 +45,7 @@ const gauge = (pct) =>
 const Tile = ({ color, Icon, label, children }) => (
   <div
     className="rounded-xl p-3 flex-1 min-w-[150px]"
-    style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(color, 0.16)}`, boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}
+    style={{ background: 'rgb(var(--surface-raised))', border: `1px solid ${tint(color, 0.16)}`, boxShadow: '0 4px 14px rgb(var(--scrim) / 0.3)' }}
   >
     <div className="flex items-center gap-1.5 mb-1.5">
       <Icon size={12} style={{ color }} />
@@ -58,7 +58,7 @@ const Tile = ({ color, Icon, label, children }) => (
 );
 
 const Bar = ({ pct, color }) => (
-  <div className="h-1.5 rounded-full mt-1.5 overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+  <div className="h-1.5 rounded-full mt-1.5 overflow-hidden" style={{ background: 'rgb(var(--ink) / 0.06)' }}>
     <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: color, transition: motion.base }} />
   </div>
 );
@@ -75,7 +75,7 @@ const Sparkline = ({ hourly, color }) => {
           className="flex-1 rounded-[1px]"
           style={{
             height: `${Math.max(6, (v / max) * 100)}%`,
-            background: v > 0 ? color : 'rgba(255,255,255,0.05)',
+            background: v > 0 ? color : 'rgb(var(--ink) / 0.05)',
           }}
         />
       ))}
@@ -111,7 +111,7 @@ export const BackendHealthPanel = () => {
 
   if (loading && !d) {
     return (
-      <div className="rounded-xl p-4 mb-4 flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${tint(palette.warm[100], 0.1)}`, color: palette.warm[400] }}>
+      <div className="rounded-xl p-4 mb-4 flex items-center gap-2" style={{ background: 'rgb(var(--ink) / 0.02)', border: `1px solid ${tint(palette.warm[100], 0.1)}`, color: 'rgb(var(--fg-muted))' }}>
         <LoaderIcon size={14} className="animate-spin" />
         <span className="text-[12px]">Reading backend telemetry…</span>
       </div>
@@ -144,7 +144,7 @@ export const BackendHealthPanel = () => {
           <span className="text-[11px] uppercase tracking-[0.16em] font-semibold" style={{ color: palette.gold[300] }}>
             Backend Health
           </span>
-          <span className="text-[10px]" style={{ color: palette.warm[500] }}>· last 24h</span>
+          <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>· last 24h</span>
         </div>
         <div className="flex items-center gap-2.5">
           {uptime && (
@@ -169,10 +169,10 @@ export const BackendHealthPanel = () => {
         <Tile color={toColor} Icon={AlertTriangleIcon} label="Worker Timeout">
           <div className="flex items-baseline gap-1.5">
             <span className="text-[22px] font-bold tabular-nums" style={{ color: toColor }}>{to.count_24h ?? 0}</span>
-            <span className="text-[10px]" style={{ color: palette.warm[400] }}>/ 24h</span>
+            <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>/ 24h</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px]" style={{ color: palette.warm[400] }}>
-            <span>1h: <b style={{ color: to.count_1h > 0 ? palette.red[400] : palette.warm[300] }}>{to.count_1h ?? 0}</b></span>
+          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
+            <span>1h: <b style={{ color: to.count_1h > 0 ? palette.red[400] : 'rgb(var(--fg-secondary))' }}>{to.count_1h ?? 0}</b></span>
             {to.last && <span>· last {fmtAgo(to.last)}</span>}
           </div>
           {Array.isArray(to.hourly) && <Sparkline hourly={to.hourly} color={toColor} />}
@@ -182,11 +182,11 @@ export const BackendHealthPanel = () => {
         <Tile color={palette.amber[400]} Icon={ClockIcon} label="Slow Requests">
           <div className="flex items-baseline gap-1.5">
             <span className="text-[22px] font-bold tabular-nums" style={{ color: palette.amber[400] }}>{slow.count_24h ?? 0}</span>
-            <span className="text-[10px]" style={{ color: palette.warm[400] }}>/ 24h</span>
+            <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>/ 24h</span>
           </div>
           {slow.top && slow.top[0] ? (
-            <p className="text-[10px] mt-1 truncate" style={{ color: palette.warm[400] }}>
-              worst: <span style={{ color: palette.warm[200] }}>{slow.top[0].path}</span> ({slow.top[0].max_s}s)
+            <p className="text-[10px] mt-1 truncate" style={{ color: 'rgb(var(--fg-muted))' }}>
+              worst: <span style={{ color: 'rgb(var(--fg-secondary))' }}>{slow.top[0].path}</span> ({slow.top[0].max_s}s)
             </p>
           ) : (
             <p className="text-[10px] mt-1" style={{ color: palette.green[400] }}>none</p>
@@ -201,10 +201,10 @@ export const BackendHealthPanel = () => {
             <>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-[22px] font-bold tabular-nums" style={{ color: dbColor }}>{db.used ?? '–'}</span>
-                <span className="text-[10px]" style={{ color: palette.warm[400] }}>/ {db.max ?? '?'} ({db.pct ?? 0}%)</span>
+                <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>/ {db.max ?? '?'} ({db.pct ?? 0}%)</span>
               </div>
               <Bar pct={db.pct || 0} color={dbColor} />
-              <div className="text-[10px] mt-1" style={{ color: palette.warm[400] }}>
+              <div className="text-[10px] mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>
                 active {db.active ?? 0} · idle {db.idle ?? 0}
                 {db.idle_in_tx > 0 && <span style={{ color: palette.amber[400] }}> · idle-tx {db.idle_in_tx}</span>}
               </div>
@@ -220,12 +220,12 @@ export const BackendHealthPanel = () => {
             <>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-[22px] font-bold tabular-nums" style={{ color: redisColor }}>{redis.used_mb ?? '–'}</span>
-                <span className="text-[10px]" style={{ color: palette.warm[400] }}>
+                <span className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>
                   MB{redis.max_mb ? ` / ${redis.max_mb} (${redis.pct}%)` : ''}
                 </span>
               </div>
               {redis.max_mb ? <Bar pct={redis.pct || 0} color={redisColor} /> : null}
-              {redis.policy && <div className="text-[10px] mt-1" style={{ color: palette.warm[400] }}>{redis.policy}</div>}
+              {redis.policy && <div className="text-[10px] mt-1" style={{ color: 'rgb(var(--fg-muted))' }}>{redis.policy}</div>}
             </>
           )}
         </Tile>
@@ -237,7 +237,7 @@ export const BackendHealthPanel = () => {
           <button
             onClick={() => setOpen((o) => !o)}
             className="text-[10px] font-semibold"
-            style={{ color: palette.warm[400] }}
+            style={{ color: 'rgb(var(--fg-muted))' }}
           >
             {open ? '▾ hide details' : '▸ show details'}
             {d.errors?.count_24h > 0 && (
@@ -257,10 +257,10 @@ export const BackendHealthPanel = () => {
                   <div className="space-y-1">
                     {slow.top.map((s, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
-                        <span className="truncate" style={{ color: palette.warm[200] }}>
-                          <span style={{ color: palette.warm[500] }}>{s.method}</span> {s.path}
+                        <span className="truncate" style={{ color: 'rgb(var(--fg-secondary))' }}>
+                          <span style={{ color: 'rgb(var(--fg-muted))' }}>{s.method}</span> {s.path}
                         </span>
-                        <span className="tabular-nums shrink-0" style={{ color: palette.warm[400] }}>
+                        <span className="tabular-nums shrink-0" style={{ color: 'rgb(var(--fg-muted))' }}>
                           {s.count}× · <b style={{ color: palette.amber[400] }}>{s.max_s}s</b>
                         </span>
                       </div>
@@ -283,8 +283,8 @@ export const BackendHealthPanel = () => {
                   <div className="space-y-1.5">
                     {d.errors.recent.map((e, i) => (
                       <div key={i} className="text-[10px] leading-snug">
-                        <span className="tabular-nums" style={{ color: palette.warm[500] }}>{fmtAgo(e.ts)}</span>
-                        <span className="ml-1.5" style={{ color: palette.warm[200] }}>{e.msg}</span>
+                        <span className="tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>{fmtAgo(e.ts)}</span>
+                        <span className="ml-1.5" style={{ color: 'rgb(var(--fg-secondary))' }}>{e.msg}</span>
                       </div>
                     ))}
                   </div>

@@ -852,7 +852,7 @@ function scrollToId(id) {
 // ── Presentational helpers ──────────────────────────────────────────
 
 const StatCard = ({ label, value, accent, icon }) => (
-  <div className="rounded-xl px-4 py-3 border border-white/5 bg-white/[0.02]">
+  <div className="rounded-xl px-4 py-3 border border-ink/5 bg-ink/[0.02]">
     <div className="flex items-center gap-1.5 mb-1">
       {icon && (
         <svg
@@ -886,7 +886,7 @@ const SectionHead = ({ children }) => (
 // One key as a Stripe-style table row (stacks on mobile).
 const KeyRow = ({ k, onRevoke, revoking, t }) => (
   <div
-    className={`px-4 sm:px-5 py-3.5 border-t border-white/[0.05] ${KEY_GRID} ${k.is_active ? "" : "opacity-60"}`}
+    className={`px-4 sm:px-5 py-3.5 border-t border-ink/[0.05] ${KEY_GRID} ${k.is_active ? "" : "opacity-60"}`}
   >
     {/* Name + status */}
     <div className="min-w-0 flex items-center gap-2">
@@ -954,8 +954,8 @@ const CodeBlock = ({
     }
   };
   return (
-    <div className="rounded-lg bg-black/40 border border-white/5 overflow-hidden my-2">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5">
+    <div className="rounded-lg bg-scrim/40 border border-ink/5 overflow-hidden my-2">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-ink/5">
         <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
           {lang}
         </span>
@@ -988,8 +988,8 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
     }
   };
   return (
-    <div className="rounded-lg bg-black/40 border border-white/5 overflow-hidden my-2">
-      <div className="flex items-center justify-between border-b border-white/5">
+    <div className="rounded-lg bg-scrim/40 border border-ink/5 overflow-hidden my-2">
+      <div className="flex items-center justify-between border-b border-ink/5">
         <div className="flex">
           {tabs.map((tb, i) => (
             <button
@@ -1037,7 +1037,7 @@ const DocSection = ({ id, title, children }) => (
 
 // Inline mono token.
 const Mono = ({ children }) => (
-  <code className="font-mono text-[12px] text-gold-light bg-black/30 px-1.5 py-0.5 rounded border border-white/[0.06]">
+  <code className="font-mono text-[12px] text-gold-light bg-scrim/30 px-1.5 py-0.5 rounded border border-ink/[0.06]">
     {children}
   </code>
 );
@@ -1056,7 +1056,7 @@ const ParamTable = ({ rows }) => (
       </thead>
       <tbody>
         {rows.map(([name, type, req, desc]) => (
-          <tr key={name} className="border-t border-white/[0.05] align-top">
+          <tr key={name} className="border-t border-ink/[0.05] align-top">
             <td className="py-2 pr-3">
               <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
                 {name}
@@ -1092,7 +1092,7 @@ const FieldTable = ({ rows }) => (
       </thead>
       <tbody>
         {rows.map(([name, meaning]) => (
-          <tr key={name} className="border-t border-white/[0.05] align-top">
+          <tr key={name} className="border-t border-ink/[0.05] align-top">
             <td className="py-2 pr-3">
               <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
                 {name}
@@ -1111,12 +1111,12 @@ const FieldTable = ({ rows }) => (
 const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
   <div
     id={ep._id}
-    className="scroll-mt-24 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden"
+    className="scroll-mt-24 rounded-xl border border-ink/5 bg-ink/[0.02] overflow-hidden"
   >
     <button
       onClick={onToggle}
       aria-expanded={open}
-      className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-white/[0.02] transition-colors"
+      className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-ink/[0.02] transition-colors"
     >
       <div className="flex items-center gap-2 flex-wrap min-w-0">
         <span className="font-mono text-[10px] font-bold text-emerald-400/80 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
@@ -1142,7 +1142,7 @@ const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
     </button>
 
     {open && (
-      <div className="px-4 pb-4 pt-3 border-t border-white/5 space-y-3">
+      <div className="px-4 pb-4 pt-3 border-t border-ink/5 space-y-3">
         <p className="text-text-secondary text-[13px]">{ep.summary}</p>
 
         {ep.params?.length > 0 && (
@@ -1202,21 +1202,21 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
               className={`w-full text-left px-2 py-1.5 rounded-md transition-colors flex items-center gap-2 ${
                 isActive
                   ? "text-gold-primary bg-gold-primary/10"
-                  : "text-text-secondary hover:text-text-primary hover:bg-white/[0.03]"
+                  : "text-text-secondary hover:text-text-primary hover:bg-ink/[0.03]"
               }`}
             >
               <span
-                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-gold-primary" : "bg-white/20"}`}
+                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-gold-primary" : "bg-ink/20"}`}
               />
               <span className="truncate">{s.label}</span>
             </button>
             {s.children && isActive && (
-              <ul className="mt-0.5 ml-3 border-l border-white/10 space-y-0.5">
+              <ul className="mt-0.5 ml-3 border-l border-ink/10 space-y-0.5">
                 {s.children.map((c) => (
                   <li key={c.id}>
                     <button
                       onClick={() => onEndpointNav(c.id)}
-                      className="w-full text-left pl-3 pr-2 py-1 rounded-md font-mono text-[11px] text-text-muted hover:text-gold-light hover:bg-white/[0.03] transition-colors truncate"
+                      className="w-full text-left pl-3 pr-2 py-1 rounded-md font-mono text-[11px] text-text-muted hover:text-gold-light hover:bg-ink/[0.03] transition-colors truncate"
                     >
                       {c.label}
                     </button>
@@ -1233,7 +1233,7 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
 
 // Sticky horizontal chip nav (mobile).
 const TocChips = ({ active, onNavigate }) => (
-  <div className="lg:hidden sticky top-14 z-20 -mx-5 sm:-mx-6 px-5 sm:px-6 py-2 mb-4 bg-bg-primary/95 backdrop-blur-sm border-b border-white/5">
+  <div className="lg:hidden sticky top-14 z-20 -mx-5 sm:-mx-6 px-5 sm:px-6 py-2 mb-4 bg-bg-primary/95 backdrop-blur-sm border-b border-ink/5">
     <div
       className="flex gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden"
       style={{ scrollbarWidth: "none" }}
@@ -1245,7 +1245,7 @@ const TocChips = ({ active, onNavigate }) => (
           className={`px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap transition-colors flex-shrink-0 border ${
             active === s.id
               ? "bg-gold-primary/15 text-gold-primary border-line/30"
-              : "bg-white/[0.03] text-text-secondary border-white/5"
+              : "bg-ink/[0.03] text-text-secondary border-ink/5"
           }`}
         >
           {s.label}
@@ -1430,7 +1430,7 @@ const ApiKeysPage = () => {
           className="rounded-2xl p-5 border border-line/20 relative overflow-hidden"
           style={{
             background:
-              "linear-gradient(160deg, rgba(212,168,83,0.08), rgba(255,255,255,0.01))",
+              "linear-gradient(160deg, rgba(212,168,83,0.08), rgb(var(--ink) / 0.01))",
           }}
         >
           <div className="flex items-start gap-3">
@@ -1480,7 +1480,7 @@ const ApiKeysPage = () => {
           className="rounded-2xl p-5 border border-line/40 relative overflow-hidden"
           style={{
             background:
-              "linear-gradient(160deg, rgba(212,168,83,0.10), rgba(255,255,255,0.01))",
+              "linear-gradient(160deg, rgba(212,168,83,0.10), rgb(var(--ink) / 0.01))",
           }}
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
@@ -1506,7 +1506,7 @@ const ApiKeysPage = () => {
             ⚠ {t("apiKeys.created_warn")}
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-3 py-2.5 rounded-lg font-mono text-[12px] sm:text-[13px] text-gold-light bg-black/40 border border-white/10 break-all">
+            <code className="flex-1 px-3 py-2.5 rounded-lg font-mono text-[12px] sm:text-[13px] text-gold-light bg-scrim/40 border border-ink/10 break-all">
               {justCreated.key}
             </code>
             <button
@@ -1526,9 +1526,9 @@ const ApiKeysPage = () => {
       )}
 
       {/* ── Keys panel (Stripe-style table) ── */}
-      <section className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
+      <section className="rounded-2xl border border-ink/5 bg-ink/[0.02] overflow-hidden">
         {/* Panel header */}
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/5">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink/5">
           <div>
             <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
               {t("apiKeys.your_keys")}
@@ -1542,7 +1542,7 @@ const ApiKeysPage = () => {
               onClick={() => setShowCreate((v) => !v)}
               className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
                 showCreate
-                  ? "text-text-secondary border border-white/10 hover:text-text-primary hover:bg-white/[0.03]"
+                  ? "text-text-secondary border border-ink/10 hover:text-text-primary hover:bg-ink/[0.03]"
                   : "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow"
               }`}
             >
@@ -1555,7 +1555,7 @@ const ApiKeysPage = () => {
 
         {/* Inline create form */}
         {hasAccess && showCreate && (
-          <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01]">
+          <div className="px-5 py-4 border-b border-ink/5 bg-ink/[0.01]">
             <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-text-muted mb-2">
               {t("apiKeys.create_title")}
             </p>
@@ -1568,7 +1568,7 @@ const ApiKeysPage = () => {
                 placeholder={t("apiKeys.name_placeholder")}
                 maxLength={60}
                 autoFocus
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-line/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-ink/[0.03] border border-ink/10 placeholder:text-text-muted/70 focus:outline-none focus:border-line/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
               />
               <button
                 onClick={handleCreate}
@@ -1589,7 +1589,7 @@ const ApiKeysPage = () => {
         {/* Table header (sm+) */}
         {!loading && keys.length > 0 && (
           <div
-            className={`hidden ${KEY_GRID} px-5 py-2.5 text-[10px] font-mono uppercase tracking-wider text-text-muted bg-white/[0.01] border-b border-white/5`}
+            className={`hidden ${KEY_GRID} px-5 py-2.5 text-[10px] font-mono uppercase tracking-wider text-text-muted bg-ink/[0.01] border-b border-ink/5`}
           >
             <span>{t("apiKeys.col_name", { defaultValue: "Name" })}</span>
             <span>{t("apiKeys.col_key", { defaultValue: "Key" })}</span>
@@ -1622,10 +1622,10 @@ const ApiKeysPage = () => {
             ))}
 
             {revokedKeys.length > MAX_REVOKED_VISIBLE && (
-              <div className="px-5 py-3 border-t border-white/[0.05]">
+              <div className="px-5 py-3 border-t border-ink/[0.05]">
                 <button
                   onClick={() => setShowAllRevoked((v) => !v)}
-                  className="w-full py-2 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-secondary border border-white/5 hover:border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
+                  className="w-full py-2 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-secondary border border-ink/5 hover:border-ink/10 bg-ink/[0.01] hover:bg-ink/[0.03] transition-colors"
                 >
                   {showAllRevoked
                     ? t("apiKeys.show_less", { defaultValue: "Show less" })
@@ -1643,7 +1643,7 @@ const ApiKeysPage = () => {
       {/* ── Quick start + Security (two cards) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Quick start */}
-        <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
+        <div className="rounded-2xl p-5 border border-ink/5 bg-ink/[0.02]">
           <SectionHead>{t("apiKeys.usage_title")}</SectionHead>
           <p className="text-text-secondary text-[13px] mb-3">
             {t("apiKeys.usage_desc")}
@@ -1663,7 +1663,7 @@ const ApiKeysPage = () => {
         </div>
 
         {/* Security & limits */}
-        <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
+        <div className="rounded-2xl p-5 border border-ink/5 bg-ink/[0.02]">
           <SectionHead>
             {t("apiKeys.security_title", { defaultValue: "Security & limits" })}
           </SectionHead>
@@ -1701,9 +1701,9 @@ const ApiKeysPage = () => {
       {/* ══════════════════════════════════════════════════════════════
           FULL API DOCUMENTATION (sticky-TOC + content)
           ══════════════════════════════════════════════════════════════ */}
-      <div className="rounded-2xl p-5 sm:p-6 border border-white/5 bg-white/[0.02]">
+      <div className="rounded-2xl p-5 sm:p-6 border border-ink/5 bg-ink/[0.02]">
         {/* Doc header */}
-        <div className="pb-3 mb-4 border-b border-white/5">
+        <div className="pb-3 mb-4 border-b border-ink/5">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1 h-3 rounded-full bg-gold-primary" />
             <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
@@ -1934,7 +1934,7 @@ const ApiKeysPage = () => {
                     {STATUS_VALUES.map(([val, desc]) => (
                       <tr
                         key={val}
-                        className="border-t border-white/[0.05] align-top"
+                        className="border-t border-ink/[0.05] align-top"
                       >
                         <td className="py-2 pr-4">
                           <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">

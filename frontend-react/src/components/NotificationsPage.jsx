@@ -66,13 +66,13 @@ const toneStyle = (tone) => {
     return "bg-gold-primary/10 text-gold-primary border-line/25";
   if (tone === "danger")
     return "bg-red-500/10 text-red-400 border-red-500/25";
-  return "bg-white/[0.04] text-text-primary/70 border-white/[0.08]";
+  return "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
 
 const toneDot = (tone) => {
   if (tone === "gold") return "bg-gold-primary";
   if (tone === "danger") return "bg-red-400";
-  return "bg-white/40";
+  return "bg-ink/40";
 };
 
 
@@ -304,7 +304,7 @@ const NotificationsPage = () => {
       </div>
 
       {/* ── Top-level tab switcher ── */}
-      <div className="flex items-center gap-1 border-b border-white/[0.06]">
+      <div className="flex items-center gap-1 border-b border-ink/[0.06]">
         {topTabs.map((tab) => {
           const active = view === tab.key;
           return (
@@ -338,7 +338,7 @@ const NotificationsPage = () => {
         <div className="space-y-4">
           {/* ── Toolbar: view segmented + type dropdown ── */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] p-0.5">
+            <div className="inline-flex items-center rounded-md border border-ink/[0.08] bg-ink/[0.02] p-0.5">
               {["all", "unread"].map((tab) => {
                 const active = activeTab === tab;
                 const count = tab === "unread" ? unreadCount : total;
@@ -362,7 +362,7 @@ const NotificationsPage = () => {
               <select
                 value={typeFilter || ""}
                 onChange={(e) => { setTypeFilter(e.target.value || null); setPage(1); }}
-                className="appearance-none cursor-pointer rounded-md border border-white/[0.08] bg-white/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-white/[0.15] hover:text-text-primary focus:outline-none focus:border-line/40 transition-all"
+                className="appearance-none cursor-pointer rounded-md border border-ink/[0.08] bg-ink/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-ink/[0.15] hover:text-text-primary focus:outline-none focus:border-line/40 transition-all"
               >
                 {typeFilters.map((f) => (
                   <option key={f.key || "all"} value={f.key || ""} className="bg-surface-raised text-text-primary">
@@ -412,7 +412,7 @@ const NotificationsPage = () => {
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 transition-all"
+                    className="px-3 py-1.5 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-30 transition-all"
                   >
                     ← Prev
                   </button>
@@ -422,7 +422,7 @@ const NotificationsPage = () => {
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-white/[0.15] disabled:opacity-30 transition-all"
+                    className="px-3 py-1.5 rounded-md border border-ink/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-30 transition-all"
                   >
                     Next →
                   </button>
@@ -449,8 +449,8 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
       onClick={onClick}
       className={`group relative flex items-start gap-3 pl-4 pr-3 py-3 rounded-md border cursor-pointer transition-all ${
         isUnread
-          ? "bg-gold-primary/[0.03] border-white/[0.06] hover:border-line/25"
-          : "bg-transparent border-white/[0.04] hover:bg-white/[0.015] hover:border-white/[0.10]"
+          ? "bg-gold-primary/[0.03] border-ink/[0.06] hover:border-line/25"
+          : "bg-transparent border-ink/[0.04] hover:bg-ink/[0.015] hover:border-ink/[0.10]"
       }`}
     >
       {isUnread && (
@@ -478,7 +478,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
         {notif.data && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {(notif.data.pair || notif.data.symbol) && (
-              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-white/[0.04] border-white/[0.08] text-text-primary/70 tabular-nums">
+              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-primary/70 tabular-nums">
                 {notif.data.pair || notif.data.symbol}
               </span>
             )}
@@ -506,7 +506,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
               </span>
             )}
             {notif.data.total_signals && (
-              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-white/[0.04] border-white/[0.08] text-text-muted tabular-nums">
+              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-muted tabular-nums">
                 {notif.data.total_signals} signals
               </span>
             )}
@@ -548,15 +548,15 @@ const LoadingSkeleton = () => (
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
-        className="bg-surface-raised border border-white/[0.06] rounded-md p-3.5 flex items-start gap-3"
+        className="bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 flex items-start gap-3"
       >
         <div className="flex flex-col items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-white/[0.04]" />
-          <div className="w-12 h-3 bg-white/[0.04] rounded" />
+          <div className="w-1.5 h-1.5 rounded-full bg-ink/[0.04]" />
+          <div className="w-12 h-3 bg-ink/[0.04] rounded" />
         </div>
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/2" />
-          <div className="h-2.5 bg-white/[0.03] rounded w-3/4" />
+          <div className="h-3 bg-ink/[0.05] rounded w-1/2" />
+          <div className="h-2.5 bg-ink/[0.03] rounded w-3/4" />
         </div>
       </div>
     ))}
@@ -564,7 +564,7 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = ({ t }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-white/[0.06] rounded-md p-12 text-center">
+  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
       <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

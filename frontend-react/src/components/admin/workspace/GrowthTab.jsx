@@ -57,13 +57,13 @@ const RevenueTrend = ({ trend }) => {
                 className="w-full rounded-t-sm transition-all"
                 style={{
                   height: `${h}%`,
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.14))',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                  background: 'linear-gradient(180deg, rgb(var(--ink) / 0.42), rgb(var(--ink) / 0.14))',
+                  boxShadow: 'inset 0 1px 0 rgb(var(--ink) / 0.2)',
                 }}
                 title={`${t.month}: ${usd(t.revenue)} · ${t.count} payments`}
               />
             </div>
-            <span className="text-[8.5px] tabular-nums" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <span className="text-[8.5px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.35)' }}>
               {monthLabel(t.month)}
             </span>
           </div>
@@ -100,11 +100,11 @@ const ReferralTable = ({ referral }) => {
   return (
     <div className="space-y-1.5">
       {rows.map((r, i) => (
-        <div key={r.username + i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div key={r.username + i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg" style={{ background: 'rgb(var(--ink) / 0.02)' }}>
           <span className="w-4 text-center font-mono text-[11px] font-bold tabular-nums text-text-muted">{i + 1}</span>
-          <Avatar name={r.username} tone="rgba(255,255,255,0.4)" size="xs" />
+          <Avatar name={r.username} tone="rgb(var(--ink) / 0.4)" size="xs" />
           <span className="flex-1 text-[12px] font-medium text-text-primary truncate">@{r.username}</span>
-          <span className="text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.55)' }}>{num(r.referred)} ref</span>
+          <span className="text-[11px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.55)' }}>{num(r.referred)} ref</span>
           <span className="w-16 text-right text-[11px] font-semibold tabular-nums" style={{ color: palette.green[400] }}>{usd2(r.commission)}</span>
         </div>
       ))}
@@ -121,7 +121,7 @@ const ChurnRisk = ({ risk }) => {
   return (
     <div className="space-y-1.5">
       {risk.map((u) => (
-        <div key={u.id} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div key={u.id} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.05)' }}>
           <div className="flex items-center gap-2.5 min-w-0">
             <Avatar name={u.username} tone={palette.red[400]} size="sm" />
             <div className="min-w-0">
@@ -210,7 +210,7 @@ export const GrowthTab = () => {
           type="button"
           onClick={() => fetchGrowth(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.08] disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.08] disabled:opacity-50"
         >
           <RefreshIcon size={12} />
           {refreshing ? 'Refreshing…' : 'Refresh'}
@@ -271,8 +271,8 @@ export const GrowthTab = () => {
 };
 
 const MiniStat = ({ label, value, tone }) => (
-  <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgba(255,255,255,0.07)' }}>
-    <p className="text-[9.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
+  <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)' }}>
+    <p className="text-[9.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgb(var(--ink) / 0.4)' }}>{label}</p>
     <p className="text-xl font-bold tabular-nums leading-none" style={{ color: 'rgb(var(--fg))' }}>{value}</p>
     <span className="inline-block w-6 h-0.5 rounded-full mt-2" style={{ background: tone }} />
   </div>

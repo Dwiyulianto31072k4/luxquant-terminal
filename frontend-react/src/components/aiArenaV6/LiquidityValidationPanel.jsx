@@ -42,7 +42,7 @@ function StatCard({ label, value, note, tone = "neutral" }) {
   }[tone];
 
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.025] p-4">
+    <div className="rounded-xl border border-ink/5 bg-ink/[0.025] p-4">
       <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-primary/40">
         {label}
       </div>
@@ -57,7 +57,7 @@ function StatCard({ label, value, note, tone = "neutral" }) {
 function ProgressBar({ value, color = "#f5c451" }) {
   const safeValue = Math.max(0, Math.min(1, Number(value) || 0));
   return (
-    <div className="h-2 rounded-full overflow-hidden bg-white/5">
+    <div className="h-2 rounded-full overflow-hidden bg-ink/5">
       <div
         className="h-full rounded-full transition-all"
         style={{ width: `${safeValue * 100}%`, backgroundColor: color }}
@@ -69,7 +69,7 @@ function ProgressBar({ value, color = "#f5c451" }) {
 export default function LiquidityValidationPanel({ data }) {
   if (!data) {
     return (
-      <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+      <section className="rounded-xl border border-ink/5 bg-ink/[0.02] p-5">
         <div className="text-sm text-text-primary/50">
           Liquidity validation monitoring is temporarily unavailable.
         </div>
@@ -87,7 +87,7 @@ export default function LiquidityValidationPanel({ data }) {
   const robustTarget = validation.robust_sample || 100;
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-white/[0.015] p-5 md:p-6">
+    <section className="rounded-2xl border border-ink/5 bg-ink/[0.015] p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-300/70 mb-1">
@@ -135,7 +135,7 @@ export default function LiquidityValidationPanel({ data }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4 mb-5">
-        <div className="rounded-xl border border-white/5 bg-black/10 p-4">
+        <div className="rounded-xl border border-ink/5 bg-scrim/10 p-4">
           <div className="flex justify-between text-[11px] font-mono mb-2">
             <span className="text-text-primary/55">Initial calibration sample</span>
             <span className="text-text-primary/80">{sampleSize}/{initialTarget}</span>
@@ -152,7 +152,7 @@ export default function LiquidityValidationPanel({ data }) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/5 bg-black/10 p-4">
+        <div className="rounded-xl border border-ink/5 bg-scrim/10 p-4">
           <div className="text-[10px] font-mono uppercase tracking-wider text-text-primary/40 mb-3">
             Readiness gates
           </div>
@@ -204,9 +204,9 @@ export default function LiquidityValidationPanel({ data }) {
       </div>
 
       {events.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-white/5">
+        <div className="overflow-x-auto rounded-xl border border-ink/5">
           <table className="w-full min-w-[680px] text-left">
-            <thead className="bg-white/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-primary/35">
+            <thead className="bg-ink/[0.025] text-[9px] font-mono uppercase tracking-wider text-text-primary/35">
               <tr>
                 <th className="px-3 py-2">Time</th>
                 <th className="px-3 py-2">Side</th>
@@ -220,7 +220,7 @@ export default function LiquidityValidationPanel({ data }) {
               {events.map((event, index) => (
                 <tr
                   key={`${event.event_time_iso || "event"}-${index}`}
-                  className="border-t border-white/5 text-xs"
+                  className="border-t border-ink/5 text-xs"
                 >
                   <td className="px-3 py-2 font-mono text-text-primary/50">
                     {event.event_time_iso
@@ -252,7 +252,7 @@ export default function LiquidityValidationPanel({ data }) {
           </table>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-white/10 p-5 text-center">
+        <div className="rounded-xl border border-dashed border-ink/10 p-5 text-center">
           <div className="text-sm text-text-primary/50">
             No BTC liquidation event has arrived since collection started.
           </div>

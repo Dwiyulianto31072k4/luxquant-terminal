@@ -141,7 +141,7 @@ export const ResourcesTab = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search resources…"
-            className="w-full rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-white/30 focus:outline-none"
+            className="w-full rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-ink/30 focus:outline-none"
             style={{ background: surface.sunken.bg, border: `1px solid ${surface.sunken.border}` }}
           />
         </div>
@@ -153,7 +153,7 @@ export const ResourcesTab = () => {
               className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
               style={filter === f.id
                 ? { background: tint(palette.gold[300], 0.18), color: palette.gold[300], border: `1px solid ${tint(palette.gold[300], 0.3)}` }
-                : { background: surface.sunken.bg, color: 'rgba(255,255,255,0.55)', border: `1px solid ${surface.sunken.border}` }}
+                : { background: surface.sunken.bg, color: 'rgb(var(--ink) / 0.55)', border: `1px solid ${surface.sunken.border}` }}
             >
               {f.label}
             </button>
@@ -184,7 +184,7 @@ export const ResourcesTab = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="border-t" style={{ borderColor: surface.base.border }}>
-                    <td colSpan={7} className="px-4 py-4"><div className="h-8 lqsk" style={{ background: 'rgba(255,255,255,0.04)' }} /></td>
+                    <td colSpan={7} className="px-4 py-4"><div className="h-8 lqsk" style={{ background: 'rgb(var(--ink) / 0.04)' }} /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
@@ -194,10 +194,10 @@ export const ResourcesTab = () => {
                   const tm = TYPE_META[r.type] || TYPE_META.article;
                   const cover = cardCover(r);
                   return (
-                    <tr key={r.id} className="border-t hover:bg-white/[0.02]" style={{ borderColor: surface.base.border, transition: motion.base }}>
+                    <tr key={r.id} className="border-t hover:bg-ink/[0.02]" style={{ borderColor: surface.base.border, transition: motion.base }}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0 max-w-[360px]">
-                          <div className="w-12 h-9 rounded-md overflow-hidden flex-shrink-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <div className="w-12 h-9 rounded-md overflow-hidden flex-shrink-0" style={{ background: 'rgb(var(--ink) / 0.05)' }}>
                             {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : null}
                           </div>
                           <div className="min-w-0">
@@ -216,7 +216,7 @@ export const ResourcesTab = () => {
                         </button>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => toggleFeatured(r)} disabled={busy} title="Toggle featured" className="text-lg leading-none" style={{ color: r.is_featured ? palette.gold[300] : 'rgba(255,255,255,0.2)' }}>
+                        <button onClick={() => toggleFeatured(r)} disabled={busy} title="Toggle featured" className="text-lg leading-none" style={{ color: r.is_featured ? palette.gold[300] : 'rgb(var(--ink) / 0.2)' }}>
                           {r.is_featured ? '★' : '☆'}
                         </button>
                       </td>
@@ -250,15 +250,15 @@ export const ResourcesTab = () => {
       )}
 
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
           <div className="rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-sm w-full" style={{ background: surface.glass.bg, border: `1px solid ${tint(palette.red[400], 0.3)}` }} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
-              <div className="h-1 w-10 rounded-full bg-white/25" />
+              <div className="h-1 w-10 rounded-full bg-ink/25" />
             </div>
             <h3 className="text-text-primary font-semibold text-center mb-2">Delete resource?</h3>
             <p className="text-text-primary/50 text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-text-primary/70 hover:text-text-primary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-text-primary/70 hover:text-text-primary" style={{ background: 'rgb(var(--ink) / 0.05)', border: '1px solid rgb(var(--ink) / 0.1)' }}>Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-2.5 rounded-xl text-sm font-bold" style={{ background: tint(palette.red[400], 0.2), color: palette.red[400], border: `1px solid ${tint(palette.red[400], 0.3)}` }}>Delete</button>
             </div>
           </div>
