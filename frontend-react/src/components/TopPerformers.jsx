@@ -5,6 +5,11 @@ import CoinLogo from './CoinLogo';
 import SignalJourneyExtended from './SignalJourneyExtended';
 import SignalModal from './SignalModal';
 import { ShimmerStyles } from './ui/Loaders';
+import {
+  getActiveTheme,
+  getTradingViewTheme,
+  subscribeTheme,
+} from '../utils/themeColors';
 
 const API_BASE = '/api/v1';
 
@@ -631,6 +636,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
  const [isClosing, setIsClosing] = useState(false);
  const [showTV, setShowTV] = useState(false);
  const [peakPrice, setPeakPrice] = useState(null);
+ const [appTheme, setAppTheme] = useState(getActiveTheme);
  const pair = cleanPair(item.pair || detail?.pair);
  const total = signalIds.length;
  const multi = total > 1;
@@ -712,7 +718,6 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
  const hasAnyImg = entryImg || afterImg;
  const showInteractiveRight = showTV || (!afterImg && entryImg);
 
- const [appTheme, setAppTheme] = useState(getActiveTheme);
  useEffect(() => subscribeTheme(setAppTheme), []);
 
  useEffect(() => {
