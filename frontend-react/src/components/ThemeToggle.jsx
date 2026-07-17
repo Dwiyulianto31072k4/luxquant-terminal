@@ -111,8 +111,10 @@ function CheckIcon({ className = "" }) {
  */
 export function ThemeAppearancePicker({ className = "" }) {
   const { t } = useTranslation();
-  const { theme, setTheme, canSwitchTheme } = useTheme();
+  const { theme, setTheme, canSwitchTheme, themes } = useTheme();
   if (!canSwitchTheme) return null;
+  // Only offer themes selectable in the current context (Bright is in-app only).
+  const options = THEMES.filter((o) => (themes || []).includes(o.key));
 
   return (
     <div className={className}>
@@ -130,7 +132,7 @@ export function ThemeAppearancePicker({ className = "" }) {
         role="radiogroup"
         aria-label={t("userMenu.appearance", { defaultValue: "Appearance" })}
       >
-        {THEMES.map((o) => {
+        {options.map((o) => {
           const on = theme === o.key;
           return (
             <button

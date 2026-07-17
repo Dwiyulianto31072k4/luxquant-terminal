@@ -15,6 +15,11 @@
           // Admin-selectable themes (members never persist a non-default).
           var ok = ['luxquant', 'dark', 'bright'];
           var theme = ok.indexOf(t) > -1 ? t : 'luxquant';
+          // Landing/login/register are luxquant+dark only — render a stored
+          // Bright as Dark on those routes (matches ThemeProvider clamp).
+          if (theme === 'bright' && /^\/(?:$|login|register)/.test(location.pathname)) {
+            theme = 'dark';
+          }
           document.documentElement.dataset.theme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) {

@@ -10,6 +10,7 @@
 // (single switch) — nothing else needs to change.
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { isAdminStaff } from "../utils/roles";
 
@@ -17,6 +18,11 @@ import { isAdminStaff } from "../utils/roles";
 // Bright is admin-preview only (GATE_TO_ADMINS) until product sign-off.
 const THEMES = ["luxquant", "dark", "bright"];
 const SELECTABLE_THEMES = ["luxquant", "dark", "bright"];
+// Marketing/auth surfaces (landing, login, register) only support the two dark
+// desks — Bright is an in-app-only mode. A stored Bright preference is kept, but
+// these pages display Dark instead so the marketing look stays consistent.
+const MARKETING_THEMES = ["luxquant", "dark"];
+const isMarketingRoute = (pathname) => /^\/(?:$|login|register)/.test(pathname || "/");
 const DEFAULT_THEME = "luxquant";
 const STORAGE_KEY = "lq-theme";
 
@@ -49,6 +55,7 @@ function readStored() {
 
 export const ThemeProvider = ({ children }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const canSwitchTheme = GATE_TO_ADMINS ? isAdminStaff(user) : true;
 
   const [theme, setThemeState] = useState(() => readStored() || DEFAULT_THEME);
@@ -56,13 +63,19 @@ export const ThemeProvider = ({ children }) => {
   // Effective theme respects the gate: non-eligible users always get the default.
   const effectiveTheme = canSwitchTheme ? theme : DEFAULT_THEME;
 
-  // Apply to <html>; persist only for eligible users so members never carry a
-  // stored non-default theme. Also sync theme-color meta for mobile chrome.
+  // Landing/login/register only support luxquant+dark. A stored Bright pref is
+  // preserved but rendered as Dark on those routes; selectable list narrows too.
+  const marketing = isMarketingRoute(location.pathname);
+  const selectableThemes = marketing ? MARKETING_THEMES : SELECTABLE_THEMES;
+  const displayTheme = marketing && effectiveTheme === "bright" ? "dark" : effectiveTheme;
+
+  // Apply displayTheme to <html>; persist the user's REAL pref (theme) so their
+  // in-app Bright choice survives visiting the landing. Sync theme-color meta.
   useEffect(() => {
-    document.documentElement.dataset.theme = effectiveTheme;
+    document.documentElement.dataset.theme = displayTheme;
     try {
       const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", THEME_COLOR[effectiveTheme] || THEME_COLOR.luxquant);
+      if (meta) meta.setAttribute("content", THEME_COLOR[displayTheme] || THEME_COLOR.luxquant);
     } catch {
       /* ignore */
     }
@@ -73,7 +86,7 @@ export const ThemeProvider = ({ children }) => {
         /* ignore quota/private-mode errors */
       }
     }
-  }, [effectiveTheme, canSwitchTheme]);
+  }, [displayTheme, effectiveTheme, canSwitchTheme]);
 
   const setTheme = useCallback(
     (next) => {
@@ -85,9 +98,9 @@ export const ThemeProvider = ({ children }) => {
   );
 
   const value = {
-    theme: effectiveTheme,
+    theme: displayTheme,
     setTheme,
-    themes: SELECTABLE_THEMES,
+    themes: selectableThemes,
     allThemes: THEMES,
     canSwitchTheme,
   };
