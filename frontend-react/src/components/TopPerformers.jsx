@@ -323,6 +323,27 @@ const TopPerformers = () => {
 
         {data && data.top_gainers?.length > 0 && (
           <div className={loading ? 'opacity-50 transition-opacity' : ''}>
+            {/* Inline proof cue — lives inside the card, not a floating global toast */}
+            {showProofHint && !modalOpen && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`mx-3 mt-2 flex items-center gap-2.5 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 sm:mx-4 transition-all duration-400 ${
+                  isProofHintClosing ? 'max-h-0 opacity-0 border-transparent py-0 mt-0' : 'max-h-20 opacity-100 animate-[proofHintIn_.28s_ease-out]'
+                }`}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-text-primary/65">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
+                  </svg>
+                </span>
+                <p className="min-w-0 flex-1 text-[12px] leading-snug text-text-primary/80">
+                  <span className="font-medium text-text-primary">Call proof</span>
+                  <span className="text-text-muted"> — open any row for the original call, targets, and charts.</span>
+                </p>
+              </div>
+            )}
+
             {/* Column headers — desk table */}
             <div className="hidden border-b border-white/[0.05] px-4 py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3 sm:px-5">
               <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
@@ -493,36 +514,9 @@ const TopPerformers = () => {
       <style>{`
         @keyframes tpRowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .tp-row { animation: tpRowIn 0.32s ease-out both; }
-        @keyframes proofHintIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes proofHintIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 80px; } }
         @media (prefers-reduced-motion: reduce) { .tp-row { animation: none; } }
       `}</style>
-
-      {/* Neutral proof cue — no gold glow */}
-      {showProofHint && !modalOpen && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`pointer-events-none fixed inset-x-4 bottom-[92px] z-[9990] mx-auto max-w-[400px] rounded-xl border border-white/[0.1] bg-surface-secondary/95 px-4 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[340px] ${
-            isProofHintClosing ? 'translate-y-2 opacity-0' : 'animate-[proofHintIn_.3s_ease-out] opacity-100'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.05] text-text-primary/70">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-                <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
-              </svg>
-            </span>
-            <div className="min-w-0">
-              <p className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted">
-                Call proof
-              </p>
-              <p className="mt-0.5 text-[12px] leading-snug text-text-primary/80">
-                Open any row to view the original call.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {modalOpen && modalItem && (
         <SignalDetailModal

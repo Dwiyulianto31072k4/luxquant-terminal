@@ -124,7 +124,7 @@ CATEGORY_RULES = [
     # ── Meme (specific) ──
     {
         "match_keywords": ["meme", "dog-themed", "cat-themed", "frog-themed"],
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "default_use_cases": ["Community speculation", "Cultural narrative trading"],
         "default_features": ["Community-driven", "High volatility", "No fundamental utility"],
@@ -578,7 +578,7 @@ MANUAL_OVERRIDES = {
 
     # ── Memecoins ──
     "DOGE": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "coingecko_id": "dogecoin",
         "summary": "Dogecoin started as a 2013 joke based on the Shiba Inu meme. It has no fundamental utility but maintains a large community and culture-driven adoption, partly fueled by Elon Musk endorsements.",
@@ -587,7 +587,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Pure speculation. No development roadmap. Price highly correlated with social media sentiment. Inflationary supply dilutes holders.",
     },
     "SHIB": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "coingecko_id": "shiba-inu",
         "summary": "Shiba Inu is an Ethereum-based meme token launched in 2020. Despite claims of an ecosystem (Shibarium L2, ShibaSwap), the vast majority of activity remains speculative.",
@@ -596,7 +596,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Speculative meme asset. Token supply manipulation history. Limited real utility despite ecosystem claims.",
     },
     "PEPE": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "coingecko_id": "pepe",
         "summary": "Pepe is a meme token launched in April 2023, themed around the Pepe the Frog meme. Pure speculation with no roadmap or utility.",
@@ -605,7 +605,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Pure speculation. No utility, no team, no roadmap. High volatility. Many fake forks/scams use the Pepe brand.",
     },
     "BONK": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "coingecko_id": "bonk",
         "summary": "Bonk is a Solana-based meme token launched in late 2022. Often credited with sparking the Solana meme coin season.",
@@ -614,7 +614,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Speculative. Tied to Solana ecosystem sentiment. No fundamental utility.",
     },
     "WIF": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "coingecko_id": "dogwifcoin",
         "summary": "dogwifhat (WIF) is a Solana-based meme token themed around a Shiba Inu wearing a hat. Major hit during the 2024 Solana meme coin cycle.",
@@ -623,7 +623,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Pure speculation. No utility. Rides Solana meme cycle.",
     },
     "FLOKI": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {},
         "coingecko_id": "floki",
         "summary": "FLOKI is a meme token inspired by Elon Musk's dog. Has built peripheral utility (Valhalla MMORPG, FlokiFi, education platform) but core value is meme-driven.",
@@ -638,7 +638,7 @@ MANUAL_OVERRIDES = {
     "1000FLOKI": {"_alias": "FLOKI"},
     "1000SHIB":  {"_alias": "SHIB"},
     "1000SATS":  {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {}, "coingecko_id": "sats-ordinals",
         "summary": "1000SATS is a perpetual contract pair representing 1000 SATS Ordinals tokens (BRC-20 on Bitcoin). Speculative meme token within the Bitcoin Ordinals ecosystem.",
         "use_cases": ["Bitcoin Ordinals speculation"],
@@ -646,7 +646,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Highly speculative. BRC-20 standard is experimental.",
     },
     "1000RATS":  {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {}, "coingecko_id": "rats-ordinals",
         "summary": "1000RATS is a perpetual contract pair representing 1000 RATS Ordinals tokens. Pure meme/speculation within the BRC-20 ecosystem.",
         "use_cases": ["Bitcoin Ordinals speculation"],
@@ -654,7 +654,7 @@ MANUAL_OVERRIDES = {
         "risk_notes": "Highly speculative meme. No utility.",
     },
     "MEME": {
-        "token_type": "memecoin", "sector": "hype", "has_utility": False,
+        "token_type": "memecoin", "sector": "meme", "has_utility": False,
         "utility_flags": {}, "coingecko_id": "memecoin-2",
         "summary": "MEME is a token from Memeland (9GAG ecosystem). Themed around meme culture with NFT integration but largely speculative.",
         "use_cases": ["Memeland ecosystem", "NFT-related speculation"],

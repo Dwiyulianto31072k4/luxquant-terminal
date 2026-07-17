@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS coins (
 
     -- ── Categorization (manual or auto from CoinGecko) ──
     token_type          TEXT,                                -- layer1, layer2, utility, governance, stablecoin, memecoin, rwa, privacy, exchange, defi
-    sector              TEXT,                                -- defi, gamefi, ai, infrastructure, socialfi, payments, rwa, privacy, hype, other
+    sector              TEXT,                                -- defi, gamefi, ai, infrastructure, socialfi, payments, rwa, privacy, meme, other
     has_utility         BOOLEAN,                             -- TRUE = real utility, FALSE = pure speculation, NULL = unreviewed
     utility_details     JSONB,                               -- {"governance": true, "gas_fee": false, "staking": true, "buyback_burn": true}
 
@@ -154,7 +154,7 @@ COMMENT ON COLUMN coins.token_type IS
     'High-level token classification: layer1, layer2, utility, governance, stablecoin, memecoin, rwa, privacy, exchange, defi.';
 
 COMMENT ON COLUMN coins.sector IS
-    'Industry sector: defi, gamefi, ai, infrastructure, socialfi, payments, rwa, privacy, hype, other.';
+    'Industry sector: defi, gamefi, ai, infrastructure, socialfi, payments, rwa, privacy, meme, other. (legacy: hype was renamed to meme — not Hyperliquid.)';
 
 COMMENT ON COLUMN coins.has_utility IS
     'TRUE = real utility (governance, staking, gas, RWA, etc.), FALSE = pure speculation/memecoin, NULL = not yet reviewed.';

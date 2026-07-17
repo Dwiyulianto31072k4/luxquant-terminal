@@ -29,7 +29,7 @@ import {
   STATUS_ORDER, STATUS_LABEL, STATUS_COLORS, RISK_COLORS,
   fmtPct, median, parseMcap, csv, makeBins, PLAUSIBLE_LO, PLAUSIBLE_HI,
   SectionBand, Kpi, Chip, SegControl, FilterMulti, DarkTip, ScatterTip, LegendChips,
-  XCard, useZoom, CoinPill, RankBars, SectorBars, Donut, statusColorOf, fmtAxis,
+  XCard, useZoom, CoinPill, RankBars, SectorBars, Donut, statusColorOf, fmtAxis, SectorGlyph,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { LiquidationsTab } from "./LiquidationsTab";
@@ -1425,9 +1425,9 @@ export default function SignalsAnalytics() {
                     <div style={{ height: Math.max(h, 260) }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={agg.sectors.filter((s) => s.sector !== "unclassified").slice(0, 7)} outerRadius="72%">
-                          <PolarGrid stroke="rgba(212,168,83,0.12)" />
+                          <PolarGrid stroke="rgba(255,255,255,0.08)" />
                           <PolarAngleAxis dataKey="sector" tick={{ fill: AXIS, fontSize: 9.5, fontFamily: "JetBrains Mono" }} />
-                          <Radar dataKey="count" name="signals" stroke={GOLD} fill={GOLD} fillOpacity={0.25} />
+                          <Radar dataKey="count" name="signals" stroke="rgb(148 163 184)" fill="rgb(148 163 184)" fillOpacity={0.22} />
                           <Tooltip content={<DarkTip />} />
                         </RadarChart>
                       </ResponsiveContainer>
@@ -1441,7 +1441,7 @@ export default function SignalsAnalytics() {
                     <SectorBars
                       data={agg.sectors.slice(0, 12)}
                       dataKey="count"
-                      color={() => GOLD}
+                      color={() => "rgb(148 163 184)"}
                       fmt={(v) => v}
                       onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
                     />
@@ -1470,13 +1470,118 @@ export default function SignalsAnalytics() {
                     <SectorBars
                       data={agg.sectors.filter((s) => s.medTgt != null).slice(0, 12)}
                       dataKey="medTgt"
-                      color={() => GOLD}
+                      color={() => "rgb(148 163 184)"}
                       fmt={(v) => fmtPct(v, 0)}
                       onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
                     />
                   )}
                 />
               </div>
+
+              {/* Sector signal desk — drill active sector filter to pairs → SignalModal */}
+              {(() => {
+                const activeSec = selSectors[0] || null;
+                const sectorSignals = activeSec
+                  ? view
+                      .filter((s) => (s.sector || "unclassified") === activeSec)
+                      .slice()
+                      .sort((a, b) => {
+                        const fa = pairFc[a.pair];
+                        const fb = pairFc[b.pair];
+                        if (fa == null && fb == null) return 0;
+                        if (fa == null) return 1;
+                        if (fb == null) return -1;
+                        return fb - fa;
+                      })
+                  : [];
+                const seen = new Set();
+                const unique = [];
+                sectorSignals.forEach((s) => {
+                  if (seen.has(s.pair)) return;
+                  seen.add(s.pair);
+                  unique.push(s);
+                });
+                return (
+                  <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.05] bg-white/[0.015] px-3.5 py-2.5">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12.5px] font-medium text-text-primary">Sector signals</span>
+                          {activeSec && (
+                            <span className="inline-flex items-center gap-1 rounded border border-white/[0.1] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-text-primary/80">
+                              <span className="opacity-70"><SectorGlyph sector={activeSec} /></span>
+                              {activeSec}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-[10.5px] text-text-muted">
+                          {activeSec
+                            ? `${unique.length} pairs · click a row to open call proof`
+                            : "Click a sector bar above to drill into its signals."}
+                        </p>
+                      </div>
+                      {activeSec && (
+                        <button
+                          type="button"
+                          onClick={() => setF({ sectors: "" })}
+                          className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+                        >
+                          Clear filter
+                        </button>
+                      )}
+                    </div>
+                    {!activeSec ? (
+                      <div className="px-4 py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/55">
+                        Select a sector to list signals
+                      </div>
+                    ) : unique.length === 0 ? (
+                      <div className="px-4 py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted/55">
+                        No signals in this sector for the current window
+                      </div>
+                    ) : (
+                      <div className="max-h-[360px] divide-y divide-white/[0.04] overflow-y-auto [scrollbar-width:thin]">
+                        {unique.slice(0, 48).map((s) => {
+                          const fc = pairFc[s.pair];
+                          return (
+                            <button
+                              key={s.signal_id || s.pair}
+                              type="button"
+                              onClick={() => openSignalRow(s)}
+                              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-white/[0.03]"
+                            >
+                              <CoinLogo pair={s.pair} size={22} />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="truncate font-mono text-[12.5px] font-semibold text-text-primary">
+                                    {(s.pair || "").replace(/USDT$/i, "")}
+                                  </span>
+                                  <span className="rounded bg-white/[0.05] px-1 py-px font-mono text-[8.5px] uppercase text-text-muted">
+                                    {STATUS_LABEL[s.status] || s.status}
+                                  </span>
+                                </div>
+                                <p className="mt-0.5 font-mono text-[9.5px] text-text-muted">
+                                  {s.risk_norm || "—"} risk
+                                  {s.max_target_pct != null ? ` · max +${Number(s.max_target_pct).toFixed(0)}%` : ""}
+                                </p>
+                              </div>
+                              <span
+                                className={`font-mono text-[12px] font-semibold tabular-nums ${
+                                  fc == null ? "text-text-muted" : fc >= 0 ? "text-positive" : "text-negative"
+                                }`}
+                              >
+                                {fc == null ? "—" : fmtPct(fc, 1)}
+                              </span>
+                              <svg className="h-3.5 w-3.5 text-text-primary/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
         </>

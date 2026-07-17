@@ -56,7 +56,7 @@ export const RISK_COLORS = { LOW: POS, NORMAL: GOLD, HIGH: NEG };
 
 // ── sector symbols (item: "sektor kasih simbol") ────────────────────
 export const SECTOR_EMOJI = {
-  infrastructure: "🏗️", defi: "🏦", ai: "🤖", gamefi: "🎮", hype: "🔥",
+  infrastructure: "🏗️", defi: "🏦", ai: "🤖", gamefi: "🎮", meme: "🐸", hype: "🐸",
   payments: "💳", rwa: "🏛️", privacy: "🛡️", socialfi: "💬", meme: "🐸",
   depin: "📡", nft: "🖼️", l1: "⛓️", l2: "🧩", oracle: "🔮", dex: "🔁",
   lending: "🏦", metaverse: "🌐", other: "◈", unclassified: "◦",
