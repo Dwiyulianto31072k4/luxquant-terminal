@@ -608,36 +608,87 @@ function MacroStrip({ macro, sectors }) {
   );
 }
 
-// ── Treemap ──
+// ── Treemap ── expand + scale so small caps stay readable
 function Treemap({ model, sizeBy, colorBy, onPick }) {
   const ref = useRef(null);
   const [w, setW] = useState(900);
+  const [expanded, setExpanded] = useState(false);
+  // scale: 1 = default √, lower = more equal tiles (zoom-out effect)
+  const [scaleMode, setScaleMode] = useState("balanced"); // balanced | linear | equal
   useEffect(() => {
     const el = ref.current; if (!el) return;
     const ro = new ResizeObserver(() => setW(el.clientWidth));
     ro.observe(el); setW(el.clientWidth);
     return () => ro.disconnect();
-  }, []);
-  const H = 380;
+  }, [expanded]);
+  // Expanded ≈ ~viewport height; default compact desk card
+  const H = expanded ? Math.max(560, Math.min(window.innerHeight * 0.72, 820)) : 420;
   const sm = METRICS[sizeBy];
-  // √-scale the size metric so a few mega-caps (BTC/ETH) don't swallow the
-  // canvas and small caps stay legible — you can actually SEE the smallest.
   const items = model
-    .map((d) => ({ v: Math.sqrt(Math.max(sm.get(d) || 0, 0)) + 0.5, d }))
+    .map((d) => {
+      const raw = Math.max(sm.get(d) || 0, 0);
+      let v;
+      if (scaleMode === "equal") v = 1;
+      else if (scaleMode === "linear") v = raw + 0.5;
+      else v = Math.sqrt(raw) + 0.5; // balanced √
+      return { v, d };
+    })
     .sort((a, b) => b.v - a.v);
   const rects = squarify(items, 0, 0, w, H);
   return (
     <>
-    <div ref={ref} className="relative w-full overflow-hidden rounded-lg" style={{ height: H }}>
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-1">
+        {[
+          { k: "balanced", l: "√ scale" },
+          { k: "linear", l: "Linear" },
+          { k: "equal", l: "Equal" },
+        ].map((m) => (
+          <button
+            key={m.k}
+            type="button"
+            onClick={() => setScaleMode(m.k)}
+            className={`rounded-md border px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider transition-colors ${
+              scaleMode === m.k
+                ? "border-transparent bg-accent text-accent-fg"
+                : "border-ink/10 bg-surface-secondary text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {m.l}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="inline-flex items-center gap-1.5 rounded-md border border-ink/10 bg-surface-secondary px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider text-text-secondary transition-colors hover:border-ink/18 hover:text-text-primary"
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          {expanded ? (
+            <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3" />
+          ) : (
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+          )}
+        </svg>
+        {expanded ? "Collapse" : "Expand"}
+      </button>
+    </div>
+    <div
+      ref={ref}
+      className="relative w-full overflow-hidden rounded-lg bg-ink/[0.03]"
+      style={{ height: H, transition: "height 0.25s ease" }}
+    >
       {rects.map((r) => {
-        const d = r.d, big = r.w > 58 && r.h > 34, fs = Math.max(9, Math.min(14, r.w / 6));
-        // only show the ticker when the tile is wide/tall enough to fit it —
-        // avoids garbled single-letter labels on tiny cells.
-        const showLabel = r.w > 30 && r.h > 16;
+        const d = r.d, big = r.w > 58 && r.h > 34, fs = Math.max(9, Math.min(15, r.w / 5.5));
+        const showLabel = r.w > 28 && r.h > 14;
         return (
-          <div key={d.signal_id} onClick={() => onPick(d)} title={`${d.sym} · ${METRICS[colorBy].fmt(METRICS[colorBy].get(d))}`}
-            className="absolute overflow-hidden cursor-pointer rounded-sm border border-black/30 transition-transform hover:-translate-y-0.5 hover:outline hover:outline-1 hover:outline-white/40"
-            style={{ left: r.x, top: r.y, width: r.w - 2, height: r.h - 2, background: colorByMetric(d, colorBy, model) }}>
+          <div
+            key={d.signal_id}
+            onClick={() => onPick(d)}
+            title={`${d.sym} · ${METRICS[colorBy].fmt(METRICS[colorBy].get(d))}`}
+            className="absolute cursor-pointer overflow-hidden rounded-sm border border-black/30 transition-transform hover:-translate-y-0.5 hover:outline hover:outline-1 hover:outline-white/40"
+            style={{ left: r.x, top: r.y, width: r.w - 2, height: r.h - 2, background: colorByMetric(d, colorBy, model) }}
+          >
             <div className="absolute inset-0 flex flex-col justify-between p-1.5">
               <div className="flex min-w-0 items-center gap-1">
                 {big && <CoinLogo pair={d.pair} size={Math.min(18, Math.max(12, fs))} />}
@@ -663,8 +714,11 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
         );
       })}
     </div>
-    <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
-      tile size = {sm.lbl} (√-scaled) · color = {METRICS[colorBy].lbl} · click → latest call
+    <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+      tile size = {sm.lbl}
+      {scaleMode === "balanced" ? " (√)" : scaleMode === "equal" ? " (equal)" : " (linear)"}
+      {" · "}color = {METRICS[colorBy].lbl} · click → latest call
+      {expanded ? " · expanded view" : ""}
     </div>
     </>
   );

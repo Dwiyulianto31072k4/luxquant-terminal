@@ -1163,6 +1163,66 @@ export default function AIArenaPageV6() {
     };
   }, [pdfModal]);
 
+  // MUST stay before any early return — Rules of Hooks
+  const setWorkspace = useCallback((key) => {
+    setActiveWorkspace(key);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", key);
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const workspaceTabs = useMemo(
+    () => [
+      {
+        key: "read",
+        icon: "01",
+        eyebrow: "Today",
+        label: "Market Outlook",
+        description: "24h direction, exposure guide, levels, and risk.",
+      },
+      {
+        key: "longer",
+        icon: "02",
+        eyebrow: "7d · 30d",
+        label: "Longer View",
+        description: "Swing context and holder backdrop.",
+      },
+      {
+        key: "evaluation",
+        icon: "03",
+        eyebrow: "Audit",
+        label: "Projection Audit",
+        description: "Projected level, result, and explanation.",
+      },
+      {
+        key: "chart",
+        icon: "04",
+        eyebrow: "Context",
+        label: "Projection Chart",
+        description: "Live candles with projection overlay.",
+      },
+      {
+        key: "archive",
+        icon: "05",
+        eyebrow: "Library",
+        label: "Report Library",
+        description: "Archived outlooks and PDF guide.",
+      },
+      {
+        key: "brain",
+        icon: "06",
+        eyebrow: "Learning",
+        label: "AI Brain",
+        description: "Lessons the AI learned from its own audited calls.",
+      },
+    ],
+    [],
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen text-text-primary">
@@ -1188,64 +1248,9 @@ export default function AIArenaPageV6() {
     operationalHealth?.status === "healthy" && dashboardHealth?.status === "healthy"
       ? "healthy"
       : operationalHealth?.status || dashboardHealth?.status || "unknown";
-  const workspaceTabs = [
-    {
-      key: "read",
-      icon: "01",
-      eyebrow: "Today",
-      label: "Market Outlook",
-      description: "24h direction, exposure guide, levels, and risk.",
-    },
-    {
-      key: "longer",
-      icon: "02",
-      eyebrow: "7d · 30d",
-      label: "Longer View",
-      description: "Swing context and holder backdrop.",
-    },
-    {
-      key: "evaluation",
-      icon: "03",
-      eyebrow: "Audit",
-      label: "Projection Audit",
-      description: "Projected level, result, and explanation.",
-    },
-    {
-      key: "chart",
-      icon: "04",
-      eyebrow: "Context",
-      label: "Projection Chart",
-      description: "Live candles with projection overlay.",
-    },
-    {
-      key: "archive",
-      icon: "05",
-      eyebrow: "Library",
-      label: "Report Library",
-      description: "Archived outlooks and PDF guide.",
-    },
-    {
-      key: "brain",
-      icon: "06",
-      eyebrow: "Learning",
-      label: "AI Brain",
-      description: "Lessons the AI learned from its own audited calls.",
-    },
-  ];
 
   const activeLabel =
     workspaceTabs.find((t) => t.key === activeWorkspace)?.label || "Market Outlook";
-
-  const setWorkspace = useCallback((key) => {
-    setActiveWorkspace(key);
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", key);
-      window.history.replaceState({}, "", url.toString());
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   return (
     <div

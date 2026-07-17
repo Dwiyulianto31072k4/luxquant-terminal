@@ -739,28 +739,30 @@ export function SectorBars({ data, dataKey, color, fmt, onPick, diverging = fals
   const max = Math.max(...data.map((d) => Math.abs(d[dataKey] || 0))) || 1;
   return (
     <div className="space-y-1.5 py-1">
-      {data.map((d) => {
+      {data.map((d, i) => {
         const v = d[dataKey] || 0;
         const w = (Math.abs(v) / max) * 100;
         const c = color(v);
+        // Ranked opacity so bars stay solid/punchy (no washed pastel on bright)
+        const op = 0.78 + (1 - i / Math.max(data.length - 1, 1)) * 0.22;
         return (
-          <button key={d.sector} onClick={() => onPick(d.sector)} className="w-full flex items-center gap-2 group" title={d.sector}>
-            <span className="w-28 shrink-0 flex items-center gap-1.5 text-left font-mono text-[10px] text-text-muted group-hover:text-text-primary transition-colors">
+          <button key={d.sector} onClick={() => onPick(d.sector)} className="group flex w-full items-center gap-2" title={d.sector}>
+            <span className="flex w-28 shrink-0 items-center gap-1.5 text-left font-mono text-[10px] font-medium text-text-secondary transition-colors group-hover:text-text-primary">
               <SectorGlyph sector={d.sector} />
               <span className="truncate">{d.sector}</span>
             </span>
-            <span className="flex-1 h-4 rounded-sm bg-ink/[0.03] overflow-hidden relative">
+            <span className="relative h-[18px] flex-1 overflow-hidden rounded-md bg-ink/[0.07]">
               {diverging ? (
                 <span
-                  className="absolute top-0 bottom-0 rounded-sm"
-                  style={{ background: c, opacity: 0.75, left: v >= 0 ? "50%" : `${50 - w / 2}%`, width: `${w / 2}%` }}
+                  className="absolute bottom-0 top-0 rounded-md"
+                  style={{ background: c, opacity: op, left: v >= 0 ? "50%" : `${50 - w / 2}%`, width: `${Math.max(w / 2, 2)}%` }}
                 />
               ) : (
-                <span className="absolute top-0 bottom-0 left-0 rounded-sm" style={{ background: c, opacity: 0.75, width: `${w}%` }} />
+                <span className="absolute bottom-0 left-0 top-0 rounded-md" style={{ background: c, opacity: op, width: `${Math.max(w, 3)}%` }} />
               )}
-              {diverging && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-ink/15" />}
+              {diverging && <span className="absolute bottom-0 top-0 left-1/2 w-px bg-ink/20" />}
             </span>
-            <span className="w-14 shrink-0 text-right font-mono text-[10px] tabular-nums" style={{ color: c }}>
+            <span className="w-14 shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums" style={{ color: c }}>
               {fmt(v)}
             </span>
           </button>

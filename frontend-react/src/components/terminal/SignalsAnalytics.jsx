@@ -1420,9 +1420,10 @@ export default function SignalsAnalytics() {
                     <div style={{ height: Math.max(h, 260) }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={agg.sectors.filter((s) => s.sector !== "unclassified").slice(0, 7)} outerRadius="72%">
-                          <PolarGrid stroke="rgb(var(--ink) / 0.08)" />
-                          <PolarAngleAxis dataKey="sector" tick={{ fill: AXIS, fontSize: 9.5, fontFamily: "JetBrains Mono" }} />
-                          <Radar dataKey="count" name="signals" stroke="rgb(148 163 184)" fill="rgb(148 163 184)" fillOpacity={0.22} />
+                          <PolarGrid stroke="rgb(var(--ink) / 0.12)" />
+                          <PolarAngleAxis dataKey="sector" tick={{ fill: AXIS, fontSize: 9.5, fontFamily: "JetBrains Mono", fontWeight: 600 }} />
+                          {/* Solid accent radar — not washed slate on bright */}
+                          <Radar dataKey="count" name="signals" stroke="rgb(var(--accent))" strokeWidth={2} fill="rgb(var(--accent))" fillOpacity={0.28} />
                           <Tooltip content={<DarkTip />} />
                         </RadarChart>
                       </ResponsiveContainer>
@@ -1436,7 +1437,7 @@ export default function SignalsAnalytics() {
                     <SectorBars
                       data={agg.sectors.slice(0, 12)}
                       dataKey="count"
-                      color={() => "rgb(148 163 184)"}
+                      color={() => "rgb(var(--fg) / 0.72)"}
                       fmt={(v) => v}
                       onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
                     />
@@ -1465,7 +1466,7 @@ export default function SignalsAnalytics() {
                     <SectorBars
                       data={agg.sectors.filter((s) => s.medTgt != null).slice(0, 12)}
                       dataKey="medTgt"
-                      color={() => "rgb(148 163 184)"}
+                      color={() => POS}
                       fmt={(v) => fmtPct(v, 0)}
                       onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
                     />
