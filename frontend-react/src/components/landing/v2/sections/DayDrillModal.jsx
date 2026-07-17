@@ -183,15 +183,35 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     };
   }, [onClose]);
 
-  // Same deep-link as Potential Trades: unique signal id + Trade tab (execution
-  // proof + Signal Journey). SignalsPage loads any-age id via detail API.
+  // Same deep-link as Potential Trades: unique signal id + Trade tab.
+  // Seed partial drill fields via router state so modal paints immediately
+  // even for calls older than 7 days (trust path for landing visitors).
   const openSignal = useCallback(
     (row) => {
       if (!row?.signal_id) return;
       setOpeningId(row.signal_id);
-      const sid = encodeURIComponent(String(row.signal_id));
-      navigate(`/signals?signal=${sid}&tab=trade`);
-      // navigate unmounts landing; brief busy state for tap feedback
+      const sid = String(row.signal_id);
+      const seed = {
+        signal_id: sid,
+        pair: row.pair,
+        entry: row.entry,
+        target1: row.target1,
+        target2: row.target2,
+        target3: row.target3,
+        target4: row.target4,
+        stop1: row.stop1,
+        stop2: row.stop2,
+        status: row.status || row.outcome,
+        risk_level: row.risk_level,
+        created_at: row.created_at,
+        peak_pct: row.peak_pct,
+        entry_chart_url: row.entry_chart_url,
+        latest_chart_url: row.latest_chart_url,
+        message_link: row.message_link,
+      };
+      navigate(`/signals?signal=${encodeURIComponent(sid)}&tab=trade`, {
+        state: { seedSignal: seed },
+      });
     },
     [navigate],
   );

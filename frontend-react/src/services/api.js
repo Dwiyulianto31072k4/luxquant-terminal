@@ -74,10 +74,17 @@ export const signalsApi = {
     return response.data;
   },
 
-  // Get single signal
+  // Get single signal (detail v2 — supports any-age + public closed proof)
+  // Prefer /detail/ over legacy /signals/{id} which can 500 on older rows.
   getSignal: async (signalId) => {
-    const response = await api.get(`/signals/${signalId}`);
-    return response.data;
+    try {
+      const response = await api.get(`/signals/detail/${signalId}`);
+      return response.data;
+    } catch (err) {
+      // Fallback for older clients / edge routes
+      const response = await api.get(`/signals/${signalId}`);
+      return response.data;
+    }
   },
 };
 

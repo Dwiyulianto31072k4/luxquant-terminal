@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
@@ -326,36 +326,83 @@ const SignalsPage = () => {
   // Sumber kebenaran tunggal — buka via klik baris, deep-link, atau back/forward
   // browser semuanya lewat query param yang sama, jadi selalu konsisten.
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const selectedSignalId = searchParams.get("signal");
   const selectedTab = searchParams.get("tab") || "chart";
-  // Fallback signal object for signals opened by id that aren't in the currently
-  // loaded `allSignals` (SignalsPage only holds the last 7 days). Applies to:
-  //   - clicking an older call in the History tab
-  //   - deep-linking ?signal=<old id> directly
-  // Without this, the URL updates but the modal resolves to null → nothing shows.
+  // Fallback for signals not in the 7-day bulk list (deep-link / landing day-proof /
+  // history). Without this, URL has ?signal= but modal never mounts.
   const [directSignal, setDirectSignal] = useState(null);
   const fetchedSignalIdRef = useRef(null);
+
+  // Seed from landing day-drill router state (instant paint + trust data)
+  useEffect(() => {
+    const seed = location.state?.seedSignal;
+    if (!seed?.signal_id || !selectedSignalId) return;
+    if (String(seed.signal_id) !== String(selectedSignalId)) return;
+    setDirectSignal((prev) => {
+      if (prev && String(prev.signal_id) === String(selectedSignalId) && prev.pair) return prev;
+      return { ...seed, signal_id: String(seed.signal_id) };
+    });
+  }, [location.state, selectedSignalId]);
+
   const selectedSignal = useMemo(() => {
     if (!selectedSignalId) return null;
     const fromList = allSignals.find((s) => String(s.signal_id) === String(selectedSignalId));
     if (fromList) return fromList;
     if (directSignal && String(directSignal.signal_id) === String(selectedSignalId)) return directSignal;
-    return null;
+    // Immediate stub so modal opens while detail loads (trust path from landing)
+    return { signal_id: selectedSignalId };
   }, [selectedSignalId, allSignals, directSignal]);
 
-  // If the selected signal isn't in the 7-day list, fetch it by id (once per id).
-  // Mirrors DailyPerformancePage.handlePickSignal so any-age signals open.
+  // Load full detail for any-age signal id (not only last 7 days).
   useEffect(() => {
-    if (!selectedSignalId) return;
-    if (allSignals.some((s) => String(s.signal_id) === String(selectedSignalId))) return;
-    if (fetchedSignalIdRef.current === String(selectedSignalId)) return;
-    fetchedSignalIdRef.current = String(selectedSignalId);
+    if (!selectedSignalId) {
+      setDirectSignal(null);
+      fetchedSignalIdRef.current = null;
+      return undefined;
+    }
+    if (allSignals.some((s) => String(s.signal_id) === String(selectedSignalId))) {
+      return undefined;
+    }
+
     let alive = true;
+    const id = String(selectedSignalId);
+    // Always (re)fetch detail for deep-links so Trade tab has charts/journey.
+    // Merge over seed/stub; do not skip after bulk list churn.
     signalsApi
-      .getSignal(selectedSignalId)
-      .then((full) => { if (alive && full) setDirectSignal(full); })
-      .catch((err) => console.error("Failed to load signal by id:", err));
-    return () => { alive = false; };
+      .getSignal(id)
+      .then((full) => {
+        if (!alive || !full) return;
+        fetchedSignalIdRef.current = id;
+        setDirectSignal((prev) => ({
+          ...(prev && String(prev.signal_id) === id ? prev : {}),
+          ...full,
+          // Prefer non-null seed entry/targets if API redacted
+          entry: full.entry ?? prev?.entry,
+          target1: full.target1 ?? prev?.target1,
+          target2: full.target2 ?? prev?.target2,
+          target3: full.target3 ?? prev?.target3,
+          target4: full.target4 ?? prev?.target4,
+          stop1: full.stop1 ?? prev?.stop1,
+          stop2: full.stop2 ?? prev?.stop2,
+          entry_chart_url: full.entry_chart_url || prev?.entry_chart_url,
+          latest_chart_url: full.latest_chart_url || prev?.latest_chart_url,
+          signal_id: full.signal_id || id,
+        }));
+      })
+      .catch((err) => {
+        console.error("Failed to load signal by id:", err);
+        if (alive) {
+          setDirectSignal((prev) =>
+            prev && String(prev.signal_id) === id
+              ? prev
+              : { signal_id: id, pair: "???", status: "open" },
+          );
+        }
+      });
+    return () => {
+      alive = false;
+    };
   }, [selectedSignalId, allSignals]);
 
   const openSignal = useCallback((sig, tab = "chart") => {
