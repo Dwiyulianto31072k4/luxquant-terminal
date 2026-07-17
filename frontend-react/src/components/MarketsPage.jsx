@@ -1350,7 +1350,7 @@ const EmptyState = ({ text }) => (
 const ErrorState = ({ error, onRetry, t }) => (
   <div className="space-y-5">
     <div className="flex items-center gap-3">
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
         Markets
       </span>
     </div>
@@ -1365,7 +1365,7 @@ const ErrorState = ({ error, onRetry, t }) => (
       <p className="font-mono text-[11px] uppercase tracking-wider text-loss mb-5">{error}</p>
       <button
         onClick={onRetry}
-        className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-line/25"
+        className="rounded-md border border-transparent bg-accent px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-accent-fg transition-opacity hover:opacity-90"
       >
         {t ? t('markets.retry') : 'Retry'}
       </button>

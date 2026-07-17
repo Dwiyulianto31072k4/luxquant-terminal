@@ -47,10 +47,10 @@ const MOOD_GLYPH = {
 };
 
 const STATUS_STYLES = {
-  open: "bg-blue-500/[0.08] text-blue-300 border-blue-500/25",
-  closed_win: "bg-emerald-500/[0.08] text-emerald-300 border-emerald-500/25",
-  closed_loss: "bg-red-500/[0.08] text-red-300 border-red-500/25",
-  breakeven: "bg-amber-500/[0.08] text-amber-300 border-amber-500/25",
+  open: "border-ink/15 bg-surface-secondary text-text-secondary",
+  closed_win: "border-profit/25 bg-profit/10 text-profit",
+  closed_loss: "border-loss/25 bg-loss/10 text-loss",
+  breakeven: "border-ink/15 bg-ink/[0.05] text-text-secondary",
 };
 
 const STATUS_LABEL = {
@@ -403,39 +403,33 @@ const JournalPage = () => {
       {/* ═══ HEADER ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-gold-primary/80 mb-2">
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
             <IconBook className="h-3 w-3" />
             <span>Personal Trading Logbook</span>
           </div>
-          <h1
-            className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
-            style={{
-              background: "linear-gradient(135deg, #ffffff 0%, rgb(var(--ink) / 0.7) 60%, rgba(212,168,83,0.85) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
             Trade Journal
           </h1>
-          <p className="text-sm text-text-muted/70 mt-2">
+          <p className="mt-1.5 text-[13px] text-text-secondary">
             Track, analyze, and improve your trading edge ·{" "}
-            <span className="text-text-primary/80 font-mono tabular-nums">{entries.length}</span> entries logged
+            <span className="font-mono font-semibold tabular-nums text-text-primary">{entries.length}</span> entries logged
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center gap-2">
           <button
+            type="button"
             onClick={handleExport}
             disabled={entries.length === 0}
-            className="flex items-center gap-2 h-9 px-3 rounded-md border border-ink/[0.08] bg-ink/[0.03] text-text-muted/85 hover:text-text-primary hover:border-ink/[0.14] hover:bg-ink/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+            className="flex h-9 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-secondary px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             <IconDownload className="h-3.5 w-3.5" />
             <span>Export Excel</span>
           </button>
           <button
+            type="button"
             onClick={() => { resetForm(); setActiveTab("entry"); }}
-            className="flex items-center gap-2 h-9 px-3.5 rounded-md border border-line/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-line/60 transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+            className="flex h-9 items-center gap-2 rounded-md border border-transparent bg-accent px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
           >
             <IconPlus className="h-3.5 w-3.5" />
             <span>New Entry</span>
@@ -444,7 +438,7 @@ const JournalPage = () => {
       </header>
 
       {/* ═══ TAB STRIP ═══ */}
-      <nav className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-1 grid grid-cols-3 gap-1">
+      <nav className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-1 grid grid-cols-3 gap-1">
         <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")} icon={<IconBook className="h-3.5 w-3.5" />} label="History" count={entries.length} />
         <TabButton active={activeTab === "entry"} onClick={() => { if (!editId) resetForm(); setActiveTab("entry"); }} icon={<IconPencil className="h-3.5 w-3.5" />} label={editId ? "Edit Entry" : "New Entry"} />
         <TabButton active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")} icon={<IconChart className="h-3.5 w-3.5" />} label="Analytics" />
@@ -492,15 +486,18 @@ export default JournalPage;
 // ── Tab button ───────────────────────────────────────────
 const TabButton = ({ active, onClick, icon, label, count }) => (
   <button
+    type="button"
     onClick={onClick}
-    className={`relative flex items-center justify-center gap-2 h-10 rounded-sm text-[11px] font-medium uppercase tracking-[0.14em] transition-all ${
-      active ? "bg-gold-primary/12 text-text-primary border border-line/30" : "text-text-muted/65 hover:text-text-primary border border-transparent hover:bg-ink/[0.02]"
+    className={`relative flex h-10 items-center justify-center gap-2 rounded-md text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+      active
+        ? "border border-transparent bg-accent text-accent-fg"
+        : "border border-transparent text-text-muted hover:bg-ink/[0.03] hover:text-text-primary"
     }`}
   >
     {icon}
     <span>{label}</span>
     {count != null && (
-      <span className={`text-[9px] font-mono tabular-nums px-1.5 py-0.5 rounded-sm ${active ? "bg-gold-primary/20 text-gold-primary" : "bg-ink/[0.05] text-text-muted/55"}`}>
+      <span className={`rounded-sm px-1.5 py-0.5 font-mono text-[9px] tabular-nums ${active ? "bg-black/15 text-accent-fg" : "bg-ink/[0.05] text-text-muted"}`}>
         {count}
       </span>
     )}
@@ -552,7 +549,7 @@ const HistoryView = ({
   // ─── Loading ───
   if (loading) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-10 text-center">
+      <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-10 text-center">
         <div className="text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
           Loading journal…
         </div>
@@ -594,9 +591,9 @@ const HistoryView = ({
 
 // ── Empty state ──────────────────────────────────────────
 const HistoryEmptyState = ({ onNewEntry }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-10 sm:p-16 text-center">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-10 sm:p-16 text-center">
     <div className="relative z-10 flex flex-col items-center gap-4">
-      <div className="w-14 h-14 rounded-md border border-line/20 bg-gold-primary/[0.06] flex items-center justify-center text-gold-primary/70">
+      <div className="w-14 h-14 rounded-md border border-ink/10 bg-surface-secondary flex items-center justify-center text-text-muted">
         <IconBook className="h-6 w-6" />
       </div>
       <div className="space-y-1.5">
@@ -608,7 +605,7 @@ const HistoryEmptyState = ({ onNewEntry }) => (
       </div>
       <button
         onClick={onNewEntry}
-        className="flex items-center gap-2 mt-2 h-9 px-4 rounded-md border border-line/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-line/60 transition-all text-[11px] font-medium uppercase tracking-[0.14em]"
+        className="flex items-center gap-2 mt-2 h-9 px-4 rounded-md border border-transparent bg-accent text-accent-fg hover:opacity-90 transition-all text-[11px] font-medium uppercase tracking-[0.14em]"
       >
         <IconPlus className="h-3.5 w-3.5" />
         <span>Log your first trade</span>
@@ -635,7 +632,7 @@ const MetricStrip = ({ stats }) => {
   ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 divide-x divide-y sm:divide-y-0 divide-ink/[0.04]">
         {cells.map((cell, i) => (
           <MetricCell key={i} {...cell} />
@@ -649,8 +646,8 @@ const MetricCell = ({ label, value, accent }) => {
   const colorMap = {
     white: "text-text-primary",
     blue: "text-blue-300",
-    emerald: "text-emerald-400",
-    red: "text-red-400",
+    emerald: "text-profit", profit: "text-profit",
+    red: "text-loss",
   };
   return (
     <div className="px-3 py-3 flex flex-col gap-1.5 min-w-0">
@@ -673,18 +670,18 @@ const EquityCurveCard = ({ points }) => {
   const hasData = points.length >= 2;
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <div className="relative z-10 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 mb-1.5">
-              <IconChart className="h-3 w-3 text-gold-primary/60" />
+              <IconChart className="h-3 w-3 text-text-muted" />
               <span>Equity Curve</span>
               <span className="font-mono tabular-nums text-text-muted/40">·</span>
               <span className="font-mono tabular-nums text-text-muted/40">{points.length} closed</span>
             </div>
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className={`text-2xl sm:text-3xl font-light tabular-nums tracking-tight leading-none ${finalEq >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              <span className={`text-2xl sm:text-3xl font-light tabular-nums tracking-tight leading-none ${finalEq >= 0 ? "text-profit" : "text-loss"}`}>
                 {fmtMoney(finalEq, { sign: true })}
               </span>
               <span className="text-[11px] font-mono tabular-nums text-text-muted/60 uppercase tracking-[0.1em]">cumulative</span>
@@ -700,7 +697,7 @@ const EquityCurveCard = ({ points }) => {
               <div className="w-px h-7 bg-ink/[0.08]" />
               <div className="flex flex-col items-end">
                 <span className="text-[9px] uppercase tracking-[0.18em] text-text-muted/55">Drawdown</span>
-                <span className={`mt-0.5 ${drawdown < -1 ? "text-red-400" : "text-text-primary/85"}`}>{fmtPct(drawdown, { sign: true })}</span>
+                <span className={`mt-0.5 ${drawdown < -1 ? "text-loss" : "text-text-primary/85"}`}>{fmtPct(drawdown, { sign: true })}</span>
               </div>
             </div>
           )}
@@ -736,7 +733,7 @@ const EquitySvg = ({ points }) => {
 
   const finalEq = points[points.length - 1].equity;
   const isProfit = finalEq >= 0;
-  const accent = isProfit ? "#34d399" : "#f87171";
+  const accent = isProfit ? "#0ECB81" : "#F6465D";
   const grid = [maxV, maxV * 0.5, 0, minV * 0.5].filter((v) => v !== 0 || (minV < 0 && maxV > 0));
 
   return (
@@ -747,8 +744,8 @@ const EquitySvg = ({ points }) => {
           <stop offset="100%" stopColor={accent} stopOpacity="0" />
         </linearGradient>
         <linearGradient id="eq-area-neg" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#f87171" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#f87171" stopOpacity="0" />
+          <stop offset="0%" stopColor="#F6465D" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#F6465D" stopOpacity="0" />
         </linearGradient>
       </defs>
       {grid.map((v, i) => (
@@ -760,7 +757,7 @@ const EquitySvg = ({ points }) => {
       <path d={areaPath} fill={`url(#eq-area${isProfit ? "" : "-neg"})`} />
       <path d={linePath} fill="none" stroke={accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       {points.map((p, i) => (
-        <circle key={i} cx={xAt(i)} cy={yAt(p.equity)} r={i === points.length - 1 ? "3" : "1.5"} fill={p.pnl >= 0 ? "#34d399" : "#f87171"} opacity={i === points.length - 1 ? 1 : 0.6} />
+        <circle key={i} cx={xAt(i)} cy={yAt(p.equity)} r={i === points.length - 1 ? "3" : "1.5"} fill={p.pnl >= 0 ? "#0ECB81" : "#F6465D"} opacity={i === points.length - 1 ? 1 : 0.6} />
       ))}
       <text x={W - PAD.right} y={yAt(finalEq) - 6} fill={accent} fontSize="9" fontFamily="ui-monospace, monospace" textAnchor="end" fontWeight="500">
         {fmtMoney(finalEq, { sign: true })}
@@ -790,11 +787,11 @@ const FilterBar = ({
   ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <div className="relative z-10 p-3 flex flex-col gap-3">
         <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-ink/[0.05]">
-            <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-gold-primary/70 shrink-0" />
+          <label className="group flex h-9 min-w-0 md:w-56 flex-shrink-0 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-ink/12 focus-within:bg-ink/[0.05]">
+            <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-text-muted shrink-0" />
             <input
               type="text"
               placeholder="Search pair..."
@@ -807,7 +804,7 @@ const FilterBar = ({
           <select
             value={filterStrategy}
             onChange={(e) => setFilterStrategy(e.target.value)}
-            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
+            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-ink/12 transition-colors font-medium cursor-pointer"
           >
             <option value="all">All Strategy</option>
             {STRATEGY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -820,7 +817,7 @@ const FilterBar = ({
               setSortBy(field === "pnl" ? "pnl_usd" : field === "entry" ? "entry_at" : field);
               setSortOrder(order);
             }}
-            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-line/30 transition-colors font-medium cursor-pointer"
+            className="h-9 px-2.5 bg-ink/[0.03] border border-ink/[0.06] rounded-md text-[11px] text-text-muted/85 outline-none hover:border-ink/[0.14] focus:border-ink/12 transition-colors font-medium cursor-pointer"
           >
             <option value="entry_at_desc">Newest first</option>
             <option value="entry_at_asc">Oldest first</option>
@@ -841,7 +838,7 @@ const FilterBar = ({
               onClick={() => setFilterStatus(s.v)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
                 filterStatus === s.v
-                  ? "bg-gold-primary/15 text-text-primary border-line/40"
+                  ? "bg-accent text-accent-fg border-transparent"
                   : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
               }`}
             >
@@ -861,7 +858,7 @@ const FilterBar = ({
 const TradeTable = ({ entries, onEdit, onDelete }) => {
   if (entries.length === 0) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-10 flex flex-col items-center gap-3">
+      <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-10 flex flex-col items-center gap-3">
         <IconFilter className="h-6 w-6 text-text-muted/30" />
         <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
           No trades match your filters
@@ -871,7 +868,7 @@ const TradeTable = ({ entries, onEdit, onDelete }) => {
   }
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <div className="relative z-10">
         {/* DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
@@ -935,12 +932,12 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
           <CoinLogo pair={entry.pair} size={22} />
           <span className="text-[12px] font-medium text-text-primary tracking-tight">{stripQuote(entry.pair)}</span>
           {entry.signal_id && (
-            <span className="text-[8.5px] font-mono uppercase tracking-wider text-gold-primary/70 bg-gold-primary/[0.08] border border-line/20 rounded-sm px-1 py-px">sig</span>
+            <span className="text-[8.5px] font-mono uppercase tracking-wider text-text-muted bg-accent/10 border border-ink/10 rounded-sm px-1 py-px">sig</span>
           )}
         </div>
       </td>
       <td className="px-2 py-2.5">
-        <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium uppercase tracking-[0.12em] ${isLong ? "text-emerald-400" : "text-red-400"}`}>
+        <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium uppercase tracking-[0.12em] ${isLong ? "text-profit" : "text-loss"}`}>
           {isLong ? <IconUpTri /> : <IconDownTri />}
           {entry.direction?.toUpperCase()}
         </span>
@@ -950,10 +947,10 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
         {entry.actual_exit != null ? `$${fmtPrice(entry.actual_exit)}` : <span className="text-text-muted/40">—</span>}
       </td>
       <td className="px-2 py-2.5 text-[11px] font-mono tabular-nums text-text-primary/65 text-right">{entry.leverage || 1}×</td>
-      <td className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-emerald-400" : "text-red-400"}`}>
+      <td className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-profit" : "text-loss"}`}>
         {isOpen || entry.pnl_usd == null ? "—" : fmtMoney(entry.pnl_usd, { sign: true })}
       </td>
-      <td className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-emerald-400" : "text-red-400"}`}>
+      <td className={`px-3 py-2.5 text-[11px] font-mono tabular-nums font-medium text-right ${isOpen ? "text-text-muted/50" : pnlPositive ? "text-profit" : "text-loss"}`}>
         {isOpen || entry.pnl_pct == null ? "—" : fmtPct(entry.pnl_pct, { sign: true })}
       </td>
       <td className="px-3 py-2.5 text-center">
@@ -971,7 +968,7 @@ const TableRow = ({ entry, onEdit, onDelete }) => {
       <td className="px-2 py-2.5">
         <button
           onClick={(ev) => { ev.stopPropagation(); onDelete(entry.id); }}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/55 hover:text-red-400 transition-all"
+          className="opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/55 hover:text-loss transition-all"
         >
           <IconTrash className="h-3 w-3" />
         </button>
@@ -994,7 +991,7 @@ const MobileCard = ({ entry, onEdit }) => {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-medium text-text-primary tracking-tight">{stripQuote(entry.pair)}</span>
-              <span className={`inline-flex items-center gap-0.5 text-[9px] font-mono font-medium uppercase tracking-[0.12em] ${isLong ? "text-emerald-400" : "text-red-400"}`}>
+              <span className={`inline-flex items-center gap-0.5 text-[9px] font-mono font-medium uppercase tracking-[0.12em] ${isLong ? "text-profit" : "text-loss"}`}>
                 {isLong ? <IconUpTri /> : <IconDownTri />}
                 {entry.direction?.toUpperCase()}
               </span>
@@ -1017,7 +1014,7 @@ const MobileCard = ({ entry, onEdit }) => {
 };
 
 const MobileStat = ({ label, value, accent, dim }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
+  const colorMap = { emerald: "text-profit", profit: "text-profit", red: "text-loss" };
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
       <span className="text-[8.5px] uppercase tracking-[0.15em] text-text-muted/45 font-semibold">{label}</span>
@@ -1077,19 +1074,19 @@ const CalendarHeatmap = ({ entries }) => {
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <div className="relative z-10 p-3.5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">
               <span>Performance</span>
               <span className="font-mono tabular-nums text-text-muted/40">·</span>
-              <span className="font-mono tabular-nums text-gold-primary/70">
+              <span className="font-mono tabular-nums text-text-muted">
                 {viewMonth.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
               </span>
             </div>
             {monthAgg.trades > 0 && (
-              <p className={`text-[12px] font-light tabular-nums tracking-tight mt-1.5 ${monthAgg.sum >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              <p className={`text-[12px] font-light tabular-nums tracking-tight mt-1.5 ${monthAgg.sum >= 0 ? "text-profit" : "text-loss"}`}>
                 {fmtMoney(monthAgg.sum, { sign: true })}
                 <span className="text-text-muted/45 text-[10px] ml-1.5 font-mono">· {monthAgg.trades} trades</span>
               </p>
@@ -1265,8 +1262,8 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
 
   const getStatusStyle = (st) => {
     const s = (st || "").toLowerCase();
-    if (s.includes("tp") || s === "closed_win") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
-    if (s === "closed_loss" || s === "sl") return "bg-red-500/15 text-red-300 border-red-500/30";
+    if (s.includes("tp") || s === "closed_win") return "bg-profit/15 text-profit border-profit/25";
+    if (s === "closed_loss" || s === "sl") return "bg-loss/15 text-loss border-red-500/30";
     return "bg-blue-500/15 text-blue-300 border-blue-500/30";
   };
 
@@ -1296,15 +1293,15 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
   if (selectedSignalId) {
     const lk = signals.find((s) => s.signal_id === selectedSignalId);
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-r from-surface-secondary via-surface-raised to-surface-secondary border border-line/25 rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)]">
+      <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
         <div className="relative z-10 p-3 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-md border border-line/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary flex-shrink-0">
+          <span className="w-8 h-8 rounded-md border border-ink/12 bg-accent/12 flex items-center justify-center text-accent flex-shrink-0">
             <IconLink className="h-3.5 w-3.5" />
           </span>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {lk && <CoinLogo pair={lk.pair} size={26} />}
             <div className="min-w-0">
-              <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-gold-primary/70">Linked to LuxQuant Signal</div>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted">Linked to LuxQuant Signal</div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[13px] font-medium text-text-primary tracking-tight">{lk?.pair || "Signal"}</span>
                 <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted/55">
@@ -1315,7 +1312,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
           </div>
           <button
             onClick={onClear}
-            className="h-7 px-2.5 rounded-sm border border-ink/[0.08] bg-ink/[0.03] text-text-muted/65 hover:text-red-300 hover:border-red-500/30 text-[10px] font-medium uppercase tracking-[0.15em] transition-all"
+            className="h-7 px-2.5 rounded-sm border border-ink/[0.08] bg-ink/[0.03] text-text-muted/65 hover:text-loss hover:border-red-500/30 text-[10px] font-medium uppercase tracking-[0.15em] transition-all"
           >
             Unlink
           </button>
@@ -1329,17 +1326,17 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-line/25 bg-gold-primary/[0.03] text-text-muted/80 hover:border-line/40 hover:text-text-primary hover:bg-gold-primary/[0.06] transition-all"
+        className="w-full flex items-center gap-3 h-11 px-4 rounded-md border border-dashed border-ink/12 bg-surface-secondary text-text-muted/80 hover:border-transparent hover:text-text-primary hover:bg-surface-secondary transition-all"
       >
-        <IconLink className="h-4 w-4 text-gold-primary/70 flex-shrink-0" />
+        <IconLink className="h-4 w-4 text-text-muted flex-shrink-0" />
         <span className="text-[12px] font-medium tracking-tight">Link LuxQuant Signal</span>
-        <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary/60 ml-auto">auto-fill 90%</span>
+        <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted ml-auto">auto-fill 90%</span>
       </button>
 
       {open && (
         <div className="absolute z-50 top-full left-0 right-0 mt-2 rounded-md overflow-hidden border border-ink/[0.08] shadow-2xl shadow-black/60 bg-surface-raised">
           <div className="p-2 border-b border-ink/[0.06]">
-            <label className="group flex h-9 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-ink/[0.05]">
+            <label className="group flex h-9 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-ink/12 focus-within:bg-ink/[0.05]">
               <IconSearch className="h-3.5 w-3.5 text-text-muted/55 shrink-0" />
               <input
                 type="text"
@@ -1369,9 +1366,9 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
                       <span className="text-[12px] font-medium text-text-primary tracking-tight">{sig.pair}</span>
                       {sig.risk_level && (
                         <span className={`text-[8.5px] font-mono font-medium uppercase tracking-[0.12em] px-1 py-px rounded-sm border ${
-                          sig.risk_level?.toLowerCase().startsWith("low") ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/25"
-                          : sig.risk_level?.toLowerCase().startsWith("high") ? "bg-red-500/10 text-red-300 border-red-500/25"
-                          : "bg-amber-500/10 text-amber-300 border-amber-500/25"
+                          sig.risk_level?.toLowerCase().startsWith("low") ? "border-profit/25 bg-profit/10 text-profit"
+                          : sig.risk_level?.toLowerCase().startsWith("high") ? "bg-red-500/10 text-loss border-red-500/25"
+                          : "bg-accent/10 text-accent border-accent/25"
                         }`}>
                           {sig.risk_level?.toUpperCase()}
                         </span>
@@ -1415,7 +1412,7 @@ const LivePreviewBanner = ({ form, preview }) => {
     preview.pnl >= 0 ? "closed_win" : "closed_loss";
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-ink/[0.04]">
         <PreviewCell label="P&L $" value={hasPnl ? fmtMoney(preview.pnl, { sign: true }) : "—"} accent={hasPnl ? (isPositive ? "emerald" : "red") : null} />
         <PreviewCell label="P&L %" value={preview.pct != null ? fmtPct(preview.pct, { sign: true }) : "—"} accent={preview.pct != null ? (preview.pct >= 0 ? "emerald" : "red") : null} />
@@ -1427,7 +1424,7 @@ const LivePreviewBanner = ({ form, preview }) => {
 };
 
 const PreviewCell = ({ label, value, accent, isStatus, statusKey }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400", white: "text-text-primary/85" };
+  const colorMap = { emerald: "text-profit", profit: "text-profit", red: "text-loss", white: "text-text-primary/85" };
   return (
     <div className="px-3 py-3 flex flex-col gap-1.5 min-w-0">
       <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
@@ -1449,11 +1446,11 @@ const PreviewCell = ({ label, value, accent, isStatus, statusKey }) => {
 // ════════════════════════════════════════════════════════════════
 
 const FormCard = ({ title, icon, description, children }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
-          {icon && <span className="text-gold-primary/70">{icon}</span>}
+          {icon && <span className="text-text-muted">{icon}</span>}
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">{title}</h3>
         </div>
         {description && <p className="text-[10.5px] text-text-muted/55 leading-relaxed">{description}</p>}
@@ -1467,8 +1464,8 @@ const FieldLabel = ({ label, required, auto, children }) => (
   <label className="flex flex-col gap-1.5">
     <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 flex items-center gap-1.5">
       <span>{label}</span>
-      {required && <span className="text-gold-primary/70">*</span>}
-      {auto && <span className="text-[8px] font-mono font-medium uppercase tracking-[0.1em] text-emerald-400/70 bg-emerald-500/[0.08] border border-emerald-500/20 px-1 py-px rounded-sm">AUTO</span>}
+      {required && <span className="text-text-muted">*</span>}
+      {auto && <span className="text-[8px] font-mono font-medium uppercase tracking-[0.1em] text-profit/70 bg-profit/10 border border-profit/20 px-1 py-px rounded-sm">AUTO</span>}
     </span>
     {children}
   </label>
@@ -1546,7 +1543,7 @@ const DirectionButton = ({ active, onClick, type }) => {
       onClick={onClick}
       className={`h-9 rounded-md text-[11px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center justify-center gap-1.5 ${
         active
-          ? isLong ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40" : "bg-red-500/15 text-red-300 border-red-500/40"
+          ? isLong ? "bg-profit text-white border-transparent" : "bg-loss text-white border-transparent"
           : "bg-ink/[0.03] text-text-muted/55 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
       }`}
     >
@@ -1600,7 +1597,7 @@ const PsychologySection = ({ form, updateEmotion }) => (
               onClick={() => updateEmotion("mood", form.emotions.mood === m ? "" : m)}
               className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border flex items-center gap-1.5 ${
                 form.emotions.mood === m
-                  ? "bg-gold-primary/15 text-text-primary border-line/40"
+                  ? "bg-accent text-accent-fg border-transparent"
                   : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
               }`}
             >
@@ -1660,9 +1657,10 @@ const SliderField = ({ label, value, onChange, leftLabel, rightLabel, color = "e
 
 const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "gold", description }) => {
   const accentMap = {
-    gold: { active: "bg-gold-primary/15 text-text-primary border-line/40", count: "text-gold-primary" },
-    emerald: { active: "bg-emerald-500/12 text-emerald-200 border-emerald-500/40", count: "text-emerald-400" },
-    red: { active: "bg-red-500/12 text-red-200 border-red-500/40", count: "text-red-400" },
+    gold: { active: "bg-accent text-accent-fg border-transparent", count: "text-accent-fg" },
+    profit: { active: "bg-profit text-white border-transparent", count: "text-white" },
+    red: { active: "bg-loss text-white border-transparent", count: "text-white" },
+    loss: { active: "bg-loss text-white border-transparent", count: "text-white" },
   }[accent];
 
   return (
@@ -1700,14 +1698,14 @@ const TagSection = ({ title, icon, options, selected = [], onToggle, accent = "g
 // ════════════════════════════════════════════════════════════════
 
 const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] sticky bottom-3 z-30 backdrop-blur-md">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised sticky bottom-3 z-30">
     <div className="relative z-10 p-3 flex items-center justify-between gap-2 flex-wrap">
       <div className="flex items-center gap-2">
         {onDelete && (
           <button
             type="button"
             onClick={onDelete}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-md border border-red-500/25 bg-red-500/[0.06] text-red-300 hover:bg-red-500/12 hover:border-red-500/40 transition-all text-[11px] font-medium uppercase tracking-[0.12em]"
+            className="flex h-9 items-center gap-1.5 rounded-md border border-loss/25 bg-loss/10 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-loss transition-colors hover:bg-loss/15"
           >
             <IconTrash className="h-3 w-3" />
             <span>Delete</span>
@@ -1725,7 +1723,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
         type="button"
         onClick={onSubmit}
         disabled={saving || !canSubmit}
-        className="flex items-center gap-2 h-9 px-5 rounded-md border border-line/40 bg-gold-primary/15 text-gold-primary hover:bg-gold-primary/20 hover:border-line/60 transition-all text-[11px] font-medium uppercase tracking-[0.14em] disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 h-9 px-5 rounded-md border border-transparent bg-accent text-accent-fg hover:opacity-90 transition-all text-[11px] font-medium uppercase tracking-[0.14em] disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <IconCheck className="h-3.5 w-3.5" />
         <span>{saving ? "Saving…" : isEdit ? "Update Entry" : "Save Entry"}</span>
@@ -1741,7 +1739,7 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
 const AnalyticsView = ({ stats, insights, entries }) => {
   if (!stats) {
     return (
-      <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-12 text-center">
+      <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-12 text-center">
         <div className="flex flex-col items-center gap-3">
           <IconChart className="h-7 w-7 text-text-muted/30" />
           <p className="text-[12px] font-mono uppercase tracking-[0.15em] text-text-muted/55">
@@ -1841,9 +1839,9 @@ const AnalyticsHero = ({ stats, profitFactor, expectancy, closedCount }) => {
 };
 
 const HeroCard = ({ label, value, sub, accent }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400", amber: "text-amber-400", white: "text-text-primary" };
+  const colorMap = { emerald: "text-profit", profit: "text-profit", red: "text-loss", amber: "text-accent", white: "text-text-primary" };
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 transition-all hover:border-ink/[0.10]">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-secondary p-4 transition-all hover:border-ink/[0.10]">
       <div className="relative z-10 flex flex-col gap-1">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
         <span className={`text-2xl sm:text-[28px] font-light tabular-nums tracking-tight leading-none mt-1 ${colorMap[accent] || "text-text-primary"}`}>{value}</span>
@@ -1855,17 +1853,17 @@ const HeroCard = ({ label, value, sub, accent }) => {
 
 // ── AI Coach Insights ────────────────────────────────────
 const AICoachCard = ({ insights, stats, closedCount }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-primary/30 before:to-transparent bg-gradient-to-br from-surface-secondary to-surface-raised border border-line/15 rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)]">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="w-7 h-7 rounded-md border border-line/30 bg-gold-primary/10 flex items-center justify-center text-gold-primary">
+        <span className="w-7 h-7 rounded-md border border-ink/12 bg-accent/12 flex items-center justify-center text-accent">
           <IconSparkles className="h-3.5 w-3.5" />
         </span>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">AI Coach Insights</h3>
             {insights?.source === "gemini" && (
-              <span className="text-[8.5px] font-mono uppercase tracking-[0.12em] text-gold-primary bg-gold-primary/[0.1] border border-line/20 px-1.5 py-px rounded-sm">
+              <span className="text-[8.5px] font-mono uppercase tracking-[0.12em] text-accent bg-accent/10 border border-ink/10 px-1.5 py-px rounded-sm">
                 Gemini
               </span>
             )}
@@ -1889,8 +1887,8 @@ const AICoachCard = ({ insights, stats, closedCount }) => (
       ) : (
         <div className="space-y-2">
           {insights.insights.map((text, i) => (
-            <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-md border border-line/15 bg-gold-primary/[0.03]">
-              <span className="flex-shrink-0 mt-0.5 text-gold-primary/80">
+            <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-md border border-ink/10 bg-surface-secondary">
+              <span className="flex-shrink-0 mt-0.5 text-text-muted">
                 <IconSparkles className="h-3.5 w-3.5" />
               </span>
               <p className="text-[11.5px] text-text-primary/85 leading-relaxed flex-1">{text}</p>
@@ -1922,7 +1920,7 @@ const PnlDistributionCard = ({ entries }) => {
   const max = Math.max(1, ...bins.counts);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">P&amp;L Distribution</h3>
@@ -1947,7 +1945,7 @@ const PnlDistributionCard = ({ entries }) => {
                       className={`w-full rounded-t-sm transition-all border-t ${
                         isZero ? "bg-ink/[0.02] border-ink/[0.04]"
                         : isNeg ? "bg-red-500/30 border-red-500/50 group-hover:bg-red-500/40"
-                        : "bg-emerald-500/30 border-emerald-500/50 group-hover:bg-emerald-500/40"
+                        : "bg-profit/30 border-profit/40 group-hover:bg-profit/40"
                       }`}
                       style={{ height: `${Math.max(h, isZero ? 3 : 6)}%` }}
                     />
@@ -1983,7 +1981,7 @@ const StrategyBreakdownCard = ({ stats }) => {
   const maxAbsPnl = Math.max(1, ...data.map((d) => Math.abs(d.pnl)));
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Strategy Performance</h3>
@@ -1998,7 +1996,7 @@ const StrategyBreakdownCard = ({ stats }) => {
           <div className="space-y-2.5">
             {data.map((row, i) => {
               const isPos = row.pnl >= 0;
-              const wrColor = row.winRate >= 60 ? "text-emerald-400" : row.winRate >= 40 ? "text-amber-400" : "text-red-400";
+              const wrColor = row.winRate >= 60 ? "text-profit" : row.winRate >= 40 ? "text-accent" : "text-loss";
               return (
                 <div key={i}>
                   <div className="flex items-center justify-between mb-1 gap-2">
@@ -2047,7 +2045,7 @@ const MoodPerformanceCard = ({ stats }) => {
   }, [stats]);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Mood Impact</h3>
@@ -2062,9 +2060,9 @@ const MoodPerformanceCard = ({ stats }) => {
           <div className="space-y-2">
             {data.map((row) => {
               const wrColor = !row.hasData ? "text-text-muted/30"
-                : row.winRate >= 60 ? "text-emerald-400"
-                : row.winRate >= 40 ? "text-amber-400"
-                : "text-red-400";
+                : row.winRate >= 60 ? "text-profit"
+                : row.winRate >= 40 ? "text-accent"
+                : "text-loss";
               return (
                 <div key={row.name}>
                   <div className="flex items-center justify-between mb-1 gap-2">
@@ -2113,7 +2111,7 @@ const DayOfWeekCard = ({ stats }) => {
   const hasAny = data.some((d) => d.pnl !== 0);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 sm:p-5">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 sm:p-5">
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-[12px] font-semibold text-text-primary uppercase tracking-[0.18em]">Day of Week</h3>
@@ -2140,7 +2138,7 @@ const DayOfWeekCard = ({ stats }) => {
                 <div key={row.day} className="text-center">
                   <p className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45 mb-1.5">{row.day}</p>
                   <div className="rounded-md border py-3.5 flex flex-col items-center justify-center" style={{ background: bg, borderColor: border }}>
-                    <span className={`text-[11px] font-mono tabular-nums font-medium ${isZero ? "text-text-muted/35" : isPos ? "text-emerald-400" : "text-red-400"}`}>
+                    <span className={`text-[11px] font-mono tabular-nums font-medium ${isZero ? "text-text-muted/35" : isPos ? "text-profit" : "text-loss"}`}>
                       {isZero ? "—" : fmtMoney(row.pnl, { sign: true, decimals: 0 })}
                     </span>
                   </div>
@@ -2189,9 +2187,9 @@ const StreaksRow = ({ stats }) => (
 );
 
 const StreakCard = ({ label, value, sub, accent, icon }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
+  const colorMap = { emerald: "text-profit", profit: "text-profit", red: "text-loss" };
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-secondary p-4">
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55">{label}</span>
