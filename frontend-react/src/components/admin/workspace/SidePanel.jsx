@@ -1,11 +1,9 @@
 // src/components/admin/workspace/SidePanel.jsx
-// ════════════════════════════════════════════════════════════════
 // Shared wrapper for admin panels (Followup / Campaign / Todo /
-// PaymentDetail). Now delegates to the standard <Modal> primitive —
-// flat header + gold hairline, uniform animation/Esc/scroll-lock/portal.
+// PaymentDetail). Delegates to the standard <Modal> primitive —
+// solid chrome, no gold hairline, uniform animation/Esc/scroll-lock/portal.
 // API PRESERVED: { isOpen, onClose, title, subtitle, Icon, width,
-// footer, children } — none of the four callers need to change.
-// ════════════════════════════════════════════════════════════════
+// footer, children }
 
 import Modal from '../../ui/Modal';
 
@@ -29,18 +27,12 @@ export const SidePanel = ({
   const header = (
     <div className="flex min-w-0 items-center gap-2.5">
       {Icon && (
-        <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          style={{
-            background: 'rgba(212,168,83,0.1)',
-            boxShadow: 'inset 0 0 0 1px rgba(212,168,83,0.22)',
-          }}
-        >
-          <Icon size={14} style={{ color: 'rgb(var(--accent))' }} />
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04]">
+          <Icon size={14} className="text-text-muted" />
         </span>
       )}
       <div className="min-w-0">
-        <h2 className="text-sm font-bold leading-tight tracking-tight text-text-primary">
+        <h2 className="text-sm font-semibold leading-tight tracking-tight text-text-primary">
           {title}
         </h2>
         {subtitle && (
@@ -58,6 +50,7 @@ export const SidePanel = ({
       onClose={onClose}
       size={size}
       padded={false}
+      accent={false}
       header={header}
       footer={footer}
     >

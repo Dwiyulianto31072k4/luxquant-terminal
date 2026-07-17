@@ -287,152 +287,261 @@ const RowThumb = ({ item }) => (
 
 
 // ════════════════════════════════════════════
-// 3. NEWS DETAIL MODAL
+// 3. NEWS DETAIL MODAL — reader desk (solid chrome, responsive sheet/dialog)
 // ════════════════════════════════════════════
 
 const NewsModal = ({ item, onClose }) => {
   const [extract, setExtract] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+  const [faviconFailed, setFaviconFailed] = useState(false);
 
   useEffect(() => {
     if (!item?.id) return;
+    setExtract(null);
+    setImgFailed(false);
+    setFaviconFailed(false);
     setLoading(true);
-    api.get(`/api/v1/crypto-news-feed/extract/${item.id}`)
-      .then((res) => { if (res.data) setExtract(res.data); })
+    api
+      .get(`/api/v1/crypto-news-feed/extract/${item.id}`)
+      .then((res) => {
+        if (res.data) setExtract(res.data);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [item?.id]);
 
   if (!item) return null;
 
-  const imgSrc = extract?.top_image || getImageSrc(item);
+  const imgSrc = !imgFailed ? extract?.top_image || getImageSrc(item) : null;
   const videoSrc = getVideoSrc(extract) || getVideoSrc(item);
   const summary = extract?.summary || item.description || null;
   const fullText = extract?.full_text || item.raw_text || null;
   const keywords = extract?.keywords || [];
   const authors = extract?.authors || [];
   const isPhoto = item.content_type === "photo";
+  const isVideo = item.content_type === "video" || !!videoSrc;
+  const domainColor = getDomainColor(item.domain);
+  const faviconUrl = getFaviconUrl(item.domain, 64);
+  const domainShort = shortDomain(item.domain) || item.source || "Wire";
+  const domainLabel = (item.domain || item.source || "")
+    .replace(/^www\./i, "")
+    .split(".")[0]
+    ?.toUpperCase();
+  const category = categorizeItem(item);
+  const published = item.created_at
+    ? (() => {
+        try {
+          return new Date(item.created_at).toLocaleString(undefined, {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        } catch {
+          return null;
+        }
+      })()
+    : null;
 
   const header = (
-    <div className="flex items-center gap-2">
-      <DomainBadge domain={item.domain} size="lg" />
-      {isPhoto && (
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">
-          photo
-        </span>
-      )}
-      <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
+    <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+      {/* Source mark */}
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.1] bg-white/[0.04] sm:h-9 sm:w-9"
+        style={{ boxShadow: `inset 0 0 0 1px ${domainColor}22` }}
+      >
+        {faviconUrl && !faviconFailed ? (
+          <img
+            src={faviconUrl}
+            alt=""
+            className="h-4 w-4 object-contain sm:h-[18px] sm:w-[18px]"
+            onError={() => setFaviconFailed(true)}
+          />
+        ) : (
+          <span
+            className="font-mono text-[10px] font-semibold uppercase"
+            style={{ color: domainColor }}
+          >
+            {domainShort.slice(0, 2).toUpperCase()}
+          </span>
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
+            {domainShort}
+          </span>
+          <span className="h-1 w-1 shrink-0 rounded-full bg-white/25" />
+          <span className="font-mono text-[10px] tabular-nums text-text-muted">
+            {timeAgo(item.created_at)}
+          </span>
+          {isPhoto ? (
+            <span className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+              photo
+            </span>
+          ) : null}
+          {isVideo ? (
+            <span className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+              video
+            </span>
+          ) : null}
+        </div>
+        {published ? (
+          <p className="mt-0.5 truncate font-mono text-[10px] text-text-muted/70">
+            {published}
+            {category?.label ? ` · ${category.label}` : ""}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 
   const footer = (close) => (
-    <div className="flex items-center gap-2">
-      {item.url && (
+    <div className="flex items-stretch gap-2">
+      {item.url ? (
         <button
           type="button"
           onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
-          className="flex flex-1 h-10 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] text-[12px] font-semibold uppercase tracking-[0.12em] text-text-primary transition hover:bg-white/[0.14] active:scale-[0.99]"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-white/[0.14] active:scale-[0.99]"
         >
           Read full article
           <svg className="h-3.5 w-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </button>
-      )}
+      ) : null}
       <button
         type="button"
         onClick={close}
-        className="h-10 shrink-0 rounded-lg border border-white/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-white/20 hover:text-text-primary"
+        className="h-11 shrink-0 rounded-lg border border-white/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-white/20 hover:text-text-primary sm:px-5"
       >
         Close
       </button>
     </div>
   );
 
+  const heroMax =
+    "max-h-[min(34vh,260px)] sm:max-h-[min(40vh,360px)] md:max-h-[min(42vh,400px)]";
+
   return (
     <Modal
       isOpen
       onClose={onClose}
-      size="lg"
+      size="reader"
       padded={false}
+      accent={false}
       header={header}
       footer={footer}
     >
-      {/* Image / Video / solid LQ News wire card */}
-      <div className="relative w-full bg-[#050505] flex items-center justify-center" style={{ maxHeight: "42vh", minHeight: "11rem" }}>
-        {videoSrc ? (
-          <video
-            src={videoSrc}
-            poster={imgSrc || undefined}
-            controls
-            autoPlay
-            muted
-            playsInline
-            preload="metadata"
-            ref={(el) => { if (el) el.muted = true; }}
-            className="w-auto h-auto max-w-full max-h-[42vh] object-contain bg-black"
-          />
-        ) : imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            className="w-auto h-auto max-w-full max-h-[42vh] object-contain"
-            onError={(e) => { e.target.style.display = "none"; }}
-          />
-        ) : (
-          <div className="w-full" style={{ aspectRatio: "16 / 9", maxHeight: "42vh" }}>
-            <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
-          </div>
-        )}
+      {/* Hero media — full-bleed, scales with viewport */}
+      <div className="relative w-full overflow-hidden bg-black">
+        <div className={`flex min-h-[9.5rem] w-full items-center justify-center sm:min-h-[12rem] ${heroMax}`}>
+          {videoSrc ? (
+            <video
+              src={videoSrc}
+              poster={imgSrc || undefined}
+              controls
+              autoPlay
+              muted
+              playsInline
+              preload="metadata"
+              ref={(el) => {
+                if (el) el.muted = true;
+              }}
+              className={`w-full bg-black object-contain ${heroMax}`}
+            />
+          ) : imgSrc ? (
+            <img
+              src={imgSrc}
+              alt=""
+              className={`w-full object-cover sm:object-contain ${heroMax}`}
+              onError={() => setImgFailed(true)}
+            />
+          ) : (
+            <div className={`w-full ${heroMax}`} style={{ aspectRatio: "16 / 9" }}>
+              <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
+            </div>
+          )}
+        </div>
+        {/* Bottom scrim + source chip — solid black, no page blur */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+        {domainLabel ? (
+          <span className="pointer-events-none absolute bottom-3 right-3 rounded border border-white/12 bg-black/75 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/75">
+            {domainLabel}
+          </span>
+        ) : null}
       </div>
 
-      <div className="p-5 space-y-4">
-        <h2 className="font-display text-lg sm:text-2xl font-semibold tracking-tight leading-snug text-text-primary">
-          {item.title}
-        </h2>
+      <div className="space-y-5 px-4 py-5 sm:space-y-6 sm:px-6 sm:py-6">
+        {/* Headline block */}
+        <header className="space-y-2.5">
+          {category ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted"
+            >
+              <span className="opacity-80">{category.icon}</span>
+              {category.label}
+            </span>
+          ) : null}
+          <h2 className="font-display text-[18px] font-semibold leading-[1.3] tracking-tight text-text-primary sm:text-[22px] sm:leading-[1.28] md:text-[24px]">
+            {item.title}
+          </h2>
+          {authors.length > 0 ? (
+            <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
+              By {authors.join(", ")}
+            </p>
+          ) : null}
+        </header>
 
-        {authors.length > 0 && (
-          <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.12em]">
-            By {authors.join(", ")}
+        {/* Body */}
+        {loading ? (
+          <div className="lqsk-group space-y-2.5">
+            <ShimmerStyles />
+            <div className="h-3 w-full rounded bg-white/5" />
+            <div className="h-3 w-5/6 rounded bg-white/5" />
+            <div className="h-3 w-4/6 rounded bg-white/5" />
+            <div className="h-3 w-3/4 rounded bg-white/5" />
+          </div>
+        ) : summary ? (
+          <section className="space-y-2">
+            <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
+              Summary
+            </h3>
+            <p className="text-[14px] leading-[1.7] text-text-secondary sm:text-[15px] sm:leading-[1.75]">
+              {cleanText(summary)}
+            </p>
+          </section>
+        ) : (
+          <p className="font-mono text-[11px] text-text-muted/70">
+            Full extract unavailable — open the original article.
           </p>
         )}
 
-        {loading ? (
-          <div className="lqsk-group space-y-2">
-            <ShimmerStyles />
-            <div className="h-3 bg-white/5 rounded w-full" />
-            <div className="h-3 bg-white/5 rounded w-5/6" />
-            <div className="h-3 bg-white/5 rounded w-4/6" />
-          </div>
-        ) : summary ? (
-          <div className="space-y-2">
-            <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">
-              Summary
-            </h3>
-            <p className="text-text-secondary text-[13.5px] leading-relaxed">{cleanText(summary)}</p>
-          </div>
-        ) : null}
-
-        {keywords.length > 0 && (
+        {keywords.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
-            {keywords.map((kw, i) => (
-              <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/[0.07] text-text-muted">
+            {keywords.slice(0, 12).map((kw, i) => (
+              <span
+                key={i}
+                className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 font-mono text-[10px] text-text-muted"
+              >
                 #{kw}
               </span>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {fullText && fullText !== summary && (
-          <div className="space-y-2 border-t border-white/[0.06] pt-4">
-            <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">
+        {fullText && fullText !== summary ? (
+          <section className="space-y-2.5 border-t border-white/[0.07] pt-5">
+            <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
               Article preview
             </h3>
-            <p className="text-text-muted text-[12.5px] leading-relaxed whitespace-pre-line">
-              {cleanText(fullText).slice(0, 800)}{fullText.length > 800 ? "…" : ""}
+            <p className="whitespace-pre-line text-[13px] leading-[1.75] text-text-muted sm:text-[13.5px]">
+              {cleanText(fullText).slice(0, 1400)}
+              {fullText.length > 1400 ? "…" : ""}
             </p>
-          </div>
-        )}
+          </section>
+        ) : null}
       </div>
     </Modal>
   );

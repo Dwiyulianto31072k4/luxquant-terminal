@@ -58,20 +58,15 @@ export const ConfirmModal = ({
   };
 
   return (
-    <Modal isOpen onClose={onClose} size="sm">
+    <Modal isOpen onClose={onClose} size="sm" accent={false} title={title}>
       <div className="flex items-start gap-3">
         {danger ? <DangerIcon /> : null}
-        <div className="min-w-0 flex-1">
-          <h3 className="mb-1.5 text-base font-bold tracking-tight text-text-primary">
-            {title}
-          </h3>
-          <p className="whitespace-pre-line text-xs text-text-muted">
-            {message}
-          </p>
-        </div>
+        <p className="min-w-0 flex-1 whitespace-pre-line text-sm leading-relaxed text-text-muted">
+          {message}
+        </p>
       </div>
 
-      <ModalFooter>
+      <ModalFooter className="mt-5">
         <GhostButton onClick={onClose} disabled={loading} className="flex-1">
           {cancelText}
         </GhostButton>
