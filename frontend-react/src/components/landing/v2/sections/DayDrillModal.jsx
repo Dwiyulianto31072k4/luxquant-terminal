@@ -1,12 +1,12 @@
 // Day drill — resolved calls for a WR×BTC day (landing).
-// Layout: header + top filters + full-width list. Row click → SignalModal
-// (History/journey). Basic drill data always shown; detail redaction follows
-// the normal API rules (subscriber / fully-closed). Works for any date, not
-// only the last 7 days.
+// Layout: header + top filters + full-width list.
+// Row click → navigate to /signals?signal=<id>&tab=trade (same unique URL as
+// Potential Trades, default Trade tab with journey + execution proof).
+// Works for any age signal — SignalsPage fetches by id if outside the 7d list.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import CoinLogo from "../../../CoinLogo";
-import SignalModal from "../../../SignalModal";
 
 const C = { win: "#4ade80", loss: "#f87171" };
 const WINS = ["tp1", "tp2", "tp3", "tp4"];
@@ -41,11 +41,6 @@ const fmtWhen = (s) => {
     return "";
   }
 };
-const authHeaders = () => {
-  const token = localStorage.getItem("access_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 function Spinner() {
   return (
     <div className="flex flex-1 items-center justify-center py-16">
@@ -166,7 +161,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     return winners.length ? winners : all;
   }, [tab, winners, losers, all]);
 
-  const [selectedSignal, setSelectedSignal] = useState(null);
+  const navigate = useNavigate();
   const [openingId, setOpeningId] = useState(null);
 
   // Default filter when data arrives
@@ -179,72 +174,27 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const h = (e) => {
-      if (e.key === "Escape" && !selectedSignal) onClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", h);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", h);
     };
-  }, [onClose, selectedSignal]);
+  }, [onClose]);
 
-  // Open full SignalModal (History = journey). Detail API applies 7d/sub rules;
-  // merge drill basic fields so entry/targets/peak still show when redacted.
-  const openSignal = useCallback(async (row) => {
-    if (!row?.signal_id) return;
-    setOpeningId(row.signal_id);
-    const partial = {
-      signal_id: row.signal_id,
-      pair: row.pair,
-      entry: row.entry,
-      target1: row.target1,
-      target2: row.target2,
-      target3: row.target3,
-      target4: row.target4,
-      stop1: row.stop1,
-      stop2: row.stop2,
-      status: row.status || row.outcome,
-      risk_level: row.risk_level,
-      created_at: row.created_at,
-      peak_pct: row.peak_pct,
-      entry_chart_url: row.entry_chart_url,
-      latest_chart_url: row.latest_chart_url,
-      message_link: row.message_link,
-      // journey helpers
-      mfe_pct: row.mfe_pct,
-      mae_pct: row.mae_pct,
-      realized_pct: row.realized_pct,
-      outcome: row.outcome,
-    };
-    try {
-      const r = await fetch(`/api/v1/signals/detail/${row.signal_id}`, {
-        headers: authHeaders(),
-      });
-      if (r.ok) {
-        const full = await r.json();
-        // Prefer non-null full fields; keep drill basics as fallback
-        setSelectedSignal({
-          ...partial,
-          ...full,
-          entry: full.entry ?? partial.entry,
-          target1: full.target1 ?? partial.target1,
-          target2: full.target2 ?? partial.target2,
-          target3: full.target3 ?? partial.target3,
-          target4: full.target4 ?? partial.target4,
-          stop1: full.stop1 ?? partial.stop1,
-          stop2: full.stop2 ?? partial.stop2,
-          entry_chart_url: full.entry_chart_url || partial.entry_chart_url,
-          latest_chart_url: full.latest_chart_url || partial.latest_chart_url,
-        });
-      } else {
-        setSelectedSignal(partial);
-      }
-    } catch {
-      setSelectedSignal(partial);
-    } finally {
-      setOpeningId(null);
-    }
-  }, []);
+  // Same deep-link as Potential Trades: unique signal id + Trade tab (execution
+  // proof + Signal Journey). SignalsPage loads any-age id via detail API.
+  const openSignal = useCallback(
+    (row) => {
+      if (!row?.signal_id) return;
+      setOpeningId(row.signal_id);
+      const sid = encodeURIComponent(String(row.signal_id));
+      navigate(`/signals?signal=${sid}&tab=trade`);
+      // navigate unmounts landing; brief busy state for tap feedback
+    },
+    [navigate],
+  );
 
   const dateLabel = (() => {
     try {
@@ -287,7 +237,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                Resolved calls · open any row for full proof
+                Resolved calls · row opens Trade proof with unique link
               </p>
               <h3 className="mt-0.5 font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-[19px]">
                 {dateLabel}
@@ -411,7 +361,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
           <footer className="shrink-0 border-t border-white/[0.06] bg-white/[0.015] px-4 py-2.5 sm:px-5">
             <p className="font-mono text-[10px] text-text-muted/70">
               Showing {list.length}
-              {tab !== "all" ? ` · ${tab}` : ""} · tap a row for chart, levels &amp; journey
+              {tab !== "all" ? ` · ${tab}` : ""} · tap a row → Trade proof (unique signal link)
             </p>
           </footer>
         )}
@@ -419,15 +369,5 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     </div>
   );
 
-  return (
-    <>
-      {createPortal(shell, document.body)}
-      <SignalModal
-        signal={selectedSignal}
-        isOpen={!!selectedSignal}
-        onClose={() => setSelectedSignal(null)}
-        initialTab="history"
-      />
-    </>
-  );
+  return createPortal(shell, document.body);
 }
