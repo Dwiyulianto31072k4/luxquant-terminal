@@ -14,7 +14,6 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { GoldButton, GhostButton } from "./autotrade/AutoTradeUI";
 import Modal from "./ui/Modal";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
@@ -131,24 +130,33 @@ const categorizeItem = (item) => {
 
 const DomainBadge = ({ domain, size = "sm" }) => {
   if (!domain) return null;
-  const color = getDomainColor(domain);
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono uppercase tracking-[0.12em] ${
-        size === "lg" ? "text-[10px]" : "text-[9px]"
+      className={`inline-flex items-center gap-1.5 rounded border border-white/[0.1] bg-white/[0.04] font-mono uppercase tracking-[0.12em] text-text-muted ${
+        size === "lg" ? "px-2 py-0.5 text-[10px]" : "px-1.5 py-0.5 text-[9px]"
       }`}
-      style={{ background: `${color}1a`, color, border: `1px solid ${color}33` }}
     >
-      <span className="w-1 h-1 rounded-full" style={{ background: color, boxShadow: `0 0 4px ${color}` }} />
+      <span className="h-1 w-1 rounded-full bg-white/45" />
       {shortDomain(domain)}
     </span>
   );
 };
 
-// BrandThumbnail — full-bleed brand image / LuxQuant logo / favicon glass card
-const BrandThumbnail = ({ domain, isHeadline = false }) => {
-  const color = getDomainColor(domain);
+// Decode HTML entities that sometimes leak into summaries (&nbsp; etc.)
+const cleanText = (s) => {
+  if (!s) return "";
+  try {
+    const el = document.createElement("textarea");
+    el.innerHTML = String(s);
+    return el.value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  } catch {
+    return String(s).replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").trim();
+  }
+};
 
+// BrandThumbnail — solid black "wire" card (Bloomberg-style masthead).
+// No gold glow / grid / corner fold — logo + wordmark only.
+const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
   const fullBleedImageKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) =>
     domain?.includes(d)
   );
@@ -167,52 +175,40 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
     );
   }
 
-  // Universal fallback: the LuxQuant News branded card for any item without an
-  // image of its own. og:image backfill fills real pictures where possible; the
-  // rest (e.g. Google News redirects) land here. Source still shows via DomainBadge.
   return (
-      <div
-        className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 40%, rgba(212,168,83,0.18) 0%, rgba(212,168,83,0.04) 55%, rgba(0,0,0,0.4) 100%)",
-        }}
-      >
-        <div
-          className="absolute inset-0 opacity-25"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(212,168,83,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(212,168,83,0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: "18px 18px",
-          }}
+    <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden bg-[#050505]">
+      {/* subtle top rule — terminal masthead, not a glow */}
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.08]" />
+      <div className={`relative z-10 flex flex-col items-center ${compact ? "gap-1.5" : "gap-2.5"}`}>
+        <img
+          src={LUXQUANT_LOGO}
+          alt="LuxQuant"
+          className={`object-contain opacity-95 ${compact ? "w-9 h-9" : "w-14 h-14 sm:w-16 sm:h-16"}`}
         />
-        <div
-          className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(135deg, transparent 50%, rgba(212,168,83,0.22) 50%)",
-          }}
-        />
-        <div className="relative z-10 flex flex-col items-center gap-2">
-          <img
-            src={LUXQUANT_LOGO}
-            alt="LuxQuant"
-            className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
-            style={{
-              filter: "drop-shadow(0 4px 20px rgba(212,168,83,0.35))",
-            }}
-          />
+        <div className="flex flex-col items-center gap-0.5">
           <span
-            className="text-[9px] font-mono uppercase tracking-[0.25em]"
-            style={{ color: "rgba(212,168,83,0.85)" }}
+            className={`font-mono uppercase tracking-[0.28em] text-white/75 ${
+              compact ? "text-[7px]" : "text-[9px] sm:text-[10px]"
+            }`}
           >
-            LuxQuant News
+            LuxQuant
+          </span>
+          <span
+            className={`font-mono uppercase tracking-[0.22em] text-white/40 ${
+              compact ? "text-[6.5px]" : "text-[8px]"
+            }`}
+          >
+            News
           </span>
         </div>
       </div>
-    );
+      {isHeadline ? (
+        <span className="absolute bottom-2 left-2 font-mono text-[8px] uppercase tracking-[0.16em] text-white/35">
+          Wire
+        </span>
+      ) : null}
+    </div>
+  );
 };
 
 const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
@@ -286,9 +282,7 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
 
 // RowThumb — compact thumbnail for list rows (image / brand promo / favicon / initials)
 const RowThumb = ({ item }) => {
-  const [failed, setFailed] = useState(false);
   const imgSrc = getImageSrc(item);
-  const color = getDomainColor(item.domain);
 
   if (imgSrc) {
     return (
@@ -315,27 +309,13 @@ const RowThumb = ({ item }) => {
     );
   }
 
-  const fav = getFaviconUrl(item.domain, 64);
-  return (
-    <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}1a` }}>
-      {fav && !failed ? (
-        <img src={fav} alt="" className="w-7 h-7 object-contain" onError={() => setFailed(true)} />
-      ) : (
-        <span className="font-mono text-[11px] font-bold" style={{ color }}>
-          {shortDomain(item.domain).slice(0, 2).toUpperCase()}
-        </span>
-      )}
-    </div>
-  );
+  // No photo → same solid LQ News wire as larger cards
+  return <BrandThumbnail domain={item.domain} compact />;
 };
 
-// Reusable gold hairline edges (left / right / top) — boxed card language
-const GoldEdges = () => (
-  <>
-    <span className="absolute left-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
-    <span className="absolute right-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
-    <span className="absolute top-0 inset-x-0 h-px z-20 pointer-events-none" style={{ background: "linear-gradient(90deg, transparent, rgba(212,168,83,0.4), transparent)" }} />
-  </>
+// Quiet top hairline — terminal card language (no gold glow)
+const QuietEdges = () => (
+  <span className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-white/[0.06]" />
 );
 
 // ════════════════════════════════════════════
@@ -364,7 +344,6 @@ const NewsModal = ({ item, onClose }) => {
   const keywords = extract?.keywords || [];
   const authors = extract?.authors || [];
   const isPhoto = item.content_type === "photo";
-  const color = getDomainColor(item.domain);
 
   const header = (
     <div className="flex items-center gap-2">
@@ -379,19 +358,26 @@ const NewsModal = ({ item, onClose }) => {
   );
 
   const footer = (close) => (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center gap-2">
       {item.url && (
-        <GoldButton
+        <button
+          type="button"
           onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
-          className="flex flex-1 items-center justify-center gap-2"
+          className="flex flex-1 h-10 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] text-[12px] font-semibold uppercase tracking-[0.12em] text-text-primary transition hover:bg-white/[0.14] active:scale-[0.99]"
         >
-          Read Full Article
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          Read full article
+          <svg className="h-3.5 w-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
-        </GoldButton>
+        </button>
       )}
-      <GhostButton onClick={close}>Close</GhostButton>
+      <button
+        type="button"
+        onClick={close}
+        className="h-10 shrink-0 rounded-lg border border-white/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-white/20 hover:text-text-primary"
+      >
+        Close
+      </button>
     </div>
   );
 
@@ -401,12 +387,11 @@ const NewsModal = ({ item, onClose }) => {
       onClose={onClose}
       size="lg"
       padded={false}
-      accentColor={color}
       header={header}
       footer={footer}
     >
-      {/* Image / Video / Placeholder — object-contain, full image visible */}
-      <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "45vh", minHeight: "10rem" }}>
+      {/* Image / Video / solid LQ News wire card */}
+      <div className="relative w-full bg-[#050505] flex items-center justify-center" style={{ maxHeight: "42vh", minHeight: "11rem" }}>
         {videoSrc ? (
           <video
             src={videoSrc}
@@ -417,33 +402,31 @@ const NewsModal = ({ item, onClose }) => {
             playsInline
             preload="metadata"
             ref={(el) => { if (el) el.muted = true; }}
-            className="w-auto h-auto max-w-full max-h-[45vh] object-contain bg-black"
+            className="w-auto h-auto max-w-full max-h-[42vh] object-contain bg-black"
           />
         ) : imgSrc ? (
           <img
             src={imgSrc}
             alt=""
-            className="w-auto h-auto max-w-full max-h-[45vh] object-contain"
+            className="w-auto h-auto max-w-full max-h-[42vh] object-contain"
             onError={(e) => { e.target.style.display = "none"; }}
           />
         ) : (
-          <div className="w-full" style={{ aspectRatio: "16 / 9" }}>
+          <div className="w-full" style={{ aspectRatio: "16 / 9", maxHeight: "42vh" }}>
             <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
           </div>
         )}
       </div>
 
-      {/* Body */}
       <div className="p-5 space-y-4">
-        <h2
-          className="text-text-primary text-lg sm:text-2xl leading-tight"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
-        >
+        <h2 className="font-display text-lg sm:text-2xl font-semibold tracking-tight leading-snug text-text-primary">
           {item.title}
         </h2>
 
         {authors.length > 0 && (
-          <p className="text-text-muted text-[11px] font-mono">BY {authors.join(", ").toUpperCase()}</p>
+          <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.12em]">
+            By {authors.join(", ")}
+          </p>
         )}
 
         {loading ? (
@@ -455,18 +438,17 @@ const NewsModal = ({ item, onClose }) => {
           </div>
         ) : summary ? (
           <div className="space-y-2">
-            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
-              <span className="w-1 h-3 rounded-full" style={{ background: color }} />
+            <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">
               Summary
             </h3>
-            <p className="text-text-secondary text-[13px] leading-relaxed">{summary}</p>
+            <p className="text-text-secondary text-[13.5px] leading-relaxed">{cleanText(summary)}</p>
           </div>
         ) : null}
 
         {keywords.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {keywords.map((kw, i) => (
-              <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/5 text-text-muted">
+              <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/[0.07] text-text-muted">
                 #{kw}
               </span>
             ))}
@@ -474,13 +456,12 @@ const NewsModal = ({ item, onClose }) => {
         )}
 
         {fullText && fullText !== summary && (
-          <div className="space-y-2">
-            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
-              <span className="w-1 h-3 rounded-full" style={{ background: color }} />
-              Article Preview
+          <div className="space-y-2 border-t border-white/[0.06] pt-4">
+            <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">
+              Article preview
             </h3>
-            <p className="text-text-muted text-[12px] leading-relaxed whitespace-pre-line">
-              {fullText.slice(0, 800)}{fullText.length > 800 ? "…" : ""}
+            <p className="text-text-muted text-[12.5px] leading-relaxed whitespace-pre-line">
+              {cleanText(fullText).slice(0, 800)}{fullText.length > 800 ? "…" : ""}
             </p>
           </div>
         )}
@@ -521,7 +502,7 @@ const PulseTicker = ({ items, onSelect }) => {
           <button
             key={`${item.id}-${i}`}
             onClick={() => onSelect(item)}
-            className="flex items-center gap-2 px-4 mr-2 whitespace-nowrap text-[12px] hover:text-gold-primary transition-colors group/item"
+            className="flex items-center gap-2 px-4 mr-2 whitespace-nowrap text-[12px] hover:text-text-primary transition-colors group/item"
           >
             <span
               className="w-1 h-1 rounded-full flex-shrink-0"
@@ -530,7 +511,7 @@ const PulseTicker = ({ items, onSelect }) => {
             <span className="text-text-muted font-mono text-[10px] uppercase">
               {shortDomain(item.domain)}
             </span>
-            <span className="text-text-primary/70 group-hover/item:text-gold-primary transition-colors max-w-[420px] truncate">
+            <span className="text-text-primary/70 group-hover/item:text-text-primary transition-colors max-w-[420px] truncate">
               {item.title}
             </span>
             <span className="text-text-muted/60 text-[10px] font-mono">{timeAgo(item.created_at)}</span>
@@ -554,13 +535,12 @@ const LeadCard = ({ item, onSelect }) => {
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-line/30 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
-      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}
+      className="group relative cursor-pointer rounded-xl overflow-hidden bg-surface-raised border border-white/[0.07] hover:border-white/15 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
     >
-      <GoldEdges />
+      <QuietEdges />
 
       {/* Image */}
-      <div className="relative w-full lg:w-[44%] flex-shrink-0 aspect-[16/10] lg:aspect-auto overflow-hidden bg-black/30">
+      <div className="relative w-full lg:w-[44%] flex-shrink-0 aspect-[16/10] lg:aspect-auto overflow-hidden bg-[#050505]">
         {imgSrc ? (
           <img
             src={imgSrc}
@@ -574,7 +554,7 @@ const LeadCard = ({ item, onSelect }) => {
         )}
         {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
+            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-black/55 border border-white/25">
               <svg className="w-5 h-5 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -585,16 +565,13 @@ const LeadCard = ({ item, onSelect }) => {
 
       {/* Content */}
       <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center gap-2.5">
-        <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">Lead Story</span>
-        <h2
-          className="text-text-primary text-lg sm:text-xl lg:text-2xl leading-tight group-hover:text-gold-primary transition-colors line-clamp-3"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
-        >
+        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">Lead story</span>
+        <h2 className="font-display text-text-primary text-lg sm:text-xl lg:text-2xl font-semibold leading-tight tracking-tight group-hover:text-text-primary/90 transition-colors line-clamp-3">
           {item.title}
         </h2>
         {item.description && (
-          <p className="text-text-secondary/80 text-[12.5px] sm:text-[13px] leading-relaxed line-clamp-2">
-            {item.description}
+          <p className="text-text-secondary text-[12.5px] sm:text-[13px] leading-relaxed line-clamp-2">
+            {cleanText(item.description)}
           </p>
         )}
         <div className="flex items-center gap-2 mt-1">
@@ -609,19 +586,17 @@ const LeadCard = ({ item, onSelect }) => {
 // SecondaryCard — medium card: landscape image top + title + meta (desktop tier)
 const SecondaryCard = ({ item, onSelect }) => {
   const imgSrc = getImageSrc(item);
-  const color = getDomainColor(item.domain);
   const isHeadline = item.content_type === "headline";
   const hasVideo = !!getVideoSrc(item);
 
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-md overflow-hidden bg-surface-raised border border-white/[0.08] hover:border-line/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
-      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+      className="group relative cursor-pointer rounded-xl overflow-hidden bg-surface-raised border border-white/[0.07] hover:border-white/15 hover:bg-white/[0.03] transition-all duration-300 flex flex-col"
     >
-      <GoldEdges />
+      <QuietEdges />
 
-      <div className="relative w-full aspect-[16/10] overflow-hidden flex-shrink-0">
+      <div className="relative w-full aspect-[16/10] overflow-hidden flex-shrink-0 bg-[#050505]">
         {imgSrc ? (
           <img
             src={imgSrc}
@@ -634,11 +609,11 @@ const SecondaryCard = ({ item, onSelect }) => {
           <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
         )}
         {imgSrc && (
-          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
         )}
         {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/25">
               <svg className="w-4 h-4 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -649,13 +624,12 @@ const SecondaryCard = ({ item, onSelect }) => {
 
       <div className="p-3 flex flex-col gap-1.5 flex-1">
         <h4
-          className="text-text-primary text-[13px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
+          className="font-display text-text-primary text-[13px] font-medium leading-snug line-clamp-2 group-hover:text-text-primary/90 transition-colors"
           title={item.title}
         >
           {item.title}
         </h4>
-        <div className="flex items-center justify-between mt-auto pt-1 border-t border-white/5">
+        <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-white/[0.05]">
           <span className="text-text-muted text-[9px] font-mono uppercase tracking-wider truncate">
             {shortDomain(item.domain)}
           </span>
@@ -670,7 +644,6 @@ const SecondaryCard = ({ item, onSelect }) => {
 
 // ListRow — scannable horizontal row: thumbnail left + title + source · time
 const ListRow = ({ item, onSelect }) => {
-  const color = getDomainColor(item.domain);
   const hasVideo = !!getVideoSrc(item);
 
   return (
@@ -678,12 +651,8 @@ const ListRow = ({ item, onSelect }) => {
       onClick={() => onSelect(item)}
       className="group relative w-full flex gap-3 p-2.5 rounded-md text-left hover:bg-white/[0.03] transition-colors border-b border-white/[0.04] last:border-b-0"
     >
-      {/* Gold left accent on hover */}
-      <span
-        className="absolute left-0 inset-y-2.5 w-px opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.6), transparent)" }}
-      />
-      <div className="relative w-[72px] h-[72px] rounded-md overflow-hidden flex-shrink-0 bg-surface-raised border border-white/[0.06]">
+      <span className="absolute left-0 inset-y-2.5 w-px bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative w-[72px] h-[72px] rounded-lg overflow-hidden flex-shrink-0 bg-[#050505] border border-white/[0.06]">
         <RowThumb item={item} />
         {hasVideo && (
           <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -697,14 +666,13 @@ const ListRow = ({ item, onSelect }) => {
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <h4
-          className="text-text-primary text-[12.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
+          className="font-display text-text-primary text-[12.5px] font-medium leading-snug line-clamp-2 group-hover:text-text-primary/90 transition-colors"
           title={item.title}
         >
           {item.title}
         </h4>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="font-mono text-[9px] uppercase tracking-wider" style={{ color }}>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
             {shortDomain(item.domain)}
           </span>
           <span className="text-text-muted/60 text-[9px] font-mono">· {timeAgo(item.created_at)}</span>
@@ -725,29 +693,25 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
   return (
     <div className={horizontal ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" : "space-y-3"}>
       {trending?.trending?.length > 0 && (
-        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4 relative overflow-hidden">
-          <div
-            className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.5), transparent)" }}
-          />
+        <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 relative overflow-hidden">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Trending Now</h3>
+            <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">Trending</h3>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {trending.trending.slice(0, 14).map((t, i) => (
               <button
                 key={t.topic}
+                type="button"
                 onClick={() => onSearchTopic(t.topic)}
-                className={`px-2 py-1 rounded text-[10px] font-mono transition-all hover:scale-[1.04] ${
+                className={`px-2.5 py-1 rounded-md text-[10px] font-mono transition-colors ${
                   i < 3
-                    ? "bg-gold-primary/15 text-gold-primary border border-line/30"
-                    : "bg-white/[0.04] text-text-muted border border-white/5 hover:text-text-primary hover:border-white/15"
+                    ? "bg-white/[0.08] text-text-primary border border-white/12"
+                    : "bg-white/[0.03] text-text-muted border border-white/[0.06] hover:text-text-primary hover:border-white/12"
                 }`}
               >
                 {i < 3 && (
                   <span
-                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold-primary/20 text-gold-primary text-[8px] font-bold mr-1"
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/10 text-text-primary text-[8px] font-bold mr-1"
                     style={{ verticalAlign: "middle" }}
                   >
                     {i + 1}
@@ -764,7 +728,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
       {topDomains.length > 0 && (
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
+            
             <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Top Sources</h3>
           </div>
           <div className="space-y-2.5">
@@ -803,7 +767,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
       {stats && (
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
+            
             <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Activity</h3>
           </div>
           <div className="grid grid-cols-3 gap-2 mb-3">
@@ -845,9 +809,9 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                         style={{
                           height: `${Math.max((h.count / max) * 100, 6)}%`,
                           background: isPeak
-                            ? "linear-gradient(180deg, #d4a853, rgba(212,168,83,0.4))"
-                            : "linear-gradient(180deg, rgba(212,168,83,0.4), rgba(212,168,83,0.1))",
-                          boxShadow: isPeak ? "0 0 6px rgba(212,168,83,0.5)" : "none",
+                            ? "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.2))"
+                            : "linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.08))",
+                          boxShadow: "none",
                         }}
                         title={`${h.count} articles`}
                       />
@@ -894,29 +858,23 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
   const srcCount = stats?.top_domains?.length || 0;
 
   return (
-    <div
-      className="rounded-2xl border border-white/[0.06] overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, rgba(255,255,255,0.008) 100%)",
-      }}
-    >
+    <div className="rounded-xl border border-white/[0.07] bg-surface-raised overflow-hidden">
       <button
+        type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="w-full flex items-center justify-between px-3 sm:px-4 py-3 group"
+        className="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 group"
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-1 h-3.5 rounded-full bg-gold-primary flex-shrink-0" />
-          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-text-primary/85 group-hover:text-text-primary transition-colors">
-            Market Insights
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted group-hover:text-text-primary/80 transition-colors">
+            Market insights
           </span>
-          <span className="hidden sm:inline text-[9px] font-mono text-text-muted/70 truncate">
+          <span className="hidden sm:inline font-mono text-[10px] text-text-muted/55 truncate">
             {trendCount} trending · {srcCount} sources · {stats?.total ?? 0} stories
           </span>
         </div>
         <span className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted/60 group-hover:text-text-muted transition-colors">
+          <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/55">
             {open ? "Hide" : "Show"}
           </span>
           <svg
@@ -931,7 +889,7 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
       </button>
 
       {open && (
-        <div className="px-3 sm:px-4 pb-4 pt-2 border-t border-white/[0.04]">
+        <div className="px-3 sm:px-4 pb-4 pt-2 border-t border-white/[0.06]">
           <TrendingSidebar
             trending={trending}
             stats={stats}
@@ -985,7 +943,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
             onClick={() => onChange(p)}
             className={`w-9 h-9 rounded-lg text-[11px] font-mono font-medium transition-all ${
               p === page
-                ? "bg-gold-primary/20 text-gold-primary border border-line/40"
+                ? "bg-white/[0.1] text-text-primary border border-white/15"
                 : "bg-white/[0.03] border border-white/5 text-text-muted hover:text-text-primary hover:border-white/15"
             }`}
           >
@@ -1065,20 +1023,7 @@ const LoadingSkeleton = () => (
 // 9. FILTER BAR — search + type + category (solid chips, SVG icons)
 // ════════════════════════════════════════════
 
-const GOLD = "#d4a853";
-
-// Choose readable text color (near-black / white) against a solid fill
-const pickTextColor = (hex) => {
-  const h = (hex || GOLD).replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.62 ? "#0c0a08" : "#ffffff";
-};
-
-// Monochrome SVG icon set. Generic categories = stroke icons (nav-style),
-// brand marks (BTC/ETH) = accurate filled logos from simple-icons.
+// Monochrome SVG icon set for filter rails
 const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
   const s = {
     fill: "none",
@@ -1171,25 +1116,19 @@ const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
   }
 };
 
-const FilterChip = ({ active, onClick, children, color, icon }) => {
-  const accent = color || GOLD;
+// Quiet segment chip — monochrome active (Bloomberg terminal style)
+const FilterChip = ({ active, onClick, children, icon }) => {
   const base =
-    "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-mono uppercase tracking-[0.08em] transition-all duration-150 whitespace-nowrap border";
+    "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[11px] font-medium tracking-wide transition-colors whitespace-nowrap";
 
   if (active) {
-    const txt = pickTextColor(accent);
     return (
       <button
+        type="button"
         onClick={onClick}
-        className={`${base} font-semibold`}
-        style={{
-          background: accent,
-          color: txt,
-          borderColor: accent,
-          boxShadow: `0 2px 12px ${accent}55`,
-        }}
+        className={`${base} bg-white/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]`}
       >
-        {icon && <Icon name={icon} />}
+        {icon && <Icon name={icon} className="w-3.5 h-3.5 opacity-80" />}
         {children}
       </button>
     );
@@ -1197,10 +1136,11 @@ const FilterChip = ({ active, onClick, children, color, icon }) => {
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`${base} bg-surface-secondary border-white/[0.08] text-text-primary/65 hover:text-text-primary hover:border-white/20 hover:bg-surface-secondary`}
+      className={`${base} text-text-muted hover:text-text-primary hover:bg-white/[0.04]`}
     >
-      {icon && <Icon name={icon} style={{ color: accent }} className="w-3.5 h-3.5 opacity-90" />}
+      {icon && <Icon name={icon} className="w-3.5 h-3.5 opacity-70" />}
       {children}
     </button>
   );
@@ -1210,8 +1150,9 @@ const ChipCount = ({ value, active }) => {
   if (value === undefined || value === null) return null;
   return (
     <span
-      className="text-[9px] font-mono font-semibold tabular-nums px-1.5 py-px rounded ml-0.5"
-      style={{ background: active ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.08)" }}
+      className={`text-[10px] font-mono tabular-nums ml-1 ${
+        active ? "text-text-primary/70" : "text-text-muted/55"
+      }`}
     >
       {value}
     </span>
@@ -1237,87 +1178,86 @@ const FilterBar = ({
   ];
 
   return (
-    <div
-      className="rounded-2xl border border-white/[0.06] overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, rgba(255,255,255,0.008) 100%)",
-      }}
-    >
-      <div className="p-3 sm:p-4 border-b border-white/[0.04]">
-        <div className="relative">
-          <svg
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/70"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-            />
-          </svg>
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search news, topics, sources…"
-            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-text-primary text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-line/30 focus:bg-black/30 transition-all"
+    <div className="space-y-3">
+      {/* Search — full-width quiet field */}
+      <div className="relative">
+        <svg
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/60"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
           />
-          {searchInput && (
-            <button
-              onClick={onClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted/60 hover:text-text-primary hover:bg-white/5 transition-all"
-              title="Clear search"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
+        </svg>
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search headlines, topics, sources…"
+          className="w-full h-11 pl-11 pr-10 rounded-xl border border-white/[0.08] bg-surface-raised text-text-primary text-[13px] placeholder:text-text-muted/45 focus:outline-none focus:border-white/20 transition-colors"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={onClearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-white/[0.06] transition-colors"
+            title="Clear search"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
-      <div className="px-3 sm:px-4 py-3 flex flex-wrap items-center gap-1.5">
-        {typeOptions.map((f) => {
-          const isActive = activeFilter === f.k;
-          return (
-            <FilterChip key={f.k} active={isActive} onClick={() => onFilterChange(f.k)} icon={f.icon}>
-              {f.label}
-              <ChipCount value={f.count} active={isActive} />
-            </FilterChip>
-          );
-        })}
+      {/* Format rail */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-0.5"
+          role="tablist"
+          aria-label="Content type"
+        >
+          {typeOptions.map((f) => {
+            const isActive = activeFilter === f.k;
+            return (
+              <FilterChip key={f.k} active={isActive} onClick={() => onFilterChange(f.k)} icon={f.icon}>
+                {f.label}
+                <ChipCount value={f.count} active={isActive} />
+              </FilterChip>
+            );
+          })}
+        </div>
 
-        <span className="h-5 w-px mx-1.5 bg-white/[0.08]" aria-hidden="true" />
-
-        <FilterChip active={!activeCategory} onClick={() => onCategoryChange(null)} icon="sparkles">
-          All
-        </FilterChip>
-
-        {CATEGORY_RULES.map((cat) => {
-          const isActive = activeCategory === cat.key;
-          const count = categoryCounts[cat.key];
-          return (
-            <FilterChip
-              key={cat.key}
-              active={isActive}
-              color={cat.color}
-              icon={cat.key}
-              onClick={() => onCategoryChange(isActive ? null : cat.key)}
-            >
-              {cat.label}
-              <ChipCount value={count} active={isActive} />
-            </FilterChip>
-          );
-        })}
+        {/* Topic rail */}
+        <div
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-0.5 min-w-0"
+          role="tablist"
+          aria-label="Topic"
+        >
+          <FilterChip active={!activeCategory} onClick={() => onCategoryChange(null)}>
+            Topics
+          </FilterChip>
+          {CATEGORY_RULES.map((cat) => {
+            const isActive = activeCategory === cat.key;
+            const count = categoryCounts[cat.key];
+            return (
+              <FilterChip
+                key={cat.key}
+                active={isActive}
+                icon={cat.key}
+                onClick={() => onCategoryChange(isActive ? null : cat.key)}
+              >
+                {cat.label}
+                <ChipCount value={count} active={isActive} />
+              </FilterChip>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -1526,24 +1466,26 @@ const CryptoNewsPage = () => {
 
   // ── Render ─────────────────────────────
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
-      {/* HEADER */}
-      <header className="pb-3 border-b border-white/5">
-        <h1
-          className="text-3xl sm:text-4xl text-text-primary"
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 600,
-            letterSpacing: "-0.025em",
-          }}
-        >
-          Crypto News
-        </h1>
+      {/* Masthead */}
+      <header className="flex flex-col gap-1 border-b border-white/[0.07] pb-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
+          Markets · Wire
+        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
+            Crypto News
+          </h1>
+          {stats?.total != null && (
+            <span className="font-mono text-[11px] tabular-nums text-text-muted">
+              {Number(stats.total).toLocaleString()} stories indexed
+            </span>
+          )}
+        </div>
       </header>
 
-      {/* FILTERS */}
       <FilterBar
         searchInput={searchInput}
         onSearchChange={handleSearchInput}
@@ -1556,96 +1498,75 @@ const CryptoNewsPage = () => {
         stats={stats}
       />
 
-      {/* MARKET INSIGHTS — collapsible (Trending / Sources / Activity) */}
       <CollapsibleInsights
         trending={trending}
         stats={stats}
         onSearchTopic={handleSearchTopic}
       />
 
-      {/* CONTENT */}
       {loading ? (
         <LoadingSkeleton />
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center mb-4">
-            <span className="text-3xl opacity-30">🔍</span>
-          </div>
-          <p
-            className="text-text-primary text-base mb-1"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            No results found
-          </p>
-          <p className="text-text-muted text-xs">
+          <p className="font-display text-text-primary text-base mb-1">No results</p>
+          <p className="text-text-muted text-xs max-w-sm">
             {searchQuery
-              ? `No news matches "${searchQuery}"`
+              ? `Nothing matches “${searchQuery}”. Try a broader query.`
               : activeCategory
-              ? "Try a different category or clear filters"
-              : "No news available yet"}
+              ? "No stories in this topic right now — clear the topic filter."
+              : "The wire is quiet. Check back shortly."}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-            {/* Section label */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-1 h-3 rounded-full bg-gold-primary" />
-                <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                  {sectionLabel}
-                </h2>
+        <div className="space-y-5">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+              {sectionLabel}
+            </h2>
+            <span className="font-mono text-[10px] tabular-nums text-text-muted/70">
+              {filteredItems.length} on page
+            </span>
+          </div>
+
+          {lead && <LeadCard item={lead} onSelect={openArticle} />}
+
+          <div className="hidden lg:block space-y-5">
+            {secondary.length > 0 && (
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                {secondary.map((it) => (
+                  <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
+                ))}
               </div>
-              <span className="text-[10px] font-mono text-text-muted">
-                {filteredItems.length} stories
-              </span>
-            </div>
+            )}
 
-            {/* LEAD HERO — the only big element on mobile */}
-            {lead && <LeadCard item={lead} onSelect={openArticle} />}
-
-            {/* ── DESKTOP (lg+): secondary 4-up + More Stories filled card grid ── */}
-            <div className="hidden lg:block space-y-4">
-              {secondary.length > 0 && (
-                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                  {secondary.map((it) => (
-                    <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
+            {listItems.length > 0 && (
+              <div className="space-y-3">
+                {lead && (
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.06] pb-2">
+                    More stories
+                  </h3>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  {listItems.map((it) => (
+                    <div key={it.id} className="grow basis-[320px] max-w-[700px]">
+                      <SecondaryCard item={it} onSelect={openArticle} />
+                    </div>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
+          </div>
 
-              {listItems.length > 0 && (
-                <div className="space-y-3 pt-1">
-                  {lead && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-1 h-3 rounded-full bg-gold-primary/70" />
-                      <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                        More Stories
-                      </h3>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-3">
-                    {listItems.map((it) => (
-                      <div key={it.id} className="grow basis-[320px] max-w-[700px]">
-                        <SecondaryCard item={it} onSelect={openArticle} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="flex flex-col lg:hidden divide-y divide-white/[0.05] border-t border-white/[0.06]">
+            {[...secondary, ...listItems].map((it) => (
+              <ListRow key={it.id} item={it} onSelect={openArticle} />
+            ))}
+          </div>
 
-            {/* ── MOBILE (<lg): only the lead is big; everything else = compact rows ── */}
-            <div className="flex flex-col lg:hidden">
-              {[...secondary, ...listItems].map((it) => (
-                <ListRow key={it.id} item={it} onSelect={openArticle} />
-              ))}
-            </div>
-
-            <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+          <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </div>
       )}
 
-      {/* Context-aware help assistant */}
       <AssistantWidget pageId="crypto-news" />
     </div>
   );
