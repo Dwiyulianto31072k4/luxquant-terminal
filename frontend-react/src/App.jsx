@@ -535,7 +535,13 @@ function AppShell({ children }) {
       user.role === "subscriber" ||
       user.is_admin_staff === true ||
       user.is_admin);
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    if (location.pathname === path) return true;
+    // Nested research surfaces
+    if (path.startsWith("/terminal") && location.pathname.startsWith("/terminal")) return true;
+    if (path.startsWith("/ai-arena") && location.pathname.startsWith("/ai-arena")) return true;
+    return false;
+  };
   // Staff (admin / co_admin / founder) see admin nav; mutations gated per-page
   const isAdmin =
     user?.role === "admin" ||
@@ -594,8 +600,9 @@ function AppShell({ children }) {
   const navItems = [
     { path: "/home", label: t("nav.home") },
     { path: "/signals", label: t("nav.signals") },
+    { path: "/terminal/scan", label: "Terminal", matchPrefix: "/terminal" },
     { path: "/autotrade", label: "AutoTrade" },
-    { path: "/ai-arena", label: "AI Research" },
+    { path: "/ai-arena", label: "AI Research", matchPrefix: "/ai-arena" },
     { path: "/market-pulse", label: "Pulse" },
     { path: "/crypto-news", label: "News" },
     { path: "/onchain", label: "On-Chain" },
@@ -842,7 +849,9 @@ function AppShell({ children }) {
                     active → white underline at header bottom */}
               <nav className="hidden lg:flex items-center gap-1">
                 {navItems.map((item) => {
-                  const active = isActive(item.path);
+                  const active = item.matchPrefix
+                    ? location.pathname.startsWith(item.matchPrefix)
+                    : isActive(item.path);
                   return (
                     <button
                       key={item.path}

@@ -1,13 +1,12 @@
 // src/components/aiArenaV6/_ui.jsx
 // ────────────────────────────────────────────────────────────────
 // Compass v2 — shared UI primitives for the BTC Compass (AI Research).
-// Design language: full-width research desk (exchange-grade).
-//   • Panel  : bg-surface-raised, border-white/[0.07], rounded-xl, gold hairline top
-//   • Tile   : bg-surface-secondary, border-white/[0.05], rounded-lg
+// Design language: timeless research desk (token-driven).
+//   • Panel  : surface-raised, quiet white borders — no gold glows
+//   • Tile   : surface-secondary, subtle border
 //   • Numbers: font-mono tabular-nums
-//   • Semantics: profit #56c996 · loss #e07288 · gold #d4a853 (single accent)
+//   • Semantics via CSS tokens: --pos / --neg / --accent / --fg
 // Back-compat: every export that existed in v1 still exists here.
-// New visuals: StanceGauge, LevelRail, SignalBar, OutcomeBar, StatCard.
 // ────────────────────────────────────────────────────────────────
 
 /* ═══════════════ formatting helpers ═══════════════ */
@@ -105,25 +104,26 @@ export const normDir = (d) => {
   return "flat";
 };
 
+// CSS semantic channels — follow data-theme (luxquant | dark)
 export const COLOR = {
-  profit: "#56c996",
-  loss: "#e07288",
-  gold: "#d4a853",
-  goldLight: "#f5c451",
-  flat: "#fbbf24",
-  muted: "#a59585",
+  profit: "rgb(var(--pos))",
+  loss: "rgb(var(--neg))",
+  gold: "rgb(var(--accent))",
+  goldLight: "rgb(var(--accent-light))",
+  flat: "rgb(var(--warn))",
+  muted: "rgb(var(--fg-muted))",
 };
 
 export const dirMeta = (direction) => {
   const k = normDir(direction);
   if (k === "up")
-    return { k, label: "Bullish", arrow: "↑", text: "text-profit", hex: COLOR.profit,
-      tag: "bg-profit/10 text-profit border-profit/25", bar: "bg-profit" };
+    return { k, label: "Bullish", arrow: "↑", text: "text-positive", hex: COLOR.profit,
+      tag: "bg-positive/10 text-positive border-positive/20", bar: "bg-positive" };
   if (k === "down")
-    return { k, label: "Bearish", arrow: "↓", text: "text-loss", hex: COLOR.loss,
-      tag: "bg-loss/10 text-loss border-loss/25", bar: "bg-loss" };
-  return { k, label: "Neutral", arrow: "→", text: "text-amber-400", hex: COLOR.flat,
-    tag: "bg-amber-500/10 text-amber-400 border-amber-500/20", bar: "bg-amber-500" };
+    return { k, label: "Bearish", arrow: "↓", text: "text-negative", hex: COLOR.loss,
+      tag: "bg-negative/10 text-negative border-negative/20", bar: "bg-negative" };
+  return { k, label: "Neutral", arrow: "→", text: "text-text-secondary", hex: COLOR.flat,
+    tag: "bg-white/[0.05] text-text-secondary border-white/10", bar: "bg-white/30" };
 };
 
 export const confLevel = (c) => {
@@ -135,29 +135,29 @@ export const confLevel = (c) => {
 
 /* ═══════════════ layout primitives ═══════════════ */
 
-// Panel — the single card surface for Compass v2.
-export const Card = ({ className = "", children, accent, hairline = true }) => {
+// Panel — quiet card surface (no gold glow / hairline by default)
+export const Card = ({ className = "", children, accent, hairline = false }) => {
   const border =
-    accent === "gold" ? "border-line/25"
-    : accent === "up" ? "border-profit/25"
-    : accent === "down" ? "border-loss/25"
+    accent === "gold" ? "border-white/[0.1]"
+    : accent === "up" ? "border-positive/20"
+    : accent === "down" ? "border-negative/20"
     : "border-white/[0.07]";
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border ${border} bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] ${className}`}
+      className={`relative overflow-hidden rounded-xl border ${border} bg-surface-raised ${className}`}
     >
       {hairline && (
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.06]" />
       )}
       <div className="relative z-10">{children}</div>
     </div>
   );
 };
 
-// Section header: rule — LABEL — rule + optional right slot.
+// Section header — muted mono label
 export const SectionHeader = ({ label, right, className = "" }) => (
   <div className={`mb-4 flex min-w-0 items-center gap-3 ${className}`}>
-    <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 sm:tracking-[0.25em]">
+    <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
       {label}
     </span>
     {right && <div className="ml-auto flex-shrink-0 sm:ml-0">{right}</div>}
@@ -172,10 +172,10 @@ export const Eyebrow = ({ children, className = "" }) => (
 
 export const Tag = ({ children, tone = "muted", className = "" }) => {
   const tones = {
-    up: "bg-profit/10 text-profit border-profit/25",
-    down: "bg-loss/10 text-loss border-loss/25",
-    neutral: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    gold: "bg-gold-primary/10 text-gold-primary border-line/25",
+    up: "bg-positive/10 text-positive border-positive/20",
+    down: "bg-negative/10 text-negative border-negative/20",
+    neutral: "bg-white/[0.05] text-text-secondary border-white/10",
+    gold: "bg-white/[0.05] text-text-secondary border-white/10",
     muted: "bg-white/[0.03] text-text-muted border-white/[0.08]",
   };
   return (
@@ -204,10 +204,10 @@ export const Num = ({ children, className = "" }) => (
 // Use sparingly: one glance should land on price, direction, target, stop.
 export const Hi = ({ children, tone = "gold", className = "" }) => {
   const tones = {
-    gold: "bg-gold-primary/[0.16] text-gold-light",
-    up: "bg-profit/[0.14] text-profit",
-    down: "bg-loss/[0.14] text-loss",
-    white: "bg-white/[0.1] text-text-primary",
+    gold: "bg-white/[0.06] text-text-primary",
+    up: "bg-positive/10 text-positive",
+    down: "bg-negative/10 text-negative",
+    white: "bg-white/[0.08] text-text-primary",
   };
   return (
     <mark
@@ -218,15 +218,14 @@ export const Hi = ({ children, tone = "gold", className = "" }) => {
   );
 };
 
-// highlightPrices — wraps every $12,345-style token in a gold stabilo.
-// For dynamic sentences where we can't hand-place <Hi> markers.
+// highlightPrices — soft highlight for $ prices in prose
 export const highlightPrices = (text) => {
   const parts = String(text ?? "").split(/(\$[\d][\d,]*(?:\.\d+)?)/g);
   return parts.map((part, i) =>
     /^\$[\d]/.test(part) ? (
       <mark
         key={i}
-        className="whitespace-nowrap rounded-[5px] bg-gold-primary/[0.16] px-1 py-[1px] font-mono font-semibold tabular-nums text-gold-light"
+        className="whitespace-nowrap rounded-[5px] bg-white/[0.06] px-1 py-[1px] font-mono font-semibold tabular-nums text-text-primary"
       >
         {part}
       </mark>

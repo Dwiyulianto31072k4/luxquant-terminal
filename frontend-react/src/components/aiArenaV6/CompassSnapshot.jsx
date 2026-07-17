@@ -212,11 +212,9 @@ export default function CompassSnapshot({ className = "" }) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] ${className}`}
+      className={`relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised ${className}`}
     >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-
-      {/* ── header (stacks on mobile: toggle row, then shortcut row) ── */}
+      {/* ── header ── */}
       <div className="flex flex-col gap-2.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between md:px-5 md:py-3">
         <button
           type="button"
@@ -224,17 +222,16 @@ export default function CompassSnapshot({ className = "" }) {
           aria-expanded={!collapsed}
           className="group flex min-w-0 items-center gap-2.5 overflow-hidden text-left md:gap-3"
         >
-          {/* big solid chevron */}
           <span
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gold-primary text-surface-hover shadow-[0_2px_12px_rgba(212,168,83,0.4)] transition-all duration-200 group-hover:bg-gold-light ${collapsed ? "" : "rotate-180"}`}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-text-secondary transition-transform duration-200 group-hover:bg-white/[0.06] group-hover:text-text-primary ${collapsed ? "" : "rotate-180"}`}
             aria-hidden="true"
           >
-            <svg width="17" height="17" viewBox="0 0 16 16" fill="none">
-              <path d="M3.2 5.8 8 10.6l4.8-4.8" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="M3.2 5.8 8 10.6l4.8-4.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
           <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
+            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
               BTC Compass · 24h
             </span>
             <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] ${dir.tag}`}>
@@ -260,15 +257,21 @@ export default function CompassSnapshot({ className = "" }) {
         <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center">
           <Link
             to="/ai-arena?tab=read"
-            className="whitespace-nowrap rounded-md border border-line/30 bg-gold-primary/10 px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-line/50 hover:bg-gold-primary/15"
+            className="whitespace-nowrap rounded-md border border-white/10 bg-white/[0.05] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-primary transition hover:bg-white/[0.08]"
           >
             Full outlook →
           </Link>
           <Link
             to="/ai-arena?tab=chart"
-            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/70 transition hover:border-line/35 hover:text-gold-primary"
+            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-transparent px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted transition hover:border-white/15 hover:text-text-primary"
           >
-            Projection chart →
+            Chart →
+          </Link>
+          <Link
+            to="/terminal/scan"
+            className="col-span-2 sm:col-span-1 whitespace-nowrap rounded-md border border-white/[0.08] bg-transparent px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted transition hover:border-white/15 hover:text-text-primary"
+          >
+            Terminal →
           </Link>
         </div>
       </div>
@@ -294,11 +297,11 @@ export default function CompassSnapshot({ className = "" }) {
 
             {/* alt exposure card */}
             <div className="flex items-stretch">
-              <div className="w-full rounded-lg border border-line/20 bg-gold-primary/[0.06] px-4 py-3">
-                <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-gold-primary/70">
-                  Alt exposure — how to trade the signals below
+              <div className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+                <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">
+                  Alt exposure
                 </div>
-                <div className="mt-1 font-display text-[16px] font-semibold leading-tight text-gold-light">{mode}</div>
+                <div className="mt-1 text-[16px] font-semibold leading-tight text-text-primary">{mode}</div>
                 <p className="mt-1 text-[11.5px] leading-4 text-text-muted">{modeHint}</p>
               </div>
             </div>
@@ -342,9 +345,9 @@ export default function CompassSnapshot({ className = "" }) {
 
           {/* ── why this report exists (event-driven trigger) ── */}
           {(whatChanged || triggerHuman) && (
-            <div className="mt-3 rounded-lg border border-line/[0.12] bg-gold-primary/[0.04] px-3 py-2">
+            <div className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
               <div className="flex items-start gap-2">
-                <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-gold-primary/75">
+                <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-text-muted">
                   {isAnomaly ? "Triggered by" : "Why updated"}
                 </span>
                 <p className="min-w-0 flex-1 text-[11px] leading-4 text-text-muted/80">

@@ -73,6 +73,12 @@ const MoreMenuDropdown = ({
         <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
       </svg>
     ),
+    terminal: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="8" height="10" rx="1" /><rect x="13" y="3" width="8" height="6" rx="1" />
+        <rect x="13" y="11" width="8" height="10" rx="1" /><rect x="3" y="15" width="8" height="6" rx="1" />
+      </svg>
+    ),
     autotrade: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
@@ -189,9 +195,10 @@ const MoreMenuDropdown = ({
       key: 'trading',
       label: t('mfm.group_trading', { defaultValue: 'Trading' }),
       items: [
-        { path: '/signals',   icon: Icon.signals,   label: 'Algo Calls',       desc: 'Live algo calls with entries & targets' },
+        { path: '/signals',   icon: Icon.signals,   label: 'Potential Trades', desc: 'Live algo calls with entries & targets' },
+        { path: '/terminal/scan', icon: Icon.terminal, label: 'Terminal', desc: 'Charts, confluence, anomalies & derivatives' },
         { path: '/autotrade', icon: Icon.autotrade, label: 'Agent', desc: 'Agentic trading — executes for you 24/7' },
-        { path: '/ai-arena',  icon: Icon.aiResearch, label: t('mfm.ai_arena', { defaultValue: 'AI Research' }), desc: 'AI research agent & trade verdicts' },
+        { path: '/ai-arena',  icon: Icon.aiResearch, label: t('mfm.ai_arena', { defaultValue: 'AI Research' }), desc: 'BTC Compass — outlook, levels & projection' },
         { path: '/orderbook', icon: Icon.orderbook, label: t('mfm.orderbook'), desc: 'Live depth & order flow' },
       ],
     },
@@ -239,8 +246,6 @@ const MoreMenuDropdown = ({
     [groups[3]],             // Personal
   ];
 
-  const GOLD = '212,168,83';
-
   // ─── Single row item ───
   const Row = ({ item }) => {
     const active = isActive(item.path);
@@ -251,21 +256,16 @@ const MoreMenuDropdown = ({
         onClick={() => go(item.path)}
         className="group relative w-full flex items-start gap-3 pl-3 pr-2.5 py-2 rounded-md hover:bg-white/[0.05] transition-colors text-left"
       >
-        {/* active indicator — thin gold bar on the left */}
         {active && (
-          <span
-            className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
-            style={{ background: `rgb(${GOLD})`, boxShadow: `0 0 6px rgba(${GOLD},0.6)` }}
-          />
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-white/70" />
         )}
 
-        {/* bare icon — colour lives in the stroke, white→full-white on hover */}
         <span
           className={`mt-0.5 w-[18px] h-[18px] flex-shrink-0 transition-colors ${
             active
-              ? 'text-gold-primary'
+              ? 'text-text-primary'
               : item.isAdmin
-                ? 'text-red-400/70 group-hover:text-red-400'
+                ? 'text-negative/70 group-hover:text-negative'
                 : 'text-text-primary/70 group-hover:text-text-primary'
           }`}
         >

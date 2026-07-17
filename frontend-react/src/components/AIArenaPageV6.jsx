@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import TheRead from "./aiArenaV6/TheRead";
 import LongerView from "./aiArenaV6/LongerView";
 import {
@@ -132,13 +133,19 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary px-4 text-[13px] font-semibold leading-none text-surface-hover transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/10 bg-white/[0.06] px-4 text-[13px] font-medium leading-none text-text-primary transition hover:bg-white/[0.1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className={refreshing ? "animate-spin" : ""}>
               <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {refreshing ? "Refreshing" : "Refresh"}
           </button>
+          <Link
+            to="/terminal/scan"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.08] px-3 text-[12px] font-medium text-text-muted hover:text-text-primary hover:border-white/15 transition-colors"
+          >
+            Terminal
+          </Link>
         </div>
       </div>
     </header>

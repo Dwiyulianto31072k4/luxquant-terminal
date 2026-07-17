@@ -133,10 +133,10 @@ const SectionHeader = ({ label, hint }) => (
 // ================================================================
 // MEXC-soft KPI card — background halus (bukan box tebal), angka dominan.
 const StatCard = ({ label, value, valueColor = 'text-text-primary', sub }) => (
-  <div className="bg-white/[0.02] rounded-xl p-4 lg:p-5 transition-colors duration-200 hover:bg-white/[0.035]">
-    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-primary/45 mb-2.5">{label}</p>
-    <p className={`font-mono text-2xl lg:text-[28px] font-medium tabular-nums leading-none ${valueColor}`}>{value}</p>
-    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/40 mt-2">{sub}</p>}
+  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 lg:p-5 transition-colors hover:bg-white/[0.035]">
+    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted mb-2">{label}</p>
+    <p className={`font-mono text-2xl lg:text-[26px] font-semibold tabular-nums leading-none ${valueColor}`}>{value}</p>
+    {sub && <p className="font-mono text-[10px] text-text-muted mt-2">{sub}</p>}
   </div>
 );
 
@@ -924,30 +924,33 @@ const SignalsPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Open the LuxQuant Terminal (visualizations) carrying current filters */}
+        <div className="flex items-center gap-2 flex-wrap">
           <button
+            type="button"
             onClick={goTerminal}
-            title="Visualize the current (filtered) signals in the Terminal"
-            className="group flex items-center gap-2 bg-gold-primary/[0.08] hover:bg-gold-primary/[0.15] border border-line/30 hover:border-line/50 px-3.5 py-1.5 rounded-full transition-colors"
+            title="Open research Terminal with current filters"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/[0.08] px-3 py-1.5 transition-colors"
           >
-            <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-3.5 h-3.5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="8" height="10" rx="1" /><rect x="13" y="3" width="8" height="6" rx="1" /><rect x="13" y="11" width="8" height="10" rx="1" /><rect x="3" y="15" width="8" height="6" rx="1" />
             </svg>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary">Terminal</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-primary">Terminal</span>
           </button>
+          <a
+            href="/ai-arena"
+            onClick={(e) => { e.preventDefault(); navigate('/ai-arena'); }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted hover:text-text-primary hover:border-white/15 transition-colors"
+          >
+            AI Research
+          </a>
 
-          <div className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 rounded-lg">
             <span className="relative flex h-1.5 w-1.5">
-              {!loading && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-              )}
               <span
-                className="relative inline-flex h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: loading ? '#fbbf24' : '#10b981' }}
+                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${loading ? "bg-warning" : "bg-positive"}`}
               />
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/55">
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
               {loading
                 ? 'Syncing'
                 : lastUpdated
@@ -969,16 +972,16 @@ const SignalsPage = () => {
           sub={`${todayStats.open} open · ${todayStats.wins}W · ${todayStats.losses}L`}
         />
         <StatCard
-          label="Today's Win Rate"
+          label="Today's win rate"
           value={`${todayStats.wr}%`}
-          valueColor="text-emerald-400"
-          sub={`${todayStats.closedCount} signals closed`}
+          valueColor={todayStats.wr > 0 ? "text-positive" : "text-text-primary"}
+          sub={`${todayStats.closedCount} closed`}
         />
         <StatCard
-          label="Overall Win Rate"
+          label="Overall win rate"
           value={stats?.win_rate ? `${stats.win_rate}%` : '—'}
-          valueColor="text-amber-400"
-          sub={stats ? `${(stats.total_signals || 0).toLocaleString()} total signals` : '—'}
+          valueColor="text-text-primary"
+          sub={stats ? `${(stats.total_signals || 0).toLocaleString()} total` : '—'}
         />
         <StatCard
           label="This Week"
