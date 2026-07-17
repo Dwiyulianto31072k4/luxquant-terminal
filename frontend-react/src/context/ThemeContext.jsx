@@ -14,21 +14,19 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { isAdminStaff } from "../utils/roles";
 
-// THEMES = valid CSS themes; SELECTABLE = what a gated user may switch to.
-// Bright is admin-preview only (GATE_TO_ADMINS) until product sign-off.
 const THEMES = ["luxquant", "dark", "bright"];
-const SELECTABLE_THEMES = ["luxquant", "dark", "bright"];
+// Luxquant + Dark are PUBLIC — anyone (even logged-out) can switch between them.
+const PUBLIC_THEMES = ["luxquant", "dark"];
 // Marketing/auth surfaces (landing, login, register) only support the two dark
-// desks — Bright is an in-app-only mode. A stored Bright preference is kept, but
-// these pages display Dark instead so the marketing look stays consistent.
-const MARKETING_THEMES = ["luxquant", "dark"];
+// desks — Bright is in-app only. A stored Bright pref is kept but rendered as
+// Dark there so the marketing look stays consistent.
 const isMarketingRoute = (pathname) => /^\/(?:$|login|register)/.test(pathname || "/");
 const DEFAULT_THEME = "luxquant";
 const STORAGE_KEY = "lq-theme";
 
-// While true, theme switching is limited to admin staff (admin/co_admin/founder).
-// Set to false to open the feature to all users.
-const GATE_TO_ADMINS = true;
+// Bright stays limited to admin staff (in-app) until product sign-off. Set false
+// to offer Bright to everyone in-app.
+const BRIGHT_ADMIN_ONLY = true;
 
 const THEME_COLOR = {
   luxquant: "#0a0506",
@@ -47,7 +45,7 @@ export const useTheme = () => {
 function readStored() {
   try {
     const t = localStorage.getItem(STORAGE_KEY);
-    return SELECTABLE_THEMES.includes(t) ? t : null;
+    return THEMES.includes(t) ? t : null;
   } catch {
     return null;
   }
@@ -56,20 +54,23 @@ function readStored() {
 export const ThemeProvider = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
-  const canSwitchTheme = GATE_TO_ADMINS ? isAdminStaff(user) : true;
+  const isAdmin = isAdminStaff(user);
+  const marketing = isMarketingRoute(location.pathname);
 
   const [theme, setThemeState] = useState(() => readStored() || DEFAULT_THEME);
 
-  // Effective theme respects the gate: non-eligible users always get the default.
-  const effectiveTheme = canSwitchTheme ? theme : DEFAULT_THEME;
+  // Bright is admin-only and in-app-only. Luxquant + Dark are public everywhere
+  // they're offered (marketing routes stay two-desk only).
+  const brightAllowed = (BRIGHT_ADMIN_ONLY ? isAdmin : true) && !marketing;
+  const selectableThemes = brightAllowed ? THEMES : PUBLIC_THEMES;
+  // Anyone can switch the public themes; the picker always renders.
+  const canSwitchTheme = true;
 
-  // Landing/login/register only support luxquant+dark. A stored Bright pref is
-  // preserved but rendered as Dark on those routes; selectable list narrows too.
-  const marketing = isMarketingRoute(location.pathname);
-  const selectableThemes = marketing ? MARKETING_THEMES : SELECTABLE_THEMES;
-  const displayTheme = marketing && effectiveTheme === "bright" ? "dark" : effectiveTheme;
+  // A stored Bright pref is preserved but rendered as Dark wherever Bright isn't
+  // allowed (marketing routes, or non-admins).
+  const displayTheme = theme === "bright" && !brightAllowed ? "dark" : theme;
 
-  // Apply displayTheme to <html>; persist the user's REAL pref (theme) so their
+  // Apply displayTheme to <html>; persist the user's REAL pref so an admin's
   // in-app Bright choice survives visiting the landing. Sync theme-color meta.
   useEffect(() => {
     document.documentElement.dataset.theme = displayTheme;
@@ -79,22 +80,19 @@ export const ThemeProvider = ({ children }) => {
     } catch {
       /* ignore */
     }
-    if (canSwitchTheme) {
-      try {
-        localStorage.setItem(STORAGE_KEY, effectiveTheme);
-      } catch {
-        /* ignore quota/private-mode errors */
-      }
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      /* ignore quota/private-mode errors */
     }
-  }, [displayTheme, effectiveTheme, canSwitchTheme]);
+  }, [displayTheme, theme]);
 
   const setTheme = useCallback(
     (next) => {
-      if (!canSwitchTheme) return; // hard gate — members cannot switch
-      if (!SELECTABLE_THEMES.includes(next)) return;
+      if (!selectableThemes.includes(next)) return; // can't pick what isn't offered here
       setThemeState(next);
     },
-    [canSwitchTheme]
+    [selectableThemes]
   );
 
   const value = {
