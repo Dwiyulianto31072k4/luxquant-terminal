@@ -54,7 +54,13 @@ function RsiTip({ active, payload, tf }) {
   );
 }
 
-const rsiBand = (v) => (v >= 70 ? { k: "overbought", c: "rgb(var(--neg))" } : v >= 60 ? { k: "strong", c: "rgb(var(--neg))" } : v > 40 ? { k: "neutral", c: "#9ca3af" } : v > 30 ? { k: "weak", c: "#86efac" } : { k: "oversold", c: "rgb(var(--pos))" });
+// Solid Binance stops — distinct bands (strong ≠ full overbought red)
+const rsiBand = (v) =>
+  v >= 70 ? { k: "overbought", c: "#F6465D" }
+  : v >= 60 ? { k: "strong", c: "#F0B90B" }      // stretched but not extreme — accent, not red
+  : v > 40 ? { k: "neutral", c: "rgb(var(--fg) / 0.42)" }
+  : v > 30 ? { k: "weak", c: "#3DDC97" }         // soft pos between mid and oversold
+  : { k: "oversold", c: "#0ECB81" };
 
 export function RsiHeatmapTab({ view, deriv, openPair }) {
   const { t } = useTranslation();
@@ -78,8 +84,21 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
     if (cx == null || cy == null) return null;
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openPair(payload.pair)}>
-        <circle cx={cx} cy={cy} r={5} fill={payload.fill} fillOpacity={0.85} stroke={payload.sc || "rgb(var(--scrim) / 0.35)"} strokeWidth={payload.sc ? 1.6 : 0.5} />
-        <text x={cx} y={cy - 8} textAnchor="middle" fontFamily="monospace" fontSize={8} fill="rgb(var(--ink) / 0.55)" pointerEvents="none">{sym(payload.pair)}</text>
+        <circle
+          cx={cx} cy={cy} r={5.5}
+          fill={payload.fill} fillOpacity={0.95}
+          stroke={payload.sc || "rgba(0,0,0,0.28)"}
+          strokeWidth={payload.sc ? 1.8 : 0.7}
+        />
+        <text
+          x={cx} y={cy - 9} textAnchor="middle"
+          fontFamily="ui-monospace, monospace" fontSize={8.5} fontWeight={600}
+          fill="rgb(var(--fg) / 0.72)"
+          stroke="rgb(var(--surface-raised))" strokeWidth={2.4} paintOrder="stroke"
+          pointerEvents="none"
+        >
+          {sym(payload.pair)}
+        </text>
       </g>
     );
   };
@@ -92,7 +111,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
           {RSI_TFS.map((f) => (
             <button key={f} onClick={() => setTf(f)}
-              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-accent-fg border-gold-primary" : "bg-surface-raised text-text-primary/60 border-ink/10 hover:text-text-primary hover:border-ink/25"}`}>
+              className={`rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${tf === f ? "border-transparent bg-accent text-accent-fg" : "border-ink/10 bg-surface-raised text-text-muted hover:border-ink/20 hover:text-text-primary"}`}>
               {f}{f === "4h" ? "★" : ""}
             </button>
           ))}
@@ -110,9 +129,9 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 12, right: 44, left: 4, bottom: 8 }}>
-              <ReferenceArea y1={70} y2={100} fill="rgb(var(--neg))" fillOpacity={0.06} />
-              <ReferenceArea y1={30} y2={70} fill="#9ca3af" fillOpacity={0.03} />
-              <ReferenceArea y1={0} y2={30} fill="rgb(var(--pos))" fillOpacity={0.06} />
+              <ReferenceArea y1={70} y2={100} fill="#F6465D" fillOpacity={0.07} />
+              <ReferenceArea y1={30} y2={70} fill="rgb(var(--ink))" fillOpacity={0.03} />
+              <ReferenceArea y1={0} y2={30} fill="#0ECB81" fillOpacity={0.07} />
               <CartesianGrid stroke={GRID} strokeDasharray="2 4" horizontal vertical={false} />
               <XAxis type="number" dataKey="x" domain={z.domX} allowDataOverflow hide />
               <YAxis type="number" dataKey="y" domain={z.domY} allowDataOverflow ticks={[10, 20, 30, 40, 50, 60, 70, 80, 90]} tick={TICK_SM} axisLine={false} tickLine={false} />
@@ -231,7 +250,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
           <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
           {RSI_TFS.map((f) => (
             <button key={f} onClick={() => setTf(f)}
-              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-accent-fg border-gold-primary" : "bg-surface-raised text-text-primary/60 border-ink/10 hover:text-text-primary hover:border-ink/25"}`}>
+              className={`rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${tf === f ? "border-transparent bg-accent text-accent-fg" : "border-ink/10 bg-surface-raised text-text-muted hover:border-ink/20 hover:text-text-primary"}`}>
               {f}{f === "4h" ? "★" : ""}
             </button>
           ))}

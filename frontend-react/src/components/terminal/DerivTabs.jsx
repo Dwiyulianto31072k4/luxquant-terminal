@@ -538,7 +538,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
               <div className="flex flex-wrap gap-1.5">
                 {longSqueeze.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
                 {longSqueeze.slice(0, 10).map((r) => (
-                  <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-orange-400/30 bg-orange-400/[0.08] font-mono text-[10px]">
+                  <span key={r.pair} className="flex items-center gap-1.5 rounded-md border border-negative/25 bg-negative/[0.08] px-2 py-1 font-mono text-[10px]">
                     <CoinPill pair={r.pair} onPair={openPair} />
                     <span className="text-text-muted">f +{r.fPct.toFixed(3)}%</span>
                     <span className="text-negative">{fmtPct(r.price_chg_24h)}</span>
@@ -551,8 +551,9 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <XCard title={t("terminal.viz.fundNegTitle")} desc={t("terminal.viz.fundNegDesc")} render={() => <RankBars data={negTop} onPair={openPair} fmt={(v) => `${v.toFixed(3)}%`} />} />
-        <XCard title={t("terminal.viz.fundPosTitle")} desc={t("terminal.viz.fundPosDesc")} render={() => <RankBars data={posTop} onPair={openPair} fmt={(v) => `+${v.toFixed(3)}%`} />} />
+        {/* Neg funding = shorts pay → fuel (green); pos funding = longs pay → risk (red) */}
+        <XCard title={t("terminal.viz.fundNegTitle")} desc={t("terminal.viz.fundNegDesc")} render={() => <RankBars align="start" data={negTop.map((r) => ({ ...r, color: POS }))} onPair={openPair} fmt={(v) => `${v.toFixed(3)}%`} />} />
+        <XCard title={t("terminal.viz.fundPosTitle")} desc={t("terminal.viz.fundPosDesc")} render={() => <RankBars align="start" data={posTop.map((r) => ({ ...r, color: NEG }))} onPair={openPair} fmt={(v) => `+${v.toFixed(3)}%`} />} />
       </div>
 
       <XCard
@@ -938,9 +939,9 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                 <Tooltip content={<ScatterTip xLabel="L/S ratio" yLabel="funding %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                 <ReferenceLine x={1} stroke="rgb(var(--ink) / 0.15)" />
                 <ReferenceLine y={0} stroke="rgb(var(--ink) / 0.15)" />
-                <Scatter data={scatter} fillOpacity={0.6} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                <Scatter data={scatter} fillOpacity={0.88} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
                   {scatter.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
-                    <Cell key={i} cursor="pointer" fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} />
+                    <Cell key={i} cursor="pointer" fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR} stroke={sc || "rgba(0,0,0,0.28)"} strokeWidth={sc ? 2 : 0.6} />
                   ); })}
                 </Scatter>
               </ScatterChart>
@@ -950,8 +951,8 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <XCard title={t("terminal.viz.sqLongTitle")} desc={t("terminal.viz.sqLongDesc")} render={() => <RankBars data={longList} onPair={openPair} fmt={(v) => Math.round(v)} />} />
-        <XCard title={t("terminal.viz.sqShortTitle")} desc={t("terminal.viz.sqShortDesc")} render={() => <RankBars data={shortList} onPair={openPair} fmt={(v) => Math.round(v)} />} />
+        <XCard title={t("terminal.viz.sqLongTitle")} desc={t("terminal.viz.sqLongDesc")} render={() => <RankBars align="start" data={longList} onPair={openPair} fmt={(v) => Math.round(v)} />} />
+        <XCard title={t("terminal.viz.sqShortTitle")} desc={t("terminal.viz.sqShortDesc")} render={() => <RankBars align="start" data={shortList} onPair={openPair} fmt={(v) => Math.round(v)} />} />
       </div>
     </>
   );

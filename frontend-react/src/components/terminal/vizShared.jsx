@@ -674,7 +674,8 @@ export const CoinPill = ({ pair, onPair, className = "" }) => {
 
 // ranked horizontal bars with coin pills.
 // align="center" (default) = diverging around mid (gains/losses).
-// align="start" = left-fill bars for always-positive rankings (spikes, multiples).
+// align="start" = left-fill bars for always-positive rankings (spikes, squeeze).
+// When d.color is set, value text follows it (no red-bar / green-number mismatch).
 export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
   if (!data.length)
     return <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">—</div>;
@@ -685,38 +686,43 @@ export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
       {data.map((d, i) => {
         const color = d.color || (d.v >= 0 ? POS : NEG);
         const pct = (Math.abs(d.v) / max) * (start ? 100 : 50);
+        const valueTone = d.color
+          ? undefined
+          : start
+            ? "text-text-primary"
+            : d.v >= 0
+              ? "text-positive"
+              : "text-negative";
         return (
           <div key={d.pair} className="flex items-center gap-2 group/row">
-            <span className="w-4 shrink-0 font-mono text-[9px] tabular-nums text-text-muted/45 text-right">
+            <span className="w-4 shrink-0 text-right font-mono text-[9px] tabular-nums text-text-muted/50">
               {i + 1}
             </span>
             <span className="w-28 shrink-0"><CoinPill pair={d.pair} onPair={onPair} /></span>
-            <span className={`relative flex-1 overflow-hidden rounded-md ${start ? "h-[18px] bg-ink/[0.06]" : "h-4 bg-ink/[0.04]"}`}>
+            <span className={`relative flex-1 overflow-hidden rounded-md ${start ? "h-[18px] bg-ink/[0.07]" : "h-4 bg-ink/[0.05]"}`}>
               <span
                 className="absolute bottom-0 top-0 rounded-md transition-[width] duration-300"
                 style={
                   start
                     ? {
-                        // Solid fill (no soft alpha wash) — intensity rankings stay monochrome
-                        width: `${Math.max(pct, 2)}%`,
+                        width: `${Math.max(pct, 3)}%`,
                         left: 0,
                         background: color,
-                        opacity: 0.55 + (1 - i / Math.max(data.length - 1, 1)) * 0.45,
+                        opacity: 0.72 + (1 - i / Math.max(data.length - 1, 1)) * 0.28,
                       }
                     : {
                         width: `${pct}%`,
                         left: d.v >= 0 ? "50%" : `${50 - pct}%`,
                         background: color,
-                        opacity: 0.85,
+                        opacity: 0.9,
                       }
                 }
               />
               {!start && <span className="absolute bottom-0 top-0 left-1/2 w-px bg-ink/15" />}
             </span>
             <span
-              className={`w-[4.25rem] shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums ${
-                start ? "text-text-primary" : d.v >= 0 ? "text-positive" : "text-negative"
-              }`}
+              className={`w-[4.25rem] shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums ${valueTone || ""}`}
+              style={d.color ? { color: d.color } : undefined}
             >
               {fmt ? fmt(d.v) : fmtPct(d.v)}{suffix || ""}
             </span>

@@ -94,7 +94,7 @@ function ProductSwitcher({ active = "research" }) {
   );
 }
 
-function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
+function PageHeader({ report, healthStatus, onRefresh, refreshing, activeLabel }) {
   const healthy = healthStatus === "healthy";
   const tactical = report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
   const stance = stanceMeta(tactical.direction);
@@ -106,10 +106,18 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
     <header className="space-y-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl lg:text-[28px] font-semibold tracking-tight text-text-primary">
-            AI Research
-          </h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-text-secondary">
+          <div className="flex min-w-0 items-center gap-2 text-[12px]">
+            <h1 className="shrink-0 font-display text-[15px] font-semibold tracking-tight text-text-primary sm:text-base">
+              AI Research
+            </h1>
+            {activeLabel ? (
+              <>
+                <span className="text-text-primary/15">/</span>
+                <span className="truncate font-medium text-text-primary/80">{activeLabel}</span>
+              </>
+            ) : null}
+          </div>
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-6 text-text-secondary">
             BTC Compass — 24h outlook, projection levels, confluence & risk for alt exposure
           </p>
         </div>
@@ -252,90 +260,83 @@ function ErrorState({ error, onRetry }) {
   );
 }
 
-function WorkspaceTabs({ activeTab, onChange, tabs }) {
-  const scrollRef = useRef(null);
-  const [atEnd, setAtEnd] = useState(false);
+// Terminal-style side navigation (desktop) + horizontal chips (mobile)
+const WORKSPACE_GROUPS = [
+  { g: "Compass", keys: ["read", "longer", "chart"] },
+  { g: "Audit", keys: ["evaluation", "brain"] },
+  { g: "Library", keys: ["archive"] },
+];
 
-  const updateEnd = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const scrollable = el.scrollWidth - el.clientWidth;
-    setAtEnd(scrollable <= 1 || el.scrollLeft >= scrollable - 2);
-  }, []);
-
-  useEffect(() => {
-    updateEnd();
-    const el = scrollRef.current;
-    if (!el) return undefined;
-    el.addEventListener("scroll", updateEnd, { passive: true });
-    window.addEventListener("resize", updateEnd);
-    return () => {
-      el.removeEventListener("scroll", updateEnd);
-      window.removeEventListener("resize", updateEnd);
-    };
-  }, [updateEnd]);
-
-  // keep the active tab visible when it changes
-  useEffect(() => {
-    const el = scrollRef.current?.querySelector('[data-active="true"]');
-    el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  }, [activeTab]);
+function WorkspaceSideNav({ activeTab, onChange, tabs }) {
+  const byKey = Object.fromEntries(tabs.map((t) => [t.key, t]));
 
   return (
-    <nav className="sticky top-0 z-40 -mx-4 border-b border-ink/[0.07] bg-surface/92 backdrop-blur-md md:-mx-6 xl:-mx-10">
-      <div className="relative">
-        <div
-          ref={scrollRef}
-          className="flex items-center gap-6 overflow-x-auto no-scrollbar pl-4 pr-16 md:pl-6 xl:pl-10"
-        >
-          {tabs.map((tab) => {
-            const active = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                data-active={active}
-                onClick={() => onChange(tab.key)}
-                title={tab.description}
-                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-3 text-[14px] font-medium transition-colors ${
-                  active
-                    ? "border-ink/80 text-text-primary"
-                    : "border-transparent text-text-primary/45 hover:text-text-primary/80"
-                }`}
-              >
-                <span
-                  className={`font-mono text-[11px] tabular-nums ${
-                    active ? "text-text-primary/70" : "text-text-primary/30 group-hover:text-text-primary/55"
-                  }`}
-                >
-                  {tab.icon}
-                </span>
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* fade + scroll arrow — flush to the far right edge, hides at the end */}
-        <div
-          className={`pointer-events-none absolute inset-y-0 right-0 flex items-center pl-10 pr-2 transition-opacity duration-200 ${
-            atEnd ? "opacity-0" : "opacity-100"
-          }`}
-          style={{ background: "linear-gradient(to right, transparent, rgb(var(--surface)) 55%)" }}
-        >
-          <button
-            type="button"
-            onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
-            aria-label="Show more tabs"
-            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-ink/10 bg-surface-secondary text-text-primary/70 transition hover:border-ink/20 hover:text-text-primary"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
+    <>
+      {/* Mobile — horizontal chips */}
+      <div className="mb-3 flex gap-1 overflow-x-auto pb-1 lg:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {tabs.map((tab) => {
+          const on = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onChange(tab.key)}
+              title={tab.description}
+              className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                on
+                  ? "bg-ink/[0.1] text-text-primary"
+                  : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
+              }`}
+            >
+              <span className="tabular-nums opacity-60">{tab.icon}</span>
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
-    </nav>
+
+      {/* Desktop — slim left rail (matches TerminalLayout) */}
+      <aside className="hidden w-[168px] shrink-0 overflow-y-auto lg:block [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/10">
+        <nav className="space-y-2.5 pr-1" aria-label="AI Research sections">
+          {WORKSPACE_GROUPS.map(({ g, keys }) => (
+            <div key={g}>
+              <div className="mb-1 px-2 font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55">
+                {g}
+              </div>
+              <div className="space-y-px">
+                {keys.map((key) => {
+                  const tab = byKey[key];
+                  if (!tab) return null;
+                  const on = activeTab === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => onChange(key)}
+                      title={tab.description}
+                      aria-current={on ? "page" : undefined}
+                      className={`relative flex w-full items-center gap-2 rounded-md py-1.5 pl-2.5 pr-2 text-left text-[12px] font-medium transition-colors ${
+                        on
+                          ? "bg-ink/[0.07] text-text-primary"
+                          : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
+                      }`}
+                    >
+                      {on && (
+                        <span className="absolute bottom-1.5 left-0 top-1.5 w-[2.5px] rounded-full bg-accent" />
+                      )}
+                      <span className={`font-mono text-[10px] tabular-nums ${on ? "text-text-primary/70" : "text-text-muted/50"}`}>
+                        {tab.icon}
+                      </span>
+                      <span className="truncate">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </aside>
+    </>
   );
 }
 
@@ -1232,6 +1233,20 @@ export default function AIArenaPageV6() {
     },
   ];
 
+  const activeLabel =
+    workspaceTabs.find((t) => t.key === activeWorkspace)?.label || "Market Outlook";
+
+  const setWorkspace = useCallback((key) => {
+    setActiveWorkspace(key);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", key);
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
     <div
       className="min-h-screen overflow-x-clip text-text-primary"
@@ -1240,55 +1255,57 @@ export default function AIArenaPageV6() {
           'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      <div className="mx-auto max-w-[1760px] space-y-6 px-4 py-8 md:px-6 xl:px-10">
+      <div className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-10">
         <PageHeader
           report={report}
           healthStatus={healthStatus}
           onRefresh={() => loadAll(true)}
           refreshing={refreshing}
+          activeLabel={activeLabel}
         />
 
-        <WorkspaceTabs
-          activeTab={activeWorkspace}
-          onChange={setActiveWorkspace}
-          tabs={workspaceTabs}
-        />
-
-        {activeWorkspace === "read" && <TheRead data={report} />}
-
-        {activeWorkspace === "longer" && <LongerView data={report} />}
-
-        {activeWorkspace === "evaluation" && (
-          <VerdictLedger
-            ledger={ledger}
-            pageSize={8}
+        {/* Terminal-style shell: side nav + scroll content */}
+        <div className="mt-5 flex flex-col gap-3 lg:h-[calc(100vh-11rem)] lg:flex-row lg:items-stretch lg:gap-3 lg:overflow-hidden">
+          <WorkspaceSideNav
+            activeTab={activeWorkspace}
+            onChange={setWorkspace}
+            tabs={workspaceTabs}
           />
-        )}
 
-        {activeWorkspace === "chart" && <ChartPanel report={report} />}
+          <main className="min-w-0 flex-1 space-y-5 lg:overflow-y-auto lg:pr-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--ink)_/_0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
+            {activeWorkspace === "read" && <TheRead data={report} />}
 
-        {activeWorkspace === "brain" && <BrainPanel />}
+            {activeWorkspace === "longer" && <LongerView data={report} />}
 
-        {activeWorkspace === "archive" && (
-          <ReportArchivePanel
-            archive={reportArchive}
-            report={report}
-            loadingId={pdfLoadingId}
-            error={pdfError}
-            onOpenPdf={openReportPdf}
-          />
-        )}
+            {activeWorkspace === "evaluation" && (
+              <VerdictLedger ledger={ledger} pageSize={8} />
+            )}
+
+            {activeWorkspace === "chart" && <ChartPanel report={report} />}
+
+            {activeWorkspace === "brain" && <BrainPanel />}
+
+            {activeWorkspace === "archive" && (
+              <ReportArchivePanel
+                archive={reportArchive}
+                report={report}
+                loadingId={pdfLoadingId}
+                error={pdfError}
+                onOpenPdf={openReportPdf}
+              />
+            )}
+
+            <footer className="border-t border-ink/[0.06] pb-4 pt-5 text-center">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] leading-relaxed text-text-muted/45">
+                LuxQuant BTC Compass · decision support only, not financial advice
+              </p>
+            </footer>
+          </main>
+        </div>
 
         <ReportPdfModal modal={pdfModal} onClose={closePdfModal} />
-
-        <footer className="border-t border-ink/[0.06] pt-6 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] leading-relaxed text-text-muted/40">
-            LuxQuant BTC Compass · decision support only, not financial advice
-          </p>
-        </footer>
       </div>
 
-      {/* Context-aware help assistant */}
       <AssistantWidget pageId="ai-research" />
     </div>
   );

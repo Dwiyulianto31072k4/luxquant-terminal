@@ -1578,18 +1578,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </div>
 
             {/* HEADER — exchange trade ticket style */}
-            <div className="z-10 flex-shrink-0 border-b border-ink/[0.06] bg-surface-raised px-3 py-2.5 sm:px-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <CoinLogo pair={signal?.pair} size={28} />
+            <div className="z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-3 sm:px-4">
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <CoinLogo pair={signal?.pair} size={32} />
                   <div className="min-w-0 flex-1">
                     {/* Baris 1: Pair name + status */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <h2 className="truncate font-mono text-[15px] font-semibold text-text-primary sm:text-base">
+                      <h2 className="truncate font-mono text-[16px] font-semibold tracking-tight text-text-primary sm:text-[17px]">
                         {signal?.pair}
                       </h2>
                       <span
-                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusStyles[signal?.status?.toLowerCase()] || "bg-ink/[0.06] text-text-muted border border-ink/10"}`}
+                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusStyles[signal?.status?.toLowerCase()] || "border border-ink/10 bg-ink/[0.06] text-text-muted"}`}
                       >
                         {signal?.status?.toUpperCase()}
                       </span>
@@ -1706,25 +1706,6 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </button>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/10 rounded-md transition-colors flex-shrink-0 ml-1 sm:ml-2"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
 
                   {/* INSTAGRAM (share X tweet link) — only when a tweet exists */}
                   {tweetUrl && (
@@ -1732,7 +1713,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/10 rounded-md transition-colors ml-1"
+                      className="ml-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
@@ -1743,16 +1724,33 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ink/[0.03] hover:bg-ink/[0.06] border border-ink/10 rounded-md transition-colors ml-1"
+                      className="ml-1 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
                     {shareCopied && (
-                      <span className="absolute top-full right-0 mt-1.5 whitespace-nowrap px-2 py-1 rounded-md bg-surface-raised border border-ink/10 text-text-primary text-[10px] font-medium shadow-lg z-20">
+                      <span className="absolute right-0 top-full z-20 mt-1.5 whitespace-nowrap rounded-md border border-ink/10 bg-surface-raised px-2 py-1 text-[10px] font-medium text-text-primary shadow-lg">
                         Link copied
                       </span>
                     )}
                   </div>
+                  {/* Close last — solid hit target, thick X for bright + dark */}
+                  <button
+                    type="button"
+                    onClick={handleCloseClick}
+                    title="Close"
+                    aria-label="Close"
+                    className="ml-1.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.12] bg-surface-secondary text-text-primary transition-colors hover:border-ink/20 hover:bg-ink/[0.08]"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M6 6l12 12M18 6L6 18"
+                        stroke="currentColor"
+                        strokeWidth={2.75}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
