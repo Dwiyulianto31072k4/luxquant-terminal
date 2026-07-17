@@ -166,7 +166,7 @@ export function LiquidationsTab({ view }) {
 
       <div className="grid grid-cols-3 gap-2">
         <Kpi compact label={scope === "market" ? "4H liq (market)" : "4H liq (calls)"} value={fmtMoney(totalLiq)} />
-        <Kpi compact label="Spikes" value={spikes} tone={spikes > 0 ? "text-gold-primary" : undefined} accent={spikes ? GOLD : undefined} />
+        <Kpi compact label="Spikes" value={spikes} tone={spikes > 0 ? "text-negative" : undefined} />
         <Kpi compact label="Biggest" value={top ? `${top.name.replace("USDT", "")}` : "—"} sub={top ? fmtMoney(top.size) : undefined} />
       </div>
 

@@ -35,7 +35,7 @@ function EdgeTip({ active, payload }) {
       <div className="text-text-primary/60">Win rate: <span className="text-text-primary/90">{p.win_rate?.toFixed(1)}%</span></div>
       <div className="text-text-primary/60">Expected value: <span style={{ color: evColor(p.expected_value) }}>{p.expected_value == null ? "—" : (p.expected_value >= 0 ? "+" : "") + p.expected_value.toFixed(2) + "%/trade"}</span></div>
       <div className="text-text-primary/60">Sample: <span className="text-text-primary/90">{p.count}</span> · <span style={{ color: TIER[p.reliability] || "#9ca3af" }}>{p.reliability}</span></div>
-      <div className="text-gold-primary/70 mt-1">click → signals behind it</div>
+      <div className="text-text-muted mt-1">click → signals behind it</div>
     </div>
   );
 }
@@ -154,7 +154,7 @@ export function EdgeTab() {
         <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.edgeLookback")}</span>
         {[7, 30, 90].map((dv) => (
           <button key={dv} onClick={() => setDays(dv)}
-            className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${days === dv ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted hover:text-text-primary"}`}>
+            className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${days === dv ? "bg-gold-primary text-accent-fg font-semibold" : "text-text-muted hover:text-text-primary"}`}>
             {dv}d
           </button>
         ))}
@@ -167,7 +167,7 @@ export function EdgeTab() {
       ) : (
         <>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-            <Kpi label={t("terminal.viz.edgeKBaseline")} value={baseline == null ? "—" : baseline.toFixed(1) + "%"} desc={t("terminal.viz.edgeKBaselineDesc")} tone="text-gold-primary" />
+            <Kpi label={t("terminal.viz.edgeKBaseline")} value={baseline == null ? "—" : baseline.toFixed(1) + "%"} desc={t("terminal.viz.edgeKBaselineDesc")} tone="text-text-primary" />
             <Kpi label={t("terminal.viz.edgeKBreadth")} value={`${posCount}/${pev.length}`} desc={t("terminal.viz.edgeKBreadthDesc")} tone={posCount ? "text-positive" : undefined} />
             <Kpi label={t("terminal.viz.edgeKBest")} value={bestEV ? nice(bestEV.pattern) : "—"} desc={bestEV ? `+${bestEV.expected_value.toFixed(2)}%/trade · ${bestEV.win_rate?.toFixed(0)}% WR` : "—"} tone="text-positive" />
             <Kpi label={t("terminal.viz.edgeKSample")} value={data?.totals?.signals_resolved != null ? data.totals.signals_resolved.toLocaleString() : "—"} desc={t("terminal.viz.edgeKSampleDesc")} />
@@ -176,14 +176,14 @@ export function EdgeTab() {
           {/* ── Edge Economics — the money math (all-time) ── */}
           {economics && (
             <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-              <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
+              <div className="px-4 py-2.5 border-b border-line/[0.12] bg-ink/[0.03]">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-[12.5px] text-text-primary/90">Edge Economics</div>
                   <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-ink/[0.1] p-0.5">
                     {[["7d", "7D"], ["30d", "30D"], ["ytd", "YTD"], ["all", "ALL"]].map(([v, lbl]) => (
                       <button key={v} onClick={() => setEconRange(v)}
-                        className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted hover:text-text-primary"}`}>
+                        className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-accent-fg font-semibold" : "text-text-muted hover:text-text-primary"}`}>
                         {lbl}
                       </button>
                     ))}
@@ -194,7 +194,7 @@ export function EdgeTab() {
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 p-3">
                 <Kpi label="Expectancy / trade" value={(economics.exp >= 0 ? "+" : "") + economics.exp.toFixed(2) + "%"} desc="Avg % return per signal across every outcome." tone={economics.exp >= 0 ? "text-positive" : "text-negative"} />
                 <Kpi label="Profit Factor" value={economics.pf == null ? "—" : economics.pf.toFixed(2)} desc="Gross win ÷ gross loss. >1 = profitable." tone={economics.pf >= 1.5 ? "text-positive" : undefined} />
-                <Kpi label="Reward : Risk" value={economics.avgR == null ? "—" : economics.avgR.toFixed(2) + "R"} desc="Expectancy in units of the average loss." tone="text-gold-primary" />
+                <Kpi label="Reward : Risk" value={economics.avgR == null ? "—" : economics.avgR.toFixed(2) + "R"} desc="Expectancy in units of the average loss." tone="text-text-primary" />
                 <Kpi label="Win Rate" value={economics.winRate != null ? economics.winRate.toFixed(1) + "%" : "—"} desc={`${economics.closed.toLocaleString()} resolved`} />
               </div>
               <div className="px-4 pb-4 space-y-1.5">
@@ -217,8 +217,8 @@ export function EdgeTab() {
           )}
 
           <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-            <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
+            <div className="px-4 py-2.5 border-b border-line/[0.12] bg-ink/[0.03]">
               <div className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeMapTitle")}</div>
               <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{t("terminal.viz.edgeMapDesc")}</div>
             </div>
@@ -252,7 +252,7 @@ export function EdgeTab() {
 
           {sel && (
             <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
               <div className="px-4 py-2.5 border-b border-ink/[0.06] flex items-center justify-between gap-3">
                 <span className="text-[12.5px] text-text-primary/90">{t("terminal.viz.edgeDrillTitle")} <span className="text-gold-primary">{nice(sel)}</span></span>
                 <button onClick={() => { setSel(null); setDrill(null); }} className="font-mono text-[10px] text-text-muted hover:text-text-primary shrink-0">✕</button>
@@ -261,7 +261,7 @@ export function EdgeTab() {
                 <Warming text={t("terminal.viz.edgeDrillLoading")} />
               ) : drill?.signals?.length ? (
                 <>
-                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 max-h-[380px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
+                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 max-h-[380px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/20">
                     {drill.signals.slice(0, 120).map((s, i) => {
                       const win = s.outcome && s.outcome !== "sl";
                       const pk = s.peak_pct;

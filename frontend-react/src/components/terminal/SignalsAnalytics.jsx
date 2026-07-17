@@ -754,9 +754,8 @@ export default function SignalsAnalytics() {
                   value={agg.winRate == null ? "—" : `${agg.winRate}%`}
                   sub={agg.closedN ? `${agg.closedN} resolved (TP4 vs SL)` : "Awaiting closes"}
                   tone={agg.winRate != null && agg.winRate >= 55 ? "text-positive" : undefined}
-                  accent={agg.winRate != null && agg.winRate >= 55 ? POS : undefined}
                 />
-                <Kpi compact label={t("terminal.viz.kTpReached")} value={tpHitPct == null ? "—" : `${tpHitPct}%`} sub="Hit TP1 or better" tone="text-positive" accent={POS} />
+                <Kpi compact label={t("terminal.viz.kTpReached")} value={tpHitPct == null ? "—" : `${tpHitPct}%`} sub="Hit TP1 or better" tone="text-positive" />
                 <Kpi compact label={t("terminal.viz.kCoiled")} value={coiledCount} sub="Near entry · high quality" />
               </div>
 
@@ -919,7 +918,6 @@ export default function SignalsAnalytics() {
                   value={earlyEdge.length}
                   sub={earlyEdge.length ? "Strong setup · ≤TP2" : t("terminal.viz.none")}
                   tone={earlyEdge.length ? "text-positive" : undefined}
-                  accent={earlyEdge.length ? POS : undefined}
                 />
                 <Kpi
                   compact
@@ -932,8 +930,7 @@ export default function SignalsAnalytics() {
                   label={t("terminal.viz.kSpikes")}
                   value={session.spikes.length}
                   sub={session.spikes.length ? t("terminal.viz.kSpikesSub") : t("terminal.viz.none")}
-                  tone={session.spikes.length ? "text-orange-400" : undefined}
-                  accent={session.spikes.length ? ORANGE : undefined}
+                  tone={session.spikes.length ? "text-negative" : undefined}
                 />
                 <Kpi
                   compact
@@ -941,7 +938,6 @@ export default function SignalsAnalytics() {
                   value={anomMeta.ageS != null ? `${anomMeta.ageS}s` : "—"}
                   sub={anomMeta.fresh ? t("terminal.viz.kSessionFresh") : t("terminal.viz.kSessionLag")}
                   tone={deriv?.stale ? "text-warning" : anomMeta.fresh ? "text-positive" : "text-warning"}
-                  accent={anomMeta.fresh ? POS : "#fbbf24"}
                 />
               </div>
 
@@ -1022,7 +1018,7 @@ export default function SignalsAnalytics() {
                         <span className="font-mono text-[10.5px] text-text-primary/85">
                           {(p.pair || "").replace(/USDT$/i, "")}
                         </span>
-                        <span className="font-mono text-[10px] tabular-nums text-orange-300/90">
+                        <span className="font-mono text-[10px] tabular-nums text-text-muted">
                           {fmtPct(p.x, 1)}
                         </span>
                       </button>
@@ -1152,7 +1148,6 @@ export default function SignalsAnalytics() {
                   value={`${(liveStats.up + liveStats.down) ? Math.round(liveStats.up / (liveStats.up + liveStats.down) * 100) : 0}%`}
                   sub={`${liveStats.up} of ${liveStats.up + liveStats.down} above entry`}
                   tone="text-positive"
-                  accent={POS}
                 />
                 <Kpi
                   compact
@@ -1160,7 +1155,6 @@ export default function SignalsAnalytics() {
                   value={gainers[0] ? fmtPct(gainers[0].v) : "—"}
                   sub={gainers[0]?.pair?.replace(/USDT$/i, "") || "—"}
                   tone="text-positive"
-                  accent={POS}
                 />
                 <Kpi
                   compact
@@ -1168,7 +1162,6 @@ export default function SignalsAnalytics() {
                   value={liveStats.bigWin}
                   sub="Above +10% from entry"
                   tone="text-positive"
-                  accent={POS}
                 />
                 <Kpi
                   compact
@@ -1182,7 +1175,6 @@ export default function SignalsAnalytics() {
                   })()}
                   sub="Among calls in profit"
                   tone="text-positive"
-                  accent={POS}
                 />
               </div>
 
@@ -1309,9 +1301,9 @@ export default function SignalsAnalytics() {
             <>
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi label={t("terminal.viz.kAvgBeta")} value={agg.avgBeta != null ? agg.avgBeta.toFixed(2) : "—"} desc={t("terminal.viz.kAvgBetaDesc")} />
-                <Kpi label={t("terminal.viz.kDecoupled")} value={agg.decoupled} desc={t("terminal.viz.kDecoupledDesc")} tone={agg.decoupled ? "text-cyan-400" : undefined} />
-                <Kpi label={t("terminal.viz.kExtended")} value={agg.extended} desc={t("terminal.viz.kExtendedDesc")} tone={agg.extended ? "text-orange-400" : undefined} />
-                <Kpi label={t("terminal.viz.kLeads")} value={agg.leads} desc={t("terminal.viz.kLeadsDesc")} tone={agg.leads ? "text-purple-400" : undefined} />
+                <Kpi label={t("terminal.viz.kDecoupled")} value={agg.decoupled} desc={t("terminal.viz.kDecoupledDesc")} tone={undefined} />
+                <Kpi label={t("terminal.viz.kExtended")} value={agg.extended} desc={t("terminal.viz.kExtendedDesc")} tone={undefined} />
+                <Kpi label={t("terminal.viz.kLeads")} value={agg.leads} desc={t("terminal.viz.kLeadsDesc")} tone={undefined} />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">

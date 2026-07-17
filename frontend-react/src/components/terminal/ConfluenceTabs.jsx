@@ -67,7 +67,7 @@ function flowChipsOf(flow) {
   const out = [];
   const liq = flow?.liq;
   if (liq) {
-    if (liq.spike) out.push({ k: "liq spike", cls: "bg-gold-primary/15 border-line/30 text-gold-primary" });
+    if (liq.spike) out.push({ k: "liq spike", cls: "bg-ink/[0.06] border-ink/10 text-text-muted" });
     else if ((liq.side_bias || 0) > 0.4) out.push({ k: "shorts flushed", cls: "bg-positive/10 border-positive/30 text-positive" });
     else if ((liq.side_bias || 0) < -0.4) out.push({ k: "longs flushed", cls: "bg-negative/10 border-negative/30 text-negative" });
   }
@@ -309,10 +309,10 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       {fng?.value != null && <FngBadge value={fng.value} label={fng.label} />}
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-        <Kpi compact label="Setups" value={cards.length} sub="Matching filters" tone="text-gold-primary" accent={GOLD} />
-        <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" tone={stats.htf ? "text-positive" : undefined} accent={stats.htf ? POS : undefined} />
-        <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" tone={stats.aligned ? "text-cyan-400" : undefined} accent={stats.aligned ? "rgb(34 211 238)" : undefined} />
-        <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" tone={cleanN ? "text-positive" : undefined} accent={cleanN ? POS : undefined} />
+        <Kpi compact label="Setups" value={cards.length} sub="Matching filters" />
+        <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" />
+        <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" />
+        <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" />
       </div>
 
       {coiled.length > 0 && (
@@ -332,7 +332,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
               >
                 <CoinLogo pair={s.pair} size={16} />
                 <span className="font-mono text-[11px] text-text-primary/90">{s.pair.replace(/USDT$/i, "")}</span>
-                {golden && <span className="px-1 rounded bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase">golden</span>}
+                {golden && <span className="px-1 rounded bg-ink/[0.06] text-text-secondary font-mono text-[7.5px] uppercase">golden</span>}
                 {!golden && htf && <span className="px-1 rounded bg-ink/[0.06] text-text-muted font-mono text-[7.5px] uppercase">htf</span>}
                 <span className={`font-mono text-[10.5px] tabular-nums ${fc >= 0 ? "text-positive" : "text-negative"}`}>{fmtPct(fc)}</span>
               </button>

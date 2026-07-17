@@ -19,40 +19,43 @@ export const authHeaders = () => {
 // ── chart palette — CSS semantic tokens (follow data-theme luxquant|dark|bright)
 // Channel form in index.css: --accent: 212 168 83 → rgb(var(--accent))
 // Recharts/SVG accept these strings; Tailwind classes stay for layout (bg-surface…).
+// Binance desk palette: yellow accent only for interactive CTAs;
+// green/red reserved for PnL & status semantics. Charts keep distinct series hues.
 export const GOLD = "rgb(var(--accent))";
 export const POS = "rgb(var(--pos))";
 export const NEG = "rgb(var(--neg))";
-export const CYAN = "rgb(34 211 238)";           // chart-only cyan (not theme-bound)
-export const PURPLE = "rgb(167 139 250)";
-export const ORANGE = "rgb(var(--warn))";
-export const GRAYBAR = "rgb(var(--fg) / 0.22)";
-export const GRID = "rgb(var(--fg) / 0.045)";
+export const CYAN = "rgb(56 189 248)";           // chart series only
+export const PURPLE = "rgb(167 139 250)";        // chart series only
+export const ORANGE = "rgb(var(--neg))";         // alias warn → loss urgency (no decorative orange)
+export const GRAYBAR = "rgb(var(--fg) / 0.18)";
+export const GRID = "rgb(var(--ink) / 0.06)";
 export const AXIS = "rgb(var(--fg-muted))";
-// Multi-series (vs BTC lines) — accent first, then fixed distinct hues
+export const MUTED = "rgb(var(--fg-muted))";
+// Multi-series (vs BTC lines) — pos/neg first, then distinct chart hues
 export const SERIES = [
-  "rgb(var(--accent))",
   "rgb(var(--pos))",
+  "rgb(var(--neg))",
   "rgb(56 189 248)",
   "rgb(167 139 250)",
   "rgb(244 114 182)",
-  "rgb(var(--warn))",
+  "rgb(var(--accent))",
   "rgb(45 212 191)",
-  "rgb(251 113 133)",
   "rgb(148 163 184)",
+  "rgb(251 146 60)",
   "rgb(234 179 8)",
 ];
 
 export const STATUS_ORDER = ["open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"];
 export const STATUS_LABEL = { open: "Open", tp1: "TP1", tp2: "TP2", tp3: "TP3", closed_win: "TP4", closed_loss: "SL" };
 export const STATUS_COLORS = {
-  open: "rgb(var(--fg) / 0.35)",
-  tp1: "rgb(var(--pos))",
-  tp2: "rgb(74 222 128)",
-  tp3: "rgb(134 239 172)",
-  closed_win: GOLD,
+  open: "rgb(var(--fg-muted))",
+  tp1: POS,
+  tp2: POS,
+  tp3: POS,
+  closed_win: POS,
   closed_loss: NEG,
 };
-export const RISK_COLORS = { LOW: POS, NORMAL: GOLD, HIGH: NEG };
+export const RISK_COLORS = { LOW: POS, NORMAL: MUTED, HIGH: NEG };
 
 // ── sector symbols (item: "sektor kasih simbol") ────────────────────
 export const SECTOR_EMOJI = {
@@ -145,7 +148,7 @@ export const PLAUSIBLE_HI = 5;
 // bounded scroll region — keeps panels from growing forever (thin gold bar)
 export const ScrollArea = ({ children, max = 460, className = "" }) => (
   <div
-    className={`overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--accent)_/_0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25 [&::-webkit-scrollbar-track]:bg-transparent ${className}`}
+    className={`overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--accent)_/_0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/20 [&::-webkit-scrollbar-track]:bg-transparent ${className}`}
     style={{ maxHeight: max }}
   >
     {children}
@@ -183,40 +186,45 @@ export const SectionBand = ({ title, desc, badge }) => (
 );
 
 // Metric tile — large number, tiny label, optional sub (Aero Economics density)
-export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => (
-  <div
-    className={`group relative min-w-0 rounded-xl border border-ink/[0.06] bg-ink/[0.02] transition-colors hover:border-ink/[0.1] hover:bg-ink/[0.03] ${
-      compact ? "px-3 py-2.5" : "px-3.5 py-3"
-    }`}
-  >
-    {accent && (
-      <span
-        className="pointer-events-none absolute left-0 top-2.5 bottom-2.5 w-[2px] rounded-full opacity-70"
-        style={{ background: accent }}
-      />
-    )}
-    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/80">{label}</div>
-    <div className={`font-mono tabular-nums mt-1.5 leading-none truncate ${compact ? "text-[22px]" : "text-[26px]"} ${tone || "text-text-primary"}`}>
-      {value}
+// Binance desk KPI: monochrome numbers by default.
+// `tone` only for semantic PnL (text-positive / text-negative). `accent` bar dropped (decorative).
+export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => {
+  // Strip leftover decorative multi-color tones (cyan/gold/purple/orange)
+  const safeTone =
+    tone && (tone.includes("positive") || tone.includes("negative") || tone.includes("profit") || tone.includes("loss"))
+      ? tone
+      : "text-text-primary";
+  return (
+    <div
+      className={`group relative min-w-0 rounded-xl border border-ink/[0.08] bg-surface-raised transition-colors hover:border-ink/[0.12] ${
+        compact ? "px-3 py-2.5" : "px-3.5 py-3"
+      }`}
+    >
+      <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{label}</div>
+      <div className={`font-mono tabular-nums mt-1.5 leading-none truncate font-semibold ${compact ? "text-[22px]" : "text-[26px]"} ${safeTone}`}>
+        {value}
+      </div>
+      {sub != null && sub !== "" && (
+        <div className="font-mono text-[10.5px] tabular-nums mt-1 text-text-muted truncate">{sub}</div>
+      )}
+      {desc && !compact && (
+        <div className="text-[10px] text-text-muted mt-1.5 leading-snug line-clamp-1">{desc}</div>
+      )}
     </div>
-    {sub != null && sub !== "" && (
-      <div className="font-mono text-[10.5px] tabular-nums mt-1 text-text-muted truncate">{sub}</div>
-    )}
-    {desc && !compact && (
-      <div className="text-[10px] text-text-muted/70 mt-1.5 leading-snug line-clamp-1">{desc}</div>
-    )}
-  </div>
-);
+  );
+};
 
+// Active chip = solid yellow + dark ink (Binance filter pattern)
 export const Chip = ({ active, onClick, children, size = "sm" }) => (
   <button
+    type="button"
     onClick={onClick}
     className={`shrink-0 rounded-md font-mono uppercase tracking-wider border transition-colors ${
       size === "xs" ? "px-1.5 py-0.5 text-[8.5px]" : "px-2 py-1 text-[9px]"
     } ${
       active
-        ? "bg-gold-primary text-surface-hover border-gold-primary font-semibold"
-        : "bg-transparent text-text-muted border-ink/[0.08] hover:text-text-primary hover:border-ink/16"
+        ? "border-gold-primary bg-gold-primary font-semibold text-accent-fg"
+        : "border-ink/[0.1] bg-transparent text-text-muted hover:border-ink/20 hover:text-text-primary"
     }`}
   >
     {children}
@@ -296,7 +304,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
             )}
             {options.map((o) => (
               <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-ink/[0.04] cursor-pointer">
-                <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-gold-primary w-3 h-3" />
+                <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-[rgb(var(--accent))] w-3 h-3" />
                 <span className="font-mono text-[11px] text-text-primary/85 capitalize">{String(o).replace(/_/g, " ")}</span>
               </label>
             ))}
@@ -593,7 +601,7 @@ export const CoinPill = ({ pair, onPair, className = "" }) => {
       title={tip}
     >
       <CoinLogo pair={pair} size={16} />
-      <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary truncate transition-colors">
+      <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary truncate transition-colors">
         {pair}
       </span>
     </button>

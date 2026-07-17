@@ -92,7 +92,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
           {RSI_TFS.map((f) => (
             <button key={f} onClick={() => setTf(f)}
-              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-surface-raised text-text-primary/60 border-ink/10 hover:text-text-primary hover:border-ink/25"}`}>
+              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-accent-fg border-gold-primary" : "bg-surface-raised text-text-primary/60 border-ink/10 hover:text-text-primary hover:border-ink/25"}`}>
               {f}{f === "4h" ? "★" : ""}
             </button>
           ))}
@@ -105,7 +105,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
         <Kpi label="Instruments" value={rs.length} desc="Called pairs with RSI." />
       </div>
       <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div className="p-3" style={{ height: 540, touchAction: "none", cursor: "grab" }}
           ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
           <ResponsiveContainer width="100%" height="100%">
@@ -172,7 +172,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
         <Kpi label="Instruments" value={data.length} desc="Called pairs with range + ATR." />
       </div>
       <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div className="px-4 py-2 flex items-center gap-3 border-b border-ink/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
           <span className="w-24">pair</span><span className="flex-1">exhaustion (100% = full expected day)</span><span className="w-14 text-right">used</span>
         </div>
@@ -184,7 +184,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
               <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
                 <span className="w-24 flex items-center gap-1.5 shrink-0">
                   <CoinLogo pair={d.pair} size={15} />
-                  <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span>
+                  <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary truncate">{sym(d.pair)}</span>
                 </span>
                 <span className="flex-1 h-4 rounded-sm bg-ink/[0.03] overflow-hidden relative">
                   <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${w}%`, background: d.tier.c, opacity: 0.85, outline: sc ? `1px solid ${sc}` : "none" }} />
@@ -231,7 +231,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
           <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
           {RSI_TFS.map((f) => (
             <button key={f} onClick={() => setTf(f)}
-              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-surface-raised text-text-primary/60 border-ink/10 hover:text-text-primary hover:border-ink/25"}`}>
+              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-accent-fg border-gold-primary" : "bg-surface-raised text-text-primary/60 border-ink/10 hover:text-text-primary hover:border-ink/25"}`}>
               {f}{f === "4h" ? "★" : ""}
             </button>
           ))}
@@ -247,7 +247,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
         <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Warming up — band width fills in after the next worker sweep.</div>
       ) : (
         <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
           <div className="px-4 py-2 flex items-center gap-3 border-b border-ink/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
             <span className="w-24">pair</span><span className="flex-1">coiling (full bar = tightest range)</span><span className="w-14 text-right">bw %ile</span>
           </div>
@@ -259,7 +259,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
                 <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
                   <span className="w-24 flex items-center gap-1.5 shrink-0">
                     <CoinLogo pair={d.pair} size={15} />
-                    <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span>
+                    <span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary truncate">{sym(d.pair)}</span>
                   </span>
                   <span className="flex-1 h-4 rounded-sm bg-ink/[0.03] overflow-hidden relative">
                     <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${w}%`, background: d.tier.c, opacity: 0.85, outline: sc ? `1px solid ${sc}` : "none" }} />
@@ -369,7 +369,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         <Kpi label="Instruments" value={rowsD.length} desc="Called pairs with live flow." />
       </div>
       <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
         <div className="p-3" style={{ height: 520, touchAction: "none", cursor: "grab" }}
           ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
           <ResponsiveContainer width="100%" height="100%">
@@ -391,7 +391,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
           <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">Distribution — up but sold into</div>
           {distrib.length ? distrib.map((d) => (
             <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center justify-between py-1 group">
-              <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary">{sym(d.pair)}</span></span>
+              <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary">{sym(d.pair)}</span></span>
               <span className="font-mono text-[10px] text-negative tabular-nums">{fmtUsd(d.y)}</span>
             </button>
           )) : <div className="font-mono text-[10px] text-text-muted py-2">None right now.</div>}
@@ -400,7 +400,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
           <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">Accumulation — down but bought</div>
           {accum.length ? accum.map((d) => (
             <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center justify-between py-1 group">
-              <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary">{sym(d.pair)}</span></span>
+              <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary">{sym(d.pair)}</span></span>
               <span className="font-mono text-[10px] text-positive tabular-nums">{fmtUsd(d.y)}</span>
             </button>
           )) : <div className="font-mono text-[10px] text-text-muted py-2">None right now.</div>}
@@ -415,7 +415,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
               <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">Bid-stacked — support below</div>
               {bidStacked.map((d) => (
                 <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
-                  <span className="w-20 flex items-center gap-1.5 shrink-0"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span></span>
+                  <span className="w-20 flex items-center gap-1.5 shrink-0"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary truncate">{sym(d.pair)}</span></span>
                   <span className="flex-1 h-3 rounded-sm bg-ink/[0.03] overflow-hidden relative"><span className="absolute inset-y-0 left-0 rounded-sm bg-positive/70" style={{ width: `${Math.min(Math.abs(d.imb), 100)}%` }} /></span>
                   <span className="w-12 text-right font-mono text-[10px] text-positive tabular-nums">+{d.imb.toFixed(0)}%</span>
                 </button>
@@ -425,7 +425,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
               <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">Ask-stacked — resistance above</div>
               {askStacked.map((d) => (
                 <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
-                  <span className="w-20 flex items-center gap-1.5 shrink-0"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span></span>
+                  <span className="w-20 flex items-center gap-1.5 shrink-0"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-text-primary/85 group-hover:text-text-primary truncate">{sym(d.pair)}</span></span>
                   <span className="flex-1 h-3 rounded-sm bg-ink/[0.03] overflow-hidden relative"><span className="absolute inset-y-0 left-0 rounded-sm bg-negative/70" style={{ width: `${Math.min(Math.abs(d.imb), 100)}%` }} /></span>
                   <span className="w-12 text-right font-mono text-[10px] text-negative tabular-nums">{d.imb.toFixed(0)}%</span>
                 </button>

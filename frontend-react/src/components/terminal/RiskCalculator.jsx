@@ -132,7 +132,7 @@ export function RiskTab({ view, deriv }) {
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3">
         {/* ── inputs ── */}
         <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden p-4 space-y-3">
-          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
 
           {/* signal prefill */}
           <div>
@@ -163,7 +163,7 @@ export function RiskTab({ view, deriv }) {
           </div>
           <div>
             <label className={labelCls}>Leverage ({lev}×)</label>
-            <input type="range" min="1" max="50" value={lev} onChange={(e) => setLeverage(e.target.value)} className="w-full accent-gold-primary" />
+            <input type="range" min="1" max="50" value={lev} onChange={(e) => setLeverage(e.target.value)} className="w-full accent-[rgb(var(--accent))]" />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div><label className={labelCls}>Entry</label><input type="number" value={entry} onChange={(e) => setEntry(e.target.value)} className={inputCls} /></div>
@@ -181,7 +181,7 @@ export function RiskTab({ view, deriv }) {
           ) : (
             <>
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-                <Kpi label="Position Size" value={fmtUsd(calc.posUsd)} desc={`${fmtP(calc.units)} units @ ${fmtP(E)}`} tone="text-gold-primary" />
+                <Kpi label="Position Size" value={fmtUsd(calc.posUsd)} desc={`${fmtP(calc.units)} units @ ${fmtP(E)}`} tone="text-text-primary" />
                 <Kpi label={`Margin @ ${lev}×`} value={fmtUsd(calc.margin)} desc="Collateral to post." />
                 <Kpi label="Risk (loss at SL)" value={fmtUsd(calc.riskUsd)} desc={`${rpct}% of account`} tone="text-negative" />
                 <Kpi label="Reward at target" value={calc.rewardUsd != null ? fmtUsd(calc.rewardUsd) : "—"} desc={calc.rr != null ? `${calc.rr.toFixed(2)}R` : "set a target"} tone="text-positive" />
@@ -205,7 +205,7 @@ export function RiskTab({ view, deriv }) {
               {/* R-ladder visual */}
               {ladder && (
                 <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden p-4">
-                  <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+                  <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
                   <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Trade Ladder</div>
                   <div className="relative h-16 rounded-lg bg-ink/[0.02] border border-ink/[0.06]">
                     {/* gradient risk (below entry) / reward (above) */}
@@ -229,7 +229,7 @@ export function RiskTab({ view, deriv }) {
           {/* Correlation / concentration guard */}
           {selSig && similar && similar.list.length > 0 && (
             <div className="relative rounded-2xl bg-surface-raised border border-ink/[0.07] overflow-hidden p-4">
-              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
               <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Correlation &amp; Concentration</div>
               <div className="text-[11px] text-text-primary/70 mt-1 leading-relaxed">
                 <span className="text-warning">{similar.list.length}</span> other open call{similar.list.length > 1 ? "s" : ""} would move with <span className="text-text-primary">{(selSig.pair || "").replace(/USDT$/i, "")}</span>

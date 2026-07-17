@@ -55,7 +55,7 @@ const ICON_PATHS = {
   squeeze: <><rect x="4" y="9" width="16" height="6" rx="1.5" /><path d="M3 4v5M3 15v5M21 4v5M21 15v5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
   explore: <><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.55" /><circle cx="12" cy="12" r="2.3" /><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
   edge: <><path d="M3 20h18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.5" /><circle cx="7" cy="14" r="2.1" /><circle cx="12" cy="9" r="2.1" opacity="0.7" /><circle cx="17" cy="6" r="2.1" /><path d="M7 14 12 9l5-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" /></>,
-  risk: <><rect x="4" y="3" width="16" height="18" rx="2" opacity="0.5" /><rect x="7" y="6" width="10" height="3" rx="0.6" fill="#0a0806" /><circle cx="8.5" cy="12.5" r="1.1" /><circle cx="12" cy="12.5" r="1.1" /><circle cx="15.5" cy="12.5" r="1.1" /><circle cx="8.5" cy="16.5" r="1.1" /><circle cx="12" cy="16.5" r="1.1" /><circle cx="15.5" cy="16.5" r="1.1" /></>,
+  risk: <><rect x="4" y="3" width="16" height="18" rx="2" opacity="0.5" /><rect x="7" y="6" width="10" height="3" rx="0.6" fill="currentColor" opacity="0.15" /><circle cx="8.5" cy="12.5" r="1.1" /><circle cx="12" cy="12.5" r="1.1" /><circle cx="15.5" cy="12.5" r="1.1" /><circle cx="8.5" cy="16.5" r="1.1" /><circle cx="12" cy="16.5" r="1.1" /><circle cx="15.5" cy="16.5" r="1.1" /></>,
   rsi: <><circle cx="6" cy="8" r="2" /><circle cx="12" cy="15" r="2" opacity="0.7" /><circle cx="18" cy="6" r="2" /><path d="M3 12h18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2 2" opacity="0.5" /></>,
   atr: <><rect x="3" y="5" width="14" height="3" rx="1" /><rect x="3" y="10.5" width="10" height="3" rx="1" opacity="0.7" /><rect x="3" y="16" width="6" height="3" rx="1" opacity="0.5" /><path d="M20 3v18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2 2" opacity="0.6" /></>,
   vsqueeze: <><path d="M3 6v12M21 6v12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M7 9c3 2 7 2 10 0M7 15c3-2 7-2 10 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.75" /></>,
@@ -153,16 +153,16 @@ export default function TerminalLayout() {
                     <button
                       key={id}
                       onClick={() => go(id, route)}
-                      className={`relative w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 rounded-md text-left text-[12px] transition-colors ${
+                      className={`relative w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 rounded-md text-left text-[12px] font-medium transition-colors ${
                         active === id
-                          ? "bg-ink/[0.06] text-text-primary"
-                          : "text-text-primary/75 hover:bg-ink/[0.03] hover:text-text-primary"
+                          ? "bg-ink/[0.07] text-text-primary"
+                          : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
                       }`}
                     >
                       {active === id && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-ink/70" />
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2.5px] rounded-full bg-gold-primary" />
                       )}
-                      <span className={active === id ? "text-text-primary" : "text-text-muted/70"}>
+                      <span className={active === id ? "text-text-primary" : "text-text-muted"}>
                         <TabIcon id={id} />
                       </span>
                       <span className="truncate">{t(tabKey(id))}</span>

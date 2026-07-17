@@ -220,8 +220,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           label={t("terminal.viz.kSmartDiv")}
           value={smartN}
           sub={t("terminal.viz.kSmartDivDesc")}
-          tone="text-gold-primary"
-          accent={GOLD}
+          tone="text-text-primary"
         />
         <Kpi
           compact
@@ -229,7 +228,6 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           value={crowdedShort.length}
           sub="squeeze fuel · upside"
           tone={crowdedShort.length ? "text-positive" : undefined}
-          accent={crowdedShort.length ? POS : undefined}
         />
         <Kpi
           compact
@@ -237,7 +235,6 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           value={buyTakers}
           sub="pairs with buy pressure"
           tone={buyTakers ? "text-positive" : undefined}
-          accent={buyTakers ? POS : undefined}
         />
         <Kpi
           compact
@@ -245,7 +242,6 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
           value={shortsFlushedUsd != null ? fmtMoney(shortsFlushedUsd) : "—"}
           sub="squeeze fuel · upside"
           tone={shortsFlushedUsd ? "text-positive" : undefined}
-          accent={shortsFlushedUsd ? POS : undefined}
         />
       </div>
 
@@ -503,8 +499,8 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi label={t("terminal.viz.kFundNeg")} value={negTop[0] ? `${negTop[0].v.toFixed(3)}%` : "—"} desc={negTop[0]?.pair} tone="text-positive" />
         <Kpi label={t("terminal.viz.kFundPos")} value={posTop[0] ? `+${posTop[0].v.toFixed(3)}%` : "—"} desc={posTop[0]?.pair} tone="text-negative" />
-        <Kpi label={t("terminal.viz.kShortSq")} value={shortSqueeze.length} desc={t("terminal.viz.kShortSqDesc")} tone={shortSqueeze.length ? "text-gold-primary" : undefined} />
-        <Kpi label={t("terminal.viz.kLongSq")} value={longSqueeze.length} desc={t("terminal.viz.kLongSqDesc")} tone={longSqueeze.length ? "text-orange-400" : undefined} />
+        <Kpi label={t("terminal.viz.kShortSq")} value={shortSqueeze.length} desc={t("terminal.viz.kShortSqDesc")} tone={undefined} />
+        <Kpi label={t("terminal.viz.kLongSq")} value={longSqueeze.length} desc={t("terminal.viz.kLongSqDesc")} tone={undefined} />
       </div>
 
       {withB.length > 0 && (
@@ -520,7 +516,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         render={() => (
           <div className="py-2 space-y-3">
             <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-gold-primary/80 mb-1.5">
+              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted mb-1.5">
                 {t("terminal.viz.shortSqList")}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -536,7 +532,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
               </div>
             </div>
             <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-orange-400/80 mb-1.5">
+              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/80 mb-1.5">
                 {t("terminal.viz.longSqList")}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -853,7 +849,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
       <SectionBand title={t("terminal.viz.tabMomentum")} desc={t("terminal.viz.momSectionDesc")} />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi label={t("terminal.viz.kAccel")} value={accelerating} desc={t("terminal.viz.kAccelDesc")} tone={accelerating ? "text-positive" : undefined} />
-        <Kpi label={t("terminal.viz.kMedMom")} value={medM == null ? "—" : Math.round(medM)} desc={t("terminal.viz.kMedMomDesc")} tone="text-gold-primary" />
+        <Kpi label={t("terminal.viz.kMedMom")} value={medM == null ? "—" : Math.round(medM)} desc={t("terminal.viz.kMedMomDesc")} tone="text-text-primary" />
         <Kpi label={t("terminal.viz.kStrongest")} value={topMom[0] ? Math.round(topMom[0].momentum) : "—"} desc={topMom[0]?.pair} tone="text-positive" />
         <Kpi label={t("terminal.viz.kFading")} value={fading} desc={t("terminal.viz.kFadingDesc")} tone={fading ? "text-negative" : undefined} />
       </div>
@@ -922,7 +918,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi label={t("terminal.viz.kCrowdedLong")} value={crowdedLong.length} desc={t("terminal.viz.kCrowdedLongDesc")} tone={crowdedLong.length ? "text-negative" : undefined} />
         <Kpi label={t("terminal.viz.kCrowdedShort")} value={crowdedShort.length} desc={t("terminal.viz.kCrowdedShortDesc")} tone={crowdedShort.length ? "text-positive" : undefined} />
-        <Kpi label={t("terminal.viz.kTopSqueeze")} value={topS[0] ? Math.round(topS[0].squeeze) : "—"} desc={topS[0]?.pair} tone="text-gold-primary" />
+        <Kpi label={t("terminal.viz.kTopSqueeze")} value={topS[0] ? Math.round(topS[0].squeeze) : "—"} desc={topS[0]?.pair} tone="text-text-primary" />
         <Kpi label={t("terminal.viz.kMedSqueeze")} value={medS == null ? "—" : Math.round(medS)} desc={t("terminal.viz.kMedSqueezeDesc")} />
       </div>
 
