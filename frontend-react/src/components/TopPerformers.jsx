@@ -677,11 +677,11 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               href={xUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-white/[0.04] hover:text-text-primary sm:px-2.5"
-              title="View on X"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.04] px-2 text-[11px] font-medium text-text-primary/80 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-text-primary sm:px-2.5"
+              title={`Explore $${xCash} on X`}
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-              <span className="hidden sm:inline">X</span>
+              <span className="hidden sm:inline text-text-muted">Explore on</span>
+              <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-label="X" role="img"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
             </a>
             {onOpenHistory ? (
               <button
@@ -811,62 +811,93 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                 </div>
               </div>
 
-              {/* Charts */}
+              {/* Charts — symmetric proof desk (matches SignalModal Trade tab) */}
               <div>
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
-                  {t("top.trade_proof")}
-                </p>
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    {t("top.trade_proof")}
+                  </p>
+                  <span className="font-mono text-[9px] text-text-muted/55">
+                    Execution proof · signal progress
+                  </span>
+                </div>
                 {!hasAnyImg ? (
-                  <div className="relative h-[320px] overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[420px]">
+                  <div className="relative h-[300px] overflow-hidden rounded-xl border border-white/[0.08] bg-surface-secondary sm:h-[400px]">
                     <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
                   </div>
                 ) : (
-                  <div className="grid gap-2 md:grid-cols-2 md:gap-3">
-                    <div className="min-w-0">
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-text-primary/45">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-0 items-stretch">
+                    {/* BEFORE */}
+                    <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                           {t("top.before")}
                         </span>
                         {detail?.entry > 0 && (
-                          <span className="font-mono text-[10px] tabular-nums text-text-primary/50">
+                          <span className="font-mono text-[11px] tabular-nums text-text-primary/80">
                             ${formatPrice(detail.entry)}
                           </span>
                         )}
                       </div>
-                      {entryImg ? (
-                        <button
-                          type="button"
-                          onClick={() => setLightboxImg(entryImg)}
-                          className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[280px] lg:h-[360px]"
-                        >
-                          <img src={entryImg} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
-                        </button>
-                      ) : (
-                        <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-white/10 bg-surface-raised text-[11px] text-text-muted sm:h-[280px] lg:h-[360px]">
-                          {t("top.waiting_ss")}
+                      <div className="p-2 flex-1 flex flex-col">
+                        {entryImg ? (
+                          <button
+                            type="button"
+                            onClick={() => setLightboxImg(entryImg)}
+                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px] cursor-zoom-in"
+                          >
+                            <img src={entryImg} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
+                          </button>
+                        ) : (
+                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#0a0a0c] text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
+                            {t("top.waiting_ss")}
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={!entryImg}
+                            onClick={() => entryImg && setLightboxImg(entryImg)}
+                            className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08] disabled:opacity-35 disabled:pointer-events-none"
+                          >
+                            Full size
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${isStopped ? "text-loss" : "text-emerald-400/80"}`}>
+
+                    <div className="hidden md:flex flex-col items-center justify-center px-2.5 shrink-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-surface-raised text-text-muted">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="md:hidden flex items-center justify-center py-0.5">
+                      <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/50">↓ after</span>
+                    </div>
+
+                    {/* AFTER */}
+                    <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                        <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${isStopped ? "text-loss" : "text-positive"}`}>
                           {t("top.after")} · {status === "open" ? t("top.latest") : sLabel(status)}
                         </span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           {showInteractiveRight && afterImg && (
                             <button
                               type="button"
                               onClick={() => setShowTV(false)}
-                              className="text-[10px] text-text-muted hover:text-text-primary"
+                              className="font-mono text-[9px] uppercase tracking-wide text-text-muted hover:text-text-primary"
                             >
-                              {t("top.back_img")}
+                              Snapshot
                             </button>
                           )}
                           {detail?.updates?.length > 0 && (
-                            <span className="font-mono text-[10px] tabular-nums text-text-primary/50">
+                            <span className="font-mono text-[11px] tabular-nums text-text-primary/80">
                               ${formatPrice(detail.updates[detail.updates.length - 1].price)}
                               {detail.entry > 0 && detail.updates[detail.updates.length - 1].price > 0 && (
-                                <span className={`ml-1 ${isStopped ? "text-loss" : "text-emerald-400"}`}>
+                                <span className={`ml-1 font-semibold ${isStopped ? "text-loss" : "text-positive"}`}>
                                   {(((Math.abs(detail.updates[detail.updates.length - 1].price - detail.entry)) / detail.entry) * 100).toFixed(1)}%
                                 </span>
                               )}
@@ -874,17 +905,13 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                           )}
                         </div>
                       </div>
-                      {showInteractiveRight ? (
-                        <div className="relative h-[200px] overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[280px] lg:h-[360px]">
-                          <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
-                        </div>
-                      ) : (
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => setLightboxImg(afterImg)}
-                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[280px] lg:h-[360px]"
-                          >
+                      <div className="p-2 flex-1 flex flex-col">
+                        {showInteractiveRight ? (
+                          <div className="relative h-[200px] overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
+                            <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
+                          </div>
+                        ) : afterImg ? (
+                          <div className="relative h-[200px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] sm:h-[260px] lg:h-[300px]">
                             <img
                               src={afterImg}
                               alt=""
@@ -897,29 +924,43 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
                                 }
                               }}
                             />
-                          </button>
-                          {/* CTA below chart — does not cover proof image */}
-                          <div className="mt-1.5 flex items-center gap-1.5">
+                          </div>
+                        ) : (
+                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-white/10 text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
+                            {t("top.waiting_ss")}
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center gap-1.5">
+                          {!showInteractiveRight ? (
                             <button
                               type="button"
                               onClick={() => setShowTV(true)}
-                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-text-primary/85 transition hover:bg-white/[0.1] hover:text-text-primary active:scale-[0.99]"
+                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.12]"
                             >
                               <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
                               </svg>
                               Live chart
                             </button>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => setLightboxImg(afterImg)}
-                              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-text-primary/50 transition hover:text-text-primary/80"
+                              onClick={() => setShowTV(false)}
+                              className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08]"
                             >
-                              Full
+                              Show snapshot
                             </button>
-                          </div>
+                          )}
+                          <button
+                            type="button"
+                            disabled={!afterImg}
+                            onClick={() => afterImg && setLightboxImg(afterImg)}
+                            className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
+                          >
+                            Full
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -674,9 +674,32 @@ const ListRow = ({ item, onSelect }) => (
 );
 
 // Right rail — compact desk
+// Client-side safety: never show source handles as "topics"
+const isSourceyTopic = (topic) => {
+  const t = String(topic || "").toLowerCase().replace(/^\$/, "");
+  if (!t || t.length < 2) return true;
+  if (t.includes("official") || t.includes("bot") || t.endsWith("news")) return true;
+  if (t.includes("spectator") || t.includes("telegram") || t.includes("channel")) return true;
+  // camelCase-ish long handles (BossBotOfficial)
+  if (t.length >= 12 && /^[a-z0-9]+$/.test(t) && !["ethereum", "bitcoin", "solana", "cardano"].includes(t)) {
+    // still allow pure tickers like BITCOIN
+    if (!/^(btc|eth|sol|xrp|bnb|ada|doge|ton|link|avax|dot|matic|near|apt|sui|pepe|wld|arb|op)$/i.test(t)) {
+      const hasVowel = /[aeiou]/.test(t);
+      const looksHandle = hasVowel && t.length >= 14;
+      if (looksHandle) return true;
+    }
+  }
+  return false;
+};
+
+const cleanTrendingTopics = (trending, limit = 10) => {
+  const raw = trending?.trending || [];
+  return raw.filter((t) => !isSourceyTopic(t.topic)).slice(0, limit);
+};
+
 const MarketDesk = ({ trending, stats, onSearchTopic }) => {
   const topDomains = stats?.top_domains?.slice(0, 7) || [];
-  const topics = trending?.trending?.slice(0, 10) || [];
+  const topics = cleanTrendingTopics(trending, 10);
   return (
     <aside className="space-y-4">
       <div>
@@ -759,16 +782,17 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
 const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false }) => {
   const topDomains = stats?.top_domains?.slice(0, 6) || [];
   const maxDC = topDomains.length > 0 ? topDomains[0].count : 1;
+  const topics = cleanTrendingTopics(trending, 14);
 
   return (
     <div className={horizontal ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" : "space-y-3"}>
-      {trending?.trending?.length > 0 && (
+      {topics.length > 0 && (
         <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 relative overflow-hidden">
           <div className="flex items-center gap-2 mb-3">
             <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">Trending</h3>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {trending.trending.slice(0, 14).map((t, i) => (
+            {topics.map((t, i) => (
               <button
                 key={t.topic}
                 type="button"
@@ -924,7 +948,7 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
     });
   };
 
-  const trendCount = trending?.trending?.length || 0;
+  const trendCount = cleanTrendingTopics(trending, 20).length;
   const srcCount = stats?.top_domains?.length || 0;
 
   return (

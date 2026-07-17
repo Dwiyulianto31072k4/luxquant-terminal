@@ -170,7 +170,13 @@ async def get_news_stats():
 
 @router.get("/trending")
 async def get_trending_topics():
-    cache_key = "lq:news:trending"
+    """
+    Trending TOPICS from titles — never sources/handles.
+    BossBotOfficial, @mentions, domain names, and telegram channels are excluded.
+    """
+    import re
+
+    cache_key = "lq:news:trending:v2"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -183,7 +189,40 @@ async def get_trending_topics():
             WHERE created_at > NOW() - INTERVAL '24 hours' AND title IS NOT NULL
         """)
         rows = db.execute(q).fetchall()
+
+        # Build a set of known sources (domains / channels) so they never rank as "topics"
+        src_rows = db.execute(text("""
+            SELECT DISTINCT LOWER(COALESCE(domain, '')) AS d,
+                   LOWER(COALESCE(source_channel, '')) AS c
+            FROM crypto_news
+            WHERE created_at > NOW() - INTERVAL '7 days'
+        """)).fetchall()
         db.close()
+
+        source_tokens = set()
+        for d, c in src_rows:
+            for raw in (d or "", c or ""):
+                raw = raw.strip()
+                if not raw:
+                    continue
+                # tradingview.com → tradingview ; rss:cointelegraph → cointelegraph
+                base = raw.split(":")[-1]
+                base = base.split("/")[0]
+                base = base.replace(".com", "").replace(".co", "").replace(".org", "").replace(".net", "")
+                base = re.sub(r"[^a-z0-9]", "", base)
+                if len(base) >= 3:
+                    source_tokens.add(base)
+                # also keep full domain-ish tokens
+                source_tokens.add(re.sub(r"[^a-z0-9]", "", raw))
+
+        # Hard-coded publisher / telegram handles that flood titles
+        source_tokens.update({
+            "bossbotofficial", "bossbot", "middleeastspectator", "cryptonewsnet",
+            "cryptobriefing", "cointelegraph", "coindesk", "decrypt", "theblock",
+            "newsbtc", "beincrypto", "bitcoinmagazine", "u", "today", "utoday",
+            "tradingview", "seekingalpha", "reuters", "bloomberg", "wsj",
+            "official", "telegram", "twitter", "youtube",
+        })
 
         stop_words = {
             "the", "a", "an", "is", "are", "was", "were", "be", "been",
@@ -202,18 +241,34 @@ async def get_trending_topics():
             "new", "says", "said", "per", "via", "amid", "among",
             "also", "still", "get", "gets", "got", "set", "see", "sees",
             "hits", "hit", "key", "big", "one", "two", "first", "last",
-            "day", "days", "week", "month", "year", "april", "march",
+            "day", "days", "week", "month", "year", "april", "march", "july",
+            "june", "may", "august", "september", "october", "november", "december",
             "2024", "2025", "2026", "2027", "report", "reports", "update",
+            "million", "billion", "launches", "launch", "price", "market",
+            "crypto", "token", "tokens", "coin", "coins", "news", "live",
+            "breaking", "alert", "according", "against", "towards", "toward",
+            "large", "scale", "could", "into", "over", "under", "after",
         }
 
         word_counts = {}
         for row in rows:
             title = row[0] or ""
+            # Drop @handles and bare handles that look like sources
+            title = re.sub(r"@[\w.]+", " ", title)
+            title = re.sub(r"https?://\S+", " ", title)
             words = title.upper().split()
             for word in words:
                 clean = "".join(c for c in word if c.isalnum() or c in "$")
-                if len(clean) < 3 or clean.lower() in stop_words:
+                if len(clean) < 3:
                     continue
+                low = clean.lower().lstrip("$")
+                if low in stop_words or low in source_tokens:
+                    continue
+                # Long camel/joined tokens without $ are usually handles (BossBotOfficial)
+                if len(low) >= 12 and low.isalpha() and not low.startswith("$"):
+                    # allow known tickers/themes; reject handle-like
+                    if any(x in low for x in ("official", "bot", "channel", "news", "spectator")):
+                        continue
                 word_counts[clean] = word_counts.get(clean, 0) + 1
 
         sorted_topics = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)[:15]

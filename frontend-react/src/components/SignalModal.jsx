@@ -1616,14 +1616,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="flex flex-wrap items-center justify-end gap-1 sm:flex-nowrap sm:gap-1.5 sm:flex-shrink-0">
                   {/* ═══ EXPLORE ON X (cashtag search) ═══ */}
                   <a
-                    href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query`}
+                    href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query&f=live`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
-                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2 py-1 text-[10px] font-medium text-text-primary/65 transition hover:bg-white/[0.04] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
+                    className="mr-0.5 inline-flex items-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-text-primary/80 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                   >
-                    <span className="hidden sm:inline">X</span>
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <span className="hidden sm:inline text-text-muted">Explore on</span>
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-label="X" role="img">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                   </a>
@@ -1783,126 +1783,103 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 </div>
               )}
 
-              {/* TAB 2: TRADE (REVISED) */}
+              {/* TAB 2: TRADE — symmetric proof desk */}
               {activeTab === "trade" && (
-                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 custom-scrollbar bg-surface-raised">
-                  <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-text-secondary text-xs sm:text-sm font-semibold flex items-center gap-2">
-                        {Ic.camera("w-4 h-4")} {t("modal.trade_proof")}
+                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 custom-scrollbar bg-surface-raised">
+                  <div className="max-w-6xl mx-auto space-y-5 pb-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted flex items-center gap-2">
+                        {Ic.camera("w-3.5 h-3.5")} {t("modal.trade_proof")}
+                      </span>
+                      <span className="font-mono text-[10px] text-text-muted/60">
+                        Execution proof · signal progress
                       </span>
                     </div>
 
-                    {/* Gambar Before & After / TV */}
                     {!entryImg && !afterImg ? (
-                      <div className="lq-card w-full h-[350px] sm:h-[450px] bg-surface-raised relative shadow-lg">
-                        <div
-                          id="tv_chart_modal_side"
-                          className="absolute inset-0 w-full h-full"
-                        />
+                      <div className="relative w-full h-[320px] sm:h-[400px] rounded-xl border border-white/[0.08] bg-surface-secondary overflow-hidden">
+                        <div id="tv_chart_modal_side" className="absolute inset-0 w-full h-full" />
                       </div>
                     ) : (
-                      <div className="flex flex-col md:flex-row items-stretch gap-4 sm:gap-5 w-full">
-                        {/* KIRI: BEFORE */}
-                        <div className="flex-1 w-full min-w-0 flex flex-col">
-                          <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]">
-                            <span className="text-text-secondary text-[10px] sm:text-xs font-bold tracking-wide uppercase flex items-center gap-1.5">
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-0 items-stretch">
+                        {/* BEFORE */}
+                        <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                               {t("modal.before_entry")}
                             </span>
                             {entryPrice > 0 && (
-                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-surface-raised px-2 py-1 rounded-md border border-white/5 flex items-center">
-                                Entry:{" "}
-                                <span className="text-text-primary ml-1">
-                                  ${formatPrice(entryPrice)}
-                                </span>
+                              <span className="font-mono text-[11px] tabular-nums text-text-primary/80">
+                                Entry <span className="text-text-primary font-semibold">${formatPrice(entryPrice)}</span>
                               </span>
                             )}
                           </div>
-                          {entryImg ? (
-                            <div
-                              className="lq-card relative group bg-surface-raised h-[250px] sm:h-[300px] w-full cursor-zoom-in shadow-md"
-                              onClick={() => setLightboxImg(entryImg)}
-                            >
-                              <img
-                                src={entryImg}
-                                alt="Entry Chart"
-                                className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
-                                loading="lazy"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                                <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-text-primary text-[10px] sm:text-xs px-3 py-1.5 rounded-md font-medium backdrop-blur-sm shadow-xl">
-                                  Fullscreen
-                                </span>
+                          <div className="p-2 flex-1 flex flex-col">
+                            {entryImg ? (
+                              <button
+                                type="button"
+                                onClick={() => setLightboxImg(entryImg)}
+                                className="relative group h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c] cursor-zoom-in"
+                              >
+                                <img
+                                  src={entryImg}
+                                  alt="Entry Chart"
+                                  className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.01] transition-transform"
+                                  loading="lazy"
+                                />
+                              </button>
+                            ) : (
+                              <div className="flex h-[220px] sm:h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-white/10 text-text-muted">
+                                {Ic.clock("w-5 h-5 mb-2 opacity-50")}
+                                <p className="text-[11px]">Waiting for chart</p>
                               </div>
+                            )}
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={!entryImg}
+                                onClick={() => entryImg && setLightboxImg(entryImg)}
+                                className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08] disabled:opacity-35 disabled:pointer-events-none"
+                              >
+                                Full size
+                              </button>
                             </div>
-                          ) : (
-                            <div className="rounded-lg border border-dashed border-white/10 bg-surface-raised flex flex-col items-center justify-center h-[250px] sm:h-[300px] w-full text-text-muted">
-                              {Ic.clock("w-6 h-6 mb-2 opacity-60")}
-                              <p className="text-xs">Waiting for Chart</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* SEPARATOR */}
-                        <div className="hidden md:flex flex-col items-center justify-center w-8 shrink-0 relative mt-6">
-                          <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/30 via-white/10 to-green-500/30 -translate-y-1/2 z-0" />
-                          <div className="relative z-10 bg-surface-raised border border-white/10 text-text-primary/50 w-7 h-7 rounded-full flex items-center justify-center">
-                            <svg
-                              className="w-3.5 h-3.5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                              />
-                            </svg>
                           </div>
                         </div>
 
-                        {/* KANAN: AFTER */}
-                        <div className="flex-1 w-full min-w-0 flex flex-col">
-                          <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]">
-                            <span
-                              className={`text-[10px] sm:text-xs font-bold tracking-wide uppercase flex items-center gap-1.5 ${isStopped ? "text-negative" : "text-positive"}`}
-                            >
-                              {t("modal.after")} ({statusLabel})
+                        {/* CENTER RAIL */}
+                        <div className="hidden md:flex flex-col items-center justify-center px-2.5 shrink-0">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-surface-raised text-text-muted">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="md:hidden flex items-center justify-center py-0.5">
+                          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/50">↓ after</span>
+                        </div>
+
+                        {/* AFTER */}
+                        <div className="min-w-0 flex flex-col rounded-xl border border-white/[0.08] bg-surface-secondary/40 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+                            <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${isStopped ? "text-negative" : "text-positive"}`}>
+                              {t("modal.after")} · {statusLabel}
                             </span>
                             <div className="flex items-center gap-2">
                               {showInteractiveRight && afterImg && (
                                 <button
+                                  type="button"
                                   onClick={() => setShowTV(false)}
-                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-text-primary flex items-center gap-1 bg-surface-raised hover:bg-white/5 px-2 py-1 rounded-md border border-white/5 transition-colors"
+                                  className="font-mono text-[9px] uppercase tracking-wide text-text-muted hover:text-text-primary"
                                 >
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                    />
-                                  </svg>
-                                  Back
+                                  Snapshot
                                 </button>
                               )}
                               {lastPrice > 0 && (
-                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-text-primary/80 bg-surface-raised px-2 py-1 rounded-md border border-white/5 flex items-center gap-1">
-                                  Last:{" "}
-                                  <span className="text-text-primary">
-                                    ${formatPrice(lastPrice)}
-                                  </span>
+                                <span className="font-mono text-[11px] tabular-nums text-text-primary/80">
+                                  Last <span className="text-text-primary font-semibold">${formatPrice(lastPrice)}</span>
                                   {lastPricePct && (
-                                    <span
-                                      className={`ml-1 font-bold ${isStopped ? "text-negative" : "text-positive"}`}
-                                    >
+                                    <span className={`ml-1 font-semibold ${isStopped ? "text-negative" : "text-positive"}`}>
                                       {lastPricePct}%
                                     </span>
                                   )}
@@ -1910,16 +1887,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               )}
                             </div>
                           </div>
-                          {showInteractiveRight ? (
-                            <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[300px]">
-                              <div
-                                id="tv_chart_modal_side"
-                                className="absolute inset-0 h-full w-full"
-                              />
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="relative h-[250px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-surface-raised sm:h-[300px]">
+                          <div className="p-2 flex-1 flex flex-col">
+                            {showInteractiveRight ? (
+                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c]">
+                                <div id="tv_chart_modal_side" className="absolute inset-0 h-full w-full" />
+                              </div>
+                            ) : afterImg ? (
+                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-[#0a0a0c]">
                                 <img
                                   src={afterImg}
                                   alt="Latest Chart"
@@ -1933,27 +1907,43 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   }}
                                 />
                               </div>
-                              <div className="mt-1.5 flex items-center gap-1.5">
+                            ) : (
+                              <div className="flex h-[220px] sm:h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-white/10 text-text-muted">
+                                {Ic.clock("w-5 h-5 mb-2 opacity-50")}
+                                <p className="text-[11px]">Waiting for chart</p>
+                              </div>
+                            )}
+                            <div className="mt-2 flex items-center gap-1.5">
+                              {!showInteractiveRight ? (
                                 <button
                                   type="button"
                                   onClick={() => setShowTV(true)}
-                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.1] bg-white/[0.06] px-2 text-[11px] font-medium text-text-primary/85 transition hover:bg-white/[0.1] hover:text-text-primary active:scale-[0.99]"
+                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.12]"
                                 >
                                   <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6" />
                                   </svg>
                                   Live chart
                                 </button>
+                              ) : (
                                 <button
                                   type="button"
-                                  onClick={() => setLightboxImg(afterImg)}
-                                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] px-2.5 text-[11px] text-text-primary/50 transition hover:text-text-primary/80"
+                                  onClick={() => setShowTV(false)}
+                                  className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-white/[0.08]"
                                 >
-                                  Full
+                                  Show snapshot
                                 </button>
-                              </div>
+                              )}
+                              <button
+                                type="button"
+                                disabled={!afterImg}
+                                onClick={() => afterImg && setLightboxImg(afterImg)}
+                                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
+                              >
+                                Full
+                              </button>
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
                     )}
