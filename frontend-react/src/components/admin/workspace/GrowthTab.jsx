@@ -57,8 +57,8 @@ const RevenueTrend = ({ trend }) => {
                 className="w-full rounded-t-sm transition-all"
                 style={{
                   height: `${h}%`,
-                  background: 'linear-gradient(180deg, #f0d890, #d4a853 60%, #8b6914)',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.14))',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
                 }}
                 title={`${t.month}: ${usd(t.revenue)} · ${t.count} payments`}
               />
@@ -101,8 +101,8 @@ const ReferralTable = ({ referral }) => {
     <div className="space-y-1.5">
       {rows.map((r, i) => (
         <div key={r.username + i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
-          <span className="w-4 text-[11px] font-bold tabular-nums text-center" style={{ color: i < 3 ? palette.gold[300] : 'rgba(255,255,255,0.35)' }}>{i + 1}</span>
-          <Avatar name={r.username} tone={palette.gold[300]} size="xs" />
+          <span className="w-4 text-center font-mono text-[11px] font-bold tabular-nums text-text-muted">{i + 1}</span>
+          <Avatar name={r.username} tone="rgba(255,255,255,0.4)" size="xs" />
           <span className="flex-1 text-[12px] font-medium text-text-primary truncate">@{r.username}</span>
           <span className="text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.55)' }}>{num(r.referred)} ref</span>
           <span className="w-16 text-right text-[11px] font-semibold tabular-nums" style={{ color: palette.green[400] }}>{usd2(r.commission)}</span>
@@ -196,19 +196,21 @@ export const GrowthTab = () => {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="mb-2"><Eyebrow>Business Intelligence</Eyebrow></div>
-          <h2 className="text-lg font-semibold text-text-primary tracking-tight">Growth &amp; Revenue</h2>
-          <p className="text-[11px] mt-0.5 max-w-lg" style={{ color: 'rgb(var(--fg-muted))' }}>
+          <p className="mb-1.5 font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
+            Growth · Revenue, retention &amp; attribution
+          </p>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">Growth &amp; Revenue</h2>
+          <p className="mt-0.5 max-w-lg text-[12px] text-text-muted">
             Revenue, recurring run-rate, churn, and where your paying members come from.
           </p>
         </div>
         <button
+          type="button"
           onClick={() => fetchGrowth(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
-          style={{ background: tint(palette.green[400], 0.08), color: palette.green[400], border: `1px solid ${tint(palette.green[400], 0.25)}` }}
+          className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.08] disabled:opacity-50"
         >
           <RefreshIcon size={12} />
           {refreshing ? 'Refreshing…' : 'Refresh'}
@@ -216,19 +218,19 @@ export const GrowthTab = () => {
       </div>
 
       {/* Revenue KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatTile label="Total Revenue" value={usd(rev.total)} Icon={TrendingUpIcon} accent="green" sub={`${num(rev.payment_count)} payments`} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <StatTile label="Total Revenue" value={usd(rev.total)} Icon={TrendingUpIcon} accent="muted" sub={`${num(rev.payment_count)} payments`} />
         <StatTile
           label="Revenue · 30d"
           value={usd(rev.last_30d)}
           Icon={TrendingUpIcon}
-          accent="gold"
+          accent="muted"
           sub={rev.mom_pct == null ? 'vs prev 30d' : `${signedPct(rev.mom_pct)} vs prev 30d`}
         />
-        <StatTile label="ARPU · 30d" value={usd2(rec.arpu_30d)} Icon={UsersIcon} accent="blue" sub="per active sub" />
-        <StatTile label="LTV (proxy)" value={usd(rev.ltv)} Icon={CrownIcon} accent="purple" sub="rev / paying user" />
-        <StatTile label="Avg Order" value={usd2(rev.aov)} Icon={TrendingUpIcon} accent="teal" sub="per payment" />
-        <StatTile label="Paying Users" value={num(rev.paying_customers)} Icon={UsersIcon} accent="gold" />
+        <StatTile label="ARPU · 30d" value={usd2(rec.arpu_30d)} Icon={UsersIcon} accent="muted" sub="per active sub" />
+        <StatTile label="LTV (proxy)" value={usd(rev.ltv)} Icon={CrownIcon} accent="muted" sub="rev / paying user" />
+        <StatTile label="Avg Order" value={usd2(rev.aov)} Icon={TrendingUpIcon} accent="muted" sub="per payment" />
+        <StatTile label="Paying Users" value={num(rev.paying_customers)} Icon={UsersIcon} accent="muted" />
       </div>
 
       {/* Revenue trend + churn */}

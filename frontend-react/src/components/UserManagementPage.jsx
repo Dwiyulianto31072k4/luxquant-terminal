@@ -137,26 +137,16 @@ const CleanupButton = ({ count, onClick }) => (
 // ════════════════════════════════════════════════════════════════════
 
 const PageHeader = ({ stats, onCleanup }) => (
-  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-2">
+  <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p
-        className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1.5 flex items-center gap-2"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
-      >
-        <span
-          className="inline-block w-1 h-1 rounded-full"
-          style={{
-            background: palette.gold[300],
-            boxShadow: `0 0 8px ${palette.gold[300]}`,
-          }}
-        />
-        User Directory
+      <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
+        Users · Members, roles, and access
       </p>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight flex items-center gap-2.5">
-        <UsersIcon size={24} style={{ color: palette.gold[300] }} />
+      <h1 className="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight text-text-primary lg:text-2xl">
+        <UsersIcon size={22} className="text-text-muted" style={{ color: 'rgba(255,255,255,0.45)' }} />
         User Management
       </h1>
-      <p className="text-xs mt-1.5" style={{ color: 'rgb(var(--fg-muted))' }}>
+      <p className="mt-1.5 text-sm text-text-muted">
         Manage members, subscriptions, contact enrichment, and outreach.
       </p>
     </div>

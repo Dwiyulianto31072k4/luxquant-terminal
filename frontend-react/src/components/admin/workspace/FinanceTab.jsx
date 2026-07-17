@@ -36,34 +36,28 @@ const PAGE_SIZE = 25;
 const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
   const hasStale = (stats?.stale_count ?? 0) > 0;
   return (
-    <div className="flex items-start justify-between gap-3 flex-wrap">
-      <div className="flex items-start gap-3 min-w-0">
-        <IconBadge Icon={TrendingUpIcon} color={palette.green[400]} size={38} iconSize={18} />
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge Icon={TrendingUpIcon} color="rgba(255,255,255,0.45)" size={38} iconSize={18} />
 
         <div className="min-w-0">
-          <p
-            className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-            style={{ color: 'rgba(52,211,153,0.7)' }}
-          >
-            Revenue Operations
+          <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
+            Finance · Revenue & payment ops
           </p>
-          <h2 className="text-lg font-semibold text-text-primary tracking-tight">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
             Finance Hub
           </h2>
-          <p className="text-[11px] mt-0.5 max-w-md" style={{ color: 'rgb(var(--fg-muted))' }}>
+          <p className="mt-0.5 max-w-md text-[12px] text-text-muted">
             Monitor revenue, approve pending payments, and audit the financial trail.
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <button
+          type="button"
           onClick={onAddManualPayment}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
-          style={{
-            background: 'linear-gradient(135deg, #d4a853, #8b6914)',
-            color: 'rgb(var(--surface))',
-          }}
+          className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-white/[0.14]"
           title="Record a payment that was made out-of-band"
         >
           <PlusIcon size={12} />

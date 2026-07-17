@@ -91,16 +91,14 @@ export const surface = {
     border: 'rgba(255,255,255,0.06)',
     borderActive: 'rgba(212,168,83,0.35)',
   },
-  // premium → matches the LandingPageV2 card language: a solid near-black
-  // panel with a gold top-hairline and a lift-on-hover treatment. Use for
-  // hero KPI cards, analytics panels, anything that should feel "showcase".
+  // premium → solid raised panel, neutral hairline (theme-safe, timeless desk)
   premium: {
-    bg: '#0a0805',
+    bg: 'rgb(var(--surface-raised))',
     border: 'rgba(255,255,255,0.07)',
     hover: 'rgba(255,255,255,0.10)',
-    borderHover: 'rgba(212,168,83,0.25)',
-    topGlow: 'rgba(212,168,83,0.45)', // gold hairline (landing signature)
-    shadowHover: '0 14px 34px rgba(0,0,0,0.5)',
+    borderHover: 'rgba(255,255,255,0.14)',
+    topGlow: 'rgba(255,255,255,0.08)',
+    shadowHover: '0 14px 34px rgba(0,0,0,0.45)',
   },
   base: {
     bg: 'rgba(255,255,255,0.015)',
@@ -115,9 +113,9 @@ export const surface = {
     topGlow: 'rgba(255,255,255,0.06)',
   },
   glass: {
-    bg: '#12090d',                       // solid base for modals
-    bgOverlay: 'rgba(0,0,0,0.85)',       // backdrop
-    border: 'rgba(212,168,83,0.25)',
+    bg: 'rgb(var(--surface-secondary))',
+    bgOverlay: 'rgba(0,0,0,0.85)',
+    border: 'rgba(255,255,255,0.1)',
     borderSubtle: 'rgba(255,255,255,0.08)',
   },
   // For sections (Contact Reach, Stale Alert) — tinted by intent
@@ -209,17 +207,17 @@ export const radius = {
 
 export const elevation = {
   // Subtle top hairline used on cards to suggest depth
-  topHairline: (color = 'rgba(255,255,255,0.04)') =>
+  topHairline: (color = 'rgba(255,255,255,0.06)') =>
     `linear-gradient(to right, transparent, ${color}, transparent)`,
-  // Gold top hairline — the LandingPageV2 signature accent line.
-  goldHairline: (alpha = 0.45) =>
-    `linear-gradient(to right, transparent, rgba(212,168,83,${alpha}), transparent)`,
-  // Modal shadow — used on grant modal, drawer
-  modal: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,168,83,0.1)',
+  // Legacy alias — now neutral (kept so call sites still compile)
+  goldHairline: (alpha = 0.12) =>
+    `linear-gradient(to right, transparent, rgba(255,255,255,${alpha}), transparent)`,
+  // Modal shadow
+  modal: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08)',
   // Floating bar (bulk action)
-  floating: '0 12px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,168,83,0.12)',
+  floating: '0 12px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)',
   // Card lift on hover (premium surface)
-  cardHover: '0 14px 34px rgba(0,0,0,0.5)',
+  cardHover: '0 14px 34px rgba(0,0,0,0.45)',
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -227,14 +225,16 @@ export const elevation = {
 // ════════════════════════════════════════════════════════════════════
 
 export const gradient = {
-  // Gold text — apply with `background`, `WebkitBackgroundClip:'text'`,
-  // `backgroundClip:'text'`, `color:'transparent'`.
-  goldText: 'linear-gradient(135deg, #f0d890, #d4a853 50%, #b8860b)',
-  // Solid gold CTA fill (buttons)
-  goldFill: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
-  // Glossy 3D bar fill (MEXC-ish cylinder) used by Bar3D
-  goldBar: 'linear-gradient(180deg, #f6e0a0 0%, #e7c373 34%, #cba24f 68%, #a8842f 100%)',
+  // Neutral emphasis text (legacy name kept for imports)
+  goldText: 'linear-gradient(135deg, #f4f4f5, #d4d4d8 55%, #a1a1aa)',
+  // Primary CTA — solid light fill (timeless desk, theme-safe)
+  goldFill: 'rgb(var(--fg) / 0.92)',
+  // Bar charts — neutral height fill
+  goldBar: 'linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.22) 55%, rgba(255,255,255,0.12) 100%)',
 };
+
+/** Decorative icon/chip ink — not semantic PnL */
+export const NEUTRAL = '#a1a1aa';
 
 // ════════════════════════════════════════════════════════════════════
 // 6. Helpers
@@ -290,6 +290,7 @@ export const tokens = {
   motion,
   tint,
   tilePreset,
+  NEUTRAL,
 };
 
 export default tokens;

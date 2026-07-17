@@ -26,6 +26,7 @@ import {
   motion,
   tint,
   tilePreset,
+  NEUTRAL,
 } from './designSystem';
 import {
   AlertCircleIcon,
@@ -150,20 +151,11 @@ export const Eyebrow = ({ children, align = 'left', className = '' }) => {
   const centered = align === 'center';
   return (
     <span
-      className={`inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] ${className}`}
-      style={{ color: tint(palette.gold[300], 0.85) }}
+      className={`inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted ${className}`}
     >
-      <span
-        className="h-px w-7"
-        style={{ background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], 0.6)})` }}
-      />
+      <span className="h-px w-6 bg-gradient-to-r from-transparent to-white/25" />
       {children}
-      {centered && (
-        <span
-          className="h-px w-7"
-          style={{ background: `linear-gradient(to left, transparent, ${tint(palette.gold[300], 0.6)})` }}
-        />
-      )}
+      {centered && <span className="h-px w-6 bg-gradient-to-l from-transparent to-white/25" />}
     </span>
   );
 };
@@ -183,13 +175,12 @@ export const SectionHeader = ({
   title,
   subtitle,
   Icon,
-  iconColor = palette.gold[300],
+  iconColor = NEUTRAL,
   right,
   size = 'md', // 'sm' | 'md' | 'lg'
   className = '',
 }) => {
-  const titleSize = size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-base' : 'text-sm';
-  const titleWeight = size === 'lg' ? 'font-light' : 'font-bold';
+  const titleSize = size === 'lg' ? 'font-display text-2xl font-semibold' : size === 'md' ? 'text-base font-semibold' : 'text-sm font-semibold';
 
   return (
     <div className={`flex items-end justify-between gap-3 ${className}`}>
@@ -198,20 +189,17 @@ export const SectionHeader = ({
           goldEyebrow ? (
             <div className="mb-2"><Eyebrow>{eyebrow}</Eyebrow></div>
           ) : (
-            <p
-              className="text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-            >
+            <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
               {eyebrow}
             </p>
           )
         )}
-        <h2 className={`${titleSize} ${titleWeight} tracking-tight text-text-primary flex items-center gap-2`}>
+        <h2 className={`${titleSize} tracking-tight text-text-primary flex items-center gap-2`}>
           {Icon && <Icon size={size === 'lg' ? 22 : 14} style={{ color: iconColor }} />}
           {title}
         </h2>
         {subtitle && (
-          <p className="text-xs mt-1" style={{ color: typography.body.faint }}>
+          <p className="mt-1 text-xs text-text-muted">
             {subtitle}
           </p>
         )}
@@ -236,71 +224,41 @@ export const StatTile = ({
   label,
   value,
   sub,
-  accent = 'gold',
+  accent = 'muted',
   Icon,
   active = false,
   onClick,
   loading = false,
   className = '',
 }) => {
-  const accentColor = semantic.accent[accent] || palette.gold[300];
+  const accentColor = semantic.accent[accent] || NEUTRAL;
   const Wrapper = onClick ? 'button' : 'div';
 
   return (
     <Wrapper
       onClick={onClick}
       disabled={!onClick}
-      className={`group relative overflow-hidden text-left w-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      style={{
-        background: surface.premium.bg,
-        border: `1px solid ${active ? tint(accentColor, 0.5) : surface.premium.border}`,
-        borderRadius: radius.lg,
-        padding: '14px 16px',
-        transition: motion.base,
-      }}
-      onMouseEnter={(e) => {
-        if (onClick && !active) {
-          e.currentTarget.style.borderColor = surface.premium.borderHover;
-          e.currentTarget.style.boxShadow = surface.premium.shadowHover;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (onClick && !active) {
-          e.currentTarget.style.borderColor = surface.premium.border;
-          e.currentTarget.style.boxShadow = 'none';
-        }
-      }}
+      className={`group relative w-full overflow-hidden rounded-xl border bg-surface-raised p-3.5 text-left transition-colors ${
+        onClick ? 'cursor-pointer hover:border-white/[0.12]' : ''
+      } ${active ? 'border-white/20' : 'border-white/[0.07]'} ${className}`}
     >
-      {/* subtle gold top hairline (brand accent, kept quiet) */}
-      <div
-        className="absolute inset-x-0 top-0 h-px pointer-events-none"
-        style={{
-          background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], active ? 0.4 : 0.2)}, transparent)`,
-        }}
-      />
-      <div className="flex items-center justify-between mb-2">
-        <span
-          className="text-[10px] uppercase tracking-wider font-semibold"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-        >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
           {label}
         </span>
         {Icon && (
           <IconBadge Icon={Icon} color={accentColor} size={26} iconSize={13} />
         )}
       </div>
-      <p
-        className="text-2xl font-bold tracking-tight tabular-nums leading-none transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left"
-        style={{ color: 'rgb(var(--fg))' }}
-      >
+      <p className="font-mono text-2xl font-semibold tabular-nums leading-none tracking-tight text-text-primary">
         {loading ? (
-          <span className="inline-block w-12 h-6 lqsk" style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <span className="lqsk inline-block h-6 w-12 rounded bg-white/[0.08]" />
         ) : (
           value ?? '—'
         )}
       </p>
       {sub && (
-        <p className="text-[10px] mt-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="mt-1.5 text-[10px] text-text-muted/80">
           {sub}
         </p>
       )}
@@ -323,7 +281,7 @@ export const StatTile = ({
  */
 export const IconBadge = ({
   Icon,
-  color = palette.gold[300],
+  color = NEUTRAL,
   size = 36,
   iconSize,
   ink = 'auto',
@@ -478,21 +436,18 @@ export const StatusBadge = ({ status, label, ...rest }) => (
   </Badge>
 );
 
-// Pill — fully rounded badge variant, used for filter chips.
-// Active state mirrors the LandingPageV2 pill: gold tint + soft gold glow.
+// Pill — fully rounded filter chip (neutral active = white desk language)
 export const Pill = ({ children, active, tone, onClick, className = '' }) => {
-  const t = tone || palette.gold[300];
+  const t = tone || NEUTRAL;
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 transition-all duration-200 ${className}`}
-      style={{
-        background: active ? tint(t, 0.14) : 'rgba(255,255,255,0.02)',
-        color: active ? t : typography.body.muted,
-        border: `1px solid ${active ? tint(t, 0.45) : surface.base.border}`,
-        borderRadius: radius.pill,
-        boxShadow: active ? `0 4px 14px ${tint(t, 0.18)}` : 'none',
-      }}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium tracking-wide transition-colors ${className} ${
+        active
+          ? 'border border-white/20 bg-white/[0.1] text-text-primary'
+          : 'border border-white/[0.08] bg-white/[0.02] text-text-muted hover:border-white/14 hover:text-text-primary'
+      }`}
+      style={tone && active ? { color: t, borderColor: tint(t, 0.4), background: tint(t, 0.12) } : undefined}
     >
       {children}
     </button>
@@ -562,37 +517,37 @@ export const Button = React.forwardRef(
     };
     const s = sizeMap[size];
 
-    // Solid fills (Terminal Live / Landing CTA language — no washed glass)
+    // Timeless desk CTAs — primary is solid light fill (theme-safe)
     const variants = {
       primary: {
-        background: gradient.goldFill,
-        color: 'rgb(var(--surface-hover))',
-        border: '1px solid #d4a853',
+        background: 'rgb(var(--fg) / 0.92)',
+        color: 'rgb(var(--surface))',
+        border: '1px solid rgba(255,255,255,0.2)',
       },
       secondary: {
-        background: 'rgb(var(--surface-raised))',
-        color: 'rgba(255,255,255,0.78)',
+        background: 'rgba(255,255,255,0.04)',
+        color: 'rgba(255,255,255,0.82)',
         border: '1px solid rgba(255,255,255,0.12)',
       },
       ghost: {
-        background: 'rgb(var(--surface-raised))',
+        background: 'transparent',
         color: typography.body.muted,
         border: '1px solid rgba(255,255,255,0.10)',
       },
       danger: {
-        background: '#7f1d1d',
+        background: 'rgba(248,113,113,0.12)',
         color: '#fecaca',
-        border: '1px solid #991b1b',
+        border: '1px solid rgba(248,113,113,0.35)',
       },
       success: {
-        background: '#065f46',
+        background: 'rgba(52,211,153,0.12)',
         color: '#d1fae5',
-        border: '1px solid #047857',
+        border: '1px solid rgba(52,211,153,0.3)',
       },
       warn: {
-        background: '#9a3412',
+        background: 'rgba(251,146,60,0.12)',
         color: '#ffedd5',
-        border: '1px solid #c2410c',
+        border: '1px solid rgba(251,146,60,0.3)',
       },
     };
 
@@ -600,10 +555,9 @@ export const Button = React.forwardRef(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] ${s.px} ${s.py} ${s.text} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold uppercase tracking-wider transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-90 active:scale-[0.99] ${s.px} ${s.py} ${s.text} ${className}`}
         style={{
           ...variants[variant],
-          borderRadius: radius.md,
           ...style,
         }}
         {...rest}
@@ -630,7 +584,7 @@ Button.displayName = 'Button';
 
 export const IconButton = ({
   Icon,
-  tone = palette.gold[300],
+  tone = NEUTRAL,
   size = 'md',
   title,
   onClick,
@@ -735,42 +689,30 @@ export const EmptyState = ({
   title,
   description,
   action,
-  tone = palette.gold[300],
+  tone = NEUTRAL,
   className = '',
 }) => (
-  <div className={`flex flex-col items-center justify-center text-center py-12 px-4 ${className}`}>
-    {/* Decorative icon stack */}
+  <div className={`flex flex-col items-center justify-center px-4 py-12 text-center ${className}`}>
     {Icon && (
       <div className="relative mb-5">
         <div
-          className="absolute inset-0 rounded-full blur-2xl opacity-30"
-          style={{ background: tone }}
-        />
-        <div
-          className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
-          style={{
-            background: tint(tone, 0.06),
-            border: `1px solid ${tint(tone, 0.2)}`,
-          }}
+          className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.1] bg-white/[0.04]"
         >
-          <Icon size={28} style={{ color: tone, opacity: 0.7 }} />
+          <Icon size={28} style={{ color: tone, opacity: 0.75 }} />
         </div>
       </div>
     )}
-    <h3 className="text-base font-bold text-text-primary mb-1 tracking-tight">{title}</h3>
+    <h3 className="mb-1 text-base font-semibold tracking-tight text-text-primary">{title}</h3>
     {description && (
-      <p className="text-xs max-w-sm" style={{ color: typography.body.muted }}>
+      <p className="max-w-sm text-xs text-text-muted">
         {description}
       </p>
     )}
     {action && (
       <button
+        type="button"
         onClick={action.onClick}
-        className="mt-5 inline-flex items-center gap-2 px-4 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all"
-        style={{
-          background: `linear-gradient(135deg, ${palette.gold[300]}, ${palette.gold[500]})`,
-          color: palette.maroon[900],
-        }}
+        className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.1] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-primary transition hover:bg-white/[0.14]"
       >
         {action.Icon && <action.Icon size={13} />}
         {action.label}
@@ -783,9 +725,9 @@ export const EmptyState = ({
 // Loading states
 // ════════════════════════════════════════════════════════════════════
 
-export const Spinner = ({ size = 14, tone = palette.gold[300], className = '' }) => (
+export const Spinner = ({ size = 14, tone = NEUTRAL, className = '' }) => (
   <span
-    className={`inline-block rounded-full animate-spin ${className}`}
+    className={`inline-block animate-spin rounded-full ${className}`}
     style={{
       width: size,
       height: size,
@@ -795,8 +737,8 @@ export const Spinner = ({ size = 14, tone = palette.gold[300], className = '' })
   />
 );
 
-export const LoadingState = ({ label = 'Loading...', tone = palette.gold[300], className = '' }) => (
-  <div className={`inline-flex items-center gap-2 text-xs ${className}`} style={{ color: typography.body.muted }}>
+export const LoadingState = ({ label = 'Loading...', tone = NEUTRAL, className = '' }) => (
+  <div className={`inline-flex items-center gap-2 text-xs text-text-muted ${className}`}>
     <Spinner size={13} tone={tone} />
     {label}
   </div>

@@ -41,21 +41,18 @@ export const SegmentStrip = ({ filters, stats, defaults, onSelect }) => {
           <button
             key={seg.key}
             onClick={() => onSelect({ ...defaults, ...seg.filter })}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: isActive ? tint(palette.gold[300], 0.16) : 'rgba(255,255,255,0.025)',
-              color: isActive ? palette.gold[300] : 'rgba(255,255,255,0.6)',
-              border: `1px solid ${isActive ? tint(palette.gold[300], 0.35) : 'rgba(255,255,255,0.06)'}`,
-            }}
+            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-medium transition-colors ${
+              isActive
+                ? 'border border-white/20 bg-white/[0.1] text-text-primary'
+                : 'border border-white/[0.07] bg-white/[0.025] text-text-muted hover:border-white/12 hover:text-text-primary'
+            }`}
           >
             {seg.label}
             {count != null && (
               <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums"
-                style={{
-                  background: isActive ? tint(palette.gold[300], 0.2) : 'rgba(255,255,255,0.05)',
-                  color: isActive ? palette.gold[300] : 'rgba(255,255,255,0.4)',
-                }}
+                className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums ${
+                  isActive ? 'bg-white/[0.12] text-text-primary/80' : 'bg-white/[0.05] text-text-muted/70'
+                }`}
               >
                 {count}
               </span>

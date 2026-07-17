@@ -92,21 +92,18 @@ const relativeTime = (iso) => {
 // ════════════════════════════════════════════════════════════════════
 
 const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
-  <div className="flex items-start justify-between gap-3 flex-wrap">
-    <div className="flex items-start gap-3 min-w-0">
-      <IconBadge Icon={ActivityIcon} color={palette.teal[400]} size={38} iconSize={18} />
+  <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex min-w-0 items-start gap-3">
+      <IconBadge Icon={ActivityIcon} color="rgba(255,255,255,0.45)" size={38} iconSize={18} />
 
       <div className="min-w-0">
-        <p
-          className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-          style={{ color: tint(palette.teal[400], 0.7) }}
-        >
-          Activity & Growth
+        <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
+          Activity · Engagement & growth analytics
         </p>
-        <h2 className="text-lg font-semibold text-text-primary tracking-tight">
+        <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
           Growth Dashboard
         </h2>
-        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: palette.warm[400] }}>
+        <p className="mt-0.5 max-w-md text-[12px] text-text-muted">
           Engagement, retention signals, and outreach targets across the platform.
         </p>
       </div>
@@ -114,21 +111,17 @@ const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
 
     <div className="flex items-center gap-2">
       {generatedAt && (
-        <span className="text-[10px]" style={{ color: palette.warm[500] }}>
+        <span className="text-[10px] text-text-muted">
           updated {relativeTime(generatedAt)}
         </span>
       )}
       <button
+        type="button"
         onClick={onRefresh}
         disabled={refreshing}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
-        style={{
-          background: tint(palette.teal[400], 0.08),
-          color: palette.teal[400],
-          border: `1px solid ${tint(palette.teal[400], 0.25)}`,
-        }}
+        className="flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.08] disabled:opacity-50"
       >
-        {refreshing ? <Spinner size={12} tone={palette.teal[400]} /> : <RefreshIcon size={12} />}
+        {refreshing ? <Spinner size={12} /> : <RefreshIcon size={12} />}
         Refresh
       </button>
     </div>

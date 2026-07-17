@@ -38,7 +38,7 @@ import { ResourcesTab } from './admin/workspace/ResourcesTab';
 import SocialPostsAdminPage from './SocialPostsAdminPage';
 
 // Design system
-import { palette, tint, motion, gradient } from './admin/designSystem';
+import { palette, tint, motion, NEUTRAL } from './admin/designSystem';
 
 // Icons
 import {
@@ -74,22 +74,23 @@ const LibraryIcon = ({ size = 14, style, ...props }) => (
   </svg>
 );
 
+// Decorative accent for tabs/icons is neutral — colour only for urgency badges.
 const TABS = [
-  { id: 'users',         label: 'Users',         description: 'Members, roles, and access',     Icon: UsersRingIcon,     accent: palette.gold[300] },
-  { id: 'followups',     label: 'Follow-ups',    description: 'Reminders & support queue',       Icon: ArrowTargetIcon,   accent: palette.blue[400] },
-  { id: 'marketing',     label: 'Marketing',     description: 'Campaigns & budget tracking',     Icon: BroadcastConeIcon, accent: palette.purple[400] },
-  { id: 'finance',       label: 'Finance',       description: 'Revenue & payment ops',           Icon: BarsChartIcon,     accent: palette.green[400] },
-  { id: 'growth',        label: 'Growth',        description: 'Revenue, retention & attribution', Icon: TrendingUpIcon,    accent: palette.green[400] },
-  { id: 'todos',         label: 'TODOs',         description: 'Internal task board',             Icon: CheckSquareIcon,   accent: palette.orange[400] },
-  { id: 'activity',      label: 'Activity',      description: 'Engagement & growth analytics',   Icon: ActivityIcon,      accent: palette.teal[400] },
-  { id: 'apikeys',       label: 'API',           description: 'Developer keys & abuse flags',    Icon: ShieldIcon,        accent: palette.gold[300] },
-  { id: 'announcements', label: 'Announcements', description: 'In-app modal messages',           Icon: BroadcastConeIcon, accent: palette.purple[400] },
-  { id: 'socialposts',   label: 'Social Posts',  description: 'AI-generated post drafts',        Icon: BroadcastConeIcon, accent: palette.purple[400] },
-  { id: 'resources',     label: 'Resources',     description: 'Research, guides, videos & links', Icon: LibraryIcon,       accent: palette.blue[400] },
-  { id: 'system',        label: 'System',        description: 'VPS service health & control',    Icon: ServerIcon,        accent: palette.teal[400] },
-  { id: 'status',        label: 'Status',        description: 'Public status page & incidents',   Icon: BellIcon,          accent: palette.amber[400] },
-  { id: 'profitshare',   label: 'Profit Share',  description: 'Revenue split recap & export',     Icon: DollarIcon,        accent: palette.green[400] },
-  { id: 'aicost',        label: 'AI Cost',       description: 'AI usage & spend tracking',        Icon: ZapIcon,           accent: palette.gold[300] },
+  { id: 'users',         label: 'Users',         description: 'Members, roles, and access',      Icon: UsersRingIcon,     accent: NEUTRAL },
+  { id: 'followups',     label: 'Follow-ups',    description: 'Reminders & support queue',        Icon: ArrowTargetIcon,   accent: NEUTRAL },
+  { id: 'marketing',     label: 'Marketing',     description: 'Campaigns & budget tracking',      Icon: BroadcastConeIcon, accent: NEUTRAL },
+  { id: 'finance',       label: 'Finance',       description: 'Revenue & payment ops',            Icon: BarsChartIcon,     accent: NEUTRAL },
+  { id: 'growth',        label: 'Growth',        description: 'Revenue, retention & attribution', Icon: TrendingUpIcon,    accent: NEUTRAL },
+  { id: 'todos',         label: 'TODOs',         description: 'Internal task board',              Icon: CheckSquareIcon,   accent: NEUTRAL },
+  { id: 'activity',      label: 'Activity',      description: 'Engagement & growth analytics',    Icon: ActivityIcon,      accent: NEUTRAL },
+  { id: 'apikeys',       label: 'API',           description: 'Developer keys & abuse flags',     Icon: ShieldIcon,        accent: NEUTRAL },
+  { id: 'announcements', label: 'Announcements', description: 'In-app modal messages',            Icon: BroadcastConeIcon, accent: NEUTRAL },
+  { id: 'socialposts',   label: 'Social Posts',  description: 'AI-generated post drafts',         Icon: BroadcastConeIcon, accent: NEUTRAL },
+  { id: 'resources',     label: 'Resources',     description: 'Research, guides, videos & links', Icon: LibraryIcon,       accent: NEUTRAL },
+  { id: 'system',        label: 'System',        description: 'VPS service health & control',     Icon: ServerIcon,        accent: NEUTRAL },
+  { id: 'status',        label: 'Status',        description: 'Public status page & incidents',   Icon: BellIcon,          accent: NEUTRAL },
+  { id: 'profitshare',   label: 'Profit Share',  description: 'Revenue split recap & export',     Icon: DollarIcon,        accent: NEUTRAL },
+  { id: 'aicost',        label: 'AI Cost',       description: 'AI usage & spend tracking',        Icon: ZapIcon,           accent: NEUTRAL },
 ];
 
 const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
@@ -99,33 +100,13 @@ const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
 // ════════════════════════════════════════════════════════════════════
 
 const BrandHeader = () => (
-  <div className="flex items-stretch gap-3.5">
-    {/* thin gold accent rail (replaces the logo) */}
-    <div
-      className="w-[3px] shrink-0 rounded-full"
-      style={{ background: `linear-gradient(to bottom, ${palette.gold[300]}, ${tint(palette.gold[300], 0.4)}, transparent)` }}
-    />
-    <div className="min-w-0">
-      <p
-        className="font-mono text-[10px] uppercase tracking-[0.25em] leading-none mb-2"
-        style={{ color: tint(palette.gold[300], 0.6) }}
-      >
-        LuxQuant
-      </p>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-tight leading-none">
-        <span className="text-text-primary">Management </span>
-        <span
-          style={{
-            background: gradient.goldText,
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            color: 'transparent',
-          }}
-        >
-          System
-        </span>
-      </h1>
-    </div>
+  <div className="min-w-0">
+    <p className="mb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-text-muted">
+      LuxQuant
+    </p>
+    <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-3xl">
+      Management System
+    </h1>
   </div>
 );
 
@@ -201,27 +182,34 @@ const BadgePill = ({ count, accent, active }) => (
 // ════════════════════════════════════════════════════════════════════
 
 const TabBar = ({ activeTab, badges, onSelect }) => (
-  <div className="border-b border-white/[0.07] mb-5">
-    <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+  <div className="mb-5 border-b border-white/[0.07]">
+    <div className="no-scrollbar flex items-center gap-1 overflow-x-auto sm:gap-2">
       {TABS.map((t) => {
         const on = t.id === activeTab;
         const badge = badges[t.id];
         return (
           <button
             key={t.id}
+            type="button"
             onClick={() => onSelect(t.id)}
-            className={`group relative whitespace-nowrap pb-3 pt-1 -mb-px border-b-2 transition-colors ${on ? 'border-gold-primary' : 'border-transparent hover:border-white/15'}`}
-            style={on ? { borderColor: palette.gold[300] } : undefined}
+            className={`relative -mb-px whitespace-nowrap border-b-2 px-2.5 pb-3 pt-1 transition-colors sm:px-3 ${
+              on
+                ? 'border-text-primary text-text-primary'
+                : 'border-transparent text-text-muted hover:border-white/15 hover:text-text-primary/85'
+            }`}
           >
             <span className="inline-flex items-center gap-2">
-              <t.Icon size={14} style={{ color: on ? t.accent : 'rgba(255,255,255,0.4)', transition: motion.base }} />
-              <span
-                className="text-[13.5px] tracking-tight transition-colors"
-                style={{ color: on ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: on ? 600 : 500 }}
-              >
+              <t.Icon
+                size={14}
+                className={on ? 'text-text-primary' : 'text-text-muted/70'}
+                style={{ color: on ? 'rgb(var(--fg))' : 'rgba(255,255,255,0.4)' }}
+              />
+              <span className={`text-[13px] tracking-tight ${on ? 'font-semibold' : 'font-medium'}`}>
                 {t.label}
               </span>
-              {badge != null && badge > 0 && <BadgePill count={badge} accent={t.accent} active={on} />}
+              {badge != null && badge > 0 && (
+                <BadgePill count={badge} accent={palette.red[400]} active={on} />
+              )}
             </span>
           </button>
         );
@@ -329,49 +317,49 @@ const AdminWorkspacePage = () => {
   const activeTabDef = TAB_BY_ID[activeTab] || TABS[0];
 
   return (
-    <div className="w-full px-4 lg:px-8 py-6">
-      {/* ─── Header row ─── */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-2">
-        <BrandHeader />
+    <div className="w-full px-4 py-6 lg:px-8">
+      {/* ─── Header row (matches Terminal / Home page-top rhythm) ─── */}
+      <div className="mb-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <BrandHeader />
+          <p className="mt-2 text-sm text-text-muted">
+            Unified operations workspace
+          </p>
+        </div>
         <div className="lg:max-w-md">
-          <p className="text-[9px] uppercase tracking-[0.28em] font-semibold mb-2 leading-none lg:text-right" style={{ color: tint(palette.warm[100], 0.32) }}>Pulse</p>
+          <p className="mb-2 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted lg:text-right">
+            Pulse
+          </p>
           <PulseStrip stats={stats} financeStats={financeStats} servicesSummary={servicesSummary} onJumpTo={changeTab} />
         </div>
       </div>
 
       {viewOnly && (
-        <div
-          className="mb-4 rounded-lg px-3.5 py-2.5 flex items-start gap-2.5"
-          style={{
-            background: 'rgba(96,165,250,0.08)',
-            border: '1px solid rgba(96,165,250,0.25)',
-          }}
-        >
-          <ShieldIcon size={14} style={{ color: '#60a5fa', marginTop: 2, flexShrink: 0 }} />
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.03] px-3.5 py-2.5">
+          <ShieldIcon size={14} className="mt-0.5 shrink-0 text-text-muted" style={{ color: NEUTRAL }} />
           <div>
             <p className="text-[12px] font-semibold text-text-primary/90">
               View-only mode ({currentUser?.role === 'founder' ? 'Founder' : 'Co-Admin'})
             </p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>
+            <p className="mt-0.5 text-[11px] text-text-muted">
               You can browse all management tabs. Create, edit, delete, grant, and send actions are blocked by the server.
             </p>
           </div>
         </div>
       )}
 
-      <p className="text-[12px] mb-6" style={{ color: tint(palette.warm[100], 0.4), letterSpacing: '0.01em' }}>
-        Unified operations workspace
-      </p>
-
-      {/* ─── Horizontal tab-bar ─── */}
-      <TabBar activeTab={activeTab} badges={badges} onSelect={changeTab} />
+      <div className="mb-5 mt-5">
+        <TabBar activeTab={activeTab} badges={badges} onSelect={changeTab} />
+      </div>
 
       {/* active tab descriptor */}
-      <div className="hidden sm:flex items-center gap-2 mb-5">
-        <activeTabDef.Icon size={13} style={{ color: activeTabDef.accent }} />
-        <span className="text-[11px] uppercase font-semibold tracking-[0.08em] text-text-primary/80">{activeTabDef.label}</span>
-        <span className="inline-block w-1 h-1 rounded-full" style={{ background: tint(palette.warm[400], 0.5) }} />
-        <span className="text-[10.5px]" style={{ color: tint(palette.warm[400], 0.85), letterSpacing: '0.03em' }}>{activeTabDef.description}</span>
+      <div className="mb-5 hidden items-center gap-2 sm:flex">
+        <activeTabDef.Icon size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
+        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary/80">
+          {activeTabDef.label}
+        </span>
+        <span className="inline-block h-1 w-1 rounded-full bg-white/25" />
+        <span className="text-[12px] text-text-muted">{activeTabDef.description}</span>
       </div>
 
       {/* ─── Active tab content ─── */}

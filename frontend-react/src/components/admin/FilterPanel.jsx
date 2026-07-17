@@ -44,17 +44,10 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         <div className="flex items-center gap-2.5">
-          <FilterIcon size={14} style={{ color: activeCount > 0 ? palette.gold[300] : '#8a7a6e' }} />
+          <FilterIcon size={14} style={{ color: activeCount > 0 ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.4)' }} />
           <span className="text-xs font-semibold text-text-primary tracking-tight">Filters</span>
           {activeCount > 0 && (
-            <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums"
-              style={{
-                background: tint(palette.gold[300], 0.15),
-                color: palette.gold[300],
-                border: `1px solid ${tint(palette.gold[300], 0.3)}`,
-              }}
-            >
+            <span className="rounded-full border border-white/15 bg-white/[0.08] px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-primary/80">
               {activeCount} active
             </span>
           )}
