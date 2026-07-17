@@ -222,19 +222,11 @@ export default function ConfigPanel({ account, onClose }) {
             <button
               onClick={handleSave}
               disabled={!dirty || saving}
-              className="group px-4 py-2 rounded-md font-mono text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-              style={
+              className={`group rounded-lg px-4 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] transition-opacity disabled:cursor-not-allowed disabled:opacity-40 ${
                 dirty && !saving
-                  ? {
-                      background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                      color: "rgb(var(--surface))",
-                    }
-                  : {
-                      background: "rgb(var(--ink) / 0.04)",
-                      color: "rgba(155,155,155,0.5)",
-                      border: "1px solid rgb(var(--ink) / 0.06)",
-                    }
-              }
+                  ? "bg-accent text-accent-fg hover:opacity-90"
+                  : "border border-ink/[0.08] bg-ink/[0.04] text-text-muted/50"
+              }`}
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -513,19 +505,11 @@ export default function ConfigPanel({ account, onClose }) {
           <button
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="group flex-1 px-4 py-2.5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] transition-all disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-            style={
+            className={`group flex-1 rounded-lg px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] transition-opacity disabled:cursor-not-allowed disabled:opacity-40 ${
               dirty && !saving
-                ? {
-                    background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                    color: "rgb(var(--surface))",
-                  }
-                : {
-                    background: "rgb(var(--ink) / 0.04)",
-                    color: "rgba(155,155,155,0.5)",
-                    border: "1px solid rgb(var(--ink) / 0.06)",
-                  }
-            }
+                ? "bg-accent text-accent-fg hover:opacity-90"
+                : "border border-ink/[0.08] bg-ink/[0.04] text-text-muted/50"
+            }`}
           >
             {saving ? "Saving…" : dirty ? (
               <span className="inline-flex items-center gap-2">
