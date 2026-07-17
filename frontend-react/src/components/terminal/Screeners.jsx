@@ -54,7 +54,7 @@ function RsiTip({ active, payload, tf }) {
   );
 }
 
-const rsiBand = (v) => (v >= 70 ? { k: "overbought", c: "#f87171" } : v >= 60 ? { k: "strong", c: "#fb7185" } : v > 40 ? { k: "neutral", c: "#9ca3af" } : v > 30 ? { k: "weak", c: "#86efac" } : { k: "oversold", c: "#34d399" });
+const rsiBand = (v) => (v >= 70 ? { k: "overbought", c: "rgb(var(--neg))" } : v >= 60 ? { k: "strong", c: "rgb(var(--neg))" } : v > 40 ? { k: "neutral", c: "#9ca3af" } : v > 30 ? { k: "weak", c: "#86efac" } : { k: "oversold", c: "rgb(var(--pos))" });
 
 export function RsiHeatmapTab({ view, deriv, openPair }) {
   const { t } = useTranslation();
@@ -110,15 +110,15 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
           ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 12, right: 44, left: 4, bottom: 8 }}>
-              <ReferenceArea y1={70} y2={100} fill="#f87171" fillOpacity={0.06} />
+              <ReferenceArea y1={70} y2={100} fill="rgb(var(--neg))" fillOpacity={0.06} />
               <ReferenceArea y1={30} y2={70} fill="#9ca3af" fillOpacity={0.03} />
-              <ReferenceArea y1={0} y2={30} fill="#34d399" fillOpacity={0.06} />
+              <ReferenceArea y1={0} y2={30} fill="rgb(var(--pos))" fillOpacity={0.06} />
               <CartesianGrid stroke={GRID} strokeDasharray="2 4" horizontal vertical={false} />
               <XAxis type="number" dataKey="x" domain={z.domX} allowDataOverflow hide />
               <YAxis type="number" dataKey="y" domain={z.domY} allowDataOverflow ticks={[10, 20, 30, 40, 50, 60, 70, 80, 90]} tick={TICK_SM} axisLine={false} tickLine={false} />
               <ZAxis range={[40, 40]} />
-              <ReferenceLine y={70} stroke="#f87171" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: "overbought", fill: "#f87171", fontSize: 8, position: "right" }} />
-              <ReferenceLine y={30} stroke="#34d399" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: "oversold", fill: "#34d399", fontSize: 8, position: "right" }} />
+              <ReferenceLine y={70} stroke="rgb(var(--neg))" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: "overbought", fill: "rgb(var(--neg))", fontSize: 8, position: "right" }} />
+              <ReferenceLine y={30} stroke="rgb(var(--pos))" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: "oversold", fill: "rgb(var(--pos))", fontSize: 8, position: "right" }} />
               {avg != null && <ReferenceLine y={avg} stroke={GOLD} strokeDasharray="5 5" label={{ value: `avg ${avg.toFixed(0)}`, fill: GOLD, fontSize: 9, position: "right" }} />}
               <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<RsiTip tf={tf} />} />
               <Scatter data={data} shape={<Dot />} isAnimationActive={false} />
@@ -131,7 +131,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
 }
 
 // ── ATR LEVELS (daily range exhaustion) ──────────────────────────
-const atrTier = (v) => (v >= 100 ? { k: "EXCEEDED", c: "#ef4444" } : v >= 80 ? { k: "CRITICAL", c: "#fb7185" } : v >= 60 ? { k: "HIGH", c: "#f59e0b" } : v >= 35 ? { k: "MODERATE", c: "#d4a853" } : { k: "FRESH", c: "#60a5fa" });
+const atrTier = (v) => (v >= 100 ? { k: "EXCEEDED", c: "rgb(var(--neg))" } : v >= 80 ? { k: "CRITICAL", c: "rgb(var(--neg))" } : v >= 60 ? { k: "HIGH", c: "rgb(var(--warn))" } : v >= 35 ? { k: "MODERATE", c: "rgb(var(--accent))" } : { k: "FRESH", c: "rgb(56 189 248)" });
 
 export function AtrLevelsTab({ view, deriv, openPair }) {
   const { t } = useTranslation();
@@ -204,7 +204,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
 // Low band-width percentile = the coin's range has contracted vs its own
 // history → "coiling" before a breakout. Distinct from the positioning
 // Squeeze tab (funding × L/S); this is pure volatility structure.
-const sqzTier = (v) => (v <= 10 ? { k: "COILED", c: "#22d3ee" } : v <= 25 ? { k: "TIGHT", c: "#4ade80" } : v <= 50 ? { k: "NORMAL", c: "#d4a853" } : v <= 75 ? { k: "LOOSE", c: "#fb923c" } : { k: "EXPANDED", c: "#f87171" });
+const sqzTier = (v) => (v <= 10 ? { k: "COILED", c: "rgb(34 211 238)" } : v <= 25 ? { k: "TIGHT", c: "rgb(var(--pos))" } : v <= 50 ? { k: "NORMAL", c: "rgb(var(--accent))" } : v <= 75 ? { k: "LOOSE", c: "rgb(var(--warn))" } : { k: "EXPANDED", c: "rgb(var(--neg))" });
 
 export function VolSqueezeTab({ view, deriv, openPair }) {
   const { t } = useTranslation();
@@ -350,7 +350,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
   const Dot = (props) => {
     const { cx, cy, payload } = props;
     if (cx == null || cy == null) return null;
-    const c = payload.y >= 0 ? "#34d399" : "#f87171";
+    const c = payload.y >= 0 ? "rgb(var(--pos))" : "rgb(var(--neg))";
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openPair(payload.pair)}>
         <circle cx={cx} cy={cy} r={5} fill={c} fillOpacity={0.8} stroke={payload.sc || "rgba(0,0,0,0.5)"} strokeWidth={payload.sc ? 1.6 : 0.5} />

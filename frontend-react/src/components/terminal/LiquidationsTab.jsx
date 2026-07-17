@@ -27,7 +27,7 @@ const logoUrl = (name) => {
   return `https://assets.coincap.io/assets/icons/${clean}@2x.png`;
 };
 // dark outline so labels stay legible on any cell colour
-const OUTLINE = { paintOrder: "stroke", stroke: "#0a0806", strokeWidth: 3, strokeLinejoin: "round" };
+const OUTLINE = { paintOrder: "stroke", stroke: "rgb(var(--surface))", strokeWidth: 3, strokeLinejoin: "round" };
 
 // custom treemap cell — recharts spreads the node's fields into props.
 // Uses <foreignObject> to embed the real <CoinLogo> (logo + initials fallback,
@@ -190,7 +190,7 @@ export function LiquidationsTab({ view }) {
               data={nodes}
               dataKey="size"
               aspectRatio={4 / 3}
-              stroke="rgb(10,8,6)"
+              stroke="rgb(var(--surface))"
               content={<LiqCell onPick={pick} />}
               isAnimationActive={false}
             >

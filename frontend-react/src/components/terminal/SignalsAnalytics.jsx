@@ -449,7 +449,7 @@ export default function SignalsAnalytics() {
     const funnel = [
       { name: "Called", value: view.length, fill: GRAYBAR },
       { name: "TP1+", value: reached(["tp1", "tp2", "tp3", "closed_win"]), fill: "#2dd4a0" },
-      { name: "TP2+", value: reached(["tp2", "tp3", "closed_win"]), fill: "#4ade80" },
+      { name: "TP2+", value: reached(["tp2", "tp3", "closed_win"]), fill: "rgb(var(--pos))" },
       { name: "TP3+", value: reached(["tp3", "closed_win"]), fill: "#86efac" },
       { name: "TP4", value: statusMix.closed_win || 0, fill: GOLD },
     ];
@@ -801,7 +801,7 @@ export default function SignalsAnalytics() {
                           <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                           <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
                           <Bar dataKey="tp1" name="TP1" stackId="a" fill="#2dd4a0" fillOpacity={0.9} />
-                          <Bar dataKey="tp2" name="TP2" stackId="a" fill="#4ade80" fillOpacity={0.9} />
+                          <Bar dataKey="tp2" name="TP2" stackId="a" fill="rgb(var(--pos))" fillOpacity={0.9} />
                           <Bar dataKey="tp3" name="TP3" stackId="a" fill="#86efac" fillOpacity={0.9} />
                           <Bar dataKey="tp4" name="TP4" stackId="a" fill={GOLD} fillOpacity={0.95} radius={[2, 2, 0, 0]} />
                           <Bar dataKey="sl" name="SL" stackId="a" fill={NEG} fillOpacity={0.9} radius={[0, 0, 2, 2]} />

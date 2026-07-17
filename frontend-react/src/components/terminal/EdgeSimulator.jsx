@@ -22,8 +22,8 @@ import { edgeLabApi } from "../../services/edgeLabApi";
 import { GOLD, GRID, AXIS, TICK_SM, SectionBand, Kpi, Warming, useZoom, API_BASE, authHeaders } from "./vizShared";
 
 const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
-const evColor = (ev) => (ev == null ? "#6b7280" : ev >= 0 ? "#34d399" : "#f87171");
-const TIER = { reliable: "#34d399", moderate: "#d4a853", unreliable: "#6b7280" };
+const evColor = (ev) => (ev == null ? "rgb(var(--fg-muted))" : ev >= 0 ? "rgb(var(--pos))" : "rgb(var(--neg))");
+const TIER = { reliable: "rgb(var(--pos))", moderate: "rgb(var(--accent))", unreliable: "rgb(var(--fg-muted))" };
 
 function EdgeTip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -208,7 +208,7 @@ export function EdgeTab() {
                         <div className="h-full rounded" style={{ width: `${share}%`, background: tt.color, opacity: 0.85 }} />
                       </div>
                       <span className="w-12 text-right font-mono text-[10px] text-text-primary/70">{share.toFixed(0)}%</span>
-                      <span className="w-16 text-right font-mono text-[10px]" style={{ color: tt.avg >= 0 ? "#34d399" : "#f87171" }}>{tt.avg >= 0 ? "+" : ""}{tt.avg.toFixed(1)}%</span>
+                      <span className="w-16 text-right font-mono text-[10px]" style={{ color: tt.avg >= 0 ? "rgb(var(--pos))" : "rgb(var(--neg))" }}>{tt.avg >= 0 ? "+" : ""}{tt.avg.toFixed(1)}%</span>
                     </div>
                   );
                 })}
@@ -279,7 +279,7 @@ export function EdgeTab() {
                     <div className="px-4 py-2.5 border-t border-white/[0.06] font-mono text-[10px] text-text-muted">
                       {drill.count} signals · <span className="text-text-primary/80">{drill.win_rate.toFixed(1)}% win rate</span>
                       {baseline != null && (
-                        <span> · vs baseline {baseline.toFixed(1)}% (<span style={{ color: drill.win_rate >= baseline ? "#34d399" : "#f87171" }}>{drill.win_rate >= baseline ? "+" : ""}{(drill.win_rate - baseline).toFixed(1)}pp</span>)</span>
+                        <span> · vs baseline {baseline.toFixed(1)}% (<span style={{ color: drill.win_rate >= baseline ? "rgb(var(--pos))" : "rgb(var(--neg))" }}>{drill.win_rate >= baseline ? "+" : ""}{(drill.win_rate - baseline).toFixed(1)}pp</span>)</span>
                       )}
                     </div>
                   )}

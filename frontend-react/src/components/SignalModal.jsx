@@ -547,7 +547,7 @@ const SignalModal = ({
       style: "1",
       locale: "en",
       backgroundColor: "rgba(13, 13, 13, 1)",
-      gridColor: "rgba(212, 168, 83, 0.06)",
+      gridColor: "rgba(128,128,138,0.08)",
       hide_top_toolbar: false,
       hide_legend: false,
       // Drawing toolbar (trendline, fib, dll) SELALU tampil — penting buat analisa.
@@ -624,7 +624,7 @@ const SignalModal = ({
         style: "1",
         locale: "en",
         backgroundColor: "rgba(13, 13, 13, 1)",
-        gridColor: "rgba(212, 168, 83, 0.05)",
+        gridColor: "rgba(128,128,138,0.08)",
         hide_top_toolbar: false,
         hide_legend: false,
         hide_side_toolbar: false,
@@ -878,15 +878,16 @@ const SignalModal = ({
     },
   ].filter((s) => s.value);
 
+  // Quiet status chips — outline, not neon fills
   const statusStyles = {
-    open: "bg-cyan-500",
-    tp1: "bg-green-500",
-    tp2: "bg-lime-500",
-    tp3: "bg-yellow-500",
-    tp4: "bg-orange-500",
-    closed_win: "bg-green-600",
-    closed_loss: "bg-red-500",
-    sl: "bg-red-500",
+    open: "bg-white/[0.06] text-text-secondary border border-white/10",
+    tp1: "bg-positive/10 text-positive border border-positive/20",
+    tp2: "bg-positive/10 text-positive border border-positive/20",
+    tp3: "bg-positive/10 text-positive border border-positive/20",
+    tp4: "bg-positive/15 text-positive border border-positive/25",
+    closed_win: "bg-positive/10 text-positive border border-positive/20",
+    closed_loss: "bg-negative/10 text-negative border border-negative/20",
+    sl: "bg-negative/10 text-negative border border-negative/20",
   };
 
   // === LINKS ===
@@ -916,7 +917,7 @@ const SignalModal = ({
       fallbackLogo:
         "https://www.google.com/s2/favicons?domain=coingecko.com&sz=64",
       color:
-        "from-green-600/20 to-green-800/10 border-green-500/30 hover:border-green-400",
+        "from-green-600/20 to-green-800/10 border-positive/30 hover:border-green-400",
     },
     {
       name: "CoinMarketCap",
@@ -986,7 +987,7 @@ const SignalModal = ({
       logo: "https://assets.staticimg.com/cms/media/3zL1evPzOWDEnG0XW2zI1cW8kXpZlQikvOWeB6N6X.ico",
       fallbackLogo:
         "https://www.google.com/s2/favicons?domain=kucoin.com&sz=64",
-      color: "from-green-500/10 to-green-700/5 hover:border-green-500/30",
+      color: "from-green-500/10 to-green-700/5 hover:border-positive/30",
     },
     {
       name: "MEXC",
@@ -1007,7 +1008,7 @@ const SignalModal = ({
       url: `https://www.gate.io/trade/${coinSymbol}_USDT`,
       logo: "https://www.gate.io/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=gate.io&sz=64",
-      color: "from-red-500/10 to-red-700/5 hover:border-red-500/30",
+      color: "from-red-500/10 to-red-700/5 hover:border-negative/30",
     },
     {
       name: "Kraken",
@@ -1040,9 +1041,9 @@ const SignalModal = ({
         pct: `${calcPct(signal.stop1, signal?.entry)}%`,
         icon: isStopped ? "✗" : "⊘",
         active: isStopped,
-        color: isStopped ? "text-red-400" : "text-gray-500",
-        border: isStopped ? "border-red-500/30" : "border-gray-700",
-        bg: isStopped ? "bg-red-500/10" : "bg-surface-secondary",
+        color: isStopped ? "text-negative" : "text-gray-500",
+        border: isStopped ? "border-negative/30" : "border-gray-700",
+        bg: isStopped ? "bg-negative/10" : "bg-surface-secondary",
       });
     }
 
@@ -1053,9 +1054,9 @@ const SignalModal = ({
       detail: `@ ${formatPrice(signal?.entry)}`,
       icon: "•",
       active: true,
-      color: "text-gold-primary",
-      border: "border-line/30",
-      bg: "bg-gold-primary/10",
+      color: "text-text-secondary",
+      border: "border-white/10",
+      bg: "bg-white/[0.04]",
     });
 
     // TPs go RIGHT of entry — unified green color for elegance
@@ -1064,33 +1065,33 @@ const SignalModal = ({
         k: "tp1",
         l: "TP1",
         v: signal?.target1,
-        c: "text-green-400",
-        b: "border-green-500/30",
-        bg: "bg-green-500/10",
+        c: "text-positive",
+        b: "border-positive/30",
+        bg: "bg-positive/10",
       },
       {
         k: "tp2",
         l: "TP2",
         v: signal?.target2,
-        c: "text-green-400",
-        b: "border-green-500/30",
-        bg: "bg-green-500/10",
+        c: "text-positive",
+        b: "border-positive/30",
+        bg: "bg-positive/10",
       },
       {
         k: "tp3",
         l: "TP3",
         v: signal?.target3,
-        c: "text-green-400",
-        b: "border-green-500/30",
-        bg: "bg-green-500/10",
+        c: "text-positive",
+        b: "border-positive/30",
+        bg: "bg-positive/10",
       },
       {
         k: "tp4",
         l: "TP4",
         v: signal?.target4,
-        c: "text-green-400",
-        b: "border-green-500/30",
-        bg: "bg-green-500/10",
+        c: "text-positive",
+        b: "border-positive/30",
+        bg: "bg-positive/10",
       },
     ];
 
@@ -1254,7 +1255,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     const alignClass = align === "right" ? "text-right" : "text-left";
 
     return (
-      <p className={`${sizeClass} ${alignClass} font-mono text-gold-primary/45 leading-tight mt-0.5`}>
+      <p className={`${sizeClass} ${alignClass} font-mono text-text-muted leading-tight mt-0.5`}>
         ≈ {formatLocalPrice(localValue, currency)}
       </p>
     );
@@ -1283,40 +1284,32 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
 
-    const goldLine = (
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-    );
-
     if (isRedacted) {
       return (
-        <div className="p-2.5 space-y-2">
-          <div className="lq-card lq-card--gold p-6 min-h-[280px] flex flex-col items-center justify-center text-center">
-            {goldLine}
-            <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-line/40 flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary">
+        <div className="p-3 space-y-2">
+          <div className="lq-card p-6 min-h-[280px] flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mb-4 text-text-muted">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h3 className="text-text-primary font-bold text-base mb-2">Premium Live Signal</h3>
-            <p className="text-text-primary/60 text-xs leading-relaxed max-w-[260px] mb-4">
-              This signal is still{" "}
-              <span className="text-gold-primary font-semibold">open and running</span>. Subscribe to view live entry, take-profits, stop-loss, and charts.
+            <h3 className="text-text-primary font-semibold text-base mb-2">Live signal</h3>
+            <p className="text-text-muted text-xs leading-relaxed max-w-[260px] mb-4">
+              This call is still <span className="text-text-primary font-medium">open</span>. Subscribe to view entry, targets, stop-loss, and charts.
             </p>
-            <button onClick={() => { window.location.href = "/pricing"; }}
-              className="lq-btn-gold flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-xs active:scale-[0.98]">
-              {Ic.lock("w-3.5 h-3.5")} Subscribe to Unlock
+            <button type="button" onClick={() => { window.location.href = "/pricing"; }}
+              className="lq-btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold">
+              {Ic.lock("w-3.5 h-3.5")} Subscribe
             </button>
-            <p className="text-[10px] text-text-primary/40 mt-3">Closed signals are visible for free as track record proof.</p>
+            <p className="text-[10px] text-text-muted mt-3">Closed signals stay free as track record.</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="p-2.5 space-y-2">
-        {/* premium-panel-v5 (boxy) */}
-
+      <div className="p-3 space-y-2">
         {/* ── LIVE PRICE + PnL ── */}
         {livePrice && (() => {
           const entryNum = signal?.entry ? Number(signal.entry) : 0;
@@ -1326,37 +1319,35 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           const up = pnlPct !== null && pnlPct > 0;
           const down = pnlPct !== null && pnlPct < 0;
           return (
-            <div className={`lq-card ${up ? "lq-card--green" : down ? "lq-card--red" : ""}`}>
-              {goldLine}
-              <div className="p-2.5">
+            <div className="lq-card">
+              <div className="p-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-1.5">
                     <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-positive" />
                     </span>
-                    <span className="text-[9px] uppercase tracking-[0.14em] text-text-primary/45 font-medium">Live · Mark</span>
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-text-muted font-medium">Mark</span>
                   </span>
                   {liveChange24h !== null && (
-                    <span className={`text-[9px] font-mono font-semibold ${liveChange24h >= 0 ? "text-green-400/80" : "text-red-400/80"}`}>
+                    <span className={`text-[9px] font-mono tabular-nums ${liveChange24h >= 0 ? "text-positive" : "text-negative"}`}>
                       {liveChange24h >= 0 ? "+" : ""}{liveChange24h.toFixed(2)}% · 24h
                     </span>
                   )}
                 </div>
                 <div className="flex items-end justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className={`font-mono font-bold leading-none truncate ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-green-400" : down ? "text-red-400" : "text-text-primary"}`}>
+                    <p className={`font-mono font-semibold leading-none truncate tabular-nums ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-positive" : down ? "text-negative" : "text-text-primary"}`}>
                       {formatPrice(livePrice)}
                     </p>
                     <LocalPriceLine usdtValue={livePrice} size="md" />
                   </div>
                   {pnlPct !== null && (
-                    <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold flex-shrink-0 border ${
-                      up ? "bg-green-500/15 text-green-400 border-green-500/20" :
-                      down ? "bg-red-500/15 text-red-400 border-red-500/20" :
-                      "bg-white/5 text-text-primary/50 border-white/10"
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono tabular-nums font-medium flex-shrink-0 border ${
+                      up ? "bg-positive/10 text-positive border-positive/15" :
+                      down ? "bg-negative/10 text-negative border-negative/15" :
+                      "bg-white/[0.03] text-text-muted border-white/10"
                     }`}>
-                      {up ? "▲" : down ? "▼" : "•"} {Math.abs(pnlPct).toFixed(2)}%
+                      {up ? "+" : down ? "−" : ""}{Math.abs(pnlPct).toFixed(2)}%
                     </span>
                   )}
                 </div>
@@ -1366,74 +1357,71 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         })()}
 
         {/* ── ENTRY ── */}
-        <div className="lq-card lq-card--gold">
-          {goldLine}
-          <div className="p-2.5">
+        <div className="lq-card">
+          <div className="p-3">
             <div className="flex items-center justify-between gap-2 mb-0.5">
-              <p className="text-gold-primary/60 text-[9px] uppercase tracking-[0.14em] font-medium">{t("modal.entry")}</p>
-              <p className="text-[9px] text-gold-primary/55 font-medium flex-shrink-0 whitespace-nowrap">{formatShortDateTime(signal?.created_at)}</p>
+              <p className="text-text-muted text-[9px] uppercase tracking-[0.12em] font-medium">{t("modal.entry")}</p>
+              <p className="text-[9px] text-text-muted flex-shrink-0 whitespace-nowrap">{formatShortDateTime(signal?.created_at)}</p>
             </div>
-            <p className={`font-mono font-bold text-gold-primary leading-none truncate ${isCompact ? "text-base" : "text-lg"}`}>{formatPrice(signal?.entry)}</p>
+            <p className={`font-mono font-semibold text-text-primary leading-none truncate tabular-nums ${isCompact ? "text-base" : "text-lg"}`}>{formatPrice(signal?.entry)}</p>
             <LocalPriceLine usdtValue={signal?.entry} size="md" />
           </div>
         </div>
 
         {/* ── DEEP ANALYSIS ── */}
         {signalDetail?.enrichment && (
-          <button onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-line/25 hover:bg-gold-primary/20 hover:border-line/40 transition-all active:scale-[0.98]">
-            {Ic.cpu("w-3.5 h-3.5")}<span>Deep Analysis</span>
+          <button type="button" onClick={() => setShowDeepAnalysis(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-medium bg-white/[0.03] text-text-secondary border border-white/[0.08] hover:bg-white/[0.05] hover:text-text-primary transition-colors">
+            {Ic.cpu("w-3.5 h-3.5")}<span>Deep analysis</span>
           </button>
         )}
 
-        {/* ── TARGETS (grid tile / kotak) ── */}
-        <div className="lq-card lq-card--green bg-surface-raised p-2">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
-          <p className="text-[9px] uppercase tracking-[0.14em] text-green-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
+        {/* ── TARGETS ── */}
+        <div className="lq-card p-2.5">
+          <p className="text-[9px] uppercase tracking-[0.12em] text-text-muted font-medium mb-2 flex items-center gap-1.5 px-0.5">
             {Ic.target("w-3 h-3")} {t("modal.targets")}
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             {targets.map((tg, i) => (
               <div key={i} className={`lq-tile p-2 ${
                 tg.hit
-                  ? "bg-green-500/[0.08] border-green-500/25 hover:!border-green-500/55 hover:bg-green-500/[0.14]"
-                  : "bg-white/[0.02] hover:bg-white/[0.05]"
+                  ? "bg-positive/[0.06] border-positive/20"
+                  : ""
               }`}>
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span className="flex items-center gap-1 min-w-0">
-                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold flex-shrink-0 ${
-                      tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-text-primary/45"
+                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-semibold flex-shrink-0 ${
+                      tg.hit ? "bg-positive/20 text-positive" : "bg-white/[0.06] text-text-muted"
                     }`}>{tg.hit ? "✓" : i + 1}</span>
-                    <span className={`text-[10px] font-bold truncate ${tg.hit ? "text-green-400" : "text-text-primary/70"}`}>{tg.label}</span>
+                    <span className={`text-[10px] font-medium truncate ${tg.hit ? "text-positive" : "text-text-secondary"}`}>{tg.label}</span>
                   </span>
-                  <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${tg.hit ? "text-green-400" : "text-text-primary/50"}`}>+{tg.pct}%</span>
+                  <span className={`text-[9px] font-mono tabular-nums flex-shrink-0 ${tg.hit ? "text-positive" : "text-text-muted"}`}>+{tg.pct}%</span>
                 </div>
-                <p className={`text-[11px] font-mono leading-none truncate ${tg.hit ? "text-text-primary" : "text-text-primary/55"}`}>{formatPrice(tg.value)}</p>
+                <p className={`text-[11px] font-mono leading-none truncate tabular-nums ${tg.hit ? "text-text-primary" : "text-text-secondary"}`}>{formatPrice(tg.value)}</p>
                 <LocalPriceLine usdtValue={tg.value} size="sm" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── STOP LOSS (grid tile / kotak) ── */}
+        {/* ── STOP LOSS ── */}
         {stops.length > 0 && (
-          <div className="lq-card lq-card--red bg-surface-raised p-2">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
-            <p className="text-[9px] uppercase tracking-[0.14em] text-red-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
+          <div className="lq-card p-2.5">
+            <p className="text-[9px] uppercase tracking-[0.12em] text-text-muted font-medium mb-2 flex items-center gap-1.5 px-0.5">
               {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {stops.map((s, i) => (
                 <div key={i} className={`lq-tile p-2 ${
                   s.hit
-                    ? "bg-red-500/[0.08] border-red-500/25 hover:!border-red-500/55 hover:bg-red-500/[0.14]"
-                    : "bg-white/[0.02] hover:bg-white/[0.05]"
+                    ? "bg-negative/[0.06] border-negative/20"
+                    : ""
                 }`}>
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className={`text-[10px] font-bold truncate ${s.hit ? "text-red-400" : "text-text-primary/70"}`}>{s.label}</span>
-                    <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${s.hit ? "text-red-400" : "text-text-primary/50"}`}>{s.pct}%</span>
+                    <span className={`text-[10px] font-medium truncate ${s.hit ? "text-negative" : "text-text-secondary"}`}>{s.label}</span>
+                    <span className={`text-[9px] font-mono tabular-nums flex-shrink-0 ${s.hit ? "text-negative" : "text-text-muted"}`}>{s.pct}%</span>
                   </div>
-                  <p className={`text-[11px] font-mono leading-none truncate ${s.hit ? "text-text-primary" : "text-text-primary/55"}`}>{formatPrice(s.value)}</p>
+                  <p className={`text-[11px] font-mono leading-none truncate tabular-nums ${s.hit ? "text-text-primary" : "text-text-secondary"}`}>{formatPrice(s.value)}</p>
                   <LocalPriceLine usdtValue={s.value} size="sm" />
                 </div>
               ))}
@@ -1447,29 +1435,26 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           const countdown = formatCountdown(nextFundingMs);
           const fundingPos = funding > 0;
           return (
-            <div className="lq-card lq-card--gold bg-surface-raised">
-              {goldLine}
+            <div className="lq-card">
               <div className="px-2.5 py-1.5 border-b border-white/[0.05] flex items-center gap-1.5">
-                <svg className="w-2.5 h-2.5 text-gold-primary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                <span className="text-[8.5px] uppercase tracking-[0.14em] text-text-primary/40 font-medium">Derivatives · Perp</span>
+                <span className="text-[8.5px] uppercase tracking-[0.12em] text-text-muted font-medium">Derivatives · Perp</span>
               </div>
 
-              {/* Funding + OI sebagai 2 tile kotak */}
-              <div className="grid grid-cols-2 gap-px bg-white/[0.05]">
-                <div className="p-2.5 bg-surface-raised transition-colors hover:bg-white/[0.03]">
-                  <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1">Funding</p>
-                  <p className={`text-[12px] font-mono font-bold leading-none ${fundingPos ? "text-red-400" : "text-green-400"}`}>
+              <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
+                <div className="p-2.5 bg-surface-raised">
+                  <p className="text-[8px] text-text-muted uppercase tracking-wider mb-1">Funding</p>
+                  <p className={`text-[12px] font-mono font-semibold leading-none tabular-nums ${fundingPos ? "text-negative" : "text-positive"}`}>
                     {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
                   </p>
-                  <p className="text-[7.5px] text-text-primary/35 mt-1 leading-tight">
+                  <p className="text-[7.5px] text-text-muted mt-1 leading-tight">
                     {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · ${countdown}` : ""}
                   </p>
                 </div>
-                <div className="p-2.5 bg-surface-raised transition-colors hover:bg-white/[0.03]">
-                  <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1">Open Interest</p>
+                <div className="p-2.5 bg-surface-raised">
+                  <p className="text-[8px] text-text-muted uppercase tracking-wider mb-1">Open interest</p>
                   <p className="text-[12px] font-mono font-bold text-text-primary leading-none">{formatOiUsd(oiUsd)}</p>
                   {oiChange24h !== null && (
-                    <p className={`text-[7.5px] font-mono mt-1 leading-tight ${oiChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+                    <p className={`text-[7.5px] font-mono mt-1 leading-tight ${oiChange24h >= 0 ? "text-positive/70" : "text-negative/70"}`}>
                       {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% · 24h
                     </p>
                   )}
@@ -1481,16 +1466,16 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="px-2.5 py-2.5 border-t border-white/[0.05]">
                   <p className="text-[8px] text-text-primary/40 uppercase tracking-wider mb-1.5">L/S · Top Traders</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-mono font-bold text-green-400 w-8 flex-shrink-0">{lsLong}%</span>
+                    <span className="text-[12px] font-mono font-bold text-positive w-8 flex-shrink-0">{lsLong}%</span>
                     <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-white/5">
                       <div className="h-full bg-gradient-to-r from-green-500/80 to-green-400/55" style={{ width: `${lsLong}%` }} />
                       <div className="h-full bg-gradient-to-r from-red-400/55 to-red-500/80" style={{ width: `${lsShort}%` }} />
                     </div>
-                    <span className="text-[12px] font-mono font-bold text-red-400 w-8 text-right flex-shrink-0">{lsShort}%</span>
+                    <span className="text-[12px] font-mono font-bold text-negative w-8 text-right flex-shrink-0">{lsShort}%</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-[7.5px] uppercase tracking-wider text-green-400/50 font-medium">Long</span>
-                    <span className="text-[7.5px] uppercase tracking-wider text-red-400/50 font-medium">Short</span>
+                    <span className="text-[7.5px] uppercase tracking-wider text-positive/50 font-medium">Long</span>
+                    <span className="text-[7.5px] uppercase tracking-wider text-negative/50 font-medium">Short</span>
                   </div>
                 </div>
               )}
@@ -1504,7 +1489,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 ].map((link, i, arr) => (
                   <span key={link.label} className="flex items-center gap-1.5">
                     <a href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                       className="text-[8px] text-text-primary/30 hover:text-gold-primary/70 transition-colors">{link.label}</a>
+                       className="text-[8px] text-text-primary/30 hover:text-text-secondary transition-colors">{link.label}</a>
                     {i < arr.length - 1 && <span className="text-text-primary/15 text-[8px]">·</span>}
                   </span>
                 ))}
@@ -1515,11 +1500,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         {/* ── FALLBACK: live/derivatives data ke-block (geo) → saran VPN ── */}
         {!derivMetrics && liveBlocked && (
-          <div className="lq-card lq-card--gold bg-surface-raised">
-            {goldLine}
-            <div className="p-3 text-center">
-              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-line/30 bg-gold-primary/12">
-                <svg className="h-4 w-4 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div className="lq-card bg-surface-raised">
+                        <div className="p-3 text-center">
+              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]">
+                <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
                 </svg>
@@ -1527,7 +1511,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <p className="text-[11px] font-semibold text-text-primary/85">Live data unavailable</p>
               <p className="mx-auto mt-1 max-w-[250px] text-[9px] leading-relaxed text-text-primary/45">
                 Derivatives data (funding, open interest, long/short) is blocked on your
-                network or region. Turn on a <span className="text-gold-primary/80 font-medium">VPN</span> and reopen
+                network or region. Turn on a <span className="text-text-secondary font-medium">VPN</span> and reopen
                 this signal to see real-time metrics.
               </p>
             </div>
@@ -1548,10 +1532,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             {signal?.risk_level && (
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[9px] text-text-primary/40 uppercase tracking-wider min-w-0">{t("modal.risk_level")}</span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                  signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-green-500/15 text-green-400" :
-                  signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-red-500/15 text-red-400" :
-                  "bg-yellow-500/15 text-yellow-400"
+                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 border ${
+                  signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-positive/10 text-positive border-positive/15" :
+                  signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-negative/10 text-negative border-negative/15" :
+                  "bg-white/[0.04] text-text-secondary border-white/10"
                 }`}>{signal.risk_level}</span>
               </div>
             )}
@@ -1593,7 +1577,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {signal?.pair}
                       </h2>
                       <span
-                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-text-primary ${statusStyles[signal?.status?.toLowerCase()] || "bg-gray-500"}`}
+                        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusStyles[signal?.status?.toLowerCase()] || "bg-white/[0.06] text-text-muted border border-white/10"}`}
                       >
                         {signal?.status?.toUpperCase()}
                       </span>
@@ -1612,13 +1596,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     onClick={() => setShowBtcCorrelation(true)}
   />
   <button
+    type="button"
     onClick={() => setShowIndicatorGuide(true)}
     title="How to use indicator"
     aria-label="How to use indicator"
-    className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-line/40 text-gold-primary"
+    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-wide border border-white/10 text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-colors"
   >
-    <svg className="w-2.5 h-2.5 relative z-10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
-    <span className="relative z-10"><span className="sm:hidden">Indicator</span><span className="hidden sm:inline">How to use indicator</span></span>
+    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
+    <span><span className="sm:hidden">Guide</span><span className="hidden sm:inline">Indicator guide</span></span>
   </button>
 </div>
 
@@ -1683,7 +1668,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </button>
                   {/* END TOMBOL JOURNAL */}
 
-                  <div className="flex items-center bg-surface-secondary rounded-md p-0.5 border border-line/15">
+                  <div className="flex items-center bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.08]">
                     {[
                       { id: "chart", label: t("modal.chart"), icon: (
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
@@ -1700,8 +1685,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     ].map(({ id, label, icon }) => (
                       <button
                         key={id}
+                        type="button"
                         onClick={() => { setActiveTab(id); onTabChange && onTabChange(id); }}
-                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === id ? "bg-gold-primary text-black" : "text-text-secondary hover:text-text-primary hover:bg-white/5"}`}
+                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-medium transition-colors whitespace-nowrap ${activeTab === id ? "bg-white/[0.1] text-text-primary" : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"}`}
                       >
                         {icon}
                         <span className="hidden sm:inline">{label}</span>
@@ -1709,8 +1695,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     ))}
                   </div>
                   <button
+                    type="button"
                     onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-line/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-md transition-colors flex-shrink-0 ml-1 sm:ml-2"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -1733,23 +1720,23 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-line/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-md transition-colors ml-1"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
                   )}
-                  {/* SHARE — paling kanan header */}
                   <div className="relative flex-shrink-0">
                     <button
+                      type="button"
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-surface-raised hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-line/30 hover:border-line/60 rounded-md transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-md transition-colors ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
                     {shareCopied && (
-                      <span className="absolute top-full right-0 mt-1.5 whitespace-nowrap px-2 py-1 rounded bg-gold-primary text-black text-[10px] font-bold shadow-lg z-20">
+                      <span className="absolute top-full right-0 mt-1.5 whitespace-nowrap px-2 py-1 rounded-md bg-surface-raised border border-white/10 text-text-primary text-[10px] font-medium shadow-lg z-20">
                         Link copied
                       </span>
                     )}
@@ -1769,13 +1756,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <button
                         onClick={toggleIndicators}
                         title={showIndicators ? "Hide indicators (MACD · RSI · BB)" : "Show indicators (MACD · RSI · BB)"}
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-semibold uppercase tracking-[0.12em] backdrop-blur-sm transition-all active:scale-[0.97] ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
                           showIndicators
-                            ? "bg-gold-primary/15 border-line/40 text-gold-primary hover:bg-gold-primary/25"
-                            : "bg-black/40 border-white/12 text-text-primary/50 hover:text-text-primary/80 hover:border-white/25"
+                            ? "bg-surface/80 border-white/15 text-text-primary"
+                            : "bg-surface/60 border-white/10 text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        <span className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-gold-primary/70" : "bg-white/15"}`}>
+                        <span className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-white/40" : "bg-white/15"}`}>
                           <span className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`} />
                         </span>
                         Indicators
@@ -1801,7 +1788,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 custom-scrollbar bg-surface-raised">
                   <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
+                      <span className="text-text-secondary text-xs sm:text-sm font-semibold flex items-center gap-2">
                         {Ic.camera("w-4 h-4")} {t("modal.trade_proof")}
                       </span>
                     </div>
@@ -1819,7 +1806,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {/* KIRI: BEFORE */}
                         <div className="flex-1 w-full min-w-0 flex flex-col">
                           <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]">
-                            <span className="text-blue-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase flex items-center gap-1.5">
+                            <span className="text-text-secondary text-[10px] sm:text-xs font-bold tracking-wide uppercase flex items-center gap-1.5">
                               {t("modal.before_entry")}
                             </span>
                             {entryPrice > 0 && (
@@ -1880,7 +1867,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         <div className="flex-1 w-full min-w-0 flex flex-col">
                           <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]">
                             <span
-                              className={`text-[10px] sm:text-xs font-bold tracking-wide uppercase flex items-center gap-1.5 ${isStopped ? "text-red-400" : "text-green-400"}`}
+                              className={`text-[10px] sm:text-xs font-bold tracking-wide uppercase flex items-center gap-1.5 ${isStopped ? "text-negative" : "text-positive"}`}
                             >
                               {t("modal.after")} ({statusLabel})
                             </span>
@@ -1914,7 +1901,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   </span>
                                   {lastPricePct && (
                                     <span
-                                      className={`ml-1 font-bold ${isStopped ? "text-red-400" : "text-green-400"}`}
+                                      className={`ml-1 font-bold ${isStopped ? "text-negative" : "text-positive"}`}
                                     >
                                       {lastPricePct}%
                                     </span>
@@ -1993,7 +1980,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Timeline Vertical — responsive, no horizontal scroll */}
                     <div>
-                      <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
+                      <h4 className="text-text-secondary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
                         {Ic.clock("w-4 h-4")} Signal Journey
                       </h4>
                       <div className="lq-card bg-surface-raised p-4 w-full">
@@ -2050,7 +2037,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Data / Exchanges Grid — CENTERED */}
                     <div>
-                      <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
+                      <h4 className="text-text-secondary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
                         {Ic.bank("w-4 h-4")} Trade on Exchanges
                       </h4>
                       <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
@@ -2060,10 +2047,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={signalDetail.message_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 !border-blue-500/20 hover:!border-blue-500/45 hover:bg-blue-500/20 group text-blue-400"
+                            className="lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 !border-blue-500/20 hover:!border-blue-500/45 hover:bg-blue-500/20 group text-text-secondary"
                           >
                             {Ic.send("w-5 h-5")}
-                            <span className="text-blue-400 text-[9px] sm:text-[10px] font-bold group-hover:text-blue-300 truncate w-full text-center">
+                            <span className="text-text-secondary text-[9px] sm:text-[10px] font-bold group-hover:text-blue-300 truncate w-full text-center">
                               View Telegram
                             </span>
                           </a>
@@ -2108,7 +2095,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </h3>
                       <p className="text-text-muted text-xs sm:text-sm">
                         {t("modal.deep_dive")}{" "}
-                        <span className="text-gold-primary font-semibold">
+                        <span className="text-text-secondary font-semibold">
                           {coinSymbol}
                         </span>
                       </p>
@@ -2116,9 +2103,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {coinInfoLoading && (
                       <div className="lq-card p-3 sm:p-4 mb-4 sm:mb-5 animate-pulse">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-8 h-8 rounded-full bg-gold-primary/10" />
+                          <div className="w-8 h-8 rounded-full bg-white/[0.04]" />
                           <div>
-                            <div className="h-4 bg-gold-primary/10 rounded w-32 mb-1" />
+                            <div className="h-4 bg-white/[0.04] rounded w-32 mb-1" />
                             <div className="h-3 bg-white/5 rounded w-48" />
                           </div>
                         </div>
@@ -2130,7 +2117,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </div>
                     )}
                     {coinInfo && (
-                      <div className="lq-card lq-card--gold p-3 sm:p-4 mb-4 sm:mb-5">
+                      <div className="lq-card p-3 sm:p-4 mb-4 sm:mb-5">
                         <div className="flex items-center gap-3 mb-3">
                           {coinInfo.image_thumb && (
                             <img
@@ -2212,7 +2199,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   24h
                                 </p>
                                 <p
-                                  className={`text-xs font-mono ${coinInfo.market_data.price_change_24h_pct >= 0 ? "text-green-400" : "text-red-400"}`}
+                                  className={`text-xs font-mono ${coinInfo.market_data.price_change_24h_pct >= 0 ? "text-positive" : "text-negative"}`}
                                 >
                                   {coinInfo.market_data.price_change_24h_pct >=
                                   0
@@ -2232,7 +2219,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   7d
                                 </p>
                                 <p
-                                  className={`text-xs font-mono ${coinInfo.market_data.price_change_7d_pct >= 0 ? "text-green-400" : "text-red-400"}`}
+                                  className={`text-xs font-mono ${coinInfo.market_data.price_change_7d_pct >= 0 ? "text-positive" : "text-negative"}`}
                                 >
                                   {coinInfo.market_data.price_change_7d_pct >= 0
                                     ? "+"
@@ -2254,7 +2241,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 </p>
                                 {coinInfo.market_data.ath_change_pct !=
                                   null && (
-                                  <p className="text-red-400/70 text-[8px] font-mono">
+                                  <p className="text-negative/70 text-[8px] font-mono">
                                     {coinInfo.market_data.ath_change_pct.toFixed(
                                       1,
                                     )}
@@ -2287,7 +2274,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.homepage}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-text-secondary hover:text-text-secondary bg-white/[0.04] px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.globe("w-3 h-3")} {t("modal.website")}
                               </a>
@@ -2297,7 +2284,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://twitter.com/${coinInfo.links.twitter}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-text-secondary/70 hover:text-text-secondary bg-blue-500/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.xLogo("w-3 h-3")} @{coinInfo.links.twitter}
                               </a>
@@ -2340,7 +2327,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <div className="lq-card p-3 sm:p-4 mb-4 sm:mb-5 text-center">
                         <p className="text-text-muted text-xs">
                           {t("modal.no_info")}{" "}
-                          <span className="text-gold-primary font-mono">
+                          <span className="text-text-secondary font-mono">
                             {coinSymbol}
                           </span>
                         </p>
@@ -2349,15 +2336,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* === AI PROMPT GENERATOR SECTION === */}
                     <div className="mb-4 sm:mb-5">
-                      <div className="lq-card lq-card--gold bg-gradient-to-br from-surface-secondary to-surface-secondary">
+                      <div className="lq-card bg-gradient-to-br from-surface-secondary to-surface-secondary">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-line/10 bg-gold-primary/5">
+                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-line/10 bg-white/[0.03]">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-gold-primary/15 border border-line/25 flex items-center justify-center text-gold-primary">
+                            <div className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/10 flex items-center justify-center text-text-secondary">
                               {Ic.cpu("w-3.5 h-3.5")}
                             </div>
                             <div>
-                              <h4 className="text-gold-primary text-xs sm:text-sm font-semibold">
+                              <h4 className="text-text-secondary text-xs sm:text-sm font-semibold">
                                 AI Trade Analysis Prompt
                               </h4>
                               <p className="text-text-muted text-[9px] sm:text-[10px]">
@@ -2370,8 +2357,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             onClick={handleCopyPrompt}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
                               promptCopied
-                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : "bg-gold-primary/15 text-gold-primary border border-line/25 hover:bg-gold-primary/25 hover:text-gold-primary active:scale-95"
+                                ? "bg-positive/20 text-positive border border-positive/30"
+                                : "bg-white/[0.06] text-text-secondary border border-white/10 hover:bg-white/[0.08] hover:text-text-secondary active:scale-95"
                             }`}
                           >
                             {promptCopied ? (
@@ -2418,10 +2405,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </pre>
                         </div>
                         {/* Footer hint */}
-                        <div className="px-3 sm:px-4 py-2 border-t border-line/10 bg-gold-primary/[0.03]">
+                        <div className="px-3 sm:px-4 py-2 border-t border-line/10 bg-white/[0.02]">
                           <p className="text-[9px] sm:text-[10px] text-text-muted flex items-center gap-1.5">
                             <svg
-                              className="w-3 h-3 text-gold-primary/60 flex-shrink-0"
+                              className="w-3 h-3 text-text-muted flex-shrink-0"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -2448,7 +2435,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </div>
 
                     <div className="mb-3 sm:mb-5">
-                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3 flex items-center gap-1.5">
+                      <p className="text-text-secondary text-xs font-semibold mb-2.5 sm:mb-3 flex items-center gap-1.5">
                         {Ic.link("w-3.5 h-3.5")} {t("modal.research_links")}
                       </p>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -2558,149 +2545,122 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         </div>
       )}
 
-      {/* === STYLES === */}
+      {/* === STYLES — token-driven, timeless (Binance/TV density, no gold glows) === */}
       <style>{`
-        /* === Card system — selaras landing v2 (black card + gold hairline) ===
-           Landing pakai bg #0a0805, border putih super tipis, sudut rounded,
-           gold hairline di atas + gold glow saat hover. Depth via soft shadow. */
         .lq-card {
           position: relative;
-          border-radius: 10px;                       /* crisp-profesional (norma TradingView/Binance), bukan pill */
-          border: 1px solid rgba(255,255,255,.07);   /* subtle, bukan gold penuh */
-          background: #0a0805;                        /* hitam landing */
+          border-radius: 10px;
+          border: 1px solid rgb(var(--fg) / 0.08);
+          background: rgb(var(--surface-raised));
           overflow: hidden;
-          box-shadow: 0 1px 0 rgba(255,255,255,.02) inset,
-                      0 6px 18px rgba(0,0,0,.38);      /* depth halus */
-          transition: border-color .25s ease, box-shadow .25s ease,
-                      background-color .25s ease, transform .15s ease;
+          transition: border-color .2s ease, background-color .2s ease;
         }
-        .lq-card:hover {
-          border-color: rgba(212,168,83,.45);
-          box-shadow: 0 10px 26px rgba(0,0,0,.55), 0 0 24px rgba(212,168,83,.13);
-          transform: translateY(-1px);
-        }
-        .lq-card:active { transform: translateY(0); }
+        .lq-card:hover { border-color: rgb(var(--fg) / 0.12); }
 
-        .lq-card--green { border-color: rgba(34,197,94,.20); }
-        .lq-card--green:hover {
-          border-color: rgba(34,197,94,.5);
-          box-shadow: 0 10px 26px rgba(0,0,0,.55), 0 0 24px rgba(34,197,94,.15);
-        }
-
-        .lq-card--red { border-color: rgba(239,68,68,.20); }
-        .lq-card--red:hover {
-          border-color: rgba(239,68,68,.5);
-          box-shadow: 0 10px 26px rgba(0,0,0,.55), 0 0 24px rgba(239,68,68,.15);
-        }
-
-        .lq-card--gold { border-color: rgba(212,168,83,.30); }
-
-        /* inner tiles (TP / SL / exchange dll) — rounded lembut, konsisten */
         .lq-tile {
           border-radius: 8px;
-          border: 1px solid rgba(255,255,255,.07);
-          background: rgba(255,255,255,.015);
-          transition: border-color .2s ease, background-color .2s ease, transform .12s ease;
+          border: 1px solid rgb(var(--fg) / 0.07);
+          background: rgb(var(--fg) / 0.02);
+          transition: border-color .15s ease, background-color .15s ease;
         }
-        .lq-tile:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+        .lq-tile:hover { border-color: rgb(var(--fg) / 0.12); background: rgb(var(--fg) / 0.035); }
 
-        /* Tombol emas SOLID ala landing (GOLD_BTN) — untuk CTA utama */
-        .lq-btn-gold {
-          background: linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%);
-          color: #0a0506;
-          box-shadow: 0 4px 16px rgba(212,168,83,.25);
-          transition: transform .18s ease, box-shadow .25s ease, filter .2s ease;
+        .lq-btn-primary, .lq-btn-gold {
+          background: rgb(var(--fg) / 0.92);
+          color: rgb(var(--surface));
+          border: none;
+          transition: opacity .15s ease, transform .12s ease;
         }
-        .lq-btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(212,168,83,.4); filter: brightness(1.03); }
-        .lq-btn-gold:active { transform: translateY(0); }
+        .lq-btn-primary:hover, .lq-btn-gold:hover { opacity: 0.92; }
+        .lq-btn-primary:active, .lq-btn-gold:active { transform: scale(0.98); }
 
-        /* === WARNA CARD DISTANDARKAN — satu hitam solid untuk semua card ===
-           Buang shade dark yang beda-beda (#0c0b09 / #0d0b08 / #0c0909 / #0d0d0d)
-           jadi satu var. Panel/backdrop sedikit lebih gelap biar card kebaca. */
-        .signal-modal-content { --lq-card: #0a0806; --lq-panel: #060504; }
-        .signal-modal-content .lq-card { background: var(--lq-card) !important; }
-        .signal-modal-content [class*="#0c0b09"],
-        .signal-modal-content [class*="#0d0b08"],
-        .signal-modal-content [class*="#0c0909"],
-        .signal-modal-content [class*="#0d0d0d"] { background-color: var(--lq-card) !important; }
-        .signal-modal-content [class*="#0a0a0a"] { background-color: var(--lq-panel) !important; }
-
-        /* === SOFT ROUNDING === ganti "square everything" lama jadi skala rounded
-           lembut biar konsisten sama landing terbaru. .rounded-full tetap bulat. */
-        .signal-modal-content .rounded    { border-radius: 6px !important; }
-        .signal-modal-content .rounded-sm { border-radius: 5px !important; }
-        .signal-modal-content .rounded-md { border-radius: 7px !important; }
-        .signal-modal-content .rounded-lg { border-radius: 8px !important; }
-        .signal-modal-content .rounded-xl { border-radius: 10px !important; }
-        .signal-modal-content .rounded-2xl { border-radius: 12px !important; }
-
-        @media (prefers-reduced-motion: reduce) {
-          .lq-card, .lq-card:hover, .lq-tile, .lq-tile:hover { transform: none; transition: none; }
+        .signal-modal-overlay {
+          position: fixed; inset: 0; z-index: 200000;
+          display: flex; align-items: flex-end; justify-content: center;
+          isolation: isolate;
         }
-
-        .lq-guide-btn { background: linear-gradient(110deg, rgba(212,168,83,0.12) 0%, rgba(212,168,83,0.12) 40%, rgba(255,225,150,0.55) 50%, rgba(212,168,83,0.12) 60%, rgba(212,168,83,0.12) 100%); background-size: 220% 100%; animation: lqShimmer 2.6s linear infinite; box-shadow: 0 0 6px rgba(212,168,83,0.35); transition: box-shadow .3s, transform .15s; }
-        .lq-guide-btn:hover { box-shadow: 0 0 14px rgba(212,168,83,0.7); transform: translateY(-1px); }
-        @keyframes lqShimmer { 0% { background-position: 200% 0; } 100% { background-position: -120% 0; } }
-        @media (prefers-reduced-motion: reduce) { .lq-guide-btn { animation: none; } }
-        .signal-modal-overlay { position: fixed; inset: 0; z-index: 200000; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
-        .signal-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); }
-        .signal-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
+        .signal-modal-backdrop {
+          position: absolute; inset: 0;
+          background: rgb(0 0 0 / 0.72);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+        }
+        .signal-modal-container {
+          position: relative; z-index: 1; width: 100%; height: 100%;
+          display: flex; align-items: flex-end; justify-content: center;
+          padding: 0; pointer-events: none;
+        }
         .signal-modal-container > * { pointer-events: auto; }
         .signal-modal-content {
-          position: relative; width: 100%; max-width: 1200px;
-          height: min(92dvh, 100%); max-height: 92dvh;
-          background: #0a0805;
-          border: none; border-top: 1px solid rgba(255,255,255,0.08);
-          border-radius: 1rem 1rem 0 0;
+          position: relative; width: 100%;
+          max-width: min(1280px, 100%);
+          height: min(94dvh, 100%); max-height: 94dvh;
+          background: rgb(var(--surface));
+          border: none; border-top: 1px solid rgb(var(--fg) / 0.08);
+          border-radius: 16px 16px 0 0;
           display: flex; flex-direction: column; overflow: hidden;
-          box-shadow: 0 -16px 48px rgba(0,0,0,0.55);
+          box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
+          color: rgb(var(--fg));
         }
 
-        @media(min-width:640px) {
+        @media (min-width: 640px) {
           .signal-modal-overlay { align-items: center; }
-          .signal-modal-container { align-items: center; padding: 12px; }
+          .signal-modal-container { align-items: center; padding: 16px; }
           .signal-modal-content {
-            height: auto; max-height: calc(100vh - 24px);
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: #0a0805;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+            height: min(90dvh, 900px);
+            max-height: min(90dvh, 900px);
+            border-radius: 14px;
+            border: 1px solid rgb(var(--fg) / 0.08);
+            box-shadow: 0 24px 64px rgb(0 0 0 / 0.5);
           }
         }
-        @media(min-width:1024px) {
-          .signal-modal-container { padding: 16px; }
-          .signal-modal-content { max-height: min(90dvh, 880px); }
+        @media (min-width: 1024px) {
+          .signal-modal-container { padding: 20px; }
+          .signal-modal-content { max-width: 1280px; height: min(88dvh, 860px); }
         }
-        @supports(height:100dvh) { .signal-modal-overlay { height: 100dvh; } }
+        @media (min-width: 1440px) {
+          .signal-modal-content { max-width: 1360px; }
+        }
+        @supports (height: 100dvh) { .signal-modal-overlay { height: 100dvh; } }
 
-        .mobile-targets-panel { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .mobile-targets-panel {
+          max-height: min(42vh, 360px);
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
 
-        .signal-modal-backdrop { animation: smBI .25s ease-out; }
-        .signal-modal-content { animation: smSheetUp .32s cubic-bezier(.16,1,.3,1); }
-        .signal-modal-closing .signal-modal-backdrop { animation: smBO .2s ease-in forwards; }
-        .signal-modal-closing .signal-modal-content { animation: smSheetDn .22s ease-in forwards; }
+        .signal-modal-backdrop { animation: smBI .22s ease-out; }
+        .signal-modal-content { animation: smSheetUp .3s cubic-bezier(.16,1,.3,1); }
+        .signal-modal-closing .signal-modal-backdrop { animation: smBO .18s ease-in forwards; }
+        .signal-modal-closing .signal-modal-content { animation: smSheetDn .2s ease-in forwards; }
         @keyframes smBI { from{opacity:0} to{opacity:1} }
         @keyframes smBO { from{opacity:1} to{opacity:0} }
-        @keyframes smCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
-        @keyframes smCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
+        @keyframes smCI { from{opacity:0;transform:scale(.98) translateY(6px)} to{opacity:1;transform:scale(1) translateY(0)} }
+        @keyframes smCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.98)} }
         @keyframes smSheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
         @keyframes smSheetDn { from{transform:translateY(0)} to{transform:translateY(100%)} }
-        @media(min-width:640px) {
-          .signal-modal-content { animation: smCI .3s cubic-bezier(.16,1,.3,1); }
-          .signal-modal-closing .signal-modal-content { animation: smCO .2s ease-in forwards; }
+        @media (min-width: 640px) {
+          .signal-modal-content { animation: smCI .28s cubic-bezier(.16,1,.3,1); }
+          .signal-modal-closing .signal-modal-content { animation: smCO .18s ease-in forwards; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .signal-modal-backdrop, .signal-modal-content,
+          .signal-modal-closing .signal-modal-backdrop,
+          .signal-modal-closing .signal-modal-content { animation: none; }
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(212,168,83,.3); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgb(var(--fg) / 0.14); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg) / 0.22); }
 
-        /* TradingView Overrides */
-        #tv_chart_modal_main, #tv_chart_modal_side { background: #0d0d0d !important; }
-        .tradingview-widget-container { background: #0d0d0d !important; }
-        .tradingview-widget-container__widget { background: #0d0d0d !important; }
+        #tv_chart_modal_main, #tv_chart_modal_side,
+        .tradingview-widget-container,
+        .tradingview-widget-container__widget,
+        #tv_chart_modal_main iframe, #tv_chart_modal_side iframe {
+          background: rgb(var(--surface-raised)) !important;
+        }
         .tradingview-widget-copyright { display: none !important; }
-        iframe { background: #0d0d0d !important; border: none !important; }
       `}</style>
     </>
   );

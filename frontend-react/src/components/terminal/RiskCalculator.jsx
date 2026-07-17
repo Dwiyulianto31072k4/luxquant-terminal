@@ -163,7 +163,7 @@ export function RiskTab({ view, deriv }) {
           </div>
           <div>
             <label className={labelCls}>Leverage ({lev}×)</label>
-            <input type="range" min="1" max="50" value={lev} onChange={(e) => setLeverage(e.target.value)} className="w-full accent-[#d4a853]" />
+            <input type="range" min="1" max="50" value={lev} onChange={(e) => setLeverage(e.target.value)} className="w-full accent-gold-primary" />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div><label className={labelCls}>Entry</label><input type="number" value={entry} onChange={(e) => setEntry(e.target.value)} className={inputCls} /></div>
@@ -210,7 +210,7 @@ export function RiskTab({ view, deriv }) {
                   <div className="relative h-16 rounded-lg bg-white/[0.02] border border-white/[0.06]">
                     {/* gradient risk (below entry) / reward (above) */}
                     <div className="absolute inset-y-0 rounded-l-lg" style={{ left: 0, right: `${100 - parseFloat(ladder.pos(E))}%`, background: long ? "rgba(248,113,113,0.12)" : "rgba(74,222,128,0.12)" }} />
-                    {[["Stop", S, "#f87171"], ["Entry", E, "#d4a853"], ladder.hasT ? ["Target", T, "#4ade80"] : null].filter(Boolean).map(([lab, v, c]) => (
+                    {[["Stop", S, "rgb(var(--neg))"], ["Entry", E, "rgb(var(--accent))"], ladder.hasT ? ["Target", T, "rgb(var(--pos))"] : null].filter(Boolean).map(([lab, v, c]) => (
                       <div key={lab} className="absolute top-0 bottom-0 flex flex-col items-center justify-between" style={{ left: ladder.pos(v), transform: "translateX(-50%)" }}>
                         <span className="font-mono text-[8.5px] uppercase" style={{ color: c }}>{lab}</span>
                         <span className="w-px flex-1 my-0.5" style={{ background: c }} />

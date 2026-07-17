@@ -1,40 +1,43 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
-import JourneyInsightsSection from "./JourneyInsightsSection";  // ← ADD
+import JourneyInsightsSection from "./JourneyInsightsSection";
 import { Ic } from "./signalIcons";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-// ════════════════════════════════════════
-// Mini Donut Chart (SVG, no dependencies)
-// ════════════════════════════════════════
+// Quiet monochrome-friendly outcome palette (token-aligned)
+const OUTCOME_COLOR = {
+  tp1: "rgb(var(--pos))",
+  tp2: "rgb(74 222 128)",
+  tp3: "rgb(var(--warn))",
+  tp4: "rgb(var(--accent))",
+  sl: "rgb(var(--neg))",
+};
+
 const TpDonutChart = ({ breakdown, closedTrades }) => {
   if (!closedTrades || closedTrades === 0) return null;
 
   const data = [
-    { label: "TP1", value: breakdown.tp1, color: "#22c55e" },
-    { label: "TP2", value: breakdown.tp2, color: "#3b82f6" },
-    { label: "TP3", value: breakdown.tp3, color: "rgb(var(--warn))" },
-    { label: "TP4", value: breakdown.tp4, color: "#a855f7" },
-    { label: "SL", value: breakdown.sl, color: "#ef4444" },
+    { label: "TP1", value: breakdown.tp1, color: OUTCOME_COLOR.tp1 },
+    { label: "TP2", value: breakdown.tp2, color: OUTCOME_COLOR.tp2 },
+    { label: "TP3", value: breakdown.tp3, color: OUTCOME_COLOR.tp3 },
+    { label: "TP4", value: breakdown.tp4, color: OUTCOME_COLOR.tp4 },
+    { label: "SL", value: breakdown.sl, color: OUTCOME_COLOR.sl },
   ].filter((d) => d.value > 0);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
   if (total === 0) return null;
 
   const radius = 40;
-  const cx = 50,
-    cy = 50;
+  const cx = 50;
+  const cy = 50;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
 
   return (
     <div className="flex items-center gap-4">
-      <svg
-        viewBox="0 0 100 100"
-        className="w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0"
-      >
+      <svg viewBox="0 0 100 100" className="w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
         {data.map((d, i) => {
           const pct = d.value / total;
           const dash = pct * circumference;
@@ -47,46 +50,30 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
               r={radius}
               fill="none"
               stroke={d.color}
-              strokeWidth="12"
+              strokeWidth="11"
               strokeDasharray={`${dash} ${gap}`}
               strokeDashoffset={-offset}
               strokeLinecap="butt"
-              className="transition-all duration-500"
               style={{ transformOrigin: "center", transform: "rotate(-90deg)" }}
             />
           );
           offset += dash;
           return seg;
         })}
-        <text
-          x={cx}
-          y={cy - 4}
-          textAnchor="middle"
-          className="fill-white text-[11px] font-bold"
-        >
+        <text x={cx} y={cy - 3} textAnchor="middle" fill="rgb(var(--fg))" fontSize="12" fontWeight="600" fontFamily="JetBrains Mono, monospace">
           {closedTrades}
         </text>
-        <text
-          x={cx}
-          y={cy + 8}
-          textAnchor="middle"
-          className="fill-white/50 text-[7px]"
-        >
+        <text x={cx} y={cy + 10} textAnchor="middle" fill="rgb(var(--fg-muted))" fontSize="7" fontFamily="JetBrains Mono, monospace">
           closed
         </text>
       </svg>
-      <div className="flex flex-wrap gap-x-3 gap-y-1">
+      <div className="flex flex-wrap gap-x-3 gap-y-1.5">
         {data.map((d, i) => (
           <div key={i} className="flex items-center gap-1.5">
-            <div
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: d.color }}
-            />
-            <span className="text-[10px] text-text-primary/70">{d.label}</span>
-            <span className="text-[10px] font-mono font-semibold text-text-primary">
-              {d.value}
-            </span>
-            <span className="text-[9px] text-text-primary/40">
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+            <span className="text-[10px] text-text-muted">{d.label}</span>
+            <span className="text-[10px] font-mono tabular-nums text-text-primary font-medium">{d.value}</span>
+            <span className="text-[9px] text-text-muted tabular-nums">
               ({((d.value / total) * 100).toFixed(0)}%)
             </span>
           </div>
@@ -96,69 +83,22 @@ const TpDonutChart = ({ breakdown, closedTrades }) => {
   );
 };
 
-// ════════════════════════════════════════
-// Stat Card
-// ════════════════════════════════════════
 const StatCard = ({ label, value, sub, color = "text-text-primary", icon }) => (
-  <div className="bg-surface-secondary/80 rounded-lg p-2.5 border border-white/5 flex-1 min-w-[100px]">
-    <div className="flex items-center gap-1.5 mb-1">
-      {icon && <span className="text-xs">{icon}</span>}
-      <p className="text-[9px] text-text-primary/40 uppercase tracking-wider font-medium">
-        {label}
-      </p>
+  <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 flex-1 min-w-[100px]">
+    <div className="flex items-center gap-1.5 mb-1.5">
+      {icon && <span className="text-text-muted opacity-70">{icon}</span>}
+      <p className="text-[9px] text-text-muted uppercase tracking-[0.12em] font-medium">{label}</p>
     </div>
-    <p className={`text-base sm:text-lg font-bold font-mono ${color}`}>
-      {value}
-    </p>
-    {sub && <p className="text-[9px] text-text-primary/50 mt-0.5">{sub}</p>}
+    <p className={`text-lg sm:text-xl font-semibold font-mono tabular-nums leading-none ${color}`}>{value}</p>
+    {sub && <p className="text-[10px] text-text-muted mt-1.5 leading-snug">{sub}</p>}
   </div>
 );
 
-// ════════════════════════════════════════
-// Past Call Row
-// ════════════════════════════════════════
 const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
-  const outcomeStyles = {
-    tp1: {
-      bg: "bg-green-500/10",
-      border: "border-green-500/20",
-      text: "text-green-400",
-      badge: "bg-green-500",
-    },
-    tp2: {
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20",
-      text: "text-blue-400",
-      badge: "bg-blue-500",
-    },
-    tp3: {
-      bg: "bg-yellow-500/10",
-      border: "border-yellow-500/20",
-      text: "text-yellow-400",
-      badge: "bg-yellow-500",
-    },
-    tp4: {
-      bg: "bg-purple-500/10",
-      border: "border-purple-500/20",
-      text: "text-purple-400",
-      badge: "bg-purple-500",
-    },
-    sl: {
-      bg: "bg-red-500/10",
-      border: "border-red-500/20",
-      text: "text-red-400",
-      badge: "bg-red-500",
-    },
-  };
-
   const outcome = call.outcome?.toLowerCase();
-  const style = outcomeStyles[outcome] || {
-    bg: "bg-white/[0.02]",
-    border: "border-white/5",
-    text: "text-text-primary/50",
-    badge: "bg-gray-500",
-  };
   const isOpen = !outcome;
+  const isWin = outcome && outcome !== "sl";
+  const isSl = outcome === "sl";
 
   const formatDate = (d) => {
     if (!d) return "-";
@@ -185,47 +125,50 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
     <div
       onClick={() => !isCurrentSignal && onClickSignal && onClickSignal(call)}
       className={`
-        rounded-lg border p-2.5 sm:p-3 transition-all
-        ${style.bg} ${style.border}
-        ${
-          isCurrentSignal
-            ? "opacity-50 cursor-default ring-1 ring-gold-primary/30"
-            : "cursor-pointer hover:bg-white/[0.04] hover:border-white/15 active:scale-[0.99]"
-        }
+        rounded-xl border p-3 transition-colors
+        border-white/[0.07] bg-white/[0.015]
+        ${isCurrentSignal
+          ? "opacity-55 cursor-default"
+          : "cursor-pointer hover:bg-white/[0.04] hover:border-white/12"}
       `}
     >
-      {/* Top Row: Date + Outcome + Gain */}
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[10px] text-text-primary/50 font-mono">
+          <span className="text-[10px] text-text-muted font-mono tabular-nums">
             {formatDate(call.created_at)}
           </span>
           {isCurrentSignal && (
-            <span className="text-[8px] text-gold-primary bg-gold-primary/10 px-1.5 py-0.5 rounded font-semibold">
-              CURRENT
+            <span className="text-[8px] text-text-secondary bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded font-medium">
+              Current
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {call.duration && (
-            <span className="text-[9px] text-text-primary/30 font-mono flex items-center gap-0.5">
+            <span className="text-[9px] text-text-muted font-mono flex items-center gap-0.5">
               {Ic.clock("w-2.5 h-2.5")} {call.duration}
             </span>
           )}
           {isOpen ? (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/20">
-              OPEN
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.05] text-text-secondary font-medium border border-white/10">
+              Open
             </span>
           ) : (
             <span
-              className={`text-[9px] px-1.5 py-0.5 rounded font-bold text-text-primary ${style.badge}`}
+              className={`text-[9px] px-1.5 py-0.5 rounded font-medium border ${
+                isSl
+                  ? "bg-negative/10 text-negative border-negative/15"
+                  : "bg-positive/10 text-positive border-positive/15"
+              }`}
             >
               {outcome?.toUpperCase()}
             </span>
           )}
           {call.gain_pct != null && (
             <span
-              className={`text-[10px] font-mono font-bold ${call.gain_pct >= 0 ? "text-green-400" : "text-red-400"}`}
+              className={`text-[10px] font-mono tabular-nums font-medium ${
+                call.gain_pct >= 0 ? "text-positive" : "text-negative"
+              }`}
             >
               {call.gain_pct >= 0 ? "+" : ""}
               {call.gain_pct}%
@@ -234,54 +177,37 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
         </div>
       </div>
 
-      {/* Bottom Row: Entry + Targets + Risk */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <span className="text-[9px] text-text-primary/30">Entry</span>
-          <span className="text-[10px] font-mono text-text-primary/80">
+          <span className="text-[9px] text-text-muted">Entry</span>
+          <span className="text-[10px] font-mono tabular-nums text-text-secondary">
             ${formatPrice(call.entry)}
           </span>
         </div>
         {call.risk_level && (
-          <span
-            className={`text-[8px] px-1.5 py-0.5 rounded font-semibold
-            ${
-              call.risk_level?.toLowerCase() === "high"
-                ? "bg-red-500/10 text-red-400 border border-red-500/15"
-                : call.risk_level?.toLowerCase() === "low"
-                  ? "bg-green-500/10 text-green-400 border border-green-500/15"
-                  : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/15"
-            }`}
-          >
+          <span className="text-[8px] px-1.5 py-0.5 rounded font-medium bg-white/[0.04] text-text-muted border border-white/10">
             {call.risk_level}
           </span>
         )}
         {call.market_cap && (
-          <span className="text-[8px] text-text-primary/25 font-mono">
-            {call.market_cap}
-          </span>
+          <span className="text-[8px] text-text-muted font-mono">{call.market_cap}</span>
         )}
 
-        {/* Mini TP progress dots */}
         <div className="flex items-center gap-0.5 ml-auto">
-          {[call.target1, call.target2, call.target3, call.target4].map(
-            (tp, i) => {
-              if (!tp) return null;
-              const tpKey = `tp${i + 1}`;
-              const isHit =
-                outcome && ["tp1", "tp2", "tp3", "tp4"].indexOf(outcome) >= i;
-              return (
-                <div
-                  key={i}
-                  className={`w-1.5 h-1.5 rounded-full ${isHit ? "bg-green-400" : "bg-white/10"}`}
-                  title={`${tpKey}: ${formatPrice(tp)}`}
-                />
-              );
-            },
-          )}
+          {[call.target1, call.target2, call.target3, call.target4].map((tp, i) => {
+            if (!tp) return null;
+            const isHit = outcome && ["tp1", "tp2", "tp3", "tp4"].indexOf(outcome) >= i;
+            return (
+              <div
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full ${isHit ? "bg-positive" : "bg-white/10"}`}
+                title={`TP${i + 1}: ${formatPrice(tp)}`}
+              />
+            );
+          })}
           {call.stop1 && (
             <div
-              className={`w-1.5 h-1.5 rounded-full ml-0.5 ${outcome === "sl" ? "bg-red-400" : "bg-white/10"}`}
+              className={`w-1.5 h-1.5 rounded-full ml-0.5 ${isSl ? "bg-negative" : "bg-white/10"}`}
               title={`SL: ${formatPrice(call.stop1)}`}
             />
           )}
@@ -291,9 +217,6 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
   );
 };
 
-// ════════════════════════════════════════
-// Main Component: SignalHistoryTab
-// ════════════════════════════════════════
 const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
   const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
@@ -311,7 +234,6 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
       setError(null);
       try {
         const exclude = signal?.signal_id || "";
-        // Attach Authorization header (coin-profile endpoint requires login)
         const token = localStorage.getItem("access_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await fetch(
@@ -335,59 +257,39 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
     fetchProfile(callLimit);
   }, [callLimit, fetchProfile]);
 
-  const handleLimitChange = (lim) => {
-    setCallLimit(lim);
-  };
+  const handleLimitChange = (lim) => setCallLimit(lim);
 
   const handleClickCall = (call) => {
     if (onSwitchSignal && call.signal_id !== signal?.signal_id) {
-      // Carry the pair so the modal can resolve/fetch the call by signal_id even
-      // when it's an older call not present in the current signals list.
       onSwitchSignal({ ...call, pair: call.pair || signal?.pair });
     }
   };
 
-  // ── Loading State ──
   if (loading && !profile) {
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 bg-surface-raised">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="flex gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="flex-1 h-20 bg-white/[0.03] rounded-lg"
-                />
-              ))}
-            </div>
-            <div className="h-32 bg-white/[0.03] rounded-lg" />
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-white/[0.03] rounded-lg" />
-              ))}
-            </div>
+      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 bg-surface">
+        <div className="max-w-4xl mx-auto animate-pulse space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-20 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+            ))}
           </div>
+          <div className="h-32 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
         </div>
       </div>
     );
   }
 
-  // ── Error State ──
   if (error && !profile) {
     return (
-      <div className="flex-1 flex items-center justify-center px-4 bg-surface-raised">
+      <div className="flex-1 flex items-center justify-center px-4 bg-surface">
         <div className="text-center">
-          <div className="flex justify-center mb-3 text-amber-400">
-            {Ic.warn("w-8 h-8")}
-          </div>
-          <p className="text-text-primary/60 text-sm mb-2">
-            Failed to load history for {coinSymbol}
-          </p>
-          <p className="text-text-primary/30 text-xs mb-4">{error}</p>
+          <p className="text-text-secondary text-sm mb-1">Failed to load history for {coinSymbol}</p>
+          <p className="text-text-muted text-xs mb-4">{error}</p>
           <button
+            type="button"
             onClick={() => fetchProfile(callLimit)}
-            className="px-4 py-2 bg-gold-primary/10 text-gold-primary text-xs font-semibold rounded-lg border border-line/20 hover:bg-gold-primary/20 transition-all"
+            className="px-4 py-2 bg-white/[0.05] text-text-primary text-xs font-medium rounded-lg border border-white/10 hover:bg-white/[0.08] transition-colors"
           >
             Retry
           </button>
@@ -400,130 +302,114 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
 
   const { stats, past_calls } = profile;
   const wrColor =
-    stats.win_rate >= 60
-      ? "text-green-400"
-      : stats.win_rate >= 45
-        ? "text-yellow-400"
-        : "text-red-400";
-  const streakColor =
-    stats.streak_type === "win" ? "text-green-400" : "text-red-400";
-  const streakIcon =
-    stats.streak_type === "win"
-      ? Ic.flame("w-3.5 h-3.5 text-orange-400")
-      : Ic.snowflake("w-3.5 h-3.5 text-sky-400");
+    stats.win_rate >= 60 ? "text-positive" : stats.win_rate >= 45 ? "text-text-primary" : "text-negative";
+  const streakColor = stats.streak_type === "win" ? "text-positive" : "text-negative";
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-surface-raised">
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-5 pb-4">
-        {/* ── Header ── */}
+    <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-surface">
+      <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 pb-4">
         <div className="flex items-center gap-3">
           <CoinLogo pair={pair} size={32} />
           <div>
-            <h3 className="text-text-primary font-display text-sm sm:text-base font-semibold">
-              {coinSymbol} Signal History
+            <h3 className="text-text-primary text-sm sm:text-base font-semibold tracking-tight">
+              {coinSymbol} history
             </h3>
-            <p className="text-text-primary/40 text-[10px] sm:text-xs">
-              {stats.total_signals} total signals · Since{" "}
+            <p className="text-text-muted text-[11px] sm:text-xs">
+              {stats.total_signals} signals
               {stats.first_signal
-                ? new Date(stats.first_signal).toLocaleDateString("en-GB", {
+                ? ` · since ${new Date(stats.first_signal).toLocaleDateString("en-GB", {
                     month: "short",
                     year: "numeric",
-                  })
-                : "-"}
+                  })}`
+                : ""}
             </p>
           </div>
         </div>
 
-        {/* ── Summary Cards ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <StatCard
-            icon={Ic.trophy("w-3.5 h-3.5 text-amber-400")}
-            label="Win Rate"
+            icon={Ic.trophy("w-3.5 h-3.5")}
+            label="Win rate"
             value={`${stats.win_rate}%`}
             color={wrColor}
-            sub={`${stats.closed_trades} closed trades`}
+            sub={`${stats.closed_trades} closed`}
           />
           <StatCard
-            icon={Ic.bars("w-3.5 h-3.5 text-text-primary/50")}
-            label="Total Signals"
+            icon={Ic.bars("w-3.5 h-3.5")}
+            label="Total signals"
             value={stats.total_signals}
-            sub={
-              stats.avg_duration
-                ? `Avg duration: ${stats.avg_duration}`
-                : `${stats.open_signals} open`
-            }
+            sub={stats.avg_duration ? `Avg ${stats.avg_duration}` : `${stats.open_signals} open`}
           />
           <StatCard
-            icon={Ic.trendUp("w-3.5 h-3.5 text-emerald-400")}
-            label="Avg Gain"
+            icon={Ic.trendUp("w-3.5 h-3.5")}
+            label="Avg gain"
             value={
               stats.avg_gain_pct != null
                 ? `${stats.avg_gain_pct > 0 ? "+" : ""}${stats.avg_gain_pct}%`
-                : "-"
+                : "—"
             }
             color={
               stats.avg_gain_pct > 0
-                ? "text-green-400"
+                ? "text-positive"
                 : stats.avg_gain_pct < 0
-                  ? "text-red-400"
-                  : "text-text-primary/60"
+                  ? "text-negative"
+                  : "text-text-primary"
             }
             sub={
               stats.best_gain_pct != null && stats.worst_loss_pct != null
-                ? `Best +${stats.best_gain_pct}% / Worst ${stats.worst_loss_pct}%`
+                ? `Best +${stats.best_gain_pct}% · Worst ${stats.worst_loss_pct}%`
                 : null
             }
           />
           <StatCard
-            icon={streakIcon}
-            label="Current Streak"
-            value={stats.streak ? `${stats.streak} ${stats.streak_type}` : "-"}
-            color={stats.streak ? streakColor : "text-text-primary/40"}
+            icon={
+              stats.streak_type === "win"
+                ? Ic.flame("w-3.5 h-3.5")
+                : Ic.snowflake("w-3.5 h-3.5")
+            }
+            label="Streak"
+            value={stats.streak ? `${stats.streak} ${stats.streak_type}` : "—"}
+            color={stats.streak ? streakColor : "text-text-muted"}
             sub={(() => {
               const rd = stats.risk_distribution;
               if (!rd) return null;
               const parts = [];
-              if (rd.low > 0) parts.push(`${rd.low} Low`);
-              if (rd.normal > 0) parts.push(`${rd.normal} Normal`);
-              if (rd.medium > 0) parts.push(`${rd.medium} Med`);
-              if (rd.high > 0) parts.push(`${rd.high} High`);
-              return parts.length > 0 ? parts.join(" · ") : null;
+              if (rd.low > 0) parts.push(`${rd.low} low`);
+              if (rd.normal > 0) parts.push(`${rd.normal} normal`);
+              if (rd.medium > 0) parts.push(`${rd.medium} med`);
+              if (rd.high > 0) parts.push(`${rd.high} high`);
+              return parts.length ? parts.join(" · ") : null;
             })()}
           />
         </div>
 
-        {/* ── TP Breakdown ── */}
-        <div className="bg-surface-secondary/80 rounded-xl p-3 sm:p-4 border border-white/5">
-          <p className="text-text-primary/40 text-[9px] uppercase tracking-wider font-medium mb-3 flex items-center gap-1.5">
-            {Ic.target("w-3 h-3")} Outcome Distribution
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 sm:p-4">
+          <p className="text-text-muted text-[9px] uppercase tracking-[0.12em] font-medium mb-3">
+            Outcome distribution
           </p>
-          <TpDonutChart
-            breakdown={stats.tp_breakdown}
-            closedTrades={stats.closed_trades}
-          />
+          <TpDonutChart breakdown={stats.tp_breakdown} closedTrades={stats.closed_trades} />
         </div>
 
         <JourneyInsightsSection pair={pair} />
 
-        {/* ── Past Calls Header + Toggle ── */}
-        <div className="flex items-center justify-between">
-          <p className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
-            {Ic.clipboard("w-3.5 h-3.5")} Past Calls
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-text-secondary text-xs sm:text-sm font-medium flex items-center gap-2">
+            Past calls
             {loading && (
-              <span className="inline-block w-3 h-3 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-white/15 border-t-white/50 rounded-full animate-spin" />
             )}
           </p>
-          <div className="flex items-center bg-surface-secondary rounded-lg p-0.5 border border-white/10">
+          <div className="flex items-center bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.08]">
             {[3, 5, 10, "All"].map((n) => (
               <button
                 key={n}
+                type="button"
                 onClick={() => handleLimitChange(n === "All" ? 9999 : n)}
-                className={`px-2.5 sm:px-3 py-1 rounded text-[10px] sm:text-[11px] font-semibold transition-all
-      ${
-        callLimit === (n === "All" ? 9999 : n)
-          ? "bg-gold-primary text-black"
-          : "text-text-primary/40 hover:text-text-primary/70 hover:bg-white/5"
-      }`}
+                className={`px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-medium transition-colors ${
+                  callLimit === (n === "All" ? 9999 : n)
+                    ? "bg-white/[0.1] text-text-primary"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
               >
                 {n}
               </button>
@@ -531,16 +417,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
           </div>
         </div>
 
-        {/* ── Past Calls List ── */}
         <div className="space-y-2">
           {past_calls.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="flex justify-center mb-2 text-text-primary/30">
-                {Ic.inbox("w-7 h-7")}
-              </div>
-              <p className="text-text-primary/40 text-xs">
-                No other signals found for {coinSymbol}
-              </p>
+            <div className="text-center py-10 text-text-muted text-xs">
+              No other signals for {coinSymbol}
             </div>
           ) : (
             past_calls.map((call) => (
@@ -553,98 +433,6 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             ))
           )}
         </div>
-
-        {/* ── Quick Verdict ── */}
-        {stats.closed_trades >= 3 && (
-          <div
-            className={`rounded-xl p-3 sm:p-4 border ${
-              stats.win_rate >= 60
-                ? "bg-green-500/5 border-green-500/15"
-                : stats.win_rate >= 45
-                  ? "bg-yellow-500/5 border-yellow-500/15"
-                  : "bg-red-500/5 border-red-500/15"
-            }`}
-          >
-            <div className="flex items-start gap-2.5">
-              <span className="flex-shrink-0 mt-0.5">
-                {stats.win_rate >= 60
-                  ? Ic.checkCircle("w-5 h-5 text-green-400")
-                  : stats.win_rate >= 45
-                    ? Ic.warn("w-5 h-5 text-yellow-400")
-                    : Ic.siren("w-5 h-5 text-red-400")}
-              </span>
-              <div>
-                <p
-                  className={`text-xs font-semibold mb-1 ${
-                    stats.win_rate >= 60
-                      ? "text-green-400"
-                      : stats.win_rate >= 45
-                        ? "text-yellow-400"
-                        : "text-red-400"
-                  }`}
-                >
-                  {stats.win_rate >= 60
-                    ? "Strong Performer"
-                    : stats.win_rate >= 45
-                      ? "Average Performer"
-                      : "Underperformer"}
-                </p>
-                <p className="text-[10px] sm:text-[11px] text-text-primary/50 leading-relaxed">
-                  {coinSymbol} has a{" "}
-                  <span className="text-text-primary/80 font-semibold">
-                    {stats.win_rate}%
-                  </span>{" "}
-                  win rate across{" "}
-                  <span className="text-text-primary/80 font-semibold">
-                    {stats.closed_trades}
-                  </span>{" "}
-                  closed trades.
-                  {stats.avg_rr > 0 && (
-                    <>
-                      {" "}
-                      Average R:R is{" "}
-                      <span className="text-text-primary/80 font-semibold">
-                        1:{stats.avg_rr}
-                      </span>
-                      .
-                    </>
-                  )}
-                  {stats.streak && stats.streak >= 2 && (
-                    <>
-                      {" "}
-                      Currently on a{" "}
-                      <span
-                        className={
-                          stats.streak_type === "win"
-                            ? "text-green-400"
-                            : "text-red-400"
-                        }
-                      >
-                        {stats.streak}-{stats.streak_type} streak
-                      </span>
-                      .
-                    </>
-                  )}
-                  {stats.best_gain_pct != null &&
-                    stats.worst_loss_pct != null && (
-                      <>
-                        {" "}
-                        Best:{" "}
-                        <span className="text-green-400">
-                          +{stats.best_gain_pct}%
-                        </span>
-                        , Worst:{" "}
-                        <span className="text-red-400">
-                          {stats.worst_loss_pct}%
-                        </span>
-                        .
-                      </>
-                    )}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -311,7 +311,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi compact label="Setups" value={cards.length} sub="Matching filters" tone="text-gold-primary" accent={GOLD} />
         <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" tone={stats.htf ? "text-positive" : undefined} accent={stats.htf ? POS : undefined} />
-        <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" tone={stats.aligned ? "text-cyan-400" : undefined} accent={stats.aligned ? "#22d3ee" : undefined} />
+        <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" tone={stats.aligned ? "text-cyan-400" : undefined} accent={stats.aligned ? "rgb(34 211 238)" : undefined} />
         <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" tone={cleanN ? "text-positive" : undefined} accent={cleanN ? POS : undefined} />
       </div>
 
