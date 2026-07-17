@@ -1,8 +1,8 @@
 // src/components/OnchainPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — On-Chain Intelligence Page v3.1 (Flowscan reskin)
-// 100% aligned with backend /api/v1/onchain/{feed,stats,detail,filters}
-// Whale transfers · Smart money · Liquidations
+// LuxQuant Terminal — On-Chain Intelligence (desk monochrome)
+// Aligned with /api/v1/onchain/{feed,stats,detail,filters}
+// Solid accent CTAs · pos/neg risk only · muted chrome
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -78,13 +78,13 @@ const computeWhaleThreshold = (alerts) => {
 
 // ── Semantic 3-tier badge system ──
 const typeStyle = (t) => {
-  const gold = "bg-gold-primary/10 text-gold-primary border-line/25";
-  const danger = "bg-red-500/10 text-red-400 border-red-500/25";
-  const neutral = "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
-
+  // Desk: accent for whale attention; solid loss for risk; ink for rest
+  const attention = "border-accent/30 bg-accent/10 text-accent";
+  const danger = "border-loss/25 bg-loss/10 text-loss";
+  const neutral = "border-ink/[0.1] bg-surface-secondary text-text-muted";
   const map = {
-    whale_transfer: gold,
-    smart_money: gold,
+    whale_transfer: attention,
+    smart_money: attention,
     liquidation: danger,
     security: danger,
   };
@@ -101,24 +101,8 @@ const prettyType = (t) => {
   return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// ── Chain dot color (only tiny dot retains color) ──
-const chainDot = (c) => {
-  const map = {
-    Ethereum: "bg-blue-400",
-    Bitcoin: "bg-orange-400",
-    Solana: "bg-purple-400",
-    Tron: "bg-red-400",
-    Base: "bg-blue-300",
-    Hyperliquid: "bg-emerald-400",
-    Polygon: "bg-violet-400",
-    Arbitrum: "bg-sky-400",
-    BSC: "bg-yellow-400",
-    Avalanche: "bg-red-500",
-    Optimism: "bg-rose-400",
-    Sui: "bg-cyan-400",
-  };
-  return map[c] || "bg-ink/40";
-};
+// ── Chain marker — monochrome desk (name carries identity) ──
+const chainDot = (_c) => "bg-ink/40";
 
 
 // ════════════════════════════════════════════════════════════════
@@ -314,29 +298,32 @@ const OnchainPage = () => {
   // RENDER
   // ════════════════════════════════════════
   return (
-    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
+    <div className="space-y-4 pb-10">
       {/* HEADER */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
               On-Chain Intelligence
             </h1>
-            <p className="text-text-muted text-sm mt-1.5">
+            <p className="mt-1.5 text-[13px] text-text-secondary">
               Whale transfers · Smart money · Liquidations
               {stats?.by_blockchain?.length && (
                 <span> across {stats.by_blockchain.length} chains</span>
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-[11px] font-mono">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="uppercase tracking-[0.15em]">Live</span>
-            </span>
-            <span className="px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
-              <span className="uppercase tracking-[0.15em] text-[10px]">Auto-refresh</span>
-              <span className="ml-2 text-text-primary tabular-nums">60s</span>
+          <div className="flex flex-shrink-0 items-center gap-2 font-mono text-[11px]">
+            <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-profit">Live</span>
+            </div>
+            <span className="flex h-8 items-center rounded-md border border-ink/[0.1] bg-surface-raised px-2.5 text-text-muted">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Auto-refresh</span>
+              <span className="ml-2 font-semibold tabular-nums text-text-primary">60s</span>
             </span>
           </div>
         </div>
@@ -362,15 +349,16 @@ const OnchainPage = () => {
               <button
                 key={key}
                 onClick={() => handleTypeFilter(key)}
-                className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
+                type="button"
+                className={`shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
+                    ? "border-transparent bg-accent text-accent-fg"
+                    : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
                 }`}
               >
                 {label}
                 {count != null && (
-                  <span className={`ml-1.5 tabular-nums ${active ? "text-gold-primary/70" : "text-text-muted/60"}`}>
+                  <span className={`ml-1.5 tabular-nums ${active ? "text-accent-fg/80" : "text-text-muted/60"}`}>
                     {fmtNum(count)}
                   </span>
                 )}
@@ -390,10 +378,11 @@ const OnchainPage = () => {
               <button
                 key={key}
                 onClick={() => handleMinUsd(value)}
-                className={`shrink-0 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] transition-all border whitespace-nowrap ${
+                type="button"
+                className={`shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
-                    : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
+                    ? "border-transparent bg-accent text-accent-fg"
+                    : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -423,14 +412,14 @@ const OnchainPage = () => {
               placeholder="Search title or raw text..."
               value={search}
               onChange={handleSearch}
-              className="w-full pl-9 pr-4 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
+              className="w-full rounded-md border border-ink/[0.1] bg-surface-raised py-2 pl-9 pr-4 font-mono text-[12px] text-text-primary placeholder:text-text-muted transition-colors focus:border-ink/20 focus:outline-none"
             />
           </div>
 
           <select
             value={chainFilter}
             onChange={(e) => handleChain(e.target.value)}
-            className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+            className="cursor-pointer rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary focus:border-ink/20 focus:outline-none"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Chain: All</option>
             {(stats?.by_blockchain || []).slice(0, 12).map((c) => (
@@ -443,7 +432,7 @@ const OnchainPage = () => {
           <select
             value={sourceFilter}
             onChange={(e) => handleSource(e.target.value)}
-            className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+            className="cursor-pointer rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary focus:border-ink/20 focus:outline-none"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Source: All</option>
             {(stats?.by_source || []).map((s) => (
@@ -456,7 +445,7 @@ const OnchainPage = () => {
           <select
             value={tokenFilter}
             onChange={(e) => handleToken(e.target.value)}
-            className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+            className="cursor-pointer rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary focus:border-ink/20 focus:outline-none"
           >
             <option value="all" className="bg-surface-raised text-text-primary">Token: All</option>
             {(stats?.by_token || []).slice(0, 15).map((t) => (
@@ -474,7 +463,7 @@ const OnchainPage = () => {
             </span>
             <button
               onClick={clearFilters}
-              className="text-gold-primary/80 hover:text-gold-primary uppercase tracking-[0.15em] transition-colors"
+              className="font-semibold uppercase tracking-[0.12em] text-accent transition-opacity hover:opacity-80"
             >
               Clear all →
             </button>
@@ -525,10 +514,10 @@ const OnchainPage = () => {
         <AlertModal alert={selectedAlert} onClose={closeAlert} />
       )}
 
-      <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/50">
-        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+      <div className="flex items-center justify-center gap-2 pt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
+        <span className="h-1 w-1 rounded-full bg-profit" />
         <span>Page {page} of {totalPages}</span>
-        <span className="text-text-muted/30">·</span>
+        <span className="text-text-muted/40">·</span>
         <span>Auto-refresh 60s</span>
       </div>
 
@@ -545,7 +534,7 @@ const OnchainPage = () => {
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
     <span
-      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+      className={`font-mono font-semibold uppercase tracking-[0.16em] text-text-muted ${
         small ? "text-[10px]" : "text-[11px]"
       }`}
     >
@@ -559,29 +548,28 @@ const SectionHeader = ({ label, small = false }) => (
 // STAT CARD
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel, isLive, isGold }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-
-    <div className="relative z-10">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono">
-          {label}
+  <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4">
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted font-mono">
+        {label}
+      </span>
+      {isLive && (
+        <span className="relative flex h-1.5 w-1.5 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
         </span>
-        {isLive && (
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-        )}
-      </div>
-
-      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${isGold ? "text-gold-primary" : "text-text-primary"}`}>
-        {value}
-      </div>
-
-      {sublabel && (
-        <div className="text-[10px] font-mono text-text-muted/70 tabular-nums truncate">
-          {sublabel}
-        </div>
       )}
     </div>
+
+    <div className={`mb-1.5 truncate font-mono text-xl tabular-nums font-semibold tracking-tight sm:text-2xl ${isGold ? "text-accent" : "text-text-primary"}`}>
+      {value}
+    </div>
+
+    {sublabel && (
+      <div className="mt-auto font-mono text-[10px] tabular-nums text-text-muted truncate">
+        {sublabel}
+      </div>
+    )}
   </div>
 );
 
@@ -593,77 +581,76 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className={`group relative cursor-pointer transition-colors rounded-md border overflow-hidden ${
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick?.(); }}
+      className={`group relative cursor-pointer overflow-hidden rounded-lg border transition-colors ${
         isHighlight
-          ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-line/20 hover:border-line/40"
-          : "bg-surface-raised border-ink/[0.06] hover:border-ink/[0.12]"
+          ? "border-ink/14 bg-surface-raised hover:border-ink/22"
+          : "border-ink/[0.08] bg-surface-raised hover:border-ink/14"
       }`}
     >
       {isHighlight && (
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+        <span className="absolute inset-y-0 left-0 w-0.5 bg-accent" aria-hidden="true" />
       )}
 
       <div className="flex items-center gap-3 p-3 sm:p-3.5">
-        <div className="shrink-0 w-10 h-10 rounded bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center overflow-hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1] bg-surface-secondary">
           {alert.has_photo && alert.image_url ? (
             <img
               src={alert.image_url}
               alt=""
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
               onError={(e) => { e.target.style.display = "none"; }}
             />
           ) : (
-            <span className={`w-2 h-2 rounded-full ${chainDot(alert.blockchain)}`} />
+            <span className={`h-2 w-2 rounded-full ${chainDot(alert.blockchain)}`} />
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
             <span
-              className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${typeStyle(alert.alert_type)}`}
+              className={`rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] ${typeStyle(alert.alert_type)}`}
             >
               {typeLabel(alert.alert_type)}
             </span>
             {alert.token && (
-              <span className="text-[10px] font-mono text-gold-primary/90 font-semibold">
+              <span className="font-mono text-[10px] font-semibold text-text-primary">
                 ${alert.token}
               </span>
             )}
             {alert.blockchain && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-text-muted/70">
-                <span className={`w-1 h-1 rounded-full ${chainDot(alert.blockchain)}`} />
+              <span className="hidden items-center gap-1 font-mono text-[10px] text-text-muted sm:inline-flex">
+                <span className={`h-1 w-1 rounded-full ${chainDot(alert.blockchain)}`} />
                 {alert.blockchain}
               </span>
             )}
             {alert.source_name && (
-              <span className="hidden md:inline text-[10px] text-text-muted/50 font-mono">
+              <span className="hidden font-mono text-[10px] text-text-muted md:inline">
                 · {alert.source_name}
               </span>
             )}
           </div>
 
-          <p
-            className={`text-sm leading-snug line-clamp-1 transition-colors ${
-              isHighlight ? "text-text-primary" : "text-text-primary/90"
-            } group-hover:text-gold-primary`}
-          >
+          <p className="line-clamp-1 text-sm leading-snug text-text-primary transition-colors group-hover:text-text-primary">
             {alert.title || alert.raw_text?.slice(0, 140) || "—"}
           </p>
         </div>
 
-        <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[80px]">
+        <div className="flex min-w-[80px] shrink-0 flex-col items-end gap-0.5">
           {alert.amount_usd ? (
             <span
-              className={`font-mono text-sm tabular-nums font-semibold ${
-                isHighlight ? "text-gold-primary" : "text-text-primary"
+              className={`font-mono text-sm font-semibold tabular-nums ${
+                isHighlight ? "text-accent" : "text-text-primary"
               }`}
             >
               {fmtUsd(alert.amount_usd)}
             </span>
           ) : (
-            <span className="font-mono text-sm text-text-muted/40">—</span>
+            <span className="font-mono text-sm text-text-muted">—</span>
           )}
-          <span className="font-mono text-[10px] text-text-muted/60 tabular-nums uppercase tracking-wider">
+          <span className="font-mono text-[10px] uppercase tracking-wider tabular-nums text-text-muted">
             {timeAgo(alert.created_at)}
           </span>
         </div>
@@ -677,10 +664,9 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
 // SIDEBAR COMPONENTS
 // ════════════════════════════════════════════════════════════════
 const SidebarCard = ({ label, children }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="px-3.5 py-3 border-b border-ink/[0.04]">
-      <span className="text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-mono">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
+    <div className="border-b border-ink/[0.07] px-3.5 py-2.5">
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
         {label}
       </span>
     </div>
@@ -700,21 +686,22 @@ const SidebarTrendingTokens = ({ stats, onTokenClick, activeToken }) => {
             <button
               key={t.token}
               onClick={() => onTokenClick(active ? "all" : t.token)}
-              className={`w-full flex items-center justify-between py-1.5 px-2 rounded transition-colors ${
-                active ? "bg-gold-primary/[0.08]" : "hover:bg-ink/[0.03]"
+              type="button"
+              className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 transition-colors ${
+                active ? "bg-accent/12" : "hover:bg-ink/[0.03]"
               }`}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="w-4 font-mono text-[10px] tabular-nums text-text-muted">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className={`text-xs font-medium truncate ${active ? "text-gold-primary" : "text-text-primary"}`}>
+                <span className={`truncate text-xs font-medium ${active ? "text-accent" : "text-text-primary"}`}>
                   ${t.token}
                 </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex shrink-0 items-center gap-2">
                 {t.total_usd > 0 && (
-                  <span className="text-[10px] font-mono text-gold-primary/90 tabular-nums">
+                  <span className="font-mono text-[10px] tabular-nums text-text-secondary">
                     {fmtUsd(t.total_usd)}
                   </span>
                 )}
@@ -744,17 +731,18 @@ const SidebarBlockchains = ({ stats, onChainClick, activeChain }) => {
             <button
               key={c.blockchain}
               onClick={() => onChainClick(active ? "all" : c.blockchain)}
-              className={`relative w-full py-1.5 px-2 rounded transition-colors ${
-                active ? "bg-gold-primary/[0.08]" : "hover:bg-ink/[0.03]"
+              type="button"
+              className={`relative w-full rounded-md px-2 py-1.5 transition-colors ${
+                active ? "bg-accent/12" : "hover:bg-ink/[0.03]"
               }`}
             >
               <div
-                className="absolute inset-y-0 left-0 bg-gold-primary/[0.04] rounded"
+                className="absolute inset-y-0 left-0 rounded-md bg-ink/[0.06]"
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className={`flex items-center gap-2 text-xs ${active ? "text-gold-primary" : "text-text-primary"}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${chainDot(c.blockchain)}`} />
+                <span className={`flex items-center gap-2 text-xs ${active ? "text-accent" : "text-text-primary"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${chainDot(c.blockchain)}`} />
                   {c.blockchain}
                 </span>
                 <span className="text-[10px] font-mono text-text-muted/70 tabular-nums">
@@ -795,7 +783,7 @@ const SidebarLargestMoves = ({ stats }) => {
                 )}
               </div>
             </div>
-            <span className="text-[10px] font-mono text-gold-primary tabular-nums shrink-0">
+            <span className="shrink-0 font-mono text-[10px] font-semibold tabular-nums text-text-primary">
               {fmtUsd(m.amount_usd)}
             </span>
           </div>
@@ -819,16 +807,17 @@ const SidebarSources = ({ stats, onSourceClick, activeSource }) => {
             <button
               key={s.source}
               onClick={() => onSourceClick(active ? "all" : s.source)}
-              className={`relative w-full py-1.5 px-2 rounded transition-colors ${
-                active ? "bg-gold-primary/[0.08]" : "hover:bg-ink/[0.03]"
+              type="button"
+              className={`relative w-full rounded-md px-2 py-1.5 transition-colors ${
+                active ? "bg-accent/12" : "hover:bg-ink/[0.03]"
               }`}
             >
               <div
-                className="absolute inset-y-0 left-0 bg-gold-primary/[0.04] rounded"
+                className="absolute inset-y-0 left-0 rounded-md bg-ink/[0.06]"
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className={`text-xs truncate ${active ? "text-gold-primary" : "text-text-primary"}`}>
+                <span className={`truncate text-xs ${active ? "text-accent" : "text-text-primary"}`}>
                   {s.source}
                 </span>
                 <span className="text-[10px] font-mono text-text-muted/70 tabular-nums shrink-0 ml-2">
@@ -863,23 +852,28 @@ const AlertModal = ({ alert, onClose }) => {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4"
+      className="fixed inset-0 z-[100000] flex items-end justify-center p-0 sm:items-center sm:p-4"
       onClick={onClose}
+      role="presentation"
     >
-      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-sm" aria-hidden="true" />
 
       <div
-        className="relative w-full max-w-xl bg-surface-raised border-t border-ink/[0.08] sm:border rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] max-h-[min(92dvh,100%)] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Alert detail"
+        className="relative flex max-h-[min(92dvh,100%)] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.1] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:rounded-2xl sm:border"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+        <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
 
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-md bg-scrim/40 border border-ink/[0.06] flex items-center justify-center text-text-muted hover:text-text-primary hover:border-ink/[0.15] transition-colors font-mono text-sm"
+          aria-label="Close"
+          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-md border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary"
         >
           ✕
         </button>
@@ -887,56 +881,55 @@ const AlertModal = ({ alert, onClose }) => {
         <div className="overflow-y-auto">
           {alert.image_url && (
             <div
-              className="bg-scrim/60 flex items-center justify-center border-b border-ink/[0.04]"
+              className="flex items-center justify-center border-b border-ink/[0.07] bg-surface"
               style={{ minHeight: "160px", maxHeight: "400px" }}
             >
               <img
                 src={alert.image_url}
                 alt=""
-                className="w-full max-h-[400px] object-contain"
+                className="max-h-[400px] w-full object-contain"
                 onError={(e) => { e.target.parentElement.style.display = "none"; }}
               />
             </div>
           )}
 
-          <div className="p-5 space-y-5">
+          <div className="space-y-5 p-5">
             <SectionHeader label="Alert Detail" small />
 
             <div className="flex flex-wrap gap-1.5">
               <span
-                className={`text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border ${typeStyle(alert.alert_type)}`}
+                className={`rounded-md border px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] ${typeStyle(alert.alert_type)}`}
               >
                 {typeLabel(alert.alert_type)}
               </span>
               {alert.blockchain && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-primary/70 inline-flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${chainDot(alert.blockchain)}`} />
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">
+                  <span className={`h-1.5 w-1.5 rounded-full ${chainDot(alert.blockchain)}`} />
                   {alert.blockchain}
                 </span>
               )}
               {alert.token && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-gold-primary/10 text-gold-primary border-line/25 font-semibold">
+                <span className="rounded-md border border-transparent bg-accent px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-accent-fg">
                   ${alert.token}
                 </span>
               )}
               {alert.source_name && (
-                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-ink/[0.04] border-ink/[0.08] text-text-primary/70">
+                <span className="rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">
                   {alert.source_name}
                 </span>
               )}
             </div>
 
             {alert.amount_usd && (
-              <div className="relative overflow-hidden bg-ink/[0.02] border border-ink/[0.06] rounded-md p-5">
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-                <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
+              <div className="rounded-lg border border-ink/[0.08] bg-surface-secondary p-5">
+                <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                   Amount
                 </p>
-                <p className="text-3xl font-mono tabular-nums text-text-primary">
+                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-text-primary">
                   {fmtUsd(alert.amount_usd)}
                 </p>
                 {alert.amount_raw && alert.token && (
-                  <p className="text-text-muted text-xs font-mono mt-1.5 tabular-nums">
+                  <p className="mt-1.5 font-mono text-xs tabular-nums text-text-muted">
                     {Number(alert.amount_raw).toLocaleString()} {alert.token}
                   </p>
                 )}
@@ -944,24 +937,24 @@ const AlertModal = ({ alert, onClose }) => {
             )}
 
             {(alert.from_entity || alert.to_entity) && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
+              <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
                 {alert.from_entity ? (
-                  <div className="p-3 rounded-md bg-ink/[0.02] border border-ink/[0.06]">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-1">
+                  <div className="rounded-md border border-ink/[0.08] bg-surface-secondary p-3">
+                    <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                       From
                     </p>
-                    <p className="text-text-primary text-xs font-mono truncate">
+                    <p className="truncate font-mono text-xs text-text-primary">
                       {alert.from_entity}
                     </p>
                   </div>
                 ) : <div />}
-                <span className="text-text-muted/60 text-lg font-mono hidden sm:block">→</span>
+                <span className="hidden font-mono text-lg text-text-muted sm:block">→</span>
                 {alert.to_entity ? (
-                  <div className="p-3 rounded-md bg-ink/[0.02] border border-ink/[0.06]">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-1">
+                  <div className="rounded-md border border-ink/[0.08] bg-surface-secondary p-3">
+                    <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                       To
                     </p>
-                    <p className="text-text-primary text-xs font-mono truncate">
+                    <p className="truncate font-mono text-xs text-text-primary">
                       {alert.to_entity}
                     </p>
                   </div>
@@ -970,17 +963,17 @@ const AlertModal = ({ alert, onClose }) => {
             )}
 
             {alert.raw_text && (
-              <div className="p-3.5 rounded-md bg-ink/[0.02] border border-ink/[0.04]">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
+              <div className="rounded-md border border-ink/[0.08] bg-surface-secondary p-3.5">
+                <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                   Raw
                 </p>
-                <p className="text-text-secondary text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
+                <p className="break-words font-mono text-xs leading-relaxed whitespace-pre-wrap text-text-secondary">
                   {alert.raw_text}
                 </p>
               </div>
             )}
 
-            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/60">
+            <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
               <span>{alert.source_name || "Unknown source"}</span>
               <span className="tabular-nums">
                 {alert.created_at ? new Date(alert.created_at).toLocaleString() : ""}
@@ -992,16 +985,10 @@ const AlertModal = ({ alert, onClose }) => {
                 href={alert.tx_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group block w-full text-center py-3 rounded-md font-mono text-xs uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                }}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-accent py-3 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
               >
                 View on Explorer
-                <span className="inline-block ml-2 transition-transform group-hover:translate-x-0.5">
-                  ↗
-                </span>
+                <span aria-hidden="true">↗</span>
               </a>
             )}
           </div>
@@ -1039,7 +1026,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
-        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30"
       >
         ← Prev
       </button>
@@ -1055,10 +1042,10 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
           <button
             key={p}
             onClick={() => onPageChange(p)}
-            className={`min-w-[34px] h-8 px-2 rounded-md text-[11px] font-mono tabular-nums transition-all ${
+            className={`h-8 min-w-[34px] rounded-md px-2 font-mono text-[11px] font-semibold tabular-nums transition-colors ${
               p === page
-                ? "bg-gold-primary/15 text-gold-primary border border-line/40"
-                : "border border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.15]"
+                ? "border border-transparent bg-accent text-accent-fg"
+                : "border border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
             }`}
           >
             {p}
@@ -1068,7 +1055,7 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
-        className="px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] border border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.15] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30"
       >
         Next →
       </button>
@@ -1086,7 +1073,7 @@ const LoadingSkeleton = () => (
     {[...Array(10)].map((_, i) => (
       <div
         key={i}
-        className="bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 flex items-center gap-3"
+        className="flex items-center gap-3 rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5"
       >
         <div className="w-10 h-10 rounded bg-ink/[0.03] shrink-0" />
         <div className="flex-1 space-y-2">
@@ -1103,15 +1090,14 @@ const LoadingSkeleton = () => (
 );
 
 const EmptyState = () => (
-  <div className="relative bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center overflow-hidden">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
-      <svg className="w-5 h-5 text-gold-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-12 text-center">
+    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary">
+      <svg className="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-    </svg>
+      </svg>
     </div>
-    <p className="text-text-primary text-sm font-medium mb-1">No alerts found</p>
-    <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em]">
+    <p className="mb-1 text-sm font-medium text-text-primary">No alerts found</p>
+    <p className="font-mono text-xs uppercase tracking-[0.14em] text-text-muted">
       Try adjusting filters
     </p>
   </div>
