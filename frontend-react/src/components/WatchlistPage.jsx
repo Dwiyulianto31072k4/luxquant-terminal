@@ -209,7 +209,7 @@ const WatchlistPage = () => {
     const s = status?.toLowerCase() || '';
     if (s.includes('loss') || s === 'sl') return 'bg-loss/10 text-loss border-loss/25';
     if (s === 'open') return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
-    if (s.startsWith('tp') || s.includes('win')) return 'bg-accent/12 text-accent border-ink/12';
+    if (s.startsWith('tp') || s.includes('win')) return 'border-profit/25 bg-profit/10 text-profit';
     return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
   };
 
@@ -300,7 +300,7 @@ const WatchlistPage = () => {
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
+      <div className="space-y-4 pb-10">
         <SectionHeader label="Watchlist" />
         <LoadingSkeleton />
       </div>
@@ -311,7 +311,7 @@ const WatchlistPage = () => {
   // RENDER
   // ════════════════════════════════════════
   return (
-    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
+    <div className="space-y-4 pb-10">
       {/* HEADER */}
       <div className="space-y-4">
         <SectionHeader label="Watchlist" />
@@ -784,7 +784,7 @@ const DesktopRow = ({
 
       {/* Expanded detail row */}
       {isExpanded && (
-        <tr className="bg-gradient-to-r from-accent/[0.03] to-transparent border-b border-ink/[0.04]">
+        <tr className="bg-surface-secondary/50 border-b border-ink/[0.04]">
           <td colSpan={11} className="px-4 py-4">
             <ExpandedDetail
               item={item}
@@ -849,7 +849,6 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
       {/* Stop Loss */}
       {item.stop1 && (
         <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-loss/70 mb-1">
             Stop Loss
           </p>
@@ -870,7 +869,6 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
       {/* Stop Loss 2 (if exists) */}
       {item.stop2 && (
         <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-loss/70 mb-1">
             Stop Loss 2
           </p>
@@ -1031,7 +1029,6 @@ const MobileCard = ({
       {/* Stop Loss */}
       {item.stop1 && (
         <div className="relative overflow-hidden bg-red-500/[0.03] border border-red-500/15 rounded p-2 mb-2">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-loss/70">

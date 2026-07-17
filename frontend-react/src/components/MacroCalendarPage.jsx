@@ -288,7 +288,7 @@ const MacroCalendarPage = () => {
               {isZh ? tab.labelZh : tab.label}
               {countNum != null && (
                 <span className={`font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm border ${
-                  active ? 'bg-accent/12 text-accent border-ink/12' : 'bg-ink/[0.04] text-text-muted/70 border-ink/[0.04]'
+                  active ? 'bg-accent text-accent-fg border-transparent' : 'bg-ink/[0.04] text-text-muted/70 border-ink/[0.04]'
                 }`}>
                   {countNum}
                 </span>
@@ -310,7 +310,6 @@ const MacroCalendarPage = () => {
 
           {nextHighImpact && (
             <div className="lg:col-span-2 relative bg-surface-raised rounded-md border border-loss/25 p-3 overflow-hidden flex items-center gap-3">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
               <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-loss/10 border border-loss/25 flex-shrink-0">
                 <svg className="w-3.5 h-3.5 text-loss" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                   <path d="M12 2L2 22h20L12 2z" />
@@ -376,7 +375,6 @@ const MacroCalendarPage = () => {
             <CalendarSkeleton />
           ) : error ? (
             <div className="bg-surface-raised rounded-md border border-loss/25 p-8 text-center relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
               <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-loss/10 border border-loss/25 flex items-center justify-center">
                 <svg className="w-5 h-5 text-loss" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
@@ -391,7 +389,7 @@ const MacroCalendarPage = () => {
               </button>
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-12 text-center relative overflow-hidden">
+            <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-12 text-center relative overflow-hidden">
               <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-surface-secondary border border-ink/[0.06] flex items-center justify-center">
                 <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -441,7 +439,7 @@ const MacroCalendarPage = () => {
           {newsLoading ? (
             <NewsSkeleton />
           ) : news.length === 0 ? (
-            <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-6 text-center">
+            <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-6 text-center">
               <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
                 {isZh ? '暂无新闻' : 'No news available'}
               </p>
@@ -490,7 +488,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
   const cryptoCount = events.filter(e => e.type === 'crypto_event').length;
 
   return (
-    <div className={`bg-surface-raised rounded-md overflow-hidden border relative ${
+    <div className={`overflow-hidden rounded-lg border bg-surface-raised relative ${
       isToday ? 'border-ink/12' : 'border-ink/[0.06]'
     }`}>
       <button
@@ -827,7 +825,7 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
     default: "text-text-primary",
   };
   return (
-    <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-3 relative overflow-hidden">
+    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3 relative overflow-hidden">
       <div className="flex items-center justify-between mb-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
           {label}
@@ -852,7 +850,7 @@ const CalendarSkeleton = () => (
   <div className="space-y-2.5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgb(var(--ink) / .06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, di) => (
-      <div key={di} className="bg-surface-raised rounded-md overflow-hidden border border-ink/[0.06]">
+      <div key={di} className="overflow-hidden rounded-lg border bg-surface-raised border-ink/[0.06]">
         <div className="px-4 py-3 flex items-center gap-3">
           <div className="skel w-3 h-3" />
           <div className="skel w-36 h-3" />

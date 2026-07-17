@@ -43,18 +43,15 @@ const formatPrice = (price) => {
 // ── shared header bits (match WatchlistPage) ──
 const SectionHeader = ({ label }) => (
   <div className="flex items-center gap-3">
-    <span className="font-mono uppercase tracking-[0.25em] text-gold-primary/80 text-[11px]">{label}</span>
+    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</span>
   </div>
 );
 
 const StatCard = ({ label, value, sublabel, isGold }) => (
-  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="relative z-10">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">{label}</div>
-      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 ${isGold ? "text-gold-primary" : "text-text-primary"}`}>{value}</div>
-      {sublabel && <div className="text-[10px] font-mono text-text-muted/70 truncate">{sublabel}</div>}
-    </div>
+  <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-4">
+    <div className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</div>
+    <div className={`mb-1.5 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl ${isGold ? "text-accent" : "text-text-primary"}`}>{value}</div>
+    {sublabel && <div className="truncate font-mono text-[10px] text-text-muted">{sublabel}</div>}
   </div>
 );
 
@@ -192,14 +189,13 @@ const WatchingTab = () => {
               value={input}
               onChange={(e) => { setInput(e.target.value); setError(""); }}
               onKeyDown={handleKeyDown}
-              className="w-full pl-9 pr-4 py-2.5 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono uppercase"
+              className="w-full rounded-md border border-ink/[0.1] bg-surface-raised py-2.5 pl-9 pr-4 font-mono text-sm uppercase text-text-primary placeholder:text-text-muted transition-colors focus:border-ink/20 focus:outline-none"
             />
           </div>
           <button
             onClick={handleAdd}
             disabled={adding || !previewSymbol || alreadyWatching}
-            className="shrink-0 inline-flex items-center gap-2 px-5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:translate-y-0"
-            style={{ background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)" }}
+            className="inline-flex shrink-0 items-center gap-2 rounded-md border border-transparent bg-accent px-5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {adding ? "Adding…" : "Add"}
           </button>
@@ -210,7 +206,7 @@ const WatchingTab = () => {
           <button
             onClick={handleAdd}
             disabled={adding || alreadyWatching}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md border border-line/20 bg-gold-primary/[0.04] hover:bg-gold-primary/[0.07] transition-all text-left disabled:cursor-default"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md border border-ink/[0.1] bg-surface-secondary hover:border-ink/18 transition-all text-left disabled:cursor-default"
           >
             <CoinLogo pair={previewSymbol} size={28} />
             <div className="flex-1 min-w-0">
@@ -221,14 +217,14 @@ const WatchingTab = () => {
               {previewPrice === undefined ? "…" : previewPrice !== null ? `$${formatPrice(previewPrice)}` : "—"}
             </span>
             <span className={`text-[10px] font-mono uppercase tracking-[0.15em] px-2 py-1 rounded ${
-              alreadyWatching ? "text-text-muted/50" : "text-gold-primary bg-gold-primary/10"
+              alreadyWatching ? "text-text-muted/50" : "text-accent bg-accent/12"
             }`}>
               {alreadyWatching ? "Already added" : "↵ Add"}
             </span>
           </button>
         )}
 
-        {error && <p className="text-[11px] font-mono text-red-400 px-1">{error}</p>}
+        {error && <p className="px-1 font-mono text-[11px] text-loss">{error}</p>}
       </div>
 
       {/* List */}
@@ -239,8 +235,7 @@ const WatchingTab = () => {
         ) : items.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
+          <div className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
             <div className="divide-y divide-ink/[0.04]">
               {items.map((item) => (
                 <CoinRow
@@ -271,12 +266,12 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
   const isCalled = item.status === "CALLED";
 
   return (
-    <div className={`group flex items-center gap-3 px-4 py-3.5 transition-colors ${isCalled ? "bg-emerald-500/[0.04]" : "hover:bg-ink/[0.02]"}`}>
+    <div className={`group flex items-center gap-3 px-4 py-3.5 transition-colors ${isCalled ? "bg-profit/[0.06]" : "hover:bg-ink/[0.02]"}`}>
       {/* Coin */}
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <CoinLogo pair={item.symbol} size={34} />
         <div className="min-w-0">
-          <p className="text-text-primary text-sm font-semibold font-mono group-hover:text-gold-primary transition-colors">{coinName(item.symbol)}</p>
+          <p className="text-text-primary text-sm font-semibold font-mono group-hover:text-text-primary transition-colors">{coinName(item.symbol)}</p>
           <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
         </div>
       </div>
@@ -292,12 +287,12 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
       {/* Status */}
       <div className="shrink-0 w-24 flex justify-center">
         {isCalled ? (
-          <span className="inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-profit/10 text-profit border-profit/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
             Called
           </span>
         ) : (
-          <span className="inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-gold-primary/10 text-gold-primary border-line/25">
+          <span className="inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border border-transparent bg-accent/12 text-accent">
             Waiting
           </span>
         )}
@@ -307,16 +302,17 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
       <div className="shrink-0 w-24 flex justify-end">
         {isCalled ? (
           <button
+            type="button"
             onClick={onOpen}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] font-bold text-surface-raised hover:brightness-110 transition-all whitespace-nowrap"
-            style={{ background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)" }}
+            className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-transparent bg-accent px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
           >
             Open →
           </button>
         ) : (
           <button
+            type="button"
             onClick={onRemove}
-            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md border border-transparent hover:border-red-500/25 hover:bg-red-500/[0.05] text-text-muted/40 hover:text-red-400 transition-all"
+            className="rounded-md border border-transparent p-1.5 text-text-muted opacity-0 transition-all hover:border-loss/25 hover:bg-loss/10 hover:text-loss group-hover:opacity-100"
             title="Remove"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -334,7 +330,7 @@ const CoinRow = ({ item, price, onOpen, onRemove }) => {
 const ListSkeleton = () => (
   <div className="space-y-1.5">
     {[...Array(4)].map((_, i) => (
-      <div key={i} className="bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 flex items-center gap-3">
+      <div key={i} className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5 flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-ink/[0.04] animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
           <div className="h-3 bg-ink/[0.05] rounded w-1/4 animate-pulse" />
@@ -347,10 +343,9 @@ const ListSkeleton = () => (
 );
 
 const EmptyState = () => (
-  <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
-      <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+  <div className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-12 text-center">
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-ink/10 flex items-center justify-center">
+      <svg className="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
       </svg>
     </div>

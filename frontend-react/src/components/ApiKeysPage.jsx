@@ -961,7 +961,7 @@ const CodeBlock = ({
         </span>
         <button
           onClick={copy}
-          className="text-[10px] font-semibold text-accent hover:text-gold-light transition-colors"
+          className="text-[10px] font-semibold text-accent hover:text-accent transition-colors"
         >
           {copied ? copiedLabel : copyLabel}
         </button>
@@ -1010,7 +1010,7 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
         </div>
         <button
           onClick={copy}
-          className="px-3 text-[10px] font-semibold text-accent hover:text-gold-light transition-colors"
+          className="px-3 text-[10px] font-semibold text-accent hover:text-accent transition-colors"
         >
           {copied ? copiedLabel : copyLabel}
         </button>
@@ -1037,7 +1037,7 @@ const DocSection = ({ id, title, children }) => (
 
 // Inline mono token.
 const Mono = ({ children }) => (
-  <code className="font-mono text-[12px] text-gold-light bg-scrim/30 px-1.5 py-0.5 rounded border border-ink/[0.06]">
+  <code className="font-mono text-[12px] text-accent bg-surface-secondary px-1.5 py-0.5 rounded border border-ink/[0.06]">
     {children}
   </code>
 );
@@ -1206,7 +1206,7 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
               }`}
             >
               <span
-                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-accent" : "bg-ink/20"}`}
+                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-accent text-accent-fg" : "bg-ink/20"}`}
               />
               <span className="truncate">{s.label}</span>
             </button>
@@ -1216,7 +1216,7 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
                   <li key={c.id}>
                     <button
                       onClick={() => onEndpointNav(c.id)}
-                      className="w-full text-left pl-3 pr-2 py-1 rounded-md font-mono text-[11px] text-text-muted hover:text-gold-light hover:bg-ink/[0.03] transition-colors truncate"
+                      className="w-full text-left pl-3 pr-2 py-1 rounded-md font-mono text-[11px] text-text-muted hover:text-accent hover:bg-ink/[0.03] transition-colors truncate"
                     >
                       {c.label}
                     </button>
@@ -1378,7 +1378,7 @@ const ApiKeysPage = () => {
       {/* ── Header ── */}
       <header>
         <div className="flex items-center gap-2 mb-1">
-          <span className="w-1 h-3 rounded-full bg-accent" />
+          <span className="w-1 h-3 rounded-full bg-accent text-accent-fg" />
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
             {t("apiKeys.eyebrow")}
           </span>
@@ -1458,7 +1458,7 @@ const ApiKeysPage = () => {
               </p>
               <button
                 onClick={() => navigate("/pricing")}
-                className="mt-3 px-4 py-2 rounded-lg text-[13px] font-bold bg-gradient-to-r from-gold-dark to-accent text-bg-primary hover:shadow-gold-glow transition-all"
+                className="mt-3 px-4 py-2 rounded-md text-[13px] font-semibold bg-accent text-accent-fg hover:opacity-90 transition-opacity"
               >
                 {t("apiKeys.upgrade_cta")}
               </button>
@@ -1483,7 +1483,7 @@ const ApiKeysPage = () => {
               "linear-gradient(160deg, rgba(212,168,83,0.10), rgb(var(--ink) / 0.01))",
           }}
         >
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/60 to-transparent" />
+          <span className="absolute top-0 inset-x-0 h-px bg-ink/[0.08]" />
           <div className="flex items-center gap-2 mb-2">
             <svg
               className="w-4 h-4 text-accent"
@@ -1506,7 +1506,7 @@ const ApiKeysPage = () => {
             ⚠ {t("apiKeys.created_warn")}
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-3 py-2.5 rounded-lg font-mono text-[12px] sm:text-[13px] text-gold-light bg-scrim/40 border border-ink/10 break-all">
+            <code className="flex-1 px-3 py-2.5 rounded-lg font-mono text-[12px] sm:text-[13px] text-accent bg-surface-secondary border border-ink/10 break-all">
               {justCreated.key}
             </code>
             <button
@@ -1543,7 +1543,7 @@ const ApiKeysPage = () => {
               className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
                 showCreate
                   ? "text-text-secondary border border-ink/10 hover:text-text-primary hover:bg-ink/[0.03]"
-                  : "bg-gradient-to-r from-gold-dark to-accent text-bg-primary hover:shadow-gold-glow"
+                  : "bg-accent text-accent-fg hover:opacity-90"
               }`}
             >
               {showCreate
@@ -1573,7 +1573,7 @@ const ApiKeysPage = () => {
               <button
                 onClick={handleCreate}
                 disabled={creating || atLimit}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-accent text-bg-primary hover:shadow-gold-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                className="px-5 py-2.5 rounded-md text-sm font-semibold bg-accent text-accent-fg hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {creating ? t("apiKeys.creating") : t("apiKeys.create_btn")}
               </button>
@@ -1705,7 +1705,7 @@ const ApiKeysPage = () => {
         {/* Doc header */}
         <div className="pb-3 mb-4 border-b border-ink/5">
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-1 h-3 rounded-full bg-accent" />
+            <span className="w-1 h-3 rounded-full bg-accent text-accent-fg" />
             <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
               Reference
             </span>
