@@ -163,9 +163,11 @@
  --bg-card: rgb(var(--surface-raised) / 0.8);
  --bg-hover: rgb(var(--surface-hover) / 0.9);
 
- --accent: rgb(var(--accent));
- --accent: rgb(var(--accent-light));
- --accent: rgb(var(--accent-dark));
+ /* Legacy full-color aliases — DO NOT overwrite channel tokens (--accent etc).
+    Tailwind uses rgb(var(--accent) / α); channel form must stay "R G B". */
+ --gold-primary: rgb(var(--accent));
+ --gold-light: rgb(var(--accent-light));
+ --gold-dark: rgb(var(--accent-dark));
  --gold-glow: rgb(var(--accent) / 0.35);
  --accent-on: rgb(var(--accent-fg)); /* text/icon on solid yellow CTA */
 
