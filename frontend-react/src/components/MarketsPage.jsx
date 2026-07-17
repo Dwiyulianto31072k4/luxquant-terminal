@@ -2,16 +2,15 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NewsPreviewModal from "./NewsPreviewModal";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { heatPct } from "./terminal/vizShared";
 
 const API_BASE = '/api/v1';
 
 /* ──────────────────────────────────────────────────────────────
-   MarketsPage — Web3 Flowscan-minimal reskin
-   • Gold accent retained (LuxQuant brand)
-   • profit (#56c996) / loss (#e07288) muted functional only
-   • Flat hairline cards, sharp rounded-md, font-mono font-light numbers
-   • Line-label-line section headers + SVG icons (no decorative emoji)
-   • Heatmap colors transitioned to muted profit/loss palette
+   MarketsPage — Binance monochrome desk
+   • Semantic green/red for PnL only; yellow only for live/CTA accents
+   • Solid heatmap fills (no pastel/alpha wash)
+   • Flat cards, mono labels, medium weight numbers
    ────────────────────────────────────────────────────────────── */
 
 const MarketsPage = () => {
@@ -102,20 +101,20 @@ const MarketsPage = () => {
   const fg = global?.fearGreed;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <Styles />
 
-      {/* ── PAGE HEADER — standard h1 + subtitle ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      {/* ── PAGE HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+          <h1 className="font-display text-2xl lg:text-[28px] font-semibold text-text-primary tracking-tight">
             Markets
           </h1>
-          <p className="mt-2 text-sm text-text-secondary">{t('markets.global_overview')}</p>
+          <p className="mt-1 text-[13px] text-text-secondary">{t('markets.global_overview')}</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
+        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-50" />
+            <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-40 animate-ping" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-profit" />
           </span>
           {t('markets.live')}
@@ -123,40 +122,35 @@ const MarketsPage = () => {
       </div>
 
       {/* ── GLOBAL MARKET BAR ── */}
-      <div className="relative bg-surface-raised rounded-md border border-ink/[0.06] overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-        <div className="relative p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <GlobalStat
-              label={t('markets.total_mcap')}
-              value={gd ? `$${fmtLarge(gd.total_market_cap?.usd)}` : '-'}
-              change={gd?.market_cap_change_percentage_24h_usd}
-            />
-            <GlobalStat
-              label={t('markets.vol_24h')}
-              value={gd ? `$${fmtLarge(gd.total_volume?.usd)}` : '-'}
-            />
-            <GlobalStat
-              label={t('markets.btc_dom')}
-              value={gd ? `${gd.market_cap_percentage?.btc?.toFixed(1)}%` : '-'}
-              accent="text-gold-primary"
-            />
-            <GlobalStat
-              label={t('markets.eth_dom')}
-              value={gd ? `${gd.market_cap_percentage?.eth?.toFixed(1)}%` : '-'}
-            />
-            <GlobalStat
-              label={t('markets.active_coins')}
-              value={gd ? fmtNum(gd.active_cryptocurrencies) : '-'}
-            />
-            <FearGreedMini value={fg?.value} label={fg?.label} t={t} />
-          </div>
+      <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <GlobalStat
+            label={t('markets.total_mcap')}
+            value={gd ? `$${fmtLarge(gd.total_market_cap?.usd)}` : '-'}
+            change={gd?.market_cap_change_percentage_24h_usd}
+          />
+          <GlobalStat
+            label={t('markets.vol_24h')}
+            value={gd ? `$${fmtLarge(gd.total_volume?.usd)}` : '-'}
+          />
+          <GlobalStat
+            label={t('markets.btc_dom')}
+            value={gd ? `${gd.market_cap_percentage?.btc?.toFixed(1)}%` : '-'}
+          />
+          <GlobalStat
+            label={t('markets.eth_dom')}
+            value={gd ? `${gd.market_cap_percentage?.eth?.toFixed(1)}%` : '-'}
+          />
+          <GlobalStat
+            label={t('markets.active_coins')}
+            value={gd ? fmtNum(gd.active_cryptocurrencies) : '-'}
+          />
+          <FearGreedMini value={fg?.value} label={fg?.label} t={t} />
         </div>
       </div>
 
       {/* ── HEATMAP ── */}
-      <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
         <SectionHeader
           title={t('markets.heatmap')}
           subtitle={t('markets.top_50_mcap')}
@@ -171,34 +165,33 @@ const MarketsPage = () => {
 
       {/* ── TRENDING & CATEGORIES ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
           <SectionHeader
             title={t('markets.trending')}
             subtitle={t('markets.most_searched')}
             icon="trending"
           />
           {trending?.coins?.length > 0 ? (
-            <div className="space-y-1.5 mt-4">
+            <div className="mt-3 space-y-1">
               {trending.coins.map((c, i) => (
                 <div
                   key={c.id}
-                  className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-secondary border border-ink/[0.04] hover:border-line/20 hover:bg-ink/[0.02] transition-all group"
+                  className="flex items-center gap-3 rounded-md px-2.5 py-2 transition-colors hover:bg-ink/[0.03] group"
                 >
-                  <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
+                  <span className="w-5 font-mono text-[10px] tabular-nums text-text-muted">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  {c.thumb && <img src={c.thumb} alt="" className="w-6 h-6 rounded-full" />}
-                  <div className="flex-1 min-w-0">
-                    <span className="text-text-primary text-[12px] group-hover:text-gold-primary transition-colors">
+                  {c.thumb && <img src={c.thumb} alt="" className="h-6 w-6 rounded-full" />}
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[13px] font-medium text-text-primary">
                       {c.name}
                     </span>
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 ml-2">
+                    <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-text-muted">
                       {c.symbol?.toUpperCase()}
                     </span>
                   </div>
                   {c.market_cap_rank && (
-                    <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-ink/[0.04] text-text-muted">
+                    <span className="rounded px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted bg-ink/[0.04]">
                       #{c.market_cap_rank}
                     </span>
                   )}
@@ -210,35 +203,34 @@ const MarketsPage = () => {
           )}
         </div>
 
-        <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
           <SectionHeader
             title={t('markets.top_categories')}
             subtitle={t('markets.sectors_perf')}
             icon="categories"
           />
           {categories?.length > 0 ? (
-            <div className="space-y-1.5 mt-4">
+            <div className="mt-3 space-y-1">
               {(Array.isArray(categories) ? categories : []).slice(0, 8).map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-secondary border border-ink/[0.04]"
+                  className="flex items-center gap-3 rounded-md px-2.5 py-2 hover:bg-ink/[0.03]"
                 >
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex flex-shrink-0 gap-1">
                     {cat.top_3_coins?.map((img, j) => (
                       <img
                         key={j}
                         src={img}
                         alt=""
-                        className="w-4 h-4 rounded-full"
+                        className="h-4 w-4 rounded-full"
                         onError={(e) => e.target.style.display = 'none'}
                       />
                     ))}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-text-primary text-[12px] truncate block">{cat.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-medium text-text-primary">{cat.name}</span>
                   </div>
-                  <span className="font-mono text-[10px] text-text-muted tabular-nums">
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted">
                     ${fmtLarge(cat.market_cap)}
                   </span>
                   <PctBadge value={cat.market_cap_change_24h} />
@@ -252,8 +244,7 @@ const MarketsPage = () => {
       </div>
 
       {/* ── CRYPTO NEWS ── */}
-      <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
         <SectionHeader title={t('markets.news_title')} subtitle={t('markets.news_sub')} icon="news" />
         {news?.articles?.length > 0 ? (() => {
           const allArticles = news.articles;
@@ -263,33 +254,32 @@ const MarketsPage = () => {
           const pageArticles = rest.slice(newsPage * NEWS_PER_PAGE, (newsPage + 1) * NEWS_PER_PAGE);
 
           return (
-            <div className="mt-4">
-              {/* Featured */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div className="mt-3">
+              <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 {featured.map((a, i) => (
                   <div
                     key={i}
                     onClick={() => setSelectedArticle(a)}
                     className="group cursor-pointer"
                   >
-                    <div className="bg-surface-secondary rounded-md overflow-hidden border border-ink/[0.04] hover:border-line/25 transition-all duration-200 h-full">
+                    <div className="h-full overflow-hidden rounded-md border border-ink/[0.06] bg-surface-secondary transition-colors hover:border-ink/15">
                       {a.image && (
-                        <div className="h-40 overflow-hidden">
+                        <div className="h-36 overflow-hidden">
                           <img
                             src={a.image}
                             alt=""
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                             onError={(e) => e.target.parentElement.style.display = 'none'}
                           />
                         </div>
                       )}
-                      <div className="p-4">
-                        <p className="text-text-primary text-sm leading-snug group-hover:text-gold-primary transition-colors line-clamp-2">
+                      <div className="p-3.5">
+                        <p className="line-clamp-2 text-[13px] font-medium leading-snug text-text-primary group-hover:text-text-primary">
                           {a.title}
                         </p>
-                        <div className="flex items-center gap-2 mt-3 font-mono text-[10px] uppercase tracking-wider">
-                          <span className="text-gold-primary">{a.source}</span>
-                          <span className="text-text-muted/70">· {translateTimeAgo(a.time_ago)}</span>
+                        <div className="mt-2.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
+                          <span className="text-text-secondary">{a.source}</span>
+                          <span className="text-text-muted">· {translateTimeAgo(a.time_ago)}</span>
                         </div>
                       </div>
                     </div>
@@ -297,42 +287,41 @@ const MarketsPage = () => {
                 ))}
               </div>
 
-              {/* List */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {pageArticles.map((a, i) => (
                   <div
                     key={i}
                     onClick={() => setSelectedArticle(a)}
-                    className="flex items-center gap-3 py-2 px-2.5 rounded-sm hover:bg-ink/[0.02] transition-colors group cursor-pointer"
+                    className="group flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-ink/[0.03]"
                   >
                     {a.image ? (
-                      <div className="w-16 h-12 rounded-sm overflow-hidden flex-shrink-0 bg-surface-secondary">
+                      <div className="h-11 w-14 flex-shrink-0 overflow-hidden rounded bg-surface-secondary">
                         <img
                           src={a.image}
                           alt=""
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                           onError={(e) => { e.target.parentElement.style.display = 'none'; }}
                         />
                       </div>
                     ) : (
-                      <div className="w-16 h-12 rounded-sm bg-surface-secondary flex-shrink-0 flex items-center justify-center border border-ink/[0.04]">
+                      <div className="flex h-11 w-14 flex-shrink-0 items-center justify-center rounded border border-ink/[0.06] bg-surface-secondary">
                         <IconNewsSmall />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-text-primary text-[12px] group-hover:text-gold-primary transition-colors truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12.5px] font-medium text-text-primary">
                         {a.title}
                       </p>
                       {a.description && (
-                        <p className="text-text-muted text-[10px] truncate mt-0.5">
+                        <p className="mt-0.5 truncate text-[10px] text-text-muted">
                           {a.description.slice(0, 80)}
                         </p>
                       )}
                     </div>
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary whitespace-nowrap">
+                    <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-wider text-text-secondary">
                       {a.source}
                     </span>
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 whitespace-nowrap">
+                    <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-wider text-text-muted">
                       {translateTimeAgo(a.time_ago)}
                     </span>
                   </div>
@@ -391,52 +380,49 @@ const MarketsPage = () => {
       </div>
 
       {/* ── DERIVATIVES + LIQUIDATIONS ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Derivatives */}
-        <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
           <SectionHeader
             title={t('markets.derivatives')}
             subtitle={t('markets.funding_sentiment')}
             icon="bolt"
           />
           {derivatives ? (
-            <div className="space-y-5 mt-4">
-              {/* Funding Rates */}
+            <div className="mt-3 space-y-4">
               <div>
                 <SectionLabel>{t('markets.funding_rates')}</SectionLabel>
-                <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="mt-2.5 grid grid-cols-2 gap-3">
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-profit/80 mb-2">
+                    <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-profit">
                       {t('markets.most_long')}
                     </p>
                     {derivatives.funding?.most_long?.slice(0, 3).map(f => (
-                      <div key={f.symbol} className="flex justify-between items-center py-1">
-                        <span className="text-text-primary text-[12px] font-mono">{f.symbol}</span>
-                        <span className="font-mono text-[11px] text-profit tabular-nums">
+                      <div key={f.symbol} className="flex items-center justify-between py-1">
+                        <span className="font-mono text-[12px] font-medium text-text-primary">{f.symbol}</span>
+                        <span className="font-mono text-[11px] font-medium tabular-nums text-profit">
                           +{f.rate_pct?.toFixed(4)}%
                         </span>
                       </div>
                     ))}
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-loss/80 mb-2">
+                    <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-loss">
                       {t('markets.most_short')}
                     </p>
                     {derivatives.funding?.most_short?.slice(0, 3).map(f => (
-                      <div key={f.symbol} className="flex justify-between items-center py-1">
-                        <span className="text-text-primary text-[12px] font-mono">{f.symbol}</span>
-                        <span className="font-mono text-[11px] text-loss tabular-nums">
+                      <div key={f.symbol} className="flex items-center justify-between py-1">
+                        <span className="font-mono text-[12px] font-medium text-text-primary">{f.symbol}</span>
+                        <span className="font-mono text-[11px] font-medium tabular-nums text-loss">
                           {f.rate_pct?.toFixed(4)}%
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-ink/[0.04] flex justify-between font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                <div className="mt-2.5 flex justify-between border-t border-ink/[0.05] pt-2.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">
                   <span>
                     {t('markets.avg_rate')}{' '}
-                    <span className="text-text-primary tabular-nums">
+                    <span className="tabular-nums text-text-primary">
                       {derivatives.funding?.avg_rate?.toFixed(4)}%
                     </span>
                   </span>
@@ -446,24 +432,23 @@ const MarketsPage = () => {
                 </div>
               </div>
 
-              {/* Long/Short Ratio */}
               <div>
                 <SectionLabel>{t('markets.ls_ratio')}</SectionLabel>
-                <div className="mt-3 space-y-3">
+                <div className="mt-2.5 space-y-3">
                   {Object.entries(derivatives.longShort || {}).map(([sym, d]) => (
                     <div key={sym}>
-                      <div className="flex justify-between text-[11px] mb-1.5 font-mono">
-                        <span className="text-text-primary">{sym}</span>
-                        <span className="text-text-muted uppercase tracking-wider text-[10px]">
+                      <div className="mb-1.5 flex justify-between font-mono text-[11px]">
+                        <span className="font-medium text-text-primary">{sym}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-text-muted">
                           {t('markets.ratio')}{' '}
-                          <span className="text-text-primary tabular-nums">{d.ratio?.toFixed(2)}</span>
+                          <span className="tabular-nums text-text-primary">{d.ratio?.toFixed(2)}</span>
                         </span>
                       </div>
-                      <div className="flex h-1.5 rounded-sm overflow-hidden bg-ink/[0.04]">
-                        <div className="bg-profit/80 transition-all" style={{ width: `${d.long}%` }} />
-                        <div className="bg-loss/80 transition-all" style={{ width: `${d.short}%` }} />
+                      <div className="flex h-1.5 overflow-hidden rounded-sm bg-ink/[0.06]">
+                        <div className="bg-profit transition-all" style={{ width: `${d.long}%` }} />
+                        <div className="bg-loss transition-all" style={{ width: `${d.short}%` }} />
                       </div>
-                      <div className="flex justify-between text-[10px] mt-1 font-mono uppercase tracking-wider tabular-nums">
+                      <div className="mt-1 flex justify-between font-mono text-[10px] uppercase tracking-wider tabular-nums">
                         <span className="text-profit">{t('markets.long')} {d.long}%</span>
                         <span className="text-loss">{t('markets.short')} {d.short}%</span>
                       </div>
@@ -472,10 +457,9 @@ const MarketsPage = () => {
                 </div>
               </div>
 
-              {/* Open Interest */}
               <div>
                 <SectionLabel>{t('markets.open_interest')}</SectionLabel>
-                <p className="text-text-primary text-2xl font-mono font-light tabular-nums my-2">
+                <p className="my-2 font-mono text-2xl font-semibold tabular-nums tracking-tight text-text-primary">
                   ${fmtLarge(derivatives.openInterest?.total_usd)}
                 </p>
                 <div className="space-y-1.5">
@@ -485,14 +469,14 @@ const MarketsPage = () => {
                       : 0;
                     return (
                       <div key={oi.symbol} className="flex items-center gap-2.5">
-                        <span className="text-text-primary text-[11px] font-mono w-12">{oi.symbol}</span>
-                        <div className="flex-1 h-1 bg-ink/[0.04] rounded-sm overflow-hidden">
+                        <span className="w-12 font-mono text-[11px] font-medium text-text-primary">{oi.symbol}</span>
+                        <div className="h-1 flex-1 overflow-hidden rounded-sm bg-ink/[0.06]">
                           <div
-                            className="h-full bg-gold-primary/70 transition-all"
+                            className="h-full bg-text-muted/50 transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="font-mono text-[10px] tabular-nums text-text-muted w-20 text-right">
+                        <span className="w-20 text-right font-mono text-[10px] tabular-nums text-text-muted">
                           ${fmtLarge(oi.oi_usd)}
                         </span>
                       </div>
@@ -506,54 +490,51 @@ const MarketsPage = () => {
           )}
         </div>
 
-        {/* Liquidations */}
-        <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        {/* Liquidations — red = longs flushed, green = shorts flushed */}
+        <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
           <SectionHeader
             title={t('markets.liquidations')}
             subtitle={t('markets.recent_closures')}
             icon="liquidation"
           />
           {liquidations && (liquidations.summary?.count > 0 || liquidations.recent?.length > 0) ? (
-            <div className="mt-4">
-              {/* Summary 3 boxes */}
-              <div className="grid grid-cols-3 gap-2.5 mb-4">
-                <div className="bg-surface-secondary rounded-sm p-3 text-center border border-ink/[0.04]">
+            <div className="mt-3">
+              <div className="mb-3 grid grid-cols-3 gap-2">
+                <div className="rounded-md border border-ink/[0.06] bg-surface-secondary p-2.5 text-center">
                   <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                     {t('markets.total')}
                   </p>
-                  <p className="font-mono text-sm font-light text-text-primary tabular-nums mt-1.5">
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-text-primary">
                     ${fmtLarge(liquidations.summary?.total_usd)}
                   </p>
                 </div>
-                <div className="bg-profit/[0.05] rounded-sm p-3 text-center border border-profit/15">
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-profit/80">
+                <div className="rounded-md border border-loss/20 bg-loss/[0.06] p-2.5 text-center">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-loss">
                     {t('markets.longs_liq')}
                   </p>
-                  <p className="font-mono text-sm font-light text-profit tabular-nums mt-1.5">
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-loss">
                     ${fmtLarge(liquidations.summary?.long_liquidated)}
                   </p>
                 </div>
-                <div className="bg-loss/[0.05] rounded-sm p-3 text-center border border-loss/15">
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-loss/80">
+                <div className="rounded-md border border-profit/20 bg-profit/[0.06] p-2.5 text-center">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-profit">
                     {t('markets.shorts_liq')}
                   </p>
-                  <p className="font-mono text-sm font-light text-loss tabular-nums mt-1.5">
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-profit">
                     ${fmtLarge(liquidations.summary?.short_liquidated)}
                   </p>
                 </div>
               </div>
 
-              {/* Split bar */}
               {liquidations.summary?.total_usd > 0 && (
-                <div className="mb-4">
-                  <div className="flex h-1.5 rounded-sm overflow-hidden bg-ink/[0.04]">
+                <div className="mb-3">
+                  <div className="flex h-1.5 overflow-hidden rounded-sm bg-ink/[0.06]">
                     <div
-                      className="bg-profit/80"
+                      className="bg-loss"
                       style={{ width: `${(liquidations.summary.long_liquidated / liquidations.summary.total_usd) * 100}%` }}
                     />
                     <div
-                      className="bg-loss/80"
+                      className="bg-profit"
                       style={{ width: `${(liquidations.summary.short_liquidated / liquidations.summary.total_usd) * 100}%` }}
                     />
                   </div>
@@ -561,28 +542,29 @@ const MarketsPage = () => {
               )}
 
               <SectionLabel>{t('markets.recent_orders')}</SectionLabel>
-              <div className="space-y-1 max-h-[340px] overflow-y-auto scrollbar-thin mt-3 pr-1">
+              <div className="mt-2 max-h-[340px] space-y-0.5 overflow-y-auto pr-1 scrollbar-thin">
                 {liquidations.recent?.slice(0, 15).map((liq, i) => {
+                  // SELL = long liquidated (forced sell) → red; BUY = short liq → green
                   const isLong = liq.side === 'SELL';
                   return (
                     <div
                       key={i}
-                      className="flex items-center gap-2.5 py-1.5 px-2 rounded-sm hover:bg-ink/[0.02] transition-colors"
+                      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-ink/[0.03]"
                     >
                       <span
-                        className={`font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm border ${
+                        className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${
                           isLong
-                            ? 'bg-profit/10 text-profit border-profit/25'
-                            : 'bg-loss/10 text-loss border-loss/25'
+                            ? 'bg-loss/15 text-loss'
+                            : 'bg-profit/15 text-profit'
                         }`}
                       >
                         {isLong ? 'LONG' : 'SHORT'}
                       </span>
-                      <span className="text-text-primary text-[11px] font-mono w-12">{liq.symbol}</span>
-                      <span className="font-mono text-[11px] text-text-muted tabular-nums flex-1">
+                      <span className="w-12 font-mono text-[11px] font-medium text-text-primary">{liq.symbol}</span>
+                      <span className="flex-1 font-mono text-[11px] tabular-nums text-text-secondary">
                         ${fmtNum(liq.usd)}
                       </span>
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                         {timeAgo(liq.time, t)}
                       </span>
                     </div>
@@ -596,7 +578,7 @@ const MarketsPage = () => {
                 <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
                   {t('markets.no_liq')}
                 </p>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60 mt-1">
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-text-muted/60">
                   {t('markets.liq_update')}
                 </p>
               </div>
@@ -608,18 +590,17 @@ const MarketsPage = () => {
       </div>
 
       {/* ── DEFI + MACRO ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
           <SectionHeader
             title={t('markets.defi_overview')}
             subtitle={t('markets.total_tvl')}
             icon="defi"
           />
           {defi ? (
-            <div className="mt-4 space-y-5">
+            <div className="mt-3 space-y-4">
               <div className="flex items-baseline gap-2.5">
-                <p className="text-3xl font-mono font-light text-text-primary tabular-nums tracking-tight">
+                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-text-primary">
                   ${fmtLarge(defi.totalTvl)}
                 </p>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
@@ -629,22 +610,22 @@ const MarketsPage = () => {
 
               <div>
                 <SectionLabel>{t('markets.top_chains')}</SectionLabel>
-                <div className="space-y-2 mt-3">
+                <div className="mt-2.5 space-y-2">
                   {defi.chains?.slice(0, 8).map((chain, i) => {
                     const pct = defi.totalTvl > 0 ? (chain.tvl / defi.totalTvl) * 100 : 0;
                     return (
                       <div key={chain.name} className="flex items-center gap-2.5">
-                        <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-4">
+                        <span className="w-4 font-mono text-[10px] tabular-nums text-text-muted">
                           {String(i + 1).padStart(2, '0')}
                         </span>
-                        <span className="text-text-primary text-[12px] w-24 truncate">{chain.name}</span>
-                        <div className="flex-1 h-1 bg-ink/[0.04] rounded-sm overflow-hidden">
+                        <span className="w-24 truncate text-[12px] font-medium text-text-primary">{chain.name}</span>
+                        <div className="h-1 flex-1 overflow-hidden rounded-sm bg-ink/[0.06]">
                           <div
-                            className="h-full bg-gold-primary/70 transition-all"
+                            className="h-full bg-text-muted/45 transition-all"
                             style={{ width: `${Math.max(pct, 1)}%` }}
                           />
                         </div>
-                        <span className="font-mono text-[10px] tabular-nums text-text-muted w-16 text-right">
+                        <span className="w-16 text-right font-mono text-[10px] tabular-nums text-text-muted">
                           ${fmtLarge(chain.tvl)}
                         </span>
                         <span className="font-mono text-[10px] tabular-nums text-text-muted/70 w-12 text-right">
@@ -658,23 +639,23 @@ const MarketsPage = () => {
 
               <div>
                 <SectionLabel>{t('markets.top_protocols')}</SectionLabel>
-                <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
                   {defi.protocols?.slice(0, 6).map(p => (
                     <div
                       key={p.name}
-                      className="bg-surface-secondary rounded-sm p-2.5 border border-ink/[0.04] flex items-center gap-2.5"
+                      className="flex items-center gap-2.5 rounded-md border border-ink/[0.06] bg-surface-secondary p-2.5"
                     >
                       {p.logo && (
                         <img
                           src={p.logo}
                           alt=""
-                          className="w-5 h-5 rounded-full"
+                          className="h-5 w-5 rounded-full"
                           onError={(e) => e.target.style.display = 'none'}
                         />
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-text-primary text-[11px] truncate">{p.name}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="truncate text-[11px] font-medium text-text-primary">{p.name}</p>
+                        <div className="mt-0.5 flex items-center gap-1.5">
                           <span className="font-mono text-[10px] tabular-nums text-text-muted">
                             ${fmtLarge(p.tvl)}
                           </span>
@@ -692,18 +673,17 @@ const MarketsPage = () => {
         </div>
 
         {/* Stablecoins + ETF */}
-        <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
           <SectionHeader
             title={t('markets.macro_stable')}
             subtitle={t('markets.macro_sub')}
             icon="macro"
           />
-          <div className="mt-4 space-y-5">
+          <div className="mt-3 space-y-4">
             {stablecoins ? (
               <div>
-                <div className="flex items-baseline gap-2.5 mb-3.5">
-                  <p className="text-2xl font-mono font-light text-text-primary tabular-nums tracking-tight">
+                <div className="mb-3 flex items-baseline gap-2.5">
+                  <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-text-primary">
                     ${fmtLarge(stablecoins.totalMcap)}
                   </p>
                   <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
@@ -716,17 +696,17 @@ const MarketsPage = () => {
                     const pct = stablecoins.totalMcap > 0 ? (s.mcap / stablecoins.totalMcap) * 100 : 0;
                     return (
                       <div key={s.symbol} className="flex items-center gap-2.5">
-                        <span className="text-text-primary text-[11px] font-mono w-14">{s.symbol}</span>
-                        <div className="flex-1 h-1 bg-ink/[0.04] rounded-sm overflow-hidden">
+                        <span className="w-14 font-mono text-[11px] font-medium text-text-primary">{s.symbol}</span>
+                        <div className="h-1 flex-1 overflow-hidden rounded-sm bg-ink/[0.06]">
                           <div
-                            className="h-full bg-gold-primary/60 transition-all"
+                            className="h-full bg-text-muted/45 transition-all"
                             style={{ width: `${Math.max(pct, 0.5)}%` }}
                           />
                         </div>
-                        <span className="font-mono text-[10px] tabular-nums text-text-muted w-16 text-right">
+                        <span className="w-16 text-right font-mono text-[10px] tabular-nums text-text-muted">
                           ${fmtLarge(s.mcap)}
                         </span>
-                        <span className="font-mono text-[10px] tabular-nums text-text-muted/70 w-12 text-right">
+                        <span className="w-12 text-right font-mono text-[10px] tabular-nums text-text-muted">
                           {pct.toFixed(1)}%
                         </span>
                       </div>
@@ -738,16 +718,16 @@ const MarketsPage = () => {
               <EmptyState text={t('markets.loading_stable')} />
             )}
 
-            <div className="pt-4 border-t border-ink/[0.04]">
+            <div className="border-t border-ink/[0.05] pt-3.5">
               <SectionLabel>{t('markets.etf_flows')}</SectionLabel>
-              <div className="mt-3">
+              <div className="mt-2.5">
                 {etfFlows && !etfFlows.error ? (
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2">
                     <EtfCard label={t('markets.btc_etf')} data={etfFlows.btc} t={t} />
                     <EtfCard label={t('markets.eth_etf')} data={etfFlows.eth} t={t} />
                   </div>
                 ) : (
-                  <div className="bg-surface-secondary rounded-sm p-4 border border-ink/[0.04] text-center">
+                  <div className="rounded-md border border-ink/[0.06] bg-surface-secondary p-4 text-center">
                     <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
                       {etfFlows?.error === 'SoSoValue API key not configured'
                         ? t('markets.etf_key_err')
@@ -762,9 +742,8 @@ const MarketsPage = () => {
       </div>
 
       {/* ── COIN TABLE ── */}
-      <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-5 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+      <div className="rounded-lg border border-ink/[0.07] bg-surface-raised p-4">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <SectionHeader title={t('markets.all_coins')} subtitle={t('markets.top_100')} icon="coins" />
           <div className="flex gap-1">
             {[
@@ -776,10 +755,10 @@ const MarketsPage = () => {
               <button
                 key={tab.key}
                 onClick={() => { setCoinTab(tab.key); setCoinPage(1); }}
-                className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-sm transition-colors ${
+                className={`rounded-md px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   coinTab === tab.key
-                    ? 'bg-ink/10 text-text-primary border border-ink/[0.08]'
-                    : 'bg-ink/[0.03] text-text-muted border border-transparent hover:bg-ink/[0.06] hover:text-text-primary'
+                    ? 'bg-accent text-accent-fg font-semibold border border-transparent'
+                    : 'bg-ink/[0.03] text-text-muted border border-ink/[0.06] hover:bg-ink/[0.06] hover:text-text-primary'
                 }`}
               >
                 {tab.label}
@@ -788,14 +767,14 @@ const MarketsPage = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto -mx-5 px-5">
+        <div className="-mx-4 overflow-x-auto px-4">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-ink/[0.06]">
+              <tr className="border-b border-ink/[0.07]">
                 {['#', t('markets.th_coin'), t('markets.th_price'), '1h %', '24h %', '7d %', t('markets.th_mcap'), t('markets.th_vol')].map(h => (
                   <th
                     key={h}
-                    className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70 py-3 px-2 text-left whitespace-nowrap"
+                    className="whitespace-nowrap px-2 py-2.5 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted"
                   >
                     {h}
                   </th>
@@ -806,30 +785,30 @@ const MarketsPage = () => {
               {paginatedCoins.map((c, i) => (
                 <tr
                   key={c.id}
-                  className="border-b border-ink/[0.03] hover:bg-ink/[0.02] transition-colors"
+                  className="border-b border-ink/[0.04] transition-colors hover:bg-ink/[0.025]"
                 >
-                  <td className="py-3 px-2 font-mono text-[11px] text-text-muted/70 tabular-nums">
+                  <td className="px-2 py-2.5 font-mono text-[11px] tabular-nums text-text-muted">
                     {(coinPage - 1) * COINS_PER_PAGE + i + 1}
                   </td>
-                  <td className="py-3 px-2">
+                  <td className="px-2 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      <img src={c.image} alt="" className="w-5 h-5 rounded-full" />
-                      <span className="text-text-primary text-[12px]">{c.name}</span>
+                      <img src={c.image} alt="" className="h-5 w-5 rounded-full" />
+                      <span className="text-[12.5px] font-medium text-text-primary">{c.name}</span>
                       <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                         {c.symbol?.toUpperCase()}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-2 text-text-primary text-[12px] font-mono font-light tabular-nums">
+                  <td className="px-2 py-2.5 font-mono text-[12.5px] font-medium tabular-nums text-text-primary">
                     ${fmtPrice(c.current_price)}
                   </td>
-                  <td className="py-3 px-2"><PctText value={c.price_change_percentage_1h_in_currency} /></td>
-                  <td className="py-3 px-2"><PctText value={c.price_change_percentage_24h} /></td>
-                  <td className="py-3 px-2"><PctText value={c.price_change_percentage_7d_in_currency} /></td>
-                  <td className="py-3 px-2 font-mono text-[11px] tabular-nums text-text-muted">
+                  <td className="px-2 py-2.5"><PctText value={c.price_change_percentage_1h_in_currency} /></td>
+                  <td className="px-2 py-2.5"><PctText value={c.price_change_percentage_24h} /></td>
+                  <td className="px-2 py-2.5"><PctText value={c.price_change_percentage_7d_in_currency} /></td>
+                  <td className="px-2 py-2.5 font-mono text-[11px] tabular-nums text-text-secondary">
                     ${fmtLarge(c.market_cap)}
                   </td>
-                  <td className="py-3 px-2 font-mono text-[11px] tabular-nums text-text-muted">
+                  <td className="px-2 py-2.5 font-mono text-[11px] tabular-nums text-text-secondary">
                     ${fmtLarge(c.total_volume)}
                   </td>
                 </tr>
@@ -903,13 +882,13 @@ const MarketsPage = () => {
 
 const SectionHeader = ({ title, subtitle, icon }) => (
   <div className="flex items-center gap-2.5">
-    <div className="w-7 h-7 rounded-sm flex items-center justify-center flex-shrink-0 bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.03] text-text-secondary">
       <SectionIcon type={icon} />
     </div>
     <div>
-      <h3 className="text-text-primary text-sm font-normal tracking-tight">{title}</h3>
+      <h3 className="text-[14px] font-semibold tracking-tight text-text-primary">{title}</h3>
       {subtitle && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">
           {subtitle}
         </p>
       )}
@@ -918,7 +897,7 @@ const SectionHeader = ({ title, subtitle, icon }) => (
 );
 
 const SectionLabel = ({ children }) => (
-  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80">
+  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
     {children}
   </p>
 );
@@ -1019,7 +998,7 @@ const IconArrowDownMini = () => (
 );
 
 const IconNewsSmall = () => (
-  <svg className="w-3.5 h-3.5 text-gold-primary/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className="h-3.5 w-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="5" width="14" height="15" />
     <line x1="6" y1="9" x2="14" y2="9" />
     <line x1="6" y1="12" x2="14" y2="12" />
@@ -1031,15 +1010,14 @@ const IconNewsSmall = () => (
    ────────────────────────────────────────────────────────────── */
 
 const GlobalStat = ({ label, value, change, accent }) => (
-  <div className="bg-surface-secondary rounded-sm p-3 border border-ink/[0.04]">
-    <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">{label}</p>
-    <div className="h-px bg-ink/[0.04] my-2" />
-    <p className={`font-mono text-sm font-light tabular-nums tracking-tight ${accent || 'text-text-primary'}`}>
+  <div className="rounded-md border border-ink/[0.06] bg-surface-secondary p-3">
+    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">{label}</p>
+    <p className={`mt-1.5 font-mono text-[15px] font-semibold tabular-nums tracking-tight ${accent || 'text-text-primary'}`}>
       {value}
     </p>
     {change != null && (
       <span
-        className={`inline-flex items-center gap-0.5 font-mono text-[10px] tabular-nums mt-1 ${
+        className={`mt-1 inline-flex items-center gap-0.5 font-mono text-[10px] font-medium tabular-nums ${
           change >= 0 ? 'text-profit' : 'text-loss'
         }`}
       >
@@ -1054,20 +1032,19 @@ const FearGreedMini = ({ value, label, t }) => {
   const v = value || 50;
   const color =
     v <= 25 ? 'text-loss'
-    : v <= 45 ? 'text-amber-500/80'
-    : v <= 55 ? 'text-gold-primary'
-    : v <= 75 ? 'text-profit/80'
+    : v <= 45 ? 'text-loss/80'
+    : v <= 55 ? 'text-text-secondary'
+    : v <= 75 ? 'text-profit/90'
     : 'text-profit';
   return (
-    <div className="bg-surface-secondary rounded-sm p-3 border border-ink/[0.04]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
+    <div className="rounded-md border border-ink/[0.06] bg-surface-secondary p-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
         {t('markets.fear_greed')}
       </p>
-      <div className="h-px bg-ink/[0.04] my-2" />
-      <div className="flex items-center gap-2.5">
-        <div className="relative w-9 h-9 flex-shrink-0">
-          <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15" stroke="rgb(var(--ink) / 0.06)" strokeWidth="2.5" fill="none" />
+      <div className="mt-1.5 flex items-center gap-2.5">
+        <div className="relative h-9 w-9 flex-shrink-0">
+          <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" stroke="rgb(var(--ink) / 0.08)" strokeWidth="2.5" fill="none" />
             <circle
               cx="18" cy="18" r="15"
               stroke="currentColor" strokeWidth="2.5" fill="none"
@@ -1077,10 +1054,10 @@ const FearGreedMini = ({ value, label, t }) => {
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className={`font-mono text-[11px] tabular-nums ${color}`}>{v}</span>
+            <span className={`font-mono text-[11px] font-semibold tabular-nums ${color}`}>{v}</span>
           </div>
         </div>
-        <span className={`font-mono text-[11px] uppercase tracking-wider ${color}`}>
+        <span className={`font-mono text-[11px] font-medium uppercase tracking-wider ${color}`}>
           {label || t('markets.neutral')}
         </span>
       </div>
@@ -1093,12 +1070,12 @@ const PctBadge = ({ value, small }) => {
   const pos = value >= 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 font-mono tabular-nums rounded-sm px-1.5 py-0.5 border ${
+      className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono font-medium tabular-nums ${
         small ? 'text-[9px]' : 'text-[10px]'
       } ${
         pos
-          ? 'bg-profit/10 text-profit border-profit/20'
-          : 'bg-loss/10 text-loss border-loss/20'
+          ? 'bg-profit/12 text-profit'
+          : 'bg-loss/12 text-loss'
       }`}
     >
       {pos ? '+' : ''}{value?.toFixed(2)}%
@@ -1111,7 +1088,7 @@ const PctText = ({ value }) => {
   const pos = value >= 0;
   return (
     <span
-      className={`font-mono text-[11px] tabular-nums ${pos ? 'text-profit' : 'text-loss'}`}
+      className={`font-mono text-[11px] font-medium tabular-nums ${pos ? 'text-profit' : 'text-loss'}`}
     >
       {pos ? '+' : ''}{value.toFixed(2)}%
     </span>
@@ -1120,9 +1097,9 @@ const PctText = ({ value }) => {
 
 const EtfCard = ({ label, data, t }) => {
   if (!data || !data.records?.length) return (
-    <div className="bg-surface-secondary rounded-sm p-3 border border-ink/[0.04]">
+    <div className="rounded-md border border-ink/[0.06] bg-surface-secondary p-3">
       <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</p>
-      <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted/70 mt-2">
+      <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-text-muted">
         {t('markets.no_data')}
       </p>
     </div>
@@ -1131,16 +1108,16 @@ const EtfCard = ({ label, data, t }) => {
   const flow = latest?.netFlow;
   const pos = flow >= 0;
   return (
-    <div className="bg-surface-secondary rounded-sm p-3 border border-ink/[0.04]">
+    <div className="rounded-md border border-ink/[0.06] bg-surface-secondary p-3">
       <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</p>
-      <p className={`font-mono text-sm font-light tabular-nums mt-1.5 ${pos ? 'text-profit' : 'text-loss'}`}>
+      <p className={`mt-1.5 font-mono text-sm font-semibold tabular-nums ${pos ? 'text-profit' : 'text-loss'}`}>
         {pos ? '+' : ''}{flow != null ? `$${fmtLarge(Math.abs(flow))}` : '-'}
       </p>
-      <p className="font-mono text-[10px] tabular-nums text-text-muted/70 mt-1">
+      <p className="mt-1 font-mono text-[10px] tabular-nums text-text-muted">
         {latest?.date || ''}
       </p>
       {latest?.totalAum && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
           {t('markets.aum')} ${fmtLarge(latest.totalAum)}
         </p>
       )}
@@ -1149,7 +1126,7 @@ const EtfCard = ({ label, data, t }) => {
 };
 
 /* ──────────────────────────────────────────────────────────────
-   HEATMAP — Flowscan muted profit/loss palette
+   HEATMAP — solid Binance green/red (shared heatPct, no alpha wash)
    ────────────────────────────────────────────────────────────── */
 
 const HeatmapGrid = ({ coins }) => {
@@ -1183,86 +1160,71 @@ const HeatmapGrid = ({ coins }) => {
     return squarify(items, { x: 0, y: 0, w: dims.w, h: dims.h });
   }, [coins, dims]);
 
-  // Flowscan muted palette: profit #56c996, loss #e07288
-  const getColor = (pct) => {
-    const abs = Math.abs(pct || 0);
-    const t = Math.min(abs / 8, 1);
-    if (pct >= 0) {
-      // muted green: from very dark to medium #56c996
-      const intensity = 0.08 + t * 0.32; // 0.08 → 0.40 alpha
-      return `rgba(86, 201, 150, ${intensity})`;
-    } else {
-      // muted rose: from very dark to medium #e07288
-      const intensity = 0.08 + t * 0.32;
-      return `rgba(224, 114, 136, ${intensity})`;
-    }
-  };
-
   return (
     <div
       ref={containerRef}
-      className="relative mt-4 rounded-sm overflow-hidden bg-surface"
+      className="relative mt-3 overflow-hidden rounded-md bg-ink/[0.04]"
       style={{ height: dims.h || 320 }}
     >
       {rects.map((r) => {
         const pct = r.change_24h || 0;
         const isLarge = r.w > 70 && r.h > 55;
         const isMedium = r.w > 45 && r.h > 38;
-        const textColor = pct >= 0 ? '#56c996' : '#e07288';
+        const tipColor = pct >= 0 ? '#0ECB81' : '#F6465D';
+        const labelShadow = '0 1px 2px rgba(0,0,0,0.65)';
         return (
           <div
             key={r.id}
-            className="absolute flex flex-col items-center justify-center cursor-default group heatmap-cell"
+            className="heatmap-cell group absolute flex cursor-default flex-col items-center justify-center"
             style={{
               left: r.x,
               top: r.y,
               width: r.w - 1.5,
               height: r.h - 1.5,
-              backgroundColor: getColor(pct),
-              border: '1px solid rgb(var(--ink) / 0.04)',
+              backgroundColor: heatPct(pct, 8),
+              border: '1px solid rgba(0,0,0,0.28)',
             }}
             title={`${r.name}: $${fmtPrice(r.price)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`}
           >
             {isLarge && r.image && (
-              <img src={r.image} alt="" className="w-6 h-6 rounded-full mb-1 opacity-90 group-hover:opacity-100" />
+              <img src={r.image} alt="" className="mb-1 h-6 w-6 rounded-full ring-1 ring-black/20" />
             )}
             {isMedium && (
               <>
                 <span
-                  className="text-text-primary font-mono leading-none"
-                  style={{ fontSize: isLarge ? '12px' : '10px' }}
+                  className="font-mono font-bold leading-none text-white"
+                  style={{ fontSize: isLarge ? '12px' : '10px', textShadow: labelShadow }}
                 >
                   {r.symbol}
                 </span>
                 <span
-                  className="font-mono leading-none mt-1 tabular-nums"
-                  style={{ fontSize: isLarge ? '11px' : '9px', color: textColor }}
+                  className="mt-1 font-mono font-bold tabular-nums leading-none text-white"
+                  style={{ fontSize: isLarge ? '11px' : '9px', textShadow: labelShadow }}
                 >
                   {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
                 </span>
               </>
             )}
             {!isMedium && r.w > 25 && r.h > 18 && (
-              <span className="text-text-primary/85 font-mono leading-none" style={{ fontSize: '9px' }}>
+              <span className="font-mono font-bold leading-none text-white" style={{ fontSize: '9px', textShadow: labelShadow }}>
                 {r.symbol}
               </span>
             )}
 
-            <div className="heatmap-tooltip opacity-0 group-hover:opacity-100 pointer-events-none absolute z-50 -top-16 left-1/2 -translate-x-1/2 bg-surface border border-ink/[0.06] rounded-sm px-3 py-2 whitespace-nowrap shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+            <div className="heatmap-tooltip pointer-events-none absolute -top-16 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-ink/10 bg-surface-raised px-3 py-2 opacity-0 shadow-xl group-hover:opacity-100">
               <div className="flex items-center gap-2">
-                {r.image && <img src={r.image} alt="" className="w-4 h-4 rounded-full" />}
-                <span className="text-text-primary text-[11px]">{r.name}</span>
+                {r.image && <img src={r.image} alt="" className="h-4 w-4 rounded-full" />}
+                <span className="text-[11px] font-medium text-text-primary">{r.name}</span>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                   {r.symbol}
                 </span>
               </div>
-              <div className="flex items-center gap-3 mt-1 font-mono text-[10px] tabular-nums">
-                <span className="text-text-primary">${fmtPrice(r.price)}</span>
-                <span style={{ color: textColor }}>
+              <div className="mt-1 flex items-center gap-3 font-mono text-[10px] tabular-nums">
+                <span className="font-medium text-text-primary">${fmtPrice(r.price)}</span>
+                <span style={{ color: tipColor, fontWeight: 700 }}>
                   {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
                 </span>
-                <span className="text-text-muted/70 uppercase tracking-wider">
+                <span className="uppercase tracking-wider text-text-muted">
                   MCap: ${fmtLarge(r.mcap)}
                 </span>
               </div>
@@ -1362,9 +1324,9 @@ const Styles = () => (
     .scrollbar-thin::-webkit-scrollbar{width:4px}
     .scrollbar-thin::-webkit-scrollbar-track{background:transparent}
     .scrollbar-thin::-webkit-scrollbar-thumb{background:rgb(var(--ink) / 0.08);border-radius:2px}
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,0.25)}
-    .heatmap-cell{transition:filter .15s,transform .12s}
-    .heatmap-cell:hover{filter:brightness(1.4);z-index:20;transform:scale(1.005)}
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover{background:rgb(var(--ink) / 0.16)}
+    .heatmap-cell{transition:filter .12s,transform .1s}
+    .heatmap-cell:hover{filter:brightness(1.1) saturate(1.12);z-index:20;transform:scale(1.015)}
     .heatmap-tooltip{transition:opacity .15s ease-out}
   `}</style>
 );

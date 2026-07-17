@@ -17,39 +17,38 @@ import CoinLogo from "../CoinLogo";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 import {
   API_BASE, authHeaders, GOLD, POS, NEG,
-  fmtMoney, SectionBand, Kpi, Warming, CoinPill, Chip,
+  fmtMoney, SectionBand, Kpi, Warming, CoinPill, Chip, heatBias,
 } from "./vizShared";
 
-const biasColor = (b) => (b > 0.15 ? POS : b < -0.15 ? NEG : GOLD);
-
-const logoUrl = (name) => {
-  const clean = (name || "").replace(/USDT$/i, "").toLowerCase().replace(/^1000/, "");
-  return `https://assets.coincap.io/assets/icons/${clean}@2x.png`;
-};
-// dark outline so labels stay legible on any cell colour
-const OUTLINE = { paintOrder: "stroke", stroke: "rgb(var(--surface))", strokeWidth: 3, strokeLinejoin: "round" };
-
 // custom treemap cell — recharts spreads the node's fields into props.
-// Uses <foreignObject> to embed the real <CoinLogo> (logo + initials fallback,
-// never a broken image). Gold border + CALL tag + click on LuxQuant calls.
+// Solid Binance green/red fills (no pastel wash). White labels for contrast.
 function LiqCell(props) {
-  const { x, y, width, height, name, bias = 0, spike, intensity = 0.3, called, onPick } = props;
+  const { x, y, width, height, name, bias = 0, spike, intensity = 0.55, called, onPick } = props;
   const size = props.size ?? props.value ?? 0;
   if (!name || width <= 1 || height <= 1) return null;
-  const color = biasColor(bias);
+  const fill = heatBias(bias, intensity);
   const sym = (name || "").replace(/USDT$/i, "");
   const med = width > 34 && height > 24;
   const big = width > 54 && height > 46;
   const logo = Math.min(26, Math.max(13, Math.min(width, height) * 0.26));
+  const label = {
+    color: "#ffffff",
+    fontWeight: 700,
+    lineHeight: 1.05,
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+  };
   return (
     <g style={{ cursor: called ? "pointer" : "default" }} onClick={() => onPick?.(name, called)}>
       <rect
-        x={x} y={y} width={width} height={height} rx={2}
+        x={x} y={y} width={Math.max(0, width - 1)} height={Math.max(0, height - 1)} rx={3}
         style={{
-          fill: color,
-          fillOpacity: 0.16 + intensity * 0.5,
-          stroke: called ? "rgba(212,168,83,0.95)" : "#0a0806",
-          strokeWidth: 2,
+          fill,
+          stroke: called ? "rgb(var(--accent))" : "rgba(0,0,0,0.22)",
+          strokeWidth: called ? 2 : 1,
         }}
       />
       {med && (
@@ -62,18 +61,26 @@ function LiqCell(props) {
             }}
           >
             {big && <CoinLogo pair={name} size={logo} />}
-            <span style={{ color: "rgb(var(--fg))", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {sym}
-            </span>
-            <span style={{ color: "rgb(var(--fg))", opacity: 0.95, fontFamily: "ui-monospace, monospace", fontSize: big ? 11 : 9.5, lineHeight: 1.05 }}>
+            <span style={{ ...label, fontSize: big ? 12.5 : 10.5 }}>{sym}</span>
+            <span style={{ ...label, fontWeight: 600, fontFamily: "ui-monospace, monospace", fontSize: big ? 11 : 9.5, opacity: 0.95 }}>
               {fmtMoney(size)}
             </span>
           </div>
         </foreignObject>
       )}
-      {spike && med && <circle cx={x + width - 8} cy={y + 8} r={3.2} fill={GOLD} />}
+      {spike && med && <circle cx={x + width - 8} cy={y + 8} r={3.4} fill="rgb(var(--accent))" stroke="rgba(0,0,0,0.35)" strokeWidth={1} />}
       {called && med && (
-        <text x={x + width - 5} y={y + height - 6} textAnchor="end" fill="#e8c877" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em">
+        <text
+          x={x + width - 5}
+          y={y + height - 6}
+          textAnchor="end"
+          fill="rgb(var(--accent))"
+          fontSize={8}
+          fontWeight={800}
+          fontFamily="ui-monospace, monospace"
+          letterSpacing="0.06em"
+          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+        >
           CALL
         </text>
       )}

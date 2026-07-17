@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
   CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
-import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf, useZoom } from "./terminal/vizShared";
+import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf, useZoom, heatDiverging } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
@@ -22,14 +22,8 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 // and are read from the URL so the "Terminal" button can carry them over.
 // ════════════════════════════════════════════════════════════════
 
-// ── color helpers ──
-const lerp = (a, b, t) => a + (b - a) * t;
-function heat(t) {
-  t = Math.max(0, Math.min(1, t));
-  const r = [239, 68, 68], m = [70, 60, 55], g = [16, 185, 129];
-  if (t < 0.5) { const u = t / 0.5; return `rgb(${lerp(r[0], m[0], u) | 0},${lerp(r[1], m[1], u) | 0},${lerp(r[2], m[2], u) | 0})`; }
-  const u = (t - 0.5) / 0.5; return `rgb(${lerp(m[0], g[0], u) | 0},${lerp(m[1], g[1], u) | 0},${lerp(m[2], g[2], u) | 0})`;
-}
+// Sharp Binance-style diverging heat (shared with Markets / Liquidations)
+const heat = heatDiverging;
 function shortNum(v) {
   if (!v && v !== 0) return "—";
   if (v >= 1e12) return (v / 1e12).toFixed(2) + "T";
@@ -642,14 +636,28 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
         const showLabel = r.w > 30 && r.h > 16;
         return (
           <div key={d.signal_id} onClick={() => onPick(d)} title={`${d.sym} · ${METRICS[colorBy].fmt(METRICS[colorBy].get(d))}`}
-            className="absolute rounded-md overflow-hidden cursor-pointer border border-black/40 hover:outline hover:outline-1 hover:outline-ink/60 transition-transform hover:-translate-y-0.5"
-            style={{ left: r.x, top: r.y, width: r.w - 3, height: r.h - 3, background: colorByMetric(d, colorBy, model) }}>
-            <div className="absolute inset-0 p-1.5 flex flex-col justify-between">
-              <div className="flex items-center gap-1 min-w-0">
+            className="absolute overflow-hidden cursor-pointer rounded-sm border border-black/30 transition-transform hover:-translate-y-0.5 hover:outline hover:outline-1 hover:outline-white/40"
+            style={{ left: r.x, top: r.y, width: r.w - 2, height: r.h - 2, background: colorByMetric(d, colorBy, model) }}>
+            <div className="absolute inset-0 flex flex-col justify-between p-1.5">
+              <div className="flex min-w-0 items-center gap-1">
                 {big && <CoinLogo pair={d.pair} size={Math.min(18, Math.max(12, fs))} />}
-                {showLabel && <div className="font-mono font-bold leading-none text-text-primary truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgb(var(--scrim) / 0.35)" }}>{d.sym}</div>}
+                {showLabel && (
+                  <div
+                    className="truncate font-mono font-bold leading-none text-white"
+                    style={{ fontSize: fs, textShadow: "0 1px 3px rgba(0,0,0,0.65)" }}
+                  >
+                    {d.sym}
+                  </div>
+                )}
               </div>
-              {big && <div className="font-mono leading-none text-text-primary/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgb(var(--scrim) / 0.35)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
+              {big && (
+                <div
+                  className="font-mono font-semibold leading-none text-white/95"
+                  style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 3px rgba(0,0,0,0.65)" }}
+                >
+                  {METRICS[colorBy].fmt(METRICS[colorBy].get(d))}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -749,7 +757,7 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
     if (cx == null || cy == null) return null;
     return (
       <g style={{ cursor: "pointer" }} onClick={() => onPick(payload.d)}>
-        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke={payload.sc || "rgb(var(--scrim) / 0.35)"} strokeWidth={payload.sc ? 2 : 0.6} />
+        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.88} stroke={payload.sc || "rgba(0,0,0,0.35)"} strokeWidth={payload.sc ? 2 : 0.8} />
         {payload.lab && (
           <text x={cx} y={cy - payload.r - 3} textAnchor="middle" fontFamily="monospace" fontSize={9.5} fontWeight="700"
             fill="#fff" stroke="rgb(var(--scrim) / 0.9)" strokeWidth={2.6} paintOrder="stroke" pointerEvents="none">{payload.lab}</text>
@@ -855,7 +863,7 @@ function Matrix({ model, onPick }) {
                 return (
                   <td key={k} className="p-0 text-center">
                     <div onClick={() => onPick(d)} className="m-1 h-9 rounded-md flex items-center justify-center font-mono text-[12px] font-bold cursor-pointer hover:outline hover:outline-1 hover:outline-white transition-transform hover:-translate-y-0.5"
-                      style={missing ? { background: "rgb(var(--surface-hover))", color: "#6b6259" } : { background: colorByMetric(d, k, model), color: "rgb(var(--surface))" }}>
+                      style={missing ? { background: "rgb(var(--surface-hover))", color: "rgb(var(--fg-muted))" } : { background: colorByMetric(d, k, model), color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.45)" }}>
                       {txt}
                     </div>
                   </td>

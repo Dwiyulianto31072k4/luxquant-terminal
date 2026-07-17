@@ -22,25 +22,32 @@ export const TIER_LABELS = {
   unreliable: "Unreliable",
 };
 
-// ─── Win-rate → color (shared scale across all heatmaps) ─────────
+// ─── Win-rate → color (solid Binance green/red — no pastel alpha) ─
+// Mix deep slate → full #0ECB81 / #F6465D so cells stay sharp on any theme.
+const _WR_M = [32, 38, 48];
+const _WR_G = [14, 203, 129];
+const _WR_R = [246, 70, 93];
+const _mix3 = (a, b, t) =>
+  `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`;
+
 export const wrColor = (wr, total = 1) => {
-  if (!total) return "rgb(var(--ink) / 0.025)";
-  if (wr === null || wr === undefined) return "rgb(var(--ink) / 0.05)";
-  if (wr >= 90) return "rgba(16,185,129,0.62)";
-  if (wr >= 75) return "rgba(16,185,129,0.42)";
-  if (wr >= 60) return "rgba(16,185,129,0.26)";
-  if (wr >= 50) return "rgb(var(--ink) / 0.09)";
-  if (wr >= 35) return "rgba(239,68,68,0.28)";
-  return "rgba(239,68,68,0.5)";
+  if (!total) return `rgb(${_WR_M[0]},${_WR_M[1]},${_WR_M[2]})`;
+  if (wr === null || wr === undefined) return `rgb(${_WR_M[0]},${_WR_M[1]},${_WR_M[2]})`;
+  if (wr >= 90) return _mix3(_WR_M, _WR_G, 1.0);
+  if (wr >= 75) return _mix3(_WR_M, _WR_G, 0.82);
+  if (wr >= 60) return _mix3(_WR_M, _WR_G, 0.58);
+  if (wr >= 50) return _mix3(_WR_M, _WR_G, 0.32);
+  if (wr >= 35) return _mix3(_WR_M, _WR_R, 0.48);
+  return _mix3(_WR_M, _WR_R, 0.85);
 };
 
 export const WR_LEGEND = [
-  { l: "<35", c: "rgba(239,68,68,0.5)" },
-  { l: "35–50", c: "rgba(239,68,68,0.28)" },
-  { l: "50–60", c: "rgb(var(--ink)_/_0.09)" },
-  { l: "60–75", c: "rgba(16,185,129,0.26)" },
-  { l: "75–90", c: "rgba(16,185,129,0.42)" },
-  { l: "≥90", c: "rgba(16,185,129,0.62)" },
+  { l: "<35", c: _mix3(_WR_M, _WR_R, 0.85) },
+  { l: "35–50", c: _mix3(_WR_M, _WR_R, 0.48) },
+  { l: "50–60", c: _mix3(_WR_M, _WR_G, 0.32) },
+  { l: "60–75", c: _mix3(_WR_M, _WR_G, 0.58) },
+  { l: "75–90", c: _mix3(_WR_M, _WR_G, 0.82) },
+  { l: "≥90", c: _mix3(_WR_M, _WR_G, 1.0) },
 ];
 
 // ─── Panel chrome ────────────────────────────────────────────────

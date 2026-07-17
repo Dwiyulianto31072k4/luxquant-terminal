@@ -21,6 +21,7 @@ import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
+import { heatPct } from "./terminal/vizShared";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -1624,35 +1625,34 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
 };
 
 // ════════════════════════════════════════════════════════
-// HEATMAP — Treemap (size scales with rank) — Flowscan card
+// HEATMAP — solid Binance green/red treemap (no pastel wash)
 // ════════════════════════════════════════════════════════
 
-const heatFill = (isBull, pct) => {
-  const intensity = Math.min(Math.abs(pct || 0) / 12, 0.85);
-  return isBull
-    ? `rgba(16,185,129,${0.12 + intensity * 0.42})`
-    : `rgba(239,68,68,${0.12 + intensity * 0.42})`;
-};
-
-// Treemap cell — recharts SVG cell (same chart model as the Terminal
-// Liquidations map) with a <foreignObject> so it can embed the real <CoinLogo>
-// (logo + automatic initials-circle fallback; never a broken image). Sharp
-// edges, tight seams. Gold border + CALL tag + click on LuxQuant calls.
 function HeatCell(props) {
-  const { x, y, width, height, name, pair, pct = 0, isBull, eventCount = 1, called, onPick } = props;
+  const { x, y, width, height, name, pair, pct = 0, eventCount = 1, called, onPick } = props;
   if (!name || width <= 1 || height <= 1) return null;
   const sym = stripQuote(name);
   const med = width > 32 && height > 22;
   const big = width > 54 && height > 44;
   const logo = Math.min(30, Math.max(13, Math.min(width, height) * 0.3));
+  const label = {
+    color: "#ffffff",
+    fontWeight: 700,
+    lineHeight: 1.05,
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+  };
   return (
     <g style={{ cursor: "pointer" }} onClick={() => onPick?.(pair, called)}>
       <rect
-        x={x} y={y} width={width} height={height}
+        x={x} y={y} width={Math.max(0, width - 1)} height={Math.max(0, height - 1)} rx={2}
         style={{
-          fill: heatFill(isBull, pct),
-          stroke: called ? "rgba(212,168,83,0.95)" : "#0a0806",
-          strokeWidth: called ? 2 : 1.5,
+          fill: heatPct(pct, 12),
+          stroke: called ? "rgb(var(--accent))" : "rgba(0,0,0,0.28)",
+          strokeWidth: called ? 2 : 1,
         }}
       />
       {med && (
@@ -1665,20 +1665,18 @@ function HeatCell(props) {
             }}
           >
             {big && <CoinLogo pair={pair} size={logo} />}
-            <span style={{ color: "rgb(var(--fg))", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {sym}
-            </span>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: big ? 12 : 9.5, lineHeight: 1.05, color: isBull ? "#6ee7b7" : "#fca5a5" }}>
+            <span style={{ ...label, fontSize: big ? 12.5 : 10.5 }}>{sym}</span>
+            <span style={{ ...label, fontWeight: 600, fontFamily: "ui-monospace, monospace", fontSize: big ? 12 : 9.5 }}>
               {pct >= 0 ? "+" : ""}{Number(pct).toFixed(1)}%
             </span>
           </div>
         </foreignObject>
       )}
       {med && (
-        <text x={x + 4} y={y + 11} fill="rgb(var(--ink) / 0.5)" fontSize={8.5} fontFamily="ui-monospace, monospace">×{eventCount}</text>
+        <text x={x + 4} y={y + 11} fill="rgba(255,255,255,0.7)" fontSize={8.5} fontFamily="ui-monospace, monospace" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>×{eventCount}</text>
       )}
       {called && med && (
-        <text x={x + width - 4} y={y + 11} textAnchor="end" fill="#e8c877" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em">CALL</text>
+        <text x={x + width - 4} y={y + 11} textAnchor="end" fill="rgb(var(--accent))" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>CALL</text>
       )}
     </g>
   );
@@ -1704,8 +1702,8 @@ function HeatTreemap({ data, height, onPick }) {
     if (!d.name) return null;
     return (
       <div className="rounded-md border border-ink/10 bg-surface-raised/95 px-3 py-2 text-[11px] shadow-xl">
-        <div className="font-medium text-text-primary mb-0.5">{stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}</div>
-        <div className="font-mono" style={{ color: d.isBull ? "#6ee7b7" : "#fca5a5" }}>{d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%</div>
+        <div className="font-medium text-text-primary mb-0.5">{stripQuote(d.name)} {d.called && <span className="text-accent">· CALL</span>}</div>
+        <div className="font-mono font-semibold" style={{ color: d.isBull ? "#0ECB81" : "#F6465D" }}>{d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%</div>
         <div className="font-mono text-text-muted">{d.eventCount} events</div>
       </div>
     );
@@ -1720,7 +1718,7 @@ function HeatTreemap({ data, height, onPick }) {
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <Treemap data={nodes} dataKey="size" aspectRatio={4 / 3} stroke="#0a0806" isAnimationActive={false} content={<HeatCell onPick={onPick} />}>
+      <Treemap data={nodes} dataKey="size" aspectRatio={4 / 3} stroke="transparent" isAnimationActive={false} content={<HeatCell onPick={onPick} />}>
         <RTooltip content={<Tip />} />
       </Treemap>
     </ResponsiveContainer>

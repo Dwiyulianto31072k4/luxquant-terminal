@@ -129,14 +129,14 @@ const PatternBtcHeatmapTab = ({ data, onDrill }) => {
                         win_rate: cell.win_rate,
                       })
                     }
-                    className="flex flex-col items-center justify-center rounded-md min-h-[40px] transition cursor-pointer hover:ring-1 hover:ring-gold-primary/55"
-                    style={{ background: wrColor(cell.win_rate, cell.count), opacity: dim ? 0.45 : 1 }}
+                    className="flex min-h-[40px] cursor-pointer flex-col items-center justify-center rounded-md transition hover:ring-1 hover:ring-white/30"
+                    style={{ background: wrColor(cell.win_rate, cell.count), opacity: dim ? 0.5 : 1, border: "1px solid rgba(0,0,0,0.22)" }}
                     title={`${p.pattern} · ${ctx} · ${cell.wins}/${cell.count} · ${cell.win_rate?.toFixed(1)}%`}
                   >
-                    <span className="font-mono tabular-nums text-[13px] text-text-primary/95 leading-none">
+                    <span className="font-mono text-[13px] font-bold tabular-nums leading-none text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>
                       {cell.win_rate?.toFixed(0)}%
                     </span>
-                    <span className="font-mono tabular-nums text-[9px] text-text-primary/50 mt-0.5">n={cell.count}</span>
+                    <span className="mt-0.5 font-mono text-[9px] tabular-nums text-white/80" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.45)" }}>n={cell.count}</span>
                   </button>
                 );
               })}

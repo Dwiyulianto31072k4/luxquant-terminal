@@ -168,22 +168,22 @@ const CalendarHeatmapTab = ({ data, onDrill }) => {
                               : `${cell.iso} · no signals`
                             : ""
                         }
-                        className={`relative aspect-square rounded-md border flex flex-col items-center justify-center px-0.5 transition ${
+                        className={`relative flex aspect-square flex-col items-center justify-center rounded-md border px-0.5 transition ${
                           has
-                            ? "cursor-pointer border-ink/[0.06] hover:ring-1 hover:ring-gold-primary/60 hover:border-line/30"
-                            : "cursor-default border-ink/[0.03]"
-                        } ${cell.isToday ? "ring-1 ring-gold-primary/70" : ""}`}
+                            ? "cursor-pointer border-black/25 hover:ring-1 hover:ring-white/30"
+                            : "cursor-default border-ink/[0.04]"
+                        } ${cell.isToday ? "ring-1 ring-accent" : ""}`}
                         style={{ background: bg, opacity: cell.inRange ? 1 : 0.25 }}
                       >
-                        <span className="absolute top-1 left-1.5 text-[9px] font-mono tabular-nums text-text-primary/35 leading-none">
+                        <span className={`absolute left-1.5 top-1 font-mono text-[9px] tabular-nums leading-none ${has ? "text-white/70" : "text-text-muted"}`}>
                           {cell.day}
                         </span>
                         {has ? (
                           <>
-                            <span className={`font-mono tabular-nums text-[15px] leading-none mt-1 ${wr >= 50 ? "text-text-primary/95" : "text-text-primary/90"}`}>
+                            <span className="mt-1 font-mono text-[15px] font-bold tabular-nums leading-none text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>
                               {wr?.toFixed(0)}%
                             </span>
-                            <span className="text-[9px] font-mono tabular-nums text-text-primary/45 mt-1 leading-none">
+                            <span className="mt-1 font-mono text-[9px] tabular-nums leading-none text-white/80" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.45)" }}>
                               {e.wins}/{e.total}
                             </span>
                           </>

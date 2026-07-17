@@ -108,9 +108,9 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
                             : "cursor-default"
                         }`}
                         style={{
-                          background: has ? wrColor(wr, total) : "rgb(var(--ink) / 0.015)",
-                          opacity: dim ? 0.5 : 1,
-                          border: has ? "1px solid rgb(var(--ink) / 0.06)" : "1px solid rgb(var(--ink) / 0.02)",
+                          background: has ? wrColor(wr, total) : "rgb(var(--ink) / 0.04)",
+                          opacity: dim ? 0.55 : 1,
+                          border: has ? "1px solid rgba(0,0,0,0.22)" : "1px solid rgb(var(--ink) / 0.04)",
                         }}
                         title={
                           has
@@ -120,10 +120,10 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
                       >
                         {total >= 5 && wr != null && (
                           <>
-                            <span className="font-mono tabular-nums text-[13px] text-text-primary/95 leading-none">
+                            <span className="font-mono tabular-nums text-[13px] font-bold leading-none text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>
                               {wr.toFixed(0)}
                             </span>
-                            <span className="font-mono tabular-nums text-[8px] text-text-primary/45 leading-none mt-0.5">
+                            <span className="mt-0.5 font-mono tabular-nums text-[8px] leading-none text-white/80" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.45)" }}>
                               {cell.count}
                             </span>
                           </>

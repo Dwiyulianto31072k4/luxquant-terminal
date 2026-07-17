@@ -31,6 +31,70 @@ export const GRAYBAR = "rgb(var(--fg) / 0.18)";
 export const GRID = "rgb(var(--ink) / 0.06)";
 export const AXIS = "rgb(var(--fg-muted))";
 export const MUTED = "rgb(var(--fg-muted))";
+
+// ── Heatmap / treemap colour (Binance-style, solid RGB — no alpha wash) ──
+// Alpha-on-dark = pastel pink/mint. Always mix solid stops instead.
+// Stops: red #F6465D · mid slate · green #0ECB81
+const HEAT_R = [246, 70, 93];
+const HEAT_M = [32, 38, 48];   // deep slate (not brown / washed rose)
+const HEAT_G = [14, 203, 129];
+const _lerp = (a, b, t) => a + (b - a) * t;
+const _mix = (c0, c1, t) =>
+  `rgb(${Math.round(_lerp(c0[0], c1[0], t))},${Math.round(_lerp(c0[1], c1[1], t))},${Math.round(_lerp(c0[2], c1[2], t))})`;
+// Ease toward extremes so mid values aren't muddy
+const _ease = (t) => t * t * (3 - 2 * t);
+
+/** t ∈ [0,1]: 0 = max red, 0.5 = neutral, 1 = max green — solid, punchy */
+export function heatDiverging(t) {
+  t = Math.max(0, Math.min(1, t));
+  if (t < 0.5) {
+    const u = _ease(1 - t / 0.5); // 1 at red extreme → 0 at mid
+    return _mix(HEAT_M, HEAT_R, Math.max(0.22, u));
+  }
+  const u = _ease((t - 0.5) / 0.5);
+  return _mix(HEAT_M, HEAT_G, Math.max(0.22, u));
+}
+
+/**
+ * Percent-based heatmap fill (Markets / Pulse / treemap-as-heatmap).
+ * Solid RGB only — never rgba. Floor strength keeps small moves readable.
+ * @param {number} pct  change %
+ * @param {number} [maxAbs=8]  |pct| that maps to full saturation
+ */
+export function heatPct(pct, maxAbs = 8) {
+  const t = Math.max(-1, Math.min(1, (Number(pct) || 0) / maxAbs));
+  // 0.38 floor → even ±1% reads as clear green/red, not white wash
+  const strength = 0.38 + _ease(Math.abs(t)) * 0.62;
+  if (t >= 0) return _mix(HEAT_M, HEAT_G, strength);
+  return _mix(HEAT_M, HEAT_R, strength);
+}
+
+/**
+ * Side-bias liquidations: shorts rekt → green, longs rekt → red.
+ * Solid RGB scaled by |bias| × intensity (tile size).
+ */
+export function heatBias(bias, intensity = 0.6) {
+  const i = Math.max(0.2, Math.min(1, Number(intensity) || 0.6));
+  const b = Number(bias) || 0;
+  const mag = Math.min(1, Math.abs(b));
+  if (b > 0.08) {
+    const s = 0.4 + 0.6 * Math.max(mag, i * 0.55);
+    return _mix(HEAT_M, HEAT_G, s);
+  }
+  if (b < -0.08) {
+    const s = 0.4 + 0.6 * Math.max(mag, i * 0.55);
+    return _mix(HEAT_M, HEAT_R, s);
+  }
+  // near-neutral: still slightly tinted by residual bias, never transparent
+  if (b > 0) return _mix(HEAT_M, HEAT_G, 0.28);
+  if (b < 0) return _mix(HEAT_M, HEAT_R, 0.28);
+  return `rgb(${HEAT_M[0]},${HEAT_M[1]},${HEAT_M[2]})`;
+}
+
+/** Text colour that stays legible on a heat tile (always white on solid fills) */
+export function heatLabelColor() {
+  return "#ffffff";
+}
 // Multi-series (vs BTC lines) — pos/neg first, then distinct chart hues
 export const SERIES = [
   "rgb(var(--pos))",

@@ -1119,14 +1119,18 @@ const CalendarHeatmap = ({ entries }) => {
             const data = dayMap[key];
             const isToday = key === todayKey;
 
-            let bg = "rgb(var(--ink) / 0.015)", textColor = "rgb(var(--ink) / 0.45)", border = "rgb(var(--ink) / 0.04)";
+            let bg = "rgb(var(--ink) / 0.04)", textColor = "rgb(var(--fg-muted))", border = "rgb(var(--ink) / 0.06)";
             if (data) {
-              const intensity = Math.min(Math.abs(data.pnl) / 200, 0.7) + 0.2;
-              if (data.pnl > 0) { bg = `rgba(16,185,129,${intensity * 0.35})`; border = `rgba(16,185,129,${intensity * 0.4})`; textColor = "#34d399"; }
-              else if (data.pnl < 0) { bg = `rgba(239,68,68,${intensity * 0.35})`; border = `rgba(239,68,68,${intensity * 0.4})`; textColor = "#f87171"; }
-              else { bg = "rgba(212,168,83,0.08)"; border = "rgba(212,168,83,0.2)"; textColor = "rgb(var(--ink) / 0.7)"; }
+              // Solid Binance fills — strength by |pnl|, never pastel wash
+              const t = Math.min(Math.abs(data.pnl) / 200, 1);
+              const s = 0.4 + t * 0.6;
+              const mid = [32, 38, 48], g = [14, 203, 129], r = [246, 70, 93];
+              const mix = (a, b, u) => `rgb(${Math.round(a[0]+(b[0]-a[0])*u)},${Math.round(a[1]+(b[1]-a[1])*u)},${Math.round(a[2]+(b[2]-a[2])*u)})`;
+              if (data.pnl > 0) { bg = mix(mid, g, s); border = "rgba(0,0,0,0.25)"; textColor = "#ffffff"; }
+              else if (data.pnl < 0) { bg = mix(mid, r, s); border = "rgba(0,0,0,0.25)"; textColor = "#ffffff"; }
+              else { bg = `rgb(${mid[0]},${mid[1]},${mid[2]})`; border = "rgba(0,0,0,0.2)"; textColor = "#ffffff"; }
             }
-            if (isToday) border = "rgba(212,168,83,0.6)";
+            if (isToday) border = "rgb(var(--accent))";
 
             return (
               <div
@@ -1144,8 +1148,8 @@ const CalendarHeatmap = ({ entries }) => {
 
         <div className="mt-3 pt-2.5 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/50">
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500/40 border border-emerald-500/40" />profit</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/40 border border-red-500/40" />loss</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: "#0ECB81" }} />profit</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: "#F6465D" }} />loss</span>
           </div>
           <span>{Object.keys(dayMap).length} days</span>
         </div>
