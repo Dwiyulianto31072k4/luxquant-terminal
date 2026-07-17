@@ -350,7 +350,7 @@ const MoreMenuDropdown = ({
         }`}
       >
         <div
-          className="lux-warm-panel relative w-[720px] max-w-[92vw] rounded-lg border border-ink/[0.07] shadow-2xl shadow-black/50 overflow-hidden"
+          className="lux-warm-panel relative w-[720px] max-w-[92vw] rounded-xl border border-ink/[0.12] shadow-2xl shadow-scrim/30 overflow-hidden"
         >
           {/* Ambient depth glow — single, restrained */}
           <span className="lux-warm-glow absolute -top-24 -right-16 w-72 h-72 rounded-full pointer-events-none" />

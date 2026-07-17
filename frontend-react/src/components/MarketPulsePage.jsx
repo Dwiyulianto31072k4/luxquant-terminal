@@ -2684,8 +2684,13 @@ const PulseStyles = () => (
       display: flex;
       flex-direction: column;
       min-height: 0;
-      background: #0a0805;
+      /* Theme-aware well — never hard black on bright */
+      background: rgb(var(--surface-secondary));
       overflow: hidden;
+    }
+    [data-theme="luxquant"] .mp-split-col,
+    [data-theme="dark"] .mp-split-col {
+      background: rgb(var(--surface));
     }
     @media (max-width: 620px) {
       .mp-split-grid { grid-template-columns: 1fr; }

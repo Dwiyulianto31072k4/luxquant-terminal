@@ -20,7 +20,7 @@ import {
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { ThemeProvider } from "./context/ThemeContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
@@ -518,6 +518,7 @@ const SidebarItem = ({
 // ════════════════════════════════════════
 function AppShell({ children }) {
   const { t, i18n } = useTranslation();
+  const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -525,6 +526,8 @@ function AppShell({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const moreMenuRef = useRef(null);
+  // Bright always solid chrome; dark themes solidify after slight scroll.
+  const headerSolid = theme === "bright" || scrolled;
 
   const isPremiumUser = () =>
     user &&
@@ -791,14 +794,16 @@ function AppShell({ children }) {
       <div className="luxury-bg" />
 
       {/* ══════════════════════════════════════════════
-          HEADER — Dynamic bg based on scroll:
-          - At top (scrollY ≤ 8): transparent, merges with luxury-bg
-          - Scrolled: solid bg-bg-primary + backdrop-blur for readability
-          Hairline divider always present (Flowscan style)
+          HEADER — solid desk chrome
+          Bright: always solid white bar + edge shadow
+          Dark themes: transparent at top → solid on scroll
+          Active nav: gold underline (theme-safe, never pure white)
           ══════════════════════════════════════════════ */}
       <header
-        className={`sticky top-0 z-50 border-b border-ink/[0.06] transition-colors duration-200 ${
-          scrolled ? "bg-bg-primary/95 backdrop-blur-md" : "bg-transparent"
+        className={`lq-app-header sticky top-0 z-50 border-b transition-colors duration-200 ${
+          headerSolid
+            ? "border-ink/[0.1] bg-surface-raised/98 backdrop-blur-md"
+            : "border-ink/[0.06] bg-transparent"
         }`}
       >
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
@@ -823,27 +828,25 @@ function AppShell({ children }) {
                 </div>
               </button>
 
-              {/* Logo */}
+              {/* Logo — bold wordmark, solid mark tile */}
               <div
-                className="flex items-center gap-2 cursor-pointer group"
+                className="flex items-center gap-2.5 cursor-pointer group"
                 onClick={() => handleNav("/home")}
               >
-                <div className="w-8 h-8 lg:w-9 lg:h-9 relative rounded-sm overflow-hidden border border-ink/[0.06]">
+                <div className="w-8 h-8 lg:w-9 lg:h-9 relative rounded-md overflow-hidden border border-ink/[0.12] shadow-sm bg-surface-secondary">
                   <img
                     src="/logo.png"
                     alt="LuxQuant"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <h1 className="text-[14px] lg:text-[15px] font-normal text-text-primary tracking-tight leading-tight group-hover:text-gold-primary transition-colors">
+                <h1 className="text-[15px] lg:text-[16px] font-semibold text-text-primary tracking-[-0.02em] leading-none group-hover:text-gold-primary transition-colors">
                   LuxQuant
                 </h1>
               </div>
 
-              {/* Desktop Navigation — Flowscan exact:
-                    hover → rounded box (border + subtle bg)
-                    active → white underline at header bottom */}
-              <nav className="hidden lg:flex items-center gap-1">
+              {/* Desktop Navigation */}
+              <nav className="hidden lg:flex items-center gap-0.5">
                 {navItems.map((item) => {
                   const active = item.matchPrefix
                     ? location.pathname.startsWith(item.matchPrefix)
@@ -852,15 +855,15 @@ function AppShell({ children }) {
                     <button
                       key={item.path}
                       onClick={() => handleNav(item.path)}
-                      className={`relative px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
+                      className={`relative px-3 py-1.5 text-[13px] font-medium rounded-md border transition-all duration-150 ${
                         active
                           ? "text-text-primary border-transparent"
-                          : "text-text-secondary border-transparent hover:text-text-primary hover:bg-ink/[0.05] hover:border-ink/[0.08]"
+                          : "text-text-secondary border-transparent hover:text-text-primary hover:bg-ink/[0.06] hover:border-ink/[0.1]"
                       }`}
                     >
                       {item.label}
                       {active && (
-                        <span className="absolute left-3 right-3 -bottom-[16px] h-[2px] bg-white" />
+                        <span className="absolute left-3 right-3 -bottom-[17px] h-[2.5px] rounded-full bg-gold-primary" />
                       )}
                     </button>
                   );

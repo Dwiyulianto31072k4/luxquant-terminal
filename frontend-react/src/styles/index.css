@@ -131,30 +131,36 @@
 
 [data-theme="bright"] {
   /*
-    Bright = paper desk (Linear / Notion / Stripe Dashboard light).
-    Surfaces stack: page (cool zinc) → secondary → pure white raised cards.
-    Text uses zinc-900/600/500 for WCAG AA on white (≥4.5:1 body).
-    Accent gold is darkened so it remains readable on white (not washed-out).
-    PnL greens/reds use 600–700 weights so they don't glow neon on paper.
-    --ink is near-black so legacy white/XX overlays become visible hairlines.
+    Bright v2 — denser paper desk (Stripe Dashboard / Linear light / Apple HIG).
+    Goal: solid hierarchy + WCAG AA, no washed “fog” look.
+
+    Surface ladder (must read as 3 clear planes):
+      page  → cool zinc-200-ish canvas
+      secondary → inset wells / nested chips
+      raised → pure white cards with visible hairline
+    Text:
+      fg near-black · secondary zinc-800 · muted zinc-600 (≥4.6:1 on white)
+    Ink pure black so border-ink/12 and bg-ink/5 punch hard.
+    Accent gold darkened for readability on white.
+    PnL uses 700 weights — solid ink, not neon glow.
   */
-  --surface: 246 246 248;
-  --surface-secondary: 238 238 242;
-  --surface-raised: 255 255 255;
-  --surface-hover: 232 232 238;
-  --accent: 161 122 40;
-  --accent-light: 184 142 52;
-  --accent-dark: 120 90 28;
-  --fg: 24 24 27;
-  --fg-secondary: 63 63 70;
-  --fg-muted: 113 113 122;
-  --pos: 21 128 61;
-  --neg: 185 28 28;
-  --warn: 161 98 7;
-  --tg: 0 122 184;
-  --line: 161 161 170;
-  --ink: 9 9 11;
-  --scrim: 15 15 18;
+  --surface: 232 232 237;           /* page canvas — clearly not white */
+  --surface-secondary: 220 220 226; /* wells / nested */
+  --surface-raised: 255 255 255;    /* cards */
+  --surface-hover: 210 210 218;
+  --accent: 138 104 28;             /* deep gold on paper */
+  --accent-light: 168 128 40;
+  --accent-dark: 104 78 20;
+  --fg: 9 9 11;                     /* near-black body */
+  --fg-secondary: 39 39 42;         /* zinc-800 */
+  --fg-muted: 82 82 91;             /* zinc-600 — solid muted, not ghost */
+  --pos: 15 118 55;                 /* green-700 */
+  --neg: 153 27 27;                 /* red-700 */
+  --warn: 146 64 14;                /* amber-800 */
+  --tg: 0 112 168;
+  --line: 82 82 91;                 /* visible structural borders */
+  --ink: 0 0 0;                     /* pure black overlays */
+  --scrim: 9 9 11;
   --ink-inv: 255 255 255;
 }
 
@@ -193,10 +199,37 @@
 
 /* Bright: solid paper glass (no muddy translucent brown). */
 [data-theme="bright"] {
-  --glass-bg: rgb(var(--surface-raised) / 0.92);
-  --glass-border: rgb(var(--ink) / 0.1);
-  --gold-glow: rgb(var(--accent) / 0.22);
-  --border-gold: rgb(var(--accent) / 0.35);
+  --glass-bg: rgb(var(--surface-raised));
+  --glass-border: rgb(var(--ink) / 0.12);
+  --gold-glow: rgb(var(--accent) / 0.18);
+  --border-gold: rgb(var(--accent) / 0.4);
+  --bg-card: rgb(var(--surface-raised));
+}
+
+/* Bright desk chrome — solid header bar (no transparent float) */
+[data-theme="bright"] .lq-app-header {
+  background: rgb(var(--surface-raised)) !important;
+  border-bottom-color: rgb(var(--ink) / 0.12) !important;
+  box-shadow:
+    0 1px 0 rgb(var(--ink) / 0.04),
+    0 8px 24px rgb(var(--scrim) / 0.06);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Bright bottom nav — solid white chrome */
+[data-theme="bright"] .bottom-nav {
+  background: rgb(var(--surface-raised)) !important;
+  border-top-color: rgb(var(--ink) / 0.12) !important;
+  box-shadow: 0 -6px 20px rgb(var(--scrim) / 0.08);
+}
+
+/* Bright body — slightly stronger default type color rendering */
+[data-theme="bright"] body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: rgb(var(--fg));
+  background: rgb(var(--surface));
 }
 
 * {
@@ -311,11 +344,9 @@ body::-webkit-scrollbar,
   background: rgb(var(--surface));
 }
 
-/* Bright theme: cool paper canvas, soft top wash (no maroon). */
+/* Bright theme: flat solid canvas — hierarchy comes from cards, not gradients. */
 [data-theme="bright"] .luxury-bg {
-  background:
-    radial-gradient(ellipse at 50% -12%, rgb(var(--accent) / 0.04) 0%, transparent 50%),
-    rgb(var(--surface));
+  background: rgb(var(--surface));
 }
 
 /* Bright: selection, autofill, inputs — readable on paper */
@@ -372,7 +403,12 @@ body::-webkit-scrollbar,
     rgb(var(--surface)) 100%
   );
 }
-[data-theme="bright"] .lux-warm-panel { background: rgb(var(--surface-raised)); }
+[data-theme="bright"] .lux-warm-panel {
+  background: rgb(var(--surface-raised));
+  box-shadow:
+    0 0 0 1px rgb(var(--ink) / 0.08),
+    0 16px 48px rgb(var(--scrim) / 0.14);
+}
 
 /* Small ambient red glow accent — removed entirely in Dark (solid black taste). */
 .lux-warm-glow { background: radial-gradient(circle, rgba(139, 26, 26, 0.14), transparent 70%); }
