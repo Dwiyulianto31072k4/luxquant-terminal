@@ -222,10 +222,11 @@ export default function SignalsAnalytics() {
       if (r.ok) setMacro(await r.json());
     } catch { /* keep previous */ }
   }, []);
+  // Live forced-liq tape (Bybit WS) — separate from Coinalyze /liquidations treemap
   const [liq, setLiq] = useState(null);
   const fetchLiq = useCallback(async () => {
     try {
-      const r = await fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() });
+      const r = await fetch(`${API_BASE}/api/v1/terminal/liq-live`, { headers: authHeaders() });
       if (r.ok) setLiq(await r.json());
     } catch { /* keep previous */ }
   }, []);
@@ -552,37 +553,35 @@ export default function SignalsAnalytics() {
 
   // ════════════════════════════════════════════════════════════
   return (
-    <div className="space-y-3">
-      {/* ── filter row + live BTC + freshness — sticky & solid (Allium) ── */}
-      <div className="sticky top-0 z-30 flex items-center gap-2 flex-wrap bg-surface-raised border-b border-white/[0.07] px-1 py-2 -mx-0.5 rounded-b-md">
+    <div className="space-y-2.5">
+      {/* ── compact sticky filter strip ── */}
+      <div className="sticky top-0 z-30 flex items-center gap-1.5 flex-wrap bg-surface/95 backdrop-blur-md border-b border-white/[0.05] px-0.5 py-1.5 -mx-0.5">
         <input
           value={filters.q}
           onChange={(e) => setF({ q: e.target.value })}
           placeholder={t("terminal.viz.searchPair")}
-          className="w-36 bg-surface-secondary border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 font-mono"
+          className="w-28 sm:w-32 bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-1 text-[11px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-white/20 font-mono"
         />
-        <div className="flex gap-1">
-          {["all", ...STATUS_ORDER].map((s) => (
+        <div className="flex gap-0.5 p-0.5 rounded-md bg-white/[0.02] border border-white/[0.05]">
+          {["all", "open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"].map((s) => (
             <Chip key={s} active={filters.st === s} onClick={() => setF({ st: s })}>
               {s === "all" ? t("terminal.viz.all") : STATUS_LABEL[s] || s}
             </Chip>
           ))}
         </div>
-        <span className="h-4 w-px bg-white/[0.08]" />
-        {/* multi-day window — toggle any of the last 7 days (0 = today) */}
-        <div className="flex items-center gap-0.5 rounded-md bg-surface-raised border border-white/[0.1] p-0.5">
-          <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
+        {/* window — compact day toggles */}
+        <div className="flex items-center gap-0.5 rounded-md border border-white/[0.05] bg-white/[0.02] p-0.5">
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const on = dayBuckets.includes(d);
             const dt = new Date(Date.now() - d * 86400000);
-            const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" }); // e.g. "Jul 11"
+            const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
             return (
               <button
                 key={d}
                 onClick={() => toggleDay(d)}
-                title={d === 0 ? "today" : `${d} day${d > 1 ? "s" : ""} ago`}
-                className={`px-1.5 py-1 rounded-sm font-mono text-[9px] tracking-wide transition-colors whitespace-nowrap ${
-                  on ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted/60 hover:text-text-primary"
+                title={d === 0 ? "today" : `${d}d ago`}
+                className={`px-1.5 py-0.5 rounded font-mono text-[8.5px] tracking-wide transition-colors whitespace-nowrap ${
+                  on ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted/55 hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -591,15 +590,13 @@ export default function SignalsAnalytics() {
           })}
           <button
             onClick={() => setDayBuckets([0, 1, 2, 3, 4, 5, 6])}
-            title="all 7 days"
-            className={`px-1.5 py-1 rounded-sm font-mono text-[9px] uppercase tracking-wider transition-colors ${
-              dayBuckets.length === 7 ? "text-gold-primary" : "text-text-muted/50 hover:text-text-primary"
+            className={`px-1.5 py-0.5 rounded font-mono text-[8.5px] uppercase ${
+              dayBuckets.length === 7 ? "text-gold-primary" : "text-text-muted/45 hover:text-text-primary"
             }`}
           >
             all
           </button>
         </div>
-        <span className="h-4 w-px bg-white/[0.08]" />
         <FilterMulti
           label={t("terminal.viz.filterSector")}
           options={sectorOptions}
@@ -613,28 +610,25 @@ export default function SignalsAnalytics() {
           onChange={(arr) => setF({ risks: arr.join(",") })}
         />
         <Chip active={filters.dec === "1"} onClick={() => setF({ dec: filters.dec === "1" ? "" : "1" })}>
-          ⚡ {t("terminal.viz.decoupled")}
+          {t("terminal.viz.decoupled")}
         </Chip>
         {hasDrill && (
-          <button
-            onClick={resetF}
-            className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative transition-colors"
-          >
+          <button onClick={resetF} className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-negative">
             × {t("terminal.viz.reset")}
           </button>
         )}
-        <div className="ml-auto hidden sm:flex items-center gap-3 font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+        <div className="ml-auto hidden md:flex items-center gap-2.5 font-mono text-[9px] text-text-muted/65">
           {agg.btcPrice && (
-            <span>
-              BTC <span className="text-text-primary/80">${Number(agg.btcPrice).toLocaleString()}</span>{" "}
-              <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}>{fmtPct(agg.btcChg)}</span>
+            <span className="tabular-nums">
+              BTC <span className="text-text-primary/75">${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}> {fmtPct(agg.btcChg)}</span>
             </span>
           )}
-          <span>{view.length} {t("terminal.viz.signals")}</span>
+          <span className="tabular-nums">{view.length} sig</span>
           {data?.generated_at && (
-            <span>
-              {t("terminal.viz.updBadge")} {new Date(data.generated_at).toLocaleTimeString()}
-              {deriv?.stale && <span className="text-warning"> · {t("terminal.viz.staleBadge")}</span>}
+            <span className="tabular-nums">
+              {new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {deriv?.stale && <span className="text-warning"> · stale</span>}
             </span>
           )}
         </div>
@@ -839,36 +833,36 @@ export default function SignalsAnalytics() {
                 }
               />
 
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
-                  label="BTC"
-                  value={agg.btcPrice ? `$${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 1 })}` : "—"}
-                  sub={agg.btcChg != null ? fmtPct(agg.btcChg) : null}
-                  desc={t("terminal.viz.kBtcDesc")}
-                  tone={agg.btcChg >= 0 ? "text-positive" : "text-negative"}
-                  accent={agg.btcChg >= 0 ? POS : NEG}
-                />
-                <Kpi
+                  compact
                   label={t("terminal.viz.kHot")}
                   value={anomMeta.hotN}
                   sub={anomMeta.hotN ? t("terminal.viz.kHotSub") : t("terminal.viz.none")}
-                  desc={t("terminal.viz.kHotDesc")}
                   tone={anomMeta.hotN ? "text-gold-primary" : undefined}
                   accent={anomMeta.hotN ? GOLD : undefined}
                 />
                 <Kpi
+                  compact
                   label={t("terminal.viz.kSpikes")}
                   value={session.spikes.length}
                   sub={session.spikes.length ? t("terminal.viz.kSpikesSub") : t("terminal.viz.none")}
-                  desc={t("terminal.viz.kSpikesDesc")}
                   tone={session.spikes.length ? "text-orange-400" : undefined}
                   accent={session.spikes.length ? ORANGE : undefined}
                 />
                 <Kpi
+                  compact
+                  label="Decoupled"
+                  value={agg.decoupled}
+                  sub={t("terminal.viz.kDecoupledDesc")}
+                  tone={agg.decoupled ? "text-cyan-400" : undefined}
+                  accent={agg.decoupled ? CYAN : undefined}
+                />
+                <Kpi
+                  compact
                   label={t("terminal.viz.kSession")}
                   value={anomMeta.ageS != null ? `${anomMeta.ageS}s` : "—"}
                   sub={anomMeta.fresh ? t("terminal.viz.kSessionFresh") : t("terminal.viz.kSessionLag")}
-                  desc={t("terminal.viz.kSessionDesc")}
                   tone={deriv?.stale ? "text-warning" : anomMeta.fresh ? "text-positive" : "text-warning"}
                   accent={anomMeta.fresh ? POS : "#fbbf24"}
                 />
@@ -1015,26 +1009,47 @@ export default function SignalsAnalytics() {
             <>
               <SectionBand title={t("terminal.viz.sectionLive")} desc={t("terminal.viz.sectionLiveDesc")} />
 
+              {/* KPIs — strength only (no red/down clutter) */}
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
-                  label={t("terminal.viz.kBreadth")}
-                  value={<><span className="text-positive">{liveStats.up}▲</span> <span className="text-text-primary/35">{liveStats.down}▼</span></>}
-                  desc={t("terminal.viz.kBreadthDesc")}
-                />
-                <Kpi label={t("terminal.viz.kBest")} value={gainers[0] ? fmtPct(gainers[0].v) : "—"} desc={gainers[0]?.pair} tone="text-positive" />
-                <Kpi label={t("terminal.viz.kBigWin")} value={liveStats.bigWin} desc={t("terminal.viz.kBigWinDesc")} tone="text-positive" />
-                <Kpi
+                  compact
                   label={t("terminal.viz.kInProfit")}
                   value={`${(liveStats.up + liveStats.down) ? Math.round(liveStats.up / (liveStats.up + liveStats.down) * 100) : 0}%`}
-                  desc={t("terminal.viz.kInProfitDesc")}
+                  sub={`${liveStats.up} of ${liveStats.up + liveStats.down} live`}
                   tone="text-positive"
+                  accent={POS}
+                />
+                <Kpi
+                  compact
+                  label={t("terminal.viz.kBest")}
+                  value={gainers[0] ? fmtPct(gainers[0].v) : "—"}
+                  sub={gainers[0]?.pair?.replace(/USDT$/i, "") || "—"}
+                  tone="text-positive"
+                  accent={POS}
+                />
+                <Kpi
+                  compact
+                  label={t("terminal.viz.kBigWin")}
+                  value={liveStats.bigWin}
+                  sub={t("terminal.viz.kBigWinDesc")}
+                  tone="text-positive"
+                  accent={POS}
+                />
+                <Kpi
+                  compact
+                  label={t("terminal.viz.kMedianFc")}
+                  value={agg.medFc != null ? fmtPct(agg.medFc) : "—"}
+                  sub={t("terminal.viz.kMedianFcDesc")}
+                  tone={agg.medFc != null && agg.medFc >= 0 ? "text-positive" : "text-text-primary"}
+                  accent={agg.medFc != null && agg.medFc >= 0 ? POS : GOLD}
                 />
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
                 <XCard
                   title={t("terminal.viz.fcDistTitle")}
                   desc={t("terminal.viz.fcDistDesc")}
+                  height={320}
                   render={(h) => (
                     <div style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
@@ -1044,9 +1059,9 @@ export default function SignalsAnalytics() {
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
                           <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
-                          <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
+                          <Bar dataKey="count" name="signals" radius={[3, 3, 0, 0]}>
                             {makeBins(fcClamped, 2, -20, 20).map((b, i) => (
-                              <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.75} />
+                              <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.8} />
                             ))}
                           </Bar>
                         </BarChart>
@@ -1059,12 +1074,13 @@ export default function SignalsAnalytics() {
                   title={t("terminal.viz.oppTitle")}
                   desc={t("terminal.viz.oppDesc")}
                   zoom={zOpp}
+                  height={320}
                   hint={t("terminal.viz.oppHint")}
                   render={(h) => (
                     <div style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                          <CartesianGrid stroke={GRID} />
+                          <CartesianGrid stroke={GRID} strokeDasharray="3 6" />
                           <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zOpp.domX} allowDataOverflow tickFormatter={fmtAxis} />
                           <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zOpp.domY} allowDataOverflow tickFormatter={fmtAxis} />
                           <Tooltip content={<ScatterTip xLabel="Δ call %" yLabel="upside left %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />

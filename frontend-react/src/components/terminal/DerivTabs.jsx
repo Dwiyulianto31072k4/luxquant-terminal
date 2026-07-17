@@ -185,50 +185,101 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
     .map((r) => ({ pair: r.pair, v: (r.taker - 1) * 100 }))
     .sort((a, b) => b.v - a.v);
 
+  const smartN = divPts.filter((p) => p.smart).length;
+  const buyTakers = takers.filter((r) => r.v > 0).length;
+  // shorts liquidated = price ripped higher (bullish flush / squeeze fuel)
+  const shortsFlushedUsd = liq && !liq.warming ? (liq.short_usd_5m || 0) : null;
+  const events = (liq?.events || []).slice(0, 24);
+
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
   return (
-    <>
+    <div className="space-y-2.5">
       <SectionBand title={t("terminal.viz.tabLs")} desc={t("terminal.viz.lsSectionDesc")} />
+
+      {/* Strength-focused KPIs (no “loser” framing) */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-        <Kpi label={t("terminal.viz.kLsrMed")} value={lsrVals.length ? median(lsrVals).toFixed(2) : "—"} desc={t("terminal.viz.kLsrMedDesc")} />
-        <Kpi label={t("terminal.viz.kCrowdLong")} value={crowdedLong.length} desc={t("terminal.viz.kCrowdLongDesc")} tone={crowdedLong.length ? "text-negative" : undefined} />
-        <Kpi label={t("terminal.viz.kCrowdShort")} value={crowdedShort.length} desc={t("terminal.viz.kCrowdShortDesc")} tone={crowdedShort.length ? "text-positive" : undefined} />
-        <Kpi label={t("terminal.viz.kSmartDiv")} value={divPts.filter((p) => p.smart).length} desc={t("terminal.viz.kSmartDivDesc")} tone="text-gold-primary" />
+        <Kpi
+          compact
+          label={t("terminal.viz.kSmartDiv")}
+          value={smartN}
+          sub={t("terminal.viz.kSmartDivDesc")}
+          tone="text-gold-primary"
+          accent={GOLD}
+        />
+        <Kpi
+          compact
+          label={t("terminal.viz.kCrowdShort")}
+          value={crowdedShort.length}
+          sub="squeeze fuel · upside"
+          tone={crowdedShort.length ? "text-positive" : undefined}
+          accent={crowdedShort.length ? POS : undefined}
+        />
+        <Kpi
+          compact
+          label="Buy takers"
+          value={buyTakers}
+          sub="pairs with buy pressure"
+          tone={buyTakers ? "text-positive" : undefined}
+          accent={buyTakers ? POS : undefined}
+        />
+        <Kpi
+          compact
+          label="Shorts flushed · 5m"
+          value={shortsFlushedUsd != null ? fmtMoney(shortsFlushedUsd) : "—"}
+          sub="squeeze fuel · upside"
+          tone={shortsFlushedUsd ? "text-positive" : undefined}
+          accent={shortsFlushedUsd ? POS : undefined}
+        />
       </div>
 
-      {/* ── Live liquidation tape (Bybit WS) ── */}
-      {liq && !liq.warming ? (
-        <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
-          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-          <div className="px-4 py-2.5 border-b border-line/[0.12] bg-gold-primary/[0.05]">
-            <div className="text-[12.5px] text-text-primary/90">Liquidations · live</div>
-            <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">Forced position closes streaming from Bybit. Red = longs liquidated (price dumped), green = shorts liquidated (price ripped). Big prints = capitulation / squeeze zones.</div>
+      {/* Live liquidation tape */}
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <div className="px-3.5 py-2 border-b border-white/[0.04] flex items-center justify-between gap-2">
+          <div>
+            <div className="text-[12.5px] font-medium text-text-primary/90">Liquidations · live</div>
+            <div className="text-[10px] text-text-muted/70">Forced closes stream · big prints = local extremes</div>
           </div>
-          <div className="grid grid-cols-2 gap-2 p-3">
-            <Kpi label="Longs liquidated · 5m" value={fmtMoney(liq.long_usd_5m || 0)} desc="Longs force-closed on the way down." tone="text-negative" />
-            <Kpi label="Shorts liquidated · 5m" value={fmtMoney(liq.short_usd_5m || 0)} desc="Shorts force-closed on the way up." tone="text-positive" />
+          <div className="flex items-center gap-3 font-mono text-[11px] tabular-nums">
+            <span className="text-negative">{fmtMoney(liq?.long_usd_5m || 0)} <span className="text-[9px] text-text-muted">L</span></span>
+            <span className="text-positive">{fmtMoney(liq?.short_usd_5m || 0)} <span className="text-[9px] text-text-muted">S</span></span>
           </div>
-          <div className="px-3 pb-3 max-h-[300px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
-            {(liq.events || []).length === 0 ? (
-              <div className="py-8 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Quiet — no liquidations streaming right now.</div>
-            ) : (liq.events || []).map((e, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 border-b border-white/[0.04]">
-                <CoinLogo pair={e.pair} size={16} />
-                <span className="font-mono text-[11px] text-text-primary/85">{(e.pair || "").replace(/USDT$/i, "")}</span>
-                <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm" style={{ color: e.side === "long" ? NEG : POS, background: (e.side === "long" ? NEG : POS) + "18" }}>{e.side} liq</span>
-                <span className="ml-auto font-mono text-[11px] tabular-nums" style={{ color: e.side === "long" ? NEG : POS }}>{fmtMoney(e.usd)}</span>
-                <span className="w-9 text-right font-mono text-[9px] text-text-muted/70">{_liqAgo(e.ts)}</span>
+        </div>
+        {liq?.warming || !liq ? (
+          <div className="py-8 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Connecting live tape…
+          </div>
+        ) : events.length === 0 ? (
+          <div className="py-8 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Quiet — no liquidations in the last window
+          </div>
+        ) : (
+          <div className="max-h-[260px] overflow-auto divide-y divide-white/[0.03] [scrollbar-width:thin]">
+            {events.map((e, i) => (
+              <div key={`${e.pair}-${e.ts}-${i}`} className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.02]">
+                <CoinLogo pair={e.pair} size={15} />
+                <span className="font-mono text-[11px] text-text-primary/85 w-16 truncate">{(e.pair || "").replace(/USDT$/i, "")}</span>
+                <span
+                  className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  style={{ color: e.side === "long" ? NEG : POS, background: `${e.side === "long" ? NEG : POS}18` }}
+                >
+                  {e.side}
+                </span>
+                <span className="ml-auto font-mono text-[11px] tabular-nums" style={{ color: e.side === "long" ? NEG : POS }}>
+                  {fmtMoney(e.usd)}
+                </span>
+                <span className="w-8 text-right font-mono text-[9px] text-text-muted/60">{_liqAgo(e.ts)}</span>
               </div>
             ))}
           </div>
-        </div>
-      ) : null}
+        )}
+      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <XCard
           title={t("terminal.viz.lsrDistTitle")}
           desc={t("terminal.viz.lsrDistDesc")}
+          height={320}
           render={(h) => (
             <div style={{ height: h }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -238,9 +289,9 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                   <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
                   <ReferenceLine x="1" stroke={GOLD} strokeDasharray="3 3" />
-                  <Bar dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
+                  <Bar dataKey="count" name="pairs" radius={[3, 3, 0, 0]}>
                     {makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4).map((b, i) => (
-                      <Cell key={i} fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : GOLD} fillOpacity={0.75} />
+                      <Cell key={i} fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : GOLD} fillOpacity={0.8} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -321,7 +372,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       </div>
 
       <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
-    </>
+    </div>
   );
 }
 

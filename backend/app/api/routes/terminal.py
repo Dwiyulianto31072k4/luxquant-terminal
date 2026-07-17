@@ -478,14 +478,15 @@ def get_postsignal(current_user: User = Depends(require_subscription)):
 
 
 # ============================================================
-# LIQUIDATIONS — live forced-liquidation tape (Bybit WS worker)
+# LIVE LIQ TAPE — forced liquidations (Bybit WS worker → Redis)
+# NOTE: must NOT share path with Coinalyze /liquidations treemap above.
 # ============================================================
 
 LIQ_BLOB_KEY = "lq:terminal:liq"
 
 
-@router.get("/liquidations")
-def get_liquidations(current_user: User = Depends(require_subscription)):
+@router.get("/liq-live")
+def get_liq_live(current_user: User = Depends(require_subscription)):
     """Recent forced liquidations (newest first) + 5m long/short USD totals.
     READ-ONLY from Redis; the Bybit WS worker fills it in background."""
     cached = cache_get(LIQ_BLOB_KEY)

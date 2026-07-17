@@ -84,38 +84,33 @@ export default function TerminalLayout() {
   };
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-3 lg:p-4 shadow-2xl shadow-black/40">
-      {/* ── breadcrumb strip ── */}
-      <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+    <div className="flex flex-col lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden">
+      {/* ── compact breadcrumb ── */}
+      <div className="shrink-0 flex items-center justify-between gap-3 mb-2 px-0.5">
+        <div className="flex items-center gap-2 min-w-0 text-[12px]">
           <button
             onClick={() => navigate("/signals")}
-            className="hidden sm:inline-flex font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text-primary transition-colors"
+            className="hidden sm:inline-flex text-text-muted hover:text-text-primary transition-colors"
           >
             {t("terminal.backToSignals")}
           </button>
-          <span className="hidden sm:inline text-text-primary/20">/</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 truncate">
-            {t("terminal.title")}
-          </span>
-          <span className="text-text-primary/20">·</span>
-          <span className="text-[13px] text-text-primary/90 truncate">{t(tabKey(active))}</span>
-        </div>
-        <div className="hidden lg:block font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/70">
-          {t("terminal.nav.scan_desc")}
+          <span className="hidden sm:inline text-text-primary/15">/</span>
+          <span className="text-text-muted/80 truncate">{t("terminal.title")}</span>
+          <span className="text-text-primary/15">/</span>
+          <span className="font-medium text-text-primary truncate">{t(tabKey(active))}</span>
         </div>
       </div>
 
       {/* ── mobile: horizontal chips ── */}
-      <div className="shrink-0 lg:hidden -mx-3 px-3 mb-3 flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="shrink-0 lg:hidden mb-2 flex gap-1 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {ALL_ITEMS.map(([id, route]) => (
           <button
             key={id}
             onClick={() => go(id, route)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
+            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
               active === id
-                ? "bg-gold-primary/15 text-gold-primary border-line/30"
-                : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-text-primary"
+                ? "bg-gold-primary/15 text-gold-primary"
+                : "text-text-muted hover:text-text-primary hover:bg-white/[0.03]"
             }`}
           >
             <TabIcon id={id} />
@@ -124,52 +119,43 @@ export default function TerminalLayout() {
         ))}
       </div>
 
-      <div className="flex gap-4 items-stretch lg:flex-1 lg:min-h-0">
-        {/* ── Allium-style left sidebar ── */}
-        <aside className="hidden lg:block w-[196px] shrink-0 lg:overflow-y-auto lg:pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <div className="rounded-lg bg-surface-raised border border-white/[0.07] overflow-hidden">
-            <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <nav className="p-2 space-y-3">
-              {GROUPS.map(({ g, items }) => (
-                <div key={g}>
-                  <div className="flex items-center gap-2 px-2 mb-1.5">
-                    <span className="font-mono text-[8.5px] uppercase tracking-[0.25em] text-text-muted/70">
-                      {t(`terminal.viz.${g}`)}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {items.map(([id, route]) => (
-                      <button
-                        key={id}
-                        onClick={() => go(id, route)}
-                        className={`relative w-full flex items-center pl-3 pr-2 py-2 rounded-md text-left text-[12.5px] transition-colors ${
-                          active === id
-                            ? "bg-white/[0.04] text-gold-primary"
-                            : "text-text-primary/85 hover:bg-white/[0.04] hover:text-text-primary"
-                        }`}
-                      >
-                        {active === id && (
-                          <span
-                            className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
-                            style={{ background: "rgb(212,168,83)", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
-                          />
-                        )}
-                        <span className={`flex items-center gap-2.5 ${active === id ? "text-gold-primary" : "text-gold-primary/45"}`}>
-                          <TabIcon id={id} />
-                          <span className={active === id ? "text-gold-primary" : "text-text-primary/85"}>{t(tabKey(id))}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+      <div className="flex gap-3 items-stretch lg:flex-1 lg:min-h-0">
+        {/* ── slim left nav (no boxed panel) ── */}
+        <aside className="hidden lg:block w-[168px] shrink-0 lg:overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <nav className="pr-1 space-y-2.5">
+            {GROUPS.map(({ g, items }) => (
+              <div key={g}>
+                <div className="px-2 mb-1 font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55">
+                  {t(`terminal.viz.${g}`)}
                 </div>
-              ))}
-            </nav>
-          </div>
+                <div className="space-y-px">
+                  {items.map(([id, route]) => (
+                    <button
+                      key={id}
+                      onClick={() => go(id, route)}
+                      className={`relative w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 rounded-md text-left text-[12px] transition-colors ${
+                        active === id
+                          ? "bg-white/[0.05] text-gold-primary"
+                          : "text-text-primary/75 hover:bg-white/[0.03] hover:text-text-primary"
+                      }`}
+                    >
+                      {active === id && (
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-gold-primary" />
+                      )}
+                      <span className={active === id ? "text-gold-primary" : "text-text-muted/70"}>
+                        <TabIcon id={id} />
+                      </span>
+                      <span className="truncate">{t(tabKey(id))}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </nav>
         </aside>
 
-        {/* ── content — own scroll region (Allium): never bleeds under the
-            global header, page no longer grows forever ── */}
-        <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1.5 [scrollbar-width:thin] [scrollbar-color:rgba(212,168,83,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
+        {/* ── content scroll region ── */}
+        <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
           <SignalStatusProvider>
             <Outlet />
             <GlobalSignalModalHost />
@@ -177,7 +163,6 @@ export default function TerminalLayout() {
         </main>
       </div>
 
-      {/* Page-aware help — knows which Terminal view you're on */}
       <AssistantWidget pageId="terminal" contextHint={`the "${t(tabKey(active))}" view of the LuxQuant Terminal`} />
     </div>
   );

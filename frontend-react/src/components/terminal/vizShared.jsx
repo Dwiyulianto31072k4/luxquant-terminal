@@ -147,45 +147,50 @@ export const StatusTag = ({ status }) => {
   );
 };
 
-// solid landing-page surface + gold top hairline (matches Track Record cards)
+// Compact section header — Aero-style title row (no heavy card chrome)
 export const SectionBand = ({ title, desc, badge }) => (
-  <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-surface-raised px-4 py-3.5">
-    <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="text-[14px] text-text-primary/95">{title}</div>
-        {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
-      </div>
-      {badge}
+  <div className="flex items-end justify-between gap-3 px-0.5 py-0.5">
+    <div className="min-w-0">
+      <div className="text-[15px] font-medium tracking-tight text-text-primary/95">{title}</div>
+      {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-snug line-clamp-1 max-w-3xl">{desc}</div>}
     </div>
+    {badge}
   </div>
 );
 
-export const Kpi = ({ label, value, desc, tone, sub, accent }) => (
-  <div className="group relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-white/[0.12]">
-    <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+// Metric tile — large number, tiny label, optional sub (Aero Economics density)
+export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => (
+  <div
+    className={`group relative min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.02] transition-colors hover:border-white/[0.1] hover:bg-white/[0.03] ${
+      compact ? "px-3 py-2.5" : "px-3.5 py-3"
+    }`}
+  >
     {accent && (
       <span
-        className="pointer-events-none absolute left-0 top-3 bottom-3 w-0.5 rounded-full opacity-80"
+        className="pointer-events-none absolute left-0 top-2.5 bottom-2.5 w-[2px] rounded-full opacity-70"
         style={{ background: accent }}
       />
     )}
-    <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
-    <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-text-primary/95"}`}>{value}</div>
+    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/80">{label}</div>
+    <div className={`font-mono tabular-nums mt-1.5 leading-none truncate ${compact ? "text-[22px]" : "text-[26px]"} ${tone || "text-text-primary"}`}>
+      {value}
+    </div>
     {sub != null && sub !== "" && (
-      <div className={`font-mono text-[11px] tabular-nums mt-1.5 ${tone || "text-text-muted"}`}>{sub}</div>
+      <div className="font-mono text-[10.5px] tabular-nums mt-1 text-text-muted truncate">{sub}</div>
     )}
-    {desc && <div className="text-[10px] text-text-muted mt-2 leading-relaxed line-clamp-2">{desc}</div>}
+    {desc && !compact && (
+      <div className="text-[10px] text-text-muted/70 mt-1.5 leading-snug line-clamp-1">{desc}</div>
+    )}
   </div>
 );
 
 export const Chip = ({ active, onClick, children }) => (
   <button
     onClick={onClick}
-    className={`shrink-0 px-2.5 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider border transition-colors ${
+    className={`shrink-0 px-2 py-1 rounded-md font-mono text-[9px] uppercase tracking-wider border transition-colors ${
       active
-        ? "bg-gold-primary text-surface-hover border-gold-primary font-semibold shadow-sm shadow-gold-primary/20"
-        : "bg-surface-raised text-text-muted border-white/[0.1] hover:text-text-primary hover:border-white/20"
+        ? "bg-gold-primary text-surface-hover border-gold-primary font-semibold"
+        : "bg-transparent text-text-muted border-white/[0.08] hover:text-text-primary hover:border-white/16"
     }`}
   >
     {children}
@@ -196,7 +201,7 @@ export const IconBtn = ({ onClick, title, children }) => (
   <button
     onClick={onClick}
     title={title}
-    className="w-6 h-6 flex items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.02] text-text-muted hover:text-gold-primary hover:border-line/30 transition-colors font-mono text-[11px] leading-none"
+    className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.02] text-text-muted hover:text-text-primary hover:border-white/16 hover:bg-white/[0.04] transition-colors font-mono text-[12px] leading-none"
   >
     {children}
   </button>
@@ -317,8 +322,8 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
   </div>
 );
 
-// expandable chart card (fullscreen) + optional zoom controls
-export function XCard({ title, desc, render, zoom, hint }) {
+// Expandable metric/chart panel — Aero-style soft card + polished fullscreen
+export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
   const { t } = useTranslation();
   const [big, setBig] = useState(false);
   const zoomBtns = zoom && (
@@ -342,51 +347,49 @@ export function XCard({ title, desc, render, zoom, hint }) {
         {render(h)}
       </div>
       {hint && (
-        <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
-          {zoom ? "drag to pan · wheel or −/+ to zoom · ⟲ reset · " : ""}{hint}
+        <div className="mt-1.5 text-center font-mono text-[8.5px] uppercase tracking-wider text-text-muted/55">
+          {zoom ? "drag · scroll zoom · ⟲ reset · " : ""}{hint}
         </div>
       )}
     </>
   );
   return (
     <>
-      <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-        <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-line/[0.12] flex items-start justify-between gap-3">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden flex flex-col min-h-0">
+        <div className="px-3.5 py-2.5 flex items-start justify-between gap-2 border-b border-white/[0.04]">
           <div className="min-w-0">
-            <div className="text-[12.5px] text-text-primary/90">{title}</div>
-            {desc && <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+            <div className="text-[12.5px] font-medium text-text-primary/90 leading-snug">{title}</div>
+            {desc && <div className="text-[10px] text-text-muted/75 mt-0.5 leading-snug line-clamp-2">{desc}</div>}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             {zoomBtns}
-            <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>⤢</IconBtn>
+            <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>↗</IconBtn>
           </div>
         </div>
-        <div className="p-3">{body(400)}</div>
+        <div className="p-2.5 sm:p-3 flex-1 min-h-0">{body(height)}</div>
       </div>
 
       {big && (
         <div
-          className="fixed inset-x-0 bottom-0 top-16 z-[60] bg-black/80 backdrop-blur-sm p-3 md:p-5 flex items-start justify-center"
+          className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-md p-3 sm:p-6 md:p-8 flex items-center justify-center"
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex flex-col w-[94vw] max-w-[1600px] h-full max-h-[calc(100vh-5.5rem)] rounded-2xl bg-surface-raised border border-line/25 shadow-2xl shadow-black/60 overflow-hidden"
+            className="relative flex flex-col w-full max-w-[1480px] h-[min(92vh,920px)] rounded-2xl bg-surface border border-white/[0.08] shadow-2xl shadow-black/70 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-            <div className="shrink-0 px-5 py-3.5 bg-gold-primary/[0.05] border-b border-line/[0.12] flex items-start justify-between gap-3">
+            <div className="shrink-0 px-5 py-4 border-b border-white/[0.06] flex items-start justify-between gap-3 bg-white/[0.02]">
               <div className="min-w-0">
-                <div className="text-[15px] text-text-primary/95">{title}</div>
-                {desc && <div className="text-[11.5px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+                <div className="text-[17px] font-medium text-text-primary tracking-tight">{title}</div>
+                {desc && <div className="text-[12px] text-text-muted mt-1 leading-relaxed max-w-3xl">{desc}</div>}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {zoomBtns}
                 <IconBtn onClick={() => setBig(false)} title="close">✕</IconBtn>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto p-5 flex flex-col">
-              <div className="flex-1 min-h-0">{body(Math.max(420, Math.round(window.innerHeight * 0.74)))}</div>
+            <div className="flex-1 min-h-0 overflow-auto p-4 sm:p-6 flex flex-col">
+              <div className="flex-1 min-h-0">{body(Math.max(480, Math.round(window.innerHeight * 0.72)))}</div>
             </div>
           </div>
         </div>

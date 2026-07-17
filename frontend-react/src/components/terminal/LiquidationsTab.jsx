@@ -152,26 +152,26 @@ export function LiquidationsTab({ view }) {
   if (loading) return <Warming text="Loading liquidations…" />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <SectionBand
         title="Liquidations"
-        desc="Where leverage got flushed — risk context. Green = shorts liquidated (squeeze up), red = longs liquidated. Not a futures signal."
+        desc="Where leverage got flushed — risk context. Green = shorts flushed (squeeze up), red = longs flushed."
+        badge={
+          <div className="flex items-center gap-1">
+            <Chip active={scope === "calls"} onClick={() => setScope("calls")}>My calls</Chip>
+            <Chip active={scope === "market"} onClick={() => setScope("market")}>Market</Chip>
+          </div>
+        }
       />
 
-      <div className="flex items-center gap-1.5">
-        <Chip active={scope === "calls"} onClick={() => setScope("calls")}>My calls</Chip>
-        <Chip active={scope === "market"} onClick={() => setScope("market")}>Market</Chip>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3">
-        <Kpi label={scope === "market" ? "4H liq (market)" : "4H liq (calls)"} value={fmtMoney(totalLiq)} />
-        <Kpi label="Spikes" value={spikes} tone={spikes > 0 ? "text-gold-primary" : undefined} />
-        <Kpi label="Biggest" value={top ? `${top.name.replace("USDT", "")} · ${fmtMoney(top.size)}` : "—"} />
+      <div className="grid grid-cols-3 gap-2">
+        <Kpi compact label={scope === "market" ? "4H liq (market)" : "4H liq (calls)"} value={fmtMoney(totalLiq)} />
+        <Kpi compact label="Spikes" value={spikes} tone={spikes > 0 ? "text-gold-primary" : undefined} accent={spikes ? GOLD : undefined} />
+        <Kpi compact label="Biggest" value={top ? `${top.name.replace("USDT", "")}` : "—"} sub={top ? fmtMoney(top.size) : undefined} />
       </div>
 
       {nodes.length === 0 ? (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] px-4 py-10 text-center">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-12 text-center">
           <div className="font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
             {scope === "market"
               ? "No liquidation data yet — worker refreshes every ~10 min"
@@ -184,13 +184,13 @@ export function LiquidationsTab({ view }) {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border border-white/[0.06] bg-surface-raised p-2">
-          <ResponsiveContainer width="100%" height={400}>
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+          <ResponsiveContainer width="100%" height={420}>
             <Treemap
               data={nodes}
               dataKey="size"
               aspectRatio={4 / 3}
-              stroke="#0a0806"
+              stroke="rgb(10,8,6)"
               content={<LiqCell onPick={pick} />}
               isAnimationActive={false}
             >
@@ -200,8 +200,8 @@ export function LiquidationsTab({ view }) {
         </div>
       )}
 
-      <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/50 px-1">
-        Source: Coinalyze (multi-exchange, aggregated) · updated every ~10 min · relative index, not absolute
+      <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted/45 px-0.5">
+        Coinalyze multi-exchange · ~10 min · risk context only
       </div>
     </div>
   );
