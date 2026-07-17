@@ -144,23 +144,23 @@
     Accent gold darkened for readability on white.
     PnL uses 700 weights — solid ink, not neon glow.
   */
-  --surface: 232 232 237;           /* page canvas — clearly not white */
-  --surface-secondary: 220 220 226; /* wells / nested */
-  --surface-raised: 255 255 255;    /* cards */
-  --surface-hover: 210 210 218;
-  --accent: 138 104 28;             /* deep gold on paper */
-  --accent-light: 168 128 40;
-  --accent-dark: 104 78 20;
-  --fg: 9 9 11;                     /* near-black body */
-  --fg-secondary: 39 39 42;         /* zinc-800 */
-  --fg-muted: 82 82 91;             /* zinc-600 — solid muted, not ghost */
+  --surface: 224 224 230;           /* denser grey page — white cards lift hard */
+  --surface-secondary: 212 212 220; /* wells / nested */
+  --surface-raised: 255 255 255;    /* solid white cards + modals */
+  --surface-hover: 200 200 210;
+  --accent: 130 98 26;              /* deep gold on paper */
+  --accent-light: 160 122 36;
+  --accent-dark: 96 72 18;
+  --fg: 0 0 0;                      /* pure solid black body */
+  --fg-secondary: 24 24 27;         /* zinc-900 secondary */
+  --fg-muted: 63 63 70;             /* zinc-700 muted — solid, not ghost */
   --pos: 15 118 55;                 /* green-700 */
   --neg: 153 27 27;                 /* red-700 */
   --warn: 146 64 14;                /* amber-800 */
   --tg: 0 112 168;
-  --line: 82 82 91;                 /* visible structural borders */
+  --line: 63 63 70;                 /* solid structural borders */
   --ink: 0 0 0;                     /* pure black overlays */
-  --scrim: 9 9 11;
+  --scrim: 0 0 0;                   /* pure black dimmer */
   --ink-inv: 255 255 255;
 }
 

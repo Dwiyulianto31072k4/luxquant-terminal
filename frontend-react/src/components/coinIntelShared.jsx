@@ -106,13 +106,13 @@ export const MonthlyLineChart = ({ data }) => {
         <path d={pathD} fill="none" stroke="#d4a853" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p, i) => (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r="2.5" fill="#0a0506" stroke={wrc(p.wr)} strokeWidth="1.5" />
+            <circle cx={p.x} cy={p.y} r="2.5" fill="rgb(var(--surface-raised))" stroke={wrc(p.wr)} strokeWidth="1.5" />
             <text x={p.x} y={p.y - 6} fill={wrc(p.wr)} fontSize="7" fontWeight="700" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">{p.wr}%</text>
-            <text x={p.x} y={H + 12} fill="#6b5c52" fontSize="6" textAnchor="middle">{p.month?.slice(5)}</text>
+            <text x={p.x} y={H + 12} fill="rgb(var(--fg-muted))" fontSize="6" textAnchor="middle">{p.month?.slice(5)}</text>
           </g>
         ))}
-        <text x={2} y={padY + 3} fill="#4a3f35" fontSize="5" fontFamily="'JetBrains Mono', monospace">{Math.round(maxWr)}%</text>
-        <text x={2} y={H - padY + 3} fill="#4a3f35" fontSize="5" fontFamily="'JetBrains Mono', monospace">{Math.round(minWr)}%</text>
+        <text x={2} y={padY + 3} fill="rgb(var(--fg-muted))" fontSize="5" fontFamily="'JetBrains Mono', monospace">{Math.round(maxWr)}%</text>
+        <text x={2} y={H - padY + 3} fill="rgb(var(--fg-muted))" fontSize="5" fontFamily="'JetBrains Mono', monospace">{Math.round(minWr)}%</text>
       </svg>
     </div>
   );
@@ -177,11 +177,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
   const statCards = [
     { l:'Win Rate', v:`${coin.win_rate}%`, c:wrc(coin.win_rate), i: trendIcon },
-    { l:'SL Rate', v:`${coin.sl_rate}%`, c:coin.sl_rate>=30?'#ef4444':'#8a8577' },
+    { l:'SL Rate', v:`${coin.sl_rate}%`, c:coin.sl_rate>=30?'#ef4444':'rgb(var(--fg-muted))' },
     { l:'Avg Outcome', v:coin.avg_outcome, c:coin.avg_outcome==='SL'?'#ef4444':'#d4a853' },
     { l:'Streak', v:`${coin.current_streak?.length||0}${coin.current_streak?.type==='win'?'W':'L'}`, c:coin.current_streak?.type==='win'?'#22c55e':'#ef4444' },
     { l:'R:R Ratio', v:coin.volatility?.rr_ratio?`${coin.volatility.rr_ratio}x`:'—', c:(coin.volatility?.rr_ratio||0)>=2?'#22c55e':(coin.volatility?.rr_ratio||0)>=1?'#eab308':'#ef4444' },
-    { l:'30d WR', v:coin.win_rate_30d!=null?`${coin.win_rate_30d}%`:'—', c:coin.win_rate_30d!=null?wrc(coin.win_rate_30d):'#8a8577' },
+    { l:'30d WR', v:coin.win_rate_30d!=null?`${coin.win_rate_30d}%`:'—', c:coin.win_rate_30d!=null?wrc(coin.win_rate_30d):'rgb(var(--fg-muted))' },
   ];
 
   const content = (
@@ -195,8 +195,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               <div className="w-10 h-1 rounded-full bg-ink/20" />
             </div>
 
-            {/* ── HEADER (sticky) ── */}
-            <div className="flex-shrink-0 relative bg-surface-raised border-b border-line/30 px-4 py-3.5 z-10">
+            {/* ── HEADER (sticky) — same solid surface as body (no hybrid white/dark) ── */}
+            <div
+              className="flex-shrink-0 relative z-10 border-b border-ink/[0.1] px-4 py-3.5"
+              style={{ background: 'rgb(var(--surface-raised))' }}
+            >
               {/* verdict-colored accent line (semantic) */}
               <div className="absolute top-0 inset-x-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${vc}, transparent)`, opacity: 0.7 }} />
               <div className="flex items-center gap-3 pr-10">
@@ -222,14 +225,19 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               </div>
               <button
                 onClick={handleClose}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-line/20 hover:border-red-500/50 rounded-lg transition-all"
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary border border-ink/[0.12] hover:border-red-500/50 hover:bg-red-500/10 rounded-lg transition-all"
+                style={{ background: 'rgb(var(--surface-raised))' }}
+                aria-label="Close"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
 
             {/* ── BODY (scroll) ── */}
-            <div className="flex-1 min-h-0 overflow-y-auto cdm-scroll px-4 py-4 sm:px-5 sm:py-5">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto cdm-scroll px-4 py-4 sm:px-5 sm:py-5"
+              style={{ background: 'rgb(var(--surface-raised))' }}
+            >
               <div className="max-w-5xl mx-auto space-y-5">
 
                 {/* Anomaly flag chips (severity = semantic) */}
@@ -283,7 +291,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                               strokeDasharray={`${s.pct} ${100 - s.pct}`} strokeDashoffset={25 - s.offset} strokeLinecap="butt" />
                           ))}
                           <text x="21" y="20.3" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="6" fontWeight="700" fill={wrc(reachPct)}>{reachPct}%</text>
-                          <text x="21" y="25.5" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="2.6" letterSpacing="0.4" fill="#8a8577">REACH TP</text>
+                          <text x="21" y="25.5" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="2.6" letterSpacing="0.4" fill="rgb(var(--fg-muted))">REACH TP</text>
                         </svg>
                         <div className="flex-1 grid grid-cols-1 gap-y-1.5 font-mono text-[11px]">
                           {order.map(k => {
@@ -326,11 +334,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                         const isNow = apiFlow === currentFlow;
                         return (
                           <div key={apiFlow} className={`p-3 rounded-lg text-center flex flex-col justify-center ${isNow ? 'shadow-inner' : ''}`}
-                            style={{ background:isNow?fc.bg:'rgb(var(--ink) / 0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(212,168,83,0.08)'}` }}>
-                            <p className="text-[8px] uppercase tracking-widest font-bold mb-1.5" style={{ color:isNow?fc.text:'#8a8577' }}>
+                            style={{ background:isNow?fc.bg:'rgb(var(--ink) / 0.01)', border:`1px solid ${isNow?fc.border+'40':'rgb(var(--ink) / 0.08)'}` }}>
+                            <p className="text-[8px] uppercase tracking-widest font-bold mb-1.5" style={{ color:isNow?fc.text:'rgb(var(--fg-muted))' }}>
                               {fc.label.toUpperCase()} MARKET {isNow&&<span className="animate-pulse">●</span>}
                             </p>
-                            <p className="font-mono font-extrabold text-xl" style={{ color:d.calls>0?wrc(d.wr):'#4a3f35' }}>{d.calls>0?`${d.wr}%`:'—'}</p>
+                            <p className="font-mono font-extrabold text-xl" style={{ color:d.calls>0?wrc(d.wr):'rgb(var(--fg-muted))' }}>{d.calls>0?`${d.wr}%`:'—'}</p>
                             <p className="text-text-muted text-[9px] mt-1">{d.wins}W / {d.losses}L</p>
                           </div>
                         );
@@ -348,7 +356,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       <div className="grid grid-cols-3 gap-3 text-center border-t border-line/10 pt-3">
                         <div><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
                         <div className="border-l border-line/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-text-primary">{coin.tp4_streaks.longest_streak}</p></div>
-                        <div className="border-l border-line/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
+                        <div className="border-l border-line/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'rgb(var(--fg-muted))' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
                       </div>
                     )}
                   </Section>
@@ -357,7 +365,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     <Section title="Volatility Profile">
                       <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                         <StatBox label="Profile" value={coin.volatility.profile} color={coin.volatility.profile==='stable'?'#22c55e':coin.volatility.profile==='volatile'?'#ef4444':'#eab308'} />
-                        <StatBox label="P/L StdDev" value={`${coin.volatility.pl_stddev}%`} color="#fff" />
+                        <StatBox label="P/L StdDev" value={`${coin.volatility.pl_stddev}%`} color="rgb(var(--fg))" />
                         <StatBox label="Avg Win" value={`+${coin.volatility.avg_win_pl}%`} color="#22c55e" />
                         <StatBox label="Avg Loss" value={`${coin.volatility.avg_loss_pl}%`} color="#ef4444" />
                       </div>
@@ -368,9 +376,9 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     <Section title="Entry Quality Metrics">
                       <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                         <StatBox label="Score" value={coin.entry_quality.score} color={coin.entry_quality.score==='excellent'?'#22c55e':coin.entry_quality.score==='poor'?'#ef4444':'#d4a853'} />
-                        <StatBox label="Avg TP Level" value={`${coin.entry_quality.avg_tp_level}/4`} color="#fff" />
+                        <StatBox label="Avg TP Level" value={`${coin.entry_quality.avg_tp_level}/4`} color="rgb(var(--fg))" />
                         <StatBox label="Hits > TP1" value={`${coin.entry_quality.reaches_potential}%`} color={coin.entry_quality.reaches_potential>=60?'#22c55e':'#eab308'} />
-                        <StatBox label="Full Target Rate" value={`${coin.entry_quality.full_target_rate}%`} color={coin.entry_quality.full_target_rate>=20?'#22c55e':'#8a8577'} />
+                        <StatBox label="Full Target Rate" value={`${coin.entry_quality.full_target_rate}%`} color={coin.entry_quality.full_target_rate>=20?'#22c55e':'rgb(var(--fg-muted))'} />
                       </div>
                     </Section>
                   )}
@@ -381,7 +389,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                         <StatBox label="Avg Signal to Recover" value={`${coin.recovery.avg_signals_to_recover} sig`} color={coin.recovery.speed_label==='fast'?'#22c55e':coin.recovery.speed_label==='slow'?'#ef4444':'#eab308'} />
                         <StatBox label="Fastest Recovery" value={`${coin.recovery.fastest_recovery} sig`} color="#22c55e" />
                         <StatBox label="Slowest Recovery" value={`${coin.recovery.slowest_recovery} sig`} color="#ef4444" />
-                        <StatBox label="Total Recoveries" value={`${coin.recovery.total_recoveries}`} color="#6b5c52" />
+                        <StatBox label="Total Recoveries" value={`${coin.recovery.total_recoveries}`} color="rgb(var(--fg-muted))" />
                       </div>
                     </Section>
                   )}
@@ -484,7 +492,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             {rows.map((s,i) => (
                               <tr key={start+i} className="hover:bg-gold-primary/[0.04] transition-colors">
                                 <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300 whitespace-nowrap">{fmtDate(s.date)}</td>
-                                <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color:s.platform_wr?wrc(s.platform_wr):'#555' }}>
+                                <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color:s.platform_wr?wrc(s.platform_wr):'rgb(var(--fg-muted))' }}>
                                   {s.platform_wr!=null?`${s.platform_wr}%`:'—'}
                                 </td>
                                 <td className="px-4 py-2.5 font-mono text-[11px] text-text-muted">{s.entry}</td>
@@ -539,15 +547,32 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
       <style>{`
         .cdm-overlay { position: fixed; inset: 0; z-index: 100050; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
         @supports(height:100dvh) { .cdm-overlay { height: 100dvh; } }
-        .cdm-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / 0.85); animation: cdmBI .25s ease-out; }
+        .cdm-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / 0.72); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: cdmBI .25s ease-out; }
         .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
         .cdm-container > * { pointer-events: auto; }
-        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh); background: #0a0805; border-top: 1px solid rgb(var(--ink) / 0.08); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: cdmUp .32s cubic-bezier(.16,1,.3,1); box-shadow: 0 -16px 48px rgba(0,0,0,.55); }
+        /* FULL theme shell — never hardcode dark; header+body share surface-raised */
+        .cdm-content {
+          position: relative; width: 100%; max-width: 1000px;
+          height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh);
+          background: rgb(var(--surface-raised));
+          color: rgb(var(--fg));
+          border-top: 1px solid rgb(var(--ink) / 0.12);
+          border-radius: 16px 16px 0 0;
+          display: flex; flex-direction: column; overflow: hidden;
+          animation: cdmUp .32s cubic-bezier(.16,1,.3,1);
+          box-shadow: 0 -16px 48px rgb(var(--scrim) / 0.35);
+        }
 
         @media(min-width:640px) {
           .cdm-overlay { align-items: center; }
           .cdm-container { align-items: center; padding: 16px; }
-          .cdm-content { height: auto; min-height: 0; max-height: calc(100vh - 32px); border-radius: 12px; border: 1px solid rgb(var(--ink) / 0.08); box-shadow: 0 24px 64px rgba(0,0,0,.55); animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
+          .cdm-content {
+            height: auto; min-height: 0; max-height: calc(100vh - 32px);
+            border-radius: 14px;
+            border: 1px solid rgb(var(--ink) / 0.12);
+            box-shadow: 0 28px 72px rgb(var(--scrim) / 0.4);
+            animation: cdmCI .3s cubic-bezier(.16,1,.3,1);
+          }
         }
         @media(min-width:1024px) {
           .cdm-container { padding: 24px; }
@@ -566,10 +591,10 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
         @keyframes cdmUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
         @keyframes cdmDn { from{transform:translateY(0)} to{transform:translateY(100%)} }
 
-        .cdm-scroll::-webkit-scrollbar { width: 4px; height: 6px; }
+        .cdm-scroll::-webkit-scrollbar { width: 5px; height: 6px; }
         .cdm-scroll::-webkit-scrollbar-track { background: transparent; }
-        .cdm-scroll::-webkit-scrollbar-thumb { background: rgba(212,168,83,.3); border-radius: 4px; }
-        .cdm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,.5); }
+        .cdm-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.15); border-radius: 4px; }
+        .cdm-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink) / 0.28); }
       `}</style>
     </>
   );

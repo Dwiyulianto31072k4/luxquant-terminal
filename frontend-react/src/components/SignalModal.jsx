@@ -1819,7 +1819,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               <button
                                 type="button"
                                 onClick={() => setLightboxImg(entryImg)}
-                                className="relative group h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c] cursor-zoom-in"
+                                className="relative group h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-secondary cursor-zoom-in"
                               >
                                 <img
                                   src={entryImg}
@@ -1889,11 +1889,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </div>
                           <div className="p-2 flex-1 flex flex-col">
                             {showInteractiveRight ? (
-                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c]">
+                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-secondary">
                                 <div id="tv_chart_modal_side" className="absolute inset-0 h-full w-full" />
                               </div>
                             ) : afterImg ? (
-                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[#0a0a0c]">
+                              <div className="relative h-[220px] sm:h-[280px] w-full overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-secondary">
                                 <img
                                   src={afterImg}
                                   alt="Latest Chart"
@@ -2571,9 +2571,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         }
         .signal-modal-backdrop {
           position: absolute; inset: 0;
-          background: rgb(0 0 0 / 0.72);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
+          background: rgb(var(--scrim) / 0.72);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
         .signal-modal-container {
           position: relative; z-index: 1; width: 100%; height: 100%;
@@ -2585,11 +2585,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           position: relative; width: 100%;
           max-width: min(1280px, 100%);
           height: min(94dvh, 100%); max-height: 94dvh;
-          background: rgb(var(--surface));
-          border: none; border-top: 1px solid rgb(var(--fg) / 0.08);
+          background: rgb(var(--surface-raised));
+          border: none; border-top: 1px solid rgb(var(--ink) / 0.12);
           border-radius: 16px 16px 0 0;
           display: flex; flex-direction: column; overflow: hidden;
-          box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
+          box-shadow: 0 -12px 40px rgb(var(--scrim) / 0.4);
           color: rgb(var(--fg));
         }
 
@@ -2600,8 +2600,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             height: min(90dvh, 900px);
             max-height: min(90dvh, 900px);
             border-radius: 14px;
-            border: 1px solid rgb(var(--fg) / 0.08);
-            box-shadow: 0 24px 64px rgb(0 0 0 / 0.5);
+            border: 1px solid rgb(var(--ink) / 0.12);
+            box-shadow: 0 24px 64px rgb(var(--scrim) / 0.45);
           }
         }
         @media (min-width: 1024px) {
