@@ -93,21 +93,21 @@ export default function TheRead({ data }) {
 
   return (
     <div className="space-y-4">
-      {/* ════════ WHY THIS UPDATED — what triggered a fresh run ════════ */}
-      <div className="flex items-start gap-3 rounded-xl border border-line/15 bg-gold-primary/[0.045] p-3.5">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-primary/[0.14] text-[13px] text-gold-light">
+      {/* ════════ WHY THIS UPDATED — quiet event strip ════════ */}
+      <div className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-surface-raised p-3.5">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-[13px] text-text-secondary">
           ↻
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-gold-primary/85">
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-muted">
               Why this updated
             </span>
             <span
               className={`rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.12em] ${
                 isAnomaly
-                  ? "border-line/25 bg-gold-primary/10 text-gold-light/90"
-                  : "border-white/[0.12] bg-white/[0.04] text-text-muted/70"
+                  ? "border-white/15 bg-white/[0.06] text-text-primary/80"
+                  : "border-white/[0.1] bg-white/[0.03] text-text-muted/70"
               }`}
             >
               {isAnomaly ? "Market-move trigger" : "Baseline read"}
@@ -281,7 +281,7 @@ export default function TheRead({ data }) {
               (r.evidence?.length > 0) && (
                 <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-primary/80">{r.label}</span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">{r.label}</span>
                     {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -322,7 +322,7 @@ export default function TheRead({ data }) {
             <div className="mt-5 border-t border-white/[0.06] pt-4">
               <button
                 onClick={() => setShowRisks((v) => !v)}
-                className="flex items-center gap-2 font-display text-[13px] font-semibold text-gold-primary transition hover:text-gold-light"
+                className="flex items-center gap-2 font-display text-[13px] font-semibold text-text-primary transition hover:text-text-secondary"
               >
                 <span className={`text-[11px] transition-transform ${showRisks ? "rotate-90" : ""}`}>▸</span>
                 What can break this read ({risks.length})
@@ -379,7 +379,7 @@ export default function TheRead({ data }) {
 
           {/* alt exposure */}
           <Card className="p-5" accent="gold">
-            <Eyebrow className="text-gold-primary/80">Alt exposure — how to trade alts right now</Eyebrow>
+            <Eyebrow className="text-text-muted">Alt exposure — how to trade alts right now</Eyebrow>
             <div className="mt-2 font-display text-2xl font-bold tracking-tight"><Hi tone="gold">{modeLabel}</Hi></div>
             <p className="mt-2 text-[13px] leading-relaxed text-text-muted">{modeText}</p>
           </Card>

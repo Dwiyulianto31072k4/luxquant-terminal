@@ -239,12 +239,12 @@ export const highlightPrices = (text) => {
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
   const tones = {
     neutral: "border-white/[0.05] bg-surface-secondary",
-    gold: "border-line/25 bg-gold-primary/[0.06]",
+    gold: "border-white/10 bg-white/[0.04]",
     up: "border-profit/20 bg-profit/[0.05]",
     down: "border-loss/20 bg-loss/[0.05]",
   };
   const valueTone =
-    tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : tone === "gold" ? "text-gold-light" : "text-text-primary";
+    tone === "up" ? "text-profit" : tone === "down" ? "text-loss" : "text-text-primary";
   return (
     <div className={`rounded-lg border p-4 ${tones[tone] || tones.neutral}`}>
       <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/70">{label}</div>
@@ -475,8 +475,7 @@ export const OutcomeBar = ({ segments = [] }) => {
 
 /* ═══════════════ landing-grade controls ═══════════════ */
 
-// Solid gold CTA — exchange-grade: compact fixed height, 8px radius, flat.
-// (Binance/Bybit convention: h-8/h-9, medium weight, solid accent, no capsule.)
+// Primary CTA — solid white fill on dark (timeless, no gold glow)
 export const GoldButton = ({ children, className = "", size = "md", ...rest }) => {
   const sizes = {
     sm: "h-8 px-3 text-[12px]",
@@ -485,7 +484,7 @@ export const GoldButton = ({ children, className = "", size = "md", ...rest }) =
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary font-semibold leading-none text-surface-hover transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/15 bg-white/[0.1] font-semibold leading-none text-text-primary transition hover:bg-white/[0.14] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -502,7 +501,7 @@ export const GhostButton = ({ children, className = "", size = "md", ...rest }) 
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-line/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-text-primary/70 transition hover:border-white/20 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -562,7 +561,7 @@ export const Segmented = ({ options, value, onChange }) => (
         onClick={() => onChange(o.value)}
         className={`rounded-md px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
           value === o.value
-            ? "bg-gold-primary/15 text-gold-primary shadow-[inset_0_0_0_1px_rgba(212,168,83,0.3)]"
+            ? "bg-white/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
             : "text-text-muted/60 hover:text-text-primary"
         }`}
       >
@@ -577,7 +576,7 @@ export const Chip = ({ active, onClick, children }) => (
     onClick={onClick}
     className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
       active
-        ? "border-line/40 bg-gold-primary/15 text-gold-primary"
+        ? "border-white/20 bg-white/[0.1] text-text-primary"
         : "border-white/[0.07] bg-white/[0.02] text-text-muted/70 hover:border-white/[0.16] hover:text-text-primary"
     }`}
   >
@@ -587,7 +586,7 @@ export const Chip = ({ active, onClick, children }) => (
 
 export const WeightBar = ({ pct }) => (
   <span className="mr-2 inline-block h-[6px] w-[70px] overflow-hidden rounded-full border border-white/[0.06] bg-white/[0.04] align-middle">
-    <span className="block h-full rounded-full bg-gold-primary/70" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+    <span className="block h-full rounded-full bg-white/50" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
   </span>
 );
 

@@ -119,24 +119,48 @@ const Icon = {
 };
 
 // ================================================================
-// SECTION HEADER — unchanged
+// SECTION HEADER — muted mono (no gold)
 // ================================================================
 const SectionHeader = ({ label, hint }) => (
   <div className="flex items-center gap-3 mb-4">
-    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{label}</span>
-    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/50">{hint}</span>}
+    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">{label}</span>
+    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">{hint}</span>}
   </div>
 );
 
-// ================================================================
-// STAT CARD — brighter label/sub for contrast
-// ================================================================
-// MEXC-soft KPI card — background halus (bukan box tebal), angka dominan.
-const StatCard = ({ label, value, valueColor = 'text-text-primary', sub }) => (
-  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 lg:p-5 transition-colors hover:bg-white/[0.035]">
-    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted mb-2">{label}</p>
-    <p className={`font-mono text-2xl lg:text-[26px] font-semibold tabular-nums leading-none ${valueColor}`}>{value}</p>
-    {sub && <p className="font-mono text-[10px] text-text-muted mt-2">{sub}</p>}
+// Product family switcher — Trades · Terminal · AI Research
+const ProductSwitcher = ({ active = "trades", onTerminal, onResearch }) => {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
+  const on = "bg-white/[0.1] text-text-primary shadow-sm";
+  const off = "text-text-muted hover:text-text-primary hover:bg-white/[0.04]";
+  return (
+    <div
+      className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5"
+      role="navigation"
+      aria-label="Product"
+    >
+      <span className={`${base} ${active === "trades" ? on : off}`} aria-current={active === "trades" ? "page" : undefined}>
+        Trades
+      </span>
+      <button type="button" onClick={onTerminal} className={`${base} ${active === "terminal" ? on : off}`}>
+        Terminal
+      </button>
+      <button type="button" onClick={onResearch} className={`${base} ${active === "research" ? on : off}`}>
+        AI Research
+      </button>
+    </div>
+  );
+};
+
+// Single KPI cell inside the ribbon
+const KpiCell = ({ label, value, valueColor = "text-text-primary", sub, edge }) => (
+  <div className={`min-w-0 px-4 py-3.5 sm:px-5 ${edge ? "" : "border-l border-white/[0.06]"}`}>
+    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{label}</p>
+    <p className={`mt-1.5 font-mono text-xl sm:text-2xl font-semibold tabular-nums leading-none tracking-tight ${valueColor}`}>
+      {value}
+    </p>
+    {sub ? <p className="mt-1.5 font-mono text-[10px] text-text-muted/80 truncate">{sub}</p> : null}
   </div>
 );
 
@@ -659,7 +683,7 @@ const SignalsPage = () => {
     setSortOrder("desc");
   };
 
-  // Buka LuxQuant Terminal (visualisasi) membawa filter aktif saat ini.
+  // Open Terminal with current table filters preserved.
   const goTerminal = () => {
     const params = filtersToParams({
       searchPair, statusFilter, riskFilter, streakFilter,
@@ -667,7 +691,7 @@ const SignalsPage = () => {
       selectedDates, selectedTags, showWatchlistOnly, sortBy, sortOrder,
     });
     const qs = params.toString();
-    navigate(qs ? `/terminal?${qs}` : "/terminal");
+    navigate(qs ? `/terminal/scan?${qs}` : "/terminal/scan");
   };
 
   const toggleDateFilter = (dateVal) => {
@@ -906,89 +930,83 @@ const SignalsPage = () => {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* PAGE HEADER — reworded: feature name is the H1, "last 7 days" is the descriptor */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Potential Trades</h1>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70 mt-1.5">
-            Last 7 days
-            <span className="mx-2 text-text-primary/30">·</span>
-            <span className="text-text-primary tabular-nums">{allSignals.length}</span> signals
-            {updatedCount > 0 && (
-              <>
-                <span className="mx-2 text-text-primary/30">·</span>
-                <span className="text-gold-primary tabular-nums">{updatedCount}</span> recently updated
-              </>
-            )}
-          </p>
-        </div>
+    <div className="space-y-5 pb-10">
+      {/* ── WORKSPACE HEADER — timeless product chrome ── */}
+      <header className="space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl lg:text-[28px] font-semibold tracking-tight text-text-primary">
+              Potential Trades
+            </h1>
+            <p className="mt-1.5 text-sm text-text-secondary">
+              Live algo setups with entry, targets & risk — last 7 days
+              <span className="mx-1.5 text-text-muted/40">·</span>
+              <span className="font-mono tabular-nums text-text-primary/80">{allSignals.length}</span>
+              <span className="text-text-muted"> signals</span>
+              {updatedCount > 0 && (
+                <>
+                  <span className="mx-1.5 text-text-muted/40">·</span>
+                  <span className="font-mono tabular-nums text-text-primary/70">{updatedCount}</span>
+                  <span className="text-text-muted"> updated</span>
+                </>
+              )}
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={goTerminal}
-            title="Open research Terminal with current filters"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/[0.08] px-3 py-1.5 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="8" height="10" rx="1" /><rect x="13" y="3" width="8" height="6" rx="1" /><rect x="13" y="11" width="8" height="10" rx="1" /><rect x="3" y="15" width="8" height="6" rx="1" />
-            </svg>
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-primary">Terminal</span>
-          </button>
-          <a
-            href="/ai-arena"
-            onClick={(e) => { e.preventDefault(); navigate('/ai-arena'); }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted hover:text-text-primary hover:border-white/15 transition-colors"
-          >
-            AI Research
-          </a>
-
-          <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 rounded-lg">
-            <span className="relative flex h-1.5 w-1.5">
-              <span
-                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${loading ? "bg-warning" : "bg-positive"}`}
-              />
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
-              {loading
-                ? 'Syncing'
-                : lastUpdated
-                ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-                : 'Ready'}
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <ProductSwitcher
+              active="trades"
+              onTerminal={goTerminal}
+              onResearch={() => navigate("/ai-arena")}
+            />
+            <div className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span
+                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${loading ? "bg-warning" : "bg-positive"}`}
+                />
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
+                {loading
+                  ? "Syncing"
+                  : lastUpdated
+                    ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                    : "Ready"}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* BTC COMPASS SNAPSHOT — 24h read + trade geometry + shortcuts to AI Research */}
-      <CompassSnapshot />
+        {/* KPI ribbon — single desk strip (Bloomberg / exchange style) */}
+        <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            <KpiCell
+              edge
+              label="Today"
+              value={todayStats.total}
+              sub={`${todayStats.open} open · ${todayStats.wins}W / ${todayStats.losses}L`}
+            />
+            <KpiCell
+              label="Win rate today"
+              value={`${todayStats.wr}%`}
+              valueColor={todayStats.wr >= 50 ? "text-positive" : todayStats.wr > 0 ? "text-text-primary" : "text-text-primary"}
+              sub={`${todayStats.closedCount} closed`}
+            />
+            <KpiCell
+              label="Overall WR"
+              value={stats?.win_rate != null ? `${stats.win_rate}%` : "—"}
+              sub={stats ? `${(stats.total_signals || 0).toLocaleString()} lifetime` : "—"}
+            />
+            <KpiCell
+              label="In view"
+              value={allSignals.length}
+              sub="last 7 days"
+            />
+          </div>
+        </div>
 
-      {/* PERFORMANCE STATS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          label="Today's Activity"
-          value={todayStats.total}
-          sub={`${todayStats.open} open · ${todayStats.wins}W · ${todayStats.losses}L`}
-        />
-        <StatCard
-          label="Today's win rate"
-          value={`${todayStats.wr}%`}
-          valueColor={todayStats.wr > 0 ? "text-positive" : "text-text-primary"}
-          sub={`${todayStats.closedCount} closed`}
-        />
-        <StatCard
-          label="Overall win rate"
-          value={stats?.win_rate ? `${stats.win_rate}%` : '—'}
-          valueColor="text-text-primary"
-          sub={stats ? `${(stats.total_signals || 0).toLocaleString()} total` : '—'}
-        />
-        <StatCard
-          label="This Week"
-          value={allSignals.length}
-          sub="signals in view"
-        />
-      </div>
+        {/* BTC Compass + deep-links to AI Research / Terminal */}
+        <CompassSnapshot />
+      </header>
 
       {/* ── COIN FLOW INTENSITY — tabel tipis + data call LuxQuant, default tertutup ── */}
       {flowCoins.length > 0 && (() => {
@@ -1031,7 +1049,7 @@ const SignalsPage = () => {
         const toggleSort = (key) => setFlowSort((s) => s.key === key ? { key, dir: s.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
         const SortHead = ({ label, k, align = 'right' }) => (
           <th className={`py-2 px-2 ${align === 'left' ? 'text-left' : 'text-right'}`}>
-            <button onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 font-mono text-[8.5px] uppercase tracking-[0.14em] transition-colors ${flowSort.key === k ? 'text-gold-primary' : 'text-text-primary/35 hover:text-text-primary/60'} ${align === 'left' ? '' : 'flex-row-reverse'}`}>
+            <button onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 font-mono text-[8.5px] uppercase tracking-[0.14em] transition-colors ${flowSort.key === k ? 'text-text-primary' : 'text-text-primary/35 hover:text-text-primary/60'} ${align === 'left' ? '' : 'flex-row-reverse'}`}>
               {label}
               <span className="text-[7px]">{flowSort.key === k ? (flowSort.dir === 'desc' ? '▼' : '▲') : '⇅'}</span>
             </button>
@@ -1058,10 +1076,10 @@ const SignalsPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <button onClick={() => setFlowOpen((v) => !v)} className="group flex items-center gap-2 min-w-0">
-              <svg className={`w-3.5 h-3.5 text-gold-primary/70 transition-transform ${flowOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-primary/60 group-hover:text-text-primary/85 whitespace-nowrap">Coin Flow Intensity</span>
+              <svg className={`w-3.5 h-3.5 text-text-muted transition-transform ${flowOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted group-hover:text-text-primary/85 whitespace-nowrap">Coin Flow Intensity</span>
               {!flowOpen && (
-                <span className="font-mono text-[9px] normal-case tracking-normal text-gold-primary/60 group-hover:text-gold-primary/90 truncate">— tap to see where money is flowing now</span>
+                <span className="font-mono text-[9px] normal-case tracking-normal text-text-muted/60 group-hover:text-text-muted truncate">— where capital is rotating now</span>
               )}
             </button>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -1070,7 +1088,7 @@ const SignalsPage = () => {
                   <select
                     value={flowCount}
                     onChange={(e) => setFlowCount(Number(e.target.value))}
-                    className="appearance-none pl-2 pr-6 py-1 bg-surface border border-white/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-line/40 cursor-pointer"
+                    className="appearance-none pl-2 pr-6 py-1 bg-surface border border-white/[0.1] rounded-md font-mono text-[10px] text-text-primary/80 focus:outline-none focus:border-white/20 cursor-pointer"
                   >
                     {[10, 20, 30, 50].map((n) => <option key={n} value={n} className="bg-surface">Top {n}</option>)}
                   </select>
@@ -1079,7 +1097,7 @@ const SignalsPage = () => {
                   </span>
                 </div>
               )}
-              <button onClick={() => navigate('/money-flow')} className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 hover:text-gold-primary transition-colors">
+              <button onClick={() => navigate('/money-flow')} className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors">
                 More
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
               </button>
@@ -1117,7 +1135,7 @@ const SignalsPage = () => {
                             <div className="flex items-center gap-2">
                               <CoinLogo pair={`${c.symbol}USDT`} size={20} />
                               <span className="font-mono text-[12px] font-semibold text-text-primary">{c.symbol}</span>
-                              {c.is_luxquant_signal && <span className="font-mono text-[7.5px] uppercase tracking-wider text-gold-primary border border-line/40 rounded px-1 py-0.5 leading-none">Call</span>}
+                              {c.is_luxquant_signal && <span className="font-mono text-[7.5px] uppercase tracking-wider text-text-primary border border-line/40 rounded px-1 py-0.5 leading-none">Call</span>}
                             </div>
                           </td>
                           {/* 24h */}
@@ -1128,7 +1146,7 @@ const SignalsPage = () => {
                           <td className="py-2 px-2">
                             <div className="flex items-center justify-end gap-2">
                               <div className="w-14 h-1 rounded-full bg-white/[0.07] overflow-hidden hidden sm:block">
-                                <div className="h-full rounded-full bg-gradient-to-r from-gold-primary/60 to-gold-primary" style={{ width: `${barW}%` }} />
+                                <div className="h-full rounded-full bg-gradient-to-r from-white/35 to-white/55" style={{ width: `${barW}%` }} />
                               </div>
                               <span className="font-mono text-[11px] tabular-nums text-text-primary/70 w-9 text-right">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
                             </div>
@@ -1166,15 +1184,15 @@ const SignalsPage = () => {
 
       {/* FILTER CONSOLE */}
       <div className="bg-surface-raised rounded-md border border-white/[0.06] p-4 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-3">
           <div className="flex items-center gap-2.5">
-            {Icon.filter('w-3.5 h-3.5 text-gold-primary/70')}
+            {Icon.filter('w-3.5 h-3.5 text-text-muted')}
             <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary">Call Filter</h2>
             <button
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-line/30 text-gold-primary/90 hover:bg-gold-primary/10 hover:border-line/50 transition-all font-mono text-[9px] uppercase tracking-wider"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-line/30 text-text-primary/80 hover:bg-white/[0.06] hover:border-line/50 transition-all font-mono text-[9px] uppercase tracking-wider"
             >
               <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-line/50 text-[8px] leading-none">?</span>
               {t('guide.button')}
@@ -1198,12 +1216,12 @@ const SignalsPage = () => {
             <button
               onClick={() => setShowWatchlistOnly((v) => !v)}
               className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                showWatchlistOnly ? 'text-gold-primary border-gold-primary' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
+                showWatchlistOnly ? 'text-text-primary border-white/30' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
               }`}
             >
               Watchlist
               {watchlistIds.length > 0 && (
-                <span className={`font-mono text-[12px] tabular-nums ${showWatchlistOnly ? 'text-gold-primary' : 'text-text-primary/40'}`}>{watchlistIds.length}</span>
+                <span className={`font-mono text-[12px] tabular-nums ${showWatchlistOnly ? 'text-text-primary' : 'text-text-primary/40'}`}>{watchlistIds.length}</span>
               )}
             </button>
 
@@ -1215,12 +1233,12 @@ const SignalsPage = () => {
                   key={opt.value}
                   onClick={() => { setShowWatchlistOnly(false); toggleDateFilter(opt.value); }}
                   className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                    active ? 'text-text-primary border-gold-primary' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
+                    active ? 'text-text-primary border-white/30' : 'text-text-primary/50 border-transparent hover:text-text-primary/80'
                   }`}
                 >
                   {opt.label}
                   {opt.count != null && (
-                    <span className={`font-mono text-[12px] tabular-nums ${active ? 'text-gold-primary' : 'text-text-primary/35'}`}>{opt.count}</span>
+                    <span className={`font-mono text-[12px] tabular-nums ${active ? 'text-text-primary' : 'text-text-primary/35'}`}>{opt.count}</span>
                   )}
                 </button>
               );
@@ -1230,7 +1248,7 @@ const SignalsPage = () => {
           <button
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
             aria-label="Lihat hari sebelumnya"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 text-text-primary/60 hover:text-gold-primary transition-colors"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 text-text-primary/60 hover:text-text-primary transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
           </button>
@@ -1281,12 +1299,12 @@ const SignalsPage = () => {
             aria-expanded={advancedOpen}
           >
             <span className="flex items-center gap-2">
-              <span className="text-gold-primary/70">{Icon.sliders('w-3.5 h-3.5')}</span>
+              <span className="text-text-muted">{Icon.sliders('w-3.5 h-3.5')}</span>
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary/70 group-hover:text-text-primary transition-colors">
                 Advanced Filters
               </span>
               {advancedActiveCount > 0 && (
-                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-gold-primary/15 text-gold-primary border border-line/30">
+                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-white/10 text-text-primary border border-line/30">
                   {advancedActiveCount} active
                 </span>
               )}
@@ -1313,10 +1331,10 @@ const SignalsPage = () => {
               <button
                 key={i}
                 onClick={chip.clear}
-                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-gold-primary/10 border border-line/30 text-gold-primary font-mono text-[9px] uppercase tracking-wider hover:bg-gold-primary/20 transition-all"
+                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-white/[0.06] border border-line/30 text-text-primary font-mono text-[9px] uppercase tracking-wider hover:bg-white/12 transition-all"
               >
                 <span>{chip.label}</span>
-                <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold-primary/15 group-hover:bg-gold-primary/30 leading-none">×</span>
+                <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/10 group-hover:bg-white/15 leading-none">×</span>
               </button>
             ))}
           </div>
@@ -1338,7 +1356,7 @@ const SignalsPage = () => {
                     const accentColor =
                       opt.accent === 'emerald' ? 'text-emerald-400' :
                       opt.accent === 'red' ? 'text-red-400' :
-                      opt.accent === 'gold' ? 'text-gold-primary' :
+                      opt.accent === 'gold' ? 'text-text-primary' :
                       'text-text-primary/70';
                     return (
                       <button
@@ -1356,7 +1374,7 @@ const SignalsPage = () => {
                         {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
                         <span>{opt.label}</span>
                         {opt.value === "updated" && updatedCount > 0 && !isActive && (
-                          <span className="px-1 py-0 bg-gold-primary/10 text-gold-primary text-[9px] tabular-nums rounded-sm">
+                          <span className="px-1 py-0 bg-white/[0.06] text-text-primary text-[9px] tabular-nums rounded-sm">
                             {updatedCount}
                           </span>
                         )}
@@ -1514,14 +1532,14 @@ const SignalsPage = () => {
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           active
-                            ? 'bg-gold-primary/15 border border-line/40 text-gold-primary'
+                            ? 'bg-white/10 border border-line/40 text-text-primary'
                             : 'bg-white/[0.03] border border-transparent text-text-primary/70 hover:bg-white/[0.06] hover:text-text-primary'
                         }`}
                       >
                         <span className="normal-case">{t.tag.replace(/_/g, ' ').toLowerCase()}</span>
-                        <span className={`tabular-nums ${active ? 'text-gold-primary' : wrCol}`}>{t.win_rate}%</span>
+                        <span className={`tabular-nums ${active ? 'text-text-primary' : wrCol}`}>{t.win_rate}%</span>
                         {cnt > 0 && (
-                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-primary/70'}`}>
+                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-white/12 text-text-primary' : 'bg-white/[0.06] text-text-primary/70'}`}>
                             {cnt}
                           </span>
                         )}

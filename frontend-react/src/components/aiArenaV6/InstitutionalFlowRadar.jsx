@@ -194,11 +194,11 @@ export default function InstitutionalFlowRadar() {
     return (
       <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
           <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="h-32 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-line/30 border-t-white/50 rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -209,14 +209,14 @@ export default function InstitutionalFlowRadar() {
     return (
       <div className="glass-card rounded-2xl p-6 border border-line/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
           <h2 className="font-display text-xl text-text-primary">Institutional Flow Radar</h2>
         </div>
         <div className="text-text-muted text-sm py-4">
           {error ? `Could not load flow data: ${error}` : "No flow data available."}
           <button
             onClick={fetchData}
-            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-gold-primary hover:bg-gold-primary/10 transition-colors"
+            className="ml-3 px-3 py-1 text-[10px] uppercase tracking-wider rounded border border-line/30 text-text-primary hover:bg-white/[0.06] transition-colors"
           >
             Retry
           </button>
@@ -241,7 +241,7 @@ export default function InstitutionalFlowRadar() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-gradient-to-b from-gold-primary to-gold-primary/30 rounded" />
+          <div className="w-1 h-6 bg-gradient-to-b from-white/40 to-white/10 rounded" />
           <div>
             <h2 className="font-display text-xl text-text-primary leading-tight">
               Institutional Flow Radar
@@ -255,7 +255,7 @@ export default function InstitutionalFlowRadar() {
           <span className="text-[10px] text-text-muted font-mono">
             Last: {fmtDate(flows.last_date)}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-gold-primary/10 border-line/30 text-gold-primary">
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-white/[0.06] border-line/30 text-text-primary">
             Live
           </span>
         </div>

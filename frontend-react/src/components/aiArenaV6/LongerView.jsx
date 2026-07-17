@@ -84,7 +84,7 @@ const RowMetrics = ({ rows, horizon = "72h" }) => (
       (r.evidence?.length > 0) && (
         <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-surface-secondary p-3.5">
           <div className="mb-2 flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-primary/80">{r.label}</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">{r.label}</span>
             {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -196,7 +196,7 @@ export default function LongerView({ data }) {
 
             <Card className="p-5 md:p-6" accent="gold">
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary">★ Structural metrics</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">Structural metrics</span>
                 <Tag tone="muted">backdrop · not an entry signal</Tag>
               </div>
               <p className="mb-4 max-w-[70ch] text-[13.5px] leading-relaxed text-text-muted">
@@ -219,7 +219,7 @@ export default function LongerView({ data }) {
                     <Num className="text-[20px] text-text-primary">{data?.cycle?.score != null ? data.cycle.score : "—"}</Num>
                   </Tile>
                   <Tile label="Phase">
-                    <span className="font-display text-[14px] font-semibold text-gold-light">{readable(data?.cycle?.phase)}</span>
+                    <span className="font-display text-[14px] font-semibold text-text-primary">{readable(data?.cycle?.phase)}</span>
                   </Tile>
                   {outlook.slice(0, 2).map((r) => {
                     const m = dirMeta(rowScore(r, "72h").direction);

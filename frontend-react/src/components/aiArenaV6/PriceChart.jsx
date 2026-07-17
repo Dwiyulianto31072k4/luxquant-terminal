@@ -410,7 +410,7 @@ export default function PriceChart({ report }) {
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-white/30 to-transparent" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-display text-xl lg:text-2xl font-semibold text-text-primary">Projection Chart</h2>
@@ -447,7 +447,7 @@ export default function PriceChart({ report }) {
                 onClick={() => setTf(opt.value)}
                 className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all lg:px-3 lg:py-1.5 lg:text-xs ${
                   tf === opt.value
-                    ? "bg-gold-primary/15 text-gold-primary"
+                    ? "bg-white/10 text-text-primary"
                     : "text-text-muted hover:text-text-primary"
                 }`}
                 title={`${opt.label} · ${opt.sub}`}
@@ -536,7 +536,7 @@ export default function PriceChart({ report }) {
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/50 backdrop-blur-sm rounded-xl">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-line/25 border-t-gold-primary rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-line/25 border-t-white/50 rounded-full animate-spin" />
               <p className="text-text-muted text-[10px] font-mono uppercase tracking-wider">
                 Loading {tf} candles…
               </p>
@@ -550,7 +550,7 @@ export default function PriceChart({ report }) {
               <p className="text-negative text-xs">⚠ {error}</p>
               <button
                 onClick={() => fetchData(tf)}
-                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-gold-primary/15 border border-line/30 text-gold-primary hover:bg-gold-primary/25 transition-all"
+                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-white/10 border border-white/10 text-text-primary hover:bg-white/15 transition-all"
               >
                 Retry
               </button>

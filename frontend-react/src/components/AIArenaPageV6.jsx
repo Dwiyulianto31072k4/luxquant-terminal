@@ -70,82 +70,98 @@ function stanceMeta(direction) {
   return { label: "Neutral", arrow: "→", cls: "border-amber-500/20 bg-amber-500/10 text-amber-400" };
 }
 
+function ProductSwitcher({ active = "research" }) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
+  const on = "bg-white/[0.1] text-text-primary shadow-sm";
+  const off = "text-text-muted hover:text-text-primary hover:bg-white/[0.04]";
+  return (
+    <div
+      className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5"
+      role="navigation"
+      aria-label="Product"
+    >
+      <Link to="/signals" className={`${base} ${active === "trades" ? on : off}`}>
+        Trades
+      </Link>
+      <Link to="/terminal/scan" className={`${base} ${active === "terminal" ? on : off}`}>
+        Terminal
+      </Link>
+      <span className={`${base} ${active === "research" ? on : off}`} aria-current="page">
+        AI Research
+      </span>
+    </div>
+  );
+}
+
 function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
   const healthy = healthStatus === "healthy";
   const tactical = report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
   const stance = stanceMeta(tactical.direction);
   const btcPrice = Number(report?.btc_price);
-  return (
-    <header className="space-y-5">
-      <div className="flex min-w-0 items-center gap-3">
-        <span
-          className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] ${
-            healthy
-              ? "border-profit/25 bg-profit/10 text-profit"
-              : "border-amber-500/20 bg-amber-500/10 text-amber-400"
-          }`}
-        >
-          <span className="relative flex h-1.5 w-1.5">
-            <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-50 ${healthy ? "bg-profit" : "bg-amber-500"}`} />
-            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-amber-500"}`} />
-          </span>
-          {healthy ? "Data healthy" : "Data check"}
-        </span>
-      </div>
+  const stanceText =
+    stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-text-primary";
 
-      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-        <div className="min-w-[280px]">
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-tight text-text-primary">
-            BTC Market Outlook
+  return (
+    <header className="space-y-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl lg:text-[28px] font-semibold tracking-tight text-text-primary">
+            AI Research
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Start with the 24h outlook for altcoin exposure, then check the projection,
-            key levels, risk, and the longer backdrop in one flow.
+          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-text-secondary">
+            BTC Compass — 24h outlook, projection levels, confluence & risk for alt exposure
           </p>
         </div>
 
-        {/* exchange-style segmented ticker bar + compact refresh */}
-        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-          <div className="flex flex-1 items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised sm:flex-none">
-            {Number.isFinite(btcPrice) && btcPrice > 0 && (
-              <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
-                <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">BTC / USDT</div>
-                <div className="mt-0.5 font-mono text-[17px] font-medium tabular-nums leading-tight tracking-tight text-text-primary">
-                  ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                </div>
-              </div>
-            )}
-            <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
-              <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">24h stance</div>
-              <div className={`mt-0.5 font-display text-[15px] font-semibold leading-tight ${stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-text-primary"}`}>
-                {stance.arrow} {stance.label}
-                {tactical.confidence != null ? (
-                  <span className="ml-1 font-mono text-[11px] font-normal opacity-75">{tactical.confidence}%</span>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
-              <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">Updated</div>
-              <div className="mt-0.5 font-mono text-[13px] leading-tight text-text-primary/75">{formatAge(report?.timestamp)}</div>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <ProductSwitcher active="research" />
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] ${
+              healthy
+                ? "border-profit/20 bg-profit/10 text-profit"
+                : "border-amber-500/20 bg-amber-500/10 text-amber-400"
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-amber-500"}`} />
+            {healthy ? "Healthy" : "Check"}
+          </span>
           <button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/10 bg-white/[0.06] px-4 text-[13px] font-medium leading-none text-text-primary transition hover:bg-white/[0.1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-3.5 text-[13px] font-medium text-text-primary transition hover:bg-white/[0.09] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className={refreshing ? "animate-spin" : ""}>
               <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {refreshing ? "Refreshing" : "Refresh"}
           </button>
-          <Link
-            to="/terminal/scan"
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.08] px-3 text-[12px] font-medium text-text-muted hover:text-text-primary hover:border-white/15 transition-colors"
-          >
-            Terminal
-          </Link>
+        </div>
+      </div>
+
+      {/* Ticker strip — price / stance / age */}
+      <div className="flex flex-wrap items-stretch overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised divide-x divide-white/[0.06]">
+        {Number.isFinite(btcPrice) && btcPrice > 0 && (
+          <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
+            <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">BTC / USDT</div>
+            <div className="mt-1 font-mono text-[18px] font-semibold tabular-nums leading-none tracking-tight text-text-primary">
+              ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </div>
+          </div>
+        )}
+        <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
+          <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">24h stance</div>
+          <div className={`mt-1 font-display text-[16px] font-semibold leading-none ${stanceText}`}>
+            {stance.arrow} {stance.label}
+            {tactical.confidence != null ? (
+              <span className="ml-1.5 font-mono text-[12px] font-normal text-text-muted">{tactical.confidence}%</span>
+            ) : null}
+          </div>
+        </div>
+        <div className="min-w-[100px] flex-1 px-4 py-3 sm:flex-none">
+          <div className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-text-muted">Updated</div>
+          <div className="mt-1 font-mono text-[14px] leading-none text-text-primary/80">{formatAge(report?.timestamp)}</div>
         </div>
       </div>
     </header>
@@ -205,7 +221,7 @@ function LoadingState() {
 
       {/* Status caption — Compass is generating, keep the context */}
       <div className="mt-6 flex items-center justify-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-gold-primary animate-pulse" />
+        <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-pulse" />
         <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-primary/40">
           Building the latest Compass read…
         </span>
@@ -281,15 +297,15 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
                 data-active={active}
                 onClick={() => onChange(tab.key)}
                 title={tab.description}
-                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-3 text-[15px] font-medium transition-colors ${
+                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-3 text-[14px] font-medium transition-colors ${
                   active
-                    ? "border-gold-primary text-text-primary"
+                    ? "border-white/80 text-text-primary"
                     : "border-transparent text-text-primary/45 hover:text-text-primary/80"
                 }`}
               >
                 <span
                   className={`font-mono text-[11px] tabular-nums ${
-                    active ? "text-gold-primary" : "text-text-primary/30 group-hover:text-text-primary/55"
+                    active ? "text-text-primary/70" : "text-text-primary/30 group-hover:text-text-primary/55"
                   }`}
                 >
                   {tab.icon}
@@ -305,13 +321,13 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
           className={`pointer-events-none absolute inset-y-0 right-0 flex items-center pl-10 pr-2 transition-opacity duration-200 ${
             atEnd ? "opacity-0" : "opacity-100"
           }`}
-          style={{ background: "linear-gradient(to right, transparent, #0a0506 42%)" }}
+          style={{ background: "linear-gradient(to right, transparent, rgb(var(--surface)) 55%)" }}
         >
           <button
             type="button"
             onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
             aria-label="Show more tabs"
-            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-secondary text-text-primary/70 transition hover:border-line/50 hover:text-gold-primary"
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-secondary text-text-primary/70 transition hover:border-white/20 hover:text-text-primary"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5l7 7-7 7" />
@@ -325,25 +341,22 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
 
 function ChartPanel({ report }) {
   return (
-    <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)] md:p-5">
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+    <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-4 md:p-5">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
             Price context
           </div>
-          <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-text-primary md:text-2xl">
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
             BTC projection chart
           </h2>
-          <p className="mt-1 max-w-3xl text-xs leading-5 text-text-muted/70">
-            Candles confirm where price is trading now. Compass projection adds magnets,
-            zones, and invalidation so the trader can see why a bearish or bullish read
-            may target a specific area.
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-text-muted">
+            Live candles with Compass magnets, zones, and invalidation levels.
           </p>
         </div>
-        <div className="rounded-lg border border-white/[0.07] bg-black/25 px-3 py-2 text-right font-mono text-[10px] text-text-muted/60">
-          <div className="uppercase tracking-[0.14em]">Chart basis</div>
-          <div className="mt-1 text-text-primary/65">Live BTC candles + Compass report</div>
+        <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-right font-mono text-[10px] text-text-muted">
+          <div className="uppercase tracking-[0.14em]">Basis</div>
+          <div className="mt-1 text-text-primary/70">BTC candles + report</div>
         </div>
       </div>
       <PriceChart report={report} />
@@ -408,9 +421,8 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   if (!archive) {
     return (
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
+      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised p-6">
+        <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
           Report library
         </div>
         <h2 className="mt-1 text-2xl font-medium text-text-primary/90">PDF archive is unavailable</h2>
@@ -425,12 +437,11 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_10px_rgba(0,0,0,0.25)]">
-        <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-surface-raised">
         <div className="border-b border-white/[0.06] p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
+              <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
                 Report library
               </div>
               <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-text-primary md:text-3xl">
@@ -483,7 +494,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                   onClick={() => setPage(pageNumber)}
                   className={`h-8 min-w-8 rounded-md border px-2 transition ${
                     pageNumber === page
-                      ? "border-line/40 bg-gold-primary/15 text-gold-primary"
+                      ? "border-white/20 bg-white/[0.1] text-text-primary"
                       : "border-white/[0.07] bg-black/20 text-text-primary/40 hover:border-white/[0.14] hover:text-text-primary/70"
                   }`}
                 >
@@ -578,7 +589,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-gold-primary px-3.5 text-[12px] font-semibold leading-none text-surface-hover transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-white/15 bg-white/[0.08] px-3.5 text-[12px] font-semibold leading-none text-text-primary transition hover:bg-white/[0.12] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
                     {loading ? "Opening…" : "Open reader →"}
                   </button>

@@ -85,19 +85,39 @@ export default function TerminalLayout() {
 
   return (
     <div className="flex flex-col lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden">
-      {/* ── compact breadcrumb ── */}
-      <div className="shrink-0 flex items-center justify-between gap-3 mb-2 px-0.5">
+      {/* ── product chrome + breadcrumb ── */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 mb-3 px-0.5">
         <div className="flex items-center gap-2 min-w-0 text-[12px]">
-          <button
-            onClick={() => navigate("/signals")}
-            className="hidden sm:inline-flex text-text-muted hover:text-text-primary transition-colors"
-          >
-            {t("terminal.backToSignals")}
-          </button>
-          <span className="hidden sm:inline text-text-primary/15">/</span>
-          <span className="text-text-muted/80 truncate">{t("terminal.title")}</span>
+          <span className="font-display text-[15px] font-semibold tracking-tight text-text-primary shrink-0">
+            {t("terminal.title")}
+          </span>
           <span className="text-text-primary/15">/</span>
-          <span className="font-medium text-text-primary truncate">{t(tabKey(active))}</span>
+          <span className="font-medium text-text-primary/80 truncate">{t(tabKey(active))}</span>
+        </div>
+        <div
+          className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5"
+          role="navigation"
+          aria-label="Product"
+        >
+          {[
+            { key: "trades", label: "Trades", run: () => navigate("/signals") },
+            { key: "terminal", label: "Terminal", run: null },
+            { key: "research", label: "AI Research", run: () => navigate("/ai-arena") },
+          ].map((item) => {
+            const isOn = item.key === "terminal";
+            const cls = `inline-flex items-center rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
+              isOn
+                ? "bg-white/[0.1] text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-primary hover:bg-white/[0.04]"
+            }`;
+            return isOn ? (
+              <span key={item.key} className={cls} aria-current="page">{item.label}</span>
+            ) : (
+              <button key={item.key} type="button" onClick={item.run} className={cls}>
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -109,7 +129,7 @@ export default function TerminalLayout() {
             onClick={() => go(id, route)}
             className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
               active === id
-                ? "bg-gold-primary/15 text-gold-primary"
+                ? "bg-white/[0.1] text-text-primary"
                 : "text-text-muted hover:text-text-primary hover:bg-white/[0.03]"
             }`}
           >
@@ -135,14 +155,14 @@ export default function TerminalLayout() {
                       onClick={() => go(id, route)}
                       className={`relative w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 rounded-md text-left text-[12px] transition-colors ${
                         active === id
-                          ? "bg-white/[0.05] text-gold-primary"
+                          ? "bg-white/[0.06] text-text-primary"
                           : "text-text-primary/75 hover:bg-white/[0.03] hover:text-text-primary"
                       }`}
                     >
                       {active === id && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-gold-primary" />
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-white/70" />
                       )}
-                      <span className={active === id ? "text-gold-primary" : "text-text-muted/70"}>
+                      <span className={active === id ? "text-text-primary" : "text-text-muted/70"}>
                         <TabIcon id={id} />
                       </span>
                       <span className="truncate">{t(tabKey(id))}</span>

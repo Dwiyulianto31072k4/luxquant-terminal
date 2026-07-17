@@ -355,7 +355,7 @@ export default function CompassSnapshot({ className = "" }) {
                 </p>
               </div>
               {whatChanged && triggerHuman ? (
-                <p className="mt-1 pl-[52px] font-mono text-[9.5px] leading-4 text-gold-light/60">
+                <p className="mt-1 pl-[52px] font-mono text-[9.5px] leading-4 text-text-muted/60">
                   {triggerHuman}
                 </p>
               ) : null}

@@ -152,7 +152,7 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
             type="button"
             aria-label={b.aria}
             onClick={b.fn}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-surface-secondary/90 text-[14px] text-gold-primary backdrop-blur transition hover:border-line/50 hover:bg-gold-primary/10 md:h-9 md:w-9 md:text-[15px]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-surface-secondary/90 text-[14px] text-text-primary backdrop-blur transition hover:border-line/50 hover:bg-white/[0.06] md:h-9 md:w-9 md:text-[15px]"
           >
             {b.label}
           </button>
@@ -346,7 +346,7 @@ export default function BrainPanel() {
     <div className="space-y-4">
       {/* vault stats strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Tile label="Regime"><span className="font-display text-[16px] font-semibold text-gold-light">{pretty(regime?.regime || "any")}</span></Tile>
+        <Tile label="Regime"><span className="font-display text-[16px] font-semibold text-text-primary">{pretty(regime?.regime || "any")}</span></Tile>
         <Tile label="σ · 1h realized"><span className="font-mono text-[16px] tabular-nums text-text-primary">{regime?.sigma_1h_pct != null ? `${regime.sigma_1h_pct}%` : "—"}</span></Tile>
         <Tile label="72h tape">
           <span className={`font-mono text-[16px] tabular-nums ${Number(regime?.trend_72h_pct) >= 0 ? "text-profit" : "text-loss"}`}>
@@ -390,7 +390,7 @@ export default function BrainPanel() {
 
             {/* selection detail */}
             {selectedLesson && (
-              <div className="mt-4 rounded-xl border border-line/25 bg-gold-primary/[0.05] p-4">
+              <div className="mt-4 rounded-xl border border-line/25 bg-white/[0.04] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-display text-[15px] font-semibold text-text-primary">{shortLessonName(selectedLesson.id)}</span>
                   <Tag tone={STATUS_TONE[String(selectedLesson.status)] || "muted"}>{selectedLesson.status}</Tag>
@@ -398,7 +398,7 @@ export default function BrainPanel() {
                 <p className="mt-1.5 text-[13px] leading-5 text-text-muted">{selectedLesson.prompt_line}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Tile label="Record"><span className="font-mono text-[14px] text-text-primary">{selectedLesson.wins}W / {selectedLesson.losses}L</span></Tile>
-                  <Tile label="Hit rate"><span className="font-mono text-[14px] text-gold-light">{selectedLesson.hit_rate}%</span></Tile>
+                  <Tile label="Hit rate"><span className="font-mono text-[14px] text-text-primary">{selectedLesson.hit_rate}%</span></Tile>
                   <Tile label="Scope"><span className="font-mono text-[12px] text-text-primary/80">{pretty(selectedLesson.regime)}</span></Tile>
                   <Tile label="Updated"><span className="font-mono text-[12px] text-text-primary/80">{selectedLesson.updated || "—"}</span></Tile>
                 </div>
@@ -428,7 +428,7 @@ export default function BrainPanel() {
                     onClick={() => setSelected(isSel ? null : lesson.id)}
                     className={`w-full rounded-xl border p-3.5 text-left transition ${
                       isSel
-                        ? "border-line/45 bg-gold-primary/[0.07]"
+                        ? "border-line/45 bg-white/[0.06]"
                         : "border-white/[0.05] bg-surface-secondary hover:border-white/[0.14]"
                     }`}
                   >
@@ -446,7 +446,7 @@ export default function BrainPanel() {
                     <div className="mt-1.5 flex items-center justify-between font-mono text-[10px] text-text-muted/70">
                       <span>{lesson.wins}W / {lesson.losses}L · n={lesson.evidence_n}</span>
                       {lesson.ab_with_wins != null && (lesson.ab_with_wins + (lesson.ab_with_losses || 0)) > 0 ? (
-                        <span className="text-gold-light">
+                        <span className="text-text-primary">
                           with lesson: {Math.round((100 * lesson.ab_with_wins) / Math.max(1, lesson.ab_with_wins + (lesson.ab_with_losses || 0)))}% hit
                         </span>
                       ) : (
@@ -484,7 +484,7 @@ export default function BrainPanel() {
 
           <Card className="p-4" accent="gold">
             <p className="text-[12px] leading-5 text-text-muted">
-              <span className="font-semibold text-gold-light">How it learns: </span>
+              <span className="font-semibold text-text-primary">How it learns: </span>
               every resolved projection updates these statistics nightly. Lessons that keep
               helping get promoted; lessons that stop working retire automatically.
             </p>

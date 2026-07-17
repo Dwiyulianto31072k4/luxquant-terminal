@@ -195,10 +195,10 @@ const MoreMenuDropdown = ({
       key: 'trading',
       label: t('mfm.group_trading', { defaultValue: 'Trading' }),
       items: [
-        { path: '/signals',   icon: Icon.signals,   label: 'Potential Trades', desc: 'Live algo calls with entries & targets' },
-        { path: '/terminal/scan', icon: Icon.terminal, label: 'Terminal', desc: 'Charts, confluence, anomalies & derivatives' },
+        { path: '/signals',   icon: Icon.signals,   label: 'Potential Trades', desc: 'Live algo setups · entries, targets & risk' },
+        { path: '/terminal/scan', icon: Icon.terminal, label: 'Terminal', desc: 'Research desk · confluence, scan, derivatives' },
+        { path: '/ai-arena',  icon: Icon.aiResearch, label: t('mfm.ai_arena', { defaultValue: 'AI Research' }), desc: 'BTC Compass · 24h outlook & projection' },
         { path: '/autotrade', icon: Icon.autotrade, label: 'Agent', desc: 'Agentic trading — executes for you 24/7' },
-        { path: '/ai-arena',  icon: Icon.aiResearch, label: t('mfm.ai_arena', { defaultValue: 'AI Research' }), desc: 'BTC Compass — outlook, levels & projection' },
         { path: '/orderbook', icon: Icon.orderbook, label: t('mfm.orderbook'), desc: 'Live depth & order flow' },
       ],
     },

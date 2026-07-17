@@ -611,13 +611,9 @@ function AppShell({ children }) {
     { path: "/journal", label: "Journal" },
   ];
 
+  // Paths that live in More only (main nav already has Terminal + AI Research).
+  // Used solely for the More trigger "active" underline.
   const moreMenuItems = [
-    {
-      path: "/terminal",
-      label: "Terminal",
-      icon: "🖥️",
-      description: "Research terminal — replay, screener, edge analytics",
-    },
     {
       path: "/money-flow",
       label: "Money Flow",
