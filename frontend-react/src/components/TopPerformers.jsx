@@ -473,7 +473,7 @@ const TopPerformers = () => {
                       <div className="flex flex-col items-end gap-0.5">
                         <span
                           className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[12.5px] font-semibold tabular-nums leading-none ${
-                            gainUp ? "bg-profit/10 text-profit" : "bg-red-500/[0.1] text-loss"
+                            gainUp ? "bg-profit/10 text-profit" : "bg-negative/[0.1] text-loss"
                           }`}
                         >
                           {gainUp ? "+" : ""}
@@ -531,7 +531,7 @@ const TopPerformers = () => {
                       <div className="w-[4.85rem] shrink-0 text-right">
                         <span
                           className={`inline-flex rounded-md px-1.5 py-0.5 font-mono text-[12.5px] font-semibold tabular-nums leading-none ${
-                            gainUp ? "bg-profit/10 text-profit" : "bg-red-500/[0.1] text-loss"
+                            gainUp ? "bg-profit/10 text-profit" : "bg-negative/[0.1] text-loss"
                           }`}
                         >
                           {gainUp ? "+" : ""}
@@ -973,7 +973,7 @@ export const SignalDetailModal = ({
       ? "bg-profit"
       : s?.toLowerCase() === "closed_loss" || s?.toLowerCase() === "sl"
         ? "bg-loss"
-        : "bg-cyan-500";
+        : "bg-accent";
 
   // Journey theme — adds glow + gradient-stop classes for the redesigned timeline
   const themeColors = {
@@ -1308,7 +1308,7 @@ export const SignalDetailModal = ({
                       detail.risk_level === "High"
                         ? "text-loss"
                         : detail.risk_level === "Medium"
-                          ? "text-yellow-400"
+                          ? "text-accent"
                           : "text-profit"
                     }`}
                   >
@@ -1691,7 +1691,7 @@ export const SignalDetailModal = ({
                     detail.risk_level === "High"
                       ? "text-loss"
                       : detail.risk_level === "Medium"
-                        ? "text-yellow-400"
+                        ? "text-accent"
                         : "text-profit"
                   }
                 />

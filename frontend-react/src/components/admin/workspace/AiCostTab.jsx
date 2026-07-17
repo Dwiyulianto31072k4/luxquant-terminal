@@ -134,7 +134,7 @@ export function AiCostTab() {
               onClick={() => setDays(d)}
               className={`rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-all ${
                 days === d
-                  ? "bg-accent text-black font-semibold"
+                  ? "bg-accent text-accent-fg font-semibold"
                   : "text-text-primary/50 hover:text-text-primary"
               }`}
             >
@@ -175,7 +175,11 @@ export function AiCostTab() {
               sub={`${fmtNum(summary.range.calls)} calls`}
               accent={palette.gold[300]}
             />
-            <Card label={`${days}d Tokens`} value={fmtTokens(summary.range.tokens)} accent="rgb(var(--fg))" />
+            <Card
+              label={`${days}d Tokens`}
+              value={fmtTokens(summary.range.tokens)}
+              accent="rgb(var(--fg))"
+            />
             <Card
               label="Model Calls"
               value={fmtNum(summary.range.model_calls)}
@@ -352,7 +356,7 @@ export function AiCostTab() {
                           {r.feature}
                         </td>
                         <td className="px-3 py-2 text-text-primary/60">
-                          {r.cached ? <span className="text-teal-400">cache hit</span> : r.model}
+                          {r.cached ? <span className="text-positive">cache hit</span> : r.model}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
                           {r.cached ? "—" : fmtNum(r.tokens)}

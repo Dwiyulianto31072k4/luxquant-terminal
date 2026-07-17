@@ -553,7 +553,7 @@ const PricingPage = () => {
                             current
                               ? "border border-profit/25 bg-profit/[0.06] text-profit/90"
                               : recommended
-                                ? "bg-white text-surface hover:bg-ink/90"
+                                ? "bg-ink text-ink-inv hover:bg-ink/90"
                                 : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
                           }`}
                         >
@@ -616,7 +616,7 @@ const PricingPage = () => {
                       onClick={() => setIncludeTab(tab.id)}
                       className={`rounded-lg py-2 text-[11px] font-medium transition sm:text-[12px] ${
                         active
-                          ? "bg-white text-surface shadow-sm"
+                          ? "bg-ink text-ink-inv shadow-sm"
                           : "text-text-primary/45 hover:text-text-primary/75"
                       }`}
                     >

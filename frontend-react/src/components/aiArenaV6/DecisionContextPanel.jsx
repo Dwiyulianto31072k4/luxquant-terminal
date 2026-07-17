@@ -6,37 +6,37 @@ const statusTone = {
     accent: "text-profit",
   },
   degraded: {
-    badge: "border-amber-300/20 bg-amber-300/10 text-amber-200",
-    accent: "text-amber-200",
+    badge: "border-accent/20 bg-accent/10 text-accent",
+    accent: "text-accent",
   },
   limited: {
-    badge: "border-orange-400/20 bg-orange-400/10 text-orange-300",
-    accent: "text-orange-300",
+    badge: "border-accent/20 bg-accent/10 text-accent",
+    accent: "text-accent",
   },
   unavailable: {
-    badge: "border-red-400/20 bg-red-400/10 text-loss",
+    badge: "border-negative/20 bg-negative/10 text-loss",
     accent: "text-loss",
   },
 };
 
 const sourceTone = {
   fresh: "bg-profit",
-  stale: "bg-amber-300",
-  unavailable: "bg-red-400",
+  stale: "bg-accent",
+  unavailable: "bg-negative",
 };
 
 const supportTone = {
   supported: "text-profit",
-  guarded: "text-amber-200",
+  guarded: "text-accent",
   conflicted: "text-loss",
-  limited: "text-orange-300",
+  limited: "text-accent",
   unavailable: "text-loss",
 };
 
 const directionTone = {
   bullish: "text-profit",
   bearish: "text-loss",
-  neutral: "text-amber-200",
+  neutral: "text-accent",
 };
 
 function formatPct(value) {
@@ -274,7 +274,7 @@ export default function DecisionContextPanel({ data }) {
                   <div className="flex items-start gap-2">
                     <span
                       className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                        issue.severity === "high" ? "bg-red-400" : "bg-amber-300"
+                        issue.severity === "high" ? "bg-negative" : "bg-accent"
                       }`}
                     />
                     <div className="min-w-0">
@@ -301,7 +301,7 @@ export default function DecisionContextPanel({ data }) {
               {changes.slice(0, 5).map((change) => (
                 <div key={change.key} className="py-2.5">
                   <div className="text-xs text-text-primary/70">{change.label}</div>
-                  <div className="mt-1 break-words text-[10px] font-mono leading-relaxed text-sky-300/65">
+                  <div className="mt-1 break-words text-[10px] font-mono leading-relaxed text-accent/65">
                     <ChangeText change={change} />
                   </div>
                 </div>

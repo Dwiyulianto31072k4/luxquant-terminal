@@ -217,7 +217,7 @@ const JourneyInsightsSection = ({ pair }) => {
                     </span>
                   </Cell>
                   <Cell>
-                    <span className="text-[11px] font-mono text-orange-400/80">
+                    <span className="text-[11px] font-mono text-accent/80">
                       {row.slowest_human || "—"}
                     </span>
                   </Cell>
@@ -265,7 +265,7 @@ const JourneyInsightsSection = ({ pair }) => {
                   </Cell>
                   <Cell>
                     <span
-                      className={`text-[11px] font-mono ${row.worst_dd_pct < 0 ? "text-red-500" : "text-text-primary/40"}`}
+                      className={`text-[11px] font-mono ${row.worst_dd_pct < 0 ? "text-negative" : "text-text-primary/40"}`}
                     >
                       {row.worst_dd_pct !== null ? formatPct(row.worst_dd_pct) : "—"}
                     </span>
@@ -309,15 +309,15 @@ const JourneyInsightsSection = ({ pair }) => {
                   : rate >= 70
                     ? "text-profit"
                     : rate >= 40
-                      ? "text-yellow-400"
+                      ? "text-accent"
                       : "text-loss";
                 const barColor = isSL
-                  ? "bg-red-500"
+                  ? "bg-negative"
                   : rate >= 70
                     ? "bg-profit"
                     : rate >= 40
-                      ? "bg-yellow-500"
-                      : "bg-red-500";
+                      ? "bg-accent"
+                      : "bg-negative";
                 return (
                   <tr key={row.tp} className="border-b border-ink/[0.03] last:border-0">
                     <Cell>
@@ -373,7 +373,7 @@ const JourneyInsightsSection = ({ pair }) => {
                 ? formatPct(peak_potential.avg_peak_excursion_pct)
                 : "—"
             }
-            valueColor="text-cyan-400"
+            valueColor="text-accent"
             sublabel="beyond final outcome"
           />
           <StatPill
@@ -420,7 +420,7 @@ const JourneyInsightsSection = ({ pair }) => {
                 ? formatPct(risk_profile.worst_drawdown_pct)
                 : "—"
             }
-            valueColor="text-red-500"
+            valueColor="text-negative"
             sublabel="single signal max"
           />
           <StatPill
@@ -437,14 +437,14 @@ const JourneyInsightsSection = ({ pair }) => {
 
         {/* TP-then-SL warning (conditional) */}
         {showTpThenSlWarning && (
-          <div className="mt-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-start gap-2">
-            <span className="text-orange-400 text-sm flex-shrink-0">⚠️</span>
+          <div className="mt-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/20 flex items-start gap-2">
+            <span className="text-accent text-sm flex-shrink-0">⚠️</span>
             <div className="flex-1">
-              <p className="text-[11px] text-orange-300 font-semibold mb-0.5">
+              <p className="text-[11px] text-accent font-semibold mb-0.5">
                 TP-then-SL Risk: {risk_profile.tp_then_sl_count} of {risk_profile.tp_then_sl_total}{" "}
                 trades ({risk_profile.tp_then_sl_pct}%)
               </p>
-              <p className="text-[10px] text-orange-200/70 leading-snug">
+              <p className="text-[10px] text-accent/70 leading-snug">
                 These trades hit TP1+ but reversed to SL. Consider moving SL to breakeven after TP1.
               </p>
             </div>

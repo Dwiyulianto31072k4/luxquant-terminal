@@ -1276,9 +1276,7 @@ const ApiKeysPage = () => {
         <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
           {t("apiKeys.title")}
         </h1>
-        <p className="text-text-muted text-xs sm:text-sm mt-2 max-w-2xl">
-          {t("apiKeys.subtitle")}
-        </p>
+        <p className="text-text-muted text-xs sm:text-sm mt-2 max-w-2xl">{t("apiKeys.subtitle")}</p>
       </header>
 
       {/* ── Stat cards ── */}

@@ -157,7 +157,7 @@ const LoginPage = () => {
         </div>
 
         {/* CONTENT — mobile: no card (MEXC style); desktop: glass card */}
-        <div className="lq-card-enter relative z-10 w-full max-w-[420px] lg:max-w-[448px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:block lg:min-h-0 px-2 lg:px-10 lg:py-14 lg:rounded-[1.9rem] lg:border lg:border-text-primary lg:bg-white lg:shadow-[0_30px_70px_-18px_rgb(var(--scrim) / 0.35)]">
+        <div className="lq-card-enter relative z-10 w-full max-w-[420px] lg:max-w-[448px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:block lg:min-h-0 px-2 lg:px-10 lg:py-14 lg:rounded-[1.9rem] lg:border lg:border-text-primary lg:bg-surface-raised lg:shadow-[0_30px_70px_-18px_rgb(var(--scrim) / 0.35)]">
           {/* ── Desktop heading (small account line, dark on white) ── */}
           <div className="mb-9 hidden lg:block text-left">
             <h1
@@ -185,8 +185,8 @@ const LoginPage = () => {
                 maxWidth: "14ch",
               }}
             >
-              Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp; Tokenized{" "}
-              <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
+              Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp;
+              Tokenized <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
             </h1>
             {/* coins right under the headline */}
             <AssetCoins size={38} className="mt-8" />

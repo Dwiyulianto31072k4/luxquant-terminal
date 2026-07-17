@@ -992,7 +992,7 @@ const MetricStrip = ({ stats }) => {
 const MetricCell = ({ label, value, accent }) => {
   const colorMap = {
     white: "text-text-primary",
-    blue: "text-blue-300",
+    blue: "text-accent",
     emerald: "text-profit",
     profit: "text-profit",
     red: "text-loss",
@@ -1831,8 +1831,8 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
   const getStatusStyle = (st) => {
     const s = (st || "").toLowerCase();
     if (s.includes("tp") || s === "closed_win") return "bg-profit/15 text-profit border-profit/25";
-    if (s === "closed_loss" || s === "sl") return "bg-loss/15 text-loss border-red-500/30";
-    return "bg-blue-500/15 text-blue-300 border-blue-500/30";
+    if (s === "closed_loss" || s === "sl") return "bg-loss/15 text-loss border-negative/30";
+    return "bg-accent/15 text-accent border-accent/30";
   };
 
   const handleSelect = async (sig) => {
@@ -1891,7 +1891,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
           </div>
           <button
             onClick={onClear}
-            className="h-7 px-2.5 rounded-sm border border-ink/[0.08] bg-ink/[0.03] text-text-muted/65 hover:text-loss hover:border-red-500/30 text-[10px] font-medium uppercase tracking-[0.15em] transition-all"
+            className="h-7 px-2.5 rounded-sm border border-ink/[0.08] bg-ink/[0.03] text-text-muted/65 hover:text-loss hover:border-negative/30 text-[10px] font-medium uppercase tracking-[0.15em] transition-all"
           >
             Unlink
           </button>
@@ -1957,7 +1957,7 @@ const SignalPicker = ({ selectedSignalId, onSelect, onClear }) => {
                             sig.risk_level?.toLowerCase().startsWith("low")
                               ? "border-profit/25 bg-profit/10 text-profit"
                               : sig.risk_level?.toLowerCase().startsWith("high")
-                                ? "bg-red-500/10 text-loss border-red-500/25"
+                                ? "bg-negative/10 text-loss border-negative/25"
                                 : "bg-accent/10 text-accent border-accent/25"
                           }`}
                         >
@@ -2759,7 +2759,7 @@ const PnlDistributionCard = ({ entries }) => {
                         isZero
                           ? "bg-ink/[0.02] border-ink/[0.04]"
                           : isNeg
-                            ? "bg-red-500/30 border-red-500/50 group-hover:bg-red-500/40"
+                            ? "bg-negative/30 border-negative/50 group-hover:bg-negative/40"
                             : "bg-profit/30 border-profit/40 group-hover:bg-profit/40"
                       }`}
                       style={{ height: `${Math.max(h, isZero ? 3 : 6)}%` }}

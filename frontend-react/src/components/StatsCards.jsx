@@ -65,7 +65,7 @@ const StatsCards = ({ stats, loading }) => {
               {stats.open_signals?.toLocaleString() || 0} Active
             </span>
             <span className="text-text-muted">•</span>
-            <span className="text-blue-400">{totalClosed.toLocaleString()} Closed</span>
+            <span className="text-accent">{totalClosed.toLocaleString()} Closed</span>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ const StatsCards = ({ stats, loading }) => {
             {stats.win_rate >= 80 ? (
               <span className="text-status-profit text-xs">🔥 Excellent</span>
             ) : stats.win_rate >= 60 ? (
-              <span className="text-yellow-400 text-xs">👍 Good</span>
+              <span className="text-accent text-xs">👍 Good</span>
             ) : (
               <span className="text-status-loss text-xs">⚠️ Needs Work</span>
             )}
@@ -126,10 +126,10 @@ const StatsCards = ({ stats, loading }) => {
       {/* Detailed Stats Row */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         <StatCard label="Open" value={stats.open_signals} color="text-status-open" />
-        <StatCard label="TP1 Hit" value={stats.tp1_signals} color="text-green-400" />
-        <StatCard label="TP2 Hit" value={stats.tp2_signals} color="text-lime-400" />
-        <StatCard label="TP3 Hit" value={stats.tp3_signals} color="text-yellow-400" />
-        <StatCard label="TP4 Hit" value={stats.closed_win} color="text-orange-400" />
+        <StatCard label="TP1 Hit" value={stats.tp1_signals} color="text-positive" />
+        <StatCard label="TP2 Hit" value={stats.tp2_signals} color="text-positive" />
+        <StatCard label="TP3 Hit" value={stats.tp3_signals} color="text-accent" />
+        <StatCard label="TP4 Hit" value={stats.closed_win} color="text-accent" />
         <StatCard label="Stop Loss" value={stats.closed_loss} color="text-status-loss" />
       </div>
     </div>

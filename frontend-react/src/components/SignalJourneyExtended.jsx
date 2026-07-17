@@ -18,48 +18,53 @@ import { useEffect, useState } from "react";
 
 const COLOR_MAP = {
   green: {
-    text: "text-green-400",
-    bg: "bg-green-500/10",
-    border: "border-green-500/30",
-    dot: "bg-green-500",
+    text: "text-positive",
+    bg: "bg-positive/10",
+    border: "border-positive/30",
+    dot: "bg-positive",
   },
   lime: {
-    text: "text-lime-400",
-    bg: "bg-lime-500/10",
-    border: "border-lime-500/30",
-    dot: "bg-lime-500",
+    text: "text-positive",
+    bg: "bg-positive/10",
+    border: "border-positive/30",
+    dot: "bg-positive",
   },
   amber: {
-    text: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/30",
-    dot: "bg-amber-500",
+    text: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/30",
+    dot: "bg-accent",
   },
   orange: {
-    text: "text-orange-400",
-    bg: "bg-orange-500/10",
-    border: "border-orange-500/30",
-    dot: "bg-orange-500",
+    text: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/30",
+    dot: "bg-accent",
   },
   cyan: {
-    text: "text-cyan-400",
-    bg: "bg-cyan-500/10",
-    border: "border-cyan-500/30",
-    dot: "bg-cyan-500",
+    text: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/30",
+    dot: "bg-accent",
   },
   purple: {
-    text: "text-purple-400",
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/30",
-    dot: "bg-purple-500",
+    text: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/30",
+    dot: "bg-accent",
   },
-  red: { text: "text-loss", bg: "bg-red-500/10", border: "border-red-500/30", dot: "bg-red-500" },
+  red: {
+    text: "text-loss",
+    bg: "bg-negative/10",
+    border: "border-negative/30",
+    dot: "bg-negative",
+  },
   gold: { text: "text-accent", bg: "bg-accent/12", border: "border-ink/12", dot: "bg-accent" },
   gray: {
-    text: "text-gray-400",
-    bg: "bg-gray-500/10",
-    border: "border-gray-500/30",
-    dot: "bg-gray-500",
+    text: "text-text-muted",
+    bg: "bg-ink/10",
+    border: "border-line/30",
+    dot: "bg-surface-hover",
   },
 };
 
@@ -221,7 +226,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           <span aria-hidden>📊</span> Detailed Journey
         </h4>
         {data.coverage_status === "live" && (
-          <span className="text-[9px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 font-mono uppercase tracking-wider">
+          <span className="text-[9px] text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20 font-mono uppercase tracking-wider">
             ● Live
           </span>
         )}
@@ -231,7 +236,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           </span>
         )}
         {data.coverage_status === "sl_truncated" && (
-          <span className="text-[9px] text-loss bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 font-mono uppercase tracking-wider">
+          <span className="text-[9px] text-loss bg-negative/10 px-2 py-0.5 rounded border border-negative/20 font-mono uppercase tracking-wider">
             Closed at SL
           </span>
         )}
@@ -284,7 +289,7 @@ const SignalJourneyExtended = ({ signalId }) => {
             <StatCell
               label="Direction"
               value={data.direction?.toUpperCase() || "—"}
-              valueColor={data.direction === "short" ? "text-loss" : "text-green-400"}
+              valueColor={data.direction === "short" ? "text-loss" : "text-positive"}
               sublabel={data.data_source ? data.data_source.replace("_", " ") : ""}
             />
           </div>
@@ -351,9 +356,9 @@ const SignalJourneyExtended = ({ signalId }) => {
                 value={outcome.realized_pct !== null ? formatPct(outcome.realized_pct) : "Open"}
                 valueColor={
                   outcome.realized_pct === null
-                    ? "text-cyan-400"
+                    ? "text-accent"
                     : outcome.realized_pct >= 0
-                      ? "text-green-400"
+                      ? "text-positive"
                       : "text-loss"
                 }
                 sublabel={outcome.realized_via ? `via ${outcome.realized_via}` : "not yet closed"}
@@ -363,7 +368,7 @@ const SignalJourneyExtended = ({ signalId }) => {
                 value={
                   outcome.peak_excursion_pct !== null ? formatPct(outcome.peak_excursion_pct) : "—"
                 }
-                valueColor="text-cyan-400"
+                valueColor="text-accent"
                 sublabel={outcome.peak_excursion_delta_text || ""}
               />
             </div>
@@ -383,7 +388,7 @@ const SignalJourneyExtended = ({ signalId }) => {
                     </div>
                     <div className="w-full h-1 rounded-full bg-ink/5 overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all"
+                        className="h-full bg-gradient-to-r from-positive to-positive transition-all"
                         style={{ width: `${Math.min(100, Number(outcome.pct_time_above_entry))}%` }}
                       />
                     </div>
@@ -397,7 +402,7 @@ const SignalJourneyExtended = ({ signalId }) => {
                     </span>
                     <span
                       className={`text-[11px] font-mono font-bold ${
-                        outcome.worst_drawdown_pct < -5 ? "text-loss" : "text-orange-400"
+                        outcome.worst_drawdown_pct < -5 ? "text-loss" : "text-accent"
                       }`}
                     >
                       {formatPct(outcome.worst_drawdown_pct)}

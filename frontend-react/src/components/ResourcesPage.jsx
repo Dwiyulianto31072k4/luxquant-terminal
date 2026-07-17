@@ -57,7 +57,7 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
       className="tip-card group relative glass-card rounded-2xl border border-ink/10 overflow-hidden cursor-pointer grid grid-cols-1 lg:grid-cols-2"
       onClick={() => onOpen(resource)}
     >
-      <div className="relative h-56 lg:h-full min-h-[240px] overflow-hidden bg-gradient-to-br from-accent/10 to-orange-500/5">
+      <div className="relative h-56 lg:h-full min-h-[240px] overflow-hidden bg-gradient-to-br from-accent/10 to-accent/5">
         {cover ? (
           <img src={cover} alt={resource.title} className="w-full h-full object-cover tip-cover" />
         ) : (
@@ -136,7 +136,7 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
       onClick={() => onOpen(resource)}
     >
       <div
-        className="relative w-full overflow-hidden bg-gradient-to-br from-accent/5 to-orange-500/5"
+        className="relative w-full overflow-hidden bg-gradient-to-br from-accent/5 to-accent/5"
         style={{ aspectRatio: "16 / 9" }}
       >
         {cover ? (
@@ -224,7 +224,7 @@ const AdminActions = ({ resource, onEdit, onDelete }) => (
     onClick={(e) => e.stopPropagation()}
   >
     {resource.status === "draft" && (
-      <span className="px-2 py-1 bg-amber-500/80 text-black text-[9px] font-bold rounded-lg">
+      <span className="px-2 py-1 bg-accent/80 text-accent-fg text-[9px] font-bold rounded-lg">
         DRAFT
       </span>
     )}
@@ -233,7 +233,7 @@ const AdminActions = ({ resource, onEdit, onDelete }) => (
         e.stopPropagation();
         onEdit(resource);
       }}
-      className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20"
+      className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-accent hover:text-accent border border-accent/20"
       title="Edit"
     >
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -559,7 +559,7 @@ const ResourcesPage = () => {
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2.5 bg-loss/20 border border-loss/25 text-loss rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors"
+                className="flex-1 py-2.5 bg-loss/20 border border-loss/25 text-loss rounded-xl text-sm font-bold hover:bg-negative/30 transition-colors"
               >
                 Delete
               </button>

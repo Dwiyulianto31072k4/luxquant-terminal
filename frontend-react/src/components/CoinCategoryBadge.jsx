@@ -152,7 +152,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
   // ─────────────────────────────────────────────────────────────
   if (compact) {
     const compactClass = isSpeculation
-      ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
+      ? "bg-accent/15 text-accent border-accent/30"
       : "bg-profit/15 text-profit border-profit/25";
 
     return (
@@ -178,7 +178,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
 
   // Type pill (e.g. "✓ Utility" or "⚠ Meme") — colored by status
   const typePillClass = isSpeculation
-    ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
+    ? "bg-accent/15 text-accent border-accent/30"
     : "bg-profit/15 text-profit border-profit/25";
 
   const typeIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
@@ -186,7 +186,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
   // Utility status pill — explicit "HAS UTILITY" / "NO UTILITY"
   // More tegas/loud — uses full saturation background
   const utilityPillClass = isSpeculation
-    ? "bg-orange-500/25 text-orange-200 border-orange-500/50"
+    ? "bg-accent/25 text-accent border-accent/50"
     : "bg-profit/25 text-profit border-profit/40";
 
   const utilityLabel = isSpeculation ? "NO UTILITY" : "HAS UTILITY";

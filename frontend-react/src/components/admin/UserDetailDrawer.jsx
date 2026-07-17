@@ -885,7 +885,10 @@ const FollowupTimeline = ({ userId }) => {
                     {f.priority === "urgent" && (
                       <span
                         className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
-                        style={{ background: _fuRgba("#f87171", 0.12), color: "rgb(var(--neg-text))" }}
+                        style={{
+                          background: _fuRgba("#f87171", 0.12),
+                          color: "rgb(var(--neg-text))",
+                        }}
                       >
                         Urgent
                       </span>
@@ -1078,7 +1081,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
           !editing && (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-amber-500/10"
+              className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-accent/10"
               style={{
                 color: "rgb(var(--accent-text))",
                 background: "rgb(var(--accent) / 0.06)",
@@ -1262,7 +1265,9 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             <SparklesIcon size={10} style={{ color: "rgb(var(--accent-text))" }} />
             <span>
               Enriched by{" "}
-              <strong style={{ color: "rgb(var(--accent-text))" }}>@{enriched_by_user.username}</strong>{" "}
+              <strong style={{ color: "rgb(var(--accent-text))" }}>
+                @{enriched_by_user.username}
+              </strong>{" "}
               on {formatDateTime(user.admin_enriched_at)}
             </span>
           </div>
@@ -1551,8 +1556,8 @@ const OutreachTab = ({ data, templates, canWrite = true }) => {
     <div>
       <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
         Pick a template to DM <strong className="text-text-primary">@{user.username}</strong>. Click{" "}
-        <strong style={{ color: "rgb(var(--accent-text))" }}>Send</strong> to copy the message and open
-        the channel.
+        <strong style={{ color: "rgb(var(--accent-text))" }}>Send</strong> to copy the message and
+        open the channel.
       </p>
       <QuickSendPopover user={user} templates={templates} reach={reach} inline />
     </div>

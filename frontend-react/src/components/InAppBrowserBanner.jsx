@@ -83,9 +83,9 @@ export default function InAppBrowserBanner() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-accent mb-1">
             Better in a real browser
           </p>
-          <p className="text-sm text-neutral-300 leading-snug">
+          <p className="text-sm text-text-secondary leading-snug">
             You&apos;re viewing this inside an app. Login and some features may not work here — open{" "}
-            <span className="text-neutral-100 font-medium">luxquant.tw</span> in Chrome or Safari
+            <span className="text-text-secondary font-medium">luxquant.tw</span> in Chrome or Safari
             instead.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default function InAppBrowserBanner() {
           <button
             onClick={dismiss}
             aria-label="Dismiss"
-            className="text-neutral-500 hover:text-neutral-300 text-lg leading-none px-1"
+            className="text-text-muted hover:text-text-secondary text-lg leading-none px-1"
           >
             ×
           </button>

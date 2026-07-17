@@ -94,7 +94,7 @@ export default function PortfolioPage() {
 
   if (error) {
     return (
-      <div className="rounded-md border border-loss/25 bg-red-500/[0.05] p-4 text-sm text-loss">
+      <div className="rounded-md border border-loss/25 bg-negative/[0.05] p-4 text-sm text-loss">
         {error}
       </div>
     );

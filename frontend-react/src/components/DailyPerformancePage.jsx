@@ -352,7 +352,7 @@ const CoverageBanner = ({ coverage, total, dailyRegime, hasFilters }) => {
   if (pct >= 30) return null;
   const isPreV3 = coverage === 0;
   return (
-    <Card className="px-4 py-3 mb-5 border-amber-500/20 bg-amber-500/[0.03]">
+    <Card className="px-4 py-3 mb-5 border-accent/20 bg-accent/[0.03]">
       <div className="flex items-start gap-3">
         <span className="text-accent mt-0.5">⚠</span>
         <div className="flex-1 text-xs text-text-primary/75">
@@ -388,7 +388,7 @@ const SmallSampleBadge = ({ n, threshold = 15 }) => {
   if (n >= threshold) return null;
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-accent/25 bg-amber-500/[0.05] text-[9px] font-mono uppercase tracking-wider text-accent/80"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-accent/25 bg-accent/[0.05] text-[9px] font-mono uppercase tracking-wider text-accent/80"
       title={`Only ${n} data points — patterns may not generalize`}
     >
       ⚠ small sample
@@ -616,7 +616,7 @@ const HeroSection = ({
           )}
           {!hasFilters && !summary?.btc_trend_mode && summary?.daily_regime && (
             <div className="flex items-start gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70 mt-2 flex-shrink-0" />
+              <div className="w-1.5 h-1.5 rounded-full bg-accent/70 mt-2 flex-shrink-0" />
               <div className="text-sm text-text-primary/70">
                 <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-accent/70 mr-2">
                   Daily regime (fallback)
@@ -789,7 +789,7 @@ const FngGauge = ({ value, label }) => {
     value < 25
       ? "text-loss"
       : value < 45
-        ? "text-orange-400"
+        ? "text-accent"
         : value < 55
           ? "text-text-primary/80"
           : value < 75
@@ -804,7 +804,7 @@ const FngGauge = ({ value, label }) => {
           {label || "—"}
         </span>
       </div>
-      <div className="mt-2 h-1.5 bg-gradient-to-r from-red-500 via-orange-400 via-yellow-400 to-emerald-400 rounded-sm relative">
+      <div className="mt-2 h-1.5 bg-gradient-to-r from-negative via-accent via-accent to-positive rounded-sm relative">
         <div
           className="absolute -top-0.5 w-1 h-2.5 bg-white shadow-md"
           style={{ left: `calc(${value}% - 2px)` }}
@@ -949,7 +949,7 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
       )}
       {showRegimeFallback && (
         <div className="space-y-3 py-1">
-          <div className="flex items-center gap-3 p-3 rounded-sm bg-amber-500/[0.04] border border-amber-500/15">
+          <div className="flex items-center gap-3 p-3 rounded-sm bg-accent/[0.04] border border-accent/15">
             <span className="text-accent/70 text-lg">ℹ</span>
             <div className="flex-1 text-xs">
               <div className="text-accent font-mono uppercase tracking-wider text-[10px] mb-1">
@@ -1536,7 +1536,7 @@ const CorrelationTab = ({ signals, correlationSummary }) => {
         </div>
         {adv !== null && (
           <div
-            className={`mt-4 px-4 py-3 rounded-md flex items-center justify-between border ${Math.abs(adv) >= 10 ? (decoupledWins ? "bg-profit/[0.06] border-profit/20" : "bg-amber-500/[0.06] border-amber-500/20") : "bg-ink/[0.02] border-ink/[0.06]"}`}
+            className={`mt-4 px-4 py-3 rounded-md flex items-center justify-between border ${Math.abs(adv) >= 10 ? (decoupledWins ? "bg-profit/[0.06] border-profit/20" : "bg-accent/[0.06] border-accent/20") : "bg-ink/[0.02] border-ink/[0.06]"}`}
           >
             <div className="text-xs text-text-primary/70">
               {Math.abs(adv) < 1 ? (
@@ -1785,7 +1785,7 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
                 title={`${s.wins} wins`}
               />
               <div
-                className="h-full bg-red-400/60"
+                className="h-full bg-negative/60"
                 style={{ width: `${(s.losses / s.total) * 100}%` }}
                 title={`${s.losses} losses`}
               />
@@ -1923,7 +1923,7 @@ const LossAutopsy = ({ signals }) => {
               </div>
               <div className="h-1.5 bg-ink/[0.04] rounded-sm overflow-hidden flex">
                 <div
-                  className="h-full bg-red-400/60 transition-all duration-700"
+                  className="h-full bg-negative/60 transition-all duration-700"
                   style={{ width: `${barPct}%` }}
                 />
               </div>
@@ -1992,7 +1992,7 @@ const SetupCombinations = ({ signals }) => {
     );
   const Row = ({ c, kind }) => (
     <div
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-sm border ${kind === "best" ? "bg-profit/[0.05] border-profit/20" : "bg-red-500/[0.05] border-loss/20"}`}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-sm border ${kind === "best" ? "bg-profit/[0.05] border-profit/20" : "bg-negative/[0.05] border-loss/20"}`}
     >
       <span
         className="w-2 h-2 rounded-sm flex-shrink-0"

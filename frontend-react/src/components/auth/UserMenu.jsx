@@ -138,7 +138,7 @@ const UserMenu = () => {
       case "expired":
         return {
           label: t("userMenu.status_expired"),
-          color: "bg-red-500/15 text-loss border-red-500/20",
+          color: "bg-negative/15 text-loss border-negative/20",
         };
       default:
         return { label: t("userMenu.plan_free"), color: "bg-ink/10 text-text-muted border-ink/10" };
@@ -282,7 +282,7 @@ const UserMenu = () => {
                       {formatDate(subscription.expires_at)}
                     </span>
                     {subscription.days_left !== null && (
-                      <span className={subscription.days_left <= 7 ? " text-amber-400" : ""}>
+                      <span className={subscription.days_left <= 7 ? " text-accent" : ""}>
                         {" "}
                         · {subscription.days_left} {t("userMenu.days")}
                       </span>
@@ -432,7 +432,7 @@ const UserMenu = () => {
           <div className="py-1.5 px-1.5">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-loss/80 hover:text-loss hover:bg-red-500/10 transition-all group"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-loss/80 hover:text-loss hover:bg-negative/10 transition-all group"
             >
               <svg
                 className="w-[18px] h-[18px] flex-shrink-0"

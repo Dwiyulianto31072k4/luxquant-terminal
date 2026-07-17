@@ -78,8 +78,8 @@ const StarButton = ({ signalId, isStarred: initialStarred, onToggle }) => {
           <svg
             className={`w-5 h-5 transition-all duration-200 ${
               isStarred
-                ? "text-yellow-400 fill-yellow-400 drop-shadow-[0_0_4px_rgba(250,204,21,0.5)]"
-                : "text-gray-500 hover:text-yellow-400/70"
+                ? "text-accent fill-accent drop-shadow-[0_0_4px_rgba(250,204,21,0.5)]"
+                : "text-text-muted hover:text-accent/70"
             }`}
             fill={isStarred ? "currentColor" : "none"}
             stroke="currentColor"

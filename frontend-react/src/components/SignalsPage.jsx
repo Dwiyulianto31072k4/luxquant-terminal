@@ -1318,8 +1318,8 @@ const SignalsPage = () => {
   const riskOptions = [
     { value: "all", label: "All" },
     { value: "low", label: "Low", dotColor: "bg-profit" },
-    { value: "normal", label: "Normal", dotColor: "bg-amber-400" },
-    { value: "high", label: "High", dotColor: "bg-red-400" },
+    { value: "normal", label: "Normal", dotColor: "bg-accent" },
+    { value: "high", label: "High", dotColor: "bg-negative" },
   ];
 
   const sortOptions = [
@@ -1517,7 +1517,7 @@ const SignalsPage = () => {
               return { l: "WIN", c: "text-profit border-profit/25 bg-profit/10" };
             if (s.startsWith("tp"))
               return { l: s.toUpperCase(), c: "text-profit border-profit/25 bg-profit/10" };
-            return { l: "OPEN", c: "text-blue-300 border-blue-500/30 bg-blue-500/10" };
+            return { l: "OPEN", c: "text-accent border-accent/30 bg-accent/10" };
           };
           const openCoin = (c) => {
             const sig = findSignal(c.symbol);
@@ -2062,16 +2062,16 @@ const SignalsPage = () => {
                   onClick={() => setCorrDecoupled((v) => !v)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     corrDecoupled
-                      ? "bg-purple-500/15 border border-purple-500/40 text-purple-400"
+                      ? "bg-accent/15 border border-accent/40 text-accent"
                       : "bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary"
                   }`}
                 >
-                  <span className={corrDecoupled ? "text-purple-400" : "opacity-70"}>
+                  <span className={corrDecoupled ? "text-accent" : "opacity-70"}>
                     {Icon.zap("w-3 h-3")}
                   </span>
                   <span>Decoupled from BTC</span>
                   {corrCounts.dec > 0 && !corrDecoupled && (
-                    <span className="px-1 py-0 bg-purple-500/10 text-purple-400 text-[9px] tabular-nums rounded-sm">
+                    <span className="px-1 py-0 bg-accent/10 text-accent text-[9px] tabular-nums rounded-sm">
                       {corrCounts.dec}
                     </span>
                   )}
@@ -2229,9 +2229,9 @@ const SignalsPage = () => {
       {/* ERROR / TABLE */}
       {error && (
         <div className="bg-surface-raised rounded-md p-6 border border-loss/25 text-center relative overflow-hidden">
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-negative/40 to-transparent" />
           <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-red-500/[0.06] border border-loss/20 flex items-center justify-center text-loss">
+            <div className="w-12 h-12 rounded-full bg-negative/[0.06] border border-loss/20 flex items-center justify-center text-loss">
               {Icon.alert("w-5 h-5")}
             </div>
             <h3 className="font-mono text-sm text-text-primary">Failed to load signals</h3>

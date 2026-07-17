@@ -266,8 +266,8 @@ export default function TheRead({ data }) {
                         <span className="text-profit">{bull}</span>
                         <span className="ml-0.5 text-text-muted/50">↑</span>
                       </div>
-                      <div className="rounded-md border border-amber-500/15 bg-amber-500/[0.07] py-1.5">
-                        <span className="text-amber-400">{flat}</span>
+                      <div className="rounded-md border border-accent/15 bg-accent/[0.07] py-1.5">
+                        <span className="text-accent">{flat}</span>
                         <span className="ml-0.5 text-text-muted/50">→</span>
                       </div>
                       <div className="rounded-md border border-loss/15 bg-loss/[0.07] py-1.5">

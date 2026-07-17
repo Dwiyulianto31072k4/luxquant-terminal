@@ -146,19 +146,19 @@ const MarketHighlights = () => {
 
   // Get Fear & Greed color
   const getFearGreedColor = (value) => {
-    if (value <= 25) return "text-red-500";
-    if (value <= 45) return "text-orange-400";
-    if (value <= 55) return "text-yellow-400";
-    if (value <= 75) return "text-lime-400";
-    return "text-green-400";
+    if (value <= 25) return "text-negative";
+    if (value <= 45) return "text-accent";
+    if (value <= 55) return "text-accent";
+    if (value <= 75) return "text-positive";
+    return "text-positive";
   };
 
   const getFearGreedBg = (value) => {
-    if (value <= 25) return "bg-red-500/20";
-    if (value <= 45) return "bg-orange-400/20";
-    if (value <= 55) return "bg-yellow-400/20";
-    if (value <= 75) return "bg-lime-400/20";
-    return "bg-green-400/20";
+    if (value <= 25) return "bg-negative/20";
+    if (value <= 45) return "bg-accent/20";
+    if (value <= 55) return "bg-accent/20";
+    if (value <= 75) return "bg-positive/20";
+    return "bg-positive/20";
   };
 
   if (loading) {
@@ -262,17 +262,17 @@ const MarketHighlights = () => {
           {/* Bottom Row - Key Indicators */}
           <div className="grid grid-cols-4 gap-3">
             {/* BTC Dominance */}
-            <div className="text-center p-2 rounded-lg bg-orange-500/5 border border-orange-500/20">
+            <div className="text-center p-2 rounded-lg bg-accent/5 border border-accent/20">
               <p className="text-text-muted text-[10px] uppercase mb-1">BTC Dom</p>
-              <p className="text-orange-400 font-mono text-sm font-bold">
+              <p className="text-accent font-mono text-sm font-bold">
                 {overview.btcDominance.toFixed(1)}%
               </p>
             </div>
 
             {/* ETH/BTC Ratio */}
-            <div className="text-center p-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
+            <div className="text-center p-2 rounded-lg bg-accent/5 border border-accent/20">
               <p className="text-text-muted text-[10px] uppercase mb-1">ETH/BTC</p>
-              <p className="text-blue-400 font-mono text-sm font-bold">
+              <p className="text-accent font-mono text-sm font-bold">
                 {overview.ethBtcRatio.toFixed(4)}
               </p>
             </div>
@@ -286,9 +286,9 @@ const MarketHighlights = () => {
             </div>
 
             {/* Stablecoin Dominance */}
-            <div className="text-center p-2 rounded-lg bg-green-500/5 border border-green-500/20">
+            <div className="text-center p-2 rounded-lg bg-positive/5 border border-positive/20">
               <p className="text-text-muted text-[10px] uppercase mb-1">Stable Dom</p>
-              <p className="text-green-400 font-mono text-sm font-bold">
+              <p className="text-positive font-mono text-sm font-bold">
                 {overview.stablecoinDom.toFixed(1)}%
               </p>
             </div>

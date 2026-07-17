@@ -103,18 +103,18 @@ const MarketDashboard = () => {
 
   // Get Fear & Greed color
   const getFearGreedColor = (value) => {
-    if (!value) return "text-gray-400";
-    if (value <= 25) return "text-red-500";
-    if (value <= 45) return "text-orange-500";
-    if (value <= 55) return "text-yellow-500";
-    if (value <= 75) return "text-lime-500";
-    return "text-green-500";
+    if (!value) return "text-text-muted";
+    if (value <= 25) return "text-negative";
+    if (value <= 45) return "text-accent";
+    if (value <= 55) return "text-accent";
+    if (value <= 75) return "text-positive";
+    return "text-positive";
   };
 
   // Get funding rate color
   const getFundingColor = (rate) => {
-    if (!rate) return "text-gray-400";
-    return rate >= 0 ? "text-green-400" : "text-loss";
+    if (!rate) return "text-text-muted";
+    return rate >= 0 ? "text-positive" : "text-loss";
   };
 
   if (loading) {
@@ -161,10 +161,10 @@ const MarketDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Bitcoin Hero Card */}
-      <div className="bg-gradient-to-br from-orange-500/10 to-yellow-500/5 rounded-2xl p-6 border border-orange-500/20">
+      <div className="bg-gradient-to-br from-accent/10 to-accent/5 rounded-2xl p-6 border border-accent/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-text-primary shadow-lg shadow-orange-500/30">
+            <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent rounded-2xl flex items-center justify-center text-3xl font-bold text-text-primary shadow-lg shadow-accent/30">
               ₿
             </div>
             <div>
@@ -176,7 +176,7 @@ const MarketDashboard = () => {
             <p className="text-4xl font-mono font-bold text-text-primary">
               {formatPrice(btcPrice)}
             </p>
-            <p className={`text-xl font-mono ${btcChange >= 0 ? "text-green-400" : "text-loss"}`}>
+            <p className={`text-xl font-mono ${btcChange >= 0 ? "text-positive" : "text-loss"}`}>
               {btcChange >= 0 ? "+" : ""}
               {btcChange?.toFixed(2) || "--"}%
             </p>
@@ -223,9 +223,9 @@ const MarketDashboard = () => {
               {fearGreedLabel}
             </p>
             {/* Progress bar */}
-            <div className="mt-4 h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full relative">
+            <div className="mt-4 h-2 bg-gradient-to-r from-negative via-accent to-positive rounded-full relative">
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-gray-800 shadow-lg"
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-line shadow-lg"
                 style={{ left: `${fearGreedValue}%`, transform: "translate(-50%, -50%)" }}
               />
             </div>
@@ -247,7 +247,7 @@ const MarketDashboard = () => {
             <div>
               <div className="flex justify-between items-end mb-4">
                 <div>
-                  <p className="text-3xl font-bold text-green-400">
+                  <p className="text-3xl font-bold text-positive">
                     {marketData.long_short.long_pct?.toFixed(1) || "--"}%
                   </p>
                   <p className="text-text-muted text-sm">Long</p>
@@ -262,11 +262,11 @@ const MarketDashboard = () => {
               {/* Visual bar */}
               <div className="h-4 rounded-full overflow-hidden flex">
                 <div
-                  className="bg-gradient-to-r from-green-600 to-green-400 transition-all duration-500"
+                  className="bg-gradient-to-r from-positive to-positive transition-all duration-500"
                   style={{ width: `${marketData.long_short.long_pct || 50}%` }}
                 />
                 <div
-                  className="bg-gradient-to-r from-red-400 to-red-600 transition-all duration-500"
+                  className="bg-gradient-to-r from-negative to-negative transition-all duration-500"
                   style={{ width: `${marketData.long_short.short_pct || 50}%` }}
                 />
               </div>
@@ -374,11 +374,11 @@ const MarketDashboard = () => {
 
       {/* Error message if any */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
+        <div className="bg-negative/10 border border-negative/30 rounded-lg p-4 text-center">
           <p className="text-loss">{error}</p>
           <button
             onClick={fetchData}
-            className="mt-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-loss text-sm"
+            className="mt-2 px-4 py-2 bg-negative/20 hover:bg-negative/30 rounded-lg text-loss text-sm"
           >
             Retry
           </button>

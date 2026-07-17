@@ -146,7 +146,9 @@ const CashoutRow = ({ item, onUpdate }) => {
               {item.destination_telegram && (
                 <>
                   <span style={{ color: "rgb(var(--fg-muted))" }}>·</span>
-                  <span style={{ color: "rgb(var(--accent-text))" }}>@{item.destination_telegram}</span>
+                  <span style={{ color: "rgb(var(--accent-text))" }}>
+                    @{item.destination_telegram}
+                  </span>
                 </>
               )}
             </div>

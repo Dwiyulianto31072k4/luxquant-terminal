@@ -336,7 +336,9 @@ export default function TradeHistoryCalendar({ history = {} }) {
               type="button"
               onClick={() => setBasis(value)}
               className={`rounded px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
-                basis === value ? "bg-accent text-black" : "text-text-muted hover:text-text-primary"
+                basis === value
+                  ? "bg-accent text-accent-fg"
+                  : "text-text-muted hover:text-text-primary"
               }`}
             >
               {label}

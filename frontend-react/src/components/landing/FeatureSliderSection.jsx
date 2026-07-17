@@ -330,9 +330,9 @@ const FeatureSliderSection = () => {
         <div className="relative w-full max-w-[360px] sm:max-w-[500px] lg:max-w-[850px] mx-auto aspect-[16/10] bg-surface-raised rounded-xl sm:rounded-2xl lg:rounded-3xl border border-ink/10 shadow-[0_20px_40px_rgb(var(--scrim) / 0.35)] lg:shadow-[0_30px_80px_rgb(var(--scrim) / 0.8)] overflow-hidden z-10 transition-all duration-500">
           {/* Browser chrome */}
           <div className="h-6 lg:h-8 bg-surface-secondary flex items-center px-4 gap-2 border-b border-ink/5 w-full absolute top-0 z-20">
-            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
-            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
-            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
+            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-negative/80" />
+            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-accent/80" />
+            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-positive/80" />
             <div className="mx-auto bg-scrim/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-text-primary/30 font-mono tracking-widest">
               luxquant.tw
             </div>

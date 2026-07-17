@@ -446,7 +446,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
           {type === "pdf" && (
             <Field label="PDF File" required={!isEdit}>
               <label className="flex items-center gap-3 bg-bg-card border-2 border-dashed border-ink/10 rounded-xl px-4 py-4 cursor-pointer hover:border-ink/15 transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-negative/10 flex items-center justify-center flex-shrink-0">
                   <svg
                     className="w-5 h-5 text-loss"
                     fill="none"
@@ -581,8 +581,8 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-colors ${
                     statusVal === s
                       ? s === "published"
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-amber-500/20 text-amber-400"
+                        ? "bg-positive/20 text-positive"
+                        : "bg-accent/20 text-accent"
                       : "text-text-muted hover:text-text-primary"
                   }`}
                 >
@@ -593,7 +593,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+            <div className="bg-negative/10 border border-negative/20 rounded-xl px-4 py-3">
               <p className="text-loss text-sm">{error}</p>
             </div>
           )}

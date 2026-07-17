@@ -437,7 +437,7 @@ const fmtPrice = (v) => {
   return Number(v).toPrecision(3);
 };
 const ST_META = {
-  open: { label: "OPEN", color: "#60a5fa", desc: "Live — no target hit yet" },
+  open: { label: "OPEN", color: "rgb(var(--fg-secondary))", desc: "Live — no target hit yet" },
   tp1: { label: "TP1 HIT", color: "rgb(var(--pos-text))", desc: "First target reached" },
   tp2: { label: "TP2 HIT", color: "rgb(var(--pos-text))", desc: "Second target reached" },
   tp3: { label: "TP3 HIT", color: "rgb(var(--pos-text))", desc: "Third target reached" },
@@ -502,7 +502,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
                 </span>
               )}
               {d.decoupled && (
-                <span className="rounded-sm border border-cyan-500/25 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-cyan-400/90">
+                <span className="rounded-sm border border-accent/25 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent/90">
                   btc-decoupled
                 </span>
               )}

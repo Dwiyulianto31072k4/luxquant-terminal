@@ -139,7 +139,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
             <span className="text-accent">@{success.destination_telegram}</span> to coordinate.
           </p>
           <p className="text-[11px] text-text-muted">
-            Status: <span className="text-amber-400">pending review</span>
+            Status: <span className="text-accent">pending review</span>
           </p>
         </div>
       ) : (
@@ -241,7 +241,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
             style={{ background: "rgba(234,179,8,0.04)", border: "1px solid rgba(234,179,8,0.12)" }}
           >
             <svg
-              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-400"
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-accent"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -268,7 +268,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
                 border: "1px solid rgba(239,68,68,0.2)",
               }}
             >
-              <p className="text-xs text-rose-400">{error}</p>
+              <p className="text-xs text-negative">{error}</p>
             </div>
           )}
         </>

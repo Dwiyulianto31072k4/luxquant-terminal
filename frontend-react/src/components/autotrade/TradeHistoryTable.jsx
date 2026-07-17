@@ -20,7 +20,7 @@ function fmtPnl(n) {
 const sideStyle = (side) =>
   side === "buy"
     ? "bg-profit/10 text-profit border-profit/25"
-    : "bg-red-500/10 text-loss border-red-500/25";
+    : "bg-negative/10 text-loss border-negative/25";
 
 // ════════════════════════════════════════════════════════════════
 // TABLE HEADER CELL

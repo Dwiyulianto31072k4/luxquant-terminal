@@ -89,10 +89,10 @@ const VipGroupCard = ({ onToast }) => {
       <div className="p-4 sm:p-5">
         {/* Grace-period warning banner */}
         {inGrace && (
-          <div className="mb-4 rounded-md border border-amber-500/25 bg-amber-500/[0.06] px-3.5 py-3">
+          <div className="mb-4 rounded-md border border-accent/25 bg-accent/[0.06] px-3.5 py-3">
             <div className="flex items-start gap-2.5">
               <svg
-                className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"
+                className="w-4 h-4 text-accent flex-shrink-0 mt-0.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -105,10 +105,10 @@ const VipGroupCard = ({ onToast }) => {
                 />
               </svg>
               <div>
-                <p className="text-amber-300 text-xs font-semibold">
+                <p className="text-accent text-xs font-semibold">
                   {t("vip.grace_title", "Subscription expired")}
                 </p>
-                <p className="text-amber-200/70 text-[11px] mt-0.5 leading-relaxed">
+                <p className="text-accent/70 text-[11px] mt-0.5 leading-relaxed">
                   {t("vip.grace_desc", "You'll be removed from the VIP group in")} {daysLeft}{" "}
                   {daysLeft === 1 ? t("vip.day", "day") : t("vip.days", "days")}.{" "}
                   {t("vip.grace_renew", "Renew to keep your access.")}
@@ -159,7 +159,7 @@ const VipGroupCard = ({ onToast }) => {
                 {t("vip.joined", "Joined")}
               </span>
             ) : !telegramLinked ? (
-              <span className="px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider text-amber-400/70 border border-amber-500/20 bg-amber-500/5">
+              <span className="px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider text-accent/70 border border-accent/20 bg-accent/5">
                 {t("vip.link_first", "Link TG first")}
               </span>
             ) : (

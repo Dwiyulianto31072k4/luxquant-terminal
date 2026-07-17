@@ -7,14 +7,14 @@ const statusTone = {
     dot: "bg-profit",
   },
   degraded: {
-    badge: "border-amber-300/20 bg-amber-300/10 text-amber-200",
-    text: "text-amber-200",
-    dot: "bg-amber-300",
+    badge: "border-accent/20 bg-accent/10 text-accent",
+    text: "text-accent",
+    dot: "bg-accent",
   },
   critical: {
-    badge: "border-red-400/20 bg-red-400/10 text-loss",
+    badge: "border-negative/20 bg-negative/10 text-loss",
     text: "text-loss",
-    dot: "bg-red-400",
+    dot: "bg-negative",
   },
   unknown: {
     badge: "border-ink/15 bg-ink/5 text-text-primary/45",
@@ -25,7 +25,7 @@ const statusTone = {
 
 const severityTone = {
   info: "text-text-primary/35",
-  warning: "text-amber-200",
+  warning: "text-accent",
   critical: "text-loss",
 };
 

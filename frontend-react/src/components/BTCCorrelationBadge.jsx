@@ -69,41 +69,33 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
     return (
       <button
         onClick={onClick}
-        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-500/10 border border-gray-500/20 hover:bg-gray-500/15 transition-all"
+        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-ink/10 border border-line/20 hover:bg-ink/15 transition-all"
         title="BTC correlation analysis (limited data)"
       >
-        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+        <span className="flex items-center gap-1 text-[9px] text-text-muted">
           {Ic.warn("w-3 h-3")} BTC corr · limited data
         </span>
       </button>
     );
   }
 
-  // Score color tier
+  // Score color tier — only the NUMBER carries tone (Binance-style metric chip).
+  // These text-* tokens auto-remap to WCAG-safe values on the Bright desk.
   const scoreColor =
     score == null
-      ? "text-gray-400"
+      ? "text-text-muted"
       : score >= 70
-        ? "text-profit"
+        ? "text-positive"
         : score >= 50
-          ? "text-amber-400"
-          : "text-rose-400";
+          ? "text-accent"
+          : "text-negative";
 
-  const scoreBg =
-    score == null
-      ? "bg-gray-500/10 border-gray-500/20"
-      : score >= 70
-        ? "bg-profit/10 border-profit/25"
-        : score >= 50
-          ? "bg-amber-500/10 border-amber-500/25"
-          : "bg-rose-500/10 border-rose-500/25";
-
-  // Flag icon (prioritize the most important)
+  // Flag icon (prioritize the most important state).
   const flag = is_extended
-    ? Ic.flame("w-3 h-3 text-orange-400")
+    ? Ic.flame("w-3 h-3 text-accent")
     : is_decoupled
-      ? Ic.zap("w-3 h-3 text-purple-400")
-      : Ic.bars("w-3 h-3 text-text-primary/60");
+      ? Ic.zap("w-3 h-3 text-accent")
+      : Ic.bars("w-3 h-3 text-text-muted");
 
   const fmtNum = (n, digits = 2) =>
     n == null ? "—" : (n >= 0 ? "+" : "") + Number(n).toFixed(digits);
@@ -111,19 +103,19 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${scoreBg} hover:brightness-125 transition-all group`}
+      className="group inline-flex items-center gap-1.5 rounded-md border border-ink/10 bg-ink/[0.04] px-2 py-0.5 transition-colors hover:border-ink/20 hover:bg-ink/[0.08]"
       title="View full BTC correlation analysis"
     >
       <span className="flex items-center">{flag}</span>
-      <span className="text-[9px] text-text-primary/60 uppercase tracking-wider font-medium">
-        BTC
+      <span className="text-[9px] font-medium uppercase tracking-wider text-text-muted">BTC</span>
+      <span className={`font-mono text-[11px] font-bold tabular-nums ${scoreColor}`}>
+        {score ?? "—"}
       </span>
-      <span className={`text-[10px] font-bold font-mono ${scoreColor}`}>{score ?? "—"}</span>
-      <span className="text-[8px] text-text-primary/30">·</span>
-      <span className="text-[9px] text-text-primary/70 font-mono">ρ{fmtNum(corr)}</span>
-      <span className="text-[9px] text-text-primary/70 font-mono">β{fmtNum(beta)}</span>
+      <span className="text-[8px] text-text-muted/50">·</span>
+      <span className="font-mono text-[9px] tabular-nums text-text-secondary">ρ{fmtNum(corr)}</span>
+      <span className="font-mono text-[9px] tabular-nums text-text-secondary">β{fmtNum(beta)}</span>
       <svg
-        className="w-2.5 h-2.5 text-text-primary/40 group-hover:text-text-primary/70 transition-colors"
+        className="h-2.5 w-2.5 text-text-muted transition-colors group-hover:text-text-primary"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

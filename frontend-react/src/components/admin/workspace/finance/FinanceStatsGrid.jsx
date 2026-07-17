@@ -201,7 +201,10 @@ const InfoStat = ({ label, value, accent }) => (
     >
       {label}
     </span>
-    <span className="tabular-nums font-semibold" style={{ color: accent || "rgb(var(--fg-secondary))" }}>
+    <span
+      className="tabular-nums font-semibold"
+      style={{ color: accent || "rgb(var(--fg-secondary))" }}
+    >
       {value}
     </span>
   </span>

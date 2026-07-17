@@ -70,9 +70,9 @@ const timeAgo = (timestamp, t) => {
 // ── Chain dot color (small dot only retains color) ──
 const chainDot = (chain) => {
   const map = {
-    bitcoin: "bg-orange-400",
-    ethereum: "bg-blue-400",
-    solana: "bg-purple-400",
+    bitcoin: "bg-accent",
+    ethereum: "bg-accent",
+    solana: "bg-accent",
   };
   return map[chain] || "bg-ink/40";
 };
@@ -131,7 +131,7 @@ const FlowStrip = ({ flows, t }) => {
       ? "text-loss"
       : "text-text-primary/80";
 
-  const sentimentDot = isBullish ? "bg-profit" : isBearish ? "bg-red-400" : "bg-ink/40";
+  const sentimentDot = isBullish ? "bg-profit" : isBearish ? "bg-negative" : "bg-ink/40";
 
   const netFlow = flows.net_flow_usd || 0;
   const netColor = netFlow > 0 ? "text-profit" : netFlow < 0 ? "text-loss" : "text-text-primary/70";

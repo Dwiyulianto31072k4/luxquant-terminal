@@ -44,7 +44,7 @@ const getTypeToken = (type, data) => {
 
 const toneDot = (tone) => {
   if (tone === "gold") return "bg-accent";
-  if (tone === "danger") return "bg-red-400";
+  if (tone === "danger") return "bg-negative";
   return "bg-ink/40";
 };
 

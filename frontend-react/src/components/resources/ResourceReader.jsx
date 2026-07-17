@@ -152,7 +152,7 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             )}
             <button
               onClick={onClose}
-              className="p-2 text-text-muted hover:text-loss hover:bg-red-500/10 rounded-xl transition-all"
+              className="p-2 text-text-muted hover:text-loss hover:bg-negative/10 rounded-xl transition-all"
               title="Close (Esc)"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

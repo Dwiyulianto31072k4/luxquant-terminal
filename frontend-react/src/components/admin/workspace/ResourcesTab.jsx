@@ -223,7 +223,7 @@ export const ResourcesTab = () => {
         </div>
         <button
           onClick={() => setEditing({})}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black"
+          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-accent-fg"
           style={{
             background:
               "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)) 50%, rgb(var(--accent)))",
@@ -346,7 +346,7 @@ export const ResourcesTab = () => {
                         <div className="flex items-center gap-1 justify-end">
                           <button
                             onClick={() => setEditing(r)}
-                            className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-500/10"
+                            className="p-1.5 rounded-lg text-accent hover:bg-accent/10"
                             title="Edit"
                           >
                             <svg
@@ -365,7 +365,7 @@ export const ResourcesTab = () => {
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(r)}
-                            className="p-1.5 rounded-lg text-loss hover:bg-red-500/10"
+                            className="p-1.5 rounded-lg text-loss hover:bg-negative/10"
                             title="Delete"
                           >
                             <svg

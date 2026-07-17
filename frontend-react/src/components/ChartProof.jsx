@@ -73,7 +73,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
           </div>
           {/* Status indicator dot */}
           {hasAfter && (
-            <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />
+            <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-positive shadow-sm shadow-positive/50" />
           )}
         </div>
 
@@ -102,7 +102,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
                 }}
                 className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-all ${
                   activeView === "before"
-                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
+                    ? "bg-accent/20 text-accent border border-accent/40"
                     : "text-text-muted hover:text-text-primary border border-transparent"
                 }`}
               >
@@ -115,7 +115,7 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
                 }}
                 className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-all ${
                   activeView === "after"
-                    ? "bg-green-500/20 text-green-400 border border-green-500/40"
+                    ? "bg-positive/20 text-positive border border-positive/40"
                     : "text-text-muted hover:text-text-primary border border-transparent"
                 }`}
               >
@@ -185,11 +185,11 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
               onClick={() => setActiveView("before")}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeView === "before"
-                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm shadow-blue-500/10"
+                  ? "bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10"
                   : "bg-bg-card text-text-muted border border-ink/08 hover:text-text-primary hover:border-ink/12"
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-blue-400" />
+              <span className="w-2 h-2 rounded-full bg-accent" />
               Before (Entry)
             </button>
           )}
@@ -198,11 +198,11 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
               onClick={() => setActiveView("after")}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeView === "after"
-                  ? "bg-green-500/20 text-green-400 border border-green-500/40 shadow-sm shadow-green-500/10"
+                  ? "bg-positive/20 text-positive border border-positive/40 shadow-sm shadow-positive/10"
                   : "bg-bg-card text-text-muted border border-ink/08 hover:text-text-primary hover:border-ink/12"
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-green-400" />
+              <span className="w-2 h-2 rounded-full bg-positive" />
               After ({status?.toUpperCase() || "Latest"})
             </button>
           )}
@@ -239,8 +239,8 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
               <span
                 className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${
                   activeView === "before"
-                    ? "bg-blue-500/80 text-text-primary"
-                    : "bg-green-500/80 text-text-primary"
+                    ? "bg-accent/80 text-text-primary"
+                    : "bg-positive/80 text-text-primary"
                 }`}
               >
                 {activeView === "before" ? "ENTRY" : status?.toUpperCase() || "LATEST"}

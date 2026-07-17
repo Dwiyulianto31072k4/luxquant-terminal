@@ -249,7 +249,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
       </header>
 
       {error && (
-        <div className="rounded-lg p-5 border border-red-500/20 bg-red-500/[0.03] text-sm text-loss">
+        <div className="rounded-lg p-5 border border-negative/20 bg-negative/[0.03] text-sm text-loss">
           <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-loss/80 mb-1">
             · Error ·
           </div>

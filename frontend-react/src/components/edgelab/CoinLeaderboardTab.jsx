@@ -48,7 +48,7 @@ const wrColorCls = (wr) =>
     : wr >= 70
       ? "text-text-primary/85"
       : wr >= 50
-        ? "text-amber-400/90"
+        ? "text-accent/90"
         : "text-loss";
 
 const CoinLeaderboardTab = ({ data, onDrill }) => {

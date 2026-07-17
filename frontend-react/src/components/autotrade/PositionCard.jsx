@@ -17,7 +17,7 @@ function fmtNum(n, d = 4) {
 const sideStyle = (side) =>
   side === "buy"
     ? "bg-profit/10 text-profit border-profit/25"
-    : "bg-red-500/10 text-loss border-red-500/25";
+    : "bg-negative/10 text-loss border-negative/25";
 
 const statusStyle = (status) => {
   const map = {
@@ -25,7 +25,7 @@ const statusStyle = (status) => {
     partial: "bg-accent/12 text-accent border-ink/12",
     placed: "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]",
     pending: "bg-ink/[0.04] text-text-muted border-ink/[0.06]",
-    error: "bg-red-500/10 text-loss border-red-500/25",
+    error: "bg-negative/10 text-loss border-negative/25",
   };
   return map[status] || "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
@@ -165,7 +165,7 @@ export default function PositionCard({ order, onClosed }) {
 
         {/* ── Error ── */}
         {order.error_message && (
-          <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded mb-3 p-2.5">
+          <div className="relative overflow-hidden bg-negative/[0.05] border border-negative/25 rounded mb-3 p-2.5">
             <p className="text-[10px] font-mono text-loss leading-relaxed break-words">
               {order.error_message}
             </p>
@@ -177,7 +177,7 @@ export default function PositionCard({ order, onClosed }) {
           <button
             onClick={handleClose}
             disabled={closing}
-            className="w-full px-3 py-2 rounded-md border border-red-500/25 text-[10px] font-mono uppercase tracking-[0.2em] text-loss hover:bg-red-500/[0.08] hover:border-red-500/40 disabled:opacity-50 transition-all"
+            className="w-full px-3 py-2 rounded-md border border-negative/25 text-[10px] font-mono uppercase tracking-[0.2em] text-loss hover:bg-negative/[0.08] hover:border-negative/40 disabled:opacity-50 transition-all"
           >
             {closing ? "Closing…" : "Close at Market"}
           </button>

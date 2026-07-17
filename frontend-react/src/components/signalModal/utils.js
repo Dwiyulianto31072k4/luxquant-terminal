@@ -9,10 +9,7 @@ export const deriveChartWithCard = (rawUrl) => {
 
 export const cleanPair = (pair) => {
   if (!pair) return "";
-  return String(pair)
-    .replace(/USDT$/i, "")
-    .replace(/^3A/i, "")
-    .toUpperCase();
+  return String(pair).replace(/USDT$/i, "").replace(/^3A/i, "").toUpperCase();
 };
 
 export const fmtPct = (n, digits = 2) => {

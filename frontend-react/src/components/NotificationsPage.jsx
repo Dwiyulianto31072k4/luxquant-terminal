@@ -68,7 +68,7 @@ const toneStyle = (tone) => {
 
 const toneDot = (tone) => {
   if (tone === "gold") return "bg-accent";
-  if (tone === "danger") return "bg-red-400";
+  if (tone === "danger") return "bg-negative";
   return "bg-ink/40";
 };
 
@@ -573,7 +573,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1.5 rounded-md border border-transparent hover:border-loss/25 hover:bg-red-500/[0.05] text-text-muted/40 hover:text-loss transition-all"
+          className="p-1.5 rounded-md border border-transparent hover:border-loss/25 hover:bg-negative/[0.05] text-text-muted/40 hover:text-loss transition-all"
           title="Delete"
         >
           <svg

@@ -21,12 +21,12 @@ function badgeTone(status) {
     return "border-profit/20 bg-profit/10 text-profit";
   }
   if (["critical", "unavailable", "conflicted", "high", "bearish"].includes(value)) {
-    return "border-red-400/20 bg-red-400/10 text-loss";
+    return "border-negative/20 bg-negative/10 text-loss";
   }
   if (
     ["degraded", "stale", "guarded", "limited", "elevated", "medium", "neutral"].includes(value)
   ) {
-    return "border-amber-300/20 bg-amber-300/10 text-amber-200";
+    return "border-accent/20 bg-accent/10 text-accent";
   }
   return "border-ink/10 bg-ink/5 text-text-primary/45";
 }
@@ -35,7 +35,7 @@ function textTone(status) {
   const tone = badgeTone(status);
   if (tone.includes("emerald")) return "text-profit";
   if (tone.includes("red")) return "text-loss";
-  if (tone.includes("amber")) return "text-amber-200";
+  if (tone.includes("amber")) return "text-accent";
   return "text-text-primary/75";
 }
 
@@ -384,7 +384,7 @@ function NewsPreview({ eventRisk, onDetail }) {
                 <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/30">
                   Confidence
                 </div>
-                <div className="mt-2 text-lg font-semibold text-amber-200">
+                <div className="mt-2 text-lg font-semibold text-accent">
                   {penalty ? `-${penalty} pts` : "No penalty"}
                 </div>
               </div>

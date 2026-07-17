@@ -353,7 +353,7 @@ const WatchlistPage = () => {
                       ? "bg-accent animate-pulse"
                       : Object.keys(currentPrices).length > 0
                         ? "bg-profit animate-pulse"
-                        : "bg-red-400"
+                        : "bg-negative"
                   }`}
                 />
                 <span className="uppercase tracking-[0.15em]">
@@ -922,7 +922,7 @@ const ExpandedDetail = ({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
       {/* Stop Loss */}
       {item.stop1 && (
-        <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-negative/15 rounded-md p-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-loss/70 mb-1">
             Stop Loss
           </p>
@@ -942,7 +942,7 @@ const ExpandedDetail = ({
 
       {/* Stop Loss 2 (if exists) */}
       {item.stop2 && (
-        <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
+        <div className="relative overflow-hidden bg-surface-raised border border-negative/15 rounded-md p-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-loss/70 mb-1">
             Stop Loss 2
           </p>
@@ -1128,7 +1128,7 @@ const MobileCard = ({
 
       {/* Stop Loss */}
       {item.stop1 && (
-        <div className="relative overflow-hidden bg-red-500/[0.03] border border-red-500/15 rounded p-2 mb-2">
+        <div className="relative overflow-hidden bg-negative/[0.03] border border-negative/15 rounded p-2 mb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-loss/70">

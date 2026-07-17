@@ -36,7 +36,7 @@ const stageLabel = {
 function StatCard({ label, value, note, tone = "neutral" }) {
   const toneClass = {
     good: "text-profit",
-    warn: "text-amber-300",
+    warn: "text-accent",
     bad: "text-loss",
     neutral: "text-text-primary",
   }[tone];
@@ -88,7 +88,7 @@ export default function LiquidityValidationPanel({ data }) {
     <section className="rounded-2xl border border-ink/5 bg-ink/[0.015] p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-300/70 mb-1">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/70 mb-1">
             Phase 2 · Shadow validation
           </div>
           <h2 className="text-xl text-text-primary/90 font-medium">Liquidity Model Validation</h2>
@@ -97,7 +97,7 @@ export default function LiquidityValidationPanel({ data }) {
             quality only and cannot activate deterministic direction.
           </p>
         </div>
-        <span className="rounded-md border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-amber-200">
+        <span className="rounded-md border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-accent">
           {stageLabel[data.stage] || data.stage}
         </span>
       </div>

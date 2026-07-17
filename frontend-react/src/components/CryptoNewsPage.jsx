@@ -1659,29 +1659,29 @@ const CryptoNewsPage = () => {
         subtitle="Markets wire · live crypto headlines"
         right={
           <div className="flex flex-shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums text-text-muted">
-          {stats?.last_hour != null && (
-            <span>
-              <span className="text-text-muted">1h </span>
-              <span className="font-semibold text-text-primary">{stats.last_hour}</span>
-            </span>
-          )}
-          {stats?.total != null && (
-            <span>
-              <span className="text-text-muted">Idx </span>
-              <span className="font-semibold text-text-primary">
-                {Number(stats.total).toLocaleString()}
+            {stats?.last_hour != null && (
+              <span>
+                <span className="text-text-muted">1h </span>
+                <span className="font-semibold text-text-primary">{stats.last_hour}</span>
               </span>
-            </span>
-          )}
-          <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
-            <span className="relative flex h-1.5 w-1.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-profit">
-              Live
-            </span>
-          </div>
+            )}
+            {stats?.total != null && (
+              <span>
+                <span className="text-text-muted">Idx </span>
+                <span className="font-semibold text-text-primary">
+                  {Number(stats.total).toLocaleString()}
+                </span>
+              </span>
+            )}
+            <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-profit">
+                Live
+              </span>
+            </div>
           </div>
         }
       />

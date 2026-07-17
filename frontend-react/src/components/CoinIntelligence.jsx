@@ -160,9 +160,9 @@ const CoinRow = ({ coin, rank, verdict, onClick }) => {
             </span>
           ))}
         </div>
-        <p className="text-[9px] text-gray-500 mt-0.5">
+        <p className="text-[9px] text-text-muted mt-0.5">
           {coin.closed_trades} trades · Avg:{" "}
-          <span className={coin.avg_outcome === "SL" ? "text-loss" : "text-green-400"}>
+          <span className={coin.avg_outcome === "SL" ? "text-loss" : "text-positive"}>
             {coin.avg_outcome}
           </span>
         </p>
@@ -181,7 +181,7 @@ const CoinRow = ({ coin, rank, verdict, onClick }) => {
             {coin.current_streak.type === "win" ? "W" : "L"}
           </p>
         ) : (
-          <p className="text-[8px] text-gray-600 mt-0.5">-</p>
+          <p className="text-[8px] text-text-muted mt-0.5">-</p>
         )}
       </div>
       <svg
@@ -342,7 +342,7 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
           </div>
         </div>
         {!collapsed && (
-          <p className="text-[10px] text-gray-500 font-medium hidden sm:block">
+          <p className="text-[10px] text-text-muted font-medium hidden sm:block">
             Click any coin for deep analysis
           </p>
         )}
@@ -352,12 +352,12 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="bg-surface-raised border border-ink/[0.05] rounded-xl p-4 shadow-sm">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
                 LuxQuant Winrate (Last 7 Days)
               </p>
 
               {/* LEGEND MARKET CONDITION */}
-              <div className="flex gap-4 text-[9px] text-gray-500 font-medium">
+              <div className="flex gap-4 text-[9px] text-text-muted font-medium">
                 <div className="flex items-center gap-1.5">
                   <div
                     className="w-2 h-2 rounded-full shadow-sm"
@@ -389,19 +389,19 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-surface-raised rounded-xl border border-green-500/20 shadow-lg overflow-hidden flex flex-col">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-green-500/20 bg-gradient-to-r from-green-500/10 to-transparent">
-                <div className="w-1 h-4 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
-                <h4 className="text-green-400 text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">
+            <div className="bg-surface-raised rounded-xl border border-positive/20 shadow-lg overflow-hidden flex flex-col">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-positive/20 bg-gradient-to-r from-positive/10 to-transparent">
+                <div className="w-1 h-4 rounded-full bg-positive shadow-[0_0_8px_#22c55e]" />
+                <h4 className="text-positive text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">
                   Worth It
                 </h4>
-                <span className="text-gray-400 text-[9px] hidden sm:block">
+                <span className="text-text-muted text-[9px] hidden sm:block">
                   — strong track record
                 </span>
               </div>
               <div className="py-2 flex-1">
                 {worthIt.length === 0 ? (
-                  <p className="text-gray-500 text-[11px] text-center py-10">
+                  <p className="text-text-muted text-[11px] text-center py-10">
                     No standout coins for {dateLabel}
                   </p>
                 ) : (
@@ -418,19 +418,19 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
               </div>
             </div>
 
-            <div className="bg-surface-raised rounded-xl border border-red-500/20 shadow-lg overflow-hidden flex flex-col">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-red-500/20 bg-gradient-to-r from-red-500/10 to-transparent">
-                <div className="w-1 h-4 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
+            <div className="bg-surface-raised rounded-xl border border-negative/20 shadow-lg overflow-hidden flex flex-col">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-negative/20 bg-gradient-to-r from-negative/10 to-transparent">
+                <div className="w-1 h-4 rounded-full bg-negative shadow-[0_0_8px_#ef4444]" />
                 <h4 className="text-loss text-[11px] font-bold uppercase tracking-widest drop-shadow-sm">
                   Avoid
                 </h4>
-                <span className="text-gray-400 text-[9px] hidden sm:block">
+                <span className="text-text-muted text-[9px] hidden sm:block">
                   — red flags detected
                 </span>
               </div>
               <div className="py-2 flex-1">
                 {avoid.length === 0 ? (
-                  <p className="text-gray-500 text-[11px] text-center py-10">
+                  <p className="text-text-muted text-[11px] text-center py-10">
                     No red flags for {dateLabel}
                   </p>
                 ) : (

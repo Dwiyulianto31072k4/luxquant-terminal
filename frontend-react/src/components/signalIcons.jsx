@@ -2,7 +2,7 @@
 // icons.jsx — single source of truth for LuxQuant's inline SVG icons.
 // Standardized stroke SVGs (no emoji). Everything uses currentColor so
 // each icon inherits the text color of whatever wraps it. Pass a Tailwind
-// size/color class as the only argument, e.g. Ic.trophy("w-4 h-4 text-amber-400").
+// size/color class as the only argument, e.g. Ic.trophy("w-4 h-4 text-accent").
 // ================================================================
 
 export const Ic = {

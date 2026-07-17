@@ -44,10 +44,10 @@ function statusTone(status) {
     return "border-profit/20 bg-profit/10 text-profit";
   }
   if (value === "critical" || value === "unavailable") {
-    return "border-red-400/20 bg-red-400/10 text-loss";
+    return "border-negative/20 bg-negative/10 text-loss";
   }
   if (value === "degraded" || value === "stale") {
-    return "border-amber-300/20 bg-amber-300/10 text-amber-200";
+    return "border-accent/20 bg-accent/10 text-accent";
   }
   return "border-ink/10 bg-ink/5 text-text-primary/45";
 }
@@ -72,7 +72,7 @@ function stanceMeta(direction) {
   return {
     label: "Neutral",
     arrow: "→",
-    cls: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+    cls: "border-accent/20 bg-accent/10 text-accent",
   };
 }
 
@@ -276,7 +276,7 @@ function LoadingState() {
 function ErrorState({ error, onRetry }) {
   return (
     <div className="flex min-h-[45vh] items-center justify-center">
-      <div className="max-w-md rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-6 text-center">
+      <div className="max-w-md rounded-2xl border border-negative/15 bg-negative/[0.04] p-6 text-center">
         <h3 className="text-lg font-medium text-text-primary/85">Compass read could not load</h3>
         <p className="mt-2 text-sm leading-6 text-text-primary/45">
           {error || "The latest market read is temporarily unavailable."}
@@ -533,7 +533,7 @@ function directionClasses(direction) {
   const value = String(direction || "neutral").toLowerCase();
   if (value === "bullish") return "border-profit/20 bg-profit/10 text-profit";
   if (value === "bearish") return "border-loss/20 bg-loss/10 text-loss";
-  return "border-amber-500/20 bg-amber-500/10 text-amber-400";
+  return "border-accent/20 bg-accent/10 text-accent";
 }
 
 function readableLabel(value) {

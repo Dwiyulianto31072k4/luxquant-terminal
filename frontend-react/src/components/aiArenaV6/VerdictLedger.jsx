@@ -43,7 +43,7 @@ function outcomeTone(value) {
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
     return "border-ink/12 bg-ink/[0.06] text-text-primary";
   }
-  return "border-amber-500/25 bg-amber-500/10 text-amber-400";
+  return "border-accent/25 bg-accent/10 text-accent";
 }
 
 function biasTone(value) {
@@ -51,7 +51,7 @@ function biasTone(value) {
   if (text.includes("BULL") || text.includes("RISK_ON")) return "text-profit";
   if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE"))
     return "text-loss";
-  return "text-amber-400";
+  return "text-accent";
 }
 
 function asPercent(value) {

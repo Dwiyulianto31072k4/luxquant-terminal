@@ -213,7 +213,7 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
           <span className="text-[11px] text-text-muted">
             <span className="font-medium text-text-primary">{user.username}</span>
             {user.role === "subscriber" && user.subscription_expires_at && (
-              <span className="ml-1.5 text-[10px] text-amber-400">· extends existing</span>
+              <span className="ml-1.5 text-[10px] text-accent">· extends existing</span>
             )}
           </span>
         </div>

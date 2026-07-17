@@ -1386,7 +1386,7 @@ export default function SignalsAnalytics() {
                 <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised px-3.5 py-2.5">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
                       {t("terminal.viz.hotNow")}
                     </span>
                     {anomMeta.hotPts.slice(0, 12).map((p) => (
@@ -2068,7 +2068,7 @@ export default function SignalsAnalytics() {
                         {agg.decoupledList.slice(0, 24).map((d) => (
                           <span
                             key={d.pair}
-                            className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-cyan-400/25 bg-cyan-400/[0.06] font-mono text-[10px]"
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-accent/25 bg-accent/[0.06] font-mono text-[10px]"
                           >
                             <CoinPill pair={d.pair} onPair={openPair} />
                             <span className={d.v >= 0 ? "text-positive" : "text-negative"}>

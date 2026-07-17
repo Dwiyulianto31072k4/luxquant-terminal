@@ -655,7 +655,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
         {/* COOL */}
         <div className="p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-negative" />
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-loss">
               {t("overview.cool")}
             </p>
@@ -699,7 +699,7 @@ const DerivativesPulseCard = ({ data, t }) => {
                 Long
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-sm bg-red-400" />
+                <span className="w-1.5 h-1.5 rounded-sm bg-negative" />
                 Short
               </span>
             </div>
@@ -719,7 +719,7 @@ const DerivativesPulseCard = ({ data, t }) => {
                   </div>
                   <div className="relative flex h-3.5 overflow-hidden rounded-md bg-ink/[0.04]">
                     <div
-                      className="bg-gradient-to-r from-emerald-500 to-emerald-400 flex items-center pl-1.5 transition-all duration-700"
+                      className="bg-gradient-to-r from-positive to-positive flex items-center pl-1.5 transition-all duration-700"
                       style={{ width: `${longPct}%` }}
                     >
                       {longPct >= 16 && (
@@ -729,7 +729,7 @@ const DerivativesPulseCard = ({ data, t }) => {
                       )}
                     </div>
                     <div
-                      className="bg-gradient-to-l from-red-500 to-red-400 flex items-center justify-end pr-1.5 transition-all duration-700"
+                      className="bg-gradient-to-l from-negative to-negative flex items-center justify-end pr-1.5 transition-all duration-700"
                       style={{ width: `${shortPct}%` }}
                     >
                       {shortPct >= 16 && (
@@ -788,7 +788,7 @@ const DerivativesPulseCard = ({ data, t }) => {
                 {(funding.most_short || []).slice(0, 3).map((f, i) => (
                   <div
                     key={`s${i}`}
-                    className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-red-500/[0.06] border border-loss/20 rounded-sm"
+                    className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-negative/[0.06] border border-loss/20 rounded-sm"
                   >
                     <span className="font-mono text-text-primary">{f.symbol}</span>
                     <span className="font-mono text-loss tabular-nums">{f.rate_pct}%</span>
@@ -955,7 +955,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
       className="relative flex items-center justify-between py-2 px-2 hover:bg-ink/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
     >
       <div
-        className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? "bg-red-500/[0.05]" : "bg-profit/[0.05]"}`}
+        className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? "bg-negative/[0.05]" : "bg-profit/[0.05]"}`}
         style={{ width: `${fillPct}%` }}
       />
       <div className="relative flex items-center gap-3 min-w-0 flex-1">

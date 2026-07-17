@@ -507,8 +507,8 @@ const LeftBrandPanel = () => {
                 fontSize: "clamp(26px, 2.5vw, 36px)",
               }}
             >
-              Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp; Tokenized{" "}
-              <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
+              Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp;
+              Tokenized <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
             </h2>
 
             {/* Asset logos — shared component */}

@@ -867,7 +867,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                     {stats.wins}W / {stats.counts.sl}L
                   </span>
                   {capped && (
-                    <span className="text-amber-400/70">
+                    <span className="text-accent/70">
                       first {returned} of {aggTotal}
                     </span>
                   )}
@@ -930,7 +930,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
 
           {error && (
             <div className="flex-1 p-5 sm:p-6">
-              <div className="rounded-lg border border-red-500/20 bg-red-500/[0.04] p-4 text-sm text-loss">
+              <div className="rounded-lg border border-negative/20 bg-negative/[0.04] p-4 text-sm text-loss">
                 {error}
                 <button
                   onClick={load}

@@ -123,7 +123,7 @@ function parseSmartTags(text) {
   );
   parsed = parsed.replace(
     /@(\w+)/g,
-    '<a href="https://x.com/$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 font-semibold">@$1</a>'
+    '<a href="https://x.com/$1" target="_blank" rel="noopener noreferrer" class="text-accent hover:text-accent font-semibold">@$1</a>'
   );
   return parsed;
 }
@@ -147,7 +147,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
           <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
             Multi-TF BTC Intelligence · DeepSeek R1
             {report.is_anomaly_triggered && (
-              <span className="ml-2 px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[9px] font-bold">
+              <span className="ml-2 px-1.5 py-0.5 rounded bg-accent/20 text-accent text-[9px] font-bold">
                 ⚡ ANOMALY
               </span>
             )}
@@ -234,7 +234,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
                           <span className="text-xs">{s.icon}</span>
                           <span className="text-[11px] text-text-primary font-medium">{t}</span>
                           {r.is_anomaly_triggered && (
-                            <span className="text-[8px] text-orange-400">⚡</span>
+                            <span className="text-[8px] text-accent">⚡</span>
                           )}
                         </div>
                         <span className="text-[10px] font-mono" style={{ color: s.color }}>
@@ -409,7 +409,7 @@ function TripleScreenStrip({ alignment, tfSummary, onTFClick }) {
                 <div className="text-[10px] text-text-muted">
                   RSI{" "}
                   <span
-                    className={`font-bold ${rsi >= 70 ? "text-loss" : rsi <= 30 ? "text-green-400" : "text-accent"}`}
+                    className={`font-bold ${rsi >= 70 ? "text-loss" : rsi <= 30 ? "text-positive" : "text-accent"}`}
                   >
                     {rsi}
                   </span>
@@ -761,7 +761,7 @@ function PriceChart({ activeTF, onTFChange }) {
           </span>
           {tech.rsi_14 != null && (
             <span
-              className={`text-[10px] font-bold ${tech.rsi_14 >= 70 ? "text-loss" : tech.rsi_14 <= 30 ? "text-green-400" : "text-accent"}`}
+              className={`text-[10px] font-bold ${tech.rsi_14 >= 70 ? "text-loss" : tech.rsi_14 <= 30 ? "text-positive" : "text-accent"}`}
             >
               {tech.rsi_14}{" "}
               {tech.rsi_14 >= 70 ? "· Overbought" : tech.rsi_14 <= 30 ? "· Oversold" : ""}
@@ -776,7 +776,7 @@ function PriceChart({ activeTF, onTFChange }) {
         {tech.ema_bullish_cross != null && (
           <span>
             EMA Cross:{" "}
-            <span className={tech.ema_bullish_cross ? "text-green-400" : "text-loss"}>
+            <span className={tech.ema_bullish_cross ? "text-positive" : "text-loss"}>
               {tech.ema_bullish_cross ? "Bullish" : "Bearish"}
             </span>
           </span>
@@ -784,7 +784,7 @@ function PriceChart({ activeTF, onTFChange }) {
         {tech.golden_cross != null && (
           <span>
             Golden Cross:{" "}
-            <span className={tech.golden_cross ? "text-green-400" : "text-loss"}>
+            <span className={tech.golden_cross ? "text-positive" : "text-loss"}>
               {tech.golden_cross ? "Yes" : "No"}
             </span>
           </span>
@@ -805,10 +805,10 @@ function PriceChart({ activeTF, onTFChange }) {
             <span
               className={
                 tech.trend.includes("UP")
-                  ? "text-green-400"
+                  ? "text-positive"
                   : tech.trend.includes("DOWN")
                     ? "text-loss"
-                    : "text-yellow-400"
+                    : "text-accent"
               }
             >
               {tech.trend}
@@ -818,7 +818,7 @@ function PriceChart({ activeTF, onTFChange }) {
         {tech.momentum_12h != null && (
           <span>
             12h ROC:{" "}
-            <span className={tech.momentum_12h > 0 ? "text-green-400" : "text-loss"}>
+            <span className={tech.momentum_12h > 0 ? "text-positive" : "text-loss"}>
               {tech.momentum_12h > 0 ? "+" : ""}
               {tech.momentum_12h}%
             </span>
@@ -827,7 +827,7 @@ function PriceChart({ activeTF, onTFChange }) {
         {tech.divergence && (
           <span>
             Divergence:{" "}
-            <span className={tech.divergence === "bullish" ? "text-green-400" : "text-loss"}>
+            <span className={tech.divergence === "bullish" ? "text-positive" : "text-loss"}>
               {tech.divergence}
             </span>
           </span>
@@ -999,7 +999,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">
             Today's Net Flow
           </div>
-          <div className={`text-lg font-bold ${total >= 0 ? "text-green-400" : "text-loss"}`}>
+          <div className={`text-lg font-bold ${total >= 0 ? "text-positive" : "text-loss"}`}>
             {total !== null && total !== undefined
               ? `${total >= 0 ? "+" : ""}$${total.toFixed(1)}M`
               : "N/A"}
@@ -1007,7 +1007,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
         </div>
         <div className="rounded-xl p-3 bg-ink/[0.02] border border-ink/5">
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Streak</div>
-          <div className={`text-lg font-bold ${isInflow ? "text-green-400" : "text-loss"}`}>
+          <div className={`text-lg font-bold ${isInflow ? "text-positive" : "text-loss"}`}>
             {streakDays > 0 ? `${streakDays}d ${isInflow ? "↑" : "↓"}` : "—"}
           </div>
           <div className="text-[9px] text-text-muted">{flow.streak_direction || "none"}</div>
@@ -1016,7 +1016,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
           <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">
             7d Cumulative
           </div>
-          <div className={`text-lg font-bold ${cum7d >= 0 ? "text-green-400" : "text-loss"}`}>
+          <div className={`text-lg font-bold ${cum7d >= 0 ? "text-positive" : "text-loss"}`}>
             {cum7d !== null && cum7d !== undefined
               ? `${cum7d >= 0 ? "+" : ""}$${cum7d.toFixed(0)}M`
               : "N/A"}
@@ -1053,14 +1053,14 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
                   <div className="w-full flex flex-col justify-end" style={{ height: "60px" }}>
                     {isPos && (
                       <div
-                        className="w-full rounded-t-sm bg-gradient-to-t from-green-500 to-green-400"
+                        className="w-full rounded-t-sm bg-gradient-to-t from-positive to-positive"
                         style={{ height: `${heightPct}%` }}
                         title={`${d.date}: +$${v.toFixed(1)}M`}
                       />
                     )}
                     {!isPos && (
                       <div
-                        className="w-full rounded-b-sm bg-gradient-to-b from-red-500 to-red-400"
+                        className="w-full rounded-b-sm bg-gradient-to-b from-negative to-negative"
                         style={{ height: `${heightPct}%` }}
                         title={`${d.date}: -$${Math.abs(v).toFixed(1)}M`}
                       />
@@ -1091,7 +1091,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
                 >
                   <span className="text-xs font-bold text-text-primary">{tc.fund}</span>
                   <span
-                    className={`text-[11px] font-medium ${isPos ? "text-green-400" : "text-loss"}`}
+                    className={`text-[11px] font-medium ${isPos ? "text-positive" : "text-loss"}`}
                   >
                     {isPos ? "+" : ""}${v.toFixed(1)}M
                   </span>
@@ -1188,7 +1188,7 @@ function MacroPulse({ macro, macroLive }) {
                 </div>
               )}
               <div
-                className={`text-base font-bold ${isUp ? "text-green-400" : delta < 0 ? "text-loss" : "text-text-muted"}`}
+                className={`text-base font-bold ${isUp ? "text-positive" : delta < 0 ? "text-loss" : "text-text-muted"}`}
               >
                 {delta !== null && delta !== undefined
                   ? `${isUp ? "+" : ""}${delta.toFixed(2)}%`
@@ -1202,7 +1202,7 @@ function MacroPulse({ macro, macroLive }) {
                     className={
                       Math.abs(corr) >= 0.4
                         ? corr > 0
-                          ? "text-green-400/80"
+                          ? "text-positive/80"
                           : "text-loss/80"
                         : "text-text-muted"
                     }
@@ -1255,7 +1255,7 @@ function WhatChanged({ data }) {
                 {d.from_fmt || String(d.from)} → {d.to_fmt || String(d.to)}
                 {typeof d.delta_pct === "number" && (
                   <span
-                    className={`ml-1 text-[10px] font-bold ${isPositive ? "text-green-400" : "text-loss"}`}
+                    className={`ml-1 text-[10px] font-bold ${isPositive ? "text-positive" : "text-loss"}`}
                   >
                     ({isPositive ? "+" : ""}
                     {d.delta_pct}%)
@@ -1345,7 +1345,7 @@ function MetricsRow({ report }) {
 function RiskFactors({ factors }) {
   if (!factors?.length) return null;
   return (
-    <div className="glass-card rounded-2xl p-4 border border-red-500/10">
+    <div className="glass-card rounded-2xl p-4 border border-negative/10">
       <div className="text-[10px] text-loss uppercase tracking-widest font-bold mb-2">
         Risk Factors
       </div>
@@ -1534,10 +1534,10 @@ export default function AIArenaPage() {
 
       {/* Anomaly Info */}
       {report.is_anomaly_triggered && report.anomaly_reason && (
-        <div className="glass-card rounded-2xl p-4 border border-orange-500/20">
+        <div className="glass-card rounded-2xl p-4 border border-accent/20">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-orange-400">⚡</span>
-            <span className="text-[10px] text-orange-400 uppercase tracking-widest font-bold">
+            <span className="text-accent">⚡</span>
+            <span className="text-[10px] text-accent uppercase tracking-widest font-bold">
               Anomaly Triggered
             </span>
           </div>

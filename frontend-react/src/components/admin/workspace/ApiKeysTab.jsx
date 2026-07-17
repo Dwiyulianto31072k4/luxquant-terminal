@@ -89,11 +89,11 @@ export function ApiKeysTab() {
             {summary.active_keys}
           </p>
         </div>
-        <div className="rounded-xl px-4 py-3 border border-amber-500/15 bg-amber-500/[0.04]">
-          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-amber-400/70">
+        <div className="rounded-xl px-4 py-3 border border-accent/15 bg-accent/[0.04]">
+          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-accent/70">
             Flagged (multi-IP)
           </p>
-          <p className="text-lg font-semibold mt-1 text-amber-400 tabular-nums">
+          <p className="text-lg font-semibold mt-1 text-accent tabular-nums">
             {summary.flagged_keys}
           </p>
         </div>
@@ -135,7 +135,7 @@ export function ApiKeysTab() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl px-4 py-3 text-[13px] text-loss border border-red-500/25 bg-red-500/10">
+        <div className="rounded-xl px-4 py-3 text-[13px] text-loss border border-negative/25 bg-negative/10">
           {error}
         </div>
       )}
@@ -156,7 +156,7 @@ export function ApiKeysTab() {
               key={k.id}
               className={`rounded-xl p-4 border transition-colors ${
                 k.flagged
-                  ? "border-amber-500/25 bg-amber-500/[0.03]"
+                  ? "border-accent/25 bg-accent/[0.03]"
                   : k.is_active
                     ? "border-ink/5 bg-ink/[0.02]"
                     : "border-ink/[0.03] bg-ink/[0.01] opacity-60"
@@ -173,12 +173,12 @@ export function ApiKeysTab() {
                         Active
                       </span>
                     ) : (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-red-500/15 text-loss border border-red-500/20">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-negative/15 text-loss border border-negative/20">
                         Revoked
                       </span>
                     )}
                     {k.flagged && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-accent/15 text-accent border border-accent/25">
                         ⚠ Flagged
                       </span>
                     )}
@@ -195,9 +195,7 @@ export function ApiKeysTab() {
                     Created {fmtDate(k.created_at)}
                     {k.is_active && <> · used {fmtRelative(k.last_used_at)}</>}
                     {" · "}
-                    <span
-                      className={k.distinct_ips_24h >= 5 ? "text-amber-400" : "text-text-muted"}
-                    >
+                    <span className={k.distinct_ips_24h >= 5 ? "text-accent" : "text-text-muted"}>
                       {k.distinct_ips_24h} IP{k.distinct_ips_24h === 1 ? "" : "s"} /24h
                     </span>
                   </p>
@@ -207,7 +205,7 @@ export function ApiKeysTab() {
                   <button
                     onClick={() => handleRevoke(k.id)}
                     disabled={revokingId === k.id}
-                    className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-loss/80 border border-red-500/25 hover:text-loss hover:bg-red-500/10 transition-colors disabled:opacity-40 whitespace-nowrap flex-shrink-0"
+                    className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-loss/80 border border-negative/25 hover:text-loss hover:bg-negative/10 transition-colors disabled:opacity-40 whitespace-nowrap flex-shrink-0"
                   >
                     {revokingId === k.id ? "Revoking…" : "Revoke"}
                   </button>

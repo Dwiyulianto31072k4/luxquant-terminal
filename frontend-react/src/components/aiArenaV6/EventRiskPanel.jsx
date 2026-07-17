@@ -8,12 +8,12 @@ const riskTone = {
   },
   elevated: {
     label: "Elevated",
-    badge: "border-amber-300/20 bg-amber-300/10 text-amber-200",
-    accent: "text-amber-200",
+    badge: "border-accent/20 bg-accent/10 text-accent",
+    accent: "text-accent",
   },
   high: {
     label: "High",
-    badge: "border-red-400/20 bg-red-400/10 text-loss",
+    badge: "border-negative/20 bg-negative/10 text-loss",
     accent: "text-loss",
   },
   unavailable: {
@@ -25,7 +25,7 @@ const riskTone = {
 
 const statusTone = {
   fresh: "text-profit",
-  stale: "text-amber-200",
+  stale: "text-accent",
   unavailable: "text-loss",
 };
 
@@ -82,8 +82,8 @@ function ImpactBadge({ impact }) {
   const value = (impact || "low").toLowerCase();
   const tone =
     {
-      high: "border-red-400/20 bg-red-400/10 text-loss",
-      medium: "border-amber-300/20 bg-amber-300/10 text-amber-200",
+      high: "border-negative/20 bg-negative/10 text-loss",
+      medium: "border-accent/20 bg-accent/10 text-accent",
       low: "border-ink/10 bg-ink/5 text-text-primary/40",
     }[value] || "border-ink/10 bg-ink/5 text-text-primary/40";
   return (
@@ -116,7 +116,7 @@ export default function EventRiskPanel({ data }) {
     <section className="rounded-2xl border border-ink/5 bg-ink/[0.015] p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-sky-300/70 mb-1">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/70 mb-1">
             Phase 3 · Context layer
           </div>
           <h2 className="text-xl text-text-primary/90 font-medium">News and Event Risk</h2>
@@ -197,7 +197,7 @@ export default function EventRiskPanel({ data }) {
                     </div>
                     <ImpactBadge impact={event.impact} />
                   </div>
-                  <div className="mt-2 text-[10px] font-mono text-sky-200/70">
+                  <div className="mt-2 text-[10px] font-mono text-accent/70">
                     {formatCountdown(event.hours_until)}
                     {event.forecast ? ` · forecast ${event.forecast}` : ""}
                   </div>

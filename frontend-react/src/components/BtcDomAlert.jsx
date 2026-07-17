@@ -409,11 +409,11 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                         {tpLevels.map((tp, idx) => (
                           <div key={idx} className="flex flex-col items-center gap-1.5">
                             <div
-                              className={`w-2 h-2 rounded-full ring-4 ring-surface-raised transition-all ${tp.hit ? "bg-green-400" : "bg-gray-700"}`}
+                              className={`w-2 h-2 rounded-full ring-4 ring-surface-raised transition-all ${tp.hit ? "bg-positive" : "bg-surface-raised"}`}
                               style={tp.hit ? { boxShadow: "0 0 6px #4ade80" } : undefined}
                             />
                             <span
-                              className={`text-[9px] font-semibold tracking-wide ${tp.hit ? "text-green-400" : "text-gray-600"}`}
+                              className={`text-[9px] font-semibold tracking-wide ${tp.hit ? "text-positive" : "text-text-muted"}`}
                             >
                               {tp.label}
                             </span>
@@ -485,7 +485,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
 
                   <div className="flex items-start gap-3">
                     <div
-                      className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-green-400/80"
+                      className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-positive/80"
                       style={{
                         background: "rgba(34,197,94,0.05)",
                         border: "1px solid rgba(34,197,94,0.12)",
@@ -494,7 +494,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                       {Icon.rebound("w-3.5 h-3.5")}
                     </div>
                     <div>
-                      <p className="text-green-400/90 text-[10px] font-bold uppercase tracking-[0.14em] leading-none mb-1.5">
+                      <p className="text-positive/90 text-[10px] font-bold uppercase tracking-[0.14em] leading-none mb-1.5">
                         Recovery Plan
                       </p>
                       <p className="text-text-muted/80 text-[10px] leading-relaxed">

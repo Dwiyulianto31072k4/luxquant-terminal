@@ -59,7 +59,7 @@ const sentimentColor = (s) => {
 
 const sentimentDot = (s) => {
   if (s === "strong_buy" || s === "buy") return "bg-profit";
-  if (s === "strong_sell" || s === "sell") return "bg-red-400";
+  if (s === "strong_sell" || s === "sell") return "bg-negative";
   return "bg-accent";
 };
 
@@ -149,7 +149,7 @@ const ImbalanceStrip = ({ imb }) => {
               style={{ width: `${imb.bid_pct || 50}%` }}
             />
             <div
-              className="h-full bg-red-400/60 transition-all duration-700"
+              className="h-full bg-negative/60 transition-all duration-700"
               style={{ width: `${imb.ask_pct || 50}%` }}
             />
           </div>
@@ -195,7 +195,7 @@ const DepthChart = ({ depth, t }) => {
             </span>
             <div className="flex-1 h-[3px] rounded-sm relative bg-ink/[0.02]">
               <div
-                className="absolute right-0 top-0 bottom-0 rounded-sm bg-red-400/25 transition-all duration-300"
+                className="absolute right-0 top-0 bottom-0 rounded-sm bg-negative/25 transition-all duration-300"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -251,7 +251,7 @@ const SRLevels = ({ sr, t }) => {
       {/* Resistance */}
       <div>
         <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-loss/80 font-semibold mb-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+          <span className="w-1.5 h-1.5 rounded-full bg-negative" />
           Resistance
         </p>
         {resistance.length ? (
@@ -429,7 +429,7 @@ const LiqCard = ({ data }) => {
       {/* Bar */}
       <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-ink/[0.03]">
         <div className="h-full bg-profit/70" style={{ width: `${lPct}%` }} />
-        <div className="h-full bg-red-400/70" style={{ width: `${100 - lPct}%` }} />
+        <div className="h-full bg-negative/70" style={{ width: `${100 - lPct}%` }} />
       </div>
 
       <div className="flex justify-between font-mono text-[10px] mb-3">
@@ -554,7 +554,7 @@ const LSCard = ({ data, symbol }) => {
           style={{ width: `${lPct}%` }}
         />
         <div
-          className="h-full bg-red-400/70 transition-all duration-700"
+          className="h-full bg-negative/70 transition-all duration-700"
           style={{ width: `${sPct}%` }}
         />
       </div>
@@ -818,7 +818,7 @@ export default function OrderBookPage() {
       )}
 
       {error && !data && (
-        <div className="relative overflow-hidden bg-red-500/[0.05] border border-loss/25 rounded-md p-5 text-center">
+        <div className="relative overflow-hidden bg-negative/[0.05] border border-loss/25 rounded-md p-5 text-center">
           <p className="text-loss text-sm mb-3 font-mono">{error}</p>
           <button
             onClick={() => fetchOB(true)}

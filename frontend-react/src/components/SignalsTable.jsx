@@ -467,7 +467,7 @@ const SignalsTable = ({
     const wr = coinIntel?.[pair]?.win_rate;
     return wr == null ? null : wr;
   };
-  const wrColor = (wr) => (wr >= 70 ? "text-profit" : wr >= 50 ? "text-amber-400" : "text-loss");
+  const wrColor = (wr) => (wr >= 70 ? "text-profit" : wr >= 50 ? "text-accent" : "text-loss");
 
   // BTC correlation — joined onto the row by the backend bulk-7d query.
   // Returns null when the correlation worker hasn't computed this signal yet.
@@ -484,7 +484,7 @@ const SignalsTable = ({
     };
   };
   const btcScoreColor = (s) =>
-    s >= 70 ? "text-profit" : s >= 50 ? "text-amber-400" : "text-rose-400";
+    s >= 70 ? "text-profit" : s >= 50 ? "text-accent" : "text-negative";
   const fmtSigned = (n, d = 2) => (n == null ? "—" : (n >= 0 ? "+" : "") + Number(n).toFixed(d));
 
   // Verdict (worth_it / avoid / neutral) for a pair, plus its coin-intel object
@@ -579,8 +579,8 @@ const SignalsTable = ({
   const getRiskClasses = (risk) => {
     const r = risk?.toLowerCase() || "";
     if (r.startsWith("low")) return "bg-profit/10 text-profit border-profit/25";
-    if (r.startsWith("high")) return "bg-red-500/10 text-loss border-red-500/30";
-    return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+    if (r.startsWith("high")) return "bg-negative/10 text-loss border-negative/30";
+    return "bg-accent/10 text-accent border-accent/30";
   };
 
   const getRiskLabel = (risk) => {
@@ -608,10 +608,10 @@ const SignalsTable = ({
     let cls, label;
 
     if (s === "open") {
-      cls = "bg-blue-500/10 text-blue-400 border-blue-500/30";
+      cls = "bg-accent/10 text-accent border-accent/30";
       label = "OPEN";
     } else if (s === "closed_loss" || s === "sl") {
-      cls = "bg-red-500/10 text-loss border-red-500/30";
+      cls = "bg-negative/10 text-loss border-negative/30";
       label = "LOSS";
     } else if (s === "closed_win") {
       cls = "bg-profit/10 text-profit border-profit/25";
@@ -682,7 +682,7 @@ const SignalsTable = ({
         <span className={`group flex items-center gap-1.5 ${justify}`}>
           <span>{label}</span>
           <svg
-            className={`w-3 h-3 transition-all ${isActive ? "opacity-100 text-amber-400" : "opacity-40 group-hover:opacity-70"}`}
+            className={`w-3 h-3 transition-all ${isActive ? "opacity-100 text-accent" : "opacity-40 group-hover:opacity-70"}`}
             style={{ transform: isActive && sortOrder === "asc" ? "rotate(180deg)" : "none" }}
             viewBox="0 0 24 24"
             fill="currentColor"
@@ -782,14 +782,14 @@ const SignalsTable = ({
                 ) : null}
                 {v && v.verdict !== "neutral" ? (
                   <span
-                    className={`px-1.5 py-0.5 border rounded-sm text-[9px] uppercase tracking-wider ${v.verdict === "avoid" ? "bg-red-500/10 text-loss border-red-500/30" : "bg-profit/10 text-profit border-profit/25"}`}
+                    className={`px-1.5 py-0.5 border rounded-sm text-[9px] uppercase tracking-wider ${v.verdict === "avoid" ? "bg-negative/10 text-loss border-negative/30" : "bg-profit/10 text-profit border-profit/25"}`}
                   >
                     {v.verdict === "avoid" ? "Avoid" : "Worth"}
                     {v.coin.risk_score != null ? ` ${v.coin.risk_score}` : ""}
                   </span>
                 ) : wr != null ? (
                   <span
-                    className={`px-1.5 py-0.5 border rounded-sm text-[9px] tabular-nums ${wr >= 70 ? "bg-profit/10 text-profit border-profit/25" : wr >= 50 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-red-500/10 text-loss border-red-500/30"}`}
+                    className={`px-1.5 py-0.5 border rounded-sm text-[9px] tabular-nums ${wr >= 70 ? "bg-profit/10 text-profit border-profit/25" : wr >= 50 ? "bg-accent/10 text-accent border-accent/30" : "bg-negative/10 text-loss border-negative/30"}`}
                   >
                     {wr}%
                   </span>
@@ -836,14 +836,14 @@ const SignalsTable = ({
               </span>
               {wr != null ? (
                 <span
-                  className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${wr >= 70 ? "bg-profit/10 text-profit border-profit/25" : wr >= 50 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-red-500/10 text-loss border-red-500/30"}`}
+                  className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${wr >= 70 ? "bg-profit/10 text-profit border-profit/25" : wr >= 50 ? "bg-accent/10 text-accent border-accent/30" : "bg-negative/10 text-loss border-negative/30"}`}
                 >
                   {wr}%
                 </span>
               ) : null}
               {streak ? (
                 <span
-                  className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${streak.type === "win" ? "bg-profit/10 text-profit border-profit/25" : "bg-red-500/10 text-loss border-red-500/30"}`}
+                  className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${streak.type === "win" ? "bg-profit/10 text-profit border-profit/25" : "bg-negative/10 text-loss border-negative/30"}`}
                 >
                   {streak.length}
                   {streak.type === "win" ? "W" : "L"}
@@ -862,7 +862,7 @@ const SignalsTable = ({
             {signal.last_update_at ? (
               <div className="flex items-center justify-between px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-sm">
                 <div className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-amber-400/60" />
+                  <span className="w-1 h-1 rounded-full bg-accent/60" />
                   {getUpdateTypeBadge(signal.last_update_type)}
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/45">
@@ -997,7 +997,7 @@ const SignalsTable = ({
                 {v && v.verdict !== "neutral" ? (
                   <button
                     onClick={() => setSelectedCoinIntel(v.coin)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${v.verdict === "avoid" ? "bg-red-500/10 text-loss border-red-500/30" : "bg-profit/10 text-profit border-profit/25"}`}
+                    className={`inline-flex items-center gap-1 px-2 py-1 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${v.verdict === "avoid" ? "bg-negative/10 text-loss border-negative/30" : "bg-profit/10 text-profit border-profit/25"}`}
                   >
                     {v.verdict === "avoid" ? "Avoid" : "Worth"} detail
                     <svg
@@ -1061,7 +1061,7 @@ const SignalsTable = ({
           <MobileLoadingSkeleton />
         ) : signals?.length === 0 ? (
           <div className="bg-surface-raised rounded-md p-8 border border-ink/[0.06] text-center relative overflow-hidden">
-            <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
+            <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent/25 to-transparent" />
             <div className="flex flex-col items-center gap-3">
               <div className="w-14 h-14 rounded-full bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center">
                 <EmptyStateIcon />
@@ -1165,7 +1165,7 @@ const SignalsTable = ({
                         >
                           WR
                           <svg
-                            className={`w-2.5 h-2.5 transition-all ${sortBy === "win_rate" ? "opacity-100 text-amber-400" : "opacity-0"}`}
+                            className={`w-2.5 h-2.5 transition-all ${sortBy === "win_rate" ? "opacity-100 text-accent" : "opacity-0"}`}
                             style={{
                               transform:
                                 sortBy === "win_rate" && sortOrder === "asc"
@@ -1185,7 +1185,7 @@ const SignalsTable = ({
                         >
                           Streak
                           <svg
-                            className={`w-2.5 h-2.5 transition-all ${sortBy === "win_streak" ? "opacity-100 text-amber-400" : "opacity-0"}`}
+                            className={`w-2.5 h-2.5 transition-all ${sortBy === "win_streak" ? "opacity-100 text-accent" : "opacity-0"}`}
                             style={{
                               transform:
                                 sortBy === "win_streak" && sortOrder === "asc"
@@ -1273,7 +1273,7 @@ const SignalsTable = ({
                           <div className="flex items-center gap-3">
                             <CoinLogo pair={signal.pair} size={28} />
                             <div>
-                              <p className="text-text-primary font-mono text-sm tracking-wide group-hover:text-amber-400 transition-colors">
+                              <p className="text-text-primary font-mono text-sm tracking-wide group-hover:text-accent transition-colors">
                                 {getCoinName(signal.pair)}
                               </p>
                               <p className="text-text-primary/45 text-[10px] font-mono">USDT</p>
@@ -1361,7 +1361,7 @@ const SignalsTable = ({
                                 ? "text-loss"
                                 : /low/i.test(rl)
                                   ? "text-profit"
-                                  : "text-amber-400";
+                                  : "text-accent";
                               return (
                                 <span
                                   className={`font-mono text-[11px] uppercase tracking-wider font-semibold ${c}`}
@@ -1459,7 +1459,7 @@ const SignalsTable = ({
                                   <div className="flex items-center gap-1">
                                     {b.decoupled && (
                                       <span
-                                        className="text-purple-400 text-[10px]"
+                                        className="text-accent text-[10px]"
                                         title="Decoupled from BTC"
                                       >
                                         ⚡
@@ -1467,7 +1467,7 @@ const SignalsTable = ({
                                     )}
                                     {b.extended && (
                                       <span
-                                        className="text-orange-400 text-[10px]"
+                                        className="text-accent text-[10px]"
                                         title="Extended move"
                                       >
                                         🔥

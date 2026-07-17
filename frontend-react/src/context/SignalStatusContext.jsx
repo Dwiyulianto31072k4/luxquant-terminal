@@ -19,7 +19,7 @@ const authHeaders = () => {
 
 // status → { label, color, desc } — matches the terminal detail modal
 export const STATUS_META = {
-  open: { label: "OPEN", color: "#60a5fa", desc: "Live — no target hit yet" },
+  open: { label: "OPEN", color: "rgb(var(--fg-secondary))", desc: "Live — no target hit yet" },
   tp1: { label: "TP1 HIT", color: "rgb(var(--pos))", desc: "First target reached" },
   tp2: { label: "TP2 HIT", color: "rgb(var(--pos))", desc: "Second target reached" },
   tp3: { label: "TP3 HIT", color: "rgb(var(--pos))", desc: "Third target reached" },

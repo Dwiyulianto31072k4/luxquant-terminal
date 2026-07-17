@@ -2,14 +2,14 @@ import React, { useMemo, useState } from "react";
 
 const directionTone = {
   bullish: "border-profit/20 bg-profit/10 text-profit",
-  bearish: "border-red-400/20 bg-red-400/10 text-loss",
-  neutral: "border-amber-300/20 bg-amber-300/10 text-amber-200",
+  bearish: "border-negative/20 bg-negative/10 text-loss",
+  neutral: "border-accent/20 bg-accent/10 text-accent",
   unavailable: "border-ink/10 bg-ink/5 text-text-primary/35",
 };
 
 const healthTone = {
   fresh: "text-profit",
-  stale: "text-amber-200",
+  stale: "text-accent",
   unavailable: "text-loss",
 };
 
@@ -115,7 +115,7 @@ function ChangeNote({ changes, horizon }) {
     parts.push(`${sign}${Math.round(detail.strength_delta * 100)} strength`);
   }
   return (
-    <span className="text-[9px] font-mono text-sky-300">
+    <span className="text-[9px] font-mono text-accent">
       changed{parts.length ? ` · ${parts.join(" ")}` : ""}
     </span>
   );
@@ -144,7 +144,7 @@ export default function EvidenceMatrixPanel({ data }) {
       ? "text-profit"
       : summary.bias === "bearish"
         ? "text-loss"
-        : "text-amber-200";
+        : "text-accent";
 
   const conflicts = useMemo(
     () => new Set((summary.conflicts || []).map((item) => item.key)),
@@ -165,7 +165,7 @@ export default function EvidenceMatrixPanel({ data }) {
     <section className="rounded-2xl border border-ink/5 bg-ink/[0.015] p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-violet-300/70 mb-1">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/70 mb-1">
             Phase 4 · Evidence audit
           </div>
           <h2 className="text-xl text-text-primary/90 font-medium">Transparent Evidence Matrix</h2>
@@ -182,7 +182,7 @@ export default function EvidenceMatrixPanel({ data }) {
               onClick={() => setHorizon(item)}
               className={`rounded-md px-3 py-1.5 text-[10px] font-mono uppercase transition-colors ${
                 horizon === item
-                  ? "bg-violet-400/15 text-violet-200"
+                  ? "bg-accent/15 text-accent"
                   : "text-text-primary/35 hover:text-text-primary/60"
               }`}
             >
@@ -208,7 +208,7 @@ export default function EvidenceMatrixPanel({ data }) {
           label="Conflicts"
           value={String(summary.conflict_count || 0)}
           note="directional layers opposing the bias"
-          tone={summary.conflict_count ? "text-amber-200" : "text-profit"}
+          tone={summary.conflict_count ? "text-accent" : "text-profit"}
         />
         <SummaryCard
           label="Verdict comparison"
@@ -224,7 +224,7 @@ export default function EvidenceMatrixPanel({ data }) {
             summary.verdict_comparison === "conflict"
               ? "text-loss"
               : summary.verdict_comparison === "neutral_evidence"
-                ? "text-amber-200"
+                ? "text-accent"
                 : "text-profit"
           }
         />
@@ -234,7 +234,7 @@ export default function EvidenceMatrixPanel({ data }) {
         <span className="text-text-primary/35">
           {changedRows} of {rows.length} layers changed materially since the previous report
         </span>
-        <span className="text-violet-200/60">decision authority: disabled</span>
+        <span className="text-accent/60">decision authority: disabled</span>
       </div>
 
       <div className="hidden md:block overflow-x-auto rounded-xl border border-ink/5">
@@ -256,7 +256,7 @@ export default function EvidenceMatrixPanel({ data }) {
                 <tr
                   key={row.key}
                   className={`border-t border-ink/5 align-top ${
-                    conflicts.has(row.key) ? "bg-amber-300/[0.025]" : ""
+                    conflicts.has(row.key) ? "bg-accent/[0.025]" : ""
                   }`}
                 >
                   <td className="px-4 py-3">
@@ -268,7 +268,7 @@ export default function EvidenceMatrixPanel({ data }) {
                   <td className="px-4 py-3">
                     <DirectionBadge row={row} horizon={horizon} />
                     {conflicts.has(row.key) && (
-                      <div className="mt-1 text-[9px] font-mono text-amber-200">
+                      <div className="mt-1 text-[9px] font-mono text-accent">
                         opposes matrix bias
                       </div>
                     )}
@@ -306,7 +306,7 @@ export default function EvidenceMatrixPanel({ data }) {
               key={row.key}
               className={`rounded-xl border p-4 ${
                 conflicts.has(row.key)
-                  ? "border-amber-300/15 bg-amber-300/[0.025]"
+                  ? "border-accent/15 bg-accent/[0.025]"
                   : "border-ink/5 bg-scrim/10"
               }`}
             >

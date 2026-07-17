@@ -407,7 +407,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               </div>
               <button
                 onClick={handleClose}
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary border border-ink/[0.12] hover:border-red-500/50 hover:bg-red-500/10 rounded-lg transition-all"
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary border border-ink/[0.12] hover:border-negative/50 hover:bg-negative/10 rounded-lg transition-all"
                 style={{ background: "rgb(var(--surface-raised))" }}
                 aria-label="Close"
               >
@@ -571,7 +571,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
                 {/* AI insight (left accent = severity, semantic) */}
                 {coin.insight && (
-                  <div className="relative p-4 pl-5 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-ink/[0.02] border border-ink/[0.06] overflow-hidden">
+                  <div className="relative p-4 pl-5 rounded-xl text-[13px] text-text-secondary leading-relaxed bg-ink/[0.02] border border-ink/[0.06] overflow-hidden">
                     <div
                       className="absolute left-0 top-0 bottom-0 w-1"
                       style={{ background: st.text }}
@@ -858,9 +858,9 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                                 />
                               </div>
                               <div className="flex flex-col items-center">
-                                <span className="text-[8px] text-gray-300 font-bold uppercase tracking-wide flex items-center gap-0.5">
+                                <span className="text-[8px] text-text-secondary font-bold uppercase tracking-wide flex items-center gap-0.5">
                                   {day}
-                                  {isBest && <span className="text-green-400 text-[7px]">▲</span>}
+                                  {isBest && <span className="text-positive text-[7px]">▲</span>}
                                   {isWorst && <span className="text-loss text-[7px]">▼</span>}
                                 </span>
                                 <span className="text-[7px] text-text-muted">{s.closed} tr</span>
@@ -874,7 +874,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
                 {/* Correlated SL risk (red = semantic, kept intact) */}
                 {coin.correlated_pairs?.length > 0 && (
-                  <div className="p-4 rounded-xl bg-red-500/[0.04] border border-red-500/10 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                  <div className="p-4 rounded-xl bg-negative/[0.04] border border-negative/10 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <svg
@@ -893,7 +893,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                           Correlated SL Risk
                         </p>
                       </div>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px] text-text-muted">
                         These coins tend to hit SL on the same days. Avoid simultaneous positions.
                       </p>
                     </div>
@@ -901,13 +901,13 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       {coin.correlated_pairs.map((cp, i) => (
                         <div
                           key={i}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-red-500/[0.08] border border-red-500/20"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-negative/[0.08] border border-negative/20"
                         >
                           <CoinLogo pair={cp.pair} size={18} />
                           <span className="text-[12px] font-mono font-bold text-text-primary tracking-wide">
                             {cp.pair.replace("USDT", "")}
                           </span>
-                          <span className="text-[9px] text-loss font-semibold bg-red-500/10 px-1.5 py-0.5 rounded">
+                          <span className="text-[9px] text-loss font-semibold bg-negative/10 px-1.5 py-0.5 rounded">
                             {cp.co_sl_count}× together
                           </span>
                         </div>
@@ -955,7 +955,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                                     key={start + i}
                                     className="hover:bg-surface-secondary transition-colors"
                                   >
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300 whitespace-nowrap">
+                                    <td className="px-4 py-2.5 font-mono text-[11px] text-text-secondary whitespace-nowrap">
                                       {fmtDate(s.date)}
                                     </td>
                                     <td
@@ -985,7 +985,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                                       )}
                                     </td>
                                     <td
-                                      className={`px-4 py-2.5 font-mono text-[12px] font-bold ${s.outcome !== "sl" ? "text-green-400" : "text-loss"}`}
+                                      className={`px-4 py-2.5 font-mono text-[12px] font-bold ${s.outcome !== "sl" ? "text-positive" : "text-loss"}`}
                                     >
                                       {s.pl_pct}
                                     </td>

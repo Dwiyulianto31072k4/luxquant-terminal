@@ -286,7 +286,9 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
             {due && (
               <span
                 className="flex items-center gap-1 font-semibold tabular-nums"
-                style={{ color: due.overdue ? "#f87171" : due.urgent ? "#fb923c" : "rgb(var(--fg-muted))" }}
+                style={{
+                  color: due.overdue ? "#f87171" : due.urgent ? "#fb923c" : "rgb(var(--fg-muted))",
+                }}
               >
                 <ClockIcon size={10} />
                 {due.text}

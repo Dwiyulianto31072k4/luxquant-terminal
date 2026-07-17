@@ -51,10 +51,10 @@ const fmtPct = (pct, decimals = 2) => {
 const fgColor = (v) => {
   if (v == null) return "text-text-muted";
   if (v <= 24) return "text-loss";
-  if (v <= 49) return "text-orange-400";
-  if (v <= 54) return "text-amber-300";
-  if (v <= 74) return "text-green-300";
-  return "text-green-400";
+  if (v <= 49) return "text-accent";
+  if (v <= 54) return "text-accent";
+  if (v <= 74) return "text-positive";
+  return "text-positive";
 };
 
 const fgLabel = (v) => {
@@ -69,9 +69,9 @@ const fgLabel = (v) => {
 // ── Confluence ────────────────────────────────────────
 const confluenceColor = (strength) => {
   const s = (strength || "").toUpperCase();
-  if (s === "STRONG") return "text-green-400";
-  if (s === "MODERATE") return "text-amber-300";
-  if (s === "WEAK") return "text-orange-400";
+  if (s === "STRONG") return "text-positive";
+  if (s === "MODERATE") return "text-accent";
+  if (s === "WEAK") return "text-accent";
   if (s === "MIXED") return "text-text-muted";
   return "text-text-primary";
 };
@@ -80,9 +80,9 @@ const confluenceColor = (strength) => {
 const critiqueColor = (decision) => {
   switch (decision) {
     case "approved":
-      return "text-green-400";
+      return "text-positive";
     case "approved_with_caveat":
-      return "text-amber-300";
+      return "text-accent";
     case "needs_revision":
       return "text-loss";
     default:
@@ -184,7 +184,7 @@ const StatCell = ({
       {label}
       {livePulse && (
         <span className="inline-flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-positive animate-pulse" />
         </span>
       )}
     </div>
@@ -275,16 +275,16 @@ export default function HeaderStatStrip({ data }) {
     let deltaPart = null;
     if (verdictPrice != null && !isNaN(verdictPrice) && verdictPrice > 0) {
       const deltaPct = ((livePrice - verdictPrice) / verdictPrice) * 100;
-      const deltaColor = deltaPct >= 0 ? "text-green-400" : "text-loss";
+      const deltaColor = deltaPct >= 0 ? "text-positive" : "text-loss";
       deltaPart = { pct: deltaPct, color: deltaColor };
     }
 
     // Sub-row: 24h change + verdict delta combined
     const change24hSign = (change24h ?? 0) >= 0 ? "▲" : "▼";
-    const change24hColor = (change24h ?? 0) >= 0 ? "text-green-400" : "text-loss";
+    const change24hColor = (change24h ?? 0) >= 0 ? "text-positive" : "text-loss";
 
     // Determine value color based on 24h direction
-    const valueColor = (change24h ?? 0) >= 0 ? "text-green-300" : "text-loss";
+    const valueColor = (change24h ?? 0) >= 0 ? "text-positive" : "text-loss";
 
     cells.push({
       key: "live-btc",
@@ -327,7 +327,7 @@ export default function HeaderStatStrip({ data }) {
             <div className="text-[8.5px] uppercase tracking-[0.15em] text-text-muted font-bold leading-tight flex items-center gap-1.5">
               {c.label}
               {c.livePulse && (
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-positive animate-pulse" />
               )}
             </div>
             <div

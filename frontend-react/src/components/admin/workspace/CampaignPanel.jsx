@@ -62,7 +62,12 @@ const PLATFORMS = [
   { value: "twitter", label: "Twitter/X", color: "rgb(var(--fg))", Icon: TwitterIcon },
   { value: "telegram", label: "Telegram", color: "#229ED9", Icon: TelegramIcon },
   { value: "discord", label: "Discord", color: "#5865F2", Icon: DiscordIcon },
-  { value: "influencer", label: "Influencer", color: "rgb(var(--accent-text))", Icon: SparklesIcon },
+  {
+    value: "influencer",
+    label: "Influencer",
+    color: "rgb(var(--accent-text))",
+    Icon: SparklesIcon,
+  },
   { value: "other", label: "Other", color: "rgb(var(--fg-muted))", Icon: TrendingUpIcon },
 ];
 

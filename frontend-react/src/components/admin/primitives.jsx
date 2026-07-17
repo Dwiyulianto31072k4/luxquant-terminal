@@ -580,19 +580,19 @@ export const Button = React.forwardRef(
         border: "1px solid rgb(var(--ink) / 0.10)",
       },
       danger: {
-        background: "rgba(248,113,113,0.12)",
+        background: "rgb(var(--neg) / 0.12)",
         color: "rgb(var(--neg-text))",
-        border: "1px solid rgba(248,113,113,0.35)",
+        border: "1px solid rgb(var(--neg) / 0.35)",
       },
       success: {
-        background: "rgba(52,211,153,0.12)",
-        color: "#d1fae5",
-        border: "1px solid rgba(52,211,153,0.3)",
+        background: "rgb(var(--pos) / 0.12)",
+        color: "rgb(var(--pos-text))",
+        border: "1px solid rgb(var(--pos) / 0.3)",
       },
       warn: {
-        background: "rgba(251,146,60,0.12)",
-        color: "#ffedd5",
-        border: "1px solid rgba(251,146,60,0.3)",
+        background: "rgb(var(--accent) / 0.12)",
+        color: "rgb(var(--accent-text))",
+        border: "1px solid rgb(var(--accent) / 0.3)",
       },
     };
 

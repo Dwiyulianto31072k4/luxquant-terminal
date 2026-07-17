@@ -82,26 +82,26 @@ const timeAgo = (dateStr) => {
 
 const trendColor = (t) => {
   const v = (t || "").toUpperCase();
-  if (v.includes("BULL")) return "text-green-400";
+  if (v.includes("BULL")) return "text-positive";
   if (v.includes("BEAR")) return "text-loss";
-  return "text-gray-400";
+  return "text-text-muted";
 };
 
 const dirPillClass = (dir) => {
   const v = (dir || "").toUpperCase();
   if (v.includes("BULL") || v === "LONG")
-    return "bg-green-500/15 text-green-400 border border-green-500/30";
+    return "bg-positive/15 text-positive border border-positive/30";
   if (v.includes("BEAR") || v === "SHORT")
-    return "bg-red-500/15 text-loss border border-red-500/30";
-  return "bg-gray-500/15 text-gray-400 border border-gray-500/30";
+    return "bg-negative/15 text-loss border border-negative/30";
+  return "bg-ink/15 text-text-muted border border-line/30";
 };
 
 const fngColor = (val) => {
   const n = Number(val);
   if (isNaN(n)) return "text-text-primary";
   if (n <= 25) return "text-loss";
-  if (n >= 75) return "text-green-400";
-  return "text-yellow-400";
+  if (n >= 75) return "text-positive";
+  return "text-accent";
 };
 
 // ============================================================
@@ -112,9 +112,9 @@ const Tag = ({ name, important = false }) => {
   // Color coding by tag prefix
   const getColor = (tag) => {
     if (tag.includes("BULLISH") || tag.includes("ABOVE_EMA200"))
-      return "bg-green-500/15 text-green-400 border-green-500/30";
+      return "bg-positive/15 text-positive border-positive/30";
     if (tag.includes("BEARISH") || tag.includes("BELOW_EMA200"))
-      return "bg-red-500/15 text-loss border-red-500/30";
+      return "bg-negative/15 text-loss border-negative/30";
     if (
       tag.includes("OVERBOUGHT") ||
       tag.includes("LATE_ENTRY") ||
@@ -123,9 +123,9 @@ const Tag = ({ name, important = false }) => {
       tag.includes("OVEREXTENDED") ||
       tag.includes("CONFLICTING")
     )
-      return "bg-orange-500/15 text-orange-400 border-orange-500/30";
+      return "bg-accent/15 text-accent border-accent/30";
     if (tag.includes("OVERSOLD") || tag.includes("DEEP_PULLBACK") || tag.includes("FRESH_BREAKOUT"))
-      return "bg-blue-500/15 text-blue-400 border-blue-500/30";
+      return "bg-accent/15 text-accent border-accent/30";
     if (
       tag.includes("GOLDEN_SETUP") ||
       tag.includes("FVG_NEAR") ||
@@ -133,7 +133,7 @@ const Tag = ({ name, important = false }) => {
       tag.includes("HARMONIC_ALIGNED") ||
       tag.includes("ALT_SEASON")
     )
-      return "bg-purple-500/15 text-purple-400 border-purple-500/30";
+      return "bg-accent/15 text-accent border-accent/30";
     if (
       tag.includes("RANGING") ||
       tag.includes("NEUTRAL") ||
@@ -141,9 +141,9 @@ const Tag = ({ name, important = false }) => {
       tag.includes("UNKNOWN") ||
       tag.includes("FLAT")
     )
-      return "bg-gray-500/15 text-gray-400 border-gray-500/30";
+      return "bg-ink/15 text-text-muted border-line/30";
     if (tag.includes("FNG_EXTREME") || tag.includes("LIQ_VERY_LOW") || tag.includes("RISK_OFF"))
-      return "bg-red-500/10 text-loss border-red-500/20";
+      return "bg-negative/10 text-loss border-negative/20";
     return "bg-ink/5 text-text-primary/70 border-ink/10";
   };
 
@@ -205,7 +205,7 @@ const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
     btcChange == null
       ? "text-text-primary"
       : Number(btcChange) >= 0
-        ? "text-green-400"
+        ? "text-positive"
         : "text-loss";
 
   const stats = [
@@ -745,7 +745,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                         </div>
                       )}
                       {copyStatus && (
-                        <div className="absolute right-0 top-full mt-1 bg-green-500/20 border border-green-500/40 rounded px-2 py-1 text-[10px] text-green-400 whitespace-nowrap">
+                        <div className="absolute right-0 top-full mt-1 bg-positive/20 border border-positive/40 rounded px-2 py-1 text-[10px] text-positive whitespace-nowrap">
                           {copyStatus}
                         </div>
                       )}
@@ -754,7 +754,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
                   <button
                     onClick={handleClose}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-ink/10 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-negative/20 border border-ink/10 hover:border-negative/50 rounded-lg transition-all flex-shrink-0"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -847,7 +847,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
                 )}
 
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-loss text-xs">
+                  <div className="bg-negative/10 border border-negative/20 rounded-lg p-3 text-loss text-xs">
                     Error: {error}
                   </div>
                 )}
@@ -976,8 +976,8 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 const LegacyFallback = ({ enrichment }) => {
   return (
     <div>
-      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
-        <p className="text-yellow-400 text-[10px]">
+      <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mb-4">
+        <p className="text-accent text-[10px]">
           ⚠ This signal uses legacy enrichment (v2.x). It will be re-analyzed soon.
         </p>
       </div>

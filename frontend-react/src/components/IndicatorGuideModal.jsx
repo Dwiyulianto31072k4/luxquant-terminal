@@ -80,9 +80,9 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
   const Tag = ({ children, tone = "gold" }) => {
     const tones = {
       gold: "bg-accent text-accent-fg border-ink/12",
-      green: "bg-green-500/12 text-green-400 border-green-500/30",
-      red: "bg-red-500/12 text-loss border-red-500/30",
-      blue: "bg-blue-400/12 text-blue-300 border-blue-400/30",
+      green: "bg-positive/12 text-positive border-positive/30",
+      red: "bg-negative/12 text-loss border-negative/30",
+      blue: "bg-accent/12 text-accent border-accent/30",
     };
     return (
       <span
@@ -189,7 +189,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-red-500/20 border border-ink/10 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary bg-surface-raised hover:bg-negative/20 border border-ink/10 hover:border-negative/50 rounded-lg transition-all flex-shrink-0"
           >
             {I.close()}
           </button>
@@ -284,7 +284,7 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
                 false signals.
               </p>
             </div>
-            <div className="bg-red-500/[0.04] border border-red-500/15 rounded-xl p-4">
+            <div className="bg-negative/[0.04] border border-negative/15 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-loss">{I.shield("w-4 h-4")}</span>
                 <h3 className="text-text-primary font-bold text-sm">A Note on Reality</h3>

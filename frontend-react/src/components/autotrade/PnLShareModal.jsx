@@ -181,7 +181,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
       {/* Error */}
       {error && !loading && (
         <div>
-          <p className="mb-2 font-semibold text-rose-400">Failed to load PnL data</p>
+          <p className="mb-2 font-semibold text-negative">Failed to load PnL data</p>
           <p className="mb-4 text-xs text-text-muted">{error}</p>
           <GhostButton onClick={onClose} className="w-full">
             Close
@@ -434,7 +434,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                     Copied
                   </>
                 ) : copyState === "fail" ? (
-                  <span className="text-rose-400">Failed</span>
+                  <span className="text-negative">Failed</span>
                 ) : (
                   <>
                     <svg

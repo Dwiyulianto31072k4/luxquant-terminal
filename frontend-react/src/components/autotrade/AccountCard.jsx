@@ -144,7 +144,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
                   {account.exchange_id}
                 </h3>
                 {account.is_testnet && (
-                  <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-red-500/10 text-loss border-red-500/25">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-negative/10 text-loss border-negative/25">
                     Testnet
                   </span>
                 )}
@@ -259,7 +259,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
             className={`mb-3 rounded border text-[11px] font-mono p-2.5 ${
               testResult.success
                 ? "bg-profit/[0.05] border-profit/25 text-profit"
-                : "bg-red-500/[0.05] border-red-500/25 text-loss"
+                : "bg-negative/[0.05] border-negative/25 text-loss"
             }`}
           >
             {testResult.success
@@ -285,7 +285,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           </button>
           <button
             onClick={handleDelete}
-            className="px-3 py-2 rounded-md border border-red-500/25 text-loss hover:bg-red-500/[0.08] hover:border-red-500/40 transition-all"
+            className="px-3 py-2 rounded-md border border-negative/25 text-loss hover:bg-negative/[0.08] hover:border-negative/40 transition-all"
             title="Disconnect"
           >
             <svg

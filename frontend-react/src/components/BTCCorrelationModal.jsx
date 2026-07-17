@@ -222,11 +222,11 @@ function AnalysisBody({ data }) {
       />
 
       {interpretation?.mapping_warning && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 p-2.5">
+        <div className="flex items-start gap-2.5 rounded-lg border border-accent/25 bg-accent/10 p-2.5">
           <IconBadge d={IC.alert} color="#e0a82e" size={22} />
           <div>
-            <p className="text-[11px] font-semibold text-amber-300">Data Quality Notice</p>
-            <p className="mt-0.5 text-[10px] text-amber-200/80">{interpretation.mapping_warning}</p>
+            <p className="text-[11px] font-semibold text-accent">Data Quality Notice</p>
+            <p className="mt-0.5 text-[10px] text-accent/80">{interpretation.mapping_warning}</p>
           </div>
         </div>
       )}
@@ -269,9 +269,9 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
 
   const riskStyles = {
     low: "text-profit bg-profit/10 border-profit/25",
-    medium: "text-amber-400 bg-amber-500/10 border-amber-500/25",
-    high: "text-rose-400 bg-rose-500/10 border-rose-500/25",
-    unknown: "text-gray-400 bg-gray-500/10 border-gray-500/25",
+    medium: "text-accent bg-accent/10 border-accent/25",
+    high: "text-negative bg-negative/10 border-negative/25",
+    unknown: "text-text-muted bg-ink/10 border-line/25",
   };
 
   const regimeLabel =
@@ -288,12 +288,12 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
 
   const scoreColor =
     score == null
-      ? "text-gray-400"
+      ? "text-text-muted"
       : score >= 70
         ? "text-profit"
         : score >= 50
-          ? "text-amber-400"
-          : "text-rose-400";
+          ? "text-accent"
+          : "text-negative";
 
   return (
     <div className="rounded-xl border border-ink/12 bg-gradient-to-br from-accent/15 to-accent/5 p-4">
@@ -461,9 +461,24 @@ function KeyObservations({ observations }) {
 
 function ActionableHints({ interpretation }) {
   const items = [
-    { d: IC.ruler, label: "Sizing", text: interpretation.sizing_hint, color: "rgb(var(--accent-text))" },
-    { d: IC.shield, label: "Hedge", text: interpretation.hedge_hint, color: "rgb(var(--accent-text))" },
-    { d: IC.target, label: "Bias", text: interpretation.trade_bias, color: "rgb(var(--accent-text))" },
+    {
+      d: IC.ruler,
+      label: "Sizing",
+      text: interpretation.sizing_hint,
+      color: "rgb(var(--accent-text))",
+    },
+    {
+      d: IC.shield,
+      label: "Hedge",
+      text: interpretation.hedge_hint,
+      color: "rgb(var(--accent-text))",
+    },
+    {
+      d: IC.target,
+      label: "Bias",
+      text: interpretation.trade_bias,
+      color: "rgb(var(--accent-text))",
+    },
   ].filter((i) => i.text);
 
   if (interpretation.regime_warning) {
@@ -472,7 +487,7 @@ function ActionableHints({ interpretation }) {
       label: "Warning",
       text: interpretation.regime_warning,
       color: "rgb(var(--warn))",
-      textClass: "text-amber-300",
+      textClass: "text-accent",
     });
   }
   if (interpretation.decoupling_note) {
@@ -521,7 +536,7 @@ function BtcContextBlock({ btc_context }) {
     n == null ? "—" : `$${Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   const fmtPct = (n) => (n == null ? "—" : (n > 0 ? "+" : "") + Number(n).toFixed(2) + "%");
 
-  const changeColor = (btc_context.change_24h_pct ?? 0) >= 0 ? "text-profit" : "text-rose-400";
+  const changeColor = (btc_context.change_24h_pct ?? 0) >= 0 ? "text-profit" : "text-negative";
 
   return (
     <div>

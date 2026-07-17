@@ -180,7 +180,7 @@ export default function ConfigPanel({ account, onClose }) {
             <p className="text-[11px] font-mono text-text-muted/80 mt-0.5">
               {account.label || "Unnamed"}
               {account.is_testnet && (
-                <span className="ml-2 text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded border bg-red-500/10 text-loss border-red-500/25">
+                <span className="ml-2 text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded border bg-negative/10 text-loss border-negative/25">
                   Testnet
                 </span>
               )}
@@ -219,7 +219,7 @@ export default function ConfigPanel({ account, onClose }) {
       <div className="p-5 max-h-[70vh] overflow-y-auto space-y-6">
         {/* Error */}
         {error && (
-          <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded-md p-3">
+          <div className="relative overflow-hidden bg-negative/[0.05] border border-negative/25 rounded-md p-3">
             <p className="text-[11px] font-mono text-loss leading-relaxed">{error}</p>
           </div>
         )}

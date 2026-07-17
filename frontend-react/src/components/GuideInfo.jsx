@@ -86,7 +86,7 @@ const Row = ({ title, desc, warn }) => (
       {desc}
     </p>
     {warn && (
-      <p className="font-mono text-[11px] leading-relaxed text-amber-400/90 normal-case tracking-normal mt-2 pl-2.5 border-l-2 border-amber-400/40">
+      <p className="font-mono text-[11px] leading-relaxed text-accent/90 normal-case tracking-normal mt-2 pl-2.5 border-l-2 border-accent/40">
         {warn}
       </p>
     )}

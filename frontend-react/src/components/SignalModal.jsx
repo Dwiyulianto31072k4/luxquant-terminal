@@ -840,35 +840,35 @@ const SignalModal = ({
       url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P`,
       logo: "https://static.tradingview.com/static/images/logo-preview.png",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=tradingview.com&sz=64",
-      color: "from-blue-600/20 to-blue-800/10 border-blue-500/30 hover:border-blue-400",
+      color: "from-accent/20 to-accent/10 border-accent/30 hover:border-accent",
     },
     {
       name: "CoinGlass",
       url: `https://www.coinglass.com/currencies/${coinSymbol}`,
       logo: "https://www.coinglass.com/favicon.svg",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=coinglass.com&sz=64",
-      color: "from-cyan-600/20 to-cyan-800/10 border-cyan-500/30 hover:border-cyan-400",
+      color: "from-accent/20 to-accent/10 border-accent/30 hover:border-accent",
     },
     {
       name: "CoinGecko",
       url: `https://www.coingecko.com/en/coins/${coinSymbolLower}`,
       logo: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=coingecko.com&sz=64",
-      color: "from-green-600/20 to-green-800/10 border-positive/30 hover:border-green-400",
+      color: "from-positive/20 to-positive/10 border-positive/30 hover:border-positive",
     },
     {
       name: "CoinMarketCap",
       url: `https://coinmarketcap.com/currencies/${coinSymbolLower}/`,
       logo: "https://s2.coinmarketcap.com/static/cloud/img/coinmarketcap_1.svg",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=coinmarketcap.com&sz=64",
-      color: "from-blue-500/20 to-blue-700/10 border-blue-400/30 hover:border-blue-300",
+      color: "from-accent/20 to-accent/10 border-accent/30 hover:border-accent",
     },
     {
       name: "DexScreener",
       url: `https://dexscreener.com/search?q=${coinSymbol}`,
       logo: "https://dexscreener.com/favicon.png",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=dexscreener.com&sz=64",
-      color: "from-lime-600/20 to-lime-800/10 border-lime-500/30 hover:border-lime-400",
+      color: "from-positive/20 to-positive/10 border-positive/30 hover:border-positive",
     },
   ];
   const sentimentLinks = [
@@ -877,7 +877,7 @@ const SignalModal = ({
       url: `https://x.com/search?q=%24${coinSymbol}&src=typed_query&f=live`,
       logo: "https://abs.twimg.com/favicons/twitter.3.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=x.com&sz=64",
-      color: "from-gray-600/20 to-gray-800/10 border-gray-500/30 hover:border-gray-400",
+      color: "from-ink/20 to-ink/10 border-line/30 hover:border-line",
     },
   ];
 
@@ -888,70 +888,70 @@ const SignalModal = ({
       url: `https://www.binance.com/en/futures/${signal?.pair || ""}`,
       logo: "https://public.bnbstatic.com/static/images/common/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=binance.com&sz=64",
-      color: "from-yellow-500/10 to-yellow-700/5 hover:border-yellow-500/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
     {
       name: "Bybit",
       url: `https://www.bybit.com/trade/usdt/${coinSymbol}USDT`,
       logo: "https://www.bybit.com/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=bybit.com&sz=64",
-      color: "from-orange-500/10 to-orange-700/5 hover:border-orange-500/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
     {
       name: "OKX",
       url: `https://www.okx.com/trade-swap/${coinSymbolLower}-usdt-swap`,
       logo: "https://static.okx.com/cdn/assets/imgs/226/DF679CE5D9C03767.png",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=okx.com&sz=64",
-      color: "from-ink/5 to-gray-700/5 hover:border-ink/20",
+      color: "from-ink/5 to-ink/5 hover:border-ink/20",
     },
     {
       name: "Bitget",
       url: `https://www.bitget.com/futures/usdt/${coinSymbol}USDT`,
       logo: "https://img.bitgetimg.com/image/third/1702472462805.png",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=bitget.com&sz=64",
-      color: "from-cyan-500/10 to-cyan-700/5 hover:border-cyan-500/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
     {
       name: "KuCoin",
       url: `https://www.kucoin.com/trade/base/${coinSymbol}-USDT`,
       logo: "https://assets.staticimg.com/cms/media/3zL1evPzOWDEnG0XW2zI1cW8kXpZlQikvOWeB6N6X.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=kucoin.com&sz=64",
-      color: "from-green-500/10 to-green-700/5 hover:border-positive/30",
+      color: "from-positive/10 to-positive/5 hover:border-positive/30",
     },
     {
       name: "MEXC",
       url: `https://www.mexc.com/exchange/${coinSymbol}_USDT`,
       logo: "https://www.mexc.com/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=mexc.com&sz=64",
-      color: "from-blue-500/10 to-blue-700/5 hover:border-blue-500/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
     {
       name: "HTX",
       url: `https://www.htx.com/en-us/trade/${coinSymbol}_usdt`,
       logo: "https://www.htx.com/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=htx.com&sz=64",
-      color: "from-indigo-500/10 to-indigo-700/5 hover:border-indigo-500/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
     {
       name: "Gate.io",
       url: `https://www.gate.io/trade/${coinSymbol}_USDT`,
       logo: "https://www.gate.io/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=gate.io&sz=64",
-      color: "from-red-500/10 to-red-700/5 hover:border-negative/30",
+      color: "from-negative/10 to-negative/5 hover:border-negative/30",
     },
     {
       name: "Kraken",
       url: `https://pro.kraken.com/app/trade/${coinSymbol}-USD`,
       logo: "https://www.kraken.com/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=kraken.com&sz=64",
-      color: "from-purple-500/10 to-purple-700/5 hover:border-purple-500/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
     {
       name: "BingX",
       url: `https://bingx.com/en-us/spot/${coinSymbol}USDT/`,
       logo: "https://bingx.com/favicon.ico",
       fallbackLogo: "https://www.google.com/s2/favicons?domain=bingx.com&sz=64",
-      color: "from-blue-400/10 to-blue-600/5 hover:border-blue-400/30",
+      color: "from-accent/10 to-accent/5 hover:border-accent/30",
     },
   ];
 
@@ -969,8 +969,8 @@ const SignalModal = ({
         pct: `${calcPct(signal.stop1, signal?.entry)}%`,
         icon: isStopped ? "✗" : "⊘",
         active: isStopped,
-        color: isStopped ? "text-negative" : "text-gray-500",
-        border: isStopped ? "border-negative/30" : "border-gray-700",
+        color: isStopped ? "text-negative" : "text-text-muted",
+        border: isStopped ? "border-negative/30" : "border-line",
         bg: isStopped ? "bg-negative/10" : "bg-surface-secondary",
       });
     }
@@ -1034,8 +1034,8 @@ const SignalModal = ({
         pct: `+${calcPct(tp.v, signal?.entry)}%`,
         icon: h ? "✓" : (i + 1).toString(),
         active: h,
-        color: h ? tp.c : "text-gray-500",
-        border: h ? tp.b : "border-gray-700",
+        color: h ? tp.c : "text-text-muted",
+        border: h ? tp.b : "border-line",
         bg: h ? tp.bg : "bg-surface-secondary",
       });
     });
@@ -1478,11 +1478,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </span>
                       <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-ink/5">
                         <div
-                          className="h-full bg-gradient-to-r from-green-500/80 to-green-400/55"
+                          className="h-full bg-gradient-to-r from-positive/80 to-positive/55"
                           style={{ width: `${lsLong}%` }}
                         />
                         <div
-                          className="h-full bg-gradient-to-r from-red-400/55 to-red-500/80"
+                          className="h-full bg-gradient-to-r from-negative/55 to-negative/80"
                           style={{ width: `${lsShort}%` }}
                         />
                       </div>
@@ -2219,10 +2219,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={signalDetail.message_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 !border-blue-500/20 hover:!border-blue-500/45 hover:bg-blue-500/20 group text-text-secondary"
+                            className="lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-accent/10 to-accent/10 !border-accent/20 hover:!border-accent/45 hover:bg-accent/20 group text-text-secondary"
                           >
                             {Ic.send("w-5 h-5")}
-                            <span className="text-text-secondary text-[9px] sm:text-[10px] font-bold group-hover:text-blue-300 truncate w-full text-center">
+                            <span className="text-text-secondary text-[9px] sm:text-[10px] font-bold group-hover:text-accent truncate w-full text-center">
                               View Telegram
                             </span>
                           </a>
@@ -2423,7 +2423,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://twitter.com/${coinInfo.links.twitter}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-text-secondary/70 hover:text-text-secondary bg-blue-500/10 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-text-secondary/70 hover:text-text-secondary bg-accent/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.xLogo("w-3 h-3")} @{coinInfo.links.twitter}
                               </a>
@@ -2433,7 +2433,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://t.me/${coinInfo.links.telegram}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-accent/70 hover:text-accent bg-accent/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.send("w-3 h-3")} Telegram
                               </a>
@@ -2443,7 +2443,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.subreddit}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-accent/70 hover:text-accent bg-accent/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.chat("w-3 h-3")} Reddit
                               </a>
@@ -2453,7 +2453,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.github}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-text-muted/70 hover:text-text-muted bg-ink/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.code("w-3 h-3")} GitHub
                               </a>

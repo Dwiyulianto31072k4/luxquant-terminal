@@ -101,7 +101,7 @@ export const Methodology = ({ title, children, defaultOpen = false }) => {
 // items: [{ kind: 'good'|'bad'|'neutral', label, value, sub }]
 const KIND = {
   good: { dot: "#10b981", val: "text-profit", ring: "border-profit/25 bg-profit/[0.045]" },
-  bad: { dot: "#ef4444", val: "text-loss", ring: "border-red-500/25 bg-red-500/[0.045]" },
+  bad: { dot: "#ef4444", val: "text-loss", ring: "border-negative/25 bg-negative/[0.045]" },
   neutral: {
     dot: "rgb(var(--accent))",
     val: "text-accent",

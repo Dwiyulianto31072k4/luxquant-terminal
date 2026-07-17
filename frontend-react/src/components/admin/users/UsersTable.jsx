@@ -309,7 +309,7 @@ const DesktopTable = ({
             type="checkbox"
             checked={allVisibleSelected}
             onChange={toggleSelectAll}
-            className="w-3.5 h-3.5 rounded cursor-pointer accent-amber-500"
+            className="w-3.5 h-3.5 rounded cursor-pointer accent-accent"
           />
         </th>
         {["User", "Contact", "Role", "Subscription", "Activity", ""].map((h, i) => (
@@ -351,7 +351,7 @@ const DesktopTable = ({
                 type="checkbox"
                 checked={isSelected}
                 onChange={() => toggleSelect(u.id)}
-                className="w-3.5 h-3.5 rounded cursor-pointer accent-amber-500"
+                className="w-3.5 h-3.5 rounded cursor-pointer accent-accent"
               />
             </td>
             <td className="px-3 py-2.5">
@@ -380,7 +380,9 @@ const DesktopTable = ({
             <td className="px-3 py-2.5 hidden lg:table-cell">
               <span
                 className="text-[10px]"
-                style={{ color: u.last_active_at ? "rgb(var(--fg-muted))" : "rgb(var(--fg-muted))" }}
+                style={{
+                  color: u.last_active_at ? "rgb(var(--fg-muted))" : "rgb(var(--fg-muted))",
+                }}
               >
                 {relativeTime(u.last_active_at)}
               </span>
@@ -444,7 +446,7 @@ const MobileCardStack = ({
               type="checkbox"
               checked={isSelected}
               onChange={() => toggleSelect(u.id)}
-              className="w-4 h-4 mt-1 rounded cursor-pointer accent-amber-500"
+              className="w-4 h-4 mt-1 rounded cursor-pointer accent-accent"
             />
             <div className="flex-1 min-w-0">
               <UserCell user={u} onClick={() => onView(u.id)} />

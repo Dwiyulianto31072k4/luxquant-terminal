@@ -31,11 +31,11 @@ const DEFAULT_GEN_STEPS = [
 ];
 
 const STATUS_STYLE = {
-  draft: { bg: "rgb(var(--accent) / 0.16)", fg: "#e2b45c", label: "DRAFT" },
-  approved: { bg: "rgba(34,197,94,0.16)", fg: "#22c55e", label: "APPROVED" },
-  posted: { bg: "rgba(59,130,246,0.16)", fg: "#3b82f6", label: "POSTED" },
-  rejected: { bg: "rgba(239,68,68,0.16)", fg: "#ef4444", label: "REJECTED" },
-  error: { bg: "rgba(239,68,68,0.16)", fg: "#ef4444", label: "ERROR" },
+  draft: { bg: "rgb(var(--accent) / 0.16)", fg: "rgb(var(--accent-text))", label: "DRAFT" },
+  approved: { bg: "rgb(var(--pos) / 0.16)", fg: "rgb(var(--pos-text))", label: "APPROVED" },
+  posted: { bg: "rgb(var(--ink) / 0.08)", fg: "rgb(var(--fg-secondary))", label: "POSTED" },
+  rejected: { bg: "rgb(var(--neg) / 0.16)", fg: "rgb(var(--neg-text))", label: "REJECTED" },
+  error: { bg: "rgb(var(--neg) / 0.16)", fg: "rgb(var(--neg-text))", label: "ERROR" },
 };
 
 const Spinner = ({ className = "w-3.5 h-3.5" }) => (
@@ -63,7 +63,7 @@ const elapsedLabel = (startedAt) => {
 const StatusBadge = ({ status }) => {
   const s = STATUS_STYLE[status] || {
     bg: "rgb(var(--ink) / 0.08)",
-    fg: "#9ca3af",
+    fg: "rgb(var(--fg-muted))",
     label: (status || "").toUpperCase(),
   };
   return (
@@ -125,7 +125,7 @@ const CostBar = ({ cost }) => {
         <span
           className={`text-[9px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border ${
             tracking === "actual"
-              ? "bg-green-500/10 text-green-400 border-green-500/25"
+              ? "bg-positive/10 text-positive border-positive/25"
               : "bg-ink/[0.04] text-text-muted border-ink/10"
           }`}
           title={cost.note || ""}
@@ -194,11 +194,11 @@ const GenerationConsole = ({
   void tick;
 
   const borderTone = isError
-    ? "border-red-500/35"
+    ? "border-negative/35"
     : isRunning
       ? "border-ink/35"
       : isDone
-        ? "border-green-500/30"
+        ? "border-positive/30"
         : "border-ink/[0.08]";
 
   const glow = isRunning ? "shadow-[0_0_40px_-12px_rgb(var(--accent) / 0.45)]" : "";
@@ -229,9 +229,9 @@ const GenerationConsole = ({
                 isRunning
                   ? "bg-accent/12 border-ink/15"
                   : isError
-                    ? "bg-red-500/15 border-red-500/40"
+                    ? "bg-negative/15 border-negative/40"
                     : isDone
-                      ? "bg-green-500/15 border-green-500/40"
+                      ? "bg-positive/15 border-positive/40"
                       : "bg-ink/[0.04] border-ink/10"
               }`}
             >
@@ -265,12 +265,12 @@ const GenerationConsole = ({
                   </span>
                 )}
                 {isDone && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-green-500/15 text-green-400 border border-green-500/30">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-positive/15 text-positive border border-positive/30">
                     Complete
                   </span>
                 )}
                 {isError && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-red-500/15 text-loss border border-red-500/30">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-negative/15 text-loss border border-negative/30">
                     Failed
                   </span>
                 )}
@@ -310,7 +310,7 @@ const GenerationConsole = ({
             <button
               onClick={onGenerate}
               disabled={isRunning || starting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold bg-accent/12 text-black hover:bg-accent disabled:opacity-45 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-6px_rgb(var(--accent) / 0.7)]"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold bg-accent/15 text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-45 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-6px_rgb(var(--accent) / 0.7)]"
             >
               {(isRunning || starting) && (
                 <Spinner className="w-3 h-3 border-black/25 border-t-black" />
@@ -340,7 +340,7 @@ const GenerationConsole = ({
                 <div className="text-right shrink-0">
                   <p
                     className={`text-[18px] font-semibold tabular-nums leading-none ${
-                      isError ? "text-loss" : isDone ? "text-green-400" : "text-accent"
+                      isError ? "text-loss" : isDone ? "text-positive" : "text-accent"
                     }`}
                   >
                     {isError ? "!" : `${progress}%`}
@@ -355,9 +355,9 @@ const GenerationConsole = ({
                 <div
                   className={`h-full rounded-full transition-all duration-700 ease-out ${
                     isError
-                      ? "bg-red-500"
+                      ? "bg-negative"
                       : isDone
-                        ? "bg-green-500"
+                        ? "bg-positive"
                         : "bg-gradient-to-r from-accent via-accent to-accent"
                   }`}
                   style={{
@@ -379,22 +379,22 @@ const GenerationConsole = ({
                     key={s.id}
                     className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border text-[10px] font-mono transition-colors ${
                       failed
-                        ? "bg-red-500/10 border-red-500/30 text-loss"
+                        ? "bg-negative/10 border-negative/30 text-loss"
                         : active
                           ? "bg-accent/12 border-ink/35 text-accent"
                           : done
-                            ? "bg-green-500/8 border-green-500/20 text-green-400/90"
+                            ? "bg-positive/8 border-positive/20 text-positive/90"
                             : "bg-ink/[0.02] border-ink/[0.06] text-text-muted/70"
                     }`}
                   >
                     <span
                       className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 text-[8px] font-bold ${
                         failed
-                          ? "bg-red-500 text-text-primary"
+                          ? "bg-negative text-text-primary"
                           : active
-                            ? "bg-accent/12 text-black"
+                            ? "bg-accent text-accent-fg"
                             : done
-                              ? "bg-green-500 text-text-primary"
+                              ? "bg-positive text-text-primary"
                               : "bg-ink/10 text-text-muted"
                       }`}
                     >
@@ -407,13 +407,13 @@ const GenerationConsole = ({
             </div>
 
             {isError && job?.error && (
-              <div className="rounded-md bg-red-500/10 border border-red-500/25 px-3 py-2 text-[11px] text-loss">
+              <div className="rounded-md bg-negative/10 border border-negative/25 px-3 py-2 text-[11px] text-loss">
                 {job.error}
               </div>
             )}
 
             {isDone && Array.isArray(job?.result) && job.result.length > 0 && (
-              <div className="rounded-md bg-green-500/10 border border-green-500/25 px-3 py-2 text-[11px] text-green-300/95">
+              <div className="rounded-md bg-positive/10 border border-positive/25 px-3 py-2 text-[11px] text-positive/95">
                 Draft ready
                 {job.result[0]?.id ? ` · post #${job.result[0].id}` : ""}
                 {job.result[0]?.headline ? ` — ${job.result[0].headline}` : ""}
@@ -473,7 +473,7 @@ const ImageCard = ({ post, onOpen }) => {
         />
       ) : (
         <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-3 text-center bg-gradient-to-b from-scrim/40 to-scrim/70">
-          <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-amber-300/90">
+          <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-accent/90">
             {waiting ? "Waiting for assets" : "No image"}
           </span>
           <p className="text-[11px] text-text-muted leading-snug line-clamp-3">
@@ -489,7 +489,7 @@ const ImageCard = ({ post, onOpen }) => {
       <span className="absolute top-2 left-2 flex flex-col gap-1">
         <StatusBadge status={post.status} />
         {needsMaterials(post) && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[9px] tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/30">
+          <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[9px] tracking-wide bg-accent/20 text-accent border border-accent/30">
             {waiting ? "UPLOAD ASSETS" : "NEEDS ASSETS"}
           </span>
         )}
@@ -591,13 +591,13 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const ready = inv.filter((i) => i.status === "resolved");
 
   const statusStyle = (st) => {
-    if (st === "resolved") return "bg-green-500/15 text-green-400 border-green-500/25";
-    if (st === "needs_upload") return "bg-amber-500/15 text-amber-300 border-amber-400/30";
-    return "bg-red-500/10 text-loss border-red-500/25";
+    if (st === "resolved") return "bg-positive/15 text-positive border-positive/25";
+    if (st === "needs_upload") return "bg-accent/15 text-accent border-accent/30";
+    return "bg-negative/10 text-loss border-negative/25";
   };
 
   return (
-    <div className="rounded-xl border border-amber-400/20 bg-gradient-to-b from-amber-500/[0.07] to-scrim/40 p-3.5 space-y-3">
+    <div className="rounded-xl border border-accent/20 bg-gradient-to-b from-accent/[0.07] to-scrim/40 p-3.5 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-accent">
@@ -609,12 +609,12 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
           </p>
         </div>
         {data.needs_materials ? (
-          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/35">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-accent/20 text-accent border border-accent/35">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             {data.missing_count} required
           </span>
         ) : (
-          <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-green-500/15 text-green-400 border border-green-500/30">
+          <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-positive/15 text-positive border border-positive/30">
             Verified
           </span>
         )}
@@ -639,14 +639,14 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       )}
 
       {pending.length > 0 && (
-        <div className="rounded-lg bg-scrim/35 border border-amber-400/25 px-3 py-2.5 space-y-1.5">
-          <p className="text-[11px] font-semibold text-amber-200">
+        <div className="rounded-lg bg-scrim/35 border border-accent/25 px-3 py-2.5 space-y-1.5">
+          <p className="text-[11px] font-semibold text-accent">
             Upload before generate ({pending.length}):
           </p>
           {pending.map((r, i) => (
-            <p key={i} className="text-[11px] text-amber-100/90 leading-snug">
+            <p key={i} className="text-[11px] text-accent/90 leading-snug">
               • <span className="font-medium">{r.name}</span>
-              <span className="text-amber-200/60 font-mono text-[10px]"> · {r.kind}</span>
+              <span className="text-accent/60 font-mono text-[10px]"> · {r.kind}</span>
               {r.request ? ` — ${r.request.split(".")[0]}` : ""}
             </p>
           ))}
@@ -660,9 +660,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             <div
               key={`${item.type}-${item.name}`}
               className={`rounded-lg border px-2.5 py-2 ${
-                needAction
-                  ? "border-amber-400/30 bg-amber-500/[0.06]"
-                  : "border-ink/[0.07] bg-ink/[0.02]"
+                needAction ? "border-accent/30 bg-accent/[0.06]" : "border-ink/[0.07] bg-ink/[0.02]"
               }`}
             >
               <div className="flex items-start gap-2">
@@ -679,12 +677,10 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                     <p className="text-[10px] text-text-muted truncate mt-0.5">{item.role}</p>
                   )}
                   {item.request && needAction && (
-                    <p className="text-[10px] text-amber-200/85 mt-1 leading-snug">
-                      {item.request}
-                    </p>
+                    <p className="text-[10px] text-accent/85 mt-1 leading-snug">{item.request}</p>
                   )}
                   {item.trusted && (
-                    <p className="text-[9px] font-mono text-green-400/80 mt-0.5">
+                    <p className="text-[9px] font-mono text-positive/80 mt-0.5">
                       trusted · {item.source || "admin"}
                     </p>
                   )}
@@ -703,7 +699,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               </div>
               {needAction && (
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <label className="cursor-pointer px-2.5 py-1 rounded-md text-[10px] font-semibold bg-accent/12 text-black hover:bg-accent transition-colors">
+                  <label className="cursor-pointer px-2.5 py-1 rounded-md text-[10px] font-semibold bg-accent/15 text-accent hover:bg-accent hover:text-accent-fg transition-colors">
                     {busy === item.name ? "Uploading…" : "Upload official file"}
                     <input
                       type="file"
@@ -752,7 +748,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         className={`w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border transition-colors disabled:opacity-40 ${
           data.needs_materials
             ? "bg-ink/[0.04] text-text-muted border-ink/10"
-            : "bg-accent/12 text-black border-ink/15 hover:bg-accent shadow-[0_0_18px_-6px_rgb(var(--accent) / 0.6)]"
+            : "bg-accent/15 text-accent hover:text-accent-fg border-ink/15 hover:bg-accent shadow-[0_0_18px_-6px_rgb(var(--accent) / 0.6)]"
         }`}
         title={data.needs_materials ? "Upload / confirm all materials first" : undefined}
       >
@@ -811,7 +807,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
             />
           ) : (
             <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-6 text-center">
-              <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-amber-300/90">
+              <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-accent/90">
                 {awaitingImage(post) ? "Image paused" : "No image"}
               </p>
               <p className="text-[12px] text-text-muted leading-snug">
@@ -878,7 +874,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                         href={s.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block text-[11px] text-blue-400/90 hover:text-blue-300 truncate"
+                        className="block text-[11px] text-accent/90 hover:text-accent truncate"
                       >
                         {i + 1}.{" "}
                         {s.date ? <span className="text-text-muted/70">[{s.date}] </span> : null}
@@ -945,7 +941,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                   disabled={busy || needsMaterials(post)}
                   title={needsMaterials(post) ? "Upload missing materials first" : undefined}
                   onClick={() => onStatus(post.id, "approved")}
-                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 disabled:opacity-40 transition-colors"
+                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-positive/15 text-positive border border-positive/30 hover:bg-positive/25 disabled:opacity-40 transition-colors"
                 >
                   Approve
                 </button>
@@ -954,7 +950,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                 <button
                   disabled={busy}
                   onClick={() => onStatus(post.id, "rejected")}
-                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-red-500/15 text-loss border border-red-500/30 hover:bg-red-500/25 disabled:opacity-40 transition-colors"
+                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-negative/15 text-loss border border-negative/30 hover:bg-negative/25 disabled:opacity-40 transition-colors"
                 >
                   Reject
                 </button>
@@ -1162,7 +1158,7 @@ const SocialPostsAdminPage = () => {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-loss text-[12px]">
+        <div className="mb-4 px-4 py-3 rounded-lg bg-negative/10 border border-negative/30 text-loss text-[12px]">
           {error}
         </div>
       )}

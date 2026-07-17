@@ -390,7 +390,7 @@ const WrVsBtcTab = ({ onDrill }) => {
      ? `<div class="font-mono tabular-nums text-text-primary/60 text-[11px] mt-1">O ${fmtUsd(r.btc_open)} · H ${fmtUsd(r.btc_high)}<br/>L ${fmtUsd(r.btc_low)} · C ${fmtUsd(r.btc_close)}</div>`
      : ""
  }
- <div class="text-[9px] uppercase tracking-widest text-amber-300/50 mt-1.5">click candle to drill</div>`;
+ <div class="text-[9px] uppercase tracking-widest text-accent/50 mt-1.5">click candle to drill</div>`;
       tip.style.display = "block";
       const x = Math.min(param.point.x + 14, el.clientWidth - tip.offsetWidth - 8);
       const y = Math.min(param.point.y + 14, 440 - tip.offsetHeight - 8);
@@ -466,7 +466,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                 onClick={() => setRangeId(r.id)}
                 className={`px-3 py-1 text-[10px] uppercase tracking-widest rounded border transition-colors ${
                   rangeId === r.id
-                    ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+                    ? "border-accent/40 bg-accent/10 text-accent"
                     : "border-ink/10 text-text-primary/40 hover:text-text-primary/70"
                 }`}
               >
@@ -501,14 +501,14 @@ const WrVsBtcTab = ({ onDrill }) => {
               )}
               {stats.worst && (
                 <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
-                  Worst <span className="text-rose-300">{stats.worst.win_rate}%</span>{" "}
+                  Worst <span className="text-negative">{stats.worst.win_rate}%</span>{" "}
                   <span className="text-text-primary/30">{stats.worst.date}</span>
                 </span>
               )}
               {stats.btcDelta != null && (
                 <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/60">
                   BTC{" "}
-                  <span className={stats.btcDelta >= 0 ? "text-profit" : "text-rose-300"}>
+                  <span className={stats.btcDelta >= 0 ? "text-profit" : "text-negative"}>
                     {stats.btcDelta >= 0 ? "+" : ""}
                     {stats.btcDelta}%
                   </span>{" "}
@@ -524,7 +524,7 @@ const WrVsBtcTab = ({ onDrill }) => {
           <div
             ref={tooltipRef}
             style={{ display: "none" }}
-            className="absolute z-20 pointer-events-none px-3 py-2 rounded-lg border border-amber-400/20 bg-surface-raised/95 shadow-xl"
+            className="absolute z-20 pointer-events-none px-3 py-2 rounded-lg border border-accent/20 bg-surface-raised/95 shadow-xl"
           />
         </div>
 
@@ -570,7 +570,7 @@ const WrVsBtcTab = ({ onDrill }) => {
             <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/70">
               Correlation r{" "}
               <span
-                className={Math.abs(analysis.r) >= 0.4 ? "text-amber-300" : "text-text-primary/85"}
+                className={Math.abs(analysis.r) >= 0.4 ? "text-accent" : "text-text-primary/85"}
               >
                 {analysis.r >= 0 ? "+" : ""}
                 {analysis.r}
@@ -581,7 +581,7 @@ const WrVsBtcTab = ({ onDrill }) => {
               <span className="px-2.5 py-1 rounded border border-ink/10 bg-ink/[0.03] text-[11px] font-mono tabular-nums text-text-primary/70">
                 BTC up days <span className="text-profit">{analysis.upWr}%</span>
                 <span className="text-text-primary/35 mx-1.5">vs</span>
-                down days <span className="text-rose-300">{analysis.downWr}%</span>
+                down days <span className="text-negative">{analysis.downWr}%</span>
                 {analysis.upDownGap != null && (
                   <span className="text-text-primary/35 ml-1.5">
                     ({analysis.upDownGap >= 0 ? "+" : ""}
@@ -642,7 +642,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                         ? "text-text-primary/30"
                         : b.wr >= (analysis.overallWr ?? 0)
                           ? "text-profit"
-                          : "text-rose-300"
+                          : "text-negative"
                     }`}
                   >
                     {b.wr != null ? `${b.wr}%` : "—"}
@@ -654,8 +654,8 @@ const WrVsBtcTab = ({ onDrill }) => {
                         : b.capture >= 60
                           ? "text-profit/80"
                           : b.capture >= 40
-                            ? "text-amber-300/80"
-                            : "text-rose-300/80"
+                            ? "text-accent/80"
+                            : "text-negative/80"
                     }`}
                     title="Median realized ÷ median MFE — share of the peak the TP captured"
                   >
@@ -665,7 +665,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                     {b.delta != null ? (
                       <>
                         <span
-                          className={`text-[10px] ${b.delta >= 0 ? "text-profit/80" : "text-rose-300/80"}`}
+                          className={`text-[10px] ${b.delta >= 0 ? "text-profit/80" : "text-negative/80"}`}
                         >
                           {b.delta >= 0 ? "+" : ""}
                           {b.delta}pp
@@ -706,11 +706,11 @@ const WrVsBtcTab = ({ onDrill }) => {
                   <button
                     key={d.date}
                     onClick={() => drillDay(d)}
-                    className="group text-left rounded-lg border border-ink/[0.06] bg-ink/[0.02] hover:border-amber-400/35 hover:bg-ink/[0.04] transition p-3"
+                    className="group text-left rounded-lg border border-ink/[0.06] bg-ink/[0.02] hover:border-accent/35 hover:bg-ink/[0.04] transition p-3"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-mono text-text-primary/45">{d.date}</span>
-                      <span className="text-text-primary/0 group-hover:text-amber-300/60 transition text-xs">
+                      <span className="text-text-primary/0 group-hover:text-accent/60 transition text-xs">
                         ↗
                       </span>
                     </div>
@@ -724,7 +724,7 @@ const WrVsBtcTab = ({ onDrill }) => {
                       <span className="text-text-primary/75">
                         WR <span style={{ color: d.c }}>{d.win_rate}%</span>
                       </span>
-                      <span className={d.btcRet >= 0 ? "text-profit/70" : "text-rose-300/70"}>
+                      <span className={d.btcRet >= 0 ? "text-profit/70" : "text-negative/70"}>
                         BTC {d.btcRet >= 0 ? "+" : ""}
                         {d.btcRet}%
                       </span>

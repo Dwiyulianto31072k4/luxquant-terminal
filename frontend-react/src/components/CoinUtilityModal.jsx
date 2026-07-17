@@ -252,8 +252,8 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
         )}
 
         {error && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-center">
-            <p className="text-sm text-rose-400">Failed to load: {error}</p>
+          <div className="rounded-lg border border-negative/30 bg-negative/10 p-4 text-center">
+            <p className="text-sm text-negative">Failed to load: {error}</p>
           </div>
         )}
 
@@ -290,7 +290,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
                   </span>
                 )}
                 {coinData.has_utility === false && (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">
                     <Icon d={IC.alert} className="h-3 w-3" />
                     <span>No Utility</span>
                   </span>
@@ -363,11 +363,11 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData, zIndex = Z.ne
 
             {/* Risk Notes */}
             {coinData.risk_notes && (
-              <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 sm:p-4">
+              <div className="rounded-xl border border-accent/25 bg-accent/5 p-3 sm:p-4">
                 <SectionHead d={IC.alert} color="#e0a82e">
                   Risk Notes
                 </SectionHead>
-                <p className="text-xs leading-relaxed text-amber-200/90 sm:text-sm">
+                <p className="text-xs leading-relaxed text-accent/90 sm:text-sm">
                   {coinData.risk_notes}
                 </p>
               </div>

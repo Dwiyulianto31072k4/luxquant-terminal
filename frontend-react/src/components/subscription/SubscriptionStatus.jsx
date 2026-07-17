@@ -112,7 +112,7 @@ const SubscriptionStatus = ({ compact = false }) => {
           {sub.days_remaining !== null && sub.days_remaining !== undefined ? (
             <p className="text-xs" style={{ color: "#8a7b6b" }}>
               Sisa:{" "}
-              <span className={sub.days_remaining <= 7 ? "text-yellow-400" : "text-text-primary"}>
+              <span className={sub.days_remaining <= 7 ? "text-accent" : "text-text-primary"}>
                 {sub.days_remaining} hari
               </span>
             </p>

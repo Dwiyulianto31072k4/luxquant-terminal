@@ -49,7 +49,7 @@ const fmtCorr = (c) => {
 // Color for change pct
 const changeColor = (pct) => {
   if (pct == null || isNaN(pct)) return "text-text-muted";
-  if (pct > 0) return "text-green-400";
+  if (pct > 0) return "text-positive";
   if (pct < 0) return "text-loss";
   return "text-text-muted";
 };
@@ -65,7 +65,7 @@ const corrInterp = (c) => {
   else label = "Weak";
   const dir = c >= 0 ? "Pos" : "Neg";
   return {
-    color: c >= 0 ? "text-green-400" : "text-loss",
+    color: c >= 0 ? "text-positive" : "text-loss",
     label: `${label} ${dir}`,
   };
 };
@@ -75,27 +75,27 @@ const regimeStyle = (regime) => {
   switch (regime) {
     case "risk_on":
       return {
-        bg: "bg-green-500/15",
-        border: "border-green-500/30",
-        text: "text-green-300",
-        dot: "bg-green-400",
+        bg: "bg-positive/15",
+        border: "border-positive/30",
+        text: "text-positive",
+        dot: "bg-positive",
         label: "Risk On",
       };
     case "risk_off":
       return {
-        bg: "bg-red-500/15",
-        border: "border-red-500/30",
+        bg: "bg-negative/15",
+        border: "border-negative/30",
         text: "text-loss",
-        dot: "bg-red-400",
+        dot: "bg-negative",
         label: "Risk Off",
       };
     case "mixed":
     default:
       return {
-        bg: "bg-amber-500/15",
-        border: "border-amber-500/30",
-        text: "text-amber-300",
-        dot: "bg-amber-400",
+        bg: "bg-accent/15",
+        border: "border-accent/30",
+        text: "text-accent",
+        dot: "bg-accent",
         label: "Mixed",
       };
   }

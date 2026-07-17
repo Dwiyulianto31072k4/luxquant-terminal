@@ -526,7 +526,7 @@ const PromoFlyingCoins = ({ gainers }) => {
             <CoinLogo pair={item.pair} size={20} />
             <span className="text-text-primary text-sm font-bold">{symbol}</span>
           </div>
-          <span className="text-green-400 text-sm font-bold font-mono">
+          <span className="text-positive text-sm font-bold font-mono">
             +{item.gain_pct?.toFixed(2)}%
           </span>
         </div>
@@ -852,7 +852,7 @@ const LandingWinRateChart = ({ data }) => {
                   <p className="text-accent text-xs font-bold mb-1">{d.fullDate}</p>
                   <p className="text-text-primary text-sm">
                     Win Rate:{" "}
-                    <span className="text-green-400 font-mono">{d.winRate.toFixed(1)}%</span>
+                    <span className="text-positive font-mono">{d.winRate.toFixed(1)}%</span>
                   </p>
                   <p className="text-text-muted text-[10px] mt-1">
                     {d.total} Trades ({d.winners}W / {d.losers}L)
@@ -898,25 +898,25 @@ export const LivePerformanceStats = ({ data }) => {
   const riskDist = data?.risk_distribution || [];
   const riskColors = {
     Low: {
-      text: "text-green-400",
-      dot: "bg-green-500",
+      text: "text-positive",
+      dot: "bg-positive",
       bar: "#22C55E",
-      border: "border-green-500/20",
-      bg: "from-green-500/[0.06]",
+      border: "border-positive/20",
+      bg: "from-positive/[0.06]",
     },
     Normal: {
-      text: "text-yellow-400",
-      dot: "bg-yellow-500",
+      text: "text-accent",
+      dot: "bg-accent",
       bar: "#EAB308",
-      border: "border-yellow-500/20",
-      bg: "from-yellow-500/[0.06]",
+      border: "border-accent/20",
+      bg: "from-accent/[0.06]",
     },
     High: {
       text: "text-loss",
-      dot: "bg-red-500",
+      dot: "bg-negative",
       bar: "#EF4444",
-      border: "border-red-500/20",
-      bg: "from-red-500/[0.06]",
+      border: "border-negative/20",
+      bg: "from-negative/[0.06]",
     },
   };
   const riskTotal = riskDist.reduce((s, r) => s + (r.total_signals || 0), 0);
@@ -1331,7 +1331,7 @@ const PhoneFlyingCoins = ({ gainers }) => {
         <div className="flex items-center gap-2">
           <CoinLogo pair={item.pair} size={20} />
           <span className="text-text-primary text-sm font-bold">{symbol}</span>
-          <span className="text-green-400 text-sm font-bold font-mono">
+          <span className="text-positive text-sm font-bold font-mono">
             +{item.gain_pct?.toFixed(1)}%
           </span>
         </div>
@@ -2056,7 +2056,7 @@ const LandingPage = () => {
                     WEB APP READY
                   </span>
                 </div>
-                <span className="text-green-400 font-mono text-[8px] bg-green-400/10 px-1.5 py-0.5 rounded-sm">
+                <span className="text-positive font-mono text-[8px] bg-positive/10 px-1.5 py-0.5 rounded-sm">
                   SYNCED
                 </span>
               </div>
@@ -2223,7 +2223,7 @@ const LandingPage = () => {
                   WEB APP READY
                 </span>
               </div>
-              <span className="text-green-400 font-mono text-[8px] bg-green-400/10 px-1.5 py-0.5 rounded-sm">
+              <span className="text-positive font-mono text-[8px] bg-positive/10 px-1.5 py-0.5 rounded-sm">
                 SYNCED
               </span>
             </div>

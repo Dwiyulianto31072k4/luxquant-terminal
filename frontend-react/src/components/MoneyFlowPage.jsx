@@ -752,7 +752,7 @@ const DexRow = ({ p }) => {
           <span className="text-loss">{s.toLocaleString()}</span>
         </div>
       </div>
-      <div className="flex h-1.5 rounded-full overflow-hidden bg-red-500/30">
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-negative/30">
         <div
           className="h-full bg-profit/80 transition-all duration-700"
           style={{ width: `${buyPct}%` }}
@@ -1141,7 +1141,7 @@ const CoinsTab = ({ q }) => {
                 Buy
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-red-500/50" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-negative/50" />
                 Sell
               </span>
               <span className="text-text-muted/35">· 24h</span>

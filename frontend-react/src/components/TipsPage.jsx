@@ -250,7 +250,7 @@ const TipsPage = () => {
                 onClick={() => setSelectedTip(tip)}
               >
                 {/* Cover Image */}
-                <div className="relative h-44 overflow-hidden bg-gradient-to-br from-accent/5 to-orange-500/5">
+                <div className="relative h-44 overflow-hidden bg-gradient-to-br from-accent/5 to-accent/5">
                   {tip.cover_image ? (
                     <img
                       src={`${API_BASE}/tips/file/cover/${tip.cover_image}`}
@@ -360,7 +360,7 @@ const TipsPage = () => {
                         setEditingTip(tip);
                         setShowUploadModal(true);
                       }}
-                      className="p-1.5 bg-scrim/70 backdrop-blur-sm rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/40 transition-all"
+                      className="p-1.5 bg-scrim/70 backdrop-blur-sm rounded-lg text-accent hover:text-accent border border-accent/20 hover:border-accent/40 transition-all"
                       title={t("tips.edit")}
                     >
                       <svg
@@ -448,7 +448,7 @@ const TipsPage = () => {
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2.5 bg-loss/20 border border-loss/25 text-loss rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors"
+                className="flex-1 py-2.5 bg-loss/20 border border-loss/25 text-loss rounded-xl text-sm font-bold hover:bg-negative/30 transition-colors"
               >
                 {t("tips.delete")}
               </button>
@@ -832,9 +832,9 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
             </label>
             <div className="flex gap-3">
               <label className="flex-1 flex items-center gap-3 bg-bg-card border-2 border-dashed border-ink/10 rounded-xl px-4 py-4 cursor-pointer hover:border-ink/15 transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                   <svg
-                    className="w-5 h-5 text-purple-400"
+                    className="w-5 h-5 text-accent"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

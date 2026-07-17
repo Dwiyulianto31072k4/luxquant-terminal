@@ -498,7 +498,7 @@ export const SignalBar = ({ label, direction, strength = 0, weight, detail }) =>
         )}
         {meta.k === "flat" && (
           <span
-            className="absolute bottom-0 top-0 rounded-full bg-amber-500/70"
+            className="absolute bottom-0 top-0 rounded-full bg-accent/70"
             style={{
               left: `calc(50% - ${Math.max(half, 2) / 2}%)`,
               width: `${Math.max(half, 2)}%`,

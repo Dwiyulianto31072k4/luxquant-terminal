@@ -12,9 +12,9 @@ import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 
 const RISK_STYLES = {
   low: "text-profit bg-profit/10 border-profit/25",
-  medium: "text-amber-400 bg-amber-500/10 border-amber-500/30",
-  high: "text-rose-400 bg-rose-500/10 border-rose-500/30",
-  info: "text-sky-400 bg-sky-500/10 border-sky-500/30",
+  medium: "text-accent bg-accent/10 border-accent/30",
+  high: "text-negative bg-negative/10 border-negative/30",
+  info: "text-accent bg-accent/10 border-accent/30",
 };
 
 const REGIME_LABEL = {
@@ -26,10 +26,10 @@ const REGIME_LABEL = {
 };
 
 function scoreColor(s) {
-  if (s == null) return "text-gray-400";
+  if (s == null) return "text-text-muted";
   if (s >= 70) return "text-profit";
-  if (s >= 50) return "text-amber-400";
-  return "text-rose-400";
+  if (s >= 50) return "text-accent";
+  return "text-negative";
 }
 
 export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals" }) {
@@ -88,7 +88,7 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
 
   if (error || !data) {
     return (
-      <div className="p-4 text-gray-500 text-sm border border-gray-700/50 rounded-lg bg-gray-800/30">
+      <div className="p-4 text-text-muted text-sm border border-line/50 rounded-lg bg-ink/30">
         ⏳ {error || "No correlation data available."}
       </div>
     );
@@ -106,11 +106,11 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
   const riskClass = RISK_STYLES[interpretation.risk_level] || RISK_STYLES.medium;
 
   return (
-    <div className="rounded-xl border border-gray-700/50 bg-gray-900/60 backdrop-blur p-5 space-y-4 text-gray-200">
+    <div className="rounded-xl border border-line/50 bg-ink/60 backdrop-blur p-5 space-y-4 text-text-secondary">
       {/* === Header === */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
             BTC Correlation Analysis
           </h3>
           <p className="text-text-primary font-medium mt-1 leading-snug">
@@ -121,7 +121,7 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
           <div className={`text-3xl font-bold ${scoreColor(interpretation.alignment_score)}`}>
             {interpretation.alignment_score}
           </div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider">Alignment</div>
+          <div className="text-[10px] text-text-muted uppercase tracking-wider">Alignment</div>
         </div>
       </div>
 
@@ -134,17 +134,17 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
           {interpretation.risk_level.toUpperCase()} RISK
         </span>
         {is_decoupled && (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border border-purple-500/30 text-purple-300 bg-purple-500/10">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border border-accent/30 text-accent bg-accent/10">
             ⚡ DECOUPLED
           </span>
         )}
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border border-gray-700 text-gray-400 bg-gray-800/50">
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border border-line text-text-muted bg-ink/50">
           {REGIME_LABEL[btc_context.regime] || btc_context.regime}
         </span>
       </div>
 
       {/* === Summary === */}
-      <p className="text-sm text-gray-300 leading-relaxed">{interpretation.summary}</p>
+      <p className="text-sm text-text-secondary leading-relaxed">{interpretation.summary}</p>
 
       {/* === Metrics grid === */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -156,7 +156,7 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
       </div>
 
       {/* === Actionable hints === */}
-      <div className="space-y-2 pt-2 border-t border-gray-800">
+      <div className="space-y-2 pt-2 border-t border-line">
         <HintRow icon="📏" label="Sizing" text={interpretation.sizing_hint} />
         <HintRow icon="🛡️" label="Hedge" text={interpretation.hedge_hint} />
         {interpretation.regime_warning && (
@@ -164,7 +164,7 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
             icon="⚠️"
             label="Warning"
             text={interpretation.regime_warning}
-            className="text-amber-300"
+            className="text-accent"
           />
         )}
         {interpretation.decoupling_note && (
@@ -172,20 +172,20 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
             icon="⚡"
             label="Catalyst"
             text={interpretation.decoupling_note}
-            className="text-purple-300"
+            className="text-accent"
           />
         )}
         <HintRow icon="🎯" label="Bias" text={interpretation.trade_bias} />
       </div>
 
       {/* === BTC snapshot === */}
-      <div className="pt-3 border-t border-gray-800 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+      <div className="pt-3 border-t border-line grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <SnapshotItem label="BTC Price" value={`$${btc_context.price?.toLocaleString()}`} />
         <SnapshotItem label="RSI 14" value={btc_context.rsi_14} />
         <SnapshotItem
           label="24h Δ"
           value={`${btc_context.change_24h_pct > 0 ? "+" : ""}${btc_context.change_24h_pct}%`}
-          valueClass={btc_context.change_24h_pct >= 0 ? "text-profit" : "text-rose-400"}
+          valueClass={btc_context.change_24h_pct >= 0 ? "text-profit" : "text-negative"}
         />
         <SnapshotItem
           label="Dominance"
@@ -194,7 +194,7 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
       </div>
 
       {/* === Footer === */}
-      <div className="text-[10px] text-gray-600 flex justify-between pt-2">
+      <div className="text-[10px] text-text-muted flex justify-between pt-2">
         <span>
           Source: {data_source} · Quality: {sample_quality}
         </span>
@@ -209,10 +209,10 @@ export default function BTCCorrelationPanel({ signalId, apiBase = "/api/signals"
 function MetricCard({ label, value, hint }) {
   const display = value == null || Number.isNaN(value) ? "—" : Number(value).toFixed(2);
   return (
-    <div className="bg-gray-800/50 rounded-lg p-2.5 border border-gray-700/40">
-      <div className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</div>
+    <div className="bg-ink/50 rounded-lg p-2.5 border border-line/40">
+      <div className="text-[10px] text-text-muted uppercase tracking-wider">{label}</div>
       <div className="text-lg font-mono font-semibold text-text-primary mt-0.5">{display}</div>
-      <div className="text-[10px] text-gray-600">{hint}</div>
+      <div className="text-[10px] text-text-muted">{hint}</div>
     </div>
   );
 }
@@ -223,17 +223,17 @@ function HintRow({ icon, label, text, className = "" }) {
     <div className={`flex items-start gap-2 text-sm ${className}`}>
       <span className="mt-0.5 shrink-0">{icon}</span>
       <div>
-        <span className="text-gray-400 font-medium">{label}:</span>{" "}
-        <span className="text-gray-300">{text}</span>
+        <span className="text-text-muted font-medium">{label}:</span>{" "}
+        <span className="text-text-secondary">{text}</span>
       </div>
     </div>
   );
 }
 
-function SnapshotItem({ label, value, valueClass = "text-gray-200" }) {
+function SnapshotItem({ label, value, valueClass = "text-text-secondary" }) {
   return (
     <div>
-      <div className="text-gray-500">{label}</div>
+      <div className="text-text-muted">{label}</div>
       <div className={`font-mono font-medium ${valueClass}`}>{value}</div>
     </div>
   );

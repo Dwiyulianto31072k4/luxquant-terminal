@@ -66,7 +66,7 @@ const fmtDate = (iso) => {
 // Premium signal interpretation
 const premiumColor = (pct) => {
   if (pct == null) return "text-text-muted";
-  if (pct > 0.05) return "text-green-400";
+  if (pct > 0.05) return "text-positive";
   if (pct < -0.05) return "text-loss";
   return "text-text-muted";
 };
@@ -124,7 +124,7 @@ const FlowHistoryBars = ({ history }) => {
               <div className="flex-1 flex items-end" style={{ height: HALF }}>
                 {isPositive && (
                   <div
-                    className="w-full rounded-t-sm bg-gradient-to-t from-green-600/70 to-green-400/90 transition-all"
+                    className="w-full rounded-t-sm bg-gradient-to-t from-positive/70 to-positive/90 transition-all"
                     style={{ height: `${barHeight}px` }}
                     title={`${d.date}: ${fmtMoney(d.total)}`}
                   />
@@ -134,7 +134,7 @@ const FlowHistoryBars = ({ history }) => {
               <div className="flex-1 flex items-start" style={{ height: HALF }}>
                 {!isPositive && (
                   <div
-                    className="w-full rounded-b-sm bg-gradient-to-b from-red-600/70 to-red-400/90 transition-all"
+                    className="w-full rounded-b-sm bg-gradient-to-b from-negative/70 to-negative/90 transition-all"
                     style={{ height: `${barHeight}px` }}
                     title={`${d.date}: ${fmtMoney(d.total)}`}
                   />
@@ -166,8 +166,8 @@ const ContributorChip = ({ fund, flow }) => {
     <div
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono border ${
         positive
-          ? "bg-green-500/10 border-green-500/20 text-green-300"
-          : "bg-red-500/10 border-red-500/20 text-loss"
+          ? "bg-positive/10 border-positive/20 text-positive"
+          : "bg-negative/10 border-negative/20 text-loss"
       }`}
     >
       <span className="font-bold tracking-wide">{fund}</span>
@@ -282,7 +282,7 @@ export default function InstitutionalFlowRadar() {
             Today's Net Flow
           </div>
           <div
-            className={`font-mono text-xl font-bold ${isPositive ? "text-green-400" : "text-loss"}`}
+            className={`font-mono text-xl font-bold ${isPositive ? "text-positive" : "text-loss"}`}
           >
             {fmtMoney(lastTotal)}
           </div>
@@ -296,7 +296,7 @@ export default function InstitutionalFlowRadar() {
           </div>
           <div
             className={`font-mono text-xl font-bold flex items-baseline gap-1 ${
-              streakDir === "inflow" ? "text-green-400" : "text-loss"
+              streakDir === "inflow" ? "text-positive" : "text-loss"
             }`}
           >
             {streakDays}d
@@ -312,7 +312,7 @@ export default function InstitutionalFlowRadar() {
           </div>
           <div
             className={`font-mono text-xl font-bold ${
-              cum7d != null && cum7d >= 0 ? "text-green-400" : "text-loss"
+              cum7d != null && cum7d >= 0 ? "text-positive" : "text-loss"
             }`}
           >
             {fmtMoney(cum7d)}

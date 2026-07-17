@@ -124,7 +124,7 @@ export default function CountryCurrencyPicker({
                     value={null}
                     className={({ active }) =>
                       `relative cursor-pointer select-none py-2.5 pl-12 pr-4 transition-colors ${
-                        active ? "bg-red-500/10 text-loss" : "text-text-muted/60"
+                        active ? "bg-negative/10 text-loss" : "text-text-muted/60"
                       }`
                     }
                   >
