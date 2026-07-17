@@ -930,7 +930,6 @@ export default function SignalsAnalytics() {
                   label={t("terminal.viz.kSpikes")}
                   value={session.spikes.length}
                   sub={session.spikes.length ? t("terminal.viz.kSpikesSub") : t("terminal.viz.none")}
-                  tone={session.spikes.length ? "text-negative" : undefined}
                 />
                 <Kpi
                   compact
@@ -1093,7 +1092,11 @@ export default function SignalsAnalytics() {
                     ) : (
                       <RankBars
                         align="start"
-                        data={session.spikes.map((s) => ({ ...s, color: ORANGE }))}
+                        // Volume intensity ≠ PnL — monochrome ink, never red/green
+                        data={session.spikes.map((s) => ({
+                          ...s,
+                          color: "rgb(var(--fg) / 0.72)",
+                        }))}
                         fmt={(v) => `${v.toFixed(1)}`}
                         suffix="×"
                         onPair={openPair}

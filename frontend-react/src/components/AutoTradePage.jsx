@@ -103,19 +103,19 @@ function MobileSectionPicker({ tabs, value, onChange }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 rounded-lg border border-line/35 bg-gold-primary/[0.07] px-4 py-3 text-left transition-colors active:bg-gold-primary/[0.12]"
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-ink/[0.1] bg-surface-raised px-4 py-3 text-left transition-colors active:bg-ink/[0.04]"
       >
         <span className="min-w-0">
-          <span className="block font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
+          <span className="block font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-text-muted">
             Section · tap to switch
           </span>
-          <span className="mt-0.5 block font-mono text-[13px] uppercase tracking-[0.15em] text-gold-light">
+          <span className="mt-0.5 block font-mono text-[13px] font-semibold uppercase tracking-[0.12em] text-text-primary">
             {current.label}
           </span>
         </span>
-        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-line/30 bg-gold-primary/15">
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary">
           <svg
-            className={`h-4 w-4 text-gold-primary transition-transform duration-200 ${
+            className={`h-4 w-4 text-text-secondary transition-transform duration-200 ${
               open ? "rotate-180" : ""
             }`}
             viewBox="0 0 24 24"
@@ -147,18 +147,16 @@ function MobileSectionPicker({ tabs, value, onChange }) {
                   onChange(item.id);
                   setOpen(false);
                 }}
-                className={`flex w-full items-center gap-2.5 px-4 py-3 text-left font-mono text-[12px] uppercase tracking-[0.15em] transition-colors ${
-                  on ? "" : "text-text-muted active:bg-ink/[0.04]"
+                className={`flex w-full items-center gap-2.5 px-4 py-3 text-left font-mono text-[12px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+                  on
+                    ? "bg-accent/12 text-accent"
+                    : "text-text-muted active:bg-ink/[0.04]"
                 }`}
-                style={on ? { background: "rgba(212,168,83,0.10)", color: "rgb(var(--accent-light))" } : undefined}
               >
                 <span
-                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                  style={
-                    on
-                      ? { background: "rgb(var(--accent))", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }
-                      : { background: "rgb(var(--ink) / 0.15)" }
-                  }
+                  className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${
+                    on ? "bg-accent" : "bg-ink/20"
+                  }`}
                 />
                 {item.label}
               </button>
@@ -189,22 +187,17 @@ function SideNav({ tabs, value, onChange }) {
             type="button"
             onClick={() => onChange(item.id)}
             aria-current={on ? "page" : undefined}
-            className={`group relative w-full rounded-md px-3 py-2 text-left transition-colors ${
-              on ? "" : "hover:bg-ink/[0.03]"
+            className={`group relative w-full rounded-lg px-3 py-2 text-left transition-colors ${
+              on ? "bg-accent/12" : "hover:bg-ink/[0.04]"
             }`}
-            style={on ? { background: "rgba(212,168,83,0.10)" } : undefined}
           >
             {on ? (
-              <span
-                className="absolute -left-[9px] top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full"
-                style={{ background: "rgb(var(--accent))", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
-              />
+              <span className="absolute -left-[9px] top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-full bg-accent" />
             ) : null}
             <span
-              className={`font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
-                on ? "" : "text-text-muted group-hover:text-text-primary"
+              className={`font-mono text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+                on ? "text-accent" : "text-text-muted group-hover:text-text-primary"
               }`}
-              style={on ? { color: "rgb(var(--accent-light))" } : undefined}
             >
               {item.label}
             </span>
@@ -265,7 +258,7 @@ function AutoTradeControlCenter({
     description:
       "Your configuration is saved. Start the bot when you want it to process incoming signals.",
     tone: "warn",
-    panel: "border-line/25 bg-gold-primary/[0.035]",
+    panel: "border-ink/[0.1] bg-surface-raised",
   };
   if (active && isDryRun) {
     state = {
@@ -274,7 +267,7 @@ function AutoTradeControlCenter({
       description:
         "The bot will follow signals and log activity, but will not place live orders. Turn off Dry run in Settings for live trading.",
       tone: "info",
-      panel: "border-[#5B8DEF]/35 bg-[#5B8DEF]/[0.06]",
+      panel: "border-[#5B8DEF]/30 bg-[#5B8DEF]/[0.06]",
     };
   } else if (active && globalLive && !isDryRun) {
     state = {
@@ -283,7 +276,7 @@ function AutoTradeControlCenter({
       description:
         "Risk limits and your saved strategy are enforced before every live entry.",
       tone: "good",
-      panel: "border-[#0ECB81]/35 bg-[#0ECB81]/[0.045]",
+      panel: "border-[#0ECB81]/30 bg-[#0ECB81]/[0.06]",
     };
   } else if (active && !globalLive && !isDryRun) {
     state = {
@@ -292,7 +285,7 @@ function AutoTradeControlCenter({
       description:
         "The server-wide live order switch is disabled. Your strategy remains saved and no new orders can be placed.",
       tone: "warn",
-      panel: "border-line/25 bg-gold-primary/[0.035]",
+      panel: "border-accent/30 bg-accent/[0.06]",
     };
   }
 
@@ -324,12 +317,12 @@ function AutoTradeControlCenter({
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between lg:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border ${
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border ${
               active
                 ? state.tone === "good"
-                  ? "border-[#0ECB81]/35 bg-[#0ECB81]/10 text-[#0ECB81]"
-                  : "border-[#5B8DEF]/35 bg-[#5B8DEF]/10 text-[#7da4ff]"
-                : "border-line/30 bg-gold-primary/10 text-gold-primary"
+                  ? "border-[#0ECB81]/35 bg-[#0ECB81]/12 text-[#0ECB81]"
+                  : "border-[#5B8DEF]/35 bg-[#5B8DEF]/12 text-[#5B8DEF]"
+                : "border-ink/[0.1] bg-surface-secondary text-text-secondary"
             }`}
           >
             <BinanceIcon className="h-5 w-5" />

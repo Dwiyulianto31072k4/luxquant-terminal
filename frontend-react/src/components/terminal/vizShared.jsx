@@ -691,32 +691,32 @@ export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
               {i + 1}
             </span>
             <span className="w-28 shrink-0"><CoinPill pair={d.pair} onPair={onPair} /></span>
-            <span className={`flex-1 ${start ? "h-[18px]" : "h-4"} rounded-md bg-ink/[0.03] overflow-hidden relative`}>
+            <span className={`relative flex-1 overflow-hidden rounded-md ${start ? "h-[18px] bg-ink/[0.06]" : "h-4 bg-ink/[0.04]"}`}>
               <span
-                className="absolute top-0 bottom-0 rounded-md transition-[width] duration-300"
+                className="absolute bottom-0 top-0 rounded-md transition-[width] duration-300"
                 style={
                   start
                     ? {
+                        // Solid fill (no soft alpha wash) — intensity rankings stay monochrome
                         width: `${Math.max(pct, 2)}%`,
                         left: 0,
-                        background: `linear-gradient(90deg, color-mix(in srgb, ${color} 18%, transparent) 0%, ${color} 100%)`,
-                        boxShadow: i === 0 ? `0 0 12px color-mix(in srgb, ${color} 30%, transparent)` : undefined,
+                        background: color,
+                        opacity: 0.55 + (1 - i / Math.max(data.length - 1, 1)) * 0.45,
                       }
                     : {
                         width: `${pct}%`,
                         left: d.v >= 0 ? "50%" : `${50 - pct}%`,
                         background: color,
-                        opacity: 0.75,
+                        opacity: 0.85,
                       }
                 }
               />
-              {!start && <span className="absolute top-0 bottom-0 left-1/2 w-px bg-ink/15" />}
+              {!start && <span className="absolute bottom-0 top-0 left-1/2 w-px bg-ink/15" />}
             </span>
             <span
-              className={`w-[4.25rem] shrink-0 text-right font-mono text-[11px] tabular-nums font-medium ${
-                start ? "" : d.v >= 0 ? "text-positive" : "text-negative"
+              className={`w-[4.25rem] shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums ${
+                start ? "text-text-primary" : d.v >= 0 ? "text-positive" : "text-negative"
               }`}
-              style={start ? { color } : undefined}
             >
               {fmt ? fmt(d.v) : fmtPct(d.v)}{suffix || ""}
             </span>
