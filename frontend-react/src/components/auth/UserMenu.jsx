@@ -1,13 +1,16 @@
 // src/components/auth/UserMenu.jsx
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n
 import HelpSupportModal from '../HelpSupportModal';
+import { ThemeAppearancePicker } from '../ThemeToggle';
 
 const UserMenu = () => {
   const { t, i18n } = useTranslation(); // <-- 2. Panggil i18n
   const { user, logout, isAuthenticated } = useAuth();
+  const { canSwitchTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -294,9 +297,19 @@ const UserMenu = () => {
             />
           </div>
 
+          {/* ─── Appearance (admin-gated theme preview) ─── */}
+          {canSwitchTheme && (
+            <>
+              <div className="mx-3 h-px bg-white/[0.05]" />
+              <div className="px-3 py-2.5">
+                <ThemeAppearancePicker />
+              </div>
+            </>
+          )}
+
           <div className="mx-3 h-px bg-white/[0.05]" />
 
-          {/* ─── Section 4: Logout ─── */}
+          {/* ─── Logout ─── */}
           <div className="py-1.5 px-1.5">
             <button
               onClick={handleLogout}

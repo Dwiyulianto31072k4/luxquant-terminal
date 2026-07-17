@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import ThemeToggle from './ThemeToggle';
+
 
 /* ──────────────────────────────────────────────────────────────
    Header — Flowscan-blended Web3-minimal reskin
@@ -98,9 +98,6 @@ const Header = ({ activeTab, setActiveTab }) => {
 
             {/* ─── KANAN: LIVE + Time + Search ─── */}
             <div className="flex items-center gap-3">
-              {/* Theme preview switch — admin-only while feature is gated */}
-              <ThemeToggle />
-
               {/* LIVE indicator — static LED + soft glow (no animate-ping) */}
               <div className="hidden sm:flex items-center gap-2">
                 <span className="relative flex h-1.5 w-1.5">

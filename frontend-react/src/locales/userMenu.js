@@ -25,6 +25,11 @@ export const userMenuEn = {
   notif_desc: "Alerts & email preferences",
   my_watchlist: "My Watchlist",
   help_support: "Help & Support",
+  appearance: "Appearance",
+  theme_lux: "Luxquant",
+  theme_lux_hint: "Warm gold",
+  theme_dark: "Dark",
+  theme_dark_hint: "Neutral",
   logout: "Log Out",
   upgrade_badge: "Upgrade"
 };
@@ -54,6 +59,11 @@ export const userMenuZh = {
   notif_desc: "警报和电子邮件偏好",
   my_watchlist: "我的自选列表",
   help_support: "帮助与支持",
+  appearance: "外观",
+  theme_lux: "Luxquant",
+  theme_lux_hint: "暖金",
+  theme_dark: "Dark",
+  theme_dark_hint: "中性",
   logout: "退出登录",
   upgrade_badge: "升级"
 };
