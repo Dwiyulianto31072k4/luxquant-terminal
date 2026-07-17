@@ -523,162 +523,255 @@ const PulseTicker = ({ items, onSelect }) => {
 };
 
 // ════════════════════════════════════════════
-// 5. EDITORIAL CARDS — LeadCard, SecondaryCard, ListRow
+// 5. BLOOMBERG EDITORIAL LAYOUT ATOMS
+//    Hero lead (image overline + deck) · stacked secondaries · dense wire rows
 // ════════════════════════════════════════════
 
-// LeadCard — hero. Desktop: image left (44%) + content. Mobile: image top + content.
-const LeadCard = ({ item, onSelect }) => {
+const MediaBlock = ({ item, className = "", playSize = "md" }) => {
   const imgSrc = getImageSrc(item);
   const isHeadline = item.content_type === "headline";
   const hasVideo = !!getVideoSrc(item);
+  const playCls =
+    playSize === "lg"
+      ? "w-12 h-12"
+      : playSize === "sm"
+        ? "w-7 h-7"
+        : "w-10 h-10";
+  const iconCls = playSize === "lg" ? "w-5 h-5" : playSize === "sm" ? "w-3 h-3" : "w-4 h-4";
 
   return (
-    <article
-      onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-xl overflow-hidden bg-surface-raised border border-white/[0.07] hover:border-white/15 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
-    >
-      <QuietEdges />
-
-      {/* Image */}
-      <div className="relative w-full lg:w-[44%] flex-shrink-0 aspect-[16/10] lg:aspect-auto overflow-hidden bg-[#050505]">
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-            onError={(e) => { e.target.style.display = "none"; }}
-          />
-        ) : (
+    <div className={`relative overflow-hidden bg-[#050505] ${className}`}>
+      {imgSrc ? (
+        <img
+          src={imgSrc}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          onError={(e) => {
+            e.target.style.display = "none";
+          }}
+        />
+      ) : (
+        <div className="absolute inset-0">
           <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
-        )}
-        {hasVideo && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-black/55 border border-white/25">
-              <svg className="w-5 h-5 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center gap-2.5">
-        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">Lead story</span>
-        <h2 className="font-display text-text-primary text-lg sm:text-xl lg:text-2xl font-semibold leading-tight tracking-tight group-hover:text-text-primary/90 transition-colors line-clamp-3">
-          {item.title}
-        </h2>
-        {item.description && (
-          <p className="text-text-secondary text-[12.5px] sm:text-[13px] leading-relaxed line-clamp-2">
-            {cleanText(item.description)}
-          </p>
-        )}
-        <div className="flex items-center gap-2 mt-1">
-          <DomainBadge domain={item.domain} size="lg" />
-          <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
         </div>
-      </div>
-    </article>
+      )}
+      {hasVideo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className={`flex items-center justify-center rounded-full bg-black/60 border border-white/25 ${playCls}`}>
+            <svg className={`${iconCls} text-white ml-0.5`} fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </div>
+      )}
+    </div>
   );
 };
 
-// SecondaryCard — medium card: landscape image top + title + meta (desktop tier)
-const SecondaryCard = ({ item, onSelect }) => {
-  const imgSrc = getImageSrc(item);
-  const isHeadline = item.content_type === "headline";
-  const hasVideo = !!getVideoSrc(item);
-
-  return (
-    <article
-      onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-xl overflow-hidden bg-surface-raised border border-white/[0.07] hover:border-white/15 hover:bg-white/[0.03] transition-all duration-300 flex flex-col"
-    >
-      <QuietEdges />
-
-      <div className="relative w-full aspect-[16/10] overflow-hidden flex-shrink-0 bg-[#050505]">
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-            onError={(e) => { e.target.style.display = "none"; }}
-          />
-        ) : (
-          <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
-        )}
-        {imgSrc && (
-          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-        )}
-        {hasVideo && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/25">
-              <svg className="w-4 h-4 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </span>
-          </div>
-        )}
+// Lead — Bloomberg hero: full-bleed image, then overline · headline · deck · byline
+const LeadCard = ({ item, onSelect }) => (
+  <article
+    onClick={() => onSelect(item)}
+    className="group cursor-pointer"
+  >
+    <MediaBlock item={item} className="aspect-[16/10] w-full" playSize="lg" />
+    <div className="pt-3.5 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+          {shortDomain(item.domain) || "Wire"}
+        </span>
+        <span className="text-text-muted/40">·</span>
+        <span className="font-mono text-[10px] text-text-muted/70">{timeAgo(item.created_at)}</span>
       </div>
+      <h2 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] font-semibold leading-[1.15] tracking-tight text-text-primary group-hover:text-white transition-colors">
+        {item.title}
+      </h2>
+      {item.description ? (
+        <p className="text-[14px] leading-relaxed text-text-secondary line-clamp-3 max-w-[62ch]">
+          {cleanText(item.description)}
+        </p>
+      ) : null}
+    </div>
+  </article>
+);
 
-      <div className="p-3 flex flex-col gap-1.5 flex-1">
-        <h4
-          className="font-display text-text-primary text-[13px] font-medium leading-snug line-clamp-2 group-hover:text-text-primary/90 transition-colors"
-          title={item.title}
-        >
-          {item.title}
-        </h4>
-        <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-white/[0.05]">
-          <span className="text-text-muted text-[9px] font-mono uppercase tracking-wider truncate">
-            {shortDomain(item.domain)}
-          </span>
-          <span className="text-text-muted/70 text-[9px] font-mono flex-shrink-0 ml-1">
-            {timeAgo(item.created_at)}
-          </span>
-        </div>
-      </div>
-    </article>
-  );
-};
+// Stack story — sits beside the lead (image left small, headline right) OR compact under-rail
+const StackStory = ({ item, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(item)}
+    className="group w-full flex gap-3 text-left py-3 first:pt-0 last:pb-0 border-b border-white/[0.07] last:border-b-0"
+  >
+    <MediaBlock item={item} className="w-[88px] h-[66px] shrink-0" playSize="sm" />
+    <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
+      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+        {shortDomain(item.domain)}
+        <span className="text-text-muted/40"> · </span>
+        {timeAgo(item.created_at)}
+      </span>
+      <h3 className="font-display text-[14px] font-semibold leading-snug text-text-primary line-clamp-3 group-hover:text-white transition-colors">
+        {item.title}
+      </h3>
+    </div>
+  </button>
+);
 
-// ListRow — scannable horizontal row: thumbnail left + title + source · time
+// Secondary card — 3-up mid-band (image top, tight deck)
+const SecondaryCard = ({ item, onSelect }) => (
+  <article
+    onClick={() => onSelect(item)}
+    className="group cursor-pointer flex flex-col"
+  >
+    <MediaBlock item={item} className="aspect-[16/10] w-full" />
+    <div className="pt-2.5 space-y-1.5">
+      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+        {shortDomain(item.domain)}
+        <span className="text-text-muted/40"> · </span>
+        {timeAgo(item.created_at)}
+      </span>
+      <h3 className="font-display text-[15px] font-semibold leading-snug text-text-primary line-clamp-3 group-hover:text-white transition-colors">
+        {item.title}
+      </h3>
+    </div>
+  </article>
+);
+
+// Wire row — dense terminal list: TIME | SOURCE | HEADLINE
+const WireRow = ({ item, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(item)}
+    className="group grid grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[56px_100px_minmax(0,1fr)] gap-x-3 gap-y-0.5 w-full py-2.5 text-left border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors"
+  >
+    <span className="font-mono text-[11px] tabular-nums text-text-muted pt-0.5">
+      {timeAgo(item.created_at).replace(" ago", "")}
+    </span>
+    <span className="hidden sm:block font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted pt-0.5 truncate">
+      {shortDomain(item.domain)}
+    </span>
+    <span className="font-display text-[13.5px] sm:text-[14px] font-medium leading-snug text-text-primary group-hover:text-white transition-colors line-clamp-2">
+      <span className="sm:hidden font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted mr-2">
+        {shortDomain(item.domain)}
+      </span>
+      {item.title}
+    </span>
+  </button>
+);
+
+// Mobile / compact list row with thumb
 const ListRow = ({ item, onSelect }) => {
   const hasVideo = !!getVideoSrc(item);
-
   return (
     <button
+      type="button"
       onClick={() => onSelect(item)}
-      className="group relative w-full flex gap-3 p-2.5 rounded-md text-left hover:bg-white/[0.03] transition-colors border-b border-white/[0.04] last:border-b-0"
+      className="group relative w-full flex gap-3 py-3 text-left border-b border-white/[0.06]"
     >
-      <span className="absolute left-0 inset-y-2.5 w-px bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="relative w-[72px] h-[72px] rounded-lg overflow-hidden flex-shrink-0 bg-[#050505] border border-white/[0.06]">
+      <div className="relative w-[76px] h-[58px] overflow-hidden flex-shrink-0 bg-[#050505]">
         <RowThumb item={item} />
         {hasVideo && (
           <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-black/55 border border-white/30">
-              <svg className="w-3 h-3 text-text-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 border border-white/30">
+              <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
           </span>
         )}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4
-          className="font-display text-text-primary text-[12.5px] font-medium leading-snug line-clamp-2 group-hover:text-text-primary/90 transition-colors"
-          title={item.title}
-        >
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
+          {shortDomain(item.domain)} · {timeAgo(item.created_at)}
+        </span>
+        <h4 className="font-display text-[13.5px] font-medium leading-snug line-clamp-2 text-text-primary group-hover:text-white transition-colors">
           {item.title}
         </h4>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-            {shortDomain(item.domain)}
-          </span>
-          <span className="text-text-muted/60 text-[9px] font-mono">· {timeAgo(item.created_at)}</span>
-        </div>
       </div>
     </button>
+  );
+};
+
+// Right-rail market desk (always-on desktop column)
+const MarketDesk = ({ trending, stats, onSearchTopic }) => {
+  const topDomains = stats?.top_domains?.slice(0, 8) || [];
+  const topics = trending?.trending?.slice(0, 12) || [];
+  return (
+    <aside className="space-y-6">
+      <div>
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted border-b border-white/[0.1] pb-2 mb-3">
+          Trending
+        </h3>
+        {topics.length === 0 ? (
+          <p className="text-[12px] text-text-muted/60">No topics yet</p>
+        ) : (
+          <ol className="space-y-0">
+            {topics.map((t, i) => (
+              <li key={t.topic}>
+                <button
+                  type="button"
+                  onClick={() => onSearchTopic(t.topic)}
+                  className="group flex w-full items-baseline gap-2.5 py-2 border-b border-white/[0.05] text-left hover:bg-white/[0.02]"
+                >
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted/50 w-4 shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="flex-1 text-[13px] text-text-primary/90 group-hover:text-white transition-colors">
+                    {t.topic}
+                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-text-muted/50">×{t.count}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {topDomains.length > 0 && (
+        <div>
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted border-b border-white/[0.1] pb-2 mb-3">
+            Sources
+          </h3>
+          <ul className="space-y-0">
+            {topDomains.map((d) => (
+              <li
+                key={d.domain}
+                className="flex items-center justify-between py-2 border-b border-white/[0.05]"
+              >
+                <span className="text-[12.5px] text-text-secondary truncate pr-2">
+                  {d.domain}
+                </span>
+                <span className="font-mono text-[11px] tabular-nums text-text-muted shrink-0">
+                  {d.count}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {stats && (
+        <div>
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted border-b border-white/[0.1] pb-2 mb-3">
+            Desk pulse
+          </h3>
+          <div className="grid grid-cols-3 gap-px bg-white/[0.06] border border-white/[0.06]">
+            {[
+              { l: "1h", v: stats.last_hour },
+              { l: "6h", v: stats.last_6h },
+              { l: "All", v: stats.total },
+            ].map((s) => (
+              <div key={s.l} className="bg-surface-raised px-2 py-3 text-center">
+                <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">{s.l}</div>
+                <div className="mt-1 font-mono text-[16px] font-semibold tabular-nums text-text-primary">
+                  {s.v ?? "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </aside>
   );
 };
 
@@ -967,50 +1060,49 @@ const Pagination = ({ page, totalPages, onChange }) => {
 // ════════════════════════════════════════════
 
 const LoadingSkeleton = () => (
-  <div className="lqsk-group space-y-4">
+  <div className="lqsk-group">
     <ShimmerStyles />
-    {/* Lead skeleton */}
-    <div className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden flex flex-col lg:flex-row lg:min-h-[230px]">
-      <div className="w-full lg:w-[44%] aspect-[16/10] lg:aspect-auto bg-white/5" />
-      <div className="flex-1 p-5 space-y-3">
-        <div className="h-2.5 w-20 bg-white/5 rounded" />
-        <div className="h-5 w-5/6 bg-white/5 rounded" />
-        <div className="h-3 w-full bg-white/5 rounded" />
-        <div className="h-3 w-2/3 bg-white/5 rounded" />
-      </div>
-    </div>
-    {/* Desktop skeleton: secondary 4-up + more cards */}
-    <div className="hidden lg:block space-y-4">
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden">
+    <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8">
+      <div className="lg:col-span-8 space-y-6">
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-7 space-y-3">
             <div className="aspect-[16/10] bg-white/5" />
-            <div className="p-3 space-y-1.5">
-              <div className="h-2.5 bg-white/5 rounded w-3/4" />
-              <div className="h-2 bg-white/5 rounded w-1/2" />
-            </div>
+            <div className="h-3 w-24 bg-white/5 rounded" />
+            <div className="h-6 w-5/6 bg-white/5 rounded" />
+            <div className="h-3 w-full bg-white/5 rounded" />
           </div>
-        ))}
+          <div className="col-span-5 space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="w-[88px] h-[66px] bg-white/5 shrink-0" />
+                <div className="flex-1 space-y-2 py-1">
+                  <div className="h-2 w-20 bg-white/5 rounded" />
+                  <div className="h-3 w-full bg-white/5 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2 pt-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-10 bg-white/[0.03] border-b border-white/[0.04]" />
+          ))}
+        </div>
       </div>
-      <div className="flex flex-wrap gap-3">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="grow basis-[320px] max-w-[700px] rounded-md bg-white/[0.02] border border-white/5 overflow-hidden">
-            <div className="aspect-[16/10] bg-white/5" />
-            <div className="p-3 space-y-1.5">
-              <div className="h-2.5 bg-white/5 rounded w-3/4" />
-              <div className="h-2 bg-white/5 rounded w-1/2" />
-            </div>
-          </div>
+      <div className="lg:col-span-4 space-y-3">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-8 bg-white/[0.03] border-b border-white/[0.04]" />
         ))}
       </div>
     </div>
-    {/* Mobile skeleton: compact rows */}
-    <div className="flex flex-col gap-2 lg:hidden">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="flex gap-3 p-2.5">
-          <div className="w-[72px] h-[72px] rounded-md bg-white/5 flex-shrink-0" />
-          <div className="flex-1 space-y-2 py-2">
-            <div className="h-2.5 bg-white/5 rounded w-5/6" />
+    <div className="lg:hidden space-y-4">
+      <div className="aspect-[16/10] bg-white/5" />
+      <div className="h-5 w-4/5 bg-white/5 rounded" />
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex gap-3">
+          <div className="w-[76px] h-[58px] bg-white/5 shrink-0" />
+          <div className="flex-1 space-y-2 py-1">
+            <div className="h-2.5 bg-white/5 rounded w-full" />
             <div className="h-2 bg-white/5 rounded w-1/3" />
           </div>
         </div>
@@ -1424,147 +1516,238 @@ const CryptoNewsPage = () => {
     page === 1 && !searchQuery && !activeCategory && activeFilter === "all";
 
   // Partition into lead / secondary / list — prefer visual items for hero tiers
-  const { lead, secondary, listItems } = useMemo(() => {
+  const { lead, secondary, midBand, listItems } = useMemo(() => {
     if (!heroEnabled || filteredItems.length === 0) {
-      return { lead: null, secondary: [], listItems: filteredItems };
+      return { lead: null, secondary: [], midBand: [], listItems: filteredItems };
     }
-    const SECONDARY_COUNT = 4; // lead + 4 = 5 top stories
+    // Bloomberg hero: 1 lead + 3 stacked secondaries, rest go to wire / mid-band
+    const STACK_COUNT = 3;
+    const MID_BAND = 3;
     const used = new Set();
     const leadItem = filteredItems.find(hasVisual) || filteredItems[0];
     if (leadItem) used.add(leadItem.id);
 
     const sec = [];
     for (const it of filteredItems) {
-      if (sec.length >= SECONDARY_COUNT) break;
+      if (sec.length >= STACK_COUNT) break;
       if (used.has(it.id)) continue;
       if (hasVisual(it)) {
         sec.push(it);
         used.add(it.id);
       }
     }
-    // backfill if fewer than SECONDARY_COUNT visual items available
-    if (sec.length < SECONDARY_COUNT) {
+    if (sec.length < STACK_COUNT) {
       for (const it of filteredItems) {
-        if (sec.length >= SECONDARY_COUNT) break;
+        if (sec.length >= STACK_COUNT) break;
         if (!used.has(it.id)) {
           sec.push(it);
           used.add(it.id);
         }
       }
     }
+
+    const mid = [];
+    for (const it of filteredItems) {
+      if (mid.length >= MID_BAND) break;
+      if (used.has(it.id)) continue;
+      mid.push(it);
+      used.add(it.id);
+    }
+
     const list = filteredItems.filter((it) => !used.has(it.id));
-    return { lead: leadItem, secondary: sec, listItems: list };
+    return { lead: leadItem, secondary: sec, midBand: mid, listItems: list };
   }, [filteredItems, heroEnabled]);
+
+  // When hero is off, treat all as list wire
+  const layout = heroEnabled
+    ? { lead, secondary, midBand, listItems }
+    : {
+        lead: null,
+        secondary: [],
+        midBand: [],
+        listItems: filteredItems,
+      };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const sectionLabel = activeCategory
     ? CATEGORY_RULES.find((c) => c.key === activeCategory)?.label
     : searchQuery
-    ? "Results"
-    : "Top Stories";
+    ? "Search results"
+    : "Top stories";
 
   // ── Render ─────────────────────────────
   return (
-    <div className="space-y-5 sm:space-y-6 pb-8">
+    <div className="pb-10">
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
-      {/* Masthead */}
-      <header className="flex flex-col gap-1 border-b border-white/[0.07] pb-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
-          Markets · Wire
-        </p>
+      {/* ── Masthead ── */}
+      <header className="border-b border-white/[0.1] pb-3 mb-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
-            Crypto News
-          </h1>
-          {stats?.total != null && (
-            <span className="font-mono text-[11px] tabular-nums text-text-muted">
-              {Number(stats.total).toLocaleString()} stories indexed
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted mb-1">
+              LuxQuant · Markets
+            </p>
+            <h1 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-text-primary leading-none">
+              News
+            </h1>
+          </div>
+          <div className="flex items-center gap-4 font-mono text-[11px] text-text-muted">
+            {stats?.last_hour != null && (
+              <span>
+                <span className="text-text-muted/50">1h </span>
+                <span className="tabular-nums text-text-primary/80">{stats.last_hour}</span>
+              </span>
+            )}
+            {stats?.total != null && (
+              <span>
+                <span className="text-text-muted/50">Indexed </span>
+                <span className="tabular-nums text-text-primary/80">
+                  {Number(stats.total).toLocaleString()}
+                </span>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+              Live
             </span>
-          )}
+          </div>
         </div>
       </header>
 
-      <FilterBar
-        searchInput={searchInput}
-        onSearchChange={handleSearchInput}
-        onClearSearch={handleClearSearch}
-        activeFilter={activeFilter}
-        onFilterChange={handleFilterChange}
-        activeCategory={activeCategory}
-        onCategoryChange={handleCategoryChange}
-        categoryCounts={categoryCounts}
-        stats={stats}
-      />
-
-      <CollapsibleInsights
-        trending={trending}
-        stats={stats}
-        onSearchTopic={handleSearchTopic}
-      />
+      {/* ── Filters ── */}
+      <div className="mb-5">
+        <FilterBar
+          searchInput={searchInput}
+          onSearchChange={handleSearchInput}
+          onClearSearch={handleClearSearch}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+          activeCategory={activeCategory}
+          onCategoryChange={handleCategoryChange}
+          categoryCounts={categoryCounts}
+          stats={stats}
+        />
+      </div>
 
       {loading ? (
         <LoadingSkeleton />
       ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="font-display text-text-primary text-base mb-1">No results</p>
-          <p className="text-text-muted text-xs max-w-sm">
+        <div className="flex flex-col items-center justify-center py-28 text-center border-y border-white/[0.06]">
+          <p className="font-display text-text-primary text-lg mb-1">No results</p>
+          <p className="text-text-muted text-sm max-w-sm">
             {searchQuery
-              ? `Nothing matches “${searchQuery}”. Try a broader query.`
+              ? `Nothing matches “${searchQuery}”.`
               : activeCategory
-              ? "No stories in this topic right now — clear the topic filter."
-              : "The wire is quiet. Check back shortly."}
+              ? "No stories in this topic — clear the filter."
+              : "The wire is quiet."}
           </p>
         </div>
       ) : (
-        <div className="space-y-5">
-          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-              {sectionLabel}
-            </h2>
-            <span className="font-mono text-[10px] tabular-nums text-text-muted/70">
-              {filteredItems.length} on page
-            </span>
+        <>
+          {/* ════════ DESKTOP: Bloomberg 8+4 ════════ */}
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+            {/* MAIN COLUMN */}
+            <div className="lg:col-span-8 min-w-0 space-y-8">
+              {/* Hero band: lead + stack */}
+              {layout.lead && (
+                <section className="grid grid-cols-12 gap-6 border-b border-white/[0.1] pb-8">
+                  <div className="col-span-12 xl:col-span-7">
+                    <LeadCard item={layout.lead} onSelect={openArticle} />
+                  </div>
+                  <div className="col-span-12 xl:col-span-5 xl:border-l xl:border-white/[0.08] xl:pl-6">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted mb-1 pb-2 border-b border-white/[0.08]">
+                      Also on the wire
+                    </p>
+                    <div>
+                      {layout.secondary.map((it) => (
+                        <StackStory key={it.id} item={it} onSelect={openArticle} />
+                      ))}
+                      {layout.secondary.length === 0 && (
+                        <p className="text-[12px] text-text-muted/60 py-4">No secondary stories</p>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Mid-band 3-up */}
+              {layout.midBand?.length > 0 && (
+                <section>
+                  <div className="grid grid-cols-3 gap-5 border-b border-white/[0.1] pb-8">
+                    {layout.midBand.map((it) => (
+                      <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Dense wire list */}
+              <section>
+                <div className="flex items-baseline justify-between border-b border-white/[0.12] pb-2 mb-1">
+                  <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
+                    {layout.lead ? "Latest" : sectionLabel}
+                  </h2>
+                  <span className="font-mono text-[10px] tabular-nums text-text-muted/50">
+                    {layout.listItems.length} headlines
+                  </span>
+                </div>
+                <div>
+                  {(layout.listItems.length > 0
+                    ? layout.listItems
+                    : !layout.lead
+                      ? filteredItems
+                      : []
+                  ).map((it) => (
+                    <WireRow key={it.id} item={it} onSelect={openArticle} />
+                  ))}
+                </div>
+                <div className="pt-6">
+                  <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+                </div>
+              </section>
+            </div>
+
+            {/* RIGHT RAIL */}
+            <div className="lg:col-span-4 lg:sticky lg:top-20">
+              <MarketDesk
+                trending={trending}
+                stats={stats}
+                onSearchTopic={handleSearchTopic}
+              />
+            </div>
           </div>
 
-          {lead && <LeadCard item={lead} onSelect={openArticle} />}
+          {/* ════════ MOBILE ════════ */}
+          <div className="lg:hidden space-y-5">
+            {layout.lead && <LeadCard item={layout.lead} onSelect={openArticle} />}
 
-          <div className="hidden lg:block space-y-5">
-            {secondary.length > 0 && (
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                {secondary.map((it) => (
-                  <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
+            {layout.secondary.length > 0 && (
+              <div className="border-t border-white/[0.08] pt-1">
+                {layout.secondary.map((it) => (
+                  <StackStory key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </div>
             )}
 
-            {listItems.length > 0 && (
-              <div className="space-y-3">
-                {lead && (
-                  <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted border-b border-white/[0.06] pb-2">
-                    More stories
-                  </h3>
-                )}
-                <div className="flex flex-wrap gap-3">
-                  {listItems.map((it) => (
-                    <div key={it.id} className="grow basis-[320px] max-w-[700px]">
-                      <SecondaryCard item={it} onSelect={openArticle} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            <CollapsibleInsights
+              trending={trending}
+              stats={stats}
+              onSearchTopic={handleSearchTopic}
+            />
 
-          <div className="flex flex-col lg:hidden divide-y divide-white/[0.05] border-t border-white/[0.06]">
-            {[...secondary, ...listItems].map((it) => (
-              <ListRow key={it.id} item={it} onSelect={openArticle} />
-            ))}
-          </div>
+            <div className="border-t border-white/[0.1] pt-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted py-2">
+                {layout.lead ? "Latest" : sectionLabel}
+              </p>
+              {[...(layout.midBand || []), ...layout.listItems].map((it) => (
+                <ListRow key={it.id} item={it} onSelect={openArticle} />
+              ))}
+            </div>
 
-          <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
-        </div>
+            <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+          </div>
+        </>
       )}
 
       <AssistantWidget pageId="crypto-news" />
