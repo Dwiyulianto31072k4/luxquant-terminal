@@ -407,22 +407,22 @@ const MarketPulsePageInner = () => {
     return e.event_type || "—";
   };
 
-  // Tag class — keep emerald/red bull/bear colors per user request, just flatten styling
+  // Tag class — Binance pos/neg only (flash = accent attention)
   const eventTagClass = (e) => {
     const type = e.event_type?.toLowerCase() || "";
     if (type.includes("high break") || type.includes("strong rally") || type.includes("breakout"))
-      return "bg-emerald-500/10 text-emerald-300 border-emerald-500/25";
+      return "border-profit/25 bg-profit/12 text-profit";
     if (type.includes("low break") || type.includes("breakdown"))
-      return "bg-red-500/10 text-red-300 border-red-500/25";
+      return "border-loss/25 bg-loss/12 text-loss";
     if (type.includes("pullback") || type.includes("dip"))
-      return "bg-amber-500/10 text-amber-300 border-amber-500/25";
+      return "border-accent/30 bg-accent/12 text-accent";
     if (type === "flash_move")
-      return "bg-red-500/10 text-red-300 border-red-500/25";
+      return "border-accent/30 bg-accent/12 text-accent";
     if (type === "rapid_move")
-      return "bg-amber-500/10 text-amber-300 border-amber-500/25";
+      return "border-accent/25 bg-accent/10 text-accent";
     if (e.direction === "bullish")
-      return "bg-emerald-500/[0.06] text-emerald-300/80 border-emerald-500/15";
-    return "bg-red-500/[0.06] text-red-300/80 border-red-500/15";
+      return "border-profit/20 bg-profit/10 text-profit";
+    return "border-loss/20 bg-loss/10 text-loss";
   };
 
   const selectCoin = (pair) => {
@@ -464,24 +464,24 @@ const MarketPulsePageInner = () => {
   // ═════════ RENDER ═════════
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-4 pb-10">
       <PulseStyles />
 
-      {/* ═══ PAGE HEADER (Flowscan: gradient title + subtitle + live pill) ═══ */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* ═══ PAGE HEADER — Terminal desk ═══ */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
             Market Pulse
           </h1>
-          <p className="text-sm text-text-secondary mt-2">
+          <p className="mt-1.5 text-[13px] text-text-secondary">
             Real-time event flow across{" "}
-            <span className="text-text-primary/85 font-mono tabular-nums">{stats?.hourly?.unique_coins || 0}</span>{" "}
+            <span className="font-mono font-semibold tabular-nums text-text-primary">{stats?.hourly?.unique_coins || 0}</span>{" "}
             coins · auto-refresh 10s
           </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="hidden sm:inline text-[11px] text-text-muted/50 font-mono tabular-nums">
+        <div className="flex flex-shrink-0 items-center gap-3">
+          <span className="hidden font-mono text-[11px] tabular-nums text-text-muted sm:inline">
             {lastUpdated
               ? `Updated ${lastUpdated.toLocaleTimeString("en-US", {
                   hour: "2-digit",
@@ -491,18 +491,18 @@ const MarketPulsePageInner = () => {
                 })}`
               : "Loading…"}
           </span>
-          <div className="flex h-8 items-center gap-2 border border-emerald-500/25 bg-emerald-500/[0.06] rounded-md px-2.5">
+          <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
             <span className="relative flex h-1.5 w-1.5 shrink-0">
               {!loading && (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 opacity-75" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
               )}
               <span
                 className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
-                  loading ? "bg-amber-500" : "bg-emerald-500"
+                  loading ? "bg-accent" : "bg-profit"
                 }`}
               />
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-400">
+            <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${loading ? "text-accent" : "text-profit"}`}>
               {loading ? "Sync" : "Live"}
             </span>
           </div>
@@ -608,12 +608,12 @@ const MarketPulsePageInner = () => {
             aria-expanded={sidebarOpen}
             aria-label="Show side panel"
             title="Show side panel"
-            className="mp-sidebar-rail group relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md hover:border-line/30 transition-colors"
+            className="mp-sidebar-rail group relative overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/15"
           >
-            <span className="flex items-center justify-center w-6 h-6 rounded-md border border-ink/[0.08] bg-ink/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors group-hover:text-text-primary">
               <IconChevronsLeft className="h-3.5 w-3.5" />
             </span>
-            <span className="mp-rail-label text-[9px] font-semibold uppercase tracking-[0.22em] text-text-muted/60 group-hover:text-text-primary transition-colors">
+            <span className="mp-rail-label text-[9px] font-semibold uppercase tracking-[0.22em] text-text-muted group-hover:text-text-primary transition-colors">
               Market Panel
             </span>
           </button>
@@ -649,7 +649,7 @@ export default MarketPulsePage;
 const PulseTape = ({ items, onSelect }) => {
   const tape = [...items, ...items];
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)]">
+    <div className="relative overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised">
       <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-surface-raised to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface-raised to-transparent z-10 pointer-events-none" />
       <div className="flex gap-8 py-2.5 animate-pulse-tape whitespace-nowrap relative z-0">
@@ -666,7 +666,7 @@ const PulseTape = ({ items, onSelect }) => {
               <span className="text-text-primary/90 text-[11px] font-medium tracking-tight">{symbol}</span>
               <span
                 className={`text-[11px] font-mono tabular-nums flex items-center gap-1 ${
-                  pos ? "text-emerald-400" : "text-red-400"
+                  pos ? "text-profit" : "text-loss"
                 }`}
               >
                 {pos ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -688,52 +688,49 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
   const { bull, bear, bullPct, verdict, adRatio } = ratio;
   const bearPct = 100 - bullPct;
   const cfg = {
-    bull: { label: "Bullish", bias: "Long bias", color: "rgb(var(--pos))", text: "text-emerald-400", chip: "bg-emerald-500/[0.12] text-emerald-400 border-emerald-500/30" },
-    bear: { label: "Bearish", bias: "Short bias", color: "rgb(var(--neg))", text: "text-red-400", chip: "bg-red-500/[0.12] text-red-400 border-red-500/30" },
-    neutral: { label: "Neutral", bias: "No clear bias", color: "rgb(var(--accent-light))", text: "text-gold-primary", chip: "bg-gold-primary/[0.12] text-gold-primary border-line/30" },
+    bull: { label: "Bullish", bias: "Long bias", color: "rgb(var(--pos))", text: "text-profit", chip: "border-profit/30 bg-profit/10 text-profit" },
+    bear: { label: "Bearish", bias: "Short bias", color: "rgb(var(--neg))", text: "text-loss", chip: "border-loss/30 bg-loss/10 text-loss" },
+    neutral: { label: "Neutral", bias: "No clear bias", color: "rgb(var(--accent-light))", text: "text-accent", chip: "border-ink/15 bg-ink/[0.05] text-text-secondary" },
   }[verdict];
 
   const adDisplay =
     adRatio == null ? "—" : adRatio === Infinity ? "∞" : adRatio.toFixed(2);
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] px-4 py-3">
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-        {/* Verdict */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 hidden sm:inline">
+    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+        <div className="flex flex-shrink-0 items-center gap-3">
+          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted sm:inline">
             Market Bias · 1h
           </span>
           <div className="flex items-center gap-2">
-            <span className={`text-lg sm:text-xl font-medium leading-none tracking-tight ${cfg.text}`}>
+            <span className={`text-lg font-semibold leading-none tracking-tight sm:text-xl ${cfg.text}`}>
               {cfg.label}
             </span>
-            <span className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-md border font-medium uppercase tracking-[0.1em] ${cfg.chip}`}>
+            <span className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] tabular-nums ${cfg.chip}`}>
               {cfg.bias}
             </span>
           </div>
         </div>
 
-        {/* Diverging bar */}
-        <div className="flex-1 min-w-0">
-          <div className="h-2 rounded-full overflow-hidden bg-ink/[0.05] flex">
-            <div className="bg-emerald-500/80 transition-all duration-500" style={{ width: `${bullPct}%` }} />
-            <div className="bg-red-500/80 transition-all duration-500" style={{ width: `${bearPct}%` }} />
+        <div className="min-w-0 flex-1">
+          <div className="flex h-2 overflow-hidden rounded-full bg-ink/[0.08]">
+            <div className="bg-profit transition-all duration-500" style={{ width: `${bullPct}%` }} />
+            <div className="bg-loss transition-all duration-500" style={{ width: `${bearPct}%` }} />
           </div>
-          <div className="mt-1.5 flex justify-between font-mono tabular-nums text-[10px]">
-            <span className="text-emerald-400 flex items-center gap-1">
+          <div className="mt-1.5 flex justify-between font-mono text-[10px] font-semibold tabular-nums">
+            <span className="flex items-center gap-1 text-profit">
               <IconArrowUpTri className="h-2 w-2" /> {bull} pumps · {Math.round(bullPct)}%
             </span>
-            <span className="text-red-400 flex items-center gap-1">
+            <span className="flex items-center gap-1 text-loss">
               {Math.round(bearPct)}% · {bear} dumps <IconArrowDownTri className="h-2 w-2" />
             </span>
           </div>
         </div>
 
-        {/* A/D ratio */}
-        <div className="flex-shrink-0 flex items-center gap-1.5 border-t sm:border-t-0 sm:border-l border-ink/[0.06] pt-2 sm:pt-0 sm:pl-5">
-          <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45">A/D</span>
-          <span className="text-sm font-mono tabular-nums font-medium text-text-primary leading-none">{adDisplay}</span>
+        <div className="flex flex-shrink-0 items-center gap-1.5 border-t border-ink/[0.08] pt-2 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">A/D</span>
+          <span className="font-mono text-sm font-semibold tabular-nums leading-none text-text-primary">{adDisplay}</span>
         </div>
       </div>
     </div>
@@ -745,8 +742,8 @@ const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
 // ════════════════════════════════════════════════════════
 
 const StatCardShell = ({ children }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 transition-all duration-200 hover:border-ink/[0.10] hover:bg-surface-secondary">
-    <div className="relative z-10 h-full flex flex-col">{children}</div>
+  <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 transition-colors hover:border-ink/14">
+    <div className="relative z-10 flex h-full flex-col">{children}</div>
   </div>
 );
 
@@ -756,18 +753,18 @@ const KpiEvents = ({ total, uniqueCoins, histogram }) => {
   return (
     <StatCardShell>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
           Events · 1h
         </span>
-        <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted/40">
+        <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
           live
         </span>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl sm:text-[28px] font-light text-text-primary leading-none tabular-nums tracking-tight">
+        <span className="text-2xl sm:text-[28px] font-semibold text-text-primary leading-none tabular-nums tracking-tight">
           {total}
         </span>
-        <span className="text-[11px] font-mono text-text-muted/55 tabular-nums">
+        <span className="text-[11px] font-mono text-text-muted tabular-nums">
           / {uniqueCoins} coins
         </span>
       </div>
@@ -780,13 +777,13 @@ const KpiEvents = ({ total, uniqueCoins, histogram }) => {
             <div key={i} className="flex-1 flex flex-col-reverse" style={{ height: `${pct}%` }}>
               {b.bull > 0 && (
                 <div
-                  className="bg-emerald-500/75 rounded-[1px]"
+                  className="rounded-[1px] bg-profit"
                   style={{ height: `${bullRatio * 100}%` }}
                 />
               )}
               {b.bear > 0 && (
                 <div
-                  className="bg-red-500/75 rounded-[1px]"
+                  className="rounded-[1px] bg-loss"
                   style={{ height: `${(1 - bullRatio) * 100}%` }}
                 />
               )}
@@ -804,13 +801,13 @@ const KpiBullBear = ({ ratio }) => {
   return (
     <StatCardShell>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
           Bull · Bear · 1h
         </span>
         {ratio.total > 0 && (
           <span
             className={`text-[10px] font-mono tabular-nums flex items-center gap-0.5 ${
-              dom === "bull" ? "text-emerald-400" : "text-red-400"
+              dom === "bull" ? "text-profit" : "text-loss"
             }`}
           >
             {dom === "bull" ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -819,11 +816,11 @@ const KpiBullBear = ({ ratio }) => {
         )}
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className="text-2xl sm:text-[26px] font-light text-emerald-400 leading-none tabular-nums tracking-tight">
+        <span className="text-2xl sm:text-[26px] font-semibold text-profit leading-none tabular-nums tracking-tight">
           {ratio.bull}
         </span>
         <span className="text-base text-text-muted/30">/</span>
-        <span className="text-2xl sm:text-[26px] font-light text-red-400 leading-none tabular-nums tracking-tight">
+        <span className="text-2xl sm:text-[26px] font-semibold text-loss leading-none tabular-nums tracking-tight">
           {ratio.bear}
         </span>
       </div>
@@ -831,17 +828,17 @@ const KpiBullBear = ({ ratio }) => {
         <div className="mt-auto pt-3">
           <div className="h-1 rounded-full overflow-hidden bg-ink/[0.04] flex">
             <div
-              className="bg-emerald-500/80 transition-all duration-500"
+              className="bg-profit transition-all duration-500"
               style={{ width: `${ratio.bullPct}%` }}
             />
             <div
-              className="bg-red-500/80 transition-all duration-500"
+              className="bg-loss transition-all duration-500"
               style={{ width: `${100 - ratio.bullPct}%` }}
             />
           </div>
           <div className="mt-1.5 flex justify-between font-mono tabular-nums">
-            <span className="text-[10px] text-emerald-400">{Math.round(ratio.bullPct)}%</span>
-            <span className="text-[10px] text-red-400">{Math.round(100 - ratio.bullPct)}%</span>
+            <span className="text-[10px] text-profit">{Math.round(ratio.bullPct)}%</span>
+            <span className="text-[10px] text-loss">{Math.round(100 - ratio.bullPct)}%</span>
           </div>
         </div>
       )}
@@ -853,25 +850,25 @@ const KpiBullBear = ({ ratio }) => {
 const KpiFlash = ({ count, previews, onSelect }) => (
   <StatCardShell>
     <div className="flex items-center justify-between mb-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
         Flash Moves · 1h
       </span>
       {count > 0 && (
         <span className="relative flex h-1.5 w-1.5 shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
         </span>
       )}
     </div>
     <div className="flex items-baseline gap-2">
       <span
-        className={`text-2xl sm:text-[28px] font-light leading-none tabular-nums tracking-tight ${
-          count > 0 ? "text-amber-400" : "text-text-primary"
+        className={`text-2xl sm:text-[28px] font-semibold leading-none tabular-nums tracking-tight ${
+          count > 0 ? "text-accent" : "text-text-primary"
         }`}
       >
         {count}
       </span>
-      <span className="text-[11px] font-mono text-text-muted/55">spikes</span>
+      <span className="text-[11px] font-mono text-text-muted">spikes</span>
     </div>
     <div className="mt-auto pt-3 space-y-1.5">
       {previews.length > 0 ? (
@@ -884,23 +881,23 @@ const KpiFlash = ({ count, previews, onSelect }) => (
               onClick={() => onSelect(p.pair)}
               className="w-full flex items-center gap-2 group"
             >
-              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted/60 w-10 truncate text-left group-hover:text-text-primary transition-colors">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted w-10 truncate text-left group-hover:text-text-primary transition-colors">
                 {symbol}
               </span>
-              <div className="flex-1 h-[3px] bg-amber-500/15 rounded-full overflow-hidden">
+              <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-ink/[0.08]">
                 <div
-                  className="bg-amber-500/80 h-full rounded-full"
+                  className="h-full rounded-full bg-accent"
                   style={{ width: `${pct * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] font-mono tabular-nums text-amber-400/80">
+              <span className="font-mono text-[10px] tabular-nums text-text-muted">
                 {p.move_seconds}s
               </span>
             </button>
           );
         })
       ) : (
-        <p className="text-text-muted/40 text-[10px]">No flash moves yet</p>
+        <p className="text-text-muted text-[10px]">No flash moves yet</p>
       )}
     </div>
   </StatCardShell>
@@ -911,13 +908,13 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   if (!biggest?.pair) {
     return (
       <StatCardShell>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
           Biggest Move · 1h
         </span>
-        <p className="text-text-primary text-2xl sm:text-[28px] font-light mt-2 leading-none tabular-nums">
+        <p className="text-text-primary text-2xl sm:text-[28px] font-semibold mt-2 leading-none tabular-nums">
           —
         </p>
-        <p className="text-text-muted/40 text-[10px] mt-auto pt-3">No data yet</p>
+        <p className="text-text-muted text-[10px] mt-auto pt-3">No data yet</p>
       </StatCardShell>
     );
   }
@@ -926,11 +923,11 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(biggest.pair)}
-      className="text-left relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-secondary border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-4 transition-all duration-200 hover:border-line/30 hover:bg-surface-secondary cursor-pointer"
+      className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 text-left transition-colors hover:border-ink/14 cursor-pointer"
     >
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/60">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
             Biggest Move · 1h
           </span>
           <IconChartLine className="h-3 w-3 text-text-muted/30" />
@@ -941,14 +938,14 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
             <p className="text-text-primary text-[13px] font-medium truncate leading-tight">
               {titleCase(symbol)}
             </p>
-            <p className="text-text-muted/55 text-[10px] font-mono tabular-nums leading-tight mt-0.5">
+            <p className="text-text-muted text-[10px] font-mono tabular-nums leading-tight mt-0.5">
               {biggest.pair}
             </p>
           </div>
         </div>
         <p
-          className={`text-2xl sm:text-[26px] font-light leading-none tabular-nums tracking-tight mt-auto ${
-            pos ? "text-emerald-400" : "text-red-400"
+          className={`text-2xl sm:text-[26px] font-semibold leading-none tabular-nums tracking-tight mt-auto ${
+            pos ? "text-profit" : "text-loss"
           }`}
         >
           {pos ? "+" : ""}
@@ -970,12 +967,12 @@ const ControlBar = ({
   timeframeFilter, setTimeframeFilter,
   coinDetail, timeAgo, openChartModal,
 }) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)]">
-    <div className="relative z-10 p-4 flex flex-col gap-3">
+  <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
+    <div className="relative z-10 flex flex-col gap-3 p-3.5 md:p-4">
       {/* Row 1: Search + active coin pills */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-        <label className="group flex h-9 min-w-0 md:w-52 flex-shrink-0 items-center gap-2 bg-ink/[0.03] border border-ink/[0.06] rounded-md px-3 transition-colors focus-within:border-line/30 focus-within:bg-ink/[0.05]">
-          <IconSearch className="h-3.5 w-3.5 text-text-muted/55 transition-colors group-focus-within:text-gold-primary/70 shrink-0" />
+      <div className="flex flex-col items-stretch gap-3 md:flex-row md:items-center">
+        <label className="group flex h-9 min-w-0 flex-shrink-0 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-secondary px-3 transition-colors focus-within:border-ink/20 md:w-52">
+          <IconSearch className="h-3.5 w-3.5 shrink-0 text-text-muted transition-colors group-focus-within:text-accent" />
           <input
             type="text"
             placeholder="Search coin..."
@@ -984,7 +981,7 @@ const ControlBar = ({
               setSearchPair(e.target.value);
               setSelectedCoin(null);
             }}
-            className="w-full min-w-0 bg-transparent text-[12px] font-mono outline-none placeholder:text-text-muted/40 text-text-primary"
+            className="w-full min-w-0 bg-transparent font-mono text-[12px] text-text-primary outline-none placeholder:text-text-muted"
           />
         </label>
 
@@ -996,17 +993,17 @@ const ControlBar = ({
               <button
                 key={pair}
                 onClick={() => selectCoin(pair)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-all border ${
+                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
                   isSelected
-                    ? "bg-gold-primary/15 text-text-primary border-line/40"
-                    : "bg-ink/[0.03] text-text-muted/80 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
+                    ? "border-transparent bg-accent text-accent-fg"
+                    : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
                 }`}
               >
                 <CoinLogo pair={pair} size={14} />
-                <span className="font-medium tracking-tight">{symbol}</span>
+                <span className="tracking-tight">{symbol}</span>
                 <span
-                  className={`text-[9px] font-mono tabular-nums px-1 rounded-sm ${
-                    isSelected ? "bg-gold-primary/20 text-gold-primary" : "bg-ink/[0.05] text-text-muted/55"
+                  className={`rounded-sm px-1 font-mono text-[9px] tabular-nums ${
+                    isSelected ? "bg-black/15 text-accent-fg" : "bg-ink/[0.05] text-text-muted"
                   }`}
                 >
                   {count}
@@ -1019,7 +1016,7 @@ const ControlBar = ({
 
       {/* Row 2: Source + Timeframe filter pills */}
       <div className="flex flex-wrap gap-1.5 items-center pt-3 border-t border-ink/[0.04]">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted/55 mr-1">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted mr-1">
           Source
         </span>
         {[
@@ -1037,7 +1034,7 @@ const ControlBar = ({
 
         <div className="w-px h-3.5 bg-ink/[0.08] mx-2" />
 
-        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted/55 mr-1">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted mr-1">
           TF
         </span>
         {[
@@ -1057,7 +1054,7 @@ const ControlBar = ({
           />
         ))}
 
-        <span className="ml-auto text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/40">
+        <span className="ml-auto text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted">
           24h rolling
         </span>
       </div>
@@ -1075,14 +1072,15 @@ const ControlBar = ({
   </div>
 );
 
-// ── Filter Pill ─────────────────────────────────────────
+// ── Filter Pill — solid Binance yellow when active (desk CTA) ─
 const FilterPill = ({ active, onClick, label }) => (
   <button
+    type="button"
     onClick={onClick}
-    className={`px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.15em] transition-all border ${
+    className={`rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
       active
-        ? "bg-gold-primary/15 text-text-primary border-line/40"
-        : "bg-ink/[0.03] text-text-muted/70 border-ink/[0.06] hover:border-ink/[0.14] hover:text-text-primary"
+        ? "border-transparent bg-accent text-accent-fg"
+        : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
     }`}
   >
     {label}
@@ -1095,23 +1093,23 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
   const stats = coinDetail.stats;
   const bullPct = stats.bull_pct;
   return (
-    <div className="border-t border-line/15 bg-gradient-to-r from-gold-primary/[0.04] to-transparent p-4">
-      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+    <div className="border-t border-ink/[0.08] bg-surface-secondary/50 p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <CoinLogo pair={pair} size={32} />
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-text-primary font-medium text-[15px] tracking-tight">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[15px] font-semibold tracking-tight text-text-primary">
                 {titleCase(symbol)}
               </span>
-              <span className="text-text-muted/55 text-[10px] font-mono tabular-nums">{pair}</span>
+              <span className="font-mono text-[10px] tabular-nums text-text-muted">{pair}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-mono uppercase tracking-[0.12em] ${
+                className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] ${
                   bullPct >= 60
-                    ? "bg-emerald-500/[0.08] text-emerald-300 border-emerald-500/20"
+                    ? "border-profit/25 bg-profit/12 text-profit"
                     : bullPct <= 40
-                    ? "bg-red-500/[0.08] text-red-300 border-red-500/20"
-                    : "bg-amber-500/[0.08] text-amber-300 border-amber-500/20"
+                    ? "border-loss/25 bg-loss/12 text-loss"
+                    : "border-ink/15 bg-ink/[0.05] text-text-secondary"
                 }`}
               >
                 {bullPct}% bull
@@ -1122,8 +1120,9 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
         <div className="flex items-center gap-2">
           {onOpenChart && (
             <button
+              type="button"
               onClick={() => onOpenChart(pair)}
-              className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border border-line/30 text-gold-primary hover:bg-gold-primary/10 hover:border-line/50 transition-all font-medium uppercase tracking-[0.12em]"
+              className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition hover:opacity-90"
             >
               <IconChartLine className="h-3 w-3" />
               <span>Chart</span>
@@ -1131,7 +1130,7 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
           )}
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <DetailStat label="Strongest Up" value={`+${stats.strongest_up || 0}%`} accent="emerald" />
         <DetailStat label="Strongest Down" value={`${stats.strongest_down || 0}%`} accent="red" />
         <DetailStat label="Events 24h" value={stats.total_events} />
@@ -1142,13 +1141,13 @@ const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) =
 };
 
 const DetailStat = ({ label, value, accent }) => {
-  const colorMap = { emerald: "text-emerald-400", red: "text-red-400" };
+  const colorMap = { emerald: "text-profit", red: "text-loss" };
   return (
-    <div className="bg-surface-secondary rounded-md p-2.5 text-center border border-ink/[0.04]">
-      <p className={`text-sm font-mono font-medium tabular-nums leading-none ${colorMap[accent] || "text-text-primary"}`}>
+    <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5 text-center">
+      <p className={`font-mono text-sm font-semibold tabular-nums leading-none ${colorMap[accent] || "text-text-primary"}`}>
         {value}
       </p>
-      <p className="text-text-muted/55 text-[9px] uppercase tracking-[0.18em] mt-1.5 font-mono">
+      <p className="mt-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
         {label}
       </p>
     </div>
@@ -1167,7 +1166,7 @@ const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
     return (
       <div className="flex items-center justify-end" style={{ height }}>
         <div
-          className={`rounded-full ${h.bull ? "bg-emerald-500/80" : "bg-red-500/80"}`}
+          className={`rounded-full ${h.bull ? "bg-profit" : "bg-loss"}`}
           style={{
             width: Math.max(4, height * 0.4),
             height: Math.max(4, height * 0.4),
@@ -1185,7 +1184,7 @@ const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
         return (
           <div
             key={i}
-            className={`w-[3px] rounded-[1px] ${h.bull ? "bg-emerald-500/75" : "bg-red-500/75"}`}
+            className={`w-[3px] rounded-[1px] ${h.bull ? "bg-profit" : "bg-loss"}`}
             style={{ height: `${10 + mag * 90}%` }}
           />
         );
@@ -1200,21 +1199,23 @@ const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
 
 // ── Segmented control (mode switch + side filter) — Flowscan pill group ──
 const SegGroup = ({ options, value, onChange }) => (
-  <div className="flex bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
+  <div className="flex rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
     {options.map((opt) => {
       const active = value === opt.value;
+      // Desk: yellow CTA for mode; solid pos/neg only for pump/dump semantic filters.
       const activeClass =
-        opt.accent === "emerald"
-          ? "bg-emerald-500/15 text-emerald-400"
-          : opt.accent === "red"
-          ? "bg-red-500/15 text-red-400"
-          : "bg-gold-primary/15 text-gold-primary";
+        opt.accent === "emerald" || opt.accent === "profit"
+          ? "bg-profit text-white"
+          : opt.accent === "red" || opt.accent === "loss"
+          ? "bg-loss text-white"
+          : "bg-accent text-accent-fg";
       return (
         <button
           key={opt.value}
+          type="button"
           onClick={() => onChange(opt.value)}
-          className={`px-2.5 py-1 rounded-sm text-[9.5px] font-medium uppercase tracking-[0.14em] transition-all ${
-            active ? activeClass : "text-text-muted/60 hover:text-text-primary"
+          className={`rounded-sm px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+            active ? activeClass : "text-text-muted hover:text-text-primary"
           }`}
         >
           {opt.label}
@@ -1277,7 +1278,7 @@ const FeedList = ({
 const FeedEmpty = ({ label = "No events match your filters" }) => (
   <div className="p-12 flex flex-col items-center justify-center gap-3">
     <IconEmpty className="h-7 w-7 text-text-muted/30" />
-    <div className="text-text-muted/60 text-[11px] font-mono uppercase tracking-[0.15em] text-center">
+    <div className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em] text-center">
       {label}
     </div>
   </div>
@@ -1290,7 +1291,7 @@ const SplitColHeader = ({ dir, count }) => {
     <div className="px-3 py-2 border-b border-ink/[0.06] flex items-center justify-between bg-ink/[0.015] flex-shrink-0">
       <span
         className={`text-[10px] font-semibold uppercase tracking-[0.16em] flex items-center gap-1.5 ${
-          isPump ? "text-emerald-400" : "text-red-400"
+          isPump ? "text-profit" : "text-loss"
         }`}
       >
         {isPump ? <IconArrowUpTri className="h-2.5 w-2.5" /> : <IconArrowDownTri className="h-2.5 w-2.5" />}
@@ -1331,18 +1332,18 @@ const ActivityFeedPanel = ({
       ];
 
   return (
-    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.06),0_1px_2px_0_rgb(var(--ink) / 0.15)] mp-feed-card">
+    <div className="mp-feed-card overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised">
       {/* Header strip */}
       <div className="px-4 py-3 border-b border-ink/[0.06] flex items-center justify-between gap-3 bg-ink/[0.015] flex-shrink-0 relative z-10 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-profit opacity-60" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-profit" />
           </span>
           <h2 className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.2em]">
             Activity Feed
           </h2>
-          <span className="text-[10px] font-mono tabular-nums text-text-muted/45">
+          <span className="text-[10px] font-mono tabular-nums text-text-muted">
             {headerCount}
           </span>
         </div>
@@ -1370,7 +1371,7 @@ const ActivityFeedPanel = ({
               aria-expanded={sidebarOpen}
               aria-label={sidebarOpen ? "Hide side panel" : "Show side panel"}
               title={sidebarOpen ? "Hide side panel" : "Show side panel"}
-              className="hidden lg:inline-flex items-center justify-center w-7 h-7 rounded-md border border-ink/[0.06] bg-ink/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
+              className="hidden h-7 w-7 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary lg:inline-flex"
             >
               {sidebarOpen ? <IconChevronsRight className="h-3.5 w-3.5" /> : <IconChevronsLeft className="h-3.5 w-3.5" />}
             </button>
@@ -1426,7 +1427,7 @@ const ActivityFeedPanel = ({
 
       {/* Footer */}
       <div className="px-4 py-2 border-t border-ink/[0.06] text-center bg-ink/[0.015] flex-shrink-0 relative z-10">
-        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/45">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
           Auto-refresh · 10s
         </span>
       </div>
@@ -1447,13 +1448,13 @@ const FeedRow = ({
     <div
       onClick={onSelect}
       className={`relative grid grid-cols-[26px_minmax(0,1fr)_auto] md:grid-cols-[26px_minmax(0,1fr)_70px_22px_44px] items-center gap-3 px-4 py-2.5 hover:bg-ink/[0.025] transition-colors cursor-pointer border-l-2 border-b border-ink/[0.03] ${
-        isSelected ? "bg-gold-primary/[0.04] border-l-gold-primary" : ""
+        isSelected ? "bg-accent/[0.06] border-l-accent" : ""
       }`}
       style={{
         borderLeftColor: !isSelected
           ? isPositive
-            ? `rgba(16,185,129,${0.18 + magnitude * 0.4})`
-            : `rgba(239,68,68,${0.18 + magnitude * 0.4})`
+            ? `rgb(var(--pos) / ${0.35 + magnitude * 0.55})`
+            : `rgb(var(--neg) / ${0.35 + magnitude * 0.55})`
           : undefined,
       }}
     >
@@ -1466,7 +1467,7 @@ const FeedRow = ({
           </span>
           <span
             className={`font-mono tabular-nums text-[12.5px] leading-none flex items-center gap-0.5 ${
-              isPositive ? "text-emerald-400" : "text-red-400"
+              isPositive ? "text-profit" : "text-loss"
             }`}
           >
             {isPositive ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -1481,14 +1482,14 @@ const FeedRow = ({
           {called && (
             <button
               onClick={(e) => { e.stopPropagation(); statusCtx?.openPair?.(event.pair); }}
-              className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-line/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
+              className="inline-flex items-center gap-1 rounded-sm border border-transparent bg-accent px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-accent-fg transition-opacity hover:opacity-90"
               title="LuxQuant call — click for details"
             >
-              <span className="w-1 h-1 rounded-full bg-gold-primary" /> Called
+              Called
             </button>
           )}
         </div>
-        <p className="text-text-muted/55 text-[10px] mt-1 font-mono tabular-nums">
+        <p className="text-text-muted text-[10px] mt-1 font-mono tabular-nums">
           {event.pair} ·{" "}
           {event.source === "price_movement"
             ? `${event.move_seconds}s move`
@@ -1505,16 +1506,16 @@ const FeedRow = ({
       </div>
 
       <div
-        className={`hidden md:flex w-[22px] h-[22px] rounded-full items-center justify-center ${
+        className={`hidden h-[22px] w-[22px] items-center justify-center rounded-full md:flex ${
           event.direction === "bullish"
-            ? "bg-emerald-500/10 text-emerald-400"
-            : "bg-red-500/10 text-red-400"
+            ? "bg-profit text-white"
+            : "bg-loss text-white"
         }`}
       >
         {event.direction === "bullish" ? <IconArrowUpTri /> : <IconArrowDownTri />}
       </div>
 
-      <span className="text-text-muted/55 text-[10px] font-mono tabular-nums text-right">
+      <span className="text-right font-mono text-[10px] tabular-nums text-text-muted">
         {timeAgo(event.created_at)}
       </span>
     </div>
@@ -1534,29 +1535,29 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
     <div
       onClick={onSelectCoin}
       className={`px-4 py-2 border-b border-ink/[0.04] flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-ink/[0.025] ${
-        isSelected ? "bg-gold-primary/[0.05]" : "bg-gold-primary/[0.015]"
+        isSelected ? "bg-accent/[0.06]" : "bg-surface-secondary/40"
       }`}
     >
       <CoinLogo pair={group.pair} size={26} />
       <div className="flex-1 flex items-center gap-2 min-w-0">
         <span className="text-text-primary text-[12.5px] font-medium tracking-tight">{symbol}</span>
-        <span className="text-[9px] text-text-muted/55 px-1.5 py-0.5 bg-ink/[0.04] rounded-sm font-mono uppercase tracking-wider">
+        <span className="text-[9px] text-text-muted px-1.5 py-0.5 bg-ink/[0.04] rounded-sm font-mono uppercase tracking-wider">
           ×{group.events.length} events
         </span>
         {called && (
           <button
             onClick={(e) => { e.stopPropagation(); statusCtx?.openPair?.(group.pair); }}
-            className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-line/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
+            className="inline-flex items-center gap-1 rounded-sm border border-transparent bg-accent px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-accent-fg transition-opacity hover:opacity-90"
             title="LuxQuant call — click for details"
           >
-            <span className="w-1 h-1 rounded-full bg-gold-primary" /> Called
+            Called
           </button>
         )}
       </div>
       <MiniSparkbar histogram={groupHist} height={16} gap={2} />
       <span
         className={`text-[11px] font-mono tabular-nums font-medium min-w-[60px] text-right flex items-center justify-end gap-1 ${
-          isPos ? "text-emerald-400" : "text-red-400"
+          isPos ? "text-profit" : "text-loss"
         }`}
       >
         {isPos ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -1565,7 +1566,7 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
       </span>
       <button
         onClick={onToggle}
-        className="w-[22px] h-[22px] rounded-sm border border-ink/[0.08] text-text-muted/60 hover:text-text-primary hover:border-ink/20 transition-colors flex items-center justify-center"
+        className="w-[22px] h-[22px] rounded-sm border border-ink/[0.08] text-text-muted hover:text-text-primary hover:border-ink/20 transition-colors flex items-center justify-center"
       >
         {expanded ? <IconChevronUp className="h-2.5 w-2.5" /> : <IconChevronDown className="h-2.5 w-2.5" />}
       </button>
@@ -1579,16 +1580,17 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
   return (
     <div
       onClick={onSelect}
-      className="grid grid-cols-[12px_minmax(0,1fr)_22px_44px] items-center gap-3 px-4 py-2 pl-14 border-b border-ink/[0.025] hover:bg-ink/[0.02] transition-colors cursor-pointer border-l-2"
-      style={{ borderLeftColor: "rgba(212,168,83,0.4)" }}
+      className={`grid grid-cols-[12px_minmax(0,1fr)_22px_44px] items-center gap-3 px-4 py-2 pl-14 border-b border-ink/[0.04] hover:bg-ink/[0.02] transition-colors cursor-pointer border-l-2 ${
+        isPos ? "border-l-profit/50" : "border-l-loss/50"
+      }`}
     >
       <span className="text-text-muted/35 text-[9px] font-mono">→</span>
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-text-muted/80 text-[12px]">{event.event_type || "—"}</span>
+          <span className="text-text-muted text-[12px]">{event.event_type || "—"}</span>
           <span
             className={`font-mono tabular-nums text-[12px] flex items-center gap-0.5 ${
-              isPos ? "text-emerald-400" : "text-red-400"
+              isPos ? "text-profit" : "text-loss"
             }`}
           >
             {isPos ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -1609,15 +1611,15 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
         </p>
       </div>
       <div
-        className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${
+        className={`flex h-[18px] w-[18px] items-center justify-center rounded-full ${
           event.direction === "bullish"
-            ? "bg-emerald-500/10 text-emerald-400"
-            : "bg-red-500/10 text-red-400"
+            ? "bg-profit text-white"
+            : "bg-loss text-white"
         }`}
       >
         {event.direction === "bullish" ? <IconArrowUpTri /> : <IconArrowDownTri />}
       </div>
-      <span className="text-text-muted/50 text-[10px] font-mono tabular-nums text-right">
+      <span className="text-right font-mono text-[10px] tabular-nums text-text-muted">
         {timeAgo(event.created_at)}
       </span>
     </div>
@@ -1676,7 +1678,7 @@ function HeatCell(props) {
         <text x={x + 4} y={y + 11} fill="rgba(255,255,255,0.7)" fontSize={8.5} fontFamily="ui-monospace, monospace" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>×{eventCount}</text>
       )}
       {called && med && (
-        <text x={x + width - 4} y={y + 11} textAnchor="end" fill="rgb(var(--accent))" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>CALL</text>
+        <text x={x + width - 4} y={y + 11} textAnchor="end" fill="#F0B90B" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.65)" }}>CALL</text>
       )}
     </g>
   );
@@ -1742,12 +1744,15 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
   };
 
   const SortToggle = ({ big = false }) => (
-    <div className="flex bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
+    <div className="flex rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
       {["events", "pct"].map((k) => (
         <button
           key={k}
+          type="button"
           onClick={() => onSortChange(k)}
-          className={`${big ? "px-2.5 py-1 text-[10px]" : "px-2 py-0.5 text-[9px]"} rounded-sm font-medium uppercase tracking-[0.15em] transition-all ${sortMode === k ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-text-primary"}`}
+          className={`${big ? "px-2.5 py-1 text-[10px]" : "px-2 py-0.5 text-[9px]"} rounded-sm font-semibold uppercase tracking-[0.12em] transition-colors ${
+            sortMode === k ? "bg-accent text-accent-fg" : "text-text-muted hover:text-text-primary"
+          }`}
         >
           {k === "events" ? "Events" : "% Change"}
         </button>
@@ -1756,13 +1761,13 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
   );
 
   const Legend = () => (
-    <div className="mt-3 pt-2 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
-      <span className="uppercase tracking-[0.15em]">
-        Size = activity · Color = direction · <span className="text-gold-primary/80">gold = LuxQuant call</span>
+    <div className="mt-3 flex items-center justify-between border-t border-ink/[0.07] pt-2 font-mono text-[9px] text-text-muted">
+      <span className="uppercase tracking-[0.12em]">
+        Size = activity · Color = direction · <span className="font-semibold text-accent">yellow border = call</span>
       </span>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/60" /> bull</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-red-500/60" /> bear</span>
+      <div className="flex items-center gap-2.5">
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-profit" /> bull</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-loss" /> bear</span>
       </div>
     </div>
   );
@@ -1779,7 +1784,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
               <button
                 onClick={() => setExpanded(true)}
                 title="Expand heatmap"
-                className="flex items-center justify-center w-6 h-6 rounded-md border border-ink/[0.06] bg-ink/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-line/30 transition-colors"
+                className="flex h-6 w-6 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
@@ -1801,17 +1806,17 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
           aria-label="Heatmap expanded"
         >
           <div
-            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-ink/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgb(var(--scrim) / 0.35)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-line/25 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
+            className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-ink/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgb(var(--scrim) / 0.35)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-ink/12 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-1 flex justify-center sm:hidden" aria-hidden="true">
               <div className="h-1 w-10 rounded-full bg-ink/20" />
             </div>
-            <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent sm:block" />
+            <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent sm:block" />
             <div className="mb-3 flex shrink-0 items-center justify-between sm:mb-4">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="text-[15px] font-semibold text-text-primary">Heatmap</span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted">
                   {withCalled.length} coins · 1h
                 </span>
               </div>
@@ -1845,20 +1850,20 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
 // ════════════════════════════════════════════════════════
 
 const PanelShell = ({ children, className = "" }) => (
-  <div className={`relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-ink/[0.06] before:to-transparent bg-surface-raised border border-ink/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.05),0_1px_2px_0_rgb(var(--ink) / 0.12)] p-3.5 ${className}`}>
-    <div className="relative z-10 h-full flex flex-col">{children}</div>
+  <div className={`flex h-full flex-col overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5 ${className}`}>
+    <div className="relative z-10 flex h-full flex-col">{children}</div>
   </div>
 );
 
 const PanelHeader = ({ title, subtitle, right, icon }) => (
-  <div className="flex items-center justify-between mb-3 gap-2 flex-shrink-0">
-    <div className="flex items-center gap-2 min-w-0">
-      {icon && <span className="text-gold-primary/70">{icon}</span>}
-      <h3 className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.2em]">
+  <div className="mb-3 flex flex-shrink-0 items-center justify-between gap-2">
+    <div className="flex min-w-0 items-center gap-2">
+      {icon && <span className="text-text-muted">{icon}</span>}
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-primary">
         {title}
       </h3>
       {subtitle && (
-        <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted/45">
+        <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
           {subtitle}
         </span>
       )}
@@ -1873,15 +1878,16 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
     <PanelHeader
       title="Most Active"
       right={
-        <div className="flex gap-0.5 bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
+        <div className="flex gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
           {["1h", "4h", "24h"].map((p) => (
             <button
               key={p}
+              type="button"
               onClick={() => setPeriod(p)}
-              className={`px-1.5 py-0.5 rounded-sm text-[9px] font-mono uppercase tracking-wider transition-colors ${
+              className={`rounded-sm px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider transition-colors ${
                 period === p
-                  ? "bg-gold-primary/15 text-gold-primary"
-                  : "text-text-muted/55 hover:text-text-primary"
+                  ? "bg-accent text-accent-fg"
+                  : "text-text-muted hover:text-text-primary"
               }`}
             >
               {p}
@@ -1901,7 +1907,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
             onClick={() => onSelect(coin.pair)}
             className="w-full grid grid-cols-[14px_22px_minmax(0,1fr)_auto] items-center gap-2 py-1.5 px-1 rounded-sm hover:bg-ink/[0.025] transition-colors text-left border-b border-ink/[0.03] last:border-b-0"
           >
-            <span className="text-[9px] text-text-muted/40 text-center font-mono tabular-nums">
+            <span className="text-[9px] text-text-muted text-center font-mono tabular-nums">
               {String(i + 1).padStart(2, "0")}
             </span>
             <CoinLogo pair={coin.pair} size={22} />
@@ -1920,7 +1926,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
             </div>
             <span
               className={`text-[11px] font-mono tabular-nums font-medium text-right ${
-                strongIsUp ? "text-emerald-400" : "text-red-400"
+                strongIsUp ? "text-profit" : "text-loss"
               }`}
             >
               {strongIsUp ? `+${coin.best}%` : `${coin.worst}%`}
@@ -1944,7 +1950,7 @@ const FlashMovesPanel = ({ moves, onSelect }) => (
       title="Flash Moves"
       icon={<IconBolt className="h-3 w-3" />}
       right={
-        <span className="text-[9px] font-mono tabular-nums text-text-muted/55">
+        <span className="text-[9px] font-mono tabular-nums text-text-muted">
           {(moves || []).length} active
         </span>
       }
@@ -1966,13 +1972,13 @@ const FlashMovesPanel = ({ moves, onSelect }) => (
             </span>
             <span
               className={`text-[11px] font-mono tabular-nums font-medium ${
-                fm.pct_change >= 0 ? "text-emerald-400" : "text-red-400"
+                fm.pct_change >= 0 ? "text-profit" : "text-loss"
               }`}
             >
               {fm.pct_change >= 0 ? "+" : ""}
               {fm.pct_change}%
             </span>
-            <span className="text-text-muted/55 text-[9px] font-mono tabular-nums w-7 text-right">
+            <span className="text-text-muted text-[9px] font-mono tabular-nums w-7 text-right">
               {fm.move_seconds}s
             </span>
           </button>
@@ -1999,7 +2005,7 @@ const SummaryPanel = ({ daily, className = "" }) => {
       <PanelHeader
         title="24h Summary"
         right={
-          <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted/45">
+          <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
             Rolling
           </span>
         }
@@ -2016,48 +2022,49 @@ const SummaryPanel = ({ daily, className = "" }) => {
         <div className="mt-2">
           <div className="h-1 rounded-full overflow-hidden bg-ink/[0.04] flex">
             <div
-              className="bg-emerald-500/80"
+              className="bg-profit"
               style={{ width: `${bullPct}%` }}
             />
             <div
-              className="bg-red-500/80"
+              className="bg-loss"
               style={{ width: `${100 - bullPct}%` }}
             />
           </div>
           <div className="flex justify-between mt-1.5 font-mono tabular-nums">
-            <span className="text-[9px] text-emerald-400">{bullPct}% bull</span>
-            <span className="text-[9px] text-red-400">{100 - bullPct}% bear</span>
+            <span className="text-[9px] text-profit">{bullPct}% bull</span>
+            <span className="text-[9px] text-loss">{100 - bullPct}% bear</span>
           </div>
         </div>
       )}
 
-      <div className="mt-2 bg-amber-500/[0.05] border border-amber-500/15 rounded-sm p-2.5 flex items-center justify-between">
+      <div className="mt-2 flex items-center justify-between rounded-md border border-ink/[0.08] bg-surface-secondary p-2.5">
         <div>
-          <div className="font-light text-[18px] text-amber-400 tabular-nums leading-none tracking-tight">
+          <div className="text-[18px] font-semibold tabular-nums leading-none tracking-tight text-text-primary">
             {flash.toLocaleString()}
           </div>
-          <div className="text-[9px] text-text-muted/55 mt-1.5 uppercase tracking-[0.18em] font-mono">
+          <div className="mt-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
             Flash Moves
           </div>
         </div>
-        <IconBolt className="h-4 w-4 text-amber-400" />
+        <IconBolt className="h-4 w-4 text-accent" />
       </div>
     </PanelShell>
   );
 };
 
 const SummaryCell = ({ label, value, accent }) => {
-  const colorMap = {
-    white: "text-text-primary bg-ink/[0.03] border-ink/[0.04]",
-    emerald: "text-emerald-400 bg-emerald-500/[0.05] border-emerald-500/15",
-    red: "text-red-400 bg-red-500/[0.05] border-red-500/15",
-  };
+  const valueColor =
+    accent === "emerald" || accent === "profit"
+      ? "text-profit"
+      : accent === "red" || accent === "loss"
+      ? "text-loss"
+      : "text-text-primary";
   return (
-    <div className={`rounded-sm p-2.5 border ${colorMap[accent]}`}>
-      <div className="font-light text-[18px] tabular-nums leading-none tracking-tight">
+    <div className="rounded-md border border-ink/[0.08] bg-surface-secondary p-2.5">
+      <div className={`text-[18px] font-semibold tabular-nums leading-none tracking-tight ${valueColor}`}>
         {(value || 0).toLocaleString()}
       </div>
-      <div className="text-[9px] text-text-muted/55 mt-1.5 uppercase tracking-[0.18em] font-mono">
+      <div className="mt-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
         {label}
       </div>
     </div>
@@ -2281,7 +2288,7 @@ const CoinChartModal = ({ pair, onClose }) => {
       style: "1",
       locale: "en",
       backgroundColor: isBright ? "rgba(255, 255, 255, 1)" : "rgba(10, 5, 6, 1)",
-      gridColor: isBright ? "rgba(15, 23, 42, 0.06)" : "rgba(212, 168, 83, 0.04)",
+      gridColor: isBright ? "rgba(15, 23, 42, 0.06)" : "rgba(255, 255, 255, 0.04)",
       hide_top_toolbar: false,
       hide_legend: false,
       hide_side_toolbar: false,
@@ -2342,7 +2349,7 @@ const CoinChartModal = ({ pair, onClose }) => {
         {/* Top accent line — desktop */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-6 top-0 hidden h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent sm:block"
+          className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-ink/[0.08] sm:block"
         />
 
         {/* Header */}
@@ -2354,20 +2361,20 @@ const CoinChartModal = ({ pair, onClose }) => {
                 <span className="text-text-primary text-base sm:text-lg font-semibold leading-none tracking-tight">
                   {symbol}
                 </span>
-                <span className="text-text-muted/55 text-[10px] font-mono tabular-nums">
+                <span className="text-text-muted text-[10px] font-mono tabular-nums">
                   {pair}
                 </span>
               </div>
               <div className="flex items-baseline gap-2 mt-1.5">
-                <span className="text-text-primary font-mono tabular-nums text-sm sm:text-base font-light leading-none tracking-tight">
+                <span className="text-text-primary font-mono tabular-nums text-sm sm:text-base font-semibold leading-none tracking-tight">
                   {last != null ? `$${formatPrice(last)}` : "—"}
                 </span>
                 {change != null && (
                   <span
                     className={`text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-sm border flex items-center gap-0.5 ${
                       isPos
-                        ? "bg-emerald-500/[0.08] text-emerald-400 border-emerald-500/20"
-                        : "bg-red-500/[0.08] text-red-400 border-red-500/20"
+                        ? "bg-profit/[0.08] text-profit border-profit/20"
+                        : "bg-loss/[0.08] text-loss border-loss/20"
                     }`}
                   >
                     {isPos ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -2375,7 +2382,7 @@ const CoinChartModal = ({ pair, onClose }) => {
                     {change.toFixed(2)}%
                   </span>
                 )}
-                <span className="text-[9px] text-text-muted/45 font-mono uppercase tracking-[0.15em]">
+                <span className="text-[9px] text-text-muted font-mono uppercase tracking-[0.15em]">
                   24h
                 </span>
               </div>
@@ -2384,7 +2391,7 @@ const CoinChartModal = ({ pair, onClose }) => {
 
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-md bg-ink/[0.03] border border-ink/[0.08] hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center text-text-muted hover:text-text-primary transition-all flex-shrink-0"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary"
             aria-label="Close"
           >
             <IconClose />
@@ -2393,15 +2400,15 @@ const CoinChartModal = ({ pair, onClose }) => {
 
         {/* Toolbar */}
         <div className="px-4 sm:px-5 py-2 border-b border-ink/[0.04] flex items-center justify-between gap-3 bg-ink/[0.01] flex-shrink-0 flex-wrap relative z-10">
-          <div className="flex items-center gap-1 bg-ink/[0.03] rounded-md p-0.5 border border-ink/[0.06]">
+          <div className="flex items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
             {intervals.map((it) => (
               <button
                 key={it.v}
                 onClick={() => setTvInterval(it.v)}
                 className={`px-2.5 py-1 rounded-sm text-[10px] font-medium uppercase tracking-[0.12em] transition-all ${
                   tvInterval === it.v
-                    ? "bg-gold-primary/15 text-gold-primary"
-                    : "text-text-muted/60 hover:text-text-primary"
+                    ? "bg-accent text-accent-fg"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 {it.l}
@@ -2434,19 +2441,19 @@ const CoinChartModal = ({ pair, onClose }) => {
         </div>
 
         {/* Region-block fallback note — glowing VPN hint */}
-        <div className="px-4 sm:px-5 py-2 border-t border-line/[0.07] bg-gradient-to-r from-gold-primary/[0.05] via-transparent to-transparent flex-shrink-0 relative z-10 overflow-hidden">
-          <p className="mp-vpn-hint text-[9px] font-mono leading-relaxed flex items-center justify-center sm:justify-start gap-1.5">
-            <svg className="mp-vpn-ico h-3 w-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <div className="relative z-10 flex-shrink-0 overflow-hidden border-t border-ink/[0.07] bg-surface-secondary px-4 py-2 sm:px-5">
+          <p className="flex items-center justify-center gap-1.5 font-mono text-[9px] leading-relaxed text-text-muted sm:justify-start">
+            <svg className="h-3 w-3 flex-shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z" />
               <path d="m9 12 2 2 4-4" />
             </svg>
             <span className="text-center sm:text-left">
-              Metrics above are pulled from Binance/Bybit. If they show "—", the data may be blocked in your region — <span className="mp-vpn-key">try enabling a VPN and reopening</span>.
+              Metrics above are pulled from Binance/Bybit. If they show "—", the data may be blocked in your region — <span className="font-semibold text-text-secondary">try enabling a VPN and reopening</span>.
             </span>
           </p>
         </div>
 
-        <div className="px-4 sm:px-5 py-2 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-ink/[0.01] flex-shrink-0 relative z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-2">
+        <div className="px-4 sm:px-5 py-2 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted bg-ink/[0.01] flex-shrink-0 relative z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-2">
           <span className="uppercase tracking-[0.15em]">
             Chart · TradingView · Metrics · Binance Futures
           </span>
@@ -2471,8 +2478,8 @@ const CoinChartModal = ({ pair, onClose }) => {
 // ════════════════════════════════════════════════════════
 
 const MetricCellShell = ({ label, children }) => (
-  <div className="bg-surface-secondary rounded-sm px-2.5 py-2 border border-ink/[0.05] min-h-[64px] flex flex-col justify-between">
-    <p className="text-text-muted/55 text-[9px] uppercase tracking-[0.18em] font-mono">
+  <div className="flex min-h-[64px] flex-col justify-between rounded-md border border-ink/[0.08] bg-surface-secondary px-2.5 py-2">
+    <p className="text-text-muted text-[9px] uppercase tracking-[0.18em] font-mono">
       {label}
     </p>
     {children}
@@ -2483,7 +2490,7 @@ const Metric24h = ({ ticker }) => {
   if (!ticker) {
     return (
       <MetricCellShell label="24h Change">
-        <p className="text-sm font-mono font-medium tabular-nums text-text-muted/40 leading-none mt-1">
+        <p className="text-sm font-mono font-medium tabular-nums text-text-muted leading-none mt-1">
           —
         </p>
         <p className="text-[9px] text-text-muted/30 font-mono mt-1 leading-tight uppercase tracking-wider">
@@ -2497,14 +2504,14 @@ const Metric24h = ({ ticker }) => {
     <MetricCellShell label="24h Change">
       <p
         className={`text-sm font-mono font-medium tabular-nums leading-none mt-1 flex items-center gap-1 ${
-          isPos ? "text-emerald-400" : "text-red-400"
+          isPos ? "text-profit" : "text-loss"
         }`}
       >
         {isPos ? <IconArrowUpTri /> : <IconArrowDownTri />}
         {isPos ? "+" : ""}
         {ticker.changePct.toFixed(2)}%
       </p>
-      <p className="text-[9px] text-text-muted/60 font-mono mt-1 leading-tight tabular-nums">
+      <p className="text-[9px] text-text-muted font-mono mt-1 leading-tight tabular-nums">
         H ${formatPrice(ticker.high)} · L ${formatPrice(ticker.low)}
       </p>
     </MetricCellShell>
@@ -2515,7 +2522,7 @@ const MetricFunding = ({ funding }) => {
   if (!funding) {
     return (
       <MetricCellShell label="Funding · perp">
-        <p className="text-sm font-mono font-medium tabular-nums text-text-muted/40 leading-none mt-1">
+        <p className="text-sm font-mono font-medium tabular-nums text-text-muted leading-none mt-1">
           —
         </p>
         <p className="text-[9px] text-text-muted/30 font-mono mt-1 leading-tight uppercase tracking-wider">
@@ -2533,13 +2540,13 @@ const MetricFunding = ({ funding }) => {
     <MetricCellShell label="Funding · perp">
       <p
         className={`text-sm font-mono font-medium tabular-nums leading-none mt-1 ${
-          isPos ? "text-emerald-400" : "text-red-400"
+          isPos ? "text-profit" : "text-loss"
         }`}
       >
         {isPos ? "+" : ""}
         {ratePct.toFixed(4)}%
       </p>
-      <p className="text-[9px] text-text-muted/60 font-mono mt-1 leading-tight tabular-nums">
+      <p className="text-[9px] text-text-muted font-mono mt-1 leading-tight tabular-nums">
         {isPos ? "longs pay" : "shorts pay"} · in {hrs}h {mins}m
       </p>
     </MetricCellShell>
@@ -2550,7 +2557,7 @@ const MetricOI = ({ oi }) => {
   if (!oi) {
     return (
       <MetricCellShell label="Open Interest">
-        <p className="text-sm font-mono font-medium tabular-nums text-text-muted/40 leading-none mt-1">
+        <p className="text-sm font-mono font-medium tabular-nums text-text-muted leading-none mt-1">
           —
         </p>
         <p className="text-[9px] text-text-muted/30 font-mono mt-1 leading-tight uppercase tracking-wider">
@@ -2567,7 +2574,7 @@ const MetricOI = ({ oi }) => {
       </p>
       <p
         className={`text-[9px] font-mono mt-1 leading-tight tabular-nums flex items-center gap-0.5 ${
-          isPos ? "text-emerald-400" : "text-red-400"
+          isPos ? "text-profit" : "text-loss"
         }`}
       >
         {isPos ? <IconArrowUpTri /> : <IconArrowDownTri />}
@@ -2581,7 +2588,7 @@ const MetricLS = ({ ratio }) => {
   if (!ratio) {
     return (
       <MetricCellShell label="L/S · top traders">
-        <p className="text-sm font-mono font-medium tabular-nums text-text-muted/40 leading-none mt-1">
+        <p className="text-sm font-mono font-medium tabular-nums text-text-muted leading-none mt-1">
           —
         </p>
         <div className="h-1 mt-2 rounded-full bg-ink/[0.04]" />
@@ -2591,13 +2598,13 @@ const MetricLS = ({ ratio }) => {
   return (
     <MetricCellShell label="L/S · top traders">
       <p className="text-sm font-mono font-medium tabular-nums leading-none mt-1">
-        <span className="text-emerald-400">{ratio.longPct.toFixed(0)}%</span>
+        <span className="text-profit">{ratio.longPct.toFixed(0)}%</span>
         <span className="text-text-muted/35 mx-1">/</span>
-        <span className="text-red-400">{ratio.shortPct.toFixed(0)}%</span>
+        <span className="text-loss">{ratio.shortPct.toFixed(0)}%</span>
       </p>
       <div className="h-1 mt-2 rounded-full overflow-hidden bg-ink/[0.04] flex">
-        <div className="bg-emerald-500/80" style={{ width: `${ratio.longPct}%` }} />
-        <div className="bg-red-500/80" style={{ width: `${ratio.shortPct}%` }} />
+        <div className="bg-profit" style={{ width: `${ratio.longPct}%` }} />
+        <div className="bg-loss" style={{ width: `${ratio.shortPct}%` }} />
       </div>
     </MetricCellShell>
   );
@@ -2610,23 +2617,7 @@ const MetricLS = ({ ratio }) => {
 const PulseStyles = () => (
   <style>{`
 
-    @keyframes mp-hint-glow {
-      0%, 100% { opacity: 0.7;  text-shadow: 0 0 4px rgba(212,168,83,0.12); }
-      50%      { opacity: 1;    text-shadow: 0 0 9px rgba(212,168,83,0.38), 0 0 16px rgba(212,168,83,0.18); }
-    }
-    @keyframes mp-hint-key-glow {
-      0%, 100% { text-shadow: 0 0 5px rgba(212,168,83,0.45); }
-      50%      { text-shadow: 0 0 11px rgba(243,210,138,0.95), 0 0 20px rgba(212,168,83,0.55); }
-    }
-    @keyframes mp-hint-ico {
-      0%, 100% { filter: drop-shadow(0 0 2px rgba(212,168,83,0.3)); transform: scale(1); }
-      50%      { filter: drop-shadow(0 0 6px rgba(212,168,83,0.75)); transform: scale(1.1); }
-    }
-    .mp-vpn-hint { color: rgba(212,168,83,0.62); animation: mp-hint-glow 3s ease-in-out infinite; }
-    .mp-vpn-hint .mp-vpn-key { color: #f3d28a; font-weight: 600; animation: mp-hint-key-glow 3s ease-in-out infinite; }
-    .mp-vpn-hint .mp-vpn-ico { color: #e8c073; animation: mp-hint-ico 3s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce) {
-      .mp-vpn-hint, .mp-vpn-hint .mp-vpn-key, .mp-vpn-hint .mp-vpn-ico { animation: none; }
       .mp-main-grid { transition: none; }
     }
 
@@ -2642,8 +2633,8 @@ const PulseStyles = () => (
     }
     .pulse-feed-scroll::-webkit-scrollbar { width: 5px; }
     .pulse-feed-scroll::-webkit-scrollbar-track { background: transparent; }
-    .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgba(212, 168, 83, 0.12); border-radius: 3px; }
-    .pulse-feed-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212, 168, 83, 0.25); }
+    .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.12); border-radius: 3px; }
+    .pulse-feed-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink) / 0.22); }
 
     /* Modal animations */
     @keyframes mpfade-in { from { opacity: 0; } to { opacity: 1; } }
