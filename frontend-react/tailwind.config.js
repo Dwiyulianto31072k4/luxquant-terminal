@@ -34,7 +34,10 @@ export default {
           DEFAULT: withAlpha("--accent"),
           light: withAlpha("--accent-light"),
           dark: withAlpha("--accent-dark"),
+          // Text/icon ON solid yellow fills — always dark (Binance CTA pattern)
+          fg: withAlpha("--accent-fg"),
         },
+        // Alias for gold CTAs: text-accent-fg / bg-gold-primary
         red: {
           primary: "#8b1a1a",
           light: "#c42020",
@@ -73,10 +76,10 @@ export default {
         sans: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        "gold-glow": "0 4px 20px rgb(var(--accent) / 0.35)",
-        "positive-glow": "0 0 20px rgb(var(--pos) / 0.28)",
-        "negative-glow": "0 0 20px rgb(var(--neg) / 0.28)",
-        // Soft card elevation for bright mode (also fine on dark)
+        "gold-glow": "0 4px 16px rgb(var(--accent) / 0.32)",
+        "cta": "0 4px 14px rgb(var(--accent) / 0.35)",
+        "positive-glow": "0 0 16px rgb(var(--pos) / 0.25)",
+        "negative-glow": "0 0 16px rgb(var(--neg) / 0.25)",
         desk: "0 1px 2px rgb(var(--scrim) / 0.06), 0 8px 24px rgb(var(--scrim) / 0.08)",
       },
     },

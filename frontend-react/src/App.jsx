@@ -1380,38 +1380,21 @@ function AppShell({ children }) {
                     className="relative -mt-6 flex flex-col items-center group"
                   >
                     {/* Outer glow halo — always alive, brighter when active */}
+                    {/* Inner button — solid yellow when active (Binance dock pattern) */}
                     <div
-                      className={`absolute -inset-2 rounded-md blur-lg pointer-events-none transition-opacity duration-500 ${
+                      className={`relative flex h-14 w-14 items-center justify-center rounded-xl transition-all duration-200 ${
                         active
-                          ? "bg-gold-primary/35 opacity-100 animate-pulse"
-                          : "bg-gold-primary/18 opacity-70 group-hover:opacity-90"
-                      }`}
-                    />
-                    {/* Inner button — slightly bigger (w-14 h-14) */}
-                    <div
-                      className={`relative w-14 h-14 rounded-md flex items-center justify-center transition-all duration-300 ${
-                        active
-                          ? "bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark border border-line/70 shadow-lg shadow-gold-primary/40"
-                          : "bg-surface-raised border border-line/40 group-hover:border-line/60"
+                          ? "bg-gold-primary shadow-cta"
+                          : "border border-ink/10 bg-surface-raised group-hover:border-ink/20"
                       }`}
                     >
-                      {/* Top hairline accent (Flowscan signature) */}
-                      <div
-                        className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
-                          active ? "via-ink/50" : "via-gold-primary/50"
-                        } to-transparent`}
-                      />
-                      <span
-                        className={
-                          active ? "text-bg-primary" : "text-gold-primary"
-                        }
-                      >
+                      <span className={active ? "text-accent-fg" : "text-text-muted group-hover:text-gold-primary"}>
                         {item.icon}
                       </span>
                     </div>
                     <span
-                      className={`font-mono text-[9px] uppercase tracking-wider mt-1.5 transition-colors ${
-                        active ? "text-gold-primary" : "text-text-muted"
+                      className={`mt-1.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                        active ? "font-semibold text-gold-primary" : "text-text-muted"
                       }`}
                     >
                       {item.label}

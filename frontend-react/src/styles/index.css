@@ -85,80 +85,71 @@
   --surface-secondary: 18 8 9;
   --surface-raised: 20 8 10;
   --surface-hover: 30 12 15;
-  --accent: 212 168 83;
-  --accent-light: 240 216 144;
-  --accent-dark: 139 105 20;
+  /* Brand gold — cleaned toward Binance Yellow voltage (#F0B90B) */
+  --accent: 240 185 11;
+  --accent-light: 252 213 53;       /* #FCD535 */
+  --accent-dark: 200 148 8;
+  --accent-fg: 11 14 17;            /* dark ink ON solid gold CTA (Binance pattern) */
   --fg: 255 255 255;
   --fg-secondary: 184 168 154;
   --fg-muted: 165 149 133;
-  --pos: 74 222 128;
-  --neg: 248 113 113;
-  --warn: 251 191 36;
+  /* Trading PnL — Binance green/red */
+  --pos: 14 203 129;                /* #0ECB81 */
+  --neg: 246 70 93;                 /* #F6465D */
+  --warn: 240 185 11;
   --tg: 0 136 204;
-  /* Container hairline/border colour. Gold in Luxquant (brand), neutral in
-     Dark — boxes stay simple; gold remains reserved for interactive states. */
-  --line: 212 168 83;
+  --line: 240 185 11;
   --ink: 255 255 255;
   --scrim: 0 0 0;
-  /* Inverse ink — rare; e.g. text on solid accent chips that stay light */
-  --ink-inv: 10 5 6;
+  --ink-inv: 11 14 17;
 }
 
 [data-theme="dark"] {
-  /* True-neutral deep black for a solid, premium terminal feel (not muddy
-     grey). Page is near-black; panels lift just enough to read as cards,
-     separation carried by thin borders rather than lightness. Neutral hue so
-     the gold accent pops. */
-  --surface: 5 5 6;
-  --surface-secondary: 11 11 13;
-  --surface-raised: 18 18 20;
-  --surface-hover: 28 28 31;
-  --accent: 224 178 92;
-  --accent-light: 244 220 150;
-  --accent-dark: 139 105 20;
-  --fg: 245 245 247;
-  --fg-secondary: 168 168 176;
-  --fg-muted: 118 118 128;
-  --pos: 74 222 128;
-  --neg: 248 113 113;
-  --warn: 251 191 36;
+  /* True-neutral deep black + Binance yellow accent on monochrome. */
+  --surface: 11 14 17;              /* #0B0E11 Binance black */
+  --surface-secondary: 18 22 28;
+  --surface-raised: 24 28 34;       /* #181C22 */
+  --surface-hover: 34 38 46;
+  --accent: 240 185 11;
+  --accent-light: 252 213 53;
+  --accent-dark: 200 148 8;
+  --accent-fg: 11 14 17;
+  --fg: 234 236 239;
+  --fg-secondary: 132 142 156;
+  --fg-muted: 94 102 115;
+  --pos: 14 203 129;
+  --neg: 246 70 93;
+  --warn: 240 185 11;
   --tg: 0 136 204;
-  --line: 128 128 138;
+  --line: 48 54 64;
   --ink: 255 255 255;
   --scrim: 0 0 0;
-  --ink-inv: 5 5 6;
+  --ink-inv: 11 14 17;
 }
 
 [data-theme="bright"] {
   /*
-    Bright v3 — Stripe Dashboard × Linear light × cool zinc desk.
-    Research refs: Stripe (#f6f9fc page, #0a2540 text, #e5edf5 border),
-    Linear (#f7f8f8), AdminLTE light (#f4f6f9 / #212529 / #dee2e6).
-
-    Hierarchy (must read in one glance):
-      page     cool near-white canvas  (not muddy mid-grey)
-      raised   pure white cards + solid header/footer chrome
-      secondary inset wells / chips
-    Borders use cool slate ink so hairlines stay crisp at 6–12% opacity.
-    Text: cool near-black body · slate secondary · slate muted (AA on white).
-    Gold deep for brand on paper; PnL emerald/red 600 for solid ink (not neon).
+    Bright — Binance light desk × Stripe cool canvas.
+    Page cool white · cards pure white · Binance Yellow CTA with DARK text.
+    PnL: #0ECB81 / #F6465D (same both modes — data, not decoration).
   */
-  --surface: 245 246 248;           /* #f5f6f8 — clean cool page */
-  --surface-secondary: 236 238 242; /* #eceef2 — wells */
-  --surface-raised: 255 255 255;    /* cards / header / footer / modals */
+  --surface: 245 246 248;
+  --surface-secondary: 236 238 242;
+  --surface-raised: 255 255 255;
   --surface-hover: 228 231 236;
-  --accent: 148 112 34;             /* deep bronze-gold */
-  --accent-light: 176 136 48;
-  --accent-dark: 110 82 22;
-  --fg: 11 13 18;                   /* cool near-black body */
-  --fg-secondary: 55 65 81;         /* slate-600 */
-  --fg-muted: 100 116 139;          /* slate-500 — readable meta */
-  --pos: 5 150 105;                 /* emerald-600 */
-  --neg: 220 38 38;                 /* red-600 */
-  --warn: 180 83 9;                 /* amber-700 */
+  --accent: 240 185 11;             /* #F0B90B — true brand yellow, not muddy bronze */
+  --accent-light: 252 213 53;
+  --accent-dark: 200 148 8;
+  --accent-fg: 11 14 17;            /* always dark on yellow buttons */
+  --fg: 11 14 17;
+  --fg-secondary: 55 65 81;
+  --fg-muted: 100 116 139;
+  --pos: 14 203 129;
+  --neg: 246 70 93;
+  --warn: 200 148 8;
   --tg: 2 132 199;
-  --line: 203 213 225;              /* slate-300 — solid hairline base */
-  --ink: 15 23 42;                  /* slate-900 — cool overlays (not pure black mud) */
+  --line: 228 232 238;
+  --ink: 15 23 42;
   --scrim: 15 23 42;
   --ink-inv: 255 255 255;
 }
@@ -175,7 +166,8 @@
   --gold-primary: rgb(var(--accent));
   --gold-light: rgb(var(--accent-light));
   --gold-dark: rgb(var(--accent-dark));
-  --gold-glow: rgb(var(--accent) / 0.4);
+  --gold-glow: rgb(var(--accent) / 0.35);
+  --accent-on: rgb(var(--accent-fg)); /* text/icon on solid yellow CTA */
 
   --glass-bg: rgba(20, 10, 12, 0.6);
   --glass-border: rgb(var(--line) / 0.15);
@@ -247,6 +239,51 @@
 [data-theme="bright"] .lq-app-footer {
   background: rgb(var(--surface-raised)) !important;
   border-top: 1px solid rgb(var(--ink) / 0.08) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LQ CTA — Binance-style solid yellow primary action
+   bg: accent yellow · text: always dark · no muddy bronze
+   ═══════════════════════════════════════════════════════════════ */
+.lq-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-fg));
+  font-weight: 700;
+  border: none;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px rgb(var(--accent) / 0.35);
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.lq-cta:hover { background: rgb(var(--accent-light)); box-shadow: 0 6px 18px rgb(var(--accent) / 0.4); }
+.lq-cta:active { transform: scale(0.97); }
+.lq-cta:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* Squared variant (desk buttons, modal CTAs) */
+.lq-cta-md {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-fg));
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgb(var(--accent) / 0.28);
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.lq-cta-md:hover { background: rgb(var(--accent-light)); }
+.lq-cta-md:active { transform: scale(0.98); }
+
+/* Soft gold chip / label (section titles) — monochrome desk, yellow ink only */
+.lq-label-accent {
+  color: rgb(var(--accent));
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* ── Bright: global residual polish for product pages ───────────────

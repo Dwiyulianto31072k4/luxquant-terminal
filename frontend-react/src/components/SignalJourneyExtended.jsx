@@ -106,8 +106,8 @@ const SignalJourneyExtended = ({ signalId }) => {
   if (loading) {
     return (
       <div>
-        <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
-          📊 Detailed Journey
+        <h4 className="lq-label-accent mb-3 flex items-center gap-2 text-xs sm:text-sm">
+          <span aria-hidden>📊</span> Detailed Journey
         </h4>
         <div className="bg-surface-raised rounded-xl border border-ink/5 p-4 space-y-3 animate-pulse">
           <div className="h-3 bg-ink/5 rounded w-1/3" />
@@ -131,22 +131,23 @@ const SignalJourneyExtended = ({ signalId }) => {
   if (data.available === false) {
     return (
       <div>
-        <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
-          📊 Detailed Journey
+        <h4 className="lq-label-accent mb-3 flex items-center gap-2 text-xs sm:text-sm">
+          <span aria-hidden>📊</span> Detailed Journey
         </h4>
-        <div className="bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl p-6 border border-line/30 text-center">
-          <div className="w-12 h-12 mx-auto rounded-full bg-gold-primary/15 border-2 border-line/40 flex items-center justify-center mb-3">
-            <span className="text-lg">🔒</span>
+        <div className="rounded-xl border border-ink/[0.1] bg-surface-secondary/80 p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.1] bg-surface-raised text-lg shadow-sm">
+            🔒
           </div>
-          <h5 className="text-text-primary font-bold text-sm mb-1.5">Premium Detailed Journey</h5>
-          <p className="text-text-primary/60 text-xs leading-relaxed max-w-md mx-auto mb-3">
+          <h5 className="mb-1.5 text-sm font-bold text-text-primary">Premium Detailed Journey</h5>
+          <p className="mx-auto mb-4 max-w-md text-xs leading-relaxed text-text-muted">
             {data.message || "Detailed journey for recent signals is available to subscribers."}
           </p>
           <button
+            type="button"
             onClick={() => {
               window.location.href = "/pricing";
             }}
-            className="px-4 py-2 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]"
+            className="lq-cta-md px-5 py-2.5 text-xs"
           >
             Subscribe to Unlock
           </button>
@@ -159,7 +160,7 @@ const SignalJourneyExtended = ({ signalId }) => {
   if (data.coverage_status === "unavailable") {
     return (
       <div>
-        <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
+        <h4 className="lq-label-accent mb-3 flex items-center gap-2 text-xs sm:text-sm">
           📊 Detailed Journey
         </h4>
         <div className="bg-surface-raised rounded-xl border border-ink/5 p-4 text-center">
@@ -180,8 +181,8 @@ const SignalJourneyExtended = ({ signalId }) => {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
-          📊 Detailed Journey
+        <h4 className="lq-label-accent flex items-center gap-2 text-xs sm:text-sm">
+          <span aria-hidden>📊</span> Detailed Journey
         </h4>
         {data.coverage_status === "live" && (
           <span className="text-[9px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 font-mono uppercase tracking-wider">

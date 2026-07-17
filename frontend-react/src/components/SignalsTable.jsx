@@ -1340,7 +1340,7 @@ const SignalsTable = ({
                             onClick={(e) => handleShareSignal(e, signal)}
                             title="Share signal"
                             aria-label="Share signal"
-                            className={`w-7 h-7 inline-flex items-center justify-center rounded-sm transition-all text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] hover:bg-gold-primary/10 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] ${
+                            className={`w-7 h-7 inline-flex items-center justify-center rounded-sm transition-all text-gold-primary hover:bg-gold-primary/10 ${
                               sharedId === signal.signal_id ? 'scale-110' : ''
                             }`}
                           >

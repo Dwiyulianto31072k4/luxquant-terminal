@@ -2567,13 +2567,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         }
         .lq-tile:hover { border-color: rgb(var(--fg) / 0.12); background: rgb(var(--fg) / 0.035); }
 
+        /* Primary CTA — Binance yellow + dark ink on fill */
         .lq-btn-primary, .lq-btn-gold {
-          background: rgb(var(--fg) / 0.92);
-          color: rgb(var(--surface));
+          background: rgb(var(--accent));
+          color: rgb(var(--accent-fg));
           border: none;
-          transition: opacity .15s ease, transform .12s ease;
+          font-weight: 700;
+          box-shadow: 0 2px 10px rgb(var(--accent) / 0.28);
+          transition: background .15s ease, transform .12s ease, box-shadow .15s ease;
         }
-        .lq-btn-primary:hover, .lq-btn-gold:hover { opacity: 0.92; }
+        .lq-btn-primary:hover, .lq-btn-gold:hover {
+          background: rgb(var(--accent-light));
+          box-shadow: 0 4px 14px rgb(var(--accent) / 0.35);
+        }
         .lq-btn-primary:active, .lq-btn-gold:active { transform: scale(0.98); }
 
         .signal-modal-overlay {
