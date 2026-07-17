@@ -36,7 +36,7 @@ const ROLE_OPTIONS = [
     value: "free",
     label: ROLE_LABELS.free,
     desc: "No subscription / remove staff access",
-    tone: "#8a7a6e",
+    tone: "rgb(var(--fg-muted))",
   },
 ];
 
@@ -100,7 +100,7 @@ export const SetRoleModal = ({ user, onClose, onSetRole }) => {
                 <div className="flex items-center justify-between gap-2">
                   <span
                     className="text-[12px] font-bold uppercase tracking-wider"
-                    style={{ color: active ? opt.tone : "#fff" }}
+                    style={{ color: active ? opt.tone : "rgb(var(--fg))" }}
                   >
                     {opt.label}
                   </span>

@@ -51,7 +51,7 @@ const StepHeader = ({ num, title, complete, locked }) => (
           : locked
             ? "rgb(var(--ink) / 0.04)"
             : "rgb(var(--accent) / 0.16)",
-        color: complete ? "#34d399" : locked ? "#4a3f39" : "rgb(var(--accent))",
+        color: complete ? "#34d399" : locked ? "rgb(var(--fg-muted))" : "rgb(var(--accent))",
         border: `1px solid ${complete ? "rgba(52,211,153,0.32)" : locked ? "rgb(var(--ink) / 0.06)" : "rgb(var(--accent) / 0.3)"}`,
       }}
     >
@@ -59,7 +59,7 @@ const StepHeader = ({ num, title, complete, locked }) => (
     </span>
     <h4
       className="text-[10.5px] font-bold uppercase tracking-wider"
-      style={{ color: locked ? "#4a3f39" : "#fff" }}
+      style={{ color: locked ? "rgb(var(--fg-muted))" : "rgb(var(--fg))" }}
     >
       {title}
     </h4>
@@ -182,7 +182,7 @@ const TxStep = ({
               background: looksValid
                 ? "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)))"
                 : "rgb(var(--ink) / 0.04)",
-              color: looksValid ? "rgb(var(--surface))" : "#6b5c52",
+              color: looksValid ? "rgb(var(--surface))" : "rgb(var(--fg-muted))",
             }}
           >
             {verifying && (
@@ -445,7 +445,7 @@ const Row = ({ label, value, mono, valueColor, big, copyable }) => (
     <div className="flex min-w-0 items-center gap-1.5">
       <span
         className={`truncate ${mono ? "font-mono tabular-nums" : ""} ${big ? "text-sm font-semibold" : ""}`}
-        style={{ color: valueColor || "#fff" }}
+        style={{ color: valueColor || "rgb(var(--fg))" }}
       >
         {value || "—"}
       </span>
@@ -540,7 +540,7 @@ const UserStep = ({
                 style={{
                   background:
                     mode === opt.id ? "rgb(var(--accent) / 0.12)" : "rgb(var(--ink) / 0.02)",
-                  color: mode === opt.id ? "rgb(var(--accent))" : "#8a7a6e",
+                  color: mode === opt.id ? "rgb(var(--accent))" : "rgb(var(--fg-muted))",
                   border: `1px solid ${mode === opt.id ? "rgb(var(--accent) / 0.32)" : "rgb(var(--ink) / 0.06)"}`,
                 }}
               >
@@ -665,7 +665,7 @@ const UserStep = ({
                                 u.role === "subscriber"
                                   ? "rgba(52,211,153,0.12)"
                                   : "rgba(107,92,82,0.12)",
-                              color: u.role === "subscriber" ? "#34d399" : "#8a7a6e",
+                              color: u.role === "subscriber" ? "#34d399" : "rgb(var(--fg-muted))",
                             }}
                           >
                             {u.role}
@@ -791,7 +791,7 @@ const PlanStep = ({
                   <div className="mb-1 flex items-center justify-between">
                     <p
                       className="text-[12px] font-semibold tracking-tight"
-                      style={{ color: isSelected ? "rgb(var(--accent))" : "#fff" }}
+                      style={{ color: isSelected ? "rgb(var(--accent))" : "rgb(var(--fg))" }}
                     >
                       {p.label}
                     </p>
@@ -800,7 +800,7 @@ const PlanStep = ({
                   <div className="flex items-baseline justify-between">
                     <span
                       className="text-base font-light tabular-nums"
-                      style={{ color: isSelected ? "rgb(var(--accent))" : "#fff" }}
+                      style={{ color: isSelected ? "rgb(var(--accent))" : "rgb(var(--fg))" }}
                     >
                       ${Number(p.price_usdt).toFixed(2)}
                     </span>
@@ -884,7 +884,7 @@ const MethodSelector = ({ method, setMethod }) => (
             className="rounded-lg py-2 text-[11px] font-semibold uppercase tracking-wider transition-all"
             style={{
               background: active ? "rgb(var(--accent) / 0.16)" : "rgb(var(--ink) / 0.02)",
-              color: active ? "rgb(var(--accent))" : "#8a7a6e",
+              color: active ? "rgb(var(--accent))" : "rgb(var(--fg-muted))",
               border: `1px solid ${active ? "rgb(var(--accent) / 0.4)" : "rgb(var(--ink) / 0.08)"}`,
             }}
           >

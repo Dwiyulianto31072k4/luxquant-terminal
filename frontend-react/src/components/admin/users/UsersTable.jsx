@@ -380,7 +380,7 @@ const DesktopTable = ({
             <td className="px-3 py-2.5 hidden lg:table-cell">
               <span
                 className="text-[10px]"
-                style={{ color: u.last_active_at ? "#8a7a6e" : "#4a3f39" }}
+                style={{ color: u.last_active_at ? "rgb(var(--fg-muted))" : "rgb(var(--fg-muted))" }}
               >
                 {relativeTime(u.last_active_at)}
               </span>

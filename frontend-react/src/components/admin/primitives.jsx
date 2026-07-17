@@ -321,10 +321,10 @@ export const IconBadge = ({
     ink === "dark"
       ? "rgb(var(--surface-raised))"
       : ink === "light"
-        ? "#ffffff"
+        ? "rgb(var(--fg))"
         : lightFill
           ? "rgb(var(--surface-raised))"
-          : "#ffffff";
+          : "rgb(var(--fg))";
   const glyph = iconSize || Math.round(size * 0.48);
   const r = Math.max(8, Math.round(size * 0.28));
 

@@ -28,14 +28,14 @@ const C = {
   ok: "#34d399",
   down: "#f87171",
   warn: "#fbbf24",
-  idle: "#8a7a6e",
+  idle: "rgb(var(--fg-muted))",
   gold: "rgb(var(--accent))",
   teal: "#2dd4bf",
   blue: "#8a8a93",
   purple: "#8a8a93",
 };
 const EDGE = {
-  depends: { c: "#8a7a6e", flow: false, label: "depends on" },
+  depends: { c: "rgb(var(--fg-muted))", flow: false, label: "depends on" },
   db: { c: "#8a8a93", flow: false, label: "Postgres" },
   cache: { c: "#f87171", flow: false, label: "Redis" },
   poll: { c: "#fbbf24", flow: true, label: "polls external" },
@@ -658,7 +658,7 @@ function MapFlow({ topo, onAction }) {
             className="lqf-mini"
             pannable
             zoomable
-            nodeColor={(n) => n.data?.color || "#8a7a6e"}
+            nodeColor={(n) => n.data?.color || "rgb(var(--fg-muted))"}
             nodeStrokeWidth={0}
             maskColor="rgba(10,5,6,0.6)"
             style={{

@@ -39,8 +39,8 @@ const PANEL = {
   borderSoft: "rgb(var(--ink) / 0.06)",
   hairline: "linear-gradient(to right, transparent, rgb(var(--accent) / 0.45), transparent)",
   label: "rgb(var(--ink) / 0.42)",
-  muted: "#8a7a6e",
-  text: "#f5f0e8",
+  muted: "rgb(var(--fg-muted))",
+  text: "rgb(var(--fg))",
 };
 
 const Section = ({ title, action, children }) => (
@@ -383,7 +383,7 @@ const PaymentDateRow = ({ verifiedAt }) => (
     </span>
     <span
       className="text-[12.5px] font-mono tabular-nums truncate text-right font-semibold"
-      style={{ color: verifiedAt ? "rgb(var(--accent))" : "#6b5c52" }}
+      style={{ color: verifiedAt ? "rgb(var(--accent))" : "rgb(var(--fg-muted))" }}
     >
       {verifiedAt ? formatDateTimeLong(verifiedAt) : "Not yet verified"}
     </span>

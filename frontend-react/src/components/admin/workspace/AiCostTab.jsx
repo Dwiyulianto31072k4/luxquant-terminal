@@ -35,7 +35,7 @@ const Card = ({ label, value, sub, accent }) => (
     </p>
     <p
       className="mt-2 font-mono text-2xl font-semibold tabular-nums"
-      style={{ color: accent || "#fff" }}
+      style={{ color: accent || "rgb(var(--fg))" }}
     >
       {value}
     </p>
@@ -167,7 +167,7 @@ export function AiCostTab() {
               label="This Month"
               value={fmtUSD(summary.month.cost)}
               sub={`${fmtNum(summary.month.calls)} calls`}
-              accent="#fff"
+              accent="rgb(var(--fg))"
             />
             <Card
               label={`${days}d Cost`}
@@ -175,12 +175,12 @@ export function AiCostTab() {
               sub={`${fmtNum(summary.range.calls)} calls`}
               accent={palette.gold[300]}
             />
-            <Card label={`${days}d Tokens`} value={fmtTokens(summary.range.tokens)} accent="#fff" />
+            <Card label={`${days}d Tokens`} value={fmtTokens(summary.range.tokens)} accent="rgb(var(--fg))" />
             <Card
               label="Model Calls"
               value={fmtNum(summary.range.model_calls)}
               sub={`${fmtNum(summary.range.cache_calls)} from cache`}
-              accent="#fff"
+              accent="rgb(var(--fg))"
             />
             <Card
               label="Cache Hit Rate"

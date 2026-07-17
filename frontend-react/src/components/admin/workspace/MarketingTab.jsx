@@ -240,7 +240,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
           <div className="flex items-baseline gap-2">
             <span
               className="text-lg font-light tabular-nums tracking-tight"
-              style={{ color: overBudget ? "#f87171" : "#fff" }}
+              style={{ color: overBudget ? "#f87171" : "rgb(var(--fg))" }}
             >
               {formatCurrency(spent)}
             </span>

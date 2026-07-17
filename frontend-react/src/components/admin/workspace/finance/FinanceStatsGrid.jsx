@@ -72,7 +72,7 @@ const KpiTile = ({
 
       <p
         className="relative text-2xl font-bold tracking-tight tabular-nums leading-none"
-        style={{ color: loading ? "#4a3f39" : alert ? accent : "#fff" }}
+        style={{ color: loading ? "rgb(var(--fg-muted))" : alert ? accent : "rgb(var(--fg))" }}
       >
         {loading ? "—" : (value ?? "—")}
       </p>
@@ -164,7 +164,7 @@ export const FinanceStatsGrid = ({ stats, statusFilter, onFilterToggle, loading 
             <InfoStat
               label="Cancelled"
               value={(stats.cancelled_count ?? 0).toLocaleString()}
-              accent="#8a7a6e"
+              accent="rgb(var(--fg-muted))"
             />
             {(stats.expired_count ?? 0) > 0 && (
               <>
@@ -201,7 +201,7 @@ const InfoStat = ({ label, value, accent }) => (
     >
       {label}
     </span>
-    <span className="tabular-nums font-semibold" style={{ color: accent || "#c9b59e" }}>
+    <span className="tabular-nums font-semibold" style={{ color: accent || "rgb(var(--fg-secondary))" }}>
       {value}
     </span>
   </span>

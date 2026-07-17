@@ -266,7 +266,7 @@ const FALLBACK_BRAND = {
   surfaceInset: "rgb(var(--scrim) / 0.2)",
   border: "rgb(var(--accent) / 0.35)",
   borderAccent: "rgb(var(--accent))",
-  text: "#f5f0e8",
+  text: "rgb(var(--fg))",
   textMuted: "rgba(245,240,232,0.7)",
   chipBg: "rgb(var(--scrim) / 0.25)",
   chipBorder: "rgb(var(--accent) / 0.3)",

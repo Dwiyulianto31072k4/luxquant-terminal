@@ -85,7 +85,7 @@ const StatusBadge = ({ status }) => {
     },
     cancelled: {
       bg: "rgba(107,92,82,0.10)",
-      text: "#6b5c52",
+      text: "rgb(var(--fg-muted))",
       border: "rgba(107,92,82,0.30)",
     },
     failed: {
@@ -152,14 +152,14 @@ const StatTile = ({ label, value, accent }) => (
     </p>
     <p
       className="text-[13px] font-medium tabular-nums tracking-tight truncate"
-      style={{ color: accent || "#fff" }}
+      style={{ color: accent || "rgb(var(--fg))" }}
     >
       {value ?? "—"}
     </p>
   </div>
 );
 
-const EmptyState = ({ Icon, title, hint, accent = "#4a3f39" }) => (
+const EmptyState = ({ Icon, title, hint, accent = "rgb(var(--fg-muted))" }) => (
   <div className="text-center py-16">
     <div
       className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
@@ -234,7 +234,7 @@ const UserHero = ({ user }) => (
                     ? "#fbbf24"
                     : user.role === "subscriber" || user.role === "premium"
                       ? "#34d399"
-                      : "#8a7a6e",
+                      : "rgb(var(--fg-muted))",
             border: `1px solid ${
               user.role === "admin"
                 ? "rgba(168,85,247,0.3)"
@@ -349,7 +349,7 @@ const ActivityPulse = ({ userId }) => {
   const spark = data.sparkline_30d || [];
   const maxC = spark.reduce((m, p) => Math.max(m, p.count), 0) || 1;
   const score = data.engagement_score ?? 0;
-  const scoreColor = score >= 60 ? "#34d399" : score >= 30 ? "#fbbf24" : "#8a7a6e";
+  const scoreColor = score >= 60 ? "#34d399" : score >= 30 ? "#fbbf24" : "rgb(var(--fg-muted))";
 
   return (
     <Section title="Activity Pulse" Icon={ClockIcon}>
@@ -1723,13 +1723,13 @@ export const UserDetailDrawer = ({
                   onClick={() => setActiveTab(id)}
                   className="flex-1 min-w-[80px] py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors relative flex items-center justify-center gap-1.5"
                   style={{
-                    color: isActive ? "#fff" : "#6b5c52",
+                    color: isActive ? "rgb(var(--fg))" : "rgb(var(--fg-muted))",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) e.currentTarget.style.color = "#a89888";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "#6b5c52";
+                    if (!isActive) e.currentTarget.style.color = "rgb(var(--fg-muted))";
                   }}
                 >
                   <Icon size={12} />

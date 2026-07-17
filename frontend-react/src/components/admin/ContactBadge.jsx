@@ -177,7 +177,7 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
           className="flex items-center justify-center w-7 h-7 rounded transition-colors"
           style={{
             background: copied ? "rgba(52,211,153,0.12)" : "rgb(var(--ink) / 0.03)",
-            color: copied ? "#34d399" : "#8a7a6e",
+            color: copied ? "#34d399" : "rgb(var(--fg-muted))",
             border: `1px solid ${copied ? "rgba(52,211,153,0.25)" : "rgb(var(--ink) / 0.06)"}`,
           }}
         >

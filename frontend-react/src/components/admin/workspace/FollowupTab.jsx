@@ -203,7 +203,7 @@ const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
     </div>
     <p
       className="relative text-2xl font-bold tracking-tight tabular-nums leading-none"
-      style={{ color: alert ? accent : "#fff" }}
+      style={{ color: alert ? accent : "rgb(var(--fg))" }}
     >
       {value ?? "—"}
     </p>
@@ -240,7 +240,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
             <h4
               className="text-sm font-semibold tracking-tight"
               style={{
-                color: isOpen ? "#fff" : "#8a7a6e",
+                color: isOpen ? "rgb(var(--fg))" : "rgb(var(--fg-muted))",
                 textDecoration: followup.status === "cancelled" ? "line-through" : "none",
               }}
             >
@@ -286,7 +286,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
             {due && (
               <span
                 className="flex items-center gap-1 font-semibold tabular-nums"
-                style={{ color: due.overdue ? "#f87171" : due.urgent ? "#fb923c" : "#8a7a6e" }}
+                style={{ color: due.overdue ? "#f87171" : due.urgent ? "#fb923c" : "rgb(var(--fg-muted))" }}
               >
                 <ClockIcon size={10} />
                 {due.text}

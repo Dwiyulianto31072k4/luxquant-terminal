@@ -32,7 +32,7 @@ const ModeTab = ({ active, onClick, children }) => (
     className="flex-1 rounded py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
     style={{
       background: active ? "rgb(var(--accent) / 0.18)" : "transparent",
-      color: active ? GOLD : "#6b5c52",
+      color: active ? GOLD : "rgb(var(--fg-muted))",
       border: `1px solid ${active ? "rgb(var(--accent) / 0.3)" : "transparent"}`,
     }}
   >
@@ -50,10 +50,10 @@ const DurationOption = ({ Icon, label, desc, selected, onClick }) => (
       border: `1px solid ${selected ? "rgb(var(--accent) / 0.45)" : "rgb(var(--ink) / 0.06)"}`,
     }}
   >
-    <Icon size={16} style={{ color: selected ? GOLD : "#6b5c52" }} />
+    <Icon size={16} style={{ color: selected ? GOLD : "rgb(var(--fg-muted))" }} />
     <span
       className="text-[11px] font-bold tracking-tight"
-      style={{ color: selected ? GOLD : "#fff" }}
+      style={{ color: selected ? GOLD : "rgb(var(--fg))" }}
     >
       {label}
     </span>

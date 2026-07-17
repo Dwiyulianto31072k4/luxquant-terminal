@@ -13,7 +13,7 @@ const PaginationButton = ({ onClick, disabled, children, active = false, title }
     title={title}
     className="inline-flex items-center justify-center min-w-[32px] h-7 px-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed"
     style={{
-      color: active ? palette.gold[300] : "#8a7a6e",
+      color: active ? palette.gold[300] : "rgb(var(--fg-muted))",
       background: active ? tint(palette.gold[300], 0.1) : "transparent",
       border: `1px solid ${active ? tint(palette.gold[300], 0.35) : surface.base.border}`,
       transition: motion.base,
@@ -21,13 +21,13 @@ const PaginationButton = ({ onClick, disabled, children, active = false, title }
     onMouseEnter={(e) => {
       if (!disabled && !active) {
         e.currentTarget.style.background = "rgb(var(--ink) / 0.03)";
-        e.currentTarget.style.color = "#c9b59e";
+        e.currentTarget.style.color = "rgb(var(--fg-secondary))";
       }
     }}
     onMouseLeave={(e) => {
       if (!disabled && !active) {
         e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.color = "#8a7a6e";
+        e.currentTarget.style.color = "rgb(var(--fg-muted))";
       }
     }}
   >

@@ -430,7 +430,7 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
         style={{ borderTop: "1px solid rgb(var(--ink) / 0.04)", color: "rgb(var(--fg-muted))" }}
       >
         <span
-          style={{ color: payment.verified_at ? "rgb(var(--accent))" : "#6b5c52" }}
+          style={{ color: payment.verified_at ? "rgb(var(--accent))" : "rgb(var(--fg-muted))" }}
           title={
             payment.verified_at
               ? `Payment: ${formatDateTime(payment.verified_at)}`

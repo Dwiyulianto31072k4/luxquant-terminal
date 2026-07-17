@@ -194,7 +194,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
                 >
                   <p
                     className="text-[11px] font-semibold tracking-tight"
-                    style={{ color: isSelected ? "rgb(var(--accent))" : "#fff" }}
+                    style={{ color: isSelected ? "rgb(var(--accent))" : "rgb(var(--fg))" }}
                   >
                     {t.label}
                   </p>
@@ -350,7 +350,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
               className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-[1.02]"
               style={{
                 background: copied ? "rgba(52,211,153,0.12)" : "rgb(var(--ink) / 0.04)",
-                color: copied ? "#34d399" : "#fff",
+                color: copied ? "#34d399" : "rgb(var(--fg))",
                 border: `1px solid ${copied ? "rgba(52,211,153,0.3)" : "rgb(var(--ink) / 0.1)"}`,
               }}
             >

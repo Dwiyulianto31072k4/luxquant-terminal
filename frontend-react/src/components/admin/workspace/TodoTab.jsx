@@ -96,7 +96,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         <h4
           className="text-xs font-semibold tracking-tight flex-1 leading-tight"
           style={{
-            color: isDone ? "#8a7a6e" : "#fff",
+            color: isDone ? "rgb(var(--fg-muted))" : "rgb(var(--fg))",
             textDecoration: todo.status === "cancelled" ? "line-through" : "none",
           }}
         >
@@ -505,7 +505,7 @@ export const TodoTab = ({ onRefreshStats }) => {
                 className="px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-all"
                 style={{
                   background: view === v.id ? "rgb(var(--accent) / 0.18)" : "transparent",
-                  color: view === v.id ? "rgb(var(--accent))" : "#6b5c52",
+                  color: view === v.id ? "rgb(var(--accent))" : "rgb(var(--fg-muted))",
                   border:
                     view === v.id ? "1px solid rgb(var(--accent) / 0.3)" : "1px solid transparent",
                 }}

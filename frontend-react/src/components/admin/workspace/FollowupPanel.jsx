@@ -124,7 +124,7 @@ const UserPicker = ({ selectedUser, onChange }) => {
                 style={{
                   background:
                     u.role === "subscriber" ? "rgba(52,211,153,0.12)" : "rgba(107,92,82,0.12)",
-                  color: u.role === "subscriber" ? "#34d399" : "#8a7a6e",
+                  color: u.role === "subscriber" ? "#34d399" : "rgb(var(--fg-muted))",
                 }}
               >
                 {u.role}
