@@ -36,16 +36,17 @@ const WARNING_TAGS = [
   "LIQ_VERY_LOW", "LIQ_LOW", "FUNDING_HEAVY_LONG", "FUNDING_HEAVY_SHORT",
   "RISK_OFF_REGIME", "HTF_TREND_EXHAUSTED", "PATTERN_CONFLICTING", "HARMONIC_CONFLICTING",
 ];
+// Equality / lifecycle tags — monochrome desk; green/red only for risk semantics
 const EQ_TAGS = {
-  FRESH_BREAKOUT: { tone: "text-surface-raised bg-positive border-positive" },
-  DEEP_PULLBACK: { tone: "text-surface-hover bg-cyan-400 border-cyan-400" },
-  EXHAUSTION_CANDLE: { tone: "text-surface-hover bg-orange-400 border-orange-400" },
-  PARABOLIC: { tone: "text-surface-secondary bg-negative border-negative" },
-  LATE_ENTRY: { tone: "text-surface-hover bg-warning border-warning" },
-  OVEREXTENDED: { tone: "text-surface-secondary bg-negative border-negative" },
+  FRESH_BREAKOUT: { tone: "text-positive bg-positive/10 border-positive/30" },
+  DEEP_PULLBACK: { tone: "text-text-secondary bg-ink/[0.05] border-ink/10" },
+  EXHAUSTION_CANDLE: { tone: "text-negative bg-negative/10 border-negative/25" },
+  PARABOLIC: { tone: "text-negative bg-negative/10 border-negative/25" },
+  LATE_ENTRY: { tone: "text-text-muted bg-ink/[0.05] border-ink/10" },
+  OVEREXTENDED: { tone: "text-negative bg-negative/10 border-negative/25" },
 };
 const nice = (tag) => tag.replaceAll("_", " ").toLowerCase();
-const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: ORANGE };
+const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: "rgb(var(--fg-muted))" };
 
 // confluence score = positive important reasons − warnings (for sorting)
 function scoreOf(tags) {
