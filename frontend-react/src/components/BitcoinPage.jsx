@@ -3,6 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import NewsPreviewModal from "./NewsPreviewModal";
 import AssistantWidget from "./assistant/AssistantWidget";
+import {
+  getActiveTheme,
+  getTradingViewTheme,
+  mountTradingViewEmbed,
+  subscribeTheme,
+} from "../utils/themeColors";
 
 const API_BASE = "/api/v1";
 
@@ -950,6 +956,10 @@ const BtcTradingViewChart = ({ t }) => {
   const hostRef = useRef(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [retryKey, setRetryKey] = useState(0);
+  // Remount embed when app theme changes (dark / luxquant / bright)
+  const [appTheme, setAppTheme] = useState(getActiveTheme);
+
+  useEffect(() => subscribeTheme(setAppTheme), []);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -957,55 +967,19 @@ const BtcTradingViewChart = ({ t }) => {
 
     let cancelled = false;
     setStatus("loading");
-    host.innerHTML = "";
 
-    let timezone = "Etc/UTC";
-    try {
-      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch {
-      /* keep UTC */
-    }
+    const tv = getTradingViewTheme(appTheme);
+    // Match host bg to theme so white flash never shows under iframe
+    host.style.background = tv.backgroundColor;
 
-    const isBright = document.documentElement?.dataset?.theme === "bright";
-
-    const shell = document.createElement("div");
-    shell.className = "tradingview-widget-container";
-    shell.style.cssText = "height:100%;width:100%";
-
-    const inner = document.createElement("div");
-    inner.className = "tradingview-widget-container__widget";
-    inner.style.cssText = "height:100%;width:100%";
-    shell.appendChild(inner);
-
-    // Lightweight embed (not full tv.js constructor) — much faster first paint.
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src =
-      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      autosize: true,
+    const unmount = mountTradingViewEmbed(host, {
+      theme: appTheme,
       symbol: TV_SYMBOL,
       interval: "240",
-      timezone,
-      theme: isBright ? "light" : "dark",
-      style: "1",
-      locale: "en",
-      backgroundColor: isBright ? "#ffffff" : "#0a0805",
-      gridColor: isBright ? "rgba(15, 23, 42, 0.06)" : "rgba(255, 255, 255, 0.04)",
-      hide_top_toolbar: false,
-      hide_legend: false,
-      hide_side_toolbar: false,
-      allow_symbol_change: true,
-      save_image: false,
-      // One lightweight study for speed (MACD+Stoch was double-heavy)
       studies: ["STD;EMA"],
-      support_host: "https://www.tradingview.com",
+      save_image: false,
     });
-    shell.appendChild(script);
-    host.appendChild(shell);
 
-    // Ready when TV injects its iframe
     const markReady = () => {
       if (cancelled) return;
       setStatus("ready");
@@ -1018,42 +992,31 @@ const BtcTradingViewChart = ({ t }) => {
     });
     obs.observe(host, { childList: true, subtree: true });
 
-    // Also catch iframe load after injection
     const poll = window.setInterval(() => {
-      const iframe = host.querySelector("iframe");
-      if (!iframe) return;
-      try {
-        iframe.addEventListener("load", markReady, { once: true });
-      } catch {
-        /* cross-origin — presence is enough */
+      if (host.querySelector("iframe")) {
+        markReady();
+        window.clearInterval(poll);
       }
-      markReady();
-      window.clearInterval(poll);
     }, 400);
 
-    // Fail soft if blocked / very slow (VPN, region, adblock)
     const timeout = window.setTimeout(() => {
-      if (!cancelled) {
-        setStatus((s) => (s === "loading" ? "error" : s));
-      }
+      if (!cancelled) setStatus((s) => (s === "loading" ? "error" : s));
     }, 12000);
-
-    script.onerror = () => {
-      if (!cancelled) setStatus("error");
-    };
 
     return () => {
       cancelled = true;
       obs.disconnect();
       window.clearInterval(poll);
       window.clearTimeout(timeout);
-      if (host) host.innerHTML = "";
+      unmount();
     };
-  }, [retryKey]);
+  }, [retryKey, appTheme]);
+
+  const tvBg = getTradingViewTheme(appTheme).backgroundColor;
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between border-b border-ink/[0.07] bg-surface px-5 py-3.5">
+      <div className="flex items-center justify-between border-b border-ink/[0.07] bg-surface-raised px-5 py-3.5">
         <div className="flex items-center gap-3">
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1]">
             <img
@@ -1082,10 +1045,15 @@ const BtcTradingViewChart = ({ t }) => {
         </div>
       </div>
 
-      <div className="relative h-[min(560px,70vh)] w-full bg-surface-raised">
-        {/* Desk skeleton while embed boots */}
+      <div
+        className="relative h-[min(560px,70vh)] w-full"
+        style={{ background: tvBg }}
+      >
         {status === "loading" && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface-raised">
+          <div
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3"
+            style={{ background: tvBg }}
+          >
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/15 border-t-accent" />
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
               Loading chart…
@@ -1094,7 +1062,10 @@ const BtcTradingViewChart = ({ t }) => {
         )}
 
         {status === "error" && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-surface-raised px-6 text-center">
+          <div
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 px-6 text-center"
+            style={{ background: tvBg }}
+          >
             <p className="text-sm font-medium text-text-primary">Chart took too long to load</p>
             <p className="max-w-sm font-mono text-[11px] text-text-muted">
               TradingView may be slow or blocked in your region. Retry or open the chart externally.

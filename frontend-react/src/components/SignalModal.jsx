@@ -14,6 +14,12 @@ import BTCCorrelationModal from "./BTCCorrelationModal";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
+import {
+  getActiveTheme,
+  getTradingViewTheme,
+  mountTradingViewEmbed,
+  subscribeTheme,
+} from "../utils/themeColors";
 
 
 const deriveChartWithCard = (rawUrl) => {
@@ -510,6 +516,9 @@ const SignalModal = ({
     }
   };
 
+  const [appTheme, setAppTheme] = useState(getActiveTheme);
+  useEffect(() => subscribeTheme(setAppTheme), []);
+
   useEffect(() => {
     if (
       !isOpen ||
@@ -519,65 +528,21 @@ const SignalModal = ({
     )
       return;
     const container = chartContainerRef.current;
-    container.innerHTML = "";
-
-    const symbol = `BINANCE:${signal.pair || ""}.P`;
-    const timezone = getUserTimezone();
-
-    const widgetContainer = document.createElement("div");
-    widgetContainer.className = "tradingview-widget-container";
-    widgetContainer.style.cssText = "height:100%;width:100%";
-
-    const widgetInner = document.createElement("div");
-    widgetInner.className = "tradingview-widget-container__widget";
-    widgetInner.style.cssText = "height:100%;width:100%";
-    widgetContainer.appendChild(widgetInner);
-
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src =
-      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: symbol,
+    const tv = getTradingViewTheme(appTheme);
+    container.style.background = tv.backgroundColor;
+    return mountTradingViewEmbed(container, {
+      theme: appTheme,
+      symbol: `BINANCE:${signal.pair || ""}.P`,
       interval: "240",
-      timezone: timezone,
-      theme: document.documentElement?.dataset?.theme === "bright" ? "light" : "dark",
-      style: "1",
-      locale: "en",
-      backgroundColor:
-        document.documentElement?.dataset?.theme === "bright"
-          ? "rgba(255, 255, 255, 1)"
-          : "rgba(13, 13, 13, 1)",
-      gridColor:
-        document.documentElement?.dataset?.theme === "bright"
-          ? "rgba(15, 23, 42, 0.06)"
-          : "rgba(128,128,138,0.08)",
-      hide_top_toolbar: false,
-      hide_legend: false,
-      // Drawing toolbar (trendline, fib, dll) SELALU tampil — penting buat analisa.
-      // (dulu disembunyikan otomatis di layar sempit; sekarang dipertahankan.)
+      timezone: getUserTimezone(),
       hide_side_toolbar: false,
-      hide_drawing_toolbar: false,
-      allow_symbol_change: true,
       save_image: true,
-      calendar: false,
-      hide_volume: false,
       withdateranges: true,
       studies: showIndicators
         ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"]
         : [],
-      support_host: "https://www.tradingview.com",
     });
-
-    widgetContainer.appendChild(script);
-    container.appendChild(widgetContainer);
-
-    return () => {
-      container.innerHTML = "";
-    };
-  }, [isOpen, pairKey, activeTab, showIndicators]);
+  }, [isOpen, pairKey, activeTab, showIndicators, appTheme, signal?.pair]);
 
   // 7. Handle Render TradingView Mini di Tab Trade
   // Definisikan variabel URL gambar lebih awal untuk digunakan di useEffect ini
@@ -599,64 +564,31 @@ const SignalModal = ({
 
     if (!shouldMountTV) return;
 
+    let unmount = () => {};
     const timer = setTimeout(() => {
       const container = document.getElementById("tv_chart_modal_side");
       if (!container) return;
-      container.innerHTML = "";
-
-      const symbol = `BINANCE:${signal?.pair || ""}.P`;
-      const timezone = getUserTimezone();
-
-      const widgetContainer = document.createElement("div");
-      widgetContainer.className = "tradingview-widget-container";
-      widgetContainer.style.cssText = "height:100%;width:100%";
-
-      const widgetInner = document.createElement("div");
-      widgetInner.className = "tradingview-widget-container__widget";
-      widgetInner.style.cssText = "height:100%;width:100%";
-      widgetContainer.appendChild(widgetInner);
-
-      const script = document.createElement("script");
-      script.type = "text/javascript";
-      script.src =
-        "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        autosize: true,
-        symbol: symbol,
+      const tv = getTradingViewTheme(appTheme);
+      container.style.background = tv.backgroundColor;
+      unmount = mountTradingViewEmbed(container, {
+        theme: appTheme,
+        symbol: `BINANCE:${signal?.pair || ""}.P`,
         interval: "240",
-        timezone: timezone,
-        theme: document.documentElement?.dataset?.theme === "bright" ? "light" : "dark",
-        style: "1",
-        locale: "en",
-        backgroundColor:
-          document.documentElement?.dataset?.theme === "bright"
-            ? "rgba(255, 255, 255, 1)"
-            : "rgba(13, 13, 13, 1)",
-        gridColor:
-          document.documentElement?.dataset?.theme === "bright"
-            ? "rgba(15, 23, 42, 0.06)"
-            : "rgba(128,128,138,0.08)",
-        hide_top_toolbar: false,
-        hide_legend: false,
+        timezone: getUserTimezone(),
         hide_side_toolbar: false,
-        hide_drawing_toolbar: false,
-        allow_symbol_change: true,
         save_image: false,
         studies: [],
-        support_host: "https://www.tradingview.com",
       });
-
-      widgetContainer.appendChild(script);
-      container.appendChild(widgetContainer);
     }, 100);
 
     return () => {
       clearTimeout(timer);
+      unmount();
     };
   }, [
     isOpen,
     activeTab,
+    appTheme,
     signal?.pair,
     entryImg,
     afterImg,

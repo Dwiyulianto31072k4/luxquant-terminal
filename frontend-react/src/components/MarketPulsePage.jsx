@@ -22,6 +22,12 @@ import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 import { heatPct } from "./terminal/vizShared";
+import {
+  getActiveTheme,
+  getTradingViewTheme,
+  mountTradingViewEmbed,
+  subscribeTheme,
+} from "../utils/themeColors";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -2253,58 +2259,24 @@ const CoinChartModal = ({ pair, onClose }) => {
     };
   }, [pair]);
 
-  // Mount TradingView widget — IDENTICAL logic
+  // Remount TV when theme flips so dark/bright palette always matches desk
+  const [appTheme, setAppTheme] = useState(getActiveTheme);
+  useEffect(() => subscribeTheme(setAppTheme), []);
+
+  // Mount TradingView — theme-aware via shared desk palette
   useEffect(() => {
     const container = tvContainerRef.current;
     if (!container) return;
-
-    container.innerHTML = "";
-
-    let timezone = "Etc/UTC";
-    try {
-      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch {}
-
-    const widgetContainer = document.createElement("div");
-    widgetContainer.className = "tradingview-widget-container";
-    widgetContainer.style.cssText = "height:100%;width:100%";
-
-    const widgetInner = document.createElement("div");
-    widgetInner.className = "tradingview-widget-container__widget";
-    widgetInner.style.cssText = "height:100%;width:100%";
-    widgetContainer.appendChild(widgetInner);
-
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.async = true;
-    const isBright = document.documentElement?.dataset?.theme === "bright";
-    script.innerHTML = JSON.stringify({
-      autosize: true,
+    const tv = getTradingViewTheme(appTheme);
+    container.style.background = tv.backgroundColor;
+    return mountTradingViewEmbed(container, {
+      theme: appTheme,
       symbol: tvSymbol,
       interval: tvInterval,
-      timezone: timezone,
-      theme: isBright ? "light" : "dark",
-      style: "1",
-      locale: "en",
-      backgroundColor: isBright ? "rgba(255, 255, 255, 1)" : "rgba(10, 5, 6, 1)",
-      gridColor: isBright ? "rgba(15, 23, 42, 0.06)" : "rgba(255, 255, 255, 0.04)",
-      hide_top_toolbar: false,
-      hide_legend: false,
-      hide_side_toolbar: false,
-      allow_symbol_change: true,
-      save_image: false,
       studies: ["STD;EMA"],
-      support_host: "https://www.tradingview.com",
+      save_image: false,
     });
-
-    widgetContainer.appendChild(script);
-    container.appendChild(widgetContainer);
-
-    return () => {
-      if (container) container.innerHTML = "";
-    };
-  }, [tvSymbol, tvInterval]);
+  }, [tvSymbol, tvInterval, appTheme]);
 
   const last = metrics.ticker?.last;
   const change = metrics.ticker?.changePct;

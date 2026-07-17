@@ -712,7 +712,67 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
   const hasAnyImg = entryImg || afterImg;
   const showInteractiveRight = showTV || (!afterImg && entryImg);
 
-  useEffect(() => { let widget = null; const shouldMount = (!hasAnyImg && detail) || (hasAnyImg && showInteractiveRight); const initTV = () => { if (!document.getElementById('tv_chart_modal_topperf')) return; widget = new window.TradingView.widget({ container_id: 'tv_chart_modal_topperf', autosize: true, symbol: `BINANCE:${pair.replace('USDT', '')}USDT.P`, interval: '60', timezone: 'Asia/Jakarta', theme: (document.documentElement?.dataset?.theme === 'bright' ? 'light' : 'dark'), style: '1', locale: 'en', toolbar_bg: (document.documentElement?.dataset?.theme === 'bright' ? '#ffffff' : '#0a0a0f'), enable_publishing: false, backgroundColor: (document.documentElement?.dataset?.theme === 'bright' ? '#ffffff' : '#0a0a0f'), gridColor: 'rgba(212, 168, 83, 0.05)', hide_top_toolbar: false, hide_legend: false, hide_side_toolbar: false, allow_symbol_change: true, save_image: false, studies: ["STD;SMA"] }); }; if (shouldMount) { const tm = setTimeout(() => { if (window.TradingView) initTV(); else { const s = document.createElement('script'); s.src = 'https://s3.tradingview.com/tv.js'; s.async = true; s.onload = initTV; document.head.appendChild(s); } }, 100); return () => { clearTimeout(tm); if (widget) try { widget.remove(); } catch {} }; } }, [pair, hasAnyImg, showInteractiveRight, detail]);
+  const [appTheme, setAppTheme] = useState(getActiveTheme);
+  useEffect(() => subscribeTheme(setAppTheme), []);
+
+  useEffect(() => {
+    let widget = null;
+    const shouldMount = (!hasAnyImg && detail) || (hasAnyImg && showInteractiveRight);
+    const tv = getTradingViewTheme(appTheme);
+    const initTV = () => {
+      const el = document.getElementById('tv_chart_modal_topperf');
+      if (!el || !window.TradingView) return;
+      el.style.background = tv.backgroundColor;
+      widget = new window.TradingView.widget({
+        container_id: 'tv_chart_modal_topperf',
+        autosize: true,
+        symbol: `BINANCE:${pair.replace('USDT', '')}USDT.P`,
+        interval: '60',
+        timezone: 'Asia/Jakarta',
+        theme: tv.theme,
+        style: '1',
+        locale: 'en',
+        toolbar_bg: tv.toolbar_bg,
+        enable_publishing: false,
+        backgroundColor: tv.backgroundColor,
+        gridColor: tv.gridColor,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: true,
+        save_image: false,
+        studies: ['STD;SMA'],
+        overrides: {
+          'paneProperties.background': tv.backgroundColor,
+          'paneProperties.backgroundType': 'solid',
+          'paneProperties.vertGridProperties.color': tv.gridColor,
+          'paneProperties.horzGridProperties.color': tv.gridColor,
+          'scalesProperties.textColor': tv.textColor,
+          'mainSeriesProperties.candleStyle.upColor': tv.upColor,
+          'mainSeriesProperties.candleStyle.downColor': tv.downColor,
+          'mainSeriesProperties.candleStyle.borderUpColor': tv.upColor,
+          'mainSeriesProperties.candleStyle.borderDownColor': tv.downColor,
+          'mainSeriesProperties.candleStyle.wickUpColor': tv.upColor,
+          'mainSeriesProperties.candleStyle.wickDownColor': tv.downColor,
+        },
+      });
+    };
+    if (!shouldMount) return undefined;
+    const tm = setTimeout(() => {
+      if (window.TradingView) initTV();
+      else {
+        const s = document.createElement('script');
+        s.src = 'https://s3.tradingview.com/tv.js';
+        s.async = true;
+        s.onload = initTV;
+        document.head.appendChild(s);
+      }
+    }, 100);
+    return () => {
+      clearTimeout(tm);
+      if (widget) try { widget.remove(); } catch {}
+    };
+  }, [pair, hasAnyImg, showInteractiveRight, detail, appTheme]);
 
   const events = [];
   events.push({ label: t('top.called_sig'), time: 'T+0', sub: fmtDt(created), detail: `${t('top.entry')} @ $${formatPrice(detail?.entry)}`, key: 'gold', isSL: false });
