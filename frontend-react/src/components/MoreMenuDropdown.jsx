@@ -295,13 +295,10 @@ const MoreMenuDropdown = ({
     <div className="min-w-0 space-y-5">
       {stack.map((group) => (
         <div key={group.key} className="min-w-0">
-          {/* column header — gold dot + mono eyebrow */}
+          {/* column header — quiet mono eyebrow (no undefined GOLD) */}
           <div className="flex items-center gap-2 px-3 mb-1.5">
-            <span
-              className="h-1 w-1 rounded-full flex-shrink-0"
-              style={{ background: `rgb(${GOLD})`, boxShadow: `0 0 5px rgba(${GOLD},0.5)` }}
-            />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+            <span className="h-1 w-1 rounded-full flex-shrink-0 bg-white/50" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
               {group.label}
             </span>
           </div>
