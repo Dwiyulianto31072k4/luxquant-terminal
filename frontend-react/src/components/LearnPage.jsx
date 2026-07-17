@@ -8,155 +8,155 @@ import { GLOSSARY, getTerm } from "../content/glossary";
 const SITE = "https://luxquant.tw";
 
 function Crumbs({ trail }) {
-  return (
-    <nav className="mb-6 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-text-muted">
-      {trail.map((c, i) => (
-        <span key={i} className="inline-flex items-center gap-1.5">
-          {i > 0 && <span className="text-text-primary/25">/</span>}
-          {c.to ? (
-            <Link to={c.to} className="hover:text-accent transition-colors">{c.label}</Link>
-          ) : (
-            <span className="text-text-primary/70">{c.label}</span>
-          )}
-        </span>
-      ))}
-    </nav>
-  );
+ return (
+ <nav className="mb-6 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-text-muted">
+ {trail.map((c, i) => (
+ <span key={i} className="inline-flex items-center gap-1.5">
+ {i > 0 && <span className="text-text-primary/25">/</span>}
+ {c.to ? (
+ <Link to={c.to} className="hover:text-accent transition-colors">{c.label}</Link>
+ ) : (
+ <span className="text-text-primary/70">{c.label}</span>
+ )}
+ </span>
+ ))}
+ </nav>
+ );
 }
 
 function TermPage({ slug }) {
-  const term = getTerm(slug);
-  if (!term) return <Navigate to="/learn" replace />;
+ const term = getTerm(slug);
+ if (!term) return <Navigate to="/learn" replace />;
 
-  const url = `${SITE}/learn/${term.slug}`;
-  const related = (term.related || []).map(getTerm).filter(Boolean);
+ const url = `${SITE}/learn/${term.slug}`;
+ const related = (term.related || []).map(getTerm).filter(Boolean);
 
-  const jsonLd = [
-    {
-      "@context": "https://schema.org",
-      "@type": "DefinedTerm",
-      name: term.term,
-      description: term.short,
-      url,
-      inDefinedTermSet: `${SITE}/learn`,
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
-        { "@type": "ListItem", position: 2, name: "Learn", item: `${SITE}/learn` },
-        { "@type": "ListItem", position: 3, name: term.term, item: url },
-      ],
-    },
-  ];
+ const jsonLd = [
+ {
+ "@context": "https://schema.org",
+ "@type": "DefinedTerm",
+ name: term.term,
+ description: term.short,
+ url,
+ inDefinedTermSet: `${SITE}/learn`,
+ },
+ {
+ "@context": "https://schema.org",
+ "@type": "BreadcrumbList",
+ itemListElement: [
+ { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
+ { "@type": "ListItem", position: 2, name: "Learn", item: `${SITE}/learn` },
+ { "@type": "ListItem", position: 3, name: term.term, item: url },
+ ],
+ },
+ ];
 
-  return (
-    <div className="w-full max-w-3xl px-1 py-4">
-      <Seo
-        title={`${term.term} — meaning & how it works | LuxQuant`}
-        description={term.short}
-        path={`/learn/${term.slug}`}
-        keywords={`${term.term}, ${term.aka || ""}, crypto, luxquant`}
-        type="article"
-        jsonLd={jsonLd}
-      />
-      <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn", to: "/learn" }, { label: term.term }]} />
+ return (
+ <div className="w-full max-w-3xl px-1 py-4">
+ <Seo
+ title={`${term.term} — meaning & how it works | LuxQuant`}
+ description={term.short}
+ path={`/learn/${term.slug}`}
+ keywords={`${term.term}, ${term.aka || ""}, crypto, luxquant`}
+ type="article"
+ jsonLd={jsonLd}
+ />
+ <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn", to: "/learn" }, { label: term.term }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Glossary</span>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">{term.term}</h1>
-      {term.aka && <p className="mt-1 font-mono text-[12px] text-text-muted">Also known as: {term.aka}</p>}
+ <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Glossary</span>
+ <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">{term.term}</h1>
+ {term.aka && <p className="mt-1 font-mono text-[12px] text-text-muted">Also known as: {term.aka}</p>}
 
-      <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-text-primary/75">
-        {term.body.map((p, i) => <p key={i}>{p}</p>)}
-      </div>
+ <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-text-primary/75">
+ {term.body.map((p, i) => <p key={i}>{p}</p>)}
+ </div>
 
-      {related.length > 0 && (
-        <div className="mt-10 border-t border-ink/[0.08] pt-5">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">Related terms</h2>
-          <div className="flex flex-wrap gap-2">
-            {related.map((r) => (
-              <Link key={r.slug} to={`/learn/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-accent transition-colors">
-                {r.term}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+ {related.length > 0 && (
+ <div className="mt-10 border-t border-ink/[0.08] pt-5">
+ <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">Related terms</h2>
+ <div className="flex flex-wrap gap-2">
+ {related.map((r) => (
+ <Link key={r.slug} to={`/learn/${r.slug}`}
+ className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-accent transition-colors">
+ {r.term}
+ </Link>
+ ))}
+ </div>
+ </div>
+ )}
 
-      <div className="mt-8 rounded-xl border border-line/20 bg-accent/12 p-5">
-        <p className="text-[15px] text-text-primary/80">See {term.term.toLowerCase()} live in the terminal.</p>
-        <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/12 border border-line/40 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/12 transition-colors">
-          Open LuxQuant Money Flow →
-        </Link>
-      </div>
+ <div className="mt-8 rounded-xl border border-ink/10 bg-accent/12 p-5">
+ <p className="text-[15px] text-text-primary/80">See {term.term.toLowerCase()} live in the terminal.</p>
+ <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/12 border border-ink/15 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/12 transition-colors">
+ Open LuxQuant Money Flow →
+ </Link>
+ </div>
 
-      <div className="mt-8">
-        <Link to="/learn" className="font-mono text-[12px] text-text-muted hover:text-accent transition-colors">← Back to glossary</Link>
-      </div>
-    </div>
-  );
+ <div className="mt-8">
+ <Link to="/learn" className="font-mono text-[12px] text-text-muted hover:text-accent transition-colors">← Back to glossary</Link>
+ </div>
+ </div>
+ );
 }
 
 function IndexPage() {
-  const jsonLd = [
-    {
-      "@context": "https://schema.org",
-      "@type": "DefinedTermSet",
-      name: "LuxQuant Crypto & Quant Glossary",
-      url: `${SITE}/learn`,
-      hasDefinedTerm: GLOSSARY.map((t) => ({
-        "@type": "DefinedTerm",
-        name: t.term,
-        url: `${SITE}/learn/${t.slug}`,
-      })),
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
-        { "@type": "ListItem", position: 2, name: "Learn", item: `${SITE}/learn` },
-      ],
-    },
-  ];
+ const jsonLd = [
+ {
+ "@context": "https://schema.org",
+ "@type": "DefinedTermSet",
+ name: "LuxQuant Crypto & Quant Glossary",
+ url: `${SITE}/learn`,
+ hasDefinedTerm: GLOSSARY.map((t) => ({
+ "@type": "DefinedTerm",
+ name: t.term,
+ url: `${SITE}/learn/${t.slug}`,
+ })),
+ },
+ {
+ "@context": "https://schema.org",
+ "@type": "BreadcrumbList",
+ itemListElement: [
+ { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
+ { "@type": "ListItem", position: 2, name: "Learn", item: `${SITE}/learn` },
+ ],
+ },
+ ];
 
-  return (
-    <div className="w-full px-1 py-4">
-      <Seo
-        title="Crypto & Quant Glossary — money flow, dominance, on-chain | LuxQuant"
-        description="Plain-English definitions of the crypto and quantitative-trading terms behind LuxQuant: money flow, flow intensity, BTC dominance, altseason, sector rotation, DEX pressure, and more."
-        path="/learn"
-        keywords="crypto glossary, quant trading terms, money flow, btc dominance, altseason index"
-        jsonLd={jsonLd}
-      />
-      <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn" }]} />
+ return (
+ <div className="w-full px-1 py-4">
+ <Seo
+ title="Crypto & Quant Glossary — money flow, dominance, on-chain | LuxQuant"
+ description="Plain-English definitions of the crypto and quantitative-trading terms behind LuxQuant: money flow, flow intensity, BTC dominance, altseason, sector rotation, DEX pressure, and more."
+ path="/learn"
+ keywords="crypto glossary, quant trading terms, money flow, btc dominance, altseason index"
+ jsonLd={jsonLd}
+ />
+ <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn" }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Learn · Glossary</span>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Crypto &amp; Quant Glossary</h1>
-      <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
-        Plain-English definitions of the concepts behind the LuxQuant Terminal — the same metrics you'll see across Money Flow, On-Chain, and Signals.
-      </p>
+ <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Learn · Glossary</span>
+ <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Crypto &amp; Quant Glossary</h1>
+ <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
+ Plain-English definitions of the concepts behind the LuxQuant Terminal — the same metrics you'll see across Money Flow, On-Chain, and Signals.
+ </p>
 
-      <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {GLOSSARY.map((t) => (
-          <Link key={t.slug} to={`/learn/${t.slug}`}
-            className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-ink/[0.02] transition-colors">
-            <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-accent transition-colors">{t.term}</h2>
-            <p className="mt-1.5 text-[13px] text-text-primary/55 leading-relaxed line-clamp-3">{t.short}</p>
-          </Link>
-        ))}
-      </div>
+ <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+ {GLOSSARY.map((t) => (
+ <Link key={t.slug} to={`/learn/${t.slug}`}
+ className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-ink/12 hover:bg-ink/[0.02] transition-colors">
+ <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-accent transition-colors">{t.term}</h2>
+ <p className="mt-1.5 text-[13px] text-text-primary/55 leading-relaxed line-clamp-3">{t.short}</p>
+ </Link>
+ ))}
+ </div>
 
-      <div className="mt-8 font-mono text-[12px] text-text-muted">
-        Prefer long-form? Read the <Link to="/blog" className="text-accent hover:text-accent">LuxQuant blog →</Link>
-      </div>
-    </div>
-  );
+ <div className="mt-8 font-mono text-[12px] text-text-muted">
+ Prefer long-form? Read the <Link to="/blog" className="text-accent hover:text-accent">LuxQuant blog →</Link>
+ </div>
+ </div>
+ );
 }
 
 export default function LearnPage() {
-  const { slug } = useParams();
-  return slug ? <TermPage slug={slug} /> : <IndexPage />;
+ const { slug } = useParams();
+ return slug ? <TermPage slug={slug} /> : <IndexPage />;
 }

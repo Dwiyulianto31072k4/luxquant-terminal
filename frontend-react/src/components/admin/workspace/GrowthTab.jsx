@@ -8,12 +8,12 @@ import { workspaceApi } from '../../../services/workspaceApi';
 import { StatTile, Surface, Eyebrow, Bar3D, Avatar, Spinner, EmptyState } from '../primitives';
 import { palette, tint } from '../designSystem';
 import {
-  TrendingUpIcon,
-  UsersIcon,
-  CrownIcon,
-  ClockIcon,
-  RefreshIcon,
-  ShieldIcon,
+ TrendingUpIcon,
+ UsersIcon,
+ CrownIcon,
+ ClockIcon,
+ RefreshIcon,
+ ShieldIcon,
 } from '../Icons';
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
@@ -23,259 +23,259 @@ const usd2 = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFraction
 const num = (n) => Number(n || 0).toLocaleString('en-US');
 const signedPct = (n) => (n == null ? '—' : `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`);
 const monthLabel = (m) => {
-  if (!m) return '';
-  const d = new Date(`${m}-01T00:00:00Z`);
-  return d.toLocaleDateString('en', { month: 'short' });
+ if (!m) return '';
+ const d = new Date(`${m}-01T00:00:00Z`);
+ return d.toLocaleDateString('en', { month: 'short' });
 };
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '—');
 
 const SOURCE_LABEL = {
-  payment: 'On-chain payment',
-  legacy: 'Legacy member',
-  lifetime: 'Lifetime',
-  admin: 'Admin grant',
-  telegram_vip: 'Telegram VIP',
-  discord_premium: 'Discord premium',
-  manual: 'Manual payment',
+ payment: 'On-chain payment',
+ legacy: 'Legacy member',
+ lifetime: 'Lifetime',
+ admin: 'Admin grant',
+ telegram_vip: 'Telegram VIP',
+ discord_premium: 'Discord premium',
+ manual: 'Manual payment',
 };
 
 /* ── Revenue trend (inline 12-month bars) ─────────────────────────── */
 
 const RevenueTrend = ({ trend }) => {
-  const max = Math.max(...trend.map((t) => t.revenue), 1);
-  if (!trend.length) {
-    return <p className="text-[11px] py-6 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No revenue recorded yet.</p>;
-  }
-  return (
-    <div className="flex items-end gap-1.5 h-40 pt-2">
-      {trend.map((t) => {
-        const h = Math.max((t.revenue / max) * 100, 2);
-        return (
-          <div key={t.month} className="flex-1 flex flex-col items-center gap-1.5 group min-w-0">
-            <div className="relative w-full flex-1 flex items-end">
-              <div
-                className="w-full rounded-t-sm transition-all"
-                style={{
-                  height: `${h}%`,
-                  background: 'linear-gradient(180deg, rgb(var(--ink) / 0.42), rgb(var(--ink) / 0.14))',
-                  boxShadow: 'inset 0 1px 0 rgb(var(--ink) / 0.2)',
-                }}
-                title={`${t.month}: ${usd(t.revenue)} · ${t.count} payments`}
-              />
-            </div>
-            <span className="text-[8.5px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.35)' }}>
-              {monthLabel(t.month)}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
+ const max = Math.max(...trend.map((t) => t.revenue), 1);
+ if (!trend.length) {
+ return <p className="text-[11px] py-6 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No revenue recorded yet.</p>;
+ }
+ return (
+ <div className="flex items-end gap-1.5 h-40 pt-2">
+ {trend.map((t) => {
+ const h = Math.max((t.revenue / max) * 100, 2);
+ return (
+ <div key={t.month} className="flex-1 flex flex-col items-center gap-1.5 group min-w-0">
+ <div className="relative w-full flex-1 flex items-end">
+ <div
+ className="w-full rounded-t-sm transition-all"
+ style={{
+ height: `${h}%`,
+ background: 'linear-gradient(180deg, rgb(var(--ink) / 0.42), rgb(var(--ink) / 0.14))',
+ boxShadow: 'inset 0 1px 0 rgb(var(--ink) / 0.2)',
+ }}
+ title={`${t.month}: ${usd(t.revenue)} · ${t.count} payments`}
+ />
+ </div>
+ <span className="text-[8.5px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.35)' }}>
+ {monthLabel(t.month)}
+ </span>
+ </div>
+ );
+ })}
+ </div>
+ );
 };
 
 /* ── Attribution / referral tables ────────────────────────────────── */
 
 const SourceTable = ({ bySource }) => {
-  const maxRev = Math.max(...bySource.map((s) => s.revenue), 1);
-  if (!bySource.length) return <p className="text-[11px] py-4 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No source data.</p>;
-  return (
-    <div className="space-y-2.5">
-      {bySource.map((s) => (
-        <div key={s.source} className="flex items-center gap-3">
-          <div className="w-28 shrink-0 min-w-0">
-            <p className="text-[11.5px] font-medium text-text-primary truncate">{SOURCE_LABEL[s.source] || s.source}</p>
-            <p className="text-[9px]" style={{ color: 'rgb(var(--fg-muted))' }}>{num(s.users)} users</p>
-          </div>
-          <Bar3D pct={(s.revenue / maxRev) * 100} heightClass="h-2" />
-          <span className="w-16 text-right text-[12px] font-bold tabular-nums text-text-primary">{usd(s.revenue)}</span>
-        </div>
-      ))}
-    </div>
-  );
+ const maxRev = Math.max(...bySource.map((s) => s.revenue), 1);
+ if (!bySource.length) return <p className="text-[11px] py-4 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No source data.</p>;
+ return (
+ <div className="space-y-2.5">
+ {bySource.map((s) => (
+ <div key={s.source} className="flex items-center gap-3">
+ <div className="w-28 shrink-0 min-w-0">
+ <p className="text-[11.5px] font-medium text-text-primary truncate">{SOURCE_LABEL[s.source] || s.source}</p>
+ <p className="text-[9px]" style={{ color: 'rgb(var(--fg-muted))' }}>{num(s.users)} users</p>
+ </div>
+ <Bar3D pct={(s.revenue / maxRev) * 100} heightClass="h-2" />
+ <span className="w-16 text-right text-[12px] font-bold tabular-nums text-text-primary">{usd(s.revenue)}</span>
+ </div>
+ ))}
+ </div>
+ );
 };
 
 const ReferralTable = ({ referral }) => {
-  const rows = referral?.top_referrers || [];
-  if (!rows.length) return <p className="text-[11px] py-4 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No referrals yet.</p>;
-  return (
-    <div className="space-y-1.5">
-      {rows.map((r, i) => (
-        <div key={r.username + i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg" style={{ background: 'rgb(var(--ink) / 0.02)' }}>
-          <span className="w-4 text-center font-mono text-[11px] font-bold tabular-nums text-text-muted">{i + 1}</span>
-          <Avatar name={r.username} tone="rgb(var(--ink) / 0.4)" size="xs" />
-          <span className="flex-1 text-[12px] font-medium text-text-primary truncate">@{r.username}</span>
-          <span className="text-[11px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.55)' }}>{num(r.referred)} ref</span>
-          <span className="w-16 text-right text-[11px] font-semibold tabular-nums" style={{ color: palette.green[400] }}>{usd2(r.commission)}</span>
-        </div>
-      ))}
-    </div>
-  );
+ const rows = referral?.top_referrers || [];
+ if (!rows.length) return <p className="text-[11px] py-4 text-center" style={{ color: 'rgb(var(--fg-muted))' }}>No referrals yet.</p>;
+ return (
+ <div className="space-y-1.5">
+ {rows.map((r, i) => (
+ <div key={r.username + i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg" style={{ background: 'rgb(var(--ink) / 0.02)' }}>
+ <span className="w-4 text-center font-mono text-[11px] font-bold tabular-nums text-text-muted">{i + 1}</span>
+ <Avatar name={r.username} tone="rgb(var(--ink) / 0.4)" size="xs" />
+ <span className="flex-1 text-[12px] font-medium text-text-primary truncate">@{r.username}</span>
+ <span className="text-[11px] tabular-nums" style={{ color: 'rgb(var(--ink) / 0.55)' }}>{num(r.referred)} ref</span>
+ <span className="w-16 text-right text-[11px] font-semibold tabular-nums" style={{ color: palette.green[400] }}>{usd2(r.commission)}</span>
+ </div>
+ ))}
+ </div>
+ );
 };
 
 /* ── Churn-risk list ──────────────────────────────────────────────── */
 
 const ChurnRisk = ({ risk }) => {
-  if (!risk.length) {
-    return <EmptyState Icon={ShieldIcon} tone={palette.green[400]} title="No at-risk subscribers" description="Every paying member has been active recently." />;
-  }
-  return (
-    <div className="space-y-1.5">
-      {risk.map((u) => (
-        <div key={u.id} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.05)' }}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Avatar name={u.username} tone={palette.red[400]} size="sm" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-text-primary truncate">@{u.username}</p>
-              <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>Renews {fmtDate(u.expires_at)}</p>
-            </div>
-          </div>
-          <span
-            className="inline-flex items-center gap-1 text-[10px] font-bold tabular-nums px-2 py-0.5 rounded shrink-0"
-            style={{ background: tint(palette.red[400], 0.1), color: palette.red[400], border: `1px solid ${tint(palette.red[400], 0.25)}` }}
-          >
-            <ClockIcon size={9} />
-            {u.days_inactive == null ? 'never active' : `${u.days_inactive}d quiet`}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
+ if (!risk.length) {
+ return <EmptyState Icon={ShieldIcon} tone={palette.green[400]} title="No at-risk subscribers" description="Every paying member has been active recently." />;
+ }
+ return (
+ <div className="space-y-1.5">
+ {risk.map((u) => (
+ <div key={u.id} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg" style={{ background: 'rgb(var(--ink) / 0.02)', border: '1px solid rgb(var(--ink) / 0.05)' }}>
+ <div className="flex items-center gap-2.5 min-w-0">
+ <Avatar name={u.username} tone={palette.red[400]} size="sm" />
+ <div className="min-w-0">
+ <p className="text-xs font-medium text-text-primary truncate">@{u.username}</p>
+ <p className="text-[10px]" style={{ color: 'rgb(var(--fg-muted))' }}>Renews {fmtDate(u.expires_at)}</p>
+ </div>
+ </div>
+ <span
+ className="inline-flex items-center gap-1 text-[10px] font-bold tabular-nums px-2 py-0.5 rounded shrink-0"
+ style={{ background: tint(palette.red[400], 0.1), color: palette.red[400], border: `1px solid ${tint(palette.red[400], 0.25)}` }}
+ >
+ <ClockIcon size={9} />
+ {u.days_inactive == null ? 'never active' : `${u.days_inactive}d quiet`}
+ </span>
+ </div>
+ ))}
+ </div>
+ );
 };
 
 /* ── Panel wrapper ────────────────────────────────────────────────── */
 
 const Panel = ({ title, sub, children, right, className = '' }) => (
-  <Surface variant="premium" hover={false} padding="p-5" className={className}>
-    <div className="flex items-start justify-between gap-3 mb-4">
-      <div>
-        <h3 className="text-[14px] font-semibold text-text-primary tracking-tight">{title}</h3>
-        {sub && <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>{sub}</p>}
-      </div>
-      {right}
-    </div>
-    {children}
-  </Surface>
+ <Surface variant="premium" hover={false} padding="p-5" className={className}>
+ <div className="flex items-start justify-between gap-3 mb-4">
+ <div>
+ <h3 className="text-[14px] font-semibold text-text-primary tracking-tight">{title}</h3>
+ {sub && <p className="text-[11px] mt-0.5" style={{ color: 'rgb(var(--fg-muted))' }}>{sub}</p>}
+ </div>
+ {right}
+ </div>
+ {children}
+ </Surface>
 );
 
 /* ════════════════════════════════════════════════════════════════════
-   Main
-   ════════════════════════════════════════════════════════════════════ */
+ Main
+ ════════════════════════════════════════════════════════════════════ */
 
 export const GrowthTab = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+ const [data, setData] = useState(null);
+ const [loading, setLoading] = useState(true);
+ const [refreshing, setRefreshing] = useState(false);
 
-  const fetchGrowth = useCallback(async (isRefresh = false) => {
-    isRefresh ? setRefreshing(true) : setLoading(true);
-    try {
-      setData(await workspaceApi.getGrowth());
-    } catch (e) {
-      console.error('Failed to load growth analytics:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+ const fetchGrowth = useCallback(async (isRefresh = false) => {
+ isRefresh ? setRefreshing(true) : setLoading(true);
+ try {
+ setData(await workspaceApi.getGrowth());
+ } catch (e) {
+ console.error('Failed to load growth analytics:', e);
+ } finally {
+ setLoading(false);
+ setRefreshing(false);
+ }
+ }, []);
 
-  useEffect(() => { fetchGrowth(); }, [fetchGrowth]);
+ useEffect(() => { fetchGrowth(); }, [fetchGrowth]);
 
-  if (loading && !data) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Spinner size={18} tone={palette.green[400]} />
-      </div>
-    );
-  }
+ if (loading && !data) {
+ return (
+ <div className="flex items-center justify-center py-24">
+ <Spinner size={18} tone={palette.green[400]} />
+ </div>
+ );
+ }
 
-  const rev = data?.revenue || {};
-  const rec = data?.recurring || {};
-  const churn = data?.churn || {};
-  const attr = data?.attribution || {};
+ const rev = data?.revenue || {};
+ const rec = data?.recurring || {};
+ const churn = data?.churn || {};
+ const attr = data?.attribution || {};
 
-  return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="mb-1.5 font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
-            Growth · Revenue, retention &amp; attribution
-          </p>
-          <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">Growth &amp; Revenue</h2>
-          <p className="mt-0.5 max-w-lg text-[12px] text-text-muted">
-            Revenue, recurring run-rate, churn, and where your paying members come from.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => fetchGrowth(true)}
-          disabled={refreshing}
-          className="flex items-center gap-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.08] disabled:opacity-50"
-        >
-          <RefreshIcon size={12} />
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
+ return (
+ <div className="space-y-5">
+ {/* Header */}
+ <div className="flex flex-wrap items-start justify-between gap-3">
+ <div>
+ <p className="mb-1.5 font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
+ Growth · Revenue, retention &amp; attribution
+ </p>
+ <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">Growth &amp; Revenue</h2>
+ <p className="mt-0.5 max-w-lg text-[12px] text-text-muted">
+ Revenue, recurring run-rate, churn, and where your paying members come from.
+ </p>
+ </div>
+ <button
+ type="button"
+ onClick={() => fetchGrowth(true)}
+ disabled={refreshing}
+ className="flex items-center gap-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] px-3 py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.08] disabled:opacity-50"
+ >
+ <RefreshIcon size={12} />
+ {refreshing ? 'Refreshing…' : 'Refresh'}
+ </button>
+ </div>
 
-      {/* Revenue KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <StatTile label="Total Revenue" value={usd(rev.total)} Icon={TrendingUpIcon} accent="muted" sub={`${num(rev.payment_count)} payments`} />
-        <StatTile
-          label="Revenue · 30d"
-          value={usd(rev.last_30d)}
-          Icon={TrendingUpIcon}
-          accent="muted"
-          sub={rev.mom_pct == null ? 'vs prev 30d' : `${signedPct(rev.mom_pct)} vs prev 30d`}
-        />
-        <StatTile label="ARPU · 30d" value={usd2(rec.arpu_30d)} Icon={UsersIcon} accent="muted" sub="per active sub" />
-        <StatTile label="LTV (proxy)" value={usd(rev.ltv)} Icon={CrownIcon} accent="muted" sub="rev / paying user" />
-        <StatTile label="Avg Order" value={usd2(rev.aov)} Icon={TrendingUpIcon} accent="muted" sub="per payment" />
-        <StatTile label="Paying Users" value={num(rev.paying_customers)} Icon={UsersIcon} accent="muted" />
-      </div>
+ {/* Revenue KPIs */}
+ <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+ <StatTile label="Total Revenue" value={usd(rev.total)} Icon={TrendingUpIcon} accent="muted" sub={`${num(rev.payment_count)} payments`} />
+ <StatTile
+ label="Revenue · 30d"
+ value={usd(rev.last_30d)}
+ Icon={TrendingUpIcon}
+ accent="muted"
+ sub={rev.mom_pct == null ? 'vs prev 30d' : `${signedPct(rev.mom_pct)} vs prev 30d`}
+ />
+ <StatTile label="ARPU · 30d" value={usd2(rec.arpu_30d)} Icon={UsersIcon} accent="muted" sub="per active sub" />
+ <StatTile label="LTV (proxy)" value={usd(rev.ltv)} Icon={CrownIcon} accent="muted" sub="rev / paying user" />
+ <StatTile label="Avg Order" value={usd2(rev.aov)} Icon={TrendingUpIcon} accent="muted" sub="per payment" />
+ <StatTile label="Paying Users" value={num(rev.paying_customers)} Icon={UsersIcon} accent="muted" />
+ </div>
 
-      {/* Revenue trend + churn */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Panel title="Revenue trend" sub="Confirmed revenue, last 12 months" className="lg:col-span-2">
-          <RevenueTrend trend={rev.trend || []} />
-        </Panel>
-        <Panel title="Retention" sub="Subscription health, last 30 days">
-          <div className="grid grid-cols-2 gap-2.5">
-            <MiniStat label="Active Subs" value={num(churn.active_subs)} tone={palette.green[400]} />
-            <MiniStat label="Lapsed · 30d" value={num(churn.lapsed_30d)} tone={palette.red[400]} />
-            <MiniStat label="Churn Rate" value={`${(churn.churn_rate ?? 0).toFixed(1)}%`} tone={palette.orange[400]} />
-            <MiniStat label="Payments · 30d" value={num(churn.payments_30d)} tone={palette.blue[400]} />
-          </div>
-        </Panel>
-      </div>
+ {/* Revenue trend + churn */}
+ <div className="grid lg:grid-cols-3 gap-4">
+ <Panel title="Revenue trend" sub="Confirmed revenue, last 12 months" className="lg:col-span-2">
+ <RevenueTrend trend={rev.trend || []} />
+ </Panel>
+ <Panel title="Retention" sub="Subscription health, last 30 days">
+ <div className="grid grid-cols-2 gap-2.5">
+ <MiniStat label="Active Subs" value={num(churn.active_subs)} tone={palette.green[400]} />
+ <MiniStat label="Lapsed · 30d" value={num(churn.lapsed_30d)} tone={palette.red[400]} />
+ <MiniStat label="Churn Rate" value={`${(churn.churn_rate ?? 0).toFixed(1)}%`} tone={palette.orange[400]} />
+ <MiniStat label="Payments · 30d" value={num(churn.payments_30d)} tone={palette.blue[400]} />
+ </div>
+ </Panel>
+ </div>
 
-      {/* Attribution + referral */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Panel title="Revenue by source" sub="Where paying members come from">
-          <SourceTable bySource={attr.by_source || []} />
-        </Panel>
-        <Panel
-          title="Referral leaderboard"
-          sub="Top advocates by referrals brought in"
-          right={<span className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>{num(attr.referral?.total_referred)} total</span>}
-        >
-          <ReferralTable referral={attr.referral} />
-        </Panel>
-      </div>
+ {/* Attribution + referral */}
+ <div className="grid lg:grid-cols-2 gap-4">
+ <Panel title="Revenue by source" sub="Where paying members come from">
+ <SourceTable bySource={attr.by_source || []} />
+ </Panel>
+ <Panel
+ title="Referral leaderboard"
+ sub="Top advocates by referrals brought in"
+ right={<span className="text-[10px] tabular-nums" style={{ color: 'rgb(var(--fg-muted))' }}>{num(attr.referral?.total_referred)} total</span>}
+ >
+ <ReferralTable referral={attr.referral} />
+ </Panel>
+ </div>
 
-      {/* Churn risk */}
-      <Panel title="Churn risk" sub="Paying members who've gone quiet — reach out before they lapse">
-        <ChurnRisk risk={data?.health?.churn_risk || []} />
-      </Panel>
-    </div>
-  );
+ {/* Churn risk */}
+ <Panel title="Churn risk" sub="Paying members who've gone quiet — reach out before they lapse">
+ <ChurnRisk risk={data?.health?.churn_risk || []} />
+ </Panel>
+ </div>
+ );
 };
 
 const MiniStat = ({ label, value, tone }) => (
-  <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)' }}>
-    <p className="text-[9.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgb(var(--ink) / 0.4)' }}>{label}</p>
-    <p className="text-xl font-bold tabular-nums leading-none" style={{ color: 'rgb(var(--fg))' }}>{value}</p>
-    <span className="inline-block w-6 h-0.5 rounded-full mt-2" style={{ background: tone }} />
-  </div>
+ <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgb(var(--surface-raised))', border: '1px solid rgb(var(--ink) / 0.07)' }}>
+ <p className="text-[9.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgb(var(--ink) / 0.4)' }}>{label}</p>
+ <p className="text-xl font-bold tabular-nums leading-none" style={{ color: 'rgb(var(--fg))' }}>{value}</p>
+ <span className="inline-block w-6 h-0.5 rounded-full mt-2" style={{ background: tone }} />
+ </div>
 );
 
 export default GrowthTab;

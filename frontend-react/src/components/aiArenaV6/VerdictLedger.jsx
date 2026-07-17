@@ -11,392 +11,392 @@ import { Card, SectionHeader, StatCard, OutcomeBar, Chip, Donut, GhostButton, hi
 const DEFAULT_PAGE_SIZE = 8;
 
 function cx(...classes) {
-  return classes.filter(Boolean).join(" ");
+ return classes.filter(Boolean).join(" ");
 }
 
 function prettyToken(value) {
-  if (!value) return "Pending";
-  return String(value)
-    .replaceAll("_", " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+ if (!value) return "Pending";
+ return String(value)
+ .replaceAll("_", " ")
+ .toLowerCase()
+ .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function outcomeTone(value) {
-  const text = String(value || "PENDING").toUpperCase();
-  if (["CLEAN_HIT", "LATE_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
-    return "border-profit/25 bg-profit/10 text-profit";
-  }
-  if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
-    return "border-loss/25 bg-loss/10 text-loss";
-  }
-  if (text.includes("PENDING") || text.includes("ACTIVE")) {
-    return "border-line/25 bg-ink/[0.06] text-text-primary";
-  }
-  return "border-amber-500/25 bg-amber-500/10 text-amber-400";
+ const text = String(value || "PENDING").toUpperCase();
+ if (["CLEAN_HIT", "LATE_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
+ return "border-profit/25 bg-profit/10 text-profit";
+ }
+ if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
+ return "border-loss/25 bg-loss/10 text-loss";
+ }
+ if (text.includes("PENDING") || text.includes("ACTIVE")) {
+ return "border-ink/12 bg-ink/[0.06] text-text-primary";
+ }
+ return "border-amber-500/25 bg-amber-500/10 text-amber-400";
 }
 
 function biasTone(value) {
-  const text = String(value || "").toUpperCase();
-  if (text.includes("BULL") || text.includes("RISK_ON")) return "text-profit";
-  if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE")) return "text-loss";
-  return "text-amber-400";
+ const text = String(value || "").toUpperCase();
+ if (text.includes("BULL") || text.includes("RISK_ON")) return "text-profit";
+ if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE")) return "text-loss";
+ return "text-amber-400";
 }
 
 function asPercent(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return null;
-  return `${number >= 0 ? "+" : ""}${number.toFixed(2)}%`;
+ const number = Number(value);
+ if (!Number.isFinite(number)) return null;
+ return `${number >= 0 ? "+" : ""}${number.toFixed(2)}%`;
 }
 
 function buildProjected(item) {
-  const bias = prettyToken(item.primary_bias);
-  const touch = item.primary_touch?.level;
-  const trigger = item.primary_touch?.trigger;
-  const mode = prettyToken(item.market_mode);
-  return {
-    title: touch ? `${bias} toward ${formatPrice(touch)}` : `${bias} scenario`,
-    meta: `${mode}${trigger ? ` · ${prettyToken(trigger)}` : ""}`,
-  };
+ const bias = prettyToken(item.primary_bias);
+ const touch = item.primary_touch?.level;
+ const trigger = item.primary_touch?.trigger;
+ const mode = prettyToken(item.market_mode);
+ return {
+ title: touch ? `${bias} toward ${formatPrice(touch)}` : `${bias} scenario`,
+ meta: `${mode}${trigger ? ` · ${prettyToken(trigger)}` : ""}`,
+ };
 }
 
 function buildResult(item) {
-  const resolution = item.resolution;
-  if (!resolution) {
-    return { label: "Pending", meta: "Waiting for first barrier", tone: "PENDING" };
-  }
-  const move = asPercent(resolution.mfe_pct ?? resolution.mae_pct);
-  return {
-    label: prettyToken(resolution.outcome),
-    meta: [
-      resolution.first_barrier ? prettyToken(resolution.first_barrier) : null,
-      resolution.first_barrier_price ? formatPrice(resolution.first_barrier_price) : null,
-      move,
-    ].filter(Boolean).join(" · "),
-    tone: resolution.outcome,
-  };
+ const resolution = item.resolution;
+ if (!resolution) {
+ return { label: "Pending", meta: "Waiting for first barrier", tone: "PENDING" };
+ }
+ const move = asPercent(resolution.mfe_pct ?? resolution.mae_pct);
+ return {
+ label: prettyToken(resolution.outcome),
+ meta: [
+ resolution.first_barrier ? prettyToken(resolution.first_barrier) : null,
+ resolution.first_barrier_price ? formatPrice(resolution.first_barrier_price) : null,
+ move,
+ ].filter(Boolean).join(" · "),
+ tone: resolution.outcome,
+ };
 }
 
 function buildExplanation(item) {
-  const resolution = item.resolution;
-  if (resolution?.interpretation) return resolution.interpretation;
-  if (resolution?.reason_codes?.length) return resolution.reason_codes.map(prettyToken).join(", ");
+ const resolution = item.resolution;
+ if (resolution?.interpretation) return resolution.interpretation;
+ if (resolution?.reason_codes?.length) return resolution.reason_codes.map(prettyToken).join(", ");
 
-  const touch = item.primary_touch?.level;
-  const invalidation = item.invalidation?.level;
-  const confirmation = item.confirmation?.level;
-  if (!resolution) {
-    return [
-      touch ? `Projected touch is ${formatPrice(touch)}` : null,
-      confirmation ? `confirmation near ${formatPrice(confirmation)}` : null,
-      invalidation ? `invalidation near ${formatPrice(invalidation)}` : null,
-    ].filter(Boolean).join("; ") || "Scenario is still active; result appears after a target, confirmation, or invalidation barrier resolves.";
-  }
-  return "Resolved by the first touched scenario barrier.";
+ const touch = item.primary_touch?.level;
+ const invalidation = item.invalidation?.level;
+ const confirmation = item.confirmation?.level;
+ if (!resolution) {
+ return [
+ touch ? `Projected touch is ${formatPrice(touch)}` : null,
+ confirmation ? `confirmation near ${formatPrice(confirmation)}` : null,
+ invalidation ? `invalidation near ${formatPrice(invalidation)}` : null,
+ ].filter(Boolean).join("; ") || "Scenario is still active; result appears after a target, confirmation, or invalidation barrier resolves.";
+ }
+ return "Resolved by the first touched scenario barrier.";
 }
 
 export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) {
-  const [filter, setFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState(ledger || null);
-  const [loading, setLoading] = useState(false);
-  const requestRef = useRef(0);
+ const [filter, setFilter] = useState("all");
+ const [page, setPage] = useState(1);
+ const [data, setData] = useState(ledger || null);
+ const [loading, setLoading] = useState(false);
+ const requestRef = useRef(0);
 
-  useEffect(() => {
-    if (ledger && page === 1 && filter === "all") {
-      setData(ledger);
-    }
-  }, [ledger]); // eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(() => {
+ if (ledger && page === 1 && filter === "all") {
+ setData(ledger);
+ }
+ }, [ledger]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const requestId = ++requestRef.current;
-    setLoading(true);
-    getScenarioLedger({ limit: pageSize, offset: (page - 1) * pageSize, filter })
-      .then((response) => {
-        if (requestRef.current === requestId) setData(response);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (requestRef.current === requestId) setLoading(false);
-      });
-  }, [filter, page, pageSize]);
+ useEffect(() => {
+ const requestId = ++requestRef.current;
+ setLoading(true);
+ getScenarioLedger({ limit: pageSize, offset: (page - 1) * pageSize, filter })
+ .then((response) => {
+ if (requestRef.current === requestId) setData(response);
+ })
+ .catch(() => {})
+ .finally(() => {
+ if (requestRef.current === requestId) setLoading(false);
+ });
+ }, [filter, page, pageSize]);
 
-  const items = data?.items || [];
-  const stats = data?.stats || {};
-  const filteredTotal = data?.filtered_total ?? items.length;
-  const total = data?.total ?? items.length;
+ const items = data?.items || [];
+ const stats = data?.stats || {};
+ const filteredTotal = data?.filtered_total ?? items.length;
+ const total = data?.total ?? items.length;
 
-  const pageCount = Math.max(1, Math.ceil(filteredTotal / pageSize));
-  const start = (page - 1) * pageSize;
-  const visible = items.slice(0, pageSize);
-  const hitRate = stats.hit_rate;
+ const pageCount = Math.max(1, Math.ceil(filteredTotal / pageSize));
+ const start = (page - 1) * pageSize;
+ const visible = items.slice(0, pageSize);
+ const hitRate = stats.hit_rate;
 
-  useEffect(() => { setPage(1); }, [filter]);
-  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+ useEffect(() => { setPage(1); }, [filter]);
+ useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
-  const outcomeSegments = [
-    { label: "Hits", value: Math.max(0, (stats.clean_hits ?? 0) - (stats.late_hits ?? 0)), hex: COLOR.profit },
-    { label: "Late hits", value: stats.late_hits ?? 0, hex: "#3a9d76" },
-    { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
-    { label: "Stale", value: stats.stale ?? 0, hex: "#8a7a6a" },
-    { label: "Ambiguous", value: stats.ambiguous ?? 0, hex: COLOR.flat },
-    { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
-  ];
+ const outcomeSegments = [
+ { label: "Hits", value: Math.max(0, (stats.clean_hits ?? 0) - (stats.late_hits ?? 0)), hex: COLOR.profit },
+ { label: "Late hits", value: stats.late_hits ?? 0, hex: "#3a9d76" },
+ { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
+ { label: "Stale", value: stats.stale ?? 0, hex: "#8a7a6a" },
+ { label: "Ambiguous", value: stats.ambiguous ?? 0, hex: COLOR.flat },
+ { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
+ ];
 
-  return (
-    <Card className="!rounded-lg">
-      {/* ── header ── */}
-      <div className="border-b border-ink/[0.07] p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <SectionHeader label="Evaluation · target-first" className="mb-1.5" />
-            <h2 className="text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
-              Projection accountability
-            </h2>
-            <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-secondary">
-              Every row is judged by the target-first scenario map: what BTC was projected
-              to touch, which barrier resolved first, and why that result matters.
-            </p>
-          </div>
-          {/* Hit-rate donut — Terminal desk card */}
-          <div className="flex items-center gap-4 rounded-lg border border-ink/[0.08] bg-surface-secondary px-4 py-3">
-            <Donut
-              size={112}
-              thickness={11}
-              centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
-              centerLabel="hit rate"
-              segments={[
-                { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
-                { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
-                { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
-              ]}
-            />
-            <div className="space-y-1.5 font-mono text-[10px] font-medium">
-              <div className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
-                Hits <span className="font-semibold text-text-primary">{stats.clean_hits ?? 0}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
-                Invalidated <span className="font-semibold text-text-primary">{stats.invalidated_first ?? 0}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.gold }} />
-                Tracking <span className="font-semibold text-text-primary">{stats.pending ?? 0}</span>
-              </div>
-              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/55">Target-first schema</div>
-            </div>
-          </div>
-        </div>
+ return (
+ <Card className="!rounded-lg">
+ {/* ── header ── */}
+ <div className="border-b border-ink/[0.07] p-4 md:p-5">
+ <div className="flex flex-wrap items-start justify-between gap-4">
+ <div className="min-w-0">
+ <SectionHeader label="Evaluation · target-first" className="mb-1.5" />
+ <h2 className="text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
+ Projection accountability
+ </h2>
+ <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-secondary">
+ Every row is judged by the target-first scenario map: what BTC was projected
+ to touch, which barrier resolved first, and why that result matters.
+ </p>
+ </div>
+ {/* Hit-rate donut — Terminal desk card */}
+ <div className="flex items-center gap-4 rounded-lg border border-ink/[0.08] bg-surface-secondary px-4 py-3">
+ <Donut
+ size={112}
+ thickness={11}
+ centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
+ centerLabel="hit rate"
+ segments={[
+ { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
+ { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
+ { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
+ ]}
+ />
+ <div className="space-y-1.5 font-mono text-[10px] font-medium">
+ <div className="flex items-center gap-1.5 text-text-muted">
+ <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
+ Hits <span className="font-semibold text-text-primary">{stats.clean_hits ?? 0}</span>
+ </div>
+ <div className="flex items-center gap-1.5 text-text-muted">
+ <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
+ Invalidated <span className="font-semibold text-text-primary">{stats.invalidated_first ?? 0}</span>
+ </div>
+ <div className="flex items-center gap-1.5 text-text-muted">
+ <span className="h-2 w-2 rounded-full" style={{ background: COLOR.gold }} />
+ Tracking <span className="font-semibold text-text-primary">{stats.pending ?? 0}</span>
+ </div>
+ <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/55">Target-first schema</div>
+ </div>
+ </div>
+ </div>
 
-        {/* KPI strip */}
-        <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
-          <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
-          <StatCard label="Tracking" value={stats.pending ?? 0} detail="Waiting for first barrier" />
-          <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
-          <StatCard
-            label="Hits"
-            value={stats.clean_hits ?? 0}
-            detail={stats.late_hits ? `Direction right · ${stats.late_hits} late` : "Projection respected"}
-            tone="up"
-          />
-          <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="down" />
-        </div>
+ {/* KPI strip */}
+ <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
+ <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
+ <StatCard label="Tracking" value={stats.pending ?? 0} detail="Waiting for first barrier" />
+ <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
+ <StatCard
+ label="Hits"
+ value={stats.clean_hits ?? 0}
+ detail={stats.late_hits ? `Direction right · ${stats.late_hits} late` : "Projection respected"}
+ tone="up"
+ />
+ <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="down" />
+ </div>
 
-        <div className="mt-3.5">
-          <OutcomeBar segments={outcomeSegments} />
-        </div>
-      </div>
+ <div className="mt-3.5">
+ <OutcomeBar segments={outcomeSegments} />
+ </div>
+ </div>
 
-      {/* ── toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] bg-surface-secondary/60 px-4 py-2.5 md:px-5">
-        <div className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
-          Showing{" "}
-          <span className="text-text-primary">
-            {filteredTotal ? start + 1 : 0}–{Math.min(filteredTotal, start + visible.length)}
-          </span>{" "}
-          of <span className="text-text-primary">{filteredTotal}</span>
-          {loading && <span className="ml-2 text-accent">loading…</span>}
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {[
-            ["all", "All"],
-            ["pending", "Pending"],
-            ["resolved", "Resolved"],
-            ["hit", "Hits"],
-            ["miss", "Invalidated"],
-          ].map(([key, label]) => (
-            <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
-              {label}
-            </Chip>
-          ))}
-        </div>
-      </div>
+ {/* ── toolbar ── */}
+ <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] bg-surface-secondary/60 px-4 py-2.5 md:px-5">
+ <div className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
+ Showing{" "}
+ <span className="text-text-primary">
+ {filteredTotal ? start + 1 : 0}–{Math.min(filteredTotal, start + visible.length)}
+ </span>{" "}
+ of <span className="text-text-primary">{filteredTotal}</span>
+ {loading && <span className="ml-2 text-accent">loading…</span>}
+ </div>
+ <div className="flex flex-wrap gap-1">
+ {[
+ ["all", "All"],
+ ["pending", "Pending"],
+ ["resolved", "Resolved"],
+ ["hit", "Hits"],
+ ["miss", "Invalidated"],
+ ].map(([key, label]) => (
+ <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
+ {label}
+ </Chip>
+ ))}
+ </div>
+ </div>
 
-      {/* ── desktop table (md+) ── */}
-      <div className="hidden md:block">
-        <table className="w-full table-fixed border-collapse">
-          <colgroup>
-            <col className="w-[3.5rem]" />
-            <col className="w-[9rem]" />
-            <col className="w-[6rem]" />
-            <col className="w-[13rem]" />
-            <col className="w-[11rem]" />
-            <col />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-ink/[0.08] bg-surface-secondary/80 text-left">
-              {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
-                <th
-                  key={header}
-                  className="px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted"
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className={loading ? "opacity-50 transition-opacity" : "transition-opacity"}>
-            {visible.map((item, index) => {
-              const projected = buildProjected(item);
-              const result = buildResult(item);
-              return (
-                <tr
-                  key={item.projection_id || item.report_id}
-                  className="border-b border-ink/[0.045] transition hover:bg-ink/[0.03]"
-                >
-                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted/60">
-                    {start + index + 1}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <div className="truncate font-mono text-xs text-text-primary/80">{item.report_id || "-"}</div>
-                    <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted/50">
-                      {item.projection_id || "-"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top font-mono text-xs text-text-primary/60">
-                    {formatTimestamp(item.issued_at)}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <div className={cx("text-sm font-semibold", biasTone(item.primary_bias))}>
-                      {projected.title}
-                    </div>
-                    <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-text-muted/50">
-                      {projected.meta}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <span className={cx("inline-flex rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em]", outcomeTone(result.tone))}>
-                      {result.label}
-                    </span>
-                    {result.meta && (
-                      <div className="mt-2 font-mono text-[10.5px] leading-4 text-text-muted/60">
-                        {result.meta}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <p className="text-[13px] leading-6 text-text-primary/60">
-                      {highlightPrices(buildExplanation(item))}
-                    </p>
-                    {!!(item.key_risks || []).length && !item.resolution && (
-                      <div className="mt-2 text-[11px] leading-5 text-loss/70">
-                        Watch: {item.key_risks.slice(0, 2).join(" · ")}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+ {/* ── desktop table (md+) ── */}
+ <div className="hidden md:block">
+ <table className="w-full table-fixed border-collapse">
+ <colgroup>
+ <col className="w-[3.5rem]" />
+ <col className="w-[9rem]" />
+ <col className="w-[6rem]" />
+ <col className="w-[13rem]" />
+ <col className="w-[11rem]" />
+ <col />
+ </colgroup>
+ <thead>
+ <tr className="border-b border-ink/[0.08] bg-surface-secondary/80 text-left">
+ {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
+ <th
+ key={header}
+ className="px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted"
+ >
+ {header}
+ </th>
+ ))}
+ </tr>
+ </thead>
+ <tbody className={loading ? "opacity-50 transition-opacity" : "transition-opacity"}>
+ {visible.map((item, index) => {
+ const projected = buildProjected(item);
+ const result = buildResult(item);
+ return (
+ <tr
+ key={item.projection_id || item.report_id}
+ className="border-b border-ink/[0.045] transition hover:bg-ink/[0.03]"
+ >
+ <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted/60">
+ {start + index + 1}
+ </td>
+ <td className="px-4 py-4 align-top">
+ <div className="truncate font-mono text-xs text-text-primary/80">{item.report_id || "-"}</div>
+ <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted/50">
+ {item.projection_id || "-"}
+ </div>
+ </td>
+ <td className="px-4 py-4 align-top font-mono text-xs text-text-primary/60">
+ {formatTimestamp(item.issued_at)}
+ </td>
+ <td className="px-4 py-4 align-top">
+ <div className={cx("text-sm font-semibold", biasTone(item.primary_bias))}>
+ {projected.title}
+ </div>
+ <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-text-muted/50">
+ {projected.meta}
+ </div>
+ </td>
+ <td className="px-4 py-4 align-top">
+ <span className={cx("inline-flex rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em]", outcomeTone(result.tone))}>
+ {result.label}
+ </span>
+ {result.meta && (
+ <div className="mt-2 font-mono text-[10.5px] leading-4 text-text-muted/60">
+ {result.meta}
+ </div>
+ )}
+ </td>
+ <td className="px-4 py-4 align-top">
+ <p className="text-[13px] leading-6 text-text-primary/60">
+ {highlightPrices(buildExplanation(item))}
+ </p>
+ {!!(item.key_risks || []).length && !item.resolution && (
+ <div className="mt-2 text-[11px] leading-5 text-loss/70">
+ Watch: {item.key_risks.slice(0, 2).join(" · ")}
+ </div>
+ )}
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
+ </div>
 
-      {/* ── mobile cards (< md) — compact, no horizontal scroll ── */}
-      <div className={cx("space-y-2.5 p-3 md:hidden", loading && "opacity-50 transition-opacity")}>
-        {visible.map((item, index) => {
-          const projected = buildProjected(item);
-          const result = buildResult(item);
-          return (
-            <div
-              key={item.projection_id || item.report_id}
-              className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="font-mono text-[11px] tabular-nums text-text-muted/50">
-                    #{start + index + 1}
-                  </span>
-                  <span className="truncate font-mono text-[11px] text-text-primary/70">
-                    {item.report_id || "-"}
-                  </span>
-                </div>
-                <span className="shrink-0 font-mono text-[10px] text-text-muted/60">
-                  {formatTimestamp(item.issued_at)}
-                </span>
-              </div>
+ {/* ── mobile cards (< md) — compact, no horizontal scroll ── */}
+ <div className={cx("space-y-2.5 p-3 md:hidden", loading && "opacity-50 transition-opacity")}>
+ {visible.map((item, index) => {
+ const projected = buildProjected(item);
+ const result = buildResult(item);
+ return (
+ <div
+ key={item.projection_id || item.report_id}
+ className="rounded-xl border border-ink/[0.06] bg-surface-secondary p-3.5"
+ >
+ <div className="flex items-center justify-between gap-2">
+ <div className="flex min-w-0 items-center gap-2">
+ <span className="font-mono text-[11px] tabular-nums text-text-muted/50">
+ #{start + index + 1}
+ </span>
+ <span className="truncate font-mono text-[11px] text-text-primary/70">
+ {item.report_id || "-"}
+ </span>
+ </div>
+ <span className="shrink-0 font-mono text-[10px] text-text-muted/60">
+ {formatTimestamp(item.issued_at)}
+ </span>
+ </div>
 
-              <div className="mt-2.5 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className={cx("text-[14px] font-semibold leading-snug", biasTone(item.primary_bias))}>
-                    {projected.title}
-                  </div>
-                  <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-text-muted/50">
-                    {projected.meta}
-                  </div>
-                </div>
-                <span className={cx("shrink-0 rounded-md border px-2 py-1 text-[9.5px] font-mono uppercase tracking-[0.1em]", outcomeTone(result.tone))}>
-                  {result.label}
-                </span>
-              </div>
+ <div className="mt-2.5 flex items-start justify-between gap-2">
+ <div className="min-w-0">
+ <div className={cx("text-[14px] font-semibold leading-snug", biasTone(item.primary_bias))}>
+ {projected.title}
+ </div>
+ <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-text-muted/50">
+ {projected.meta}
+ </div>
+ </div>
+ <span className={cx("shrink-0 rounded-md border px-2 py-1 text-[9.5px] font-mono uppercase tracking-[0.1em]", outcomeTone(result.tone))}>
+ {result.label}
+ </span>
+ </div>
 
-              {result.meta && (
-                <div className="mt-2 font-mono text-[10px] leading-4 text-text-muted/60">
-                  {result.meta}
-                </div>
-              )}
+ {result.meta && (
+ <div className="mt-2 font-mono text-[10px] leading-4 text-text-muted/60">
+ {result.meta}
+ </div>
+ )}
 
-              <p className="mt-2 text-[12.5px] leading-5 text-text-primary/55">
-                {highlightPrices(buildExplanation(item))}
-              </p>
+ <p className="mt-2 text-[12.5px] leading-5 text-text-primary/55">
+ {highlightPrices(buildExplanation(item))}
+ </p>
 
-              {!!(item.key_risks || []).length && !item.resolution && (
-                <div className="mt-2 text-[11px] leading-5 text-loss/70">
-                  Watch: {item.key_risks.slice(0, 2).join(" · ")}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+ {!!(item.key_risks || []).length && !item.resolution && (
+ <div className="mt-2 text-[11px] leading-5 text-loss/70">
+ Watch: {item.key_risks.slice(0, 2).join(" · ")}
+ </div>
+ )}
+ </div>
+ );
+ })}
+ </div>
 
-      {!visible.length && !loading && (
-        <div className="p-10 text-center">
-          <div className="text-lg font-semibold text-text-primary/80">No evaluation rows yet</div>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
-            The next BTC Compass scenario will create a projection row here, then the
-            resolver will mark it pending, hit, or invalidated based on the first barrier.
-          </p>
-        </div>
-      )}
+ {!visible.length && !loading && (
+ <div className="p-10 text-center">
+ <div className="text-lg font-semibold text-text-primary/80">No evaluation rows yet</div>
+ <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
+ The next BTC Compass scenario will create a projection row here, then the
+ resolver will mark it pending, hit, or invalidated based on the first barrier.
+ </p>
+ </div>
+ )}
 
-      {/* ── footer / pagination ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-4 md:px-5">
-        <p className="max-w-2xl text-[11px] leading-5 text-text-muted/50">
-          This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed into this scorecard.
-        </p>
-        <div className="flex items-center gap-2">
-          <GhostButton size="sm" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-            ← Prev
-          </GhostButton>
-          <span className="font-mono text-[11px] tabular-nums text-text-muted/70">
-            Page {page} / {pageCount}
-          </span>
-          <GhostButton size="sm" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
-            Next →
-          </GhostButton>
-        </div>
-      </div>
-    </Card>
-  );
+ {/* ── footer / pagination ── */}
+ <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-4 md:px-5">
+ <p className="max-w-2xl text-[11px] leading-5 text-text-muted/50">
+ This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed into this scorecard.
+ </p>
+ <div className="flex items-center gap-2">
+ <GhostButton size="sm" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+ ← Prev
+ </GhostButton>
+ <span className="font-mono text-[11px] tabular-nums text-text-muted/70">
+ Page {page} / {pageCount}
+ </span>
+ <GhostButton size="sm" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
+ Next →
+ </GhostButton>
+ </div>
+ </div>
+ </Card>
+ );
 }
