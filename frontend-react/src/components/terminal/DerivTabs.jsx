@@ -15,10 +15,10 @@ import {
 } from "recharts";
 import CoinLogo from "../CoinLogo";
 import {
-  API_BASE, GOLD, POS, NEG, CYAN, PURPLE, ORANGE, GRAYBAR, GRID, AXIS,
+  API_BASE, GOLD, POS, NEG, CYAN, PURPLE, ORANGE, GRAYBAR, GRID, AXIS, SERIES,
   TICK, TICK_SM, fmtPct, fmtMoney, makeBins, median,
   SectionBand, Kpi, XCard, useZoom, RankBars, CoinPill, DarkTip, ScatterTip,
-  LegendChips, Warming, Chip, ScrollArea, statusColorOf, fmtAxis,
+  LegendChips, Warming, Chip, SegControl, ScrollArea, statusColorOf, fmtAxis,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
@@ -506,7 +506,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 // ════════════════════════════════════════════════════════════════
 // TAB: vs BTC — rebased trend chart + RSI board + volume Δ
 // ════════════════════════════════════════════════════════════════
-const LINE_COLORS = [POS, CYAN, PURPLE, ORANGE, "#f472b6", "#facc15", "#60a5fa", "#34d399", "#e879f9", "#fca5a5"];
+const LINE_COLORS = SERIES.filter((c) => c !== GOLD);
 
 // end-of-line label: coin logo + symbol at the tip of each rebased line
 const makeEndLabel = (sym, color, total) => (props) => {
@@ -599,31 +599,31 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
     .sort((a, b) => b.v - a.v);
 
   return (
-    <>
+    <div className="space-y-2.5">
       <SectionBand title={t("terminal.viz.tabVsbtc")} desc={t("terminal.viz.vsSectionDesc")} />
 
       <XCard
         title={t("terminal.viz.vsChartTitle")}
         desc={t("terminal.viz.vsChartDesc")}
+        height={380}
         render={(h) => (
           <>
-            {/* selection row: window + coin chips + search-add */}
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <div className="flex gap-1">
-                {Object.keys(WINDOWS).map((w) => (
-                  <Chip key={w} active={win === w} onClick={() => setWin(w)}>{w}</Chip>
-                ))}
-              </div>
+            <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+              <SegControl
+                value={win}
+                onChange={setWin}
+                options={Object.keys(WINDOWS).map((w) => ({ id: w, label: w }))}
+              />
               <span className="h-4 w-px bg-white/[0.08]" />
-              <span className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-line/30 bg-gold-primary/[0.08] font-mono text-[10px]">
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gold-primary/25 bg-gold-primary/[0.08] font-mono text-[10px]">
                 <CoinLogo pair="BTCUSDT" size={14} />
                 <span className="text-gold-primary">BTC</span>
               </span>
               {selected.map((p, i) => (
-                <span key={p} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-white/[0.08] bg-white/[0.02] font-mono text-[10px]">
+                <span key={p} className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] font-mono text-[10px]">
                   <CoinLogo pair={p} size={14} />
-                  <span style={{ color: LINE_COLORS[i % LINE_COLORS.length] }}>{p.replace(/USDT$/, "")}</span>
-                  <button onClick={() => setSel(selected.filter((x) => x !== p))} className="text-text-muted hover:text-negative">✕</button>
+                  <span style={{ color: LINE_COLORS[i % LINE_COLORS.length] }}>{p.replace(/USDT$/i, "")}</span>
+                  <button type="button" onClick={() => setSel(selected.filter((x) => x !== p))} className="text-text-muted hover:text-negative">×</button>
                 </span>
               ))}
               <div className="relative">
@@ -631,17 +631,18 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={t("terminal.viz.vsAdd")}
-                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-line/40 font-mono"
+                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-white/18 font-mono"
                 />
                 {searchOpts.length > 0 && (
-                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-surface-secondary border border-line/20 shadow-xl p-1">
+                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-lg bg-surface border border-white/[0.1] shadow-xl p-1">
                     {searchOpts.map((p) => (
                       <button
                         key={p}
+                        type="button"
                         onClick={() => { if (selected.length < 10) setSel([...selected, p]); setQ(""); }}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.05] font-mono text-[10.5px] text-text-primary/85"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.05] font-mono text-[10.5px] text-text-primary/85"
                       >
-                        <CoinLogo pair={p} size={14} /> {p}
+                        <CoinLogo pair={p} size={14} /> {p.replace(/USDT$/i, "")}
                       </button>
                     ))}
                   </div>
@@ -649,20 +650,20 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
               </div>
             </div>
 
-            <div style={{ height: Math.max(h, 320) }}>
+            <div style={{ height: Math.max(h, 300) }}>
               {chartData.length === 0 ? (
                 <Warming text={t("terminal.viz.vsLoading")} />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 6, right: 66, left: -14, bottom: 0 }}>
-                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <CartesianGrid stroke={GRID} vertical={false} strokeDasharray="3 6" />
                     <XAxis dataKey="t" tick={TICK_SM} axisLine={false} tickLine={false} minTickGap={40} />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
                     <Tooltip content={<DarkTip />} />
-                    <ReferenceLine y={100} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
-                    <Line type="monotone" dataKey="BTCUSDT" name="BTC" stroke={GOLD} strokeWidth={2.5} dot={false} label={makeEndLabel("BTCUSDT", GOLD, chartData.length)} isAnimationActive={false} />
+                    <ReferenceLine y={100} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
+                    <Line type="monotone" dataKey="BTCUSDT" name="BTC" stroke={GOLD} strokeWidth={2.2} dot={false} label={makeEndLabel("BTCUSDT", GOLD, chartData.length)} isAnimationActive={false} />
                     {selected.map((p, i) => (
-                      <Line key={p} type="monotone" dataKey={p} name={p.replace(/USDT$/, "")} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.5} dot={false} label={makeEndLabel(p, LINE_COLORS[i % LINE_COLORS.length], chartData.length)} isAnimationActive={false} />
+                      <Line key={p} type="monotone" dataKey={p} name={p.replace(/USDT$/i, "")} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.5} dot={false} label={makeEndLabel(p, LINE_COLORS[i % LINE_COLORS.length], chartData.length)} isAnimationActive={false} />
                     ))}
                     <Legend wrapperStyle={{ fontSize: 10, fontFamily: "JetBrains Mono" }} />
                   </LineChart>
@@ -673,10 +674,11 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
         )}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <XCard
           title={t("terminal.viz.rsiTitle")}
           desc={t("terminal.viz.rsiDesc")}
+          height={300}
           render={(h) => (
             <>
               <div style={{ height: Math.min(h, 200) }}>
@@ -721,18 +723,19 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
         <XCard
           title={t("terminal.viz.volChgTitle")}
           desc={t("terminal.viz.volChgDesc")}
+          height={300}
           render={() =>
             volChg.length === 0 ? (
               <Warming text={t("terminal.viz.derivWarming")} />
             ) : (
-              <RankBars data={volChg.slice(0, 10)} onPair={openPair} />
+              <RankBars align="start" data={volChg.slice(0, 10)} onPair={openPair} />
             )
           }
         />
       </div>
 
       <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
-    </>
+    </div>
   );
 }
 

@@ -2,13 +2,13 @@ import { useState, useEffect, useRef, useContext } from 'react';
 import { SignalStatusContext, STATUS_META, timeAgo } from '../context/SignalStatusContext';
 
 /**
- * CoinLogo Component - Optimized with Multi-Layer Caching
- * 
- * v3: Bumped CACHE_VERSION to flush corrupted logo cache entries.
+ * CoinLogo — multi-source with fail-over.
+ * v4: Binance CDN first (best coverage for perpetual symbols), then OKX / LCW /
+ * CoinCap / cryptocurrency-icons. Cache bump clears permanent FAIL entries.
  */
 
 const CACHE_KEY = 'lq:coin-logos';
-const CACHE_VERSION = 3;  // BUMPED from 2 → 3 to flush bad entries
+const CACHE_VERSION = 4;
 
 const _logoCache = new Map();
 const _failedSymbols = new Set();
@@ -43,12 +43,21 @@ const _saveToStorage = () => {
 };
 
 const getLogoSources = (symbol) => {
-  const clean = symbol.toLowerCase().replace(/^1000/, '');
-  
+  // Strip 1000× leverage prefixes used on Binance perps (1000PEPE → pepe)
+  const base = symbol.replace(/^1000/, '').replace(/^1M/, '');
+  const lower = base.toLowerCase();
+  const upper = base.toUpperCase();
   return [
-    `https://assets.coincap.io/assets/icons/${clean}@2x.png`,
-    `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${clean}.png`,
-    `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${clean}.png`,
+    // Binance static logos — widest coverage for perp tickers (W, KAITO, etc.)
+    `https://bin.bnbstatic.com/static/assets/logos/${upper}.png`,
+    // OKX currency icons
+    `https://static.okx.com/cdn/oksupport/asset/currency/icon/${lower}.png`,
+    // LiveCoinWatch
+    `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${lower}.png`,
+    // CoinCap
+    `https://assets.coincap.io/assets/icons/${lower}@2x.png`,
+    // Open-source icon pack
+    `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${lower}.png`,
   ];
 };
 

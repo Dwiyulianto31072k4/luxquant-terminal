@@ -15,21 +15,24 @@ export const authHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// ── palette ────────────────────────────────────────────────────────
+// ── chart palette (industry-standard semantic colors) ──────────────
+// POS/NEG = green/red (PnL). Accent = brand gold. Neutral grid/axis.
 export const GOLD = "#d4a853";
-export const POS = "#4ade80";
-export const NEG = "#f87171";
-export const CYAN = "#67e8f9";
+export const POS = "#22c55e";
+export const NEG = "#ef4444";
+export const CYAN = "#22d3ee";
 export const PURPLE = "#a78bfa";
-export const ORANGE = "#fb923c";
-export const GRAYBAR = "rgba(255,255,255,0.25)";
-export const GRID = "rgba(212,168,83,0.06)";
-export const AXIS = "#a59585";
+export const ORANGE = "#f59e0b";
+export const GRAYBAR = "rgba(255,255,255,0.22)";
+export const GRID = "rgba(255,255,255,0.045)";
+export const AXIS = "rgba(255,255,255,0.38)";
+// Multi-series palette (vs BTC lines, sector stacks) — colorblind-friendly order
+export const SERIES = ["#d4a853", "#22c55e", "#38bdf8", "#a78bfa", "#f472b6", "#f59e0b", "#2dd4bf", "#fb7185", "#94a3b8", "#eab308"];
 
 export const STATUS_ORDER = ["open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"];
-export const STATUS_LABEL = { open: "open", tp1: "tp1", tp2: "tp2", tp3: "tp3", closed_win: "tp4", closed_loss: "sl" };
+export const STATUS_LABEL = { open: "Open", tp1: "TP1", tp2: "TP2", tp3: "TP3", closed_win: "TP4", closed_loss: "SL" };
 export const STATUS_COLORS = {
-  open: GRAYBAR, tp1: "#2dd4a0", tp2: "#4ade80", tp3: "#86efac",
+  open: "rgba(255,255,255,0.35)", tp1: "#22c55e", tp2: "#4ade80", tp3: "#86efac",
   closed_win: GOLD, closed_loss: NEG,
 };
 export const RISK_COLORS = { LOW: POS, NORMAL: GOLD, HIGH: NEG };
@@ -184,10 +187,12 @@ export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => (
   </div>
 );
 
-export const Chip = ({ active, onClick, children }) => (
+export const Chip = ({ active, onClick, children, size = "sm" }) => (
   <button
     onClick={onClick}
-    className={`shrink-0 px-2 py-1 rounded-md font-mono text-[9px] uppercase tracking-wider border transition-colors ${
+    className={`shrink-0 rounded-md font-mono uppercase tracking-wider border transition-colors ${
+      size === "xs" ? "px-1.5 py-0.5 text-[8.5px]" : "px-2 py-1 text-[9px]"
+    } ${
       active
         ? "bg-gold-primary text-surface-hover border-gold-primary font-semibold"
         : "bg-transparent text-text-muted border-white/[0.08] hover:text-text-primary hover:border-white/16"
@@ -195,6 +200,31 @@ export const Chip = ({ active, onClick, children }) => (
   >
     {children}
   </button>
+);
+
+// Segmented control (TradingView / exchange-style filter group)
+export const SegControl = ({ options, value, onChange, className = "" }) => (
+  <div className={`inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] ${className}`}>
+    {options.map((o) => {
+      const id = typeof o === "string" ? o : o.id;
+      const label = typeof o === "string" ? o : o.label;
+      const active = value === id;
+      return (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onChange(id)}
+          className={`px-2 py-1 rounded-md font-mono text-[9px] uppercase tracking-wide transition-colors whitespace-nowrap ${
+            active
+              ? "bg-white/[0.1] text-text-primary font-semibold shadow-sm"
+              : "text-text-muted hover:text-text-primary"
+          }`}
+        >
+          {label}
+        </button>
+      );
+    })}
+  </div>
 );
 
 export const IconBtn = ({ onClick, title, children }) => (
@@ -207,56 +237,46 @@ export const IconBtn = ({ onClick, title, children }) => (
   </button>
 );
 
-// Allium-style dropdown multi-select chip
+// Dropdown multi-select — exchange filter style (Sector / Risk)
 export function FilterMulti({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false);
   const toggle = (v) =>
     onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+  const summary = selected.length === 0 ? "All" : selected.length <= 2 ? selected.join(", ") : `${selected.length} selected`;
   return (
     <div className="relative shrink-0">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors ${
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-md border transition-colors ${
           selected.length
-            ? "bg-gold-primary/20 border-line/45"
-            : "bg-surface-raised border-white/[0.1] hover:border-white/20"
+            ? "bg-white/[0.06] border-white/15 text-text-primary"
+            : "bg-white/[0.02] border-white/[0.07] text-text-muted hover:border-white/12 hover:text-text-primary"
         }`}
       >
-        <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{label}</span>
-        {selected.length === 0 ? (
-          <span className="font-mono text-[10px] text-text-primary/60">All</span>
-        ) : (
-          <>
-            {selected.slice(0, 2).map((v) => (
-              <span key={v} className="px-1.5 py-0.5 rounded-sm bg-gold-primary/15 text-gold-primary font-mono text-[9px]">
-                {v}
-              </span>
-            ))}
-            {selected.length > 2 && (
-              <span className="font-mono text-[9px] text-gold-primary">+{selected.length - 2}</span>
-            )}
-          </>
-        )}
-        <svg className={`w-3 h-3 text-text-muted transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+        <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted/80">{label}</span>
+        <span className="font-mono text-[10px] max-w-[7rem] truncate">{summary}</span>
+        <svg className={`w-2.5 h-2.5 opacity-60 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path d="M6 9 L12 15 L18 9" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute z-40 mt-1 left-0 min-w-[180px] max-h-64 overflow-y-auto rounded-md bg-surface-secondary border border-line/20 shadow-xl p-1.5">
+          <div className="absolute z-40 mt-1 left-0 min-w-[176px] max-h-64 overflow-y-auto rounded-lg bg-surface border border-white/[0.1] shadow-2xl shadow-black/50 p-1.5">
             {selected.length > 0 && (
               <button
+                type="button"
                 onClick={() => onChange([])}
-                className="w-full text-left px-2 py-1.5 rounded-sm font-mono text-[9.5px] uppercase tracking-wider text-negative/80 hover:bg-white/[0.04]"
+                className="w-full text-left px-2 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative hover:bg-white/[0.04]"
               >
-                × Clear
+                Clear
               </button>
             )}
             {options.map((o) => (
-              <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.04] cursor-pointer">
+              <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.04] cursor-pointer">
                 <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-[#d4a853] w-3 h-3" />
-                <span className="font-mono text-[10.5px] text-text-primary/80">{o}</span>
+                <span className="font-mono text-[11px] text-text-primary/85 capitalize">{String(o).replace(/_/g, " ")}</span>
               </label>
             ))}
           </div>

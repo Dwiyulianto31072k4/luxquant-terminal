@@ -28,7 +28,7 @@ import {
   GOLD, POS, NEG, PURPLE, ORANGE, CYAN, GRAYBAR, GRID, AXIS, TICK, TICK_SM,
   STATUS_ORDER, STATUS_LABEL, STATUS_COLORS, RISK_COLORS,
   fmtPct, median, parseMcap, csv, makeBins, PLAUSIBLE_LO, PLAUSIBLE_HI,
-  SectionBand, Kpi, Chip, FilterMulti, DarkTip, ScatterTip, LegendChips,
+  SectionBand, Kpi, Chip, SegControl, FilterMulti, DarkTip, ScatterTip, LegendChips,
   XCard, useZoom, CoinPill, RankBars, SectorBars, Donut, statusColorOf, fmtAxis,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
@@ -64,9 +64,7 @@ function AnomDot({ cx, cy, payload, statusMap, onPair }) {
   );
 }
 
-// ── Market Regime gauge — fuses altseason, BTC dominance, breadth (calls in
-// profit) and aggregate funding into one risk-on/off score so users read the
-// backdrop before taking a call. All inputs already computed in-house.
+// Market Regime — composite risk-on/off score (altseason · BTC.D · breadth · funding)
 function RegimeGauge({ macro, pairFc, deriv }) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const btcDom = macro?.btc_dominance ?? null;
@@ -77,44 +75,54 @@ function RegimeGauge({ macro, pairFc, deriv }) {
   const avgFund = fund.length ? fund.reduce((a, b) => a + b, 0) / fund.length : null;
 
   const altScore = alt != null ? clamp(alt, 0, 100) : null;
-  const domScore = btcDom != null ? clamp(((65 - btcDom) / 20) * 100, 0, 100) : null; // 45%→100, 65%→0
+  const domScore = btcDom != null ? clamp(((65 - btcDom) / 20) * 100, 0, 100) : null;
   const breadthScore = breadth;
   const fundScore = avgFund != null ? clamp(50 + avgFund * 100 * 500, 0, 100) : null;
 
   const parts = [[altScore, 0.35], [domScore, 0.25], [breadthScore, 0.25], [fundScore, 0.15]].filter(([v]) => v != null);
   const wsum = parts.reduce((a, [, w]) => a + w, 0) || 1;
   const regime = parts.length ? parts.reduce((a, [v, w]) => a + v * w, 0) / wsum : null;
-  const regColor = regime == null ? "#9ca3af" : regime >= 65 ? "#34d399" : regime >= 45 ? "#d4a853" : "#f87171";
-  const label = regime == null ? "—" : regime >= 65 ? "Risk-On · Alt Season" : regime >= 52 ? "Constructive" : regime >= 42 ? "Neutral" : "Risk-Off · BTC-led";
+  const regColor = regime == null ? "#94a3b8" : regime >= 65 ? POS : regime >= 45 ? GOLD : NEG;
+  const label = regime == null ? "—" : regime >= 65 ? "Risk-on" : regime >= 52 ? "Constructive" : regime >= 42 ? "Neutral" : "Risk-off";
 
   const comp = (lbl, score, raw) => (
-    <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-2.5 py-2">
-      <div className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted">{lbl}</div>
-      <div className="font-mono text-[13px] text-text-primary/90 mt-0.5">{raw}</div>
-      <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${score || 0}%`, background: regColor }} /></div>
+    <div className="rounded-lg bg-white/[0.02] border border-white/[0.05] px-2.5 py-2">
+      <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/80">{lbl}</div>
+      <div className="font-mono text-[13px] tabular-nums text-text-primary mt-0.5">{raw}</div>
+      <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${score || 0}%`, background: regColor }} />
+      </div>
     </div>
   );
 
   return (
-    <div className="relative rounded-2xl bg-surface-raised border border-white/[0.07] overflow-hidden p-4">
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-      <div className="flex items-end justify-between mb-3">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
+      <div className="flex items-end justify-between mb-2.5 gap-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Market Regime</div>
-          <div className="text-[28px] font-mono tabular-nums leading-none mt-1" style={{ color: regColor }}>{regime == null ? "—" : Math.round(regime)}<span className="text-[13px] text-text-primary/40"> / 100</span></div>
-          <div className="text-[12px] mt-1" style={{ color: regColor }}>{label}</div>
+          <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">Market regime</div>
+          <div className="text-[26px] font-mono tabular-nums leading-none mt-1" style={{ color: regColor }}>
+            {regime == null ? "—" : Math.round(regime)}
+            <span className="text-[12px] text-text-muted/50"> / 100</span>
+          </div>
+          <div className="text-[12px] mt-1 font-medium" style={{ color: regColor }}>{label}</div>
         </div>
-        <div className="text-right font-mono text-[9px] uppercase tracking-wider text-text-muted/70 leading-relaxed hidden sm:block">take calls with<br />the backdrop</div>
+        <div className="text-right text-[10px] text-text-muted/60 leading-snug hidden sm:block max-w-[10rem]">
+          Backdrop for position sizing
+        </div>
       </div>
-      <div className="relative h-3 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg,#f87171,#d4a853,#34d399)" }}>
-        {regime != null && <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-5 rounded-sm bg-white shadow-lg" style={{ left: `${regime}%` }} />}
+      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg,#ef4444,#d4a853,#22c55e)" }}>
+        {regime != null && (
+          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-4 rounded-sm bg-white shadow" style={{ left: `${regime}%` }} />
+        )}
       </div>
-      <div className="flex justify-between font-mono text-[8px] uppercase tracking-wider text-text-muted/60 mt-1"><span>risk-off · btc</span><span>neutral</span><span>risk-on · alts</span></div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+      <div className="flex justify-between font-mono text-[8px] uppercase tracking-wider text-text-muted/50 mt-1">
+        <span>Risk-off</span><span>Neutral</span><span>Risk-on</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2.5">
         {comp("Altseason", altScore, alt != null ? alt.toFixed(0) : "—")}
-        {comp("BTC Dom (inv)", domScore, btcDom != null ? btcDom.toFixed(0) + "%" : "—")}
-        {comp("Calls in profit", breadthScore, breadth != null ? breadth.toFixed(0) + "%" : "—")}
-        {comp("Avg funding", fundScore, avgFund != null ? (avgFund * 100).toFixed(3) + "%" : "—")}
+        {comp("BTC dominance", domScore, btcDom != null ? `${btcDom.toFixed(1)}%` : "—")}
+        {comp("Calls in profit", breadthScore, breadth != null ? `${breadth.toFixed(0)}%` : "—")}
+        {comp("Avg funding", fundScore, avgFund != null ? `${(avgFund * 100).toFixed(3)}%` : "—")}
       </div>
     </div>
   );
@@ -554,23 +562,32 @@ export default function SignalsAnalytics() {
   // ════════════════════════════════════════════════════════════
   return (
     <div className="space-y-2.5">
-      {/* ── compact sticky filter strip ── */}
+      {/* ── sticky toolbar (exchange-style: search · status · date · facets) ── */}
       <div className="sticky top-0 z-30 flex items-center gap-1.5 flex-wrap bg-surface/95 backdrop-blur-md border-b border-white/[0.05] px-0.5 py-1.5 -mx-0.5">
-        <input
-          value={filters.q}
-          onChange={(e) => setF({ q: e.target.value })}
-          placeholder={t("terminal.viz.searchPair")}
-          className="w-28 sm:w-32 bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-1 text-[11px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-white/20 font-mono"
-        />
-        <div className="flex gap-0.5 p-0.5 rounded-md bg-white/[0.02] border border-white/[0.05]">
-          {["all", "open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"].map((s) => (
-            <Chip key={s} active={filters.st === s} onClick={() => setF({ st: s })}>
-              {s === "all" ? t("terminal.viz.all") : STATUS_LABEL[s] || s}
-            </Chip>
-          ))}
+        <div className="relative">
+          <svg className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted/50" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7" /><path d="M20 20l-3-3" strokeLinecap="round" />
+          </svg>
+          <input
+            value={filters.q}
+            onChange={(e) => setF({ q: e.target.value })}
+            placeholder={t("terminal.viz.searchPair")}
+            className="w-32 sm:w-40 bg-white/[0.03] border border-white/[0.07] rounded-md pl-7 pr-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted/45 focus:outline-none focus:border-white/18 font-mono"
+          />
         </div>
-        {/* window — compact day toggles */}
-        <div className="flex items-center gap-0.5 rounded-md border border-white/[0.05] bg-white/[0.02] p-0.5">
+
+        <SegControl
+          value={filters.st}
+          onChange={(id) => setF({ st: id })}
+          options={[
+            { id: "all", label: t("terminal.viz.all") },
+            ...STATUS_ORDER.map((s) => ({ id: s, label: STATUS_LABEL[s] || s })),
+          ]}
+        />
+
+        {/* Date window — last 7 days */}
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+          <span className="hidden sm:inline px-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/55">Date</span>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const on = dayBuckets.includes(d);
             const dt = new Date(Date.now() - d * 86400000);
@@ -578,10 +595,11 @@ export default function SignalsAnalytics() {
             return (
               <button
                 key={d}
+                type="button"
                 onClick={() => toggleDay(d)}
-                title={d === 0 ? "today" : `${d}d ago`}
-                className={`px-1.5 py-0.5 rounded font-mono text-[8.5px] tracking-wide transition-colors whitespace-nowrap ${
-                  on ? "bg-gold-primary text-surface-hover font-semibold" : "text-text-muted/55 hover:text-text-primary"
+                title={d === 0 ? "Today" : `${d} day${d > 1 ? "s" : ""} ago`}
+                className={`px-1.5 py-1 rounded-md font-mono text-[8.5px] tracking-wide transition-colors whitespace-nowrap ${
+                  on ? "bg-white/[0.1] text-text-primary font-semibold" : "text-text-muted/55 hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -589,14 +607,16 @@ export default function SignalsAnalytics() {
             );
           })}
           <button
+            type="button"
             onClick={() => setDayBuckets([0, 1, 2, 3, 4, 5, 6])}
-            className={`px-1.5 py-0.5 rounded font-mono text-[8.5px] uppercase ${
-              dayBuckets.length === 7 ? "text-gold-primary" : "text-text-muted/45 hover:text-text-primary"
+            className={`px-1.5 py-1 rounded-md font-mono text-[8.5px] uppercase ${
+              dayBuckets.length === 7 ? "text-gold-primary font-semibold" : "text-text-muted/45 hover:text-text-primary"
             }`}
           >
-            all
+            7D
           </button>
         </div>
+
         <FilterMulti
           label={t("terminal.viz.filterSector")}
           options={sectorOptions}
@@ -613,22 +633,22 @@ export default function SignalsAnalytics() {
           {t("terminal.viz.decoupled")}
         </Chip>
         {hasDrill && (
-          <button onClick={resetF} className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-negative">
-            × {t("terminal.viz.reset")}
+          <button type="button" onClick={resetF} className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-negative">
+            {t("terminal.viz.reset")}
           </button>
         )}
         <div className="ml-auto hidden md:flex items-center gap-2.5 font-mono text-[9px] text-text-muted/65">
           {agg.btcPrice && (
             <span className="tabular-nums">
-              BTC <span className="text-text-primary/75">${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              BTC <span className="text-text-primary/80">${Number(agg.btcPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}> {fmtPct(agg.btcChg)}</span>
             </span>
           )}
-          <span className="tabular-nums">{view.length} sig</span>
+          <span className="tabular-nums">{view.length} signals</span>
           {data?.generated_at && (
-            <span className="tabular-nums">
-              {new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              {deriv?.stale && <span className="text-warning"> · stale</span>}
+            <span className="tabular-nums opacity-80">
+              Updated {new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {deriv?.stale && <span className="text-warning"> · delayed</span>}
             </span>
           )}
         </div>
@@ -665,20 +685,10 @@ export default function SignalsAnalytics() {
             <>
               <RegimeGauge macro={macro} pairFc={pairFc} deriv={deriv} />
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-                <Kpi label={t("terminal.viz.kActive")} value={view.length} desc={t("terminal.viz.kActiveDesc")} />
-                <Kpi
-                  label={t("terminal.viz.kCoiled")}
-                  value={coiledCount}
-                  desc={t("terminal.viz.kCoiledDesc")}
-                  tone={coiledCount ? "text-gold-primary" : undefined}
-                />
-                <Kpi
-                  label={t("terminal.viz.kTpReached")}
-                  value={tpHitPct == null ? "—" : `${tpHitPct}%`}
-                  desc={t("terminal.viz.kTpReachedDesc")}
-                  tone="text-positive"
-                />
-                <Kpi label={t("terminal.viz.kDecoupled")} value={agg.decoupled} desc={t("terminal.viz.kDecoupledDesc")} tone={agg.decoupled ? "text-cyan-400" : undefined} />
+                <Kpi compact label={t("terminal.viz.kActive")} value={view.length} sub="Last 7 days" />
+                <Kpi compact label={t("terminal.viz.kCoiled")} value={coiledCount} sub="Near entry · high quality" tone={coiledCount ? "text-gold-primary" : undefined} accent={coiledCount ? GOLD : undefined} />
+                <Kpi compact label={t("terminal.viz.kTpReached")} value={tpHitPct == null ? "—" : `${tpHitPct}%`} sub="Hit TP1 or better" tone="text-positive" accent={POS} />
+                <Kpi compact label={t("terminal.viz.kDecoupled")} value={agg.decoupled} sub="Low BTC correlation" tone={agg.decoupled ? "text-cyan-400" : undefined} accent={agg.decoupled ? CYAN : undefined} />
               </div>
 
               <XCard
@@ -1009,13 +1019,13 @@ export default function SignalsAnalytics() {
             <>
               <SectionBand title={t("terminal.viz.sectionLive")} desc={t("terminal.viz.sectionLiveDesc")} />
 
-              {/* KPIs — strength only (no red/down clutter) */}
+              {/* Strength metrics only */}
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
                   compact
                   label={t("terminal.viz.kInProfit")}
                   value={`${(liveStats.up + liveStats.down) ? Math.round(liveStats.up / (liveStats.up + liveStats.down) * 100) : 0}%`}
-                  sub={`${liveStats.up} of ${liveStats.up + liveStats.down} live`}
+                  sub={`${liveStats.up} of ${liveStats.up + liveStats.down} above entry`}
                   tone="text-positive"
                   accent={POS}
                 />
@@ -1031,17 +1041,23 @@ export default function SignalsAnalytics() {
                   compact
                   label={t("terminal.viz.kBigWin")}
                   value={liveStats.bigWin}
-                  sub={t("terminal.viz.kBigWinDesc")}
+                  sub="Above +10% from entry"
                   tone="text-positive"
                   accent={POS}
                 />
                 <Kpi
                   compact
-                  label={t("terminal.viz.kMedianFc")}
-                  value={agg.medFc != null ? fmtPct(agg.medFc) : "—"}
-                  sub={t("terminal.viz.kMedianFcDesc")}
-                  tone={agg.medFc != null && agg.medFc >= 0 ? "text-positive" : "text-text-primary"}
-                  accent={agg.medFc != null && agg.medFc >= 0 ? POS : GOLD}
+                  label="Median winner"
+                  value={(() => {
+                    const wins = fcClamped.filter((v) => v > 0);
+                    if (!wins.length) return "—";
+                    const s = [...wins].sort((a, b) => a - b);
+                    const m = s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+                    return fmtPct(m);
+                  })()}
+                  sub="Among calls in profit"
+                  tone="text-positive"
+                  accent={POS}
                 />
               </div>
 

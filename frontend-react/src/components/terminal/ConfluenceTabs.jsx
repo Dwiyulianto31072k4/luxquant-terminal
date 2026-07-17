@@ -14,7 +14,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "../CoinLogo";
 import {
-  POS, NEG, fmtPct, API_BASE, authHeaders,
+  POS, NEG, GOLD, ORANGE, fmtPct, API_BASE, authHeaders,
   SectionBand, Kpi, Chip, ScrollArea, StatusTag,
 } from "./vizShared";
 
@@ -45,7 +45,7 @@ const EQ_TAGS = {
   OVEREXTENDED: { tone: "text-surface-secondary bg-negative border-negative" },
 };
 const nice = (tag) => tag.replaceAll("_", " ").toLowerCase();
-const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: "#fbbf24" };
+const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: ORANGE };
 
 // confluence score = positive important reasons − warnings (for sorting)
 function scoreOf(tags) {
@@ -100,28 +100,24 @@ function flowScoreOf(dir, flow) {
   return { score, conflict: score < 0, support: score > 0 };
 }
 
-// Fear & Greed — horizontal gradient gauge (red→green) with a marker at value
+// Fear & Greed Index — CNN-style gradient gauge
 function FngBadge({ value, label }) {
   if (value == null) return null;
-  const color = value <= 25 ? "#f87171" : value <= 45 ? "#f97316"
-    : value <= 55 ? "#fbbf24" : value <= 75 ? "#a3e635" : "#34d399";
+  const color = value <= 25 ? NEG : value <= 45 ? ORANGE
+    : value <= 55 ? GOLD : value <= 75 ? "#a3e635" : POS;
   const pos = Math.max(2, Math.min(98, value));
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-surface-raised border border-white/[0.07] px-4 py-3 flex items-center gap-4">
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-      <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-text-muted shrink-0">Fear &amp; Greed</span>
-      <div className="relative flex-1 min-w-[120px]">
-        <div className="h-2 rounded-full" style={{ background: "linear-gradient(90deg,#f87171,#f97316,#fbbf24,#a3e635,#34d399)" }} />
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2.5 flex items-center gap-3">
+      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted shrink-0">Fear &amp; Greed</span>
+      <div className="relative flex-1 min-w-[100px]">
+        <div className="h-1.5 rounded-full" style={{ background: "linear-gradient(90deg,#ef4444,#f59e0b,#eab308,#a3e635,#22c55e)" }} />
         <div
-          className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-surface-raised shadow"
+          className="absolute top-1/2 w-3 h-3 rounded-full border-2 border-surface shadow"
           style={{ left: `${pos}%`, transform: "translate(-50%,-50%)", background: "rgb(var(--fg))" }}
         />
-        <div className="mt-1 flex justify-between font-mono text-[7.5px] uppercase tracking-wider text-text-muted/40">
-          <span>Fear</span><span>Greed</span>
-        </div>
       </div>
       <div className="shrink-0 flex items-baseline gap-1.5">
-        <span className="font-mono tabular-nums text-[24px] leading-none" style={{ color }}>{value}</span>
+        <span className="font-mono tabular-nums text-[22px] leading-none" style={{ color }}>{value}</span>
         <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color }}>{label}</span>
       </div>
     </div>
@@ -151,23 +147,22 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
 
   return (
     <button
+      type="button"
       onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
-      className="group relative text-left rounded-2xl bg-surface-raised border border-white/[0.07] hover:border-line/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
+      className="group text-left rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.035] transition-all overflow-hidden flex flex-col"
     >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-
-      {/* header — pair + direction (muted) · price (color = meaning) · status */}
-      <div className="px-4 pt-4 flex items-center gap-3">
-        <CoinLogo pair={s.pair} size={30} />
+      {/* header — pair · direction · PnL · status */}
+      <div className="px-3.5 pt-3.5 flex items-center gap-2.5">
+        <CoinLogo pair={s.pair} size={28} />
         <div className="min-w-0">
-          <div className="font-mono text-[15px] text-text-primary/95 leading-none truncate">{s.pair}</div>
-          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-text-muted truncate">
+          <div className="font-mono text-[14px] text-text-primary leading-none truncate">{s.pair.replace(/USDT$/i, "")}</div>
+          <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-text-muted truncate">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dirColor }} />
             <span className="truncate">{sub}</span>
           </div>
         </div>
         <div className="ml-auto text-right shrink-0">
-          <div className="font-mono text-[17px] tabular-nums leading-none" style={{ color: fc == null ? "#6f6b66" : fc >= 0 ? POS : NEG }}>
+          <div className="font-mono text-[16px] tabular-nums leading-none" style={{ color: fc == null ? "rgba(255,255,255,0.35)" : fc >= 0 ? POS : NEG }}>
             {fc == null ? "—" : fmtPct(fc)}
           </div>
           <div className="mt-1.5 flex justify-end">
@@ -176,42 +171,40 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
         </div>
       </div>
 
-      {/* multi-timeframe trend + entry quality — the confluence core, muted */}
-      <div className="px-4 mt-3 flex items-center gap-3 font-mono text-[10px]">
+      {/* Multi-timeframe alignment */}
+      <div className="px-3.5 mt-2.5 flex items-center gap-3 font-mono text-[10px]">
         {hasIntel ? (
           <span className="flex items-center gap-2">
-            {[["4H", v3.h4], ["1H", v3.h1], ["15", v3.m15]].map(([lbl, tr]) => (
+            {[["4H", v3.h4], ["1H", v3.h1], ["15m", v3.m15]].map(([lbl, tr]) => (
               <span key={lbl} title={`${lbl}: ${tr || "?"}`} style={{ color: TREND_DOT[tr] || "rgba(255,255,255,0.28)" }}>
                 {lbl}
               </span>
             ))}
           </span>
         ) : (
-          <span className="text-text-muted/40">no intel</span>
+          <span className="text-text-muted/40">No setup data</span>
         )}
         {eq && <span className="text-text-muted/70">{nice(eq)}</span>}
       </div>
 
-      {/* key reasons — quiet, dot-separated (no pills) */}
       {reasons.length > 0 && (
-        <div className="px-4 mt-2.5 text-[11.5px] text-text-primary/65 leading-relaxed">
-          {reasons.map(nice).join("  ·  ")}
+        <div className="px-3.5 mt-2 text-[11px] text-text-primary/60 leading-relaxed">
+          {reasons.map(nice).join(" · ")}
         </div>
       )}
 
-      {/* footer — risk warnings (left) + flow verdict (right); avg/outperf removed */}
-      <div className="mt-auto px-4 pt-2.5 pb-3.5 mt-3 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9.5px] min-h-[15px]">
+      <div className="mt-auto px-3.5 pt-2 pb-3 mt-2.5 border-t border-white/[0.04] flex items-center gap-2 font-mono text-[9.5px] min-h-[14px]">
         {warns.length > 0 && (
-          <span className="flex items-center gap-1.5 min-w-0" style={{ color: "rgb(var(--accent))" }}>
-            <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "rgb(var(--accent))" }} />
+          <span className="flex items-center gap-1.5 min-w-0 text-warning">
+            <span className="w-1 h-1 rounded-full shrink-0 bg-warning" />
             <span className="truncate">{warns.map(nice).join(" · ")}</span>
           </span>
         )}
         {flowChips.length > 0 && (
           <span className="ml-auto flex items-center gap-1.5 shrink-0"
-            style={{ color: fscore.conflict ? NEG : fscore.support ? POS : "#8f8b85" }}>
+            style={{ color: fscore.conflict ? NEG : fscore.support ? POS : "rgba(255,255,255,0.4)" }}>
             <span>{flowChips.map((c) => c.k).join(" · ")}</span>
-            <span>{fscore.conflict ? "⚠" : fscore.support ? "✓" : ""}</span>
+            <span>{fscore.conflict ? "!" : fscore.support ? "✓" : ""}</span>
           </span>
         )}
       </div>
@@ -307,39 +300,40 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
     return out.sort((a, b) => scoreOf(b.s.v3?.tags) - scoreOf(a.s.v3?.tags)).slice(0, 24);
   }, [view, pairFc]);
 
+  const cleanN = Math.max(0, (view.filter((s) => s.v3?.tags?.length).length) - stats.warned);
+
   return (
-    <>
+    <div className="space-y-2.5">
       <SectionBand title={t("terminal.viz.tabConfluence")} desc={t("terminal.viz.confSectionDesc")} />
 
       {fng?.value != null && <FngBadge value={fng.value} label={fng.label} />}
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-        <Kpi label={t("terminal.viz.kConfCount")} value={cards.length} desc={t("terminal.viz.kConfCountDesc")} tone="text-gold-primary" />
-        <Kpi label={t("terminal.viz.kHtfStrong")} value={stats.htf} desc={t("terminal.viz.kHtfStrongDesc")} tone={stats.htf ? "text-positive" : undefined} />
-        <Kpi label={t("terminal.viz.kFullAligned")} value={stats.aligned} desc={t("terminal.viz.kFullAlignedDesc")} tone={stats.aligned ? "text-cyan-400" : undefined} />
-        <Kpi label={t("terminal.viz.kWarned")} value={stats.warned} desc={t("terminal.viz.kWarnedDesc")} tone={stats.warned ? "text-warning" : undefined} />
+        <Kpi compact label="Setups" value={cards.length} sub="Matching filters" tone="text-gold-primary" accent={GOLD} />
+        <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" tone={stats.htf ? "text-positive" : undefined} accent={stats.htf ? POS : undefined} />
+        <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" tone={stats.aligned ? "text-cyan-400" : undefined} accent={stats.aligned ? "#22d3ee" : undefined} />
+        <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" tone={cleanN ? "text-positive" : undefined} accent={cleanN ? POS : undefined} />
       </div>
 
-      {/* Coiled — good setups that haven't moved yet (the opportunity) */}
       {coiled.length > 0 && (
-        <div className="rounded-lg border border-line/20 bg-gradient-to-b from-gold-primary/[0.06] to-transparent overflow-hidden">
-          <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-          <div className="px-4 py-2.5 flex items-baseline justify-between gap-3">
-            <span className="text-[12.5px] text-text-primary/95">{t("terminal.viz.coiledTitle")}</span>
-            <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">{coiled.length} {t("terminal.viz.coiledUnit")}</span>
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          <div className="px-3.5 py-2 flex items-baseline justify-between gap-3 border-b border-white/[0.04]">
+            <span className="text-[12.5px] font-medium text-text-primary">{t("terminal.viz.coiledTitle")}</span>
+            <span className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted">{coiled.length}</span>
           </div>
-          <div className="px-4 pb-1 -mt-1 text-[10.5px] text-text-muted leading-relaxed">{t("terminal.viz.coiledDesc")}</div>
-          <div className="p-3 flex flex-wrap gap-2">
+          <div className="px-3.5 pt-1.5 text-[10.5px] text-text-muted leading-snug">{t("terminal.viz.coiledDesc")}</div>
+          <div className="p-2.5 flex flex-wrap gap-1.5">
             {coiled.map(({ s, fc, golden, htf }) => (
               <button
                 key={s.signal_id}
+                type="button"
                 onClick={() => (openSignalRow ? openSignalRow(s) : openPair(s.pair))}
-                className="flex items-center gap-2 rounded-lg bg-surface-raised border border-white/[0.08] hover:border-line/35 px-2.5 py-1.5 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] hover:border-white/15 px-2 py-1.5 transition-colors"
               >
-                <CoinLogo pair={s.pair} size={18} />
-                <span className="font-mono text-[11px] text-text-primary/90">{s.pair}</span>
-                {golden && <span className="px-1 rounded-sm bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase tracking-wider">golden</span>}
-                {!golden && htf && <span className="px-1 rounded-sm bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase tracking-wider">htf</span>}
+                <CoinLogo pair={s.pair} size={16} />
+                <span className="font-mono text-[11px] text-text-primary/90">{s.pair.replace(/USDT$/i, "")}</span>
+                {golden && <span className="px-1 rounded bg-gold-primary/15 text-gold-primary font-mono text-[7.5px] uppercase">golden</span>}
+                {!golden && htf && <span className="px-1 rounded bg-white/[0.06] text-text-muted font-mono text-[7.5px] uppercase">htf</span>}
                 <span className={`font-mono text-[10.5px] tabular-nums ${fc >= 0 ? "text-positive" : "text-negative"}`}>{fmtPct(fc)}</span>
               </button>
             ))}
@@ -347,23 +341,21 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
         </div>
       )}
 
-      {/* confluence filter chips */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1 flex-wrap">
         {CONF_FILTERS.map(([k, label]) => (
-          <Chip key={k} active={!!on[k]} onClick={() => toggle(k)}>
+          <Chip key={k} active={!!on[k]} onClick={() => toggle(k)} size="xs">
             {t(`terminal.viz.${label}`)}
           </Chip>
         ))}
       </div>
 
-      {/* card grid — bounded, scrolls inside */}
       {rankedCards.length === 0 ? (
-        <div className="rounded-lg bg-surface-raised border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed px-6">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted px-6">
           {t("terminal.viz.confEmpty")}
         </div>
       ) : (
         <ScrollArea max={720}>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {rankedCards.slice(0, 90).map((s) => (
               <SignalCard
                 key={s.signal_id}
@@ -379,6 +371,6 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
           </div>
         </ScrollArea>
       )}
-    </>
+    </div>
   );
 }
