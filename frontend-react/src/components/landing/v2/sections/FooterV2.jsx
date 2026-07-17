@@ -111,7 +111,7 @@ export default function FooterV2({ onNav }) {
 
   const renderLink = (link) => {
     const cls =
-      "text-[13px] text-text-primary/40 transition-colors duration-150 hover:text-text-primary/85";
+      "text-[13px] text-text-muted transition-colors duration-150 hover:text-text-primary";
     if (link.type === "external") {
       return (
         <a href={link.to} target="_blank" rel="noopener noreferrer" className={cls}>
@@ -140,7 +140,7 @@ export default function FooterV2({ onNav }) {
   };
 
   return (
-    <footer className="relative z-10 border-t border-ink/[0.06] bg-transparent">
+    <footer className="lq-app-footer relative z-10 border-t border-ink/[0.08] bg-surface-raised">
       <div className="mx-auto max-w-6xl px-5 pb-10 pt-14 sm:px-6 lg:px-8 lg:pt-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           {/* Brand + ecosystem logos */}
@@ -151,7 +151,7 @@ export default function FooterV2({ onNav }) {
                 LuxQuant
               </span>
             </div>
-            <p className="mb-5 text-[13px] leading-relaxed text-text-primary/40">
+            <p className="mb-5 text-[13px] leading-relaxed text-text-muted">
               Market intelligence for crypto — signals, execution, on-chain context,
               and research in one terminal.
             </p>
@@ -169,9 +169,9 @@ export default function FooterV2({ onNav }) {
                   role="listitem"
                   className={`group flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border transition duration-150 ${
                     e.light
-                      ? "border-ink/[0.08] hover:border-ink/20"
-                      : "border-ink/[0.08] hover:border-ink/18"
-                  } opacity-90 hover:opacity-100 hover:brightness-110`}
+                      ? "border-ink/[0.1] hover:border-ink/25"
+                      : "border-ink/[0.1] hover:border-ink/22"
+                  } opacity-95 hover:opacity-100 hover:brightness-110`}
                   style={{ background: e.bg }}
                 >
                   {e.img ? (
@@ -202,7 +202,7 @@ export default function FooterV2({ onNav }) {
           <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-10 lg:max-w-xl">
             {COLUMNS.map((col) => (
               <div key={col.title}>
-                <p className="mb-3.5 text-[12px] font-medium tracking-wide text-text-primary/70">
+                <p className="mb-3.5 text-[12px] font-semibold tracking-wide text-text-secondary">
                   {col.title}
                 </p>
                 <ul className="space-y-2.5">
@@ -218,18 +218,18 @@ export default function FooterV2({ onNav }) {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink/[0.06] pt-6 sm:flex-row sm:items-center">
-          <p className="text-[11px] text-text-primary/25">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink/[0.08] pt-6 sm:flex-row sm:items-center">
+          <p className="text-[11px] text-text-muted">
             © {new Date().getFullYear()} LuxQuant · Since 2023
           </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-primary/25">
-            <Link to="/pricing" className="transition-colors hover:text-text-primary/50">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
+            <Link to="/pricing" className="transition-colors hover:text-text-primary">
               Pricing
             </Link>
-            <Link to="/status" className="transition-colors hover:text-text-primary/50">
+            <Link to="/status" className="transition-colors hover:text-text-primary">
               Status
             </Link>
-            <Link to="/learn" className="transition-colors hover:text-text-primary/50">
+            <Link to="/learn" className="transition-colors hover:text-text-primary">
               Learn
             </Link>
           </div>

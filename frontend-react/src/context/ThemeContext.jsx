@@ -27,7 +27,7 @@ const GATE_TO_ADMINS = true;
 const THEME_COLOR = {
   luxquant: '#0a0506',
   dark: '#050506',
-  bright: '#e8e8ed',
+  bright: '#f5f6f8',
 };
 
 const ThemeContext = createContext(null);

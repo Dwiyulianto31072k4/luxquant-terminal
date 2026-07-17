@@ -131,36 +131,35 @@
 
 [data-theme="bright"] {
   /*
-    Bright v2 — denser paper desk (Stripe Dashboard / Linear light / Apple HIG).
-    Goal: solid hierarchy + WCAG AA, no washed “fog” look.
+    Bright v3 — Stripe Dashboard × Linear light × cool zinc desk.
+    Research refs: Stripe (#f6f9fc page, #0a2540 text, #e5edf5 border),
+    Linear (#f7f8f8), AdminLTE light (#f4f6f9 / #212529 / #dee2e6).
 
-    Surface ladder (must read as 3 clear planes):
-      page  → cool zinc-200-ish canvas
-      secondary → inset wells / nested chips
-      raised → pure white cards with visible hairline
-    Text:
-      fg near-black · secondary zinc-800 · muted zinc-600 (≥4.6:1 on white)
-    Ink pure black so border-ink/12 and bg-ink/5 punch hard.
-    Accent gold darkened for readability on white.
-    PnL uses 700 weights — solid ink, not neon glow.
+    Hierarchy (must read in one glance):
+      page     cool near-white canvas  (not muddy mid-grey)
+      raised   pure white cards + solid header/footer chrome
+      secondary inset wells / chips
+    Borders use cool slate ink so hairlines stay crisp at 6–12% opacity.
+    Text: cool near-black body · slate secondary · slate muted (AA on white).
+    Gold deep for brand on paper; PnL emerald/red 600 for solid ink (not neon).
   */
-  --surface: 224 224 230;           /* denser grey page — white cards lift hard */
-  --surface-secondary: 212 212 220; /* wells / nested */
-  --surface-raised: 255 255 255;    /* solid white cards + modals */
-  --surface-hover: 200 200 210;
-  --accent: 130 98 26;              /* deep gold on paper */
-  --accent-light: 160 122 36;
-  --accent-dark: 96 72 18;
-  --fg: 0 0 0;                      /* pure solid black body */
-  --fg-secondary: 24 24 27;         /* zinc-900 secondary */
-  --fg-muted: 63 63 70;             /* zinc-700 muted — solid, not ghost */
-  --pos: 15 118 55;                 /* green-700 */
-  --neg: 153 27 27;                 /* red-700 */
-  --warn: 146 64 14;                /* amber-800 */
-  --tg: 0 112 168;
-  --line: 63 63 70;                 /* solid structural borders */
-  --ink: 0 0 0;                     /* pure black overlays */
-  --scrim: 0 0 0;                   /* pure black dimmer */
+  --surface: 245 246 248;           /* #f5f6f8 — clean cool page */
+  --surface-secondary: 236 238 242; /* #eceef2 — wells */
+  --surface-raised: 255 255 255;    /* cards / header / footer / modals */
+  --surface-hover: 228 231 236;
+  --accent: 148 112 34;             /* deep bronze-gold */
+  --accent-light: 176 136 48;
+  --accent-dark: 110 82 22;
+  --fg: 11 13 18;                   /* cool near-black body */
+  --fg-secondary: 55 65 81;         /* slate-600 */
+  --fg-muted: 100 116 139;          /* slate-500 — readable meta */
+  --pos: 5 150 105;                 /* emerald-600 */
+  --neg: 220 38 38;                 /* red-600 */
+  --warn: 180 83 9;                 /* amber-700 */
+  --tg: 2 132 199;
+  --line: 203 213 225;              /* slate-300 — solid hairline base */
+  --ink: 15 23 42;                  /* slate-900 — cool overlays (not pure black mud) */
+  --scrim: 15 23 42;
   --ink-inv: 255 255 255;
 }
 
@@ -200,19 +199,19 @@
 /* Bright: solid paper glass (no muddy translucent brown). */
 [data-theme="bright"] {
   --glass-bg: rgb(var(--surface-raised));
-  --glass-border: rgb(var(--ink) / 0.12);
-  --gold-glow: rgb(var(--accent) / 0.18);
-  --border-gold: rgb(var(--accent) / 0.4);
+  --glass-border: rgb(var(--ink) / 0.1);
+  --gold-glow: rgb(var(--accent) / 0.16);
+  --border-gold: rgb(var(--accent) / 0.38);
   --bg-card: rgb(var(--surface-raised));
+  --bg-primary: rgb(var(--surface));
+  --bg-secondary: rgb(var(--surface-secondary));
 }
 
 /* Bright desk chrome — solid header bar (no transparent float) */
 [data-theme="bright"] .lq-app-header {
   background: rgb(var(--surface-raised)) !important;
-  border-bottom-color: rgb(var(--ink) / 0.12) !important;
-  box-shadow:
-    0 1px 0 rgb(var(--ink) / 0.04),
-    0 8px 24px rgb(var(--scrim) / 0.06);
+  border-bottom: 1px solid rgb(var(--ink) / 0.08) !important;
+  box-shadow: 0 1px 0 rgb(var(--ink) / 0.03);
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -220,16 +219,34 @@
 /* Bright bottom nav — solid white chrome */
 [data-theme="bright"] .bottom-nav {
   background: rgb(var(--surface-raised)) !important;
-  border-top-color: rgb(var(--ink) / 0.12) !important;
-  box-shadow: 0 -6px 20px rgb(var(--scrim) / 0.08);
+  border-top-color: rgb(var(--ink) / 0.1) !important;
+  box-shadow: 0 -4px 16px rgb(var(--scrim) / 0.06);
 }
 
-/* Bright body — slightly stronger default type color rendering */
+/* Bright body */
 [data-theme="bright"] body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: rgb(var(--fg));
   background: rgb(var(--surface));
+}
+
+/* Bright: raised cards lift softly off cool canvas (Stripe-style) */
+[data-theme="bright"] .bg-surface-raised {
+  box-shadow: 0 1px 2px rgb(var(--scrim) / 0.04), 0 4px 12px rgb(var(--scrim) / 0.03);
+}
+
+/* Bright: form controls must use light scheme (not forced dark) */
+[data-theme="bright"] input,
+[data-theme="bright"] textarea,
+[data-theme="bright"] select {
+  color-scheme: light;
+}
+
+/* Bright footer band — solid white chrome under terminal */
+[data-theme="bright"] .lq-app-footer {
+  background: rgb(var(--surface-raised)) !important;
+  border-top: 1px solid rgb(var(--ink) / 0.08) !important;
 }
 
 * {

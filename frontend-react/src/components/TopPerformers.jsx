@@ -257,7 +257,7 @@ const TopPerformers = () => {
               <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/55">
                 Range
               </span>
-              <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-ink/[0.07] bg-scrim/20 p-0.5">
+              <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
                 {presets.map(({ key, short }) => {
                   const on = activeFilter === key;
                   return (
@@ -288,7 +288,7 @@ const TopPerformers = () => {
                     type="date"
                     value={customFrom}
                     onChange={(e) => setCustomFrom(e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-ink/25 focus:outline-none"
+                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary focus:border-ink/25 focus:outline-none"
                   />
                 </label>
                 <label className="flex min-w-0 flex-col gap-1">
@@ -299,7 +299,7 @@ const TopPerformers = () => {
                     type="date"
                     value={customTo}
                     onChange={(e) => setCustomTo(e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-ink/25 focus:outline-none"
+                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary focus:border-ink/25 focus:outline-none"
                   />
                 </label>
                 <button
