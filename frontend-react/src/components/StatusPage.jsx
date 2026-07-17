@@ -269,7 +269,7 @@ export default function StatusPage() {
             <div className="w-7 h-7 rounded-sm overflow-hidden border" style={{ borderColor: "rgb(var(--ink) / 0.06)" }}>
               <img src="/logo-512.png" alt="LuxQuant" className="w-full h-full object-cover" />
             </div>
-            <span className="text-[14px] font-normal text-text-primary tracking-tight group-hover:text-gold-primary transition-colors">LuxQuant Status</span>
+            <span className="text-[14px] font-normal text-text-primary tracking-tight group-hover:text-accent transition-colors">LuxQuant Status</span>
           </a>
           <a href="/" className="font-mono text-[11px] uppercase tracking-wider transition-colors hover:text-text-primary" style={{ color: palette.warm[400] }}>← Terminal</a>
         </div>

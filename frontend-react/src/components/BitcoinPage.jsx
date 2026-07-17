@@ -7,12 +7,9 @@ import AssistantWidget from "./assistant/AssistantWidget";
 const API_BASE = "/api/v1";
 
 /* ──────────────────────────────────────────────────────────────
-   BitcoinPage — Web3 desk-minimal reskin
-   • Gold accent retained (LuxQuant brand)
-   • profit (#56c996) / loss (#e07288) muted functional only
-   • Flat hairline cards, sharp rounded-md, font-mono font-light numbers
-   • Line-label-line section headers (no decorative emoji)
-   • SVG icons replace all char/emoji decorations
+   BitcoinPage — Terminal desk monochrome
+   • Yellow accent for CTAs/rank only; profit/loss for PnL
+   • Fast TradingView embed (not full tv.js widget)
    ────────────────────────────────────────────────────────────── */
 
 const BitcoinPage = () => {
@@ -941,149 +938,189 @@ const BitcoinPage = () => {
   );
 };
 
-/* ── TradingView Chart ── */
+/* ── TradingView Chart (lightweight embed + loading/timeout UX) ──
+   Old path: full tv.js + TradingView.widget every mount → slow / hung spinner.
+   New path: cached embed script (same as Market Pulse modal), desk skeleton,
+   iframe-ready detection, 12s timeout with Retry + open TradingView. */
+
+const TV_SYMBOL = "BINANCE:BTCUSDT.P";
+const TV_FULL_URL = "https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT.P";
 
 const BtcTradingViewChart = ({ t }) => {
-  const chartRef = useRef(null);
-  const widgetRef = useRef(null);
+  const hostRef = useRef(null);
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
-    if (!chartRef.current) return;
+    const host = hostRef.current;
+    if (!host) return;
 
-    const containerId = "btc-tv-advanced-chart";
-    chartRef.current.innerHTML = "";
-    const el = document.createElement("div");
-    el.id = containerId;
-    el.style.width = "100%";
-    el.style.height = "100%";
-    chartRef.current.appendChild(el);
+    let cancelled = false;
+    setStatus("loading");
+    host.innerHTML = "";
 
-    // TradingView needs concrete hex — resolve from active data-theme
-    let tv;
+    let timezone = "Etc/UTC";
     try {
-      // lazy import-free helper (same as utils/themeColors)
-      const theme = document.documentElement?.dataset?.theme || "luxquant";
-      tv =
-        theme === "bright"
-          ? {
-              theme: "light",
-              toolbar_bg: "#ffffff",
-              backgroundColor: "#ffffff",
-              gridColor: "rgba(15, 23, 42, 0.06)",
-              textColor: "#52525b",
-              lineColor: "rgba(15, 23, 42, 0.1)",
-              upColor: "#0ECB81",
-              downColor: "#F6465D",
-            }
-          : {
-              theme: "dark",
-              toolbar_bg: "#0a0805",
-              backgroundColor: "#0a0805",
-              gridColor: "rgba(212, 168, 83, 0.05)",
-              textColor: "#a0a0a0",
-              lineColor: "rgba(212, 168, 83, 0.12)",
-              upColor: "#0ECB81",
-              downColor: "#F6465D",
-            };
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch {
-      tv = {
-        theme: "dark",
-        toolbar_bg: "#0a0805",
-        backgroundColor: "#0a0805",
-        gridColor: "rgba(212, 168, 83, 0.05)",
-        textColor: "#a0a0a0",
-        lineColor: "rgba(212, 168, 83, 0.12)",
-        upColor: "#0ECB81",
-        downColor: "#F6465D",
-      };
+      /* keep UTC */
     }
 
+    const isBright = document.documentElement?.dataset?.theme === "bright";
+
+    const shell = document.createElement("div");
+    shell.className = "tradingview-widget-container";
+    shell.style.cssText = "height:100%;width:100%";
+
+    const inner = document.createElement("div");
+    inner.className = "tradingview-widget-container__widget";
+    inner.style.cssText = "height:100%;width:100%";
+    shell.appendChild(inner);
+
+    // Lightweight embed (not full tv.js constructor) — much faster first paint.
     const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/tv.js";
+    script.type = "text/javascript";
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.async = true;
-    script.onload = () => {
-      if (!window.TradingView || !document.getElementById(containerId)) return;
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: TV_SYMBOL,
+      interval: "240",
+      timezone,
+      theme: isBright ? "light" : "dark",
+      style: "1",
+      locale: "en",
+      backgroundColor: isBright ? "#ffffff" : "#0a0805",
+      gridColor: isBright ? "rgba(15, 23, 42, 0.06)" : "rgba(255, 255, 255, 0.04)",
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      save_image: false,
+      // One lightweight study for speed (MACD+Stoch was double-heavy)
+      studies: ["STD;EMA"],
+      support_host: "https://www.tradingview.com",
+    });
+    shell.appendChild(script);
+    host.appendChild(shell);
 
-      widgetRef.current = new window.TradingView.widget({
-        container_id: containerId,
-        autosize: true,
-        symbol: "BINANCE:BTCUSDT.P",
-        interval: "240",
-        timezone: "Asia/Jakarta",
-        theme: tv.theme,
-        style: "1",
-        locale: "en",
-        toolbar_bg: tv.toolbar_bg,
-        enable_publishing: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: true,
-        save_image: true,
-        backgroundColor: tv.backgroundColor,
-        gridColor: tv.gridColor,
-        hide_top_toolbar: false,
-        hide_legend: false,
-        withdateranges: true,
-        details: false,
-        hotlist: false,
-        calendar: false,
-        studies: ["MACD@tv-basicstudies", "StochasticRSI@tv-basicstudies"],
-        overrides: {
-          "paneProperties.background": tv.backgroundColor,
-          "paneProperties.backgroundType": "solid",
-          "paneProperties.vertGridProperties.color": tv.gridColor,
-          "paneProperties.horzGridProperties.color": tv.gridColor,
-          "scalesProperties.textColor": tv.textColor,
-          "scalesProperties.lineColor": tv.lineColor,
-          "mainSeriesProperties.candleStyle.upColor": tv.upColor,
-          "mainSeriesProperties.candleStyle.downColor": tv.downColor,
-          "mainSeriesProperties.candleStyle.borderUpColor": tv.upColor,
-          "mainSeriesProperties.candleStyle.borderDownColor": tv.downColor,
-          "mainSeriesProperties.candleStyle.wickUpColor": tv.upColor,
-          "mainSeriesProperties.candleStyle.wickDownColor": tv.downColor,
-        },
-      });
+    // Ready when TV injects its iframe
+    const markReady = () => {
+      if (cancelled) return;
+      setStatus("ready");
     };
+    const obs = new MutationObserver(() => {
+      if (host.querySelector("iframe")) {
+        markReady();
+        obs.disconnect();
+      }
+    });
+    obs.observe(host, { childList: true, subtree: true });
 
-    document.head.appendChild(script);
-    return () => {
+    // Also catch iframe load after injection
+    const poll = window.setInterval(() => {
+      const iframe = host.querySelector("iframe");
+      if (!iframe) return;
       try {
-        document.head.removeChild(script);
-      } catch {}
-      widgetRef.current = null;
+        iframe.addEventListener("load", markReady, { once: true });
+      } catch {
+        /* cross-origin — presence is enough */
+      }
+      markReady();
+      window.clearInterval(poll);
+    }, 400);
+
+    // Fail soft if blocked / very slow (VPN, region, adblock)
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) {
+        setStatus((s) => (s === "loading" ? "error" : s));
+      }
+    }, 12000);
+
+    script.onerror = () => {
+      if (!cancelled) setStatus("error");
     };
-  }, []);
+
+    return () => {
+      cancelled = true;
+      obs.disconnect();
+      window.clearInterval(poll);
+      window.clearTimeout(timeout);
+      if (host) host.innerHTML = "";
+    };
+  }, [retryKey]);
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between px-5 py-3.5 bg-surface border-b border-ink/[0.06]">
+      <div className="flex items-center justify-between border-b border-ink/[0.07] bg-surface px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-sm overflow-hidden flex-shrink-0 border border-ink/[0.06]">
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1]">
             <img
               src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
               alt="BTC"
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
           </div>
           <div>
-            <h3 className="text-text-primary text-sm font-normal tracking-tight">
-              BTC/USDT {t('btc.perp')}
+            <h3 className="text-sm font-semibold tracking-tight text-text-primary">
+              BTC/USDT {t("btc.perp")}
             </h3>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
-              Binance · Default 4H · MACD + Stoch RSI
+            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+              Binance · Default 4H · EMA
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-50" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-profit" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-50" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
           </span>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-profit">
-            {t('btc.live_chart')}
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-profit">
+            {t("btc.live_chart")}
           </span>
         </div>
       </div>
-      <div ref={chartRef} className="w-full h-[560px] bg-surface-raised" />
+
+      <div className="relative h-[min(560px,70vh)] w-full bg-surface-raised">
+        {/* Desk skeleton while embed boots */}
+        {status === "loading" && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface-raised">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/15 border-t-accent" />
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+              Loading chart…
+            </p>
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-surface-raised px-6 text-center">
+            <p className="text-sm font-medium text-text-primary">Chart took too long to load</p>
+            <p className="max-w-sm font-mono text-[11px] text-text-muted">
+              TradingView may be slow or blocked in your region. Retry or open the chart externally.
+            </p>
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRetryKey((k) => k + 1)}
+                className="rounded-md border border-transparent bg-accent px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-fg transition-opacity hover:opacity-90"
+              >
+                Retry
+              </button>
+              <a
+                href={TV_FULL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-ink/[0.12] bg-surface-secondary px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary"
+              >
+                Open TradingView ↗
+              </a>
+            </div>
+          </div>
+        )}
+
+        <div ref={hostRef} className="h-full w-full" />
+      </div>
     </div>
   );
 };

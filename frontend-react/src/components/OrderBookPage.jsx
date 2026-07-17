@@ -51,15 +51,15 @@ const timeAgo = (ts) => {
 
 // ── Sentiment style ──
 const sentimentColor = (s) => {
-  if (s === "strong_buy" || s === "buy") return "text-emerald-400";
-  if (s === "strong_sell" || s === "sell") return "text-red-400";
-  return "text-gold-primary";
+  if (s === "strong_buy" || s === "buy") return "text-profit";
+  if (s === "strong_sell" || s === "sell") return "text-loss";
+  return "text-accent";
 };
 
 const sentimentDot = (s) => {
-  if (s === "strong_buy" || s === "buy") return "bg-emerald-400";
+  if (s === "strong_buy" || s === "buy") return "bg-profit";
   if (s === "strong_sell" || s === "sell") return "bg-red-400";
-  return "bg-gold-primary";
+  return "bg-accent";
 };
 
 
@@ -69,14 +69,14 @@ const sentimentDot = (s) => {
 const SectionHeader = ({ label, small = false, suffix }) => (
   <div className="flex items-center gap-3">
     <span
-      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+      className={`font-mono uppercase tracking-[0.25em] text-text-muted ${
         small ? "text-[10px]" : "text-[11px]"
       }`}
     >
       {label}
     </span>
     {suffix && (
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 shrink-0">
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted shrink-0">
         {suffix}
       </span>
     )}
@@ -100,7 +100,6 @@ const ImbalanceStrip = ({ imb }) => {
 
   return (
     <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         {/* Sentiment indicator */}
@@ -119,8 +118,8 @@ const ImbalanceStrip = ({ imb }) => {
         {/* Bid */}
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <span className="text-text-muted/70 uppercase tracking-[0.15em] text-[10px]">Bid</span>
-          <span className="text-emerald-400 tabular-nums font-semibold">{fmt(imb.bid_usd)}</span>
-          <span className="text-emerald-400/60 tabular-nums">{(imb.bid_pct || 0).toFixed(1)}%</span>
+          <span className="text-profit tabular-nums font-semibold">{fmt(imb.bid_usd)}</span>
+          <span className="text-profit/60 tabular-nums">{(imb.bid_pct || 0).toFixed(1)}%</span>
         </div>
 
         {/* Visual flow indicator */}
@@ -129,8 +128,8 @@ const ImbalanceStrip = ({ imb }) => {
         {/* Ask */}
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <span className="text-text-muted/70 uppercase tracking-[0.15em] text-[10px]">Ask</span>
-          <span className="text-red-400 tabular-nums font-semibold">{fmt(imb.ask_usd)}</span>
-          <span className="text-red-400/60 tabular-nums">{(imb.ask_pct || 0).toFixed(1)}%</span>
+          <span className="text-loss tabular-nums font-semibold">{fmt(imb.ask_usd)}</span>
+          <span className="text-loss/60 tabular-nums">{(imb.ask_pct || 0).toFixed(1)}%</span>
         </div>
 
         {/* Subtle bar visualization on right (compact) */}
@@ -140,7 +139,7 @@ const ImbalanceStrip = ({ imb }) => {
           </span>
           <div className="w-24 h-1 rounded-sm overflow-hidden flex bg-ink/[0.04]">
             <div
-              className="h-full bg-emerald-400/60 transition-all duration-700"
+              className="h-full bg-profit/60 transition-all duration-700"
               style={{ width: `${imb.bid_pct || 50}%` }}
             />
             <div
@@ -195,7 +194,7 @@ const DepthChart = ({ depth, t }) => {
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="font-mono text-[10px] w-16 text-right tabular-nums text-red-400/70 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="font-mono text-[10px] w-16 text-right tabular-nums text-loss/70 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
               {fmt(a.cumulative_usd)}
             </span>
           </div>
@@ -204,11 +203,11 @@ const DepthChart = ({ depth, t }) => {
 
       {/* MID divider */}
       <div className="flex items-center gap-2 h-7 my-1">
-        <div className="flex-1 h-px bg-gold-primary/25" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] px-2 text-gold-primary font-semibold">
+        <div className="flex-1 h-px bg-accent/25" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] px-2 text-accent font-semibold">
           Mid
         </span>
-        <div className="flex-1 h-px bg-gold-primary/25" />
+        <div className="flex-1 h-px bg-accent/25" />
       </div>
 
       {/* Bids (support) — bottom */}
@@ -221,11 +220,11 @@ const DepthChart = ({ depth, t }) => {
             </span>
             <div className="flex-1 h-[3px] rounded-sm relative bg-ink/[0.02]">
               <div
-                className="absolute left-0 top-0 bottom-0 rounded-sm bg-emerald-400/25 transition-all duration-300"
+                className="absolute left-0 top-0 bottom-0 rounded-sm bg-profit/25 transition-all duration-300"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="font-mono text-[10px] w-16 text-right tabular-nums text-emerald-400/70 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="font-mono text-[10px] w-16 text-right tabular-nums text-profit/70 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
               {fmt(b.cumulative_usd)}
             </span>
           </div>
@@ -247,7 +246,7 @@ const SRLevels = ({ sr, t }) => {
     <div className="space-y-3">
       {/* Resistance */}
       <div>
-        <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/80 font-semibold mb-2">
+        <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-loss/80 font-semibold mb-2">
           <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
           Resistance
         </p>
@@ -256,7 +255,7 @@ const SRLevels = ({ sr, t }) => {
             {resistance.map((r, i) => (
               <div key={i} className="flex justify-between items-center font-mono">
                 <span className="text-xs text-text-primary tabular-nums">{fmtP(r.price)}</span>
-                <span className="text-[11px] text-red-400 tabular-nums">{fmt(r.usd)}</span>
+                <span className="text-[11px] text-loss tabular-nums">{fmt(r.usd)}</span>
               </div>
             ))}
           </div>
@@ -271,8 +270,8 @@ const SRLevels = ({ sr, t }) => {
 
       {/* Support */}
       <div>
-        <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-400/80 font-semibold mb-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+        <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-profit/80 font-semibold mb-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-profit" />
           Support
         </p>
         {support.length ? (
@@ -280,7 +279,7 @@ const SRLevels = ({ sr, t }) => {
             {support.map((s, i) => (
               <div key={i} className="flex justify-between items-center font-mono">
                 <span className="text-xs text-text-primary tabular-nums">{fmtP(s.price)}</span>
-                <span className="text-[11px] text-emerald-400 tabular-nums">{fmt(s.usd)}</span>
+                <span className="text-[11px] text-profit tabular-nums">{fmt(s.usd)}</span>
               </div>
             ))}
           </div>
@@ -336,7 +335,7 @@ const WallsCard = ({ walls, total, type }) => {
                   <div className="flex items-center gap-1.5">
                     {/* Strength badge (NEW — using backend field) */}
                     {w.strength && (
-                      <span className="text-[8px] font-mono tabular-nums px-1 py-0.5 rounded border bg-gold-primary/[0.08] text-gold-primary/80 border-line/20">
+                      <span className="text-[8px] font-mono tabular-nums px-1 py-0.5 rounded border bg-accent/10 text-text-muted border-ink/10">
                         {w.strength.toFixed(1)}
                       </span>
                     )}
@@ -370,7 +369,6 @@ const WallsCard = ({ walls, total, type }) => {
 // ════════════════════════════════════════════════════════════════
 const DerivCard = ({ label, value, children, headerRight }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono">
@@ -428,16 +426,16 @@ const LiqCard = ({ data }) => {
     >
       {/* Bar */}
       <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-ink/[0.03]">
-        <div className="h-full bg-emerald-400/70" style={{ width: `${lPct}%` }} />
+        <div className="h-full bg-profit/70" style={{ width: `${lPct}%` }} />
         <div className="h-full bg-red-400/70" style={{ width: `${100 - lPct}%` }} />
       </div>
 
       <div className="flex justify-between font-mono text-[10px] mb-3">
-        <span className="text-emerald-400">
+        <span className="text-profit">
           <span className="uppercase tracking-wider text-[9px]">Longs</span>
           <span className="ml-1 tabular-nums">{fmt(summary.longL)}</span>
         </span>
-        <span className="text-red-400">
+        <span className="text-loss">
           <span className="uppercase tracking-wider text-[9px]">Shorts</span>
           <span className="ml-1 tabular-nums">{fmt(summary.shortL)}</span>
         </span>
@@ -451,13 +449,13 @@ const LiqCard = ({ data }) => {
             <div key={i} className="flex items-center gap-1.5 font-mono text-[10px]">
               <span className={`text-[9px] uppercase tracking-[0.1em] px-1 py-0.5 rounded border ${
                 isLong
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
-                  : "bg-red-500/10 text-red-400 border-red-500/25"
+                  ? "bg-profit/10 text-profit border-profit/25"
+                  : "bg-loss/10 text-loss border-loss/25"
               }`}>
                 {isLong ? "Long" : "Short"}
               </span>
               <span className="text-text-primary font-semibold">{l.symbol}</span>
-              <span className="ml-auto text-gold-primary tabular-nums">{fmt(l.usd)}</span>
+              <span className="ml-auto text-accent tabular-nums">{fmt(l.usd)}</span>
               <span className="text-text-muted/60 tabular-nums">{timeAgo(l.time)}</span>
             </div>
           );
@@ -493,7 +491,7 @@ const FundingCard = ({ data }) => {
       }
     >
       {/* Most Long */}
-      <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-emerald-400/80 font-semibold mb-1.5">
+      <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-profit/80 font-semibold mb-1.5">
         Most Long
       </p>
       <div className="space-y-1 mb-3">
@@ -502,7 +500,7 @@ const FundingCard = ({ data }) => {
             <span className="text-[11px] text-text-primary font-semibold truncate max-w-[90px]">
               {f.symbol}
             </span>
-            <span className="text-[11px] text-emerald-400 tabular-nums">
+            <span className="text-[11px] text-profit tabular-nums">
               +{f.rate_pct?.toFixed(3)}%
             </span>
           </div>
@@ -510,7 +508,7 @@ const FundingCard = ({ data }) => {
       </div>
 
       {/* Most Short */}
-      <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400/80 font-semibold mb-1.5">
+      <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-loss/80 font-semibold mb-1.5">
         Most Short
       </p>
       <div className="space-y-1 mb-3">
@@ -519,7 +517,7 @@ const FundingCard = ({ data }) => {
             <span className="text-[11px] text-text-primary font-semibold truncate max-w-[90px]">
               {f.symbol}
             </span>
-            <span className="text-[11px] text-red-400 tabular-nums">
+            <span className="text-[11px] text-loss tabular-nums">
               {f.rate_pct?.toFixed(3)}%
             </span>
           </div>
@@ -555,7 +553,7 @@ const LSCard = ({ data, symbol }) => {
       {/* Compact bar */}
       <div className="h-[3px] rounded-sm overflow-hidden flex mb-2 bg-ink/[0.03]">
         <div
-          className="h-full bg-emerald-400/70 transition-all duration-700"
+          className="h-full bg-profit/70 transition-all duration-700"
           style={{ width: `${lPct}%` }}
         />
         <div
@@ -565,11 +563,11 @@ const LSCard = ({ data, symbol }) => {
       </div>
 
       <div className="flex justify-between font-mono text-[10px] mb-3">
-        <span className="text-emerald-400">
+        <span className="text-profit">
           <span className="uppercase tracking-wider text-[9px]">Long</span>
           <span className="ml-1 tabular-nums font-semibold">{lPct.toFixed(1)}%</span>
         </span>
-        <span className="text-red-400">
+        <span className="text-loss">
           <span className="uppercase tracking-wider text-[9px]">Short</span>
           <span className="ml-1 tabular-nums font-semibold">{sPct.toFixed(1)}%</span>
         </span>
@@ -609,7 +607,7 @@ const OICard = ({ data }) => {
               </div>
               <div className="h-[2px] rounded-sm bg-ink/[0.03]">
                 <div
-                  className="h-full rounded-sm bg-gold-primary/70 transition-all duration-500"
+                  className="h-full rounded-sm bg-accent/70 transition-all duration-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -631,7 +629,6 @@ const OICard = ({ data }) => {
 // ════════════════════════════════════════════════════════════════
 const SkeletonCard = ({ label }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
     <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-3">
       {label}
     </div>
@@ -753,13 +750,13 @@ export default function OrderBookPage() {
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${
               autoRefresh
-                ? "bg-emerald-500/[0.08] border-emerald-500/25 text-emerald-400"
+                ? "bg-profit/10 border-profit/25 text-profit"
                 : "bg-ink/[0.03] border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.12]"
             }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                autoRefresh ? "bg-emerald-400 animate-pulse" : "bg-text-muted"
+                autoRefresh ? "bg-profit animate-pulse" : "bg-text-muted"
               }`}
             />
             <span className="uppercase tracking-[0.15em]">
@@ -798,7 +795,7 @@ export default function OrderBookPage() {
                 onClick={() => setSym(s.key)}
                 className={`px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
+                    ? "bg-accent text-accent-fg border-ink/15"
                     : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
@@ -823,17 +820,17 @@ export default function OrderBookPage() {
       {/* Loading / Error */}
       {loading && !data && (
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-line/20 border-t-gold-primary rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-ink/10 border-t-accent rounded-full animate-spin" />
         </div>
       )}
 
       {error && !data && (
-        <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded-md p-5 text-center">
+        <div className="relative overflow-hidden bg-red-500/[0.05] border border-loss/25 rounded-md p-5 text-center">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-          <p className="text-red-400 text-sm mb-3 font-mono">{error}</p>
+          <p className="text-loss text-sm mb-3 font-mono">{error}</p>
           <button
             onClick={() => fetchOB(true)}
-            className="px-4 py-2 rounded-md text-[11px] font-mono uppercase tracking-[0.2em] border border-line/25 text-gold-primary hover:bg-gold-primary/[0.08] transition-all"
+            className="px-4 py-2 rounded-md text-[11px] font-mono uppercase tracking-[0.2em] border border-ink/12 text-accent hover:bg-accent/10 transition-all"
           >
             {t("orderbook.retry") || "Retry"} →
           </button>
@@ -855,7 +852,6 @@ export default function OrderBookPage() {
                 suffix={data.total_levels ? `${data.total_levels} levels` : null}
               />
               <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                 <DepthChart depth={depth} t={t} />
               </div>
             </div>
@@ -866,7 +862,6 @@ export default function OrderBookPage() {
               <div>
                 <SectionHeader label="Support / Resistance" small />
                 <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 mt-3">
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                   <SRLevels sr={sr} t={t} />
                 </div>
               </div>
@@ -915,7 +910,7 @@ export default function OrderBookPage() {
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/50">
-        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="w-1 h-1 rounded-full bg-profit animate-pulse" />
         <span>{autoRefresh ? "Auto-refresh 15s" : t("orderbook.paused") || "Paused"}</span>
         {lastUpdate && (
           <>

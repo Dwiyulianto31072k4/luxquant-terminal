@@ -18,7 +18,7 @@ function Crumbs({ trail }) {
         <span key={i} className="inline-flex items-center gap-1.5">
           {i > 0 && <span className="text-text-primary/25">/</span>}
           {c.to ? (
-            <Link to={c.to} className="hover:text-gold-primary transition-colors">{c.label}</Link>
+            <Link to={c.to} className="hover:text-accent transition-colors">{c.label}</Link>
           ) : (
             <span className="text-text-primary/70">{c.label}</span>
           )}
@@ -35,7 +35,7 @@ function Block({ block }) {
       <ul className="my-4 space-y-1.5 pl-1">
         {block.list.map((li, i) => (
           <li key={i} className="flex gap-2.5 text-[15px] text-text-primary/75">
-            <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-gold-primary/70" />
+            <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-accent/12" />
             <span>{li}</span>
           </li>
         ))}
@@ -92,7 +92,7 @@ function PostPage({ slug }) {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Blog", to: "/blog" }, { label: post.title }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Blog</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Blog</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">{post.title}</h1>
       <p className="mt-2 font-mono text-[11px] text-text-muted">{fmtDate(post.date)} · {post.readingTime} read</p>
 
@@ -106,7 +106,7 @@ function PostPage({ slug }) {
           <div className="flex flex-wrap gap-2">
             {relatedTerms.map((r) => (
               <Link key={r.slug} to={`/learn/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
+                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-accent transition-colors">
                 {r.term}
               </Link>
             ))}
@@ -114,9 +114,9 @@ function PostPage({ slug }) {
         </div>
       )}
 
-      <div className="mt-8 rounded-xl border border-line/20 bg-gold-primary/[0.04] p-5">
+      <div className="mt-8 rounded-xl border border-line/20 bg-accent/12 p-5">
         <p className="text-[15px] text-text-primary/80">See the data behind this article, live.</p>
-        <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-gold-primary/15 border border-line/40 px-4 py-2 text-[13px] font-medium text-gold-primary hover:bg-gold-primary/25 transition-colors">
+        <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/12 border border-line/40 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/12 transition-colors">
           Open LuxQuant Money Flow →
         </Link>
       </div>
@@ -126,7 +126,7 @@ function PostPage({ slug }) {
           <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">Keep reading</h2>
           <div className="space-y-2">
             {relatedPosts.map((p) => (
-              <Link key={p.slug} to={`/blog/${p.slug}`} className="block text-[14px] text-gold-primary/85 hover:text-gold-primary transition-colors">
+              <Link key={p.slug} to={`/blog/${p.slug}`} className="block text-[14px] text-accent hover:text-accent transition-colors">
                 {p.title} →
               </Link>
             ))}
@@ -162,7 +162,7 @@ function IndexPage() {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Blog" }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Blog</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Blog</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">LuxQuant Blog</h1>
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Guides on reading crypto money flow, on-chain intelligence, and quantitative trading — the thinking behind the terminal.
@@ -173,14 +173,14 @@ function IndexPage() {
           <Link key={p.slug} to={`/blog/${p.slug}`}
             className="group block rounded-xl border border-ink/[0.07] bg-surface-raised p-5 hover:border-line/30 hover:bg-ink/[0.02] transition-colors">
             <p className="font-mono text-[11px] text-text-muted">{fmtDate(p.date)} · {p.readingTime} read</p>
-            <h2 className="mt-1.5 text-[17px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{p.title}</h2>
+            <h2 className="mt-1.5 text-[17px] font-semibold text-text-primary group-hover:text-accent transition-colors">{p.title}</h2>
             <p className="mt-1.5 text-[13.5px] text-text-primary/55 leading-relaxed">{p.excerpt}</p>
           </Link>
         ))}
       </div>
 
       <div className="mt-8 font-mono text-[12px] text-text-muted">
-        New to the terms? Start with the <Link to="/learn" className="text-gold-primary/80 hover:text-gold-primary">glossary →</Link>
+        New to the terms? Start with the <Link to="/learn" className="text-accent hover:text-accent">glossary →</Link>
       </div>
     </div>
   );

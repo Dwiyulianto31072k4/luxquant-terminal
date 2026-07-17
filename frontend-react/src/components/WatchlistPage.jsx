@@ -190,9 +190,9 @@ const WatchlistPage = () => {
   // ── Semantic 3-tier badge style ──
   const riskStyle = (risk) => {
     const r = risk?.toLowerCase() || '';
-    if (r.startsWith('low')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
-    if (r.startsWith('med') || r.startsWith('nor')) return 'bg-gold-primary/10 text-gold-primary border-line/25';
-    if (r.startsWith('high')) return 'bg-red-500/10 text-red-400 border-red-500/25';
+    if (r.startsWith('low')) return 'bg-profit/10 text-profit border-profit/25';
+    if (r.startsWith('med') || r.startsWith('nor')) return 'bg-accent/12 text-accent border-ink/12';
+    if (r.startsWith('high')) return 'bg-loss/10 text-loss border-loss/25';
     return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
   };
 
@@ -207,9 +207,9 @@ const WatchlistPage = () => {
   // ── Status: 3-tier (open=neutral, profit=gold, loss=red) ──
   const statusStyle = (status) => {
     const s = status?.toLowerCase() || '';
-    if (s.includes('loss') || s === 'sl') return 'bg-red-500/10 text-red-400 border-red-500/25';
+    if (s.includes('loss') || s === 'sl') return 'bg-loss/10 text-loss border-loss/25';
     if (s === 'open') return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
-    if (s.startsWith('tp') || s.includes('win')) return 'bg-gold-primary/10 text-gold-primary border-line/25';
+    if (s.startsWith('tp') || s.includes('win')) return 'bg-accent/12 text-accent border-ink/12';
     return 'bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]';
   };
 
@@ -323,7 +323,7 @@ const WatchlistPage = () => {
             <p className="text-text-muted text-sm mt-1.5 font-mono">
               {watchlist.length} {watchlist.length === 1 ? 'signal' : 'signals'} tracked
               {filteredWatchlist.length !== watchlist.length && (
-                <span className="text-gold-primary/80"> · {filteredWatchlist.length} showing</span>
+                <span className="text-text-muted"> · {filteredWatchlist.length} showing</span>
               )}
             </p>
           </div>
@@ -331,8 +331,8 @@ const WatchlistPage = () => {
             <div className="flex items-center gap-2 text-[11px] font-mono">
               <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-ink/[0.03] border border-ink/[0.06] text-text-muted">
                 <span className={`w-1.5 h-1.5 rounded-full ${
-                  pricesLoading ? 'bg-gold-primary animate-pulse' :
-                  Object.keys(currentPrices).length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'
+                  pricesLoading ? 'bg-accent animate-pulse' :
+                  Object.keys(currentPrices).length > 0 ? 'bg-profit animate-pulse' : 'bg-red-400'
                 }`} />
                 <span className="uppercase tracking-[0.15em]">
                   {pricesLoading ? 'Updating' :
@@ -388,12 +388,12 @@ const WatchlistPage = () => {
                     onClick={() => setStatusFilter(key)}
                     className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                       active
-                        ? 'bg-gold-primary/15 text-gold-primary border-line/40'
+                        ? 'bg-accent text-accent-fg border-ink/15'
                         : 'bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]'
                     }`}
                   >
                     {label}
-                    <span className={`ml-1.5 tabular-nums ${active ? 'text-gold-primary/70' : 'text-text-muted/60'}`}>
+                    <span className={`ml-1.5 tabular-nums ${active ? 'text-text-muted' : 'text-text-muted/60'}`}>
                       {count}
                     </span>
                   </button>
@@ -417,14 +417,14 @@ const WatchlistPage = () => {
                   placeholder="Search by pair..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-line/40 transition-colors font-mono"
+                  className="w-full pl-9 pr-4 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-sm text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-ink/15 transition-colors font-mono"
                 />
               </div>
 
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value)}
-                className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-line/40 transition-colors cursor-pointer"
+                className="px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-text-primary focus:outline-none focus:border-ink/15 transition-colors cursor-pointer"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.key} value={opt.key} className="bg-surface-raised text-text-primary">
@@ -477,7 +477,6 @@ const WatchlistPage = () => {
               <NoMatch />
             ) : (
               <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -569,7 +568,7 @@ const WatchlistPage = () => {
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
     <span
-      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+      className={`font-mono uppercase tracking-[0.25em] text-text-muted ${
         small ? 'text-[10px]' : 'text-[11px]'
       }`}
     >
@@ -584,19 +583,18 @@ const SectionHeader = ({ label, small = false }) => (
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel, isLive, isGold, isDanger }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono">
           {label}
         </span>
         {isLive && (
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
         )}
       </div>
       <div
         className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${
-          isDanger ? 'text-red-400' : isGold ? 'text-gold-primary' : 'text-text-primary'
+          isDanger ? 'text-loss' : isGold ? 'text-accent' : 'text-text-primary'
         }`}
       >
         {value}
@@ -650,7 +648,7 @@ const DesktopRow = ({
       <tr
         onClick={onToggle}
         className={`group cursor-pointer transition-colors border-b border-ink/[0.04] ${
-          isExpanded ? 'bg-gold-primary/[0.03]' : 'hover:bg-ink/[0.02]'
+          isExpanded ? 'bg-surface-secondary' : 'hover:bg-ink/[0.02]'
         }`}
       >
         {/* Star */}
@@ -665,7 +663,7 @@ const DesktopRow = ({
           <div className="flex items-center gap-2.5">
             <CoinLogo pair={item.pair} size={32} />
             <div className="min-w-0">
-              <p className="text-text-primary text-sm font-semibold group-hover:text-gold-primary transition-colors font-mono">
+              <p className="text-text-primary text-sm font-semibold group-hover:text-text-primary transition-colors font-mono">
                 {getCoinName(item.pair)}
               </p>
               <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
@@ -697,7 +695,7 @@ const DesktopRow = ({
         <Td align="right">
           {priceChange !== null ? (
             <span className={`font-mono text-sm tabular-nums font-semibold ${
-              priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+              priceChange >= 0 ? 'text-profit' : 'text-loss'
             }`}>
               {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
             </span>
@@ -710,13 +708,13 @@ const DesktopRow = ({
         <Td align="right">
           {maxTarget ? (
             <div className="flex flex-col items-end">
-              <span className="text-gold-primary/90 font-mono text-sm tabular-nums">
+              <span className="text-accent font-mono text-sm tabular-nums">
                 {formatPrice(maxTarget)}
               </span>
               {(() => {
                 const pct = calcPct(maxTarget, item.entry);
                 return pct !== null ? (
-                  <span className="text-gold-primary/60 font-mono text-[10px] tabular-nums">
+                  <span className="text-text-muted font-mono text-[10px] tabular-nums">
                     +{pct.toFixed(1)}%
                   </span>
                 ) : null;
@@ -731,13 +729,13 @@ const DesktopRow = ({
         <Td align="right">
           {item.stop1 ? (
             <div className="flex flex-col items-end">
-              <span className="text-red-400/90 font-mono text-sm tabular-nums">
+              <span className="text-loss/90 font-mono text-sm tabular-nums">
                 {formatPrice(item.stop1)}
               </span>
               {(() => {
                 const pct = calcPct(item.stop1, item.entry);
                 return pct !== null ? (
-                  <span className="text-red-400/60 font-mono text-[10px] tabular-nums">
+                  <span className="text-loss/60 font-mono text-[10px] tabular-nums">
                     {pct.toFixed(1)}%
                   </span>
                 ) : null;
@@ -773,7 +771,7 @@ const DesktopRow = ({
         <Td align="center" className="w-10">
           <svg
             className={`w-3.5 h-3.5 mx-auto transition-all ${
-              isExpanded ? 'rotate-180 text-gold-primary' : 'text-text-muted/40'
+              isExpanded ? 'rotate-180 text-accent' : 'text-text-muted/40'
             }`}
             fill="none"
             viewBox="0 0 24 24"
@@ -786,7 +784,7 @@ const DesktopRow = ({
 
       {/* Expanded detail row */}
       {isExpanded && (
-        <tr className="bg-gradient-to-r from-gold-primary/[0.03] to-transparent border-b border-ink/[0.04]">
+        <tr className="bg-gradient-to-r from-accent/[0.03] to-transparent border-b border-ink/[0.04]">
           <td colSpan={11} className="px-4 py-4">
             <ExpandedDetail
               item={item}
@@ -815,8 +813,8 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
     {tpList.length > 0 && (
       <div>
         <div className="flex items-center gap-3 mb-2">
-          <span className="h-px w-6 bg-gold-primary/30" />
-          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+          <span className="h-px w-6 bg-accent/30" />
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
             Targets
           </span>
         </div>
@@ -826,17 +824,16 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
             return (
               <div
                 key={i}
-                className="relative overflow-hidden bg-surface-raised border border-line/15 rounded-md p-3"
+                className="relative overflow-hidden bg-surface-raised border border-ink/10 rounded-md p-3"
               >
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-                <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80 mb-1">
+                <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted mb-1">
                   {tp.label}
                 </p>
                 <p className="text-text-primary font-mono text-sm tabular-nums">
                   {formatPrice(tp.value)}
                 </p>
                 {pct !== null && (
-                  <p className="text-gold-primary font-mono text-[10px] tabular-nums mt-0.5">
+                  <p className="text-accent font-mono text-[10px] tabular-nums mt-0.5">
                     +{pct.toFixed(1)}%
                   </p>
                 )}
@@ -853,7 +850,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
       {item.stop1 && (
         <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-loss/70 mb-1">
             Stop Loss
           </p>
           <p className="text-text-primary font-mono text-sm tabular-nums">
@@ -862,7 +859,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           {(() => {
             const pct = calcPct(item.stop1, item.entry);
             return pct !== null ? (
-              <p className="text-red-400 font-mono text-[10px] tabular-nums mt-0.5">
+              <p className="text-loss font-mono text-[10px] tabular-nums mt-0.5">
                 {pct.toFixed(1)}%
               </p>
             ) : null;
@@ -874,7 +871,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
       {item.stop2 && (
         <div className="relative overflow-hidden bg-surface-raised border border-red-500/15 rounded-md p-3">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-loss/70 mb-1">
             Stop Loss 2
           </p>
           <p className="text-text-primary font-mono text-sm tabular-nums">
@@ -883,7 +880,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
           {(() => {
             const pct = calcPct(item.stop2, item.entry);
             return pct !== null ? (
-              <p className="text-red-400 font-mono text-[10px] tabular-nums mt-0.5">
+              <p className="text-loss font-mono text-[10px] tabular-nums mt-0.5">
                 {pct.toFixed(1)}%
               </p>
             ) : null;
@@ -907,7 +904,7 @@ const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, f
             Volume Rank
           </p>
           <p className="text-text-primary font-mono text-sm tabular-nums">
-            <span className="text-gold-primary">#{item.volume_rank_num}</span>
+            <span className="text-accent">#{item.volume_rank_num}</span>
             <span className="text-text-muted/60"> / {item.volume_rank_den}</span>
           </p>
         </div>
@@ -954,7 +951,6 @@ const MobileCard = ({
       onClick={onClick}
       className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-3.5 cursor-pointer transition-all hover:border-ink/[0.12] active:bg-ink/[0.02]"
     >
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       {/* Top: Coin + Status + Star */}
       <div className="flex items-center justify-between mb-3">
@@ -995,7 +991,7 @@ const MobileCard = ({
           <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">P&amp;L</p>
           {priceChange !== null ? (
             <p className={`font-mono text-xs tabular-nums font-semibold ${
-              priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+              priceChange >= 0 ? 'text-profit' : 'text-loss'
             }`}>
               {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
             </p>
@@ -1007,9 +1003,8 @@ const MobileCard = ({
 
       {/* Targets */}
       {tpList.length > 0 && (
-        <div className="relative overflow-hidden bg-gold-primary/[0.03] border border-line/15 rounded p-2 mb-2">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-          <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-gold-primary/80 mb-1.5">
+        <div className="relative overflow-hidden bg-surface-secondary border border-ink/10 rounded p-2 mb-2">
+          <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-text-muted mb-1.5">
             Targets
           </p>
           <div className={`grid gap-1.5 ${tpList.length <= 2 ? 'grid-cols-2' : 'grid-cols-4'}`}>
@@ -1017,12 +1012,12 @@ const MobileCard = ({
               const pct = calcPct(tp.value, item.entry);
               return (
                 <div key={i} className="text-center">
-                  <p className="text-gold-primary/50 text-[8px] font-mono tracking-wider">{tp.label}</p>
+                  <p className="text-text-muted text-[8px] font-mono tracking-wider">{tp.label}</p>
                   <p className="text-text-primary font-mono text-[10px] tabular-nums leading-tight">
                     {formatPrice(tp.value)}
                   </p>
                   {pct !== null && (
-                    <p className="text-gold-primary font-mono text-[9px] tabular-nums">
+                    <p className="text-accent font-mono text-[9px] tabular-nums">
                       +{pct.toFixed(1)}%
                     </p>
                   )}
@@ -1039,7 +1034,7 @@ const MobileCard = ({
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400/70">
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-loss/70">
                 Stop Loss
               </span>
               <span className="text-text-primary font-mono text-[11px] tabular-nums">
@@ -1049,7 +1044,7 @@ const MobileCard = ({
             {(() => {
               const pct = calcPct(item.stop1, item.entry);
               return pct !== null ? (
-                <span className="text-red-400 font-mono text-[11px] tabular-nums">
+                <span className="text-loss font-mono text-[11px] tabular-nums">
                   {pct.toFixed(1)}%
                 </span>
               ) : null;
@@ -1113,9 +1108,8 @@ const LoadingSkeleton = () => (
 
 const EmptyState = ({ onBrowse }) => (
   <div className="relative bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center overflow-hidden">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
-      <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-ink/10 flex items-center justify-center">
+      <svg className="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
       </svg>
     </div>

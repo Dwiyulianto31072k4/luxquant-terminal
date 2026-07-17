@@ -145,7 +145,7 @@ const AnalyzePage = () => {
         <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-4">{error}</p>
         <button
           onClick={fetchAnalyzeData}
-          className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-line/25"
+          className="px-4 py-2 bg-accent/12 text-accent rounded-sm hover:bg-accent transition-colors font-mono text-[11px] uppercase tracking-wider border border-ink/12"
         >
           Retry
         </button>
@@ -200,7 +200,7 @@ const AnalyzePage = () => {
               onClick={() => setTimeRange(opt.value)}
               className={`px-3.5 py-1.5 rounded-[7px] font-mono text-[10px] uppercase tracking-wider transition-all ${
                 timeRange === opt.value
-                  ? "bg-gold-primary text-surface-hover font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
+                  ? "bg-accent text-surface-hover font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
                   : "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]"
               }`}
             >
@@ -253,7 +253,6 @@ const AnalyzePage = () => {
 
       {/* ── WIN RATE TREND ── */}
       <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <IconTrend />
@@ -288,7 +287,6 @@ const AnalyzePage = () => {
       {/* ── OUTCOME & R:R ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconOutcome />
             <div>
@@ -304,7 +302,6 @@ const AnalyzePage = () => {
         </div>
 
         <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRR />
             <div>
@@ -313,7 +310,7 @@ const AnalyzePage = () => {
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
                 {t("perf.rr_desc")} · Best{" "}
-                <span className="text-gold-primary tabular-nums">{maxTpRR.rr.toFixed(2)}R</span>
+                <span className="text-accent tabular-nums">{maxTpRR.rr.toFixed(2)}R</span>
               </p>
             </div>
           </div>
@@ -323,7 +320,6 @@ const AnalyzePage = () => {
 
       {/* ── RISK LEVEL ANALYSIS ── */}
       <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="flex items-center gap-2 mb-4">
           <IconRisk />
           <div>
@@ -352,10 +348,10 @@ const AnalyzePage = () => {
                     dot: "bg-profit",
                   },
                   Normal: {
-                    border: "border-line/20",
-                    bg: "from-gold-primary/[0.05] to-transparent",
-                    text: "text-gold-primary",
-                    dot: "bg-gold-primary",
+                    border: "border-ink/10",
+                    bg: "from-accent/[0.05] to-transparent",
+                    text: "text-accent",
+                    dot: "bg-accent",
                   },
                   High: {
                     border: "border-loss/20",
@@ -493,7 +489,6 @@ const AnalyzePage = () => {
       {/* ── WIN RATE TREND BY RISK LEVEL ── */}
       {data.risk_trend && data.risk_trend.length > 0 && (
         <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRiskTrend />
             <div>
@@ -512,7 +507,6 @@ const AnalyzePage = () => {
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
         <div className="bg-surface-raised rounded-xl border border-ink/[0.07] relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="p-5 pb-0">
             <div className="flex items-center gap-2">
               <IconPairs />
@@ -532,7 +526,6 @@ const AnalyzePage = () => {
 
       {/* ── FULL SIGNAL HISTORY ── */}
       <div className="bg-surface-raised rounded-xl border border-ink/[0.07] relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
         <div className="p-5 pb-0">
           <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
@@ -543,7 +536,7 @@ const AnalyzePage = () => {
                   <h3 className="text-text-primary text-sm font-normal tracking-tight">
                     {t("perf.sig_history")}
                   </h3>
-                  <span className="px-2 py-0.5 rounded-sm bg-gold-primary/10 border border-line/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-sm bg-accent/12 border border-ink/12 text-accent font-mono text-[10px] uppercase tracking-wider">
                     Proof of Calls
                   </span>
                 </div>
@@ -555,11 +548,11 @@ const AnalyzePage = () => {
 
             <a
               href="/signals"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-gold-primary/10 border border-line/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider hover:bg-gold-primary/15 transition-colors group"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-accent/12 border border-ink/12 text-accent font-mono text-[10px] uppercase tracking-wider hover:bg-accent transition-colors group"
             >
               <IconBolt />
               {t("perf.view_latest")}
-              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-gold-primary/15 text-gold-primary/80 border border-line/20">
+              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-accent text-text-muted border border-ink/10">
                 PRO
               </span>
             </a>
@@ -576,7 +569,7 @@ const AnalyzePage = () => {
               <IconFilter />
               <span className="font-mono text-[11px] uppercase tracking-wider text-text-primary">Filters</span>
               {sigActiveFilters > 0 && (
-                <span className="bg-gold-primary/15 text-gold-primary border border-line/30 font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm">
+                <span className="bg-accent text-accent-fg border border-ink/12 font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm">
                   {sigActiveFilters}
                 </span>
               )}
@@ -597,14 +590,14 @@ const AnalyzePage = () => {
                   placeholder="BTC, ETH, SOL..."
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-line/40 transition-colors"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-ink/15 transition-colors"
                 />
               </FilterField>
               <FilterField label={t("perf.status")} className="w-full sm:w-auto">
                 <select
                   value={sigStatus}
                   onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
                 >
                   <option value="all">{t("perf.all_status")}</option>
                   <option value="open">Not Hit</option>
@@ -619,7 +612,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigRisk}
                   onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
                 >
                   <option value="all">{t("perf.all_risk")}</option>
                   <option value="low">Low</option>
@@ -631,7 +624,7 @@ const AnalyzePage = () => {
                 <select
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-line/40"
+                  className="w-full sm:w-auto px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm font-mono focus:outline-none focus:border-ink/15"
                 >
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
@@ -641,7 +634,7 @@ const AnalyzePage = () => {
               </FilterField>
               <button
                 onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
-                className="px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm hover:border-line/30 transition-colors flex items-center gap-1.5"
+                className="px-3 py-2 bg-surface-secondary border border-ink/[0.06] rounded-sm text-text-primary text-sm hover:border-ink/12 transition-colors flex items-center gap-1.5"
               >
                 {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
                 <span className="font-mono text-[11px] uppercase tracking-wider">
@@ -727,7 +720,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
   const colorStyles = {
     profit: "text-profit",
     loss: "text-loss",
-    gold: "text-gold-primary",
+    gold: "text-accent",
     muted: "text-text-secondary",
     default: "text-text-primary",
   };
@@ -736,12 +729,12 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
     <div
       className={`group relative rounded-md p-4 border transition-all overflow-hidden ${
         accent
-          ? "bg-gradient-to-b from-gold-primary/[0.07] to-transparent border-line/25"
+          ? "bg-gradient-to-b from-accent/[0.07] to-transparent border-ink/12"
           : "bg-surface-raised border-ink/[0.06] hover:border-ink/[0.13]"
       }`}
     >
       {accent && (
-        <span className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full bg-gold-primary/80" />
+        <span className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full bg-accent/80" />
       )}
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65 mb-2.5 truncate">
         {label}
@@ -815,7 +808,7 @@ const OutcomeDistribution = ({ data, t }) => {
             <div key={item.label} className="flex items-center gap-2.5">
               <span
                 className={`font-mono text-[10px] uppercase tracking-wider w-7 ${
-                  isLoss ? "text-loss" : "text-gold-primary"
+                  isLoss ? "text-loss" : "text-accent"
                 }`}
               >
                 {item.label}
@@ -900,7 +893,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
   const prevWR = chartData.length > 1 ? chartData[chartData.length - 2].winRate : currentWR;
   const wrTrend = currentWR > prevWR ? "up" : currentWR < prevWR ? "down" : "flat";
 
-  const currentColor = currentWR >= 70 ? "text-profit" : currentWR >= 55 ? "text-gold-primary" : "text-loss";
+  const currentColor = currentWR >= 70 ? "text-profit" : currentWR >= 55 ? "text-accent" : "text-loss";
 
   return (
     <div className="space-y-3">
@@ -1031,11 +1024,10 @@ const WinRateTrendChart = ({ data, mode, t }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload.find((p) => p.dataKey === "winRate")?.payload || payload[0]?.payload;
                 if (!d) return null;
-                const wrColor = d.winRate >= 70 ? "text-profit" : d.winRate >= 55 ? "text-gold-primary" : "text-loss";
+                const wrColor = d.winRate >= 70 ? "text-profit" : d.winRate >= 55 ? "text-accent" : "text-loss";
                 return (
                   <div className="bg-surface border border-ink/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
-                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-2 pb-2 border-b border-ink/[0.04]">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-2 pb-2 border-b border-ink/[0.04]">
                       {d.fullDate || label}
                     </p>
                     <div className="flex items-center justify-between mb-1.5 font-mono text-[10px] uppercase tracking-wider">
@@ -1233,8 +1225,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
               const d = payload[0]?.payload;
               return (
                 <div className="bg-surface border border-ink/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-1.5">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1.5">
                     {d?.fullDate || label}
                   </p>
                   {d?.low != null && (
@@ -1244,7 +1235,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
                     </p>
                   )}
                   {d?.normal != null && (
-                    <p className="font-mono text-[11px] text-gold-primary tabular-nums">
+                    <p className="font-mono text-[11px] text-accent tabular-nums">
                       <span className="uppercase tracking-wider text-[10px]">{t("perf.normal")}</span>: {d.normal.toFixed(1)}%{" "}
                       <span className="text-text-muted/70">({d.normalCount})</span>
                     </p>
@@ -1354,7 +1345,7 @@ const TopPairsTable = ({ pairs, t }) => {
                         : "-";
               const tpAlpha = bestTpAlpha[bestTp] || 0.5;
               const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
-              const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-gold-primary" : "text-loss";
+              const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-accent" : "text-loss";
               return (
                 <tr key={i} className="border-b border-ink/[0.03] hover:bg-ink/[0.02] transition-colors">
                   <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted/70 tabular-nums">
@@ -1396,7 +1387,7 @@ const TopPairsTable = ({ pairs, t }) => {
                     </span>
                   </td>
                   <td className="py-2.5 px-3">
-                    <span className="font-mono text-[12px] text-gold-primary tabular-nums">
+                    <span className="font-mono text-[12px] text-accent tabular-nums">
                       {p.performance_score.toFixed(0)}
                     </span>
                   </td>
@@ -1413,7 +1404,7 @@ const TopPairsTable = ({ pairs, t }) => {
           const pair = (p.pair || "").replace("USDT", "");
           const winPct = p.closed_trades > 0 ? p.win_rate : 0;
           const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
-          const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-gold-primary" : "text-loss";
+          const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-accent" : "text-loss";
           return (
             <div key={i} className="flex items-center gap-3 py-2 border-b border-ink/[0.03]">
               <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
@@ -1476,7 +1467,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       : isLoss
         ? "bg-loss/10 text-loss border-loss/25"
         : isOpen
-          ? "bg-gold-primary/10 text-gold-primary border-line/25"
+          ? "bg-accent/12 text-accent border-ink/12"
           : "bg-ink/[0.04] text-text-muted border-ink/[0.06]";
     const labels = {
       open: t("perf.not_hit_badge"),
@@ -1498,7 +1489,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
     if (rl.startsWith("low"))
       return "bg-profit/10 text-profit border-profit/25";
     if (rl.startsWith("nor") || rl.startsWith("med"))
-      return "bg-gold-primary/10 text-gold-primary border-line/25";
+      return "bg-accent/12 text-accent border-ink/12";
     if (rl.startsWith("high"))
       return "bg-loss/10 text-loss border-loss/25";
     return "bg-ink/[0.04] text-text-muted border-ink/[0.06]";
@@ -1549,7 +1540,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={s.pair} size={20} />
-                      <span className="text-text-primary text-[12px] group-hover:text-gold-primary transition-colors">
+                      <span className="text-text-primary text-[12px] group-hover:text-text-primary transition-colors">
                         {pair}
                       </span>
                     </div>
@@ -1613,9 +1604,8 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
             <div
               key={i}
               onClick={() => onSelect(s)}
-              className="bg-surface-raised rounded-md p-3 border border-ink/[0.06] active:border-line/25 transition-all cursor-pointer relative overflow-hidden"
+              className="bg-surface-raised rounded-md p-3 border border-ink/[0.06] active:border-ink/12 transition-all cursor-pointer relative overflow-hidden"
             >
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <CoinLogo pair={s.pair} size={28} />
@@ -1684,7 +1674,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
    ────────────────────────────────────────────────────────────── */
 
 const IconTrend = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <path d="M7 14l4-4 4 4 6-6" />
@@ -1693,7 +1683,7 @@ const IconTrend = () => (
 );
 
 const IconOutcome = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="14" width="4" height="7" />
       <rect x="10" y="9" width="4" height="12" />
@@ -1703,7 +1693,7 @@ const IconOutcome = () => (
 );
 
 const IconRR = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 14l4-4" />
       <path d="M3.34 19a10 10 0 1 1 17.32 0" />
@@ -1712,7 +1702,7 @@ const IconRR = () => (
 );
 
 const IconRisk = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2L2 22h20L12 2z" />
       <path d="M12 9v4M12 17h.01" />
@@ -1721,7 +1711,7 @@ const IconRisk = () => (
 );
 
 const IconRiskTrend = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <path d="M7 12l3-3 3 3 7-7" />
@@ -1731,7 +1721,7 @@ const IconRiskTrend = () => (
 );
 
 const IconPairs = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 15L5 8h14l-7 7z" />
       <circle cx="12" cy="3" r="1.5" />
@@ -1742,7 +1732,7 @@ const IconPairs = () => (
 );
 
 const IconHistory = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
@@ -1757,7 +1747,7 @@ const IconBolt = () => (
 );
 
 const IconFilter = () => (
-  <svg className="w-3.5 h-3.5 text-gold-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.6">
+  <svg className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.6">
     <path strokeLinecap="round" strokeLinejoin="round"
       d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
   </svg>

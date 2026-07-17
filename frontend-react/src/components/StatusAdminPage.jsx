@@ -140,7 +140,7 @@ export default function StatusAdminPage() {
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">Status — Incident Manager</h1>
           <p className="text-[12px] text-text-muted mt-1">
             Post & update incidents shown on the public{" "}
-            <a href="/status" target="_blank" rel="noreferrer" className="text-gold-primary hover:underline">/status</a> page.
+            <a href="/status" target="_blank" rel="noreferrer" className="text-accent hover:underline">/status</a> page.
           </p>
         </div>
         <button onClick={load} className={`${btnCls} bg-ink/[0.05] text-text-secondary hover:text-text-primary`}>
@@ -154,7 +154,7 @@ export default function StatusAdminPage() {
 
       {/* ── Create incident ─────────────────────────────── */}
       <section className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-4 sm:p-5 mb-8">
-        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-4">New Incident</div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent mb-4">New Incident</div>
 
         <label className="block text-[11px] text-text-muted mb-1">Title</label>
         <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Signals delivery delayed" />
@@ -195,7 +195,7 @@ export default function StatusAdminPage() {
               onClick={() => toggleAffected(c.key)}
               className={`px-2.5 py-1.5 rounded-md text-[12px] border transition-colors ${
                 affected.includes(c.key)
-                  ? "bg-gold-primary/15 text-gold-primary border-line/30"
+                  ? "bg-accent/12 text-accent border-line/30"
                   : "bg-ink/[0.03] text-text-secondary border-ink/[0.08] hover:text-text-primary"
               }`}
             >
@@ -213,14 +213,14 @@ export default function StatusAdminPage() {
         />
 
         <div className="mt-4">
-          <button onClick={create} disabled={busy} className={`${btnCls} bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/20`}>
+          <button onClick={create} disabled={busy} className={`${btnCls} bg-accent/12 text-accent border border-line/30 hover:bg-accent/12`}>
             Publish incident
           </button>
         </div>
       </section>
 
       {/* ── Existing incidents ─────────────────────────── */}
-      <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-3">All Incidents</div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent mb-3">All Incidents</div>
       {loading ? (
         <div className="py-10 text-center text-text-muted text-[13px]">Loading…</div>
       ) : incidents.length === 0 ? (
@@ -277,7 +277,7 @@ function IncidentAdminCard({ inc, busy, onUpdate, onDelete }) {
               <button
                 onClick={() => { onUpdate(inc.id, newStatus, body); setBody(""); }}
                 disabled={busy}
-                className={`${btnCls} bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/20 whitespace-nowrap`}
+                className={`${btnCls} bg-accent/12 text-accent border border-line/30 hover:bg-accent/12 whitespace-nowrap`}
               >
                 Post update
               </button>

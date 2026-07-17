@@ -953,7 +953,7 @@ const SignalsPage = () => {
 
   const riskOptions = [
     { value: "all", label: "All" },
-    { value: "low", label: "Low", dotColor: 'bg-emerald-400' },
+    { value: "low", label: "Low", dotColor: 'bg-profit' },
     { value: "normal", label: "Normal", dotColor: 'bg-amber-400' },
     { value: "high", label: "High", dotColor: 'bg-red-400' },
   ];
@@ -1112,9 +1112,9 @@ const SignalsPage = () => {
         const fmtDT = (iso) => iso ? new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false }) : '—';
         const statusMeta = (st) => {
           const s = (st || '').toLowerCase();
-          if (s === 'sl' || s === 'closed_loss') return { l:'SL', c:'text-red-400 border-red-500/30 bg-red-500/10' };
-          if (s === 'closed_win') return { l:'WIN', c:'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' };
-          if (s.startsWith('tp')) return { l:s.toUpperCase(), c:'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' };
+          if (s === 'sl' || s === 'closed_loss') return { l:'SL', c:'text-loss border-loss/25 bg-loss/10' };
+          if (s === 'closed_win') return { l:'WIN', c:'text-profit border-profit/25 bg-profit/10' };
+          if (s.startsWith('tp')) return { l:s.toUpperCase(), c:'text-profit border-profit/25 bg-profit/10' };
           return { l:'OPEN', c:'text-blue-300 border-blue-500/30 bg-blue-500/10' };
         };
         const openCoin = (c) => { const sig = findSignal(c.symbol); if (sig) openSignal(sig); else navigate('/money-flow'); };
@@ -1182,11 +1182,11 @@ const SignalsPage = () => {
                             <div className="flex items-center gap-2">
                               <CoinLogo pair={`${c.symbol}USDT`} size={20} />
                               <span className="font-mono text-[12px] font-semibold text-text-primary">{c.symbol}</span>
-                              {c.is_luxquant_signal && <span className="font-mono text-[7.5px] uppercase tracking-wider text-text-primary border border-line/40 rounded px-1 py-0.5 leading-none">Call</span>}
+                              {c.is_luxquant_signal && <span className="font-mono text-[7.5px] uppercase tracking-wider text-text-primary border border-ink/15 rounded px-1 py-0.5 leading-none">Call</span>}
                             </div>
                           </td>
                           {/* 24h */}
-                          <td className={`py-2 px-2 text-right font-mono text-[12px] tabular-nums font-semibold ${chg == null ? 'text-text-primary/40' : up ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <td className={`py-2 px-2 text-right font-mono text-[12px] tabular-nums font-semibold ${chg == null ? 'text-text-primary/40' : up ? 'text-profit' : 'text-loss'}`}>
                             {chg == null ? '—' : `${up ? '+' : ''}${chg.toFixed(2)}%`}
                           </td>
                           {/* Intensity + bar */}
@@ -1201,7 +1201,7 @@ const SignalsPage = () => {
                           {/* From Call */}
                           <td className="py-2 px-2 text-left">
                             {fromCall != null ? (
-                              <span className={`font-mono text-[11px] tabular-nums font-semibold ${fromCall >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fromCall >= 0 ? '+' : ''}{fromCall.toFixed(2)}%</span>
+                              <span className={`font-mono text-[11px] tabular-nums font-semibold ${fromCall >= 0 ? 'text-profit' : 'text-loss'}`}>{fromCall >= 0 ? '+' : ''}{fromCall.toFixed(2)}%</span>
                             ) : <span className="text-text-primary/25 text-[11px]">—</span>}
                           </td>
                           {/* Status */}
@@ -1231,7 +1231,6 @@ const SignalsPage = () => {
 
       {/* FILTER CONSOLE */}
       <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-4 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent" />
 
         <div className="flex items-center justify-between border-b border-ink/[0.06] pb-3 mb-3">
           <div className="flex items-center gap-2.5">
@@ -1239,9 +1238,9 @@ const SignalsPage = () => {
             <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary">Call Filter</h2>
             <button
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-line/30 text-text-primary/80 hover:bg-ink/[0.06] hover:border-line/50 transition-all font-mono text-[9px] uppercase tracking-wider"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-ink/12 text-text-primary/80 hover:bg-ink/[0.06] hover:border-ink/18 transition-all font-mono text-[9px] uppercase tracking-wider"
             >
-              <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-line/50 text-[8px] leading-none">?</span>
+              <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-ink/18 text-[8px] leading-none">?</span>
               {t('guide.button')}
             </button>
           </div>
@@ -1312,14 +1311,14 @@ const SignalsPage = () => {
               placeholder="Search pair (e.g. BTC, ETH, SOL)..."
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-line/40 focus:outline-none focus:bg-ink/[0.02] transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-text-secondary/50 font-mono text-xs focus:border-ink/15 focus:outline-none focus:bg-ink/[0.02] transition-all"
             />
           </div>
           <div className="relative flex-shrink-0">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-line/40 focus:outline-none appearance-none cursor-pointer transition-all"
+              className="pl-3 pr-8 py-2 bg-surface border border-ink/[0.08] rounded-md text-text-primary font-mono text-[11px] focus:border-ink/15 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-surface">{opt.label}</option>
@@ -1331,7 +1330,7 @@ const SignalsPage = () => {
           </div>
           <button
             onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-line/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-surface border border-ink/[0.08] hover:border-ink/12 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-text-primary"
           >
             {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
             <span className="hidden sm:inline">{getOrderLabel()}</span>
@@ -1351,7 +1350,7 @@ const SignalsPage = () => {
                 Advanced Filters
               </span>
               {advancedActiveCount > 0 && (
-                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-ink/10 text-text-primary border border-line/30">
+                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-ink/10 text-text-primary border border-ink/12">
                   {advancedActiveCount} active
                 </span>
               )}
@@ -1378,7 +1377,7 @@ const SignalsPage = () => {
               <button
                 key={i}
                 onClick={chip.clear}
-                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-ink/[0.06] border border-line/30 text-text-primary font-mono text-[9px] uppercase tracking-wider hover:bg-ink/12 transition-all"
+                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-ink/[0.06] border border-ink/12 text-text-primary font-mono text-[9px] uppercase tracking-wider hover:bg-ink/12 transition-all"
               >
                 <span>{chip.label}</span>
                 <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-ink/10 group-hover:bg-ink/15 leading-none">×</span>
@@ -1401,8 +1400,8 @@ const SignalsPage = () => {
                   {statusOptions.map((opt) => {
                     const isActive = statusFilter === opt.value;
                     const accentColor =
-                      opt.accent === 'emerald' ? 'text-emerald-400' :
-                      opt.accent === 'red' ? 'text-red-400' :
+                      opt.accent === 'emerald' ? 'text-profit' :
+                      opt.accent === 'red' ? 'text-loss' :
                       opt.accent === 'gold' ? 'text-text-primary' :
                       'text-text-primary/70';
                     return (
@@ -1471,15 +1470,15 @@ const SignalsPage = () => {
                   onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     streakFilter === "hot"
-                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                      ? 'bg-profit/15 border border-profit/30 text-profit'
                       : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
-                  <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
+                  <span className={streakFilter === "hot" ? 'text-profit' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
                   <span>High Win Streak</span>
                   <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥{HOT_STREAK_MIN}</span>
                   {hotStreakCount > 0 && streakFilter !== "hot" && (
-                    <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
                       {hotStreakCount}
                     </span>
                   )}
@@ -1506,15 +1505,15 @@ const SignalsPage = () => {
                   onClick={() => setCorrHighAlign((v) => !v)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     corrHighAlign
-                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                      ? 'bg-profit/15 border border-profit/30 text-profit'
                       : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
-                  <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
+                  <span className={corrHighAlign ? 'text-profit' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
                   <span>High BTC Alignment</span>
                   <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥70</span>
                   {corrCounts.hi > 0 && !corrHighAlign && (
-                    <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
                       {corrCounts.hi}
                     </span>
                   )}
@@ -1524,14 +1523,14 @@ const SignalsPage = () => {
                   onClick={() => setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "worth_it"
-                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                      ? 'bg-profit/15 border border-profit/30 text-profit'
                       : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
-                  <span className={verdictFilter === "worth_it" ? 'text-emerald-400' : 'opacity-70'}>✓</span>
+                  <span className={verdictFilter === "worth_it" ? 'text-profit' : 'opacity-70'}>✓</span>
                   <span>Worth It</span>
                   {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
-                    <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                    <span className="px-1 py-0 bg-profit/10 text-profit text-[9px] tabular-nums rounded-sm">
                       {verdictCounts.worth}
                     </span>
                   )}
@@ -1541,14 +1540,14 @@ const SignalsPage = () => {
                   onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "avoid"
-                      ? 'bg-red-500/15 border border-red-500/40 text-red-400'
+                      ? 'bg-loss/15 border border-loss/30 text-loss'
                       : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                   }`}
                 >
-                  <span className={verdictFilter === "avoid" ? 'text-red-400' : 'opacity-70'}>⛔</span>
+                  <span className={verdictFilter === "avoid" ? 'text-loss' : 'opacity-70'}>⛔</span>
                   <span>Avoid</span>
                   {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
-                    <span className="px-1 py-0 bg-red-500/10 text-red-400 text-[9px] tabular-nums rounded-sm">
+                    <span className="px-1 py-0 bg-loss/10 text-loss text-[9px] tabular-nums rounded-sm">
                       {verdictCounts.avoid}
                     </span>
                   )}
@@ -1571,7 +1570,7 @@ const SignalsPage = () => {
                   })().map((t) => {
                     const active = selectedTags.includes(t.tag);
                     const cnt = tagActiveCount[t.tag] || 0;
-                    const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-text-primary/70';
+                    const wrCol = t.win_rate >= 88 ? 'text-profit' : t.win_rate >= 82 ? 'text-accent' : 'text-text-primary/70';
                     return (
                       <button
                         key={t.tag}
@@ -1579,7 +1578,7 @@ const SignalsPage = () => {
                         title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           active
-                            ? 'bg-ink/10 border border-line/40 text-text-primary'
+                            ? 'bg-ink/10 border border-ink/15 text-text-primary'
                             : 'bg-ink/[0.03] border border-transparent text-text-primary/70 hover:bg-ink/[0.06] hover:text-text-primary'
                         }`}
                       >
@@ -1620,17 +1619,17 @@ const SignalsPage = () => {
 
       {/* ERROR / TABLE */}
       {error && (
-        <div className="bg-surface-raised rounded-md p-6 border border-red-500/30 text-center relative overflow-hidden">
+        <div className="bg-surface-raised rounded-md p-6 border border-loss/25 text-center relative overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-red-500/[0.06] border border-red-500/20 flex items-center justify-center text-red-400">
+            <div className="w-12 h-12 rounded-full bg-red-500/[0.06] border border-loss/20 flex items-center justify-center text-loss">
               {Icon.alert('w-5 h-5')}
             </div>
             <h3 className="font-mono text-sm text-text-primary">Failed to load signals</h3>
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/70">{error}</p>
             <button
               onClick={() => fetchBulkSignals(true)}
-              className="px-4 py-2 mt-1 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15 hover:border-red-500/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"
+              className="px-4 py-2 mt-1 bg-loss/10 text-loss border border-loss/20 hover:bg-loss/15 hover:border-loss/25 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"
             >
               Try Again
             </button>

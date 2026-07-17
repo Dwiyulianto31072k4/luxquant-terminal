@@ -49,15 +49,15 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
   const cover = cardCover(resource);
   return (
     <div
-      className="tip-card group relative glass-card rounded-2xl border border-line/15 overflow-hidden cursor-pointer grid grid-cols-1 lg:grid-cols-2"
+      className="tip-card group relative glass-card rounded-2xl border border-ink/10 overflow-hidden cursor-pointer grid grid-cols-1 lg:grid-cols-2"
       onClick={() => onOpen(resource)}
     >
-      <div className="relative h-56 lg:h-full min-h-[240px] overflow-hidden bg-gradient-to-br from-gold-primary/10 to-orange-500/5">
+      <div className="relative h-56 lg:h-full min-h-[240px] overflow-hidden bg-gradient-to-br from-accent/10 to-orange-500/5">
         {cover ? (
           <img src={cover} alt={resource.title} className="w-full h-full object-cover tip-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-16 h-16 text-gold-primary/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            <svg className="w-16 h-16 text-accent/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
           </div>
         )}
         {resource.type === 'video' && (
@@ -70,11 +70,11 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
       </div>
       <div className="p-6 lg:p-8 flex flex-col justify-center">
         <div className="flex items-center gap-2 mb-3">
-          <span className="px-2 py-0.5 rounded bg-gold-primary/15 text-gold-primary text-[10px] font-bold uppercase tracking-wider">Featured</span>
+          <span className="px-2 py-0.5 rounded bg-accent text-accent-fg text-[10px] font-bold uppercase tracking-wider">Featured</span>
           <TypeBadge type={resource.type} />
           <span className="text-[11px] text-text-muted">{resource.category}</span>
         </div>
-        <h2 className="text-xl lg:text-2xl font-bold text-text-primary leading-tight group-hover:text-gold-primary transition-colors line-clamp-3">
+        <h2 className="text-xl lg:text-2xl font-bold text-text-primary leading-tight group-hover:text-text-primary transition-colors line-clamp-3">
           {resource.title}
         </h2>
         {resource.excerpt && <p className="text-text-muted text-sm mt-3 line-clamp-3 leading-relaxed">{stripMarkdown(resource.excerpt)}</p>}
@@ -95,13 +95,13 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
   const cover = cardCover(resource);
   const isVideo = resource.type === 'video';
   return (
-    <div className="tip-card glass-card rounded-xl border border-line/10 overflow-hidden cursor-pointer group relative" onClick={() => onOpen(resource)}>
-      <div className="relative w-full overflow-hidden bg-gradient-to-br from-gold-primary/5 to-orange-500/5" style={{ aspectRatio: '16 / 9' }}>
+    <div className="tip-card glass-card rounded-xl border border-ink/08 overflow-hidden cursor-pointer group relative" onClick={() => onOpen(resource)}>
+      <div className="relative w-full overflow-hidden bg-gradient-to-br from-accent/5 to-orange-500/5" style={{ aspectRatio: '16 / 9' }}>
         {cover ? (
           <img src={cover} alt={resource.title} className="w-full h-full object-cover tip-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-11 h-11 text-gold-primary/25" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            <svg className="w-11 h-11 text-accent/25" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
           </div>
         )}
         <div className="absolute top-3 left-3"><TypeBadge type={resource.type} /></div>
@@ -120,9 +120,9 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
       </div>
       <div className="p-4">
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[10px] text-gold-primary/80 font-semibold uppercase tracking-wide">{resource.category}</span>
+          <span className="text-[10px] text-text-muted font-semibold uppercase tracking-wide">{resource.category}</span>
         </div>
-        <h3 className="text-text-primary font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
+        <h3 className="text-text-primary font-semibold text-sm group-hover:text-text-primary transition-colors line-clamp-2 leading-snug mb-1.5">
           {resource.title}
         </h3>
         {resource.excerpt && <p className="text-text-muted text-[11px] line-clamp-2 leading-relaxed mb-3">{stripMarkdown(resource.excerpt)}</p>}
@@ -145,7 +145,7 @@ const AdminActions = ({ resource, onEdit, onDelete }) => (
     <button onClick={(e) => { e.stopPropagation(); onEdit(resource); }} className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-blue-400 hover:text-blue-300 border border-blue-500/20" title="Edit">
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
     </button>
-    <button onClick={(e) => { e.stopPropagation(); onDelete(resource); }} className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-red-400 hover:text-red-300 border border-red-500/20" title="Delete">
+    <button onClick={(e) => { e.stopPropagation(); onDelete(resource); }} className="p-1.5 bg-scrim/70 backdrop-blur rounded-lg text-loss hover:text-loss border border-loss/20" title="Delete">
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
     </button>
   </div>
@@ -236,14 +236,14 @@ const ResourcesPage = () => {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <div className="w-16 h-0.5 bg-gradient-to-r from-accent to-transparent" />
           <h2 className="font-display text-2xl font-semibold text-text-primary">{t('resources.title', { defaultValue: 'Resources' })}</h2>
-          <span className="px-2 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded">
+          <span className="px-2 py-1 bg-accent/12 text-accent text-xs font-medium rounded">
             {items.length}
           </span>
         </div>
         {isAdmin && (
-          <button onClick={() => setEditing({})} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary rounded-xl text-sm font-bold hover:shadow-gold-glow transition-all">
+          <button onClick={() => setEditing({})} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-dark to-accent text-bg-primary rounded-xl text-sm font-bold hover:shadow-gold-glow transition-all">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             {t('resources.new', { defaultValue: 'New Resource' })}
           </button>
@@ -251,14 +251,14 @@ const ResourcesPage = () => {
       </div>
 
       {/* Filter bar */}
-      <div className="glass-card rounded-xl p-4 border border-line/10 space-y-3">
+      <div className="glass-card rounded-xl p-4 border border-ink/08 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <form onSubmit={(e) => { e.preventDefault(); setLoading(true); fetchAll(); }} className="flex-1 min-w-[200px]">
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               </span>
-              <input type="text" placeholder={t('resources.search', { defaultValue: 'Search resources…' })} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-bg-card border border-line/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-line/40 transition-colors" />
+              <input type="text" placeholder={t('resources.search', { defaultValue: 'Search resources…' })} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-bg-card border border-ink/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-ink/15 transition-colors" />
             </div>
           </form>
           <div className="flex flex-wrap gap-2">
@@ -267,7 +267,7 @@ const ResourcesPage = () => {
                 key={tab.id}
                 onClick={() => { setActiveType(tab.id); setLoading(true); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeType === tab.id ? 'bg-gold-primary/20 text-gold-primary border border-line/30' : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-line/20'
+                  activeType === tab.id ? 'bg-accent text-accent-fg border border-ink/12' : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-ink/10'
                 }`}
               >
                 {tab.label}
@@ -278,11 +278,11 @@ const ResourcesPage = () => {
 
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1 border-t border-ink/5">
-            <button onClick={() => { setActiveCategory('all'); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === 'all' ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-text-primary'}`}>
+            <button onClick={() => { setActiveCategory('all'); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === 'all' ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-primary'}`}>
               All categories
             </button>
             {categories.map((c) => (
-              <button key={c} onClick={() => { setActiveCategory(c); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === c ? 'bg-gold-primary/15 text-gold-primary' : 'text-text-muted hover:text-text-primary'}`}>
+              <button key={c} onClick={() => { setActiveCategory(c); setLoading(true); }} className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${activeCategory === c ? 'bg-accent text-accent-fg' : 'text-text-muted hover:text-text-primary'}`}>
                 {c}
               </button>
             ))}
@@ -291,19 +291,19 @@ const ResourcesPage = () => {
       </div>
 
       {error && (
-        <div className="glass-card rounded-xl p-6 border border-red-500/30 text-center">
-          <p className="text-red-400 text-sm mb-3">{error}</p>
-          <button onClick={() => { setLoading(true); fetchAll(); }} className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg text-sm hover:bg-gold-primary/30 transition-colors">Retry</button>
+        <div className="glass-card rounded-xl p-6 border border-loss/25 text-center">
+          <p className="text-loss text-sm mb-3">{error}</p>
+          <button onClick={() => { setLoading(true); fetchAll(); }} className="px-4 py-2 bg-accent text-accent-fg rounded-lg text-sm hover:bg-accent/30 transition-colors">Retry</button>
         </div>
       )}
 
       {!error && items.length === 0 && (
-        <div className="glass-card rounded-xl p-12 border border-line/10 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gold-primary/10 flex items-center justify-center">
-            <svg className="w-8 h-8 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+        <div className="glass-card rounded-xl p-12 border border-ink/08 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent/12 flex items-center justify-center">
+            <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
           </div>
           <p className="text-text-secondary text-sm">{t('resources.empty', { defaultValue: 'No resources yet' })}</p>
-          {isAdmin && <button onClick={() => setEditing({})} className="mt-4 px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg text-sm hover:bg-gold-primary/30 transition-colors">{t('resources.new', { defaultValue: 'New Resource' })}</button>}
+          {isAdmin && <button onClick={() => setEditing({})} className="mt-4 px-4 py-2 bg-accent text-accent-fg rounded-lg text-sm hover:bg-accent/30 transition-colors">{t('resources.new', { defaultValue: 'New Resource' })}</button>}
         </div>
       )}
 
@@ -328,7 +328,7 @@ const ResourcesPage = () => {
       {/* Delete confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-red-500/30 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-loss/25 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
               <div className="h-1 w-10 rounded-full bg-ink/25" />
             </div>
@@ -336,7 +336,7 @@ const ResourcesPage = () => {
             <p className="text-text-muted text-sm text-center mb-5">"{deleteConfirm.title}" will be hidden from the hub.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 bg-bg-card border border-ink/10 text-text-secondary rounded-xl text-sm font-medium hover:text-text-primary transition-colors">Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors">Delete</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-2.5 bg-loss/20 border border-loss/25 text-loss rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors">Delete</button>
             </div>
           </div>
         </div>
@@ -361,11 +361,11 @@ const LoadingSkeleton = () => (
   <div className="space-y-5">
     <style>{`@keyframes sp{0%,100%{opacity:.05}50%{opacity:.15}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(212,175,55,.1);border-radius:8px}`}</style>
     <div className="flex items-center gap-3"><div className="skel w-16 h-1" /><div className="skel w-40 h-7" /></div>
-    <div className="glass-card rounded-xl p-4 border border-line/10"><div className="skel w-full h-10" /></div>
+    <div className="glass-card rounded-xl p-4 border border-ink/08"><div className="skel w-full h-10" /></div>
     <div className="skel w-full h-64 rounded-2xl" />
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="glass-card rounded-xl overflow-hidden border border-line/10">
+        <div key={i} className="glass-card rounded-xl overflow-hidden border border-ink/08">
           <div className="skel h-40 rounded-none" />
           <div className="p-4 space-y-2"><div className="skel w-3/4 h-4" /><div className="skel w-full h-3" /><div className="skel w-1/2 h-3" /></div>
         </div>

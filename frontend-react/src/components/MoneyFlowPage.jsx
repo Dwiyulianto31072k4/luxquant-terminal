@@ -84,9 +84,9 @@ const pctColor = (v) =>
   v === null || v === undefined
     ? "text-text-muted"
     : Number(v) > 0
-    ? "text-emerald-400"
+    ? "text-profit"
     : Number(v) < 0
-    ? "text-red-400"
+    ? "text-loss"
     : "text-text-primary/70";
 
 const TURNOVER_LABEL = {
@@ -101,7 +101,7 @@ const FLOW_LABEL = { net_buying: "Net Buying", net_selling: "Net Selling", balan
 // ═══════════════════════════════════════════
 const SectionHeader = ({ label, right }) => (
   <div className="flex items-center gap-3">
-    <span className="font-mono uppercase tracking-[0.25em] text-gold-primary/80 text-[11px] whitespace-nowrap">
+    <span className="font-mono uppercase tracking-[0.25em] text-text-muted text-[11px] whitespace-nowrap">
       {label}
     </span>
     {right}
@@ -114,7 +114,6 @@ const Card = ({ children, className = "", glow = false }) => (
       glow ? "shadow-[0_0_40px_-12px_rgba(212,175,55,0.15)]" : ""
     } ${className}`}
   >
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     {children}
   </div>
 );
@@ -135,7 +134,7 @@ const Th = ({ label, sortKey, sort, onSort, align = "right", sortable = true, cl
       <button
         onClick={() => onSort(sortKey)}
         className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${
-          active ? "text-gold-primary" : "text-text-primary/35 hover:text-text-primary/60"
+          active ? "text-accent" : "text-text-primary/35 hover:text-text-primary/60"
         } ${align === "left" ? "" : "flex-row-reverse"}`}
       >
         {label}
@@ -203,7 +202,7 @@ const IntensityBar = ({ value, max, gold = false }) => {
   return (
     <div className="h-1 w-full rounded-full bg-ink/[0.05] overflow-hidden mt-1">
       <div
-        className={`h-full rounded-full transition-all duration-700 ${gold ? "bg-gold-primary/70" : "bg-ink/30"}`}
+        className={`h-full rounded-full transition-all duration-700 ${gold ? "bg-accent/70" : "bg-ink/30"}`}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -213,7 +212,7 @@ const IntensityBar = ({ value, max, gold = false }) => {
 const ShowMore = ({ expanded, total, onClick }) => (
   <button
     onClick={onClick}
-    className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted hover:text-gold-primary border-t border-ink/[0.04] transition-colors"
+    className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted hover:text-text-primary border-t border-ink/[0.04] transition-colors"
   >
     {expanded ? "Show less" : `Show all ${total}`}
   </button>
@@ -232,7 +231,7 @@ const SearchBox = ({ value, onChange, placeholder = "Search…" }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-ink/30 font-mono text-[11px] focus:border-line/40 focus:outline-none"
+      className="w-full pl-3 pr-3 py-1.5 bg-surface border border-ink/[0.08] rounded-md text-text-primary placeholder-ink/30 font-mono text-[11px] focus:border-ink/15 focus:outline-none"
     />
   </div>
 );
@@ -266,7 +265,7 @@ const IconWhale = () => (
 const Gauge = ({ value, label, sub, subColor, accent = "gold" }) => {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   const bar =
-    accent === "gold" ? "bg-gold-primary" : accent === "emerald" ? "bg-emerald-400" : "bg-ink/60";
+    accent === "gold" ? "bg-accent" : accent === "emerald" ? "bg-profit" : "bg-ink/60";
   return (
     <Card className="p-4">
       <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70 mb-2">{label}</div>
@@ -415,7 +414,7 @@ const SectorsTab = ({ q }) => {
                   <tr
                     key={s.category_id}
                     onClick={() => setSelectedSector(s)}
-                    className="group border-b border-ink/[0.05] hover:bg-gold-primary/[0.04] cursor-pointer transition-colors"
+                    className="group border-b border-ink/[0.05] hover:bg-surface-secondary cursor-pointer transition-colors"
                   >
                     <td className="py-3 px-2 sm:px-3 font-mono text-xs tabular-nums text-text-muted/50">
                       {String(i + 1).padStart(2, "0")}
@@ -427,13 +426,13 @@ const SectorsTab = ({ q }) => {
                             <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-surface-raised bg-ink/5" onError={(e) => (e.target.style.display = "none")} />
                           ))}
                         </div>
-                        <span className="text-text-primary text-sm truncate group-hover:text-gold-primary transition-colors">{s.name}</span>
+                        <span className="text-text-primary text-sm truncate group-hover:text-text-primary transition-colors">{s.name}</span>
                         {isLeader && (
-                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-line/25">
+                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-accent/12 text-text-muted border border-ink/12">
                             Leader
                           </span>
                         )}
-                        <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-text-primary/20 group-hover:text-gold-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-text-primary/20 group-hover:text-text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 6l6 6-6 6" />
                         </svg>
                       </div>
@@ -468,7 +467,7 @@ const SectorsTab = ({ q }) => {
                     tabIndex={0}
                     onClick={() => setSelectedSector(s)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedSector(s); } }}
-                    className="px-3 py-3 cursor-pointer active:bg-gold-primary/[0.06]"
+                    className="px-3 py-3 cursor-pointer active:bg-surface-secondary"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="font-mono text-[11px] tabular-nums text-text-muted/40 w-5 shrink-0">
@@ -481,7 +480,7 @@ const SectorsTab = ({ q }) => {
                       </div>
                       <span className="text-text-primary text-sm truncate flex-1">{s.name}</span>
                       {isLeader && (
-                        <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-line/25">
+                        <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-accent/12 text-text-muted border border-ink/12">
                           Leader
                         </span>
                       )}
@@ -505,7 +504,7 @@ const SectorsTab = ({ q }) => {
           )}
         </div>
 
-        {err && !loading && <div className="p-8 text-center text-red-400 text-sm font-mono">{err}</div>}
+        {err && !loading && <div className="p-8 text-center text-loss text-sm font-mono">{err}</div>}
         {!loading && !err && rows.length === 0 && (
           <div className="p-10 text-center text-text-muted text-sm font-mono">No sectors match "{q}".</div>
         )}
@@ -546,7 +545,7 @@ const FlowFilterChip = ({ active, gold, onClick, children }) => (
     className={`font-mono text-[10px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-md border transition-colors whitespace-nowrap ${
       active
         ? gold
-          ? "bg-gold-primary/15 text-gold-primary border-line/40"
+          ? "bg-accent text-accent-fg border-ink/15"
           : "bg-ink/[0.08] text-text-primary border-ink/20"
         : "bg-ink/[0.04] text-text-muted border-ink/[0.1] hover:text-text-primary hover:border-ink/20"
     }`}
@@ -567,8 +566,8 @@ const DexRow = ({ p }) => {
           <span className="text-text-primary text-sm font-medium truncate">{p.base_symbol || p.name}</span>
           {p.flow_tag && (
             <span className={`shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-              p.flow_tag === "net_buying" ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/10"
-              : p.flow_tag === "net_selling" ? "text-red-400 border-red-500/25 bg-red-500/10"
+              p.flow_tag === "net_buying" ? "text-profit border-profit/25 bg-profit/10"
+              : p.flow_tag === "net_selling" ? "text-loss border-loss/25 bg-loss/10"
               : "text-text-primary/60 border-ink/[0.08] bg-ink/[0.03]"
             }`}>
               {FLOW_LABEL[p.flow_tag]}
@@ -576,13 +575,13 @@ const DexRow = ({ p }) => {
           )}
         </div>
         <div className="shrink-0 font-mono text-[11px] tabular-nums">
-          <span className="text-emerald-400">{b.toLocaleString()}</span>
+          <span className="text-profit">{b.toLocaleString()}</span>
           <span className="text-text-muted/30"> / </span>
-          <span className="text-red-400">{s.toLocaleString()}</span>
+          <span className="text-loss">{s.toLocaleString()}</span>
         </div>
       </div>
       <div className="flex h-1.5 rounded-full overflow-hidden bg-red-500/30">
-        <div className="h-full bg-emerald-400/80 transition-all duration-700" style={{ width: `${buyPct}%` }} />
+        <div className="h-full bg-profit/80 transition-all duration-700" style={{ width: `${buyPct}%` }} />
       </div>
       <div className="flex items-center justify-between mt-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/50">
         <span>Vol {fmtUSD(p.volume_24h_usd)}</span>
@@ -689,7 +688,7 @@ const CoinsTab = ({ q }) => {
           </FlowFilterChip>
           <FlowFilterChip gold active={filter === "calls"} onClick={() => setFilter("calls")}>
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold-primary" />
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               LuxQuant Calls <span className="opacity-70">{calledCount}</span>
             </span>
           </FlowFilterChip>
@@ -727,24 +726,24 @@ const CoinsTab = ({ q }) => {
                       onClick={clickable ? () => openSignal(c) : undefined}
                       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSignal(c); } } : undefined}
                       className={`group/row border-b border-ink/[0.05] transition-colors ${
-                        called ? "border-l-2 border-l-gold-primary/50" : "border-l-2 border-l-transparent"
-                      } ${clickable ? "cursor-pointer hover:bg-gold-primary/[0.06]" : "hover:bg-ink/[0.02]"}`}
+                        called ? "border-l-2 border-l-accent/50" : "border-l-2 border-l-transparent"
+                      } ${clickable ? "cursor-pointer hover:bg-surface-secondary" : "hover:bg-ink/[0.02]"}`}
                     >
                       {/* Coin */}
                       <td className="py-3 px-2 sm:px-3">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <CoinLogo pair={c.symbol} size={24} className="flex-shrink-0" />
-                          <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>{c.symbol}</span>
+                          <span className={`text-sm font-semibold truncate ${called ? "text-accent" : "text-text-primary"}`}>{c.symbol}</span>
                           {called && (
-                            <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-line/30">
+                            <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent text-accent-fg border border-ink/12">
                               Call
                             </span>
                           )}
                           {clickable && (
                             isLoading ? (
-                              <Spinner className="w-3.5 h-3.5 flex-shrink-0 text-gold-primary/70" />
+                              <Spinner className="w-3.5 h-3.5 flex-shrink-0 text-text-muted" />
                             ) : (
-                              <svg className="w-3.5 h-3.5 flex-shrink-0 text-gold-primary/40 group-hover/row:text-gold-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <svg className="w-3.5 h-3.5 flex-shrink-0 text-text-muted/50 group-hover/row:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M9 6l6 6-6 6" />
                               </svg>
                             )
@@ -766,7 +765,7 @@ const CoinsTab = ({ q }) => {
                       <td className="py-3 px-2 sm:px-3 text-right">
                         {c.turnover_tag && (
                           <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                            hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-ink/[0.08] bg-ink/[0.03]"
+                            hi ? "text-accent border-ink/12 bg-accent/12" : "text-text-muted border-ink/[0.08] bg-ink/[0.03]"
                           }`}>
                             {TURNOVER_LABEL[c.turnover_tag]}
                           </span>
@@ -796,21 +795,21 @@ const CoinsTab = ({ q }) => {
                       tabIndex={clickable ? 0 : undefined}
                       onClick={clickable ? () => openSignal(c) : undefined}
                       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSignal(c); } } : undefined}
-                      className={`px-3 py-3 ${called ? "border-l-2 border-l-gold-primary/50" : ""} ${clickable ? "cursor-pointer active:bg-gold-primary/[0.06]" : ""}`}
+                      className={`px-3 py-3 ${called ? "border-l-2 border-l-accent/50" : ""} ${clickable ? "cursor-pointer active:bg-surface-secondary" : ""}`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <CoinLogo pair={c.symbol} size={26} className="flex-shrink-0" />
-                        <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-text-primary"}`}>{c.symbol}</span>
+                        <span className={`text-sm font-semibold truncate ${called ? "text-accent" : "text-text-primary"}`}>{c.symbol}</span>
                         {called && (
-                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-line/30">
+                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent text-accent-fg border border-ink/12">
                             Call
                           </span>
                         )}
                         {clickable && (
                           isLoading ? (
-                            <Spinner className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/70" />
+                            <Spinner className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-text-muted" />
                           ) : (
-                            <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M9 6l6 6-6 6" />
                             </svg>
                           )
@@ -828,7 +827,7 @@ const CoinsTab = ({ q }) => {
                         <div className="justify-self-end">
                           {c.turnover_tag && (
                             <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                              hi ? "text-gold-primary border-line/25 bg-gold-primary/10" : "text-text-muted border-ink/[0.08] bg-ink/[0.03]"
+                              hi ? "text-accent border-ink/12 bg-accent/12" : "text-text-muted border-ink/[0.08] bg-ink/[0.03]"
                             }`}>
                               {TURNOVER_LABEL[c.turnover_tag]}
                             </span>
@@ -861,7 +860,7 @@ const CoinsTab = ({ q }) => {
           label="DEX Buy / Sell Pressure"
           right={
             <span className="hidden sm:flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/60">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-400/80" />Buy</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-profit/80" />Buy</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/50" />Sell</span>
               <span className="text-text-muted/35">· 24h</span>
             </span>
@@ -937,10 +936,10 @@ export default function MoneyFlowPage() {
 
       {/* Header — eyebrow + title + description (Delistings parity) */}
       <div className="mb-5 max-w-3xl">
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal · Flow</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">Terminal · Flow</span>
         <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Money Flow</h1>
         <p className="text-[12px] text-text-primary/50 leading-relaxed mt-2">
-          Where capital is rotating — <span className="text-gold-primary/85 font-medium">sectors</span>, coins &amp; whale
+          Where capital is rotating — <span className="text-accent/85 font-medium">sectors</span>, coins &amp; whale
           transactions. Track macro dominance, per-coin flow intensity, DEX buy/sell pressure and large on-chain moves in one place.
         </p>
       </div>
@@ -957,11 +956,11 @@ export default function MoneyFlowPage() {
                 aria-selected={active}
                 onClick={() => setTab(tb.key)}
                 className={`group whitespace-nowrap pb-3 pt-1 text-[14px] font-medium border-b-2 -mb-px transition-colors ${
-                  active ? "text-text-primary border-gold-primary" : "text-text-primary/50 border-transparent hover:text-text-primary/80"
+                  active ? "text-text-primary border-accent/25" : "text-text-primary/50 border-transparent hover:text-text-primary/80"
                 }`}
               >
                 <span className="inline-flex items-center gap-1.5">
-                  <span className={active ? "text-gold-primary" : "text-text-primary/40 group-hover:text-text-primary/70"}>{tb.icon}</span>
+                  <span className={active ? "text-accent" : "text-text-primary/40 group-hover:text-text-primary/70"}>{tb.icon}</span>
                   {tb.label}
                 </span>
               </button>

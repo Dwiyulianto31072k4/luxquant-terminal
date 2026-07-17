@@ -413,7 +413,7 @@ function SignalDetailModal({ d, onClose, onFull }) {
 
         <div className="mt-3 grid grid-cols-2 gap-2 px-5 sm:grid-cols-3">
           <Stat label="Win Rate" val={d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"} tone="text-text-primary" />
-          <Stat label="Max Target" val={d.max_target == null ? "—" : "+" + d.max_target.toFixed(0) + "%"} tone="text-emerald-400" />
+          <Stat label="Max Target" val={d.max_target == null ? "—" : "+" + d.max_target.toFixed(0) + "%"} tone="text-profit" />
           <Stat label="24h Δ" val={(d.price_change_24h >= 0 ? "+" : "") + (d.price_change_24h?.toFixed?.(1) ?? "—") + "%"} tone={sign(d.price_change_24h)} />
           <Stat label="BTC Align" val={d.btc_align == null ? "—" : d.btc_align.toFixed(0)} />
           <Stat label="Vol / MCap" val={d.flow_intensity ? (d.flow_intensity * 100).toFixed(1) + "%" : "—"} />
@@ -1075,7 +1075,7 @@ function Screener({ model, onPick }) {
                 </td>
                 <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/80">{(d.flow_intensity * 100).toFixed(1)}%</td>
                 <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/80">{d.btc_align ?? "—"}</td>
-                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-emerald-400/90">+{d.max_target.toFixed(0)}%</td>
+                <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-profit/90">+{d.max_target.toFixed(0)}%</td>
                 <td className="border-b border-ink/[0.04] px-2 py-1.5 text-right text-text-primary/80">${shortNum(d.market_cap)}</td>
               </tr>
             ))}

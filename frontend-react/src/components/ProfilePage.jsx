@@ -301,7 +301,7 @@ const ProfilePage = () => {
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100000] px-4 py-3 rounded-md text-xs font-medium shadow-2xl backdrop-blur-md ${
-          toast.type === 'error' ? 'bg-red-500/15 text-red-400 border border-red-500/25' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+          toast.type === 'error' ? 'bg-loss/15 text-loss border border-loss/25' : 'bg-profit/15 text-profit border border-profit/25'
         }`} style={{ animation: 'slideIn 0.3s ease-out' }}>
           <div className="flex items-center gap-2"><span>{toast.type === 'error' ? '✗' : '✓'}</span><span>{toast.message}</span></div>
         </div>
@@ -310,7 +310,7 @@ const ProfilePage = () => {
       {/* ═══ HEADER — Flowscan style ═══ */}
       <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted mb-2">
             Account
           </p>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
@@ -322,7 +322,7 @@ const ProfilePage = () => {
         </div>
         {user?.id && (
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-ink/[0.03] border border-ink/[0.06]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
             <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
               ID #{user.id}
             </span>
@@ -357,12 +357,12 @@ const ProfilePage = () => {
               <div className="flex flex-col items-center gap-2.5 w-full sm:w-auto sm:min-w-[110px]">
                 <div className="relative group">
                   <div onClick={handleAvatarClick}
-                    className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-line/20 hover:border-line/50 transition-all relative"
+                    className="w-24 h-24 rounded-md overflow-hidden cursor-pointer border border-ink/10 hover:border-ink/18 transition-all relative"
                     style={{ boxShadow: 'inset 0 1px 2px -1px rgb(var(--scrim) / 0.35)' }}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-gold-light via-accent to-gold-dark flex items-center justify-center">
                         <span className="text-3xl font-light text-bg-primary">{initial}</span>
                       </div>
                     )}
@@ -380,12 +380,12 @@ const ProfilePage = () => {
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={handleAvatarClick} className="font-mono text-[10px] uppercase tracking-wider text-gold-primary hover:text-gold-light transition-colors">
+                  <button onClick={handleAvatarClick} className="font-mono text-[10px] uppercase tracking-wider text-accent hover:text-gold-light transition-colors">
                     {t('profile.upload', 'Upload')}
                   </button>
                   {avatarUrl && (<>
                     <span className="text-text-muted/20">|</span>
-                    <button onClick={handleRemoveAvatar} className="font-mono text-[10px] uppercase tracking-wider text-red-400/60 hover:text-red-400 transition-colors">
+                    <button onClick={handleRemoveAvatar} className="font-mono text-[10px] uppercase tracking-wider text-loss/60 hover:text-loss transition-colors">
                       {t('profile.remove', 'Remove')}
                     </button>
                   </>)}
@@ -417,7 +417,7 @@ const ProfilePage = () => {
                     </button>
                   </div>
                   {usernameError
-                    ? <p className="text-red-400 text-[10px] mt-1.5 flex items-center gap-1"><span>✗</span> {usernameError}</p>
+                    ? <p className="text-loss text-[10px] mt-1.5 flex items-center gap-1"><span>✗</span> {usernameError}</p>
                     : <p className="text-text-muted/40 text-[10px] mt-1.5">{t('profile.username_hint', 'Lowercase letters, numbers, and underscores')}</p>}
                 </div>
 
@@ -438,7 +438,7 @@ const ProfilePage = () => {
           {/* DISPLAY PREFERENCES Card */}
           <Section
             title={t('profile.section_preferences', 'Display Preferences')}
-            badge={savingPreferences && <span className="font-mono text-[9px] uppercase tracking-wider text-gold-primary/70 flex items-center gap-1.5"><span className="w-2.5 h-2.5 border-2 border-line/30 border-t-gold-primary rounded-full animate-spin" /> Saving</span>}
+            badge={savingPreferences && <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted flex items-center gap-1.5"><span className="w-2.5 h-2.5 border-2 border-ink/12 border-t-accent rounded-full animate-spin" /> Saving</span>}
           >
             <div className="p-4 sm:p-5">
               <p className="text-text-muted text-xs mb-4">
@@ -456,16 +456,16 @@ const ProfilePage = () => {
 
               {/* ═══ LIVE BTC PREVIEW — replaces static rows ═══ */}
               {showLocal && (
-                <div className="mt-4 rounded-md overflow-hidden border border-line/15" style={{ background: 'rgba(212,168,83,0.03)' }}>
-                  <div className="flex items-center justify-between px-3.5 py-2 border-b border-line/10 bg-gold-primary/[0.03]">
+                <div className="mt-4 rounded-md overflow-hidden border border-ink/10" style={{ background: 'rgba(212,168,83,0.03)' }}>
+                  <div className="flex items-center justify-between px-3.5 py-2 border-b border-ink/08 bg-surface-secondary">
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-gold-primary/80 font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted font-semibold">
                         Live Conversion · BTC
                       </span>
                     </div>
                     {btcChangePct != null && (
-                      <span className={`font-mono text-[10px] font-semibold tabular-nums ${btcChangePct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <span className={`font-mono text-[10px] font-semibold tabular-nums ${btcChangePct >= 0 ? 'text-profit' : 'text-loss'}`}>
                         {btcChangePct >= 0 ? '+' : ''}{btcChangePct.toFixed(2)}%
                       </span>
                     )}
@@ -479,7 +479,7 @@ const ProfilePage = () => {
                             ${btcPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                           </span>
                           <span className="text-text-muted/40 text-base">≈</span>
-                          <span className="font-mono text-xl sm:text-2xl font-light text-gold-primary tabular-nums">
+                          <span className="font-mono text-xl sm:text-2xl font-light text-accent tabular-nums">
                             {btcLocal != null ? formatLocalPrice(btcLocal, user.currency_code) : '—'}
                           </span>
                         </div>
@@ -494,13 +494,13 @@ const ProfilePage = () => {
                       </>
                     ) : (
                       <div className="flex items-center gap-2 text-text-muted/50">
-                        <div className="w-3 h-3 border-2 border-line/20 border-t-gold-primary/60 rounded-full animate-spin" />
+                        <div className="w-3 h-3 border-2 border-ink/10 border-t-accent/60 rounded-full animate-spin" />
                         <span className="text-xs">Loading live price...</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="px-3.5 py-2 border-t border-line/10 bg-gold-primary/[0.02]">
+                  <div className="px-3.5 py-2 border-t border-ink/08 bg-accent/[0.02]">
                     <p className="text-text-muted/40 text-[9px] font-mono uppercase tracking-wider">
                       {t('profile.preview_note', 'Auto-refresh every 30s · Rates from CoinGecko')}
                     </p>
@@ -572,7 +572,7 @@ const Section = ({ title, badge, children }) => (
   <div className="overflow-hidden rounded-md border border-ink/[0.06] bg-ink/[0.015]"
     style={{ boxShadow: 'inset 0 1px 2px -1px rgb(var(--scrim) / 0.3)' }}>
     <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-ink/[0.05] bg-ink/[0.015]">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-semibold">
+      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted font-semibold">
         {title}
       </h2>
       {badge}
@@ -584,7 +584,7 @@ const Section = ({ title, badge, children }) => (
 const KpiCard = ({ label, value, accent = 'default', mono = false }) => {
   const accentClasses = {
     purple: 'text-purple-300',
-    green: 'text-emerald-300',
+    green: 'text-profit',
     muted: 'text-zinc-400',
     default: 'text-text-primary',
   };
@@ -611,8 +611,8 @@ const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink,
         <p className="text-text-primary text-xs font-medium">{name}</p>
         {linked ? (
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-1 h-1 rounded-full bg-emerald-400 flex-shrink-0" />
-            <p className="text-emerald-400/80 text-[10px] font-mono truncate">{detail}</p>
+            <span className="w-1 h-1 rounded-full bg-profit flex-shrink-0" />
+            <p className="text-profit/80 text-[10px] font-mono truncate">{detail}</p>
           </div>
         ) : (
           <p className="text-text-muted/50 text-[10px] font-mono mt-0.5">{detail}</p>
@@ -622,7 +622,7 @@ const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink,
     <div className="flex gap-1.5 flex-shrink-0">
       {linked && canUnlink && (
         <button onClick={onUnlink}
-          className="px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-semibold text-red-400/60 border border-red-500/15 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all">
+          className="px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-semibold text-loss/60 border border-red-500/15 hover:bg-loss/10 hover:text-loss hover:border-loss/25 transition-all">
           {unlinkLabel}
         </button>
       )}
@@ -630,7 +630,7 @@ const ConnectionRow = ({ icon, iconBg, iconBorder, name, linked, detail, onLink,
         <button onClick={onLink} disabled={linking}
           className={`px-2.5 py-1.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 ${
             replaceMode
-              ? 'text-amber-400/80 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-500/35'
+              ? 'text-accent/80 border border-amber-500/20 bg-amber-500/5 hover:bg-accent/12 hover:border-amber-500/35'
               : 'text-text-primary border border-ink/10 bg-ink/5 hover:bg-ink/10 hover:border-ink/20'
           }`}>
           {linking ? <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mx-2" /> : linkLabel}

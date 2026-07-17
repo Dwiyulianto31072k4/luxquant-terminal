@@ -20,7 +20,7 @@ const PAGE_SIZE = 20;
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
     <span
-      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+      className={`font-mono uppercase tracking-[0.25em] text-text-muted ${
         small ? "text-[10px]" : "text-[11px]"
       }`}
     >
@@ -63,14 +63,14 @@ const getTypeToken = (type, data) => {
 
 const toneStyle = (tone) => {
   if (tone === "gold")
-    return "bg-gold-primary/10 text-gold-primary border-line/25";
+    return "bg-accent/12 text-accent border-ink/12";
   if (tone === "danger")
-    return "bg-red-500/10 text-red-400 border-red-500/25";
+    return "bg-loss/10 text-loss border-loss/25";
   return "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
 
 const toneDot = (tone) => {
-  if (tone === "gold") return "bg-gold-primary";
+  if (tone === "gold") return "bg-accent";
   if (tone === "danger") return "bg-red-400";
   return "bg-ink/40";
 };
@@ -272,7 +272,7 @@ const NotificationsPage = () => {
               {t("notifications.title") || "Notifications"}
             </h1>
             {view === "inbox" && unreadCount > 0 && (
-              <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-[0.15em] px-2 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-line/25 tabular-nums">
+              <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-[0.15em] px-2 py-0.5 rounded border bg-accent/12 text-accent border-ink/12 tabular-nums">
                 {unreadCount} new
               </span>
             )}
@@ -293,7 +293,7 @@ const NotificationsPage = () => {
           <button
             onClick={handleMarkAllRead}
             disabled={markingAll}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-line/25 text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] hover:border-line/40 disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-ink/12 text-[10px] font-mono uppercase tracking-[0.2em] text-accent hover:bg-accent/10 hover:border-ink/15 disabled:opacity-50 transition-all"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -312,12 +312,12 @@ const NotificationsPage = () => {
               key={tab.key}
               onClick={() => setView(tab.key)}
               className={`relative px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.15em] transition-colors ${
-                active ? "text-gold-primary" : "text-text-muted hover:text-text-primary"
+                active ? "text-accent" : "text-text-muted hover:text-text-primary"
               }`}
             >
               {tab.label}
               {active && (
-                <span className="absolute bottom-0 inset-x-0 h-px bg-gold-primary" />
+                <span className="absolute bottom-0 inset-x-0 h-px bg-accent" />
               )}
             </button>
           );
@@ -348,12 +348,12 @@ const NotificationsPage = () => {
                     onClick={() => { setActiveTab(tab); setPage(1); }}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-[0.1em] transition-all ${
                       active
-                        ? "bg-gold-primary/15 text-gold-primary"
+                        ? "bg-accent text-accent-fg"
                         : "text-text-muted hover:text-text-primary"
                     }`}
                   >
                     <span>{tab === "all" ? (t("notifications.all") || "All") : (t("notifications.unread") || "Unread")}</span>
-                    <span className={`tabular-nums text-[10px] ${active ? "text-gold-primary/70" : "text-text-muted/50"}`}>{count}</span>
+                    <span className={`tabular-nums text-[10px] ${active ? "text-text-muted" : "text-text-muted/50"}`}>{count}</span>
                   </button>
                 );
               })}
@@ -362,7 +362,7 @@ const NotificationsPage = () => {
               <select
                 value={typeFilter || ""}
                 onChange={(e) => { setTypeFilter(e.target.value || null); setPage(1); }}
-                className="appearance-none cursor-pointer rounded-md border border-ink/[0.08] bg-ink/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-ink/[0.15] hover:text-text-primary focus:outline-none focus:border-line/40 transition-all"
+                className="appearance-none cursor-pointer rounded-md border border-ink/[0.08] bg-ink/[0.02] pl-3 pr-8 py-1.5 text-[11px] font-mono uppercase tracking-[0.1em] text-text-secondary hover:border-ink/[0.15] hover:text-text-primary focus:outline-none focus:border-ink/15 transition-all"
               >
                 {typeFilters.map((f) => (
                   <option key={f.key || "all"} value={f.key || ""} className="bg-surface-raised text-text-primary">
@@ -386,7 +386,7 @@ const NotificationsPage = () => {
               {groupByCategory(notifications, t).map(([catLabel, items]) => (
                 <div key={catLabel} className="space-y-1.5">
                   <div className="flex items-center gap-2 px-1 pt-1">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
                       {catLabel}
                     </span>
                     <span className="font-mono text-[10px] tabular-nums text-text-muted/50">
@@ -449,12 +449,12 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
       onClick={onClick}
       className={`group relative flex items-start gap-3 pl-4 pr-3 py-3 rounded-md border cursor-pointer transition-all ${
         isUnread
-          ? "bg-gold-primary/[0.03] border-ink/[0.06] hover:border-line/25"
+          ? "bg-surface-secondary border-ink/[0.06] hover:border-ink/12"
           : "bg-transparent border-ink/[0.04] hover:bg-ink/[0.015] hover:border-ink/[0.10]"
       }`}
     >
       {isUnread && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-[60%] w-[2px] rounded-full bg-gold-primary" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-[60%] w-[2px] rounded-full bg-accent" />
       )}
       <div className="shrink-0 pt-0.5">
         <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-1 rounded border whitespace-nowrap ${toneStyle(token.tone)}`}>
@@ -485,8 +485,8 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
             {notif.data.percentage !== undefined && notif.data.percentage !== null && (
               <span className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border tabular-nums ${
                 notif.data.percentage > 0
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
-                  : "bg-red-500/10 text-red-400 border-red-500/25"
+                  ? "bg-profit/10 text-profit border-profit/25"
+                  : "bg-loss/10 text-loss border-loss/25"
               }`}>
                 {notif.data.percentage > 0 ? "+" : ""}{notif.data.percentage}%
               </span>
@@ -494,14 +494,14 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
             {notif.data.realized_pnl !== undefined && notif.data.realized_pnl !== null && (
               <span className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border tabular-nums ${
                 notif.data.realized_pnl >= 0
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
-                  : "bg-red-500/10 text-red-400 border-red-500/25"
+                  ? "bg-profit/10 text-profit border-profit/25"
+                  : "bg-loss/10 text-loss border-loss/25"
               }`}>
                 {notif.data.realized_pnl >= 0 ? "+" : ""}{Number(notif.data.realized_pnl).toFixed(2)}
               </span>
             )}
             {notif.data.tp_level && (
-              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-gold-primary/10 text-gold-primary border-line/25">
+              <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-accent/12 text-accent border-ink/12">
                 {notif.data.tp_level.toUpperCase()} hit
               </span>
             )}
@@ -517,7 +517,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
         {isUnread && onMarkRead && (
           <button
             onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
-            className="p-1.5 rounded-md border border-transparent hover:border-line/25 hover:bg-gold-primary/[0.06] text-text-muted/40 hover:text-gold-primary transition-all"
+            className="p-1.5 rounded-md border border-transparent hover:border-ink/12 hover:bg-surface-secondary text-text-muted/40 hover:text-text-primary transition-all"
             title="Mark as read"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -527,7 +527,7 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="p-1.5 rounded-md border border-transparent hover:border-red-500/25 hover:bg-red-500/[0.05] text-text-muted/40 hover:text-red-400 transition-all"
+          className="p-1.5 rounded-md border border-transparent hover:border-loss/25 hover:bg-red-500/[0.05] text-text-muted/40 hover:text-loss transition-all"
           title="Delete"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -565,9 +565,8 @@ const LoadingSkeleton = () => (
 
 const EmptyState = ({ t }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-12 text-center">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
-      <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-ink/10 flex items-center justify-center">
+      <svg className="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
       </svg>
     </div>

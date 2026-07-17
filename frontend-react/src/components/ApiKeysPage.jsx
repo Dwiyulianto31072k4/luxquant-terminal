@@ -878,7 +878,7 @@ const StatCard = ({ label, value, accent, icon }) => (
 );
 
 const SectionHead = ({ children }) => (
-  <h2 className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80 mb-3">
+  <h2 className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-text-muted mb-3">
     {children}
   </h2>
 );
@@ -894,11 +894,11 @@ const KeyRow = ({ k, onRevoke, revoking, t }) => (
         {k.name || t("apiKeys.untitled")}
       </span>
       {k.is_active ? (
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-profit/15 text-profit border border-profit/20 flex-shrink-0">
           {t("apiKeys.status_active")}
         </span>
       ) : (
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-red-500/15 text-red-400 border border-red-500/20 flex-shrink-0">
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-loss/15 text-loss border border-loss/20 flex-shrink-0">
           {t("apiKeys.status_revoked")}
         </span>
       )}
@@ -927,7 +927,7 @@ const KeyRow = ({ k, onRevoke, revoking, t }) => (
         <button
           onClick={() => onRevoke(k.id)}
           disabled={revoking}
-          className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-red-400/80 border border-red-500/25 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 whitespace-nowrap"
+          className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-loss/80 border border-loss/25 hover:text-loss hover:bg-loss/10 transition-colors disabled:opacity-40 whitespace-nowrap"
         >
           {revoking ? t("apiKeys.revoking") : t("apiKeys.revoke")}
         </button>
@@ -961,7 +961,7 @@ const CodeBlock = ({
         </span>
         <button
           onClick={copy}
-          className="text-[10px] font-semibold text-gold-primary hover:text-gold-light transition-colors"
+          className="text-[10px] font-semibold text-accent hover:text-gold-light transition-colors"
         >
           {copied ? copiedLabel : copyLabel}
         </button>
@@ -1000,7 +1000,7 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
               }}
               className={`px-3 py-1.5 text-[11px] font-mono transition-colors border-b-2 -mb-px ${
                 i === active
-                  ? "text-gold-primary border-gold-primary"
+                  ? "text-accent border-accent/25"
                   : "text-text-muted hover:text-text-secondary border-transparent"
               }`}
             >
@@ -1010,7 +1010,7 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
         </div>
         <button
           onClick={copy}
-          className="px-3 text-[10px] font-semibold text-gold-primary hover:text-gold-light transition-colors"
+          className="px-3 text-[10px] font-semibold text-accent hover:text-gold-light transition-colors"
         >
           {copied ? copiedLabel : copyLabel}
         </button>
@@ -1026,7 +1026,7 @@ const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
 const DocSection = ({ id, title, children }) => (
   <section id={id} className="scroll-mt-24">
     <h3 className="text-text-primary font-semibold text-[15px] mb-2 flex items-center gap-2">
-      <span className="w-1 h-3.5 rounded-full bg-gold-primary/70" />
+      <span className="w-1 h-3.5 rounded-full bg-accent/70" />
       {title}
     </h3>
     <div className="text-text-secondary text-[13px] leading-relaxed space-y-2 pl-3">
@@ -1058,7 +1058,7 @@ const ParamTable = ({ rows }) => (
         {rows.map(([name, type, req, desc]) => (
           <tr key={name} className="border-t border-ink/[0.05] align-top">
             <td className="py-2 pr-3">
-              <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
+              <code className="font-mono text-[11px] text-accent whitespace-nowrap">
                 {name}
               </code>
             </td>
@@ -1067,7 +1067,7 @@ const ParamTable = ({ rows }) => (
             </td>
             <td className="py-2 pr-3 text-[11px]">
               {req === "yes" ? (
-                <span className="text-amber-400/80">yes</span>
+                <span className="text-accent/80">yes</span>
               ) : (
                 <span className="text-text-muted">no</span>
               )}
@@ -1094,7 +1094,7 @@ const FieldTable = ({ rows }) => (
         {rows.map(([name, meaning]) => (
           <tr key={name} className="border-t border-ink/[0.05] align-top">
             <td className="py-2 pr-3">
-              <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
+              <code className="font-mono text-[11px] text-accent whitespace-nowrap">
                 {name}
               </code>
             </td>
@@ -1119,10 +1119,10 @@ const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
       className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-ink/[0.02] transition-colors"
     >
       <div className="flex items-center gap-2 flex-wrap min-w-0">
-        <span className="font-mono text-[10px] font-bold text-emerald-400/80 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+        <span className="font-mono text-[10px] font-bold text-profit/80 px-1.5 py-0.5 rounded bg-profit/10 border border-profit/20">
           {ep.method}
         </span>
-        <code className="font-mono text-[13px] text-gold-primary/90 break-all">
+        <code className="font-mono text-[13px] text-accent break-all">
           {ep.path}
         </code>
       </div>
@@ -1177,7 +1177,7 @@ const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
 
         {ep.notes && (
           <p className="text-[11px] text-text-muted leading-relaxed">
-            <span className="text-gold-primary/60">Note:</span> {ep.notes}
+            <span className="text-text-muted">Note:</span> {ep.notes}
           </p>
         )}
       </div>
@@ -1201,12 +1201,12 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
               onClick={() => onNavigate(s.id)}
               className={`w-full text-left px-2 py-1.5 rounded-md transition-colors flex items-center gap-2 ${
                 isActive
-                  ? "text-gold-primary bg-gold-primary/10"
+                  ? "text-accent bg-accent/12"
                   : "text-text-secondary hover:text-text-primary hover:bg-ink/[0.03]"
               }`}
             >
               <span
-                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-gold-primary" : "bg-ink/20"}`}
+                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-accent" : "bg-ink/20"}`}
               />
               <span className="truncate">{s.label}</span>
             </button>
@@ -1244,7 +1244,7 @@ const TocChips = ({ active, onNavigate }) => (
           onClick={() => onNavigate(s.id)}
           className={`px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap transition-colors flex-shrink-0 border ${
             active === s.id
-              ? "bg-gold-primary/15 text-gold-primary border-line/30"
+              ? "bg-accent text-accent-fg border-ink/12"
               : "bg-ink/[0.03] text-text-secondary border-ink/5"
           }`}
         >
@@ -1378,8 +1378,8 @@ const ApiKeysPage = () => {
       {/* ── Header ── */}
       <header>
         <div className="flex items-center gap-2 mb-1">
-          <span className="w-1 h-3 rounded-full bg-gold-primary" />
-          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+          <span className="w-1 h-3 rounded-full bg-accent" />
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
             {t("apiKeys.eyebrow")}
           </span>
         </div>
@@ -1403,13 +1403,13 @@ const ApiKeysPage = () => {
         <StatCard
           label={t("apiKeys.stat_access", { defaultValue: "Access" })}
           value={accessLabel(user, t)}
-          accent={hasAccess ? "text-emerald-400" : "text-text-secondary"}
+          accent={hasAccess ? "text-profit" : "text-text-secondary"}
           icon={ICON_ACCESS}
         />
         <StatCard
           label={t("apiKeys.stat_active", { defaultValue: "Active keys" })}
           value={`${activeCount} / ${KEY_CAP}`}
-          accent={atLimit ? "text-amber-400" : "text-text-primary"}
+          accent={atLimit ? "text-accent" : "text-text-primary"}
           icon={ICON_KEY}
         />
         <StatCard
@@ -1427,16 +1427,16 @@ const ApiKeysPage = () => {
       {/* ── Non-subscriber upsell ── */}
       {!hasAccess && (
         <div
-          className="rounded-2xl p-5 border border-line/20 relative overflow-hidden"
+          className="rounded-2xl p-5 border border-ink/10 relative overflow-hidden"
           style={{
             background:
               "linear-gradient(160deg, rgba(212,168,83,0.08), rgb(var(--ink) / 0.01))",
           }}
         >
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gold-primary/10 border border-line/25">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-accent/12 border border-ink/12">
               <svg
-                className="w-5 h-5 text-gold-primary"
+                className="w-5 h-5 text-accent"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1458,7 +1458,7 @@ const ApiKeysPage = () => {
               </p>
               <button
                 onClick={() => navigate("/pricing")}
-                className="mt-3 px-4 py-2 rounded-lg text-[13px] font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all"
+                className="mt-3 px-4 py-2 rounded-lg text-[13px] font-bold bg-gradient-to-r from-gold-dark to-accent text-bg-primary hover:shadow-gold-glow transition-all"
               >
                 {t("apiKeys.upgrade_cta")}
               </button>
@@ -1469,7 +1469,7 @@ const ApiKeysPage = () => {
 
       {/* ── Error ── */}
       {error && (
-        <div className="rounded-xl px-4 py-3 text-[13px] text-red-400 border border-red-500/25 bg-red-500/10">
+        <div className="rounded-xl px-4 py-3 text-[13px] text-loss border border-loss/25 bg-loss/10">
           {error}
         </div>
       )}
@@ -1477,16 +1477,16 @@ const ApiKeysPage = () => {
       {/* ── Just-created key (once, full width) ── */}
       {justCreated && (
         <div
-          className="rounded-2xl p-5 border border-line/40 relative overflow-hidden"
+          className="rounded-2xl p-5 border border-ink/15 relative overflow-hidden"
           style={{
             background:
               "linear-gradient(160deg, rgba(212,168,83,0.10), rgb(var(--ink) / 0.01))",
           }}
         >
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/60 to-transparent" />
           <div className="flex items-center gap-2 mb-2">
             <svg
-              className="w-4 h-4 text-gold-primary"
+              className="w-4 h-4 text-accent"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1502,7 +1502,7 @@ const ApiKeysPage = () => {
               {t("apiKeys.created_title")}
             </h3>
           </div>
-          <p className="text-amber-400/90 text-[12px] mb-3">
+          <p className="text-accent/90 text-[12px] mb-3">
             ⚠ {t("apiKeys.created_warn")}
           </p>
           <div className="flex items-center gap-2">
@@ -1511,7 +1511,7 @@ const ApiKeysPage = () => {
             </code>
             <button
               onClick={() => copyKey(justCreated.key)}
-              className="px-3 py-2.5 rounded-lg text-[12px] font-semibold bg-gold-primary/15 text-gold-primary border border-line/30 hover:bg-gold-primary/25 transition-colors whitespace-nowrap"
+              className="px-3 py-2.5 rounded-lg text-[12px] font-semibold bg-accent text-accent-fg border border-ink/12 hover:bg-accent/25 transition-colors whitespace-nowrap"
             >
               {copied ? copiedLabel : copyLabel}
             </button>
@@ -1530,7 +1530,7 @@ const ApiKeysPage = () => {
         {/* Panel header */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink/5">
           <div>
-            <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-text-muted">
               {t("apiKeys.your_keys")}
             </h2>
             <p className="text-[11px] text-text-muted mt-0.5">
@@ -1543,7 +1543,7 @@ const ApiKeysPage = () => {
               className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
                 showCreate
                   ? "text-text-secondary border border-ink/10 hover:text-text-primary hover:bg-ink/[0.03]"
-                  : "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow"
+                  : "bg-gradient-to-r from-gold-dark to-accent text-bg-primary hover:shadow-gold-glow"
               }`}
             >
               {showCreate
@@ -1568,18 +1568,18 @@ const ApiKeysPage = () => {
                 placeholder={t("apiKeys.name_placeholder")}
                 maxLength={60}
                 autoFocus
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-ink/[0.03] border border-ink/10 placeholder:text-text-muted/70 focus:outline-none focus:border-line/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-text-primary bg-ink/[0.03] border border-ink/10 placeholder:text-text-muted/70 focus:outline-none focus:border-ink/15 focus:ring-1 focus:ring-accent/20 transition-colors"
               />
               <button
                 onClick={handleCreate}
                 disabled={creating || atLimit}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-accent text-bg-primary hover:shadow-gold-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {creating ? t("apiKeys.creating") : t("apiKeys.create_btn")}
               </button>
             </div>
             {atLimit && (
-              <p className="text-amber-400/80 text-[11px] mt-2">
+              <p className="text-accent/80 text-[11px] mt-2">
                 {t("apiKeys.limit_warn")}
               </p>
             )}
@@ -1603,7 +1603,7 @@ const ApiKeysPage = () => {
         {/* Rows */}
         {loading ? (
           <div className="py-10 flex items-center justify-center">
-            <div className="w-5 h-5 rounded-full border-2 border-line/30 border-t-gold-primary animate-spin" />
+            <div className="w-5 h-5 rounded-full border-2 border-ink/12 border-t-accent animate-spin" />
           </div>
         ) : keys.length === 0 ? (
           <div className="py-10 text-center">
@@ -1669,7 +1669,7 @@ const ApiKeysPage = () => {
           </SectionHead>
           <ul className="space-y-2.5 text-[12px] text-text-secondary">
             <li className="flex items-start gap-2">
-              <span className="text-gold-primary/70 mt-0.5">·</span>
+              <span className="text-text-muted mt-0.5">·</span>
               <span>
                 {t("apiKeys.security_rate", {
                   defaultValue:
@@ -1678,7 +1678,7 @@ const ApiKeysPage = () => {
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-gold-primary/70 mt-0.5">·</span>
+              <span className="text-text-muted mt-0.5">·</span>
               <span>
                 {t("apiKeys.security_cap", {
                   defaultValue: "Up to 2 active keys at a time.",
@@ -1686,7 +1686,7 @@ const ApiKeysPage = () => {
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-gold-primary/70 mt-0.5">·</span>
+              <span className="text-text-muted mt-0.5">·</span>
               <span>
                 {t("apiKeys.security_share", {
                   defaultValue:
@@ -1705,8 +1705,8 @@ const ApiKeysPage = () => {
         {/* Doc header */}
         <div className="pb-3 mb-4 border-b border-ink/5">
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+            <span className="w-1 h-3 rounded-full bg-accent" />
+            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
               Reference
             </span>
           </div>
@@ -1835,38 +1835,38 @@ const ApiKeysPage = () => {
             <DocSection id="doc-codes" title="Status & error codes">
               <ul className="list-none space-y-1.5">
                 <li>
-                  <span className="text-emerald-400 font-mono text-[12px]">
+                  <span className="text-profit font-mono text-[12px]">
                     200
                   </span>{" "}
                   — OK. Body contains the requested data.
                 </li>
                 <li>
-                  <span className="text-amber-400 font-mono text-[12px]">
+                  <span className="text-accent font-mono text-[12px]">
                     400
                   </span>{" "}
                   — Bad request, e.g. an invalid <Mono>status</Mono> value. The
                   body lists what's valid.
                 </li>
                 <li>
-                  <span className="text-red-400 font-mono text-[12px]">
+                  <span className="text-loss font-mono text-[12px]">
                     401
                   </span>{" "}
                   — Missing / invalid / revoked key.
                 </li>
                 <li>
-                  <span className="text-red-400 font-mono text-[12px]">
+                  <span className="text-loss font-mono text-[12px]">
                     403
                   </span>{" "}
                   — Key valid but subscription inactive.
                 </li>
                 <li>
-                  <span className="text-red-400 font-mono text-[12px]">
+                  <span className="text-loss font-mono text-[12px]">
                     404
                   </span>{" "}
                   — Resource not found (or outside the public data window).
                 </li>
                 <li>
-                  <span className="text-amber-400 font-mono text-[12px]">
+                  <span className="text-accent font-mono text-[12px]">
                     429
                   </span>{" "}
                   — Rate limit exceeded; see <Mono>Retry-After</Mono>.
@@ -1937,7 +1937,7 @@ const ApiKeysPage = () => {
                         className="border-t border-ink/[0.05] align-top"
                       >
                         <td className="py-2 pr-4">
-                          <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
+                          <code className="font-mono text-[11px] text-accent whitespace-nowrap">
                             {val}
                           </code>
                         </td>
@@ -1977,7 +1977,7 @@ const ApiKeysPage = () => {
             <DocSection id="doc-best" title="Best practices & FAQ">
               <ul className="list-none space-y-2">
                 <li className="flex items-start gap-2">
-                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span className="text-text-muted mt-0.5">·</span>
                   <span>
                     <span className="text-text-primary">Poll, don't hammer.</span>{" "}
                     10–15s intervals are plenty and stay within the 60/min
@@ -1985,7 +1985,7 @@ const ApiKeysPage = () => {
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span className="text-text-muted mt-0.5">·</span>
                   <span>
                     <span className="text-text-primary">Use the cursor.</span>{" "}
                     Re-fetching everything wastes your rate budget;{" "}
@@ -1993,7 +1993,7 @@ const ApiKeysPage = () => {
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span className="text-text-muted mt-0.5">·</span>
                   <span>
                     <span className="text-text-primary">
                       Handle "not ready" states.
@@ -2005,7 +2005,7 @@ const ApiKeysPage = () => {
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span className="text-text-muted mt-0.5">·</span>
                   <span>
                     <span className="text-text-primary">
                       Keep the key server-side.
@@ -2015,7 +2015,7 @@ const ApiKeysPage = () => {
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span className="text-text-muted mt-0.5">·</span>
                   <span>
                     <span className="text-text-primary">One identity per key.</span>{" "}
                     Sharing or reselling access can get the key flagged and

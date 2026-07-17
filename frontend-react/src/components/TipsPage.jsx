@@ -103,9 +103,9 @@ const TipsPage = () => {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <div className="w-16 h-0.5 bg-gradient-to-r from-accent to-transparent" />
           <h2 className="font-display text-2xl font-semibold text-text-primary">{t('tips.title')}</h2>
-          <span className="px-2 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded">
+          <span className="px-2 py-1 bg-accent/12 text-accent text-xs font-medium rounded">
             {tips.length} {t('tips.modules')}
           </span>
         </div>
@@ -113,7 +113,7 @@ const TipsPage = () => {
         {isAdmin && (
           <button
             onClick={() => { setEditingTip(null); setShowUploadModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary rounded-xl text-sm font-bold hover:shadow-gold-glow transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-dark to-accent text-bg-primary rounded-xl text-sm font-bold hover:shadow-gold-glow transition-all"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -124,7 +124,7 @@ const TipsPage = () => {
       </div>
 
       {/* Search + Category Filter */}
-      <div className="glass-card rounded-xl p-4 border border-line/10">
+      <div className="glass-card rounded-xl p-4 border border-ink/08">
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
           <form onSubmit={handleSearch} className="flex-1 min-w-[200px]">
@@ -139,7 +139,7 @@ const TipsPage = () => {
                 placeholder={t('tips.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-bg-card border border-line/15 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-line/40 transition-colors"
+                className="w-full bg-bg-card border border-ink/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-ink/15 transition-colors"
               />
             </div>
           </form>
@@ -150,8 +150,8 @@ const TipsPage = () => {
               onClick={() => { setActiveCategory('all'); setLoading(true); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeCategory === 'all'
-                  ? 'bg-gold-primary/20 text-gold-primary border border-line/30'
-                  : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-line/20'
+                  ? 'bg-accent text-accent-fg border border-ink/12'
+                  : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-ink/10'
               }`}
             >
               {t('tips.all')}
@@ -162,8 +162,8 @@ const TipsPage = () => {
                 onClick={() => { setActiveCategory(cat); setLoading(true); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeCategory === cat
-                    ? 'bg-gold-primary/20 text-gold-primary border border-line/30'
-                    : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-line/20'
+                    ? 'bg-accent text-accent-fg border border-ink/12'
+                    : 'bg-bg-card text-text-muted border border-ink/5 hover:text-text-primary hover:border-ink/10'
                 }`}
               >
                 {cat === 'General' ? t('tips.general') : cat}
@@ -175,11 +175,11 @@ const TipsPage = () => {
 
       {/* Error */}
       {error && (
-        <div className="glass-card rounded-xl p-6 border border-red-500/30 text-center">
-          <p className="text-red-400 text-sm mb-3">{error}</p>
+        <div className="glass-card rounded-xl p-6 border border-loss/25 text-center">
+          <p className="text-loss text-sm mb-3">{error}</p>
           <button
             onClick={() => { setLoading(true); fetchTips(); }}
-            className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg text-sm hover:bg-gold-primary/30 transition-colors"
+            className="px-4 py-2 bg-accent text-accent-fg rounded-lg text-sm hover:bg-accent/30 transition-colors"
           >
             {t('tips.retry')}
           </button>
@@ -188,9 +188,9 @@ const TipsPage = () => {
 
       {/* Empty State */}
       {!error && tips.length === 0 && (
-        <div className="glass-card rounded-xl p-12 border border-line/10 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gold-primary/10 flex items-center justify-center">
-            <svg className="w-8 h-8 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="glass-card rounded-xl p-12 border border-ink/08 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent/12 flex items-center justify-center">
+            <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
           </div>
@@ -198,7 +198,7 @@ const TipsPage = () => {
           {isAdmin && (
             <button
               onClick={() => setShowUploadModal(true)}
-              className="mt-4 px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg text-sm hover:bg-gold-primary/30 transition-colors"
+              className="mt-4 px-4 py-2 bg-accent text-accent-fg rounded-lg text-sm hover:bg-accent/30 transition-colors"
             >
               {t('tips.upload_first')}
             </button>
@@ -215,11 +215,11 @@ const TipsPage = () => {
               className={`tip-fade tip-fade-${(i % 6) + 1}`}
             >
               <div
-                className="tip-card glass-card rounded-xl border border-line/10 overflow-hidden cursor-pointer group relative"
+                className="tip-card glass-card rounded-xl border border-ink/08 overflow-hidden cursor-pointer group relative"
                 onClick={() => setSelectedTip(tip)}
               >
                 {/* Cover Image */}
-                <div className="relative h-44 overflow-hidden bg-gradient-to-br from-gold-primary/5 to-orange-500/5">
+                <div className="relative h-44 overflow-hidden bg-gradient-to-br from-accent/5 to-orange-500/5">
                   {tip.cover_image ? (
                     <img
                       src={`${API_BASE}/tips/file/cover/${tip.cover_image}`}
@@ -235,22 +235,22 @@ const TipsPage = () => {
                     className={`w-full h-full flex flex-col items-center justify-center ${tip.cover_image ? 'hidden' : 'flex'}`}
                     style={{ display: tip.cover_image ? 'none' : 'flex' }}
                   >
-                    <svg className="w-12 h-12 text-gold-primary/30 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-12 h-12 text-text-muted/40 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
-                    <span className="text-gold-primary/40 text-xs font-semibold">{t('tips.pdf_module')}</span>
+                    <span className="text-text-muted/50 text-xs font-semibold">{t('tips.pdf_module')}</span>
                   </div>
 
                   {/* Category Badge */}
                   <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-1 bg-scrim/60 backdrop-blur-sm text-gold-primary text-[10px] font-bold rounded-lg border border-line/20">
+                    <span className="px-2.5 py-1 bg-scrim/60 backdrop-blur-sm text-accent text-[10px] font-bold rounded-lg border border-ink/10">
                       {tip.category === 'General' ? t('tips.general') : tip.category}
                     </span>
                   </div>
 
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-scrim/0 group-hover:bg-scrim/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="bg-gold-primary/90 rounded-full p-3 shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                    <div className="bg-accent/90 rounded-full p-3 shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
                       <svg className="w-6 h-6 text-bg-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                       </svg>
@@ -260,7 +260,7 @@ const TipsPage = () => {
 
                 {/* Content */}
                 <div className="p-4">
-                  <h3 className="text-text-primary font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
+                  <h3 className="text-text-primary font-semibold text-sm group-hover:text-text-primary transition-colors line-clamp-2 leading-snug mb-1.5">
                     {tip.title}
                   </h3>
                   {tip.description && (
@@ -272,7 +272,7 @@ const TipsPage = () => {
                     <span className="text-text-muted text-[10px]">
                       {new Date(tip.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
-                    <span className="text-gold-primary text-[10px] font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    <span className="text-accent text-[10px] font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                       {t('tips.read')}
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -295,7 +295,7 @@ const TipsPage = () => {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteConfirm(tip.id); }}
-                      className="p-1.5 bg-scrim/70 backdrop-blur-sm rounded-lg text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 transition-all"
+                      className="p-1.5 bg-scrim/70 backdrop-blur-sm rounded-lg text-loss hover:text-loss border border-loss/20 hover:border-loss/30 transition-all"
                       title={t('tips.delete')}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -313,12 +313,12 @@ const TipsPage = () => {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-red-500/30 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-loss/25 sm:border max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">
               <div className="h-1 w-10 rounded-full bg-ink/25" />
             </div>
-            <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-red-500/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-loss/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-loss" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
@@ -333,7 +333,7 @@ const TipsPage = () => {
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors"
+                className="flex-1 py-2.5 bg-loss/20 border border-loss/25 text-loss rounded-xl text-sm font-bold hover:bg-red-500/30 transition-colors"
               >
                 {t('tips.delete')}
               </button>
@@ -390,7 +390,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] sm:h-full sm:max-h-[90vh] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
+        className="relative w-full max-w-5xl h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] sm:h-full sm:max-h-[90vh] bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl sm:shadow-black/50 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: 'modalIn .25s ease-out' }}
       >
@@ -398,9 +398,9 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-ink/12 to-transparent z-10" />
 
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-line/10 bg-bg-primary/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-ink/08 bg-bg-primary/50 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onClose}
@@ -411,9 +411,9 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
               </svg>
               <span className="text-xs font-medium hidden sm:inline">{t('tips.back')}</span>
             </button>
-            <div className="w-px h-6 bg-gold-primary/10 hidden sm:block" />
-            <div className="w-8 h-8 rounded-lg bg-gold-primary/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-px h-6 bg-accent/12 hidden sm:block" />
+            <div className="w-8 h-8 rounded-lg bg-accent/12 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
             </div>
@@ -426,7 +426,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
             <a
               href={pdfUrl}
               download
-              className="p-2 text-text-muted hover:text-gold-primary hover:bg-gold-primary/10 rounded-xl transition-all"
+              className="p-2 text-text-muted hover:text-text-primary hover:bg-accent/12 rounded-xl transition-all"
               title={t('tips.download_pdf')}
               onClick={(e) => e.stopPropagation()}
             >
@@ -438,7 +438,7 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
               href={pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 text-text-muted hover:text-gold-primary hover:bg-gold-primary/10 rounded-xl transition-all"
+              className="p-2 text-text-muted hover:text-text-primary hover:bg-accent/12 rounded-xl transition-all"
               title={t('tips.open_new_tab')}
               onClick={(e) => e.stopPropagation()}
             >
@@ -446,10 +446,10 @@ const PDFViewerModal = ({ tip, onClose, t }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
-            <div className="w-px h-6 bg-gold-primary/10 mx-1" />
+            <div className="w-px h-6 bg-accent/12 mx-1" />
             <button
               onClick={onClose}
-              className="p-2 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+              className="p-2 text-text-muted hover:text-loss hover:bg-loss/10 rounded-xl transition-all"
               title={t('tips.close')}
             >
               <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -548,11 +548,11 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-line/20 sm:border max-w-lg w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border max-w-lg w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink/08">
           <h3 className="text-text-primary font-semibold text-base">
             {isEdit ? t('tips.edit_module_title') : t('tips.upload_new_title')}
           </h3>
@@ -565,35 +565,35 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="text-gold-primary text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_title')}</label>
+            <label className="text-accent text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_title')}</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('tips.form_title_ph')}
-              className="w-full bg-bg-card border border-line/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-line/40 transition-colors"
+              className="w-full bg-bg-card border border-ink/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-ink/15 transition-colors"
               required
             />
           </div>
 
           <div>
-            <label className="text-gold-primary text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_desc')}</label>
+            <label className="text-accent text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_desc')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('tips.form_desc_ph')}
               rows={3}
-              className="w-full bg-bg-card border border-line/15 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-line/40 transition-colors resize-none"
+              className="w-full bg-bg-card border border-ink/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-ink/15 transition-colors resize-none"
             />
           </div>
 
           <div>
-            <label className="text-gold-primary text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_cat')}</label>
+            <label className="text-accent text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_cat')}</label>
             <div className="flex gap-2">
               <select
                 value={category}
                 onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }}
-                className="flex-1 bg-bg-card border border-line/15 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:border-line/40 transition-colors"
+                className="flex-1 bg-bg-card border border-ink/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:border-ink/15 transition-colors"
               >
                 <option value="General">{t('tips.general')}</option>
                 {categories.map(c => (
@@ -605,18 +605,18 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder={t('tips.or_new')}
-                className="w-28 bg-bg-card border border-line/15 rounded-xl px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-line/40 transition-colors"
+                className="w-28 bg-bg-card border border-ink/10 rounded-xl px-3 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-ink/15 transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-gold-primary text-[10px] font-bold uppercase tracking-wider mb-1.5 block">
+            <label className="text-accent text-[10px] font-bold uppercase tracking-wider mb-1.5 block">
               {t('tips.form_pdf')} {!isEdit && '*'}
             </label>
-            <label className="flex items-center gap-3 bg-bg-card border-2 border-dashed border-line/20 rounded-xl px-4 py-4 cursor-pointer hover:border-line/40 transition-colors">
-              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <label className="flex items-center gap-3 bg-bg-card border-2 border-dashed border-ink/10 rounded-xl px-4 py-4 cursor-pointer hover:border-ink/15 transition-colors">
+              <div className="w-10 h-10 rounded-lg bg-loss/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-loss" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
               </div>
@@ -638,9 +638,9 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
           </div>
 
           <div>
-            <label className="text-gold-primary text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_cover')}</label>
+            <label className="text-accent text-[10px] font-bold uppercase tracking-wider mb-1.5 block">{t('tips.form_cover')}</label>
             <div className="flex gap-3">
-              <label className="flex-1 flex items-center gap-3 bg-bg-card border-2 border-dashed border-line/20 rounded-xl px-4 py-4 cursor-pointer hover:border-line/40 transition-colors">
+              <label className="flex-1 flex items-center gap-3 bg-bg-card border-2 border-dashed border-ink/10 rounded-xl px-4 py-4 cursor-pointer hover:border-ink/15 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
@@ -660,7 +660,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
                 />
               </label>
               {coverPreview && (
-                <div className="w-20 h-20 rounded-xl overflow-hidden border border-line/15 flex-shrink-0">
+                <div className="w-20 h-20 rounded-xl overflow-hidden border border-ink/10 flex-shrink-0">
                   <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
                 </div>
               )}
@@ -668,8 +668,8 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="bg-loss/10 border border-loss/20 rounded-xl px-4 py-3">
+              <p className="text-loss text-sm">{error}</p>
             </div>
           )}
 
@@ -684,7 +684,7 @@ const UploadModal = ({ tip, onClose, onSuccess, categories, t }) => {
             <button
               type="submit"
               disabled={uploading}
-              className="flex-1 py-3 bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary rounded-xl text-sm font-bold hover:shadow-gold-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-gradient-to-r from-gold-dark to-accent text-bg-primary rounded-xl text-sm font-bold hover:shadow-gold-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {uploading ? (
                 <>
@@ -714,12 +714,12 @@ const LoadingSkeleton = () => (
       <div className="skel w-16 h-1" />
       <div className="skel w-40 h-7" />
     </div>
-    <div className="glass-card rounded-xl p-4 border border-line/10">
+    <div className="glass-card rounded-xl p-4 border border-ink/08">
       <div className="skel w-full h-10" />
     </div>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="glass-card rounded-xl overflow-hidden border border-line/10">
+        <div key={i} className="glass-card rounded-xl overflow-hidden border border-ink/08">
           <div className="skel h-44 rounded-none" />
           <div className="p-4 space-y-2">
             <div className="skel w-3/4 h-4" />

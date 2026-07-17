@@ -471,7 +471,7 @@ function AutoTradeOverview({
 
         <Card hover>
           <div className="flex items-start justify-between gap-4">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold-primary/10 text-gold-primary">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/12 text-accent">
               <SettingsIcon className="h-5 w-5" />
             </span>
             <StatusBadge tone="good">Live rules</StatusBadge>
@@ -491,7 +491,7 @@ function AutoTradeOverview({
           <button
             type="button"
             onClick={() => onOpenSettings("strategy")}
-            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary hover:text-gold-light"
+            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-accent hover:text-gold-light"
           >
             Review trading rules →
           </button>
@@ -521,9 +521,9 @@ function LoadingState() {
 
 function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
   return (
-    <Card className="border-line/20 bg-gold-primary/[0.03]">
+    <Card className="border-line/20 bg-accent/12">
       <div className="max-w-2xl space-y-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
           AutoTrade Setup
         </p>
         <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
@@ -813,7 +813,7 @@ export default function AutoTradePage() {
             type="button"
             onClick={() => setShowHelp(true)}
             aria-label="Open AutoTrade guide"
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/[0.08] text-text-muted transition-colors hover:border-line/30 hover:bg-gold-primary/[0.05] hover:text-gold-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/[0.08] text-text-muted transition-colors hover:border-line/30 hover:bg-accent/12 hover:text-accent"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />

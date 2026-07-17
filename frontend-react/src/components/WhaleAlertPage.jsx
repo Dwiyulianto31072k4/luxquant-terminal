@@ -79,11 +79,11 @@ const chainDot = (chain) => {
 // ── Semantic 3-tier transfer type style ──
 const transferTypeStyle = (type) => {
   if (type === "exchange_inflow")
-    return "bg-red-500/10 text-red-400 border-red-500/25";
+    return "bg-loss/10 text-loss border-loss/25";
   if (type === "exchange_outflow")
-    return "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
+    return "bg-profit/10 text-profit border-profit/25";
   if (type === "exchange_to_exchange")
-    return "bg-gold-primary/10 text-gold-primary border-line/25";
+    return "bg-accent/12 text-accent border-ink/12";
   return "bg-ink/[0.04] text-text-primary/70 border-ink/[0.08]";
 };
 
@@ -104,7 +104,7 @@ const transferTypeLabel = (type) => {
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
     <span
-      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+      className={`font-mono uppercase tracking-[0.25em] text-text-muted ${
         small ? "text-[10px]" : "text-[11px]"
       }`}
     >
@@ -130,23 +130,22 @@ const FlowStrip = ({ flows, t }) => {
     : t("whale.neutral") || "Neutral";
 
   const sentimentColor = isBullish
-    ? "text-emerald-400"
+    ? "text-profit"
     : isBearish
-    ? "text-red-400"
+    ? "text-loss"
     : "text-text-primary/80";
 
   const sentimentDot = isBullish
-    ? "bg-emerald-400"
+    ? "bg-profit"
     : isBearish
     ? "bg-red-400"
     : "bg-ink/40";
 
   const netFlow = flows.net_flow_usd || 0;
-  const netColor = netFlow > 0 ? "text-emerald-400" : netFlow < 0 ? "text-red-400" : "text-text-primary/70";
+  const netColor = netFlow > 0 ? "text-profit" : netFlow < 0 ? "text-loss" : "text-text-primary/70";
 
   return (
     <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         {/* Sentiment */}
@@ -200,8 +199,8 @@ const Divider = () => <span className="hidden sm:inline h-3 w-px bg-ink/[0.08]" 
 
 const FlowItem = ({ label, value, sublabel, tone, valueColor }) => {
   const color = valueColor || {
-    positive: "text-emerald-400",
-    danger: "text-red-400",
+    positive: "text-profit",
+    danger: "text-loss",
     neutral: "text-text-primary",
   }[tone] || "text-text-primary";
 
@@ -222,7 +221,6 @@ const FlowItem = ({ label, value, sublabel, tone, valueColor }) => {
 // ════════════════════════════════════════════════════════════════
 const StatCard = ({ label, value, sublabel }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgb(var(--ink)_/_0.04)]">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="relative z-10">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono mb-2">
         {label}
@@ -260,7 +258,7 @@ const TransactionRow = ({ tx, isNew, t }) => {
       target="_blank"
       rel="noopener noreferrer"
       className={`group relative block transition-colors border-b border-ink/[0.04] ${
-        isNew ? "bg-gold-primary/[0.04]" : "hover:bg-ink/[0.02]"
+        isNew ? "bg-surface-secondary" : "hover:bg-ink/[0.02]"
       }`}
     >
       <div className="flex items-center gap-3 px-3 sm:px-4 py-3">
@@ -272,7 +270,7 @@ const TransactionRow = ({ tx, isNew, t }) => {
         {/* Middle: amount + type + flow */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-gold-primary" : "text-text-primary"}`}>
+            <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-accent" : "text-text-primary"}`}>
               {tx.format_amount || formatAmount(tx.amount)} {tx.symbol}
             </span>
             <span
@@ -290,7 +288,7 @@ const TransactionRow = ({ tx, isNew, t }) => {
 
         {/* Right: USD + time */}
         <div className="shrink-0 flex flex-col items-end gap-0.5">
-          <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-gold-primary" : "text-text-primary"}`}>
+          <span className={`font-mono text-sm tabular-nums font-semibold ${isHighlight ? "text-accent" : "text-text-primary"}`}>
             {tx.format_amount_usd || formatUSD(tx.amount_usd)}
           </span>
           <span className="font-mono text-[10px] text-text-muted/60 tabular-nums uppercase tracking-wider">
@@ -319,9 +317,8 @@ const TransactionRow = ({ tx, isNew, t }) => {
 // ════════════════════════════════════════════════════════════════
 const SidebarCard = ({ label, children }) => (
   <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="px-3.5 py-3 border-b border-ink/[0.04]">
-      <span className="text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 font-mono">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono">
         {label}
       </span>
     </div>
@@ -349,7 +346,7 @@ const SidebarBlockchains = ({ byBlockchain }) => {
             >
               {/* Subtle background bar (gold tint, not rainbow) */}
               <div
-                className="absolute inset-y-0 left-0 bg-gold-primary/[0.05] rounded"
+                className="absolute inset-y-0 left-0 bg-surface-secondary rounded"
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
@@ -358,7 +355,7 @@ const SidebarBlockchains = ({ byBlockchain }) => {
                   <span className="font-mono">{data.symbol || chain.slice(0, 4).toUpperCase()}</span>
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-gold-primary/90 tabular-nums">
+                  <span className="text-[10px] font-mono text-accent tabular-nums">
                     {formatUSD(data.volume_usd)}
                   </span>
                   <span className="text-[10px] font-mono text-text-muted/70 tabular-nums w-6 text-right">
@@ -413,7 +410,7 @@ const SidebarTopWallets = ({ label, wallets, t }) => {
                   {w.owner || t("whale.unknown") || "unknown"}
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-gold-primary tabular-nums shrink-0">
+              <span className="text-[10px] font-mono text-accent tabular-nums shrink-0">
                 {formatUSD(w.volume_usd)}
               </span>
             </div>
@@ -451,8 +448,8 @@ const LoadingSkeleton = () => (
 
 const EmptyState = ({ message, hint }) => (
   <div className="relative overflow-hidden p-12 text-center">
-    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-line/20 flex items-center justify-center">
-      <svg className="w-5 h-5 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-ink/10 flex items-center justify-center">
+      <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
     </div>
@@ -572,12 +569,12 @@ export default function WhaleAlertPage() {
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${
               autoRefresh
-                ? "bg-emerald-500/[0.08] border-emerald-500/25 text-emerald-400"
+                ? "bg-profit/10 border-profit/25 text-profit"
                 : "bg-ink/[0.03] border-ink/[0.06] text-text-muted hover:text-text-primary hover:border-ink/[0.12]"
             }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? "bg-emerald-400 animate-pulse" : "bg-text-muted"}`}
+              className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? "bg-profit animate-pulse" : "bg-text-muted"}`}
             />
             <span className="uppercase tracking-[0.15em]">
               {autoRefresh ? t("whale.live") || "Live" : t("whale.paused") || "Paused"}
@@ -646,7 +643,7 @@ export default function WhaleAlertPage() {
                 onClick={() => setBlockchain(chain.key)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
+                    ? "bg-accent text-accent-fg border-ink/15"
                     : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
@@ -675,13 +672,13 @@ export default function WhaleAlertPage() {
                 onClick={() => setTransferType(type.key)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
+                    ? "bg-accent text-accent-fg border-ink/15"
                     : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
                 {type.label}
                 {stats && (
-                  <span className={`ml-1.5 tabular-nums ${active ? "text-gold-primary/70" : "text-text-muted/60"}`}>
+                  <span className={`ml-1.5 tabular-nums ${active ? "text-text-muted" : "text-text-muted/60"}`}>
                     {count}
                   </span>
                 )}
@@ -703,7 +700,7 @@ export default function WhaleAlertPage() {
                 onClick={() => setMinUsd(opt.value)}
                 className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
                   active
-                    ? "bg-gold-primary/15 text-gold-primary border-line/40"
+                    ? "bg-accent text-accent-fg border-ink/15"
                     : "bg-ink/[0.02] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.12]"
                 }`}
               >
@@ -721,7 +718,6 @@ export default function WhaleAlertPage() {
           <SectionHeader label="Live Transactions" small />
 
           <div className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
             {/* Tx count header */}
             <div className="relative flex items-center justify-between px-4 py-2.5 border-b border-ink/[0.06]">
@@ -730,7 +726,7 @@ export default function WhaleAlertPage() {
                   {transactions.length} {t("whale.transactions") || "transactions"}
                 </span>
                 {refreshing && (
-                  <div className="w-2.5 h-2.5 border border-line/40 border-t-gold-primary rounded-full animate-spin" />
+                  <div className="w-2.5 h-2.5 border border-ink/15 border-t-accent rounded-full animate-spin" />
                 )}
               </div>
               {sources.length > 0 && (
@@ -745,10 +741,10 @@ export default function WhaleAlertPage() {
 
             {!loading && error && (
               <div className="p-8 text-center">
-                <p className="text-red-400 text-sm mb-3 font-mono">{error}</p>
+                <p className="text-loss text-sm mb-3 font-mono">{error}</p>
                 <button
                   onClick={() => fetchData()}
-                  className="text-gold-primary text-[11px] font-mono uppercase tracking-[0.15em] hover:underline"
+                  className="text-accent text-[11px] font-mono uppercase tracking-[0.15em] hover:underline"
                 >
                   {t("whale.try_again") || "Try again"} →
                 </button>
@@ -799,7 +795,6 @@ export default function WhaleAlertPage() {
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="relative overflow-hidden bg-surface-raised border border-ink/[0.06] rounded-md p-4">
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
                   <div className="h-3 bg-ink/[0.05] rounded w-1/2 mb-3 animate-pulse" />
                   <div className="space-y-2">
                     <div className="h-3 bg-ink/[0.03] rounded animate-pulse" />
@@ -815,7 +810,7 @@ export default function WhaleAlertPage() {
 
       {/* Footer info */}
       <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/50">
-        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="w-1 h-1 rounded-full bg-profit animate-pulse" />
         <span>Auto-refresh 120s</span>
         <span className="text-text-muted/30">·</span>
         <span>

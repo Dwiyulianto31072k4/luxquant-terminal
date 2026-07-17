@@ -40,7 +40,7 @@ const STATUS_STYLE = {
 
 const Spinner = ({ className = "w-3.5 h-3.5" }) => (
   <span
-    className={`${className} inline-block rounded-full border-2 border-line/25 border-t-gold-primary animate-spin`}
+    className={`${className} inline-block rounded-full border-2 border-line/25 border-t-accent animate-spin`}
     aria-hidden
   />
 );
@@ -213,7 +213,7 @@ const GenerationConsole = ({
             <div
               className={`mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center border ${
                 isRunning
-                  ? "bg-gold-primary/15 border-line/40"
+                  ? "bg-accent/12 border-line/40"
                   : isError
                     ? "bg-red-500/15 border-red-500/40"
                     : isDone
@@ -224,7 +224,7 @@ const GenerationConsole = ({
               {isRunning ? (
                 <Spinner className="w-4 h-4" />
               ) : (
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-gold-primary" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 text-accent" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" strokeLinecap="round" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
@@ -236,8 +236,8 @@ const GenerationConsole = ({
                   Generate Console
                 </h2>
                 {isRunning && (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-gold-primary/15 text-gold-primary border border-line/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-accent/12 text-accent border border-line/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent/12 animate-pulse" />
                     Live
                   </span>
                 )}
@@ -284,7 +284,7 @@ const GenerationConsole = ({
             <button
               onClick={onGenerate}
               disabled={isRunning || starting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold bg-gold-primary text-black hover:bg-gold-light disabled:opacity-45 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-6px_rgba(212,168,83,0.7)]"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold bg-accent/12 text-black hover:bg-gold-light disabled:opacity-45 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-6px_rgba(212,168,83,0.7)]"
             >
               {(isRunning || starting) && <Spinner className="w-3 h-3 border-black/25 border-t-black" />}
               {isRunning || starting ? "Generating…" : "Generate draft"}
@@ -312,7 +312,7 @@ const GenerationConsole = ({
                 <div className="text-right shrink-0">
                   <p
                     className={`text-[18px] font-semibold tabular-nums leading-none ${
-                      isError ? "text-red-400" : isDone ? "text-green-400" : "text-gold-primary"
+                      isError ? "text-red-400" : isDone ? "text-green-400" : "text-accent"
                     }`}
                   >
                     {isError ? "!" : `${progress}%`}
@@ -330,7 +330,7 @@ const GenerationConsole = ({
                       ? "bg-red-500"
                       : isDone
                         ? "bg-green-500"
-                        : "bg-gradient-to-r from-gold-dark via-gold-primary to-gold-light"
+                        : "bg-gradient-to-r from-gold-dark via-accent to-gold-light"
                   }`}
                   style={{
                     width: `${isError ? 100 : progress}%`,
@@ -353,7 +353,7 @@ const GenerationConsole = ({
                       failed
                         ? "bg-red-500/10 border-red-500/30 text-red-300"
                         : active
-                          ? "bg-gold-primary/10 border-line/35 text-gold-primary"
+                          ? "bg-accent/12 border-line/35 text-accent"
                           : done
                             ? "bg-green-500/8 border-green-500/20 text-green-400/90"
                             : "bg-ink/[0.02] border-ink/[0.06] text-text-muted/70"
@@ -364,7 +364,7 @@ const GenerationConsole = ({
                         failed
                           ? "bg-red-500 text-text-primary"
                           : active
-                            ? "bg-gold-primary text-black"
+                            ? "bg-accent/12 text-black"
                             : done
                               ? "bg-green-500 text-text-primary"
                               : "bg-ink/10 text-text-muted"
@@ -568,7 +568,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
     <div className="rounded-xl border border-amber-400/20 bg-gradient-to-b from-amber-500/[0.07] to-scrim/40 p-3.5 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-gold-primary">
+          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-accent">
             Safe materials · all story brands
           </p>
           <p className="text-[11px] text-text-muted mt-0.5 leading-snug">
@@ -667,7 +667,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               </div>
               {needAction && (
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <label className="cursor-pointer px-2.5 py-1 rounded-md text-[10px] font-semibold bg-gold-primary text-black hover:bg-gold-light transition-colors">
+                  <label className="cursor-pointer px-2.5 py-1 rounded-md text-[10px] font-semibold bg-accent/12 text-black hover:bg-gold-light transition-colors">
                     {busy === item.name ? "Uploading…" : "Upload official file"}
                     <input
                       type="file"
@@ -716,7 +716,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         className={`w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border transition-colors disabled:opacity-40 ${
           data.needs_materials
             ? "bg-ink/[0.04] text-text-muted border-ink/10"
-            : "bg-gold-primary text-black border-line/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
+            : "bg-accent/12 text-black border-line/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
         }`}
         title={data.needs_materials ? "Upload / confirm all materials first" : undefined}
       >
@@ -880,7 +880,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                 href={post.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] font-mono text-text-muted hover:text-gold-primary transition-colors"
+                className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors"
               >
                 source ↗
               </a>
@@ -1063,7 +1063,7 @@ const SocialPostsAdminPage = () => {
           </p>
         </div>
         {isGenRunning && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-primary/10 border border-line/30 text-gold-primary text-[11px] font-mono">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/12 border border-line/30 text-accent text-[11px] font-mono">
             <Spinner className="w-3 h-3" />
             Generation in progress
             {typeof genJob?.progress === "number" ? ` · ${genJob.progress}%` : ""}

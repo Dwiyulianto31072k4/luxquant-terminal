@@ -89,7 +89,7 @@ export default function PortfolioPage() {
 
   if (error) {
     return (
-      <div className="rounded-md border border-red-500/25 bg-red-500/[0.05] p-4 text-sm text-red-400">
+      <div className="rounded-md border border-loss/25 bg-red-500/[0.05] p-4 text-sm text-loss">
         {error}
       </div>
     );
@@ -172,8 +172,8 @@ export default function PortfolioPage() {
                     <td
                       className={`px-3 py-2 font-mono ${
                         Number(position.unrealizedProfit || 0) >= 0
-                          ? "text-emerald-400"
-                          : "text-red-400"
+                          ? "text-profit"
+                          : "text-loss"
                       }`}
                     >
                       {position.unrealizedProfit}

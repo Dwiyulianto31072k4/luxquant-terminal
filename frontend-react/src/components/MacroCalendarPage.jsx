@@ -288,7 +288,7 @@ const MacroCalendarPage = () => {
               {isZh ? tab.labelZh : tab.label}
               {countNum != null && (
                 <span className={`font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm border ${
-                  active ? 'bg-gold-primary/10 text-gold-primary border-line/25' : 'bg-ink/[0.04] text-text-muted/70 border-ink/[0.04]'
+                  active ? 'bg-accent/12 text-accent border-ink/12' : 'bg-ink/[0.04] text-text-muted/70 border-ink/[0.04]'
                 }`}>
                   {countNum}
                 </span>
@@ -385,14 +385,13 @@ const MacroCalendarPage = () => {
               <p className="font-mono text-[11px] uppercase tracking-wider text-loss mb-3">{error}</p>
               <button
                 onClick={loadEvents}
-                className="px-4 py-2 rounded-sm bg-gold-primary/10 text-gold-primary border border-line/25 hover:bg-gold-primary/15 font-mono text-[11px] uppercase tracking-wider transition-colors"
+                className="px-4 py-2 rounded-sm bg-accent/12 text-accent border border-ink/12 hover:bg-accent font-mono text-[11px] uppercase tracking-wider transition-colors"
               >
                 {t('calendar.try_again')}
               </button>
             </div>
           ) : filteredEvents.length === 0 ? (
             <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-12 text-center relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-surface-secondary border border-ink/[0.06] flex items-center justify-center">
                 <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -426,8 +425,8 @@ const MacroCalendarPage = () => {
         {/* ── News Sidebar ── */}
         <div className="lg:w-[340px] xl:w-[380px] shrink-0">
           <div className="flex items-center gap-3 mb-4">
-            <span className="h-px w-6 bg-gold-primary/40" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+            <span className="h-px w-6 bg-accent/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
               {isZh ? '宏观与加密新闻' : 'Macro & Crypto News'}
             </span>
             <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
@@ -492,11 +491,8 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
 
   return (
     <div className={`bg-surface-raised rounded-md overflow-hidden border relative ${
-      isToday ? 'border-line/30' : 'border-ink/[0.06]'
+      isToday ? 'border-ink/12' : 'border-ink/[0.06]'
     }`}>
-      {isToday && (
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
-      )}
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-2.5 px-4 py-3 transition-colors hover:bg-ink/[0.02]"
@@ -509,13 +505,13 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
         </svg>
 
         {isToday && (
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-line/25">
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm bg-accent/12 text-accent border border-ink/12">
             Today
           </span>
         )}
         <span className="text-text-primary text-[12px] whitespace-nowrap">
           {weekday && (
-            <span className={`font-mono uppercase tracking-wider mr-1.5 ${isToday ? 'text-gold-primary' : 'text-text-muted/70'}`}>
+            <span className={`font-mono uppercase tracking-wider mr-1.5 ${isToday ? 'text-accent' : 'text-text-muted/70'}`}>
               {weekday},
             </span>
           )}
@@ -536,7 +532,7 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
             </span>
           )}
           {cryptoCount > 0 && (
-            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-line/20">
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-accent/12 text-accent border border-ink/10">
               {cryptoCount}
               <IconBoltMini />
             </span>
@@ -607,7 +603,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
       return (
         <div className="flex flex-col items-end gap-0.5 font-mono tabular-nums">
           {event.forecast && (
-            <span className="text-[10px] text-gold-primary">{event.forecast}</span>
+            <span className="text-[10px] text-accent">{event.forecast}</span>
           )}
           {event.previous && (
             <span className="text-[9px] uppercase tracking-wider text-text-muted/70">
@@ -619,7 +615,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
     }
     if (event.type === 'crypto_event' && event.category) {
       return (
-        <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-line/20">
+        <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-accent/10 text-text-muted border border-ink/10">
           {event.category}
         </span>
       );
@@ -634,7 +630,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
   };
   const TypeIcon = () => {
     if (event.type === 'unlock') return <IconUnlockMini className="text-profit" />;
-    if (event.type === 'crypto_event') return <IconBoltMini className="text-gold-primary" />;
+    if (event.type === 'crypto_event') return <IconBoltMini className="text-accent" />;
     return null;
   };
 
@@ -739,7 +735,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
               ) : null}
               {event.type === 'macro' && event.forecast && (
                 <span className="text-[10px] uppercase tracking-wider text-text-muted/70">
-                  F: <span className="text-gold-primary normal-case">{event.forecast}</span>
+                  F: <span className="text-accent normal-case">{event.forecast}</span>
                 </span>
               )}
               {event.type === 'macro' && event.previous && (
@@ -748,7 +744,7 @@ const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) 
                 </span>
               )}
               {event.type === 'crypto_event' && event.category && (
-                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-line/20">
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-accent/10 text-text-muted border border-ink/10">
                   {event.category}
                 </span>
               )}
@@ -784,7 +780,7 @@ const NewsItem = ({ article }) => {
       href={article.link}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-ink/[0.06] hover:border-line/25 hover:bg-ink/[0.02] transition-all duration-200"
+      className="group flex gap-3 rounded-sm p-2.5 bg-surface-raised border border-ink/[0.06] hover:border-ink/12 hover:bg-ink/[0.02] transition-all duration-200"
     >
       {article.image && (
         <div className="w-20 h-14 rounded-sm overflow-hidden shrink-0 bg-surface-secondary">
@@ -811,7 +807,7 @@ const NewsItem = ({ article }) => {
             </span>
           )}
         </div>
-        <h3 className="text-[12px] leading-snug line-clamp-2 transition-colors text-text-secondary group-hover:text-gold-primary">
+        <h3 className="text-[12px] leading-snug line-clamp-2 transition-colors text-text-secondary group-hover:text-text-primary">
           {article.title}
         </h3>
       </div>
@@ -827,17 +823,16 @@ const CalendarStat = ({ label, value, icon, color = "default" }) => {
   const colorStyles = {
     profit: "text-profit",
     loss: "text-loss",
-    gold: "text-gold-primary",
+    gold: "text-accent",
     default: "text-text-primary",
   };
   return (
     <div className="bg-surface-raised rounded-md border border-ink/[0.06] p-3 relative overflow-hidden">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
       <div className="flex items-center justify-between mb-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
           {label}
         </p>
-        <div className="w-6 h-6 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-line/15 text-gold-primary">
+        <div className="w-6 h-6 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
           <StatIcon type={icon} />
         </div>
       </div>

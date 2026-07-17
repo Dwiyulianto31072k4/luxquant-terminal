@@ -14,7 +14,7 @@ function Crumbs({ trail }) {
         <span key={i} className="inline-flex items-center gap-1.5">
           {i > 0 && <span className="text-text-primary/25">/</span>}
           {c.to ? (
-            <Link to={c.to} className="hover:text-gold-primary transition-colors">{c.label}</Link>
+            <Link to={c.to} className="hover:text-accent transition-colors">{c.label}</Link>
           ) : (
             <span className="text-text-primary/70">{c.label}</span>
           )}
@@ -63,7 +63,7 @@ function TermPage({ slug }) {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn", to: "/learn" }, { label: term.term }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Glossary</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Glossary</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">{term.term}</h1>
       {term.aka && <p className="mt-1 font-mono text-[12px] text-text-muted">Also known as: {term.aka}</p>}
 
@@ -77,7 +77,7 @@ function TermPage({ slug }) {
           <div className="flex flex-wrap gap-2">
             {related.map((r) => (
               <Link key={r.slug} to={`/learn/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
+                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-accent transition-colors">
                 {r.term}
               </Link>
             ))}
@@ -85,15 +85,15 @@ function TermPage({ slug }) {
         </div>
       )}
 
-      <div className="mt-8 rounded-xl border border-line/20 bg-gold-primary/[0.04] p-5">
+      <div className="mt-8 rounded-xl border border-line/20 bg-accent/12 p-5">
         <p className="text-[15px] text-text-primary/80">See {term.term.toLowerCase()} live in the terminal.</p>
-        <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-gold-primary/15 border border-line/40 px-4 py-2 text-[13px] font-medium text-gold-primary hover:bg-gold-primary/25 transition-colors">
+        <Link to="/money-flow" className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/12 border border-line/40 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/12 transition-colors">
           Open LuxQuant Money Flow →
         </Link>
       </div>
 
       <div className="mt-8">
-        <Link to="/learn" className="font-mono text-[12px] text-text-muted hover:text-gold-primary transition-colors">← Back to glossary</Link>
+        <Link to="/learn" className="font-mono text-[12px] text-text-muted hover:text-accent transition-colors">← Back to glossary</Link>
       </div>
     </div>
   );
@@ -133,7 +133,7 @@ function IndexPage() {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Learn" }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Learn · Glossary</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent">Learn · Glossary</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Crypto &amp; Quant Glossary</h1>
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Plain-English definitions of the concepts behind the LuxQuant Terminal — the same metrics you'll see across Money Flow, On-Chain, and Signals.
@@ -143,14 +143,14 @@ function IndexPage() {
         {GLOSSARY.map((t) => (
           <Link key={t.slug} to={`/learn/${t.slug}`}
             className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-ink/[0.02] transition-colors">
-            <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{t.term}</h2>
+            <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-accent transition-colors">{t.term}</h2>
             <p className="mt-1.5 text-[13px] text-text-primary/55 leading-relaxed line-clamp-3">{t.short}</p>
           </Link>
         ))}
       </div>
 
       <div className="mt-8 font-mono text-[12px] text-text-muted">
-        Prefer long-form? Read the <Link to="/blog" className="text-gold-primary/80 hover:text-gold-primary">LuxQuant blog →</Link>
+        Prefer long-form? Read the <Link to="/blog" className="text-accent hover:text-accent">LuxQuant blog →</Link>
       </div>
     </div>
   );

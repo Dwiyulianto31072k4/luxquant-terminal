@@ -66,7 +66,7 @@ function fmtPrice(v) {
 
 function parseSmartTags(text) {
   if (!text) return '';
-  let parsed = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="text-gold-primary font-mono text-sm font-semibold">$1</span>');
+  let parsed = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="text-accent font-mono text-sm font-semibold">$1</span>');
   parsed = parsed.replace(/@(\w+)/g, '<a href="https://x.com/$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 font-semibold">@$1</a>');
   return parsed;
 }
@@ -83,7 +83,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
   return (
     <div className="flex items-center justify-between flex-wrap gap-3">
       <div className="flex items-center gap-3">
-        <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+        <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-accent to-transparent" />
         <div>
           <h2 className="font-display text-xl lg:text-2xl font-semibold text-text-primary">AI Arena</h2>
           <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
@@ -106,7 +106,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
         {/* Generated ago */}
         <div className="text-[10px] text-text-muted">{timeAgo(report.timestamp)}</div>
         {/* Refresh */}
-        <button onClick={onRefresh} className="p-1.5 rounded-lg hover:bg-ink/[0.06] text-text-muted hover:text-gold-primary transition-colors" title="Refresh">
+        <button onClick={onRefresh} className="p-1.5 rounded-lg hover:bg-ink/[0.06] text-text-muted hover:text-accent transition-colors" title="Refresh">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
         </button>
         {/* Previous reports dropdown */}
@@ -124,7 +124,7 @@ function Header({ report, onRefresh, history, onSelectReport }) {
                   const isCurrent = r.id === report.id;
                   return (
                     <button key={r.id} onClick={() => { onSelectReport(r); setDropdownOpen(false); }}
-                      className={`w-full text-left px-3 py-2.5 border-b border-ink/5 last:border-0 hover:bg-ink/[0.04] transition-colors ${isCurrent ? 'bg-gold-primary/10' : ''}`}>
+                      className={`w-full text-left px-3 py-2.5 border-b border-ink/5 last:border-0 hover:bg-ink/[0.04] transition-colors ${isCurrent ? 'bg-accent/12' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs">{s.icon}</span>
@@ -210,7 +210,7 @@ function ZonesToWatch({ zones, currentPrice }) {
 
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
-      <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-3">Zones to Watch</div>
+      <div className="text-[10px] uppercase tracking-widest font-bold text-accent mb-3">Zones to Watch</div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         {['demand', 'fair_value', 'supply'].map(key => {
           const zone = zones[key];
@@ -252,7 +252,7 @@ function TripleScreenStrip({ alignment, tfSummary, onTFClick }) {
 
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
-      <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-3">Triple Screen</div>
+      <div className="text-[10px] uppercase tracking-widest font-bold text-accent mb-3">Triple Screen</div>
       <div className="grid grid-cols-3 gap-3">
         {screens.map(({ tf, label, data, tech }) => {
           const state = data?.state || 'NEUTRAL';
@@ -266,7 +266,7 @@ function TripleScreenStrip({ alignment, tfSummary, onTFClick }) {
               <div className="text-base lg:text-lg font-bold mb-1" style={{ color }}>{state}</div>
               {rsi != null && (
                 <div className="text-[10px] text-text-muted">
-                  RSI <span className={`font-bold ${rsi >= 70 ? 'text-red-400' : rsi <= 30 ? 'text-green-400' : 'text-gold-primary'}`}>{rsi}</span>
+                  RSI <span className={`font-bold ${rsi >= 70 ? 'text-red-400' : rsi <= 30 ? 'text-green-400' : 'text-accent'}`}>{rsi}</span>
                 </div>
               )}
               {data?.note && <div className="text-[9px] text-text-muted mt-1 leading-snug">{data.note}</div>}
@@ -431,7 +431,7 @@ function PriceChart({ activeTF, onTFChange }) {
         <div className="flex items-center gap-1">
           {[{ key: '1D', label: 'Daily', sub: 'Tide' }, { key: '4H', label: '4H', sub: 'Wave' }, { key: '1H', label: '1H', sub: 'Ripple' }].map(tf => (
             <button key={tf.key} onClick={() => onTFChange(tf.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-gold-primary/15 text-gold-primary border border-line/30' : 'text-text-muted hover:text-text-primary hover:bg-ink/[0.04] border border-transparent'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTF === tf.key ? 'bg-accent/12 text-accent border border-line/30' : 'text-text-muted hover:text-text-primary hover:bg-ink/[0.04] border border-transparent'}`}>
               {tf.label} <span className="text-[9px] opacity-60">({tf.sub})</span>
             </button>
           ))}
@@ -450,7 +450,7 @@ function PriceChart({ activeTF, onTFChange }) {
       <div className="relative">
         {chartLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-card/60 z-10">
-            <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-line/40 border-t-gold-primary rounded-full animate-spin" /><span className="text-text-muted text-sm">Loading {activeTF}...</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-line/40 border-t-accent rounded-full animate-spin" /><span className="text-text-muted text-sm">Loading {activeTF}...</span></div>
           </div>
         )}
         <div ref={containerRef} style={{ minHeight: 460 }} />
@@ -461,7 +461,7 @@ function PriceChart({ activeTF, onTFChange }) {
         <div className="flex items-center justify-between mb-1">
           <span className="text-[9px] text-text-muted font-semibold uppercase tracking-wider">RSI (14)</span>
           {tech.rsi_14 != null && (
-            <span className={`text-[10px] font-bold ${tech.rsi_14 >= 70 ? 'text-red-400' : tech.rsi_14 <= 30 ? 'text-green-400' : 'text-gold-primary'}`}>
+            <span className={`text-[10px] font-bold ${tech.rsi_14 >= 70 ? 'text-red-400' : tech.rsi_14 <= 30 ? 'text-green-400' : 'text-accent'}`}>
               {tech.rsi_14} {tech.rsi_14 >= 70 ? '· Overbought' : tech.rsi_14 <= 30 ? '· Oversold' : ''}
             </span>
           )}
@@ -499,7 +499,7 @@ function ThreePillars({ pillars }) {
 
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
-      <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-3">The Three Pillars</div>
+      <div className="text-[10px] uppercase tracking-widest font-bold text-accent mb-3">The Three Pillars</div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {items.map(({ key, icon, label, color }) => {
           const content = pillars[key];
@@ -542,7 +542,7 @@ function DeepAnalysis({ analysis, sections }) {
 
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
-      <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary mb-4">Deep Analysis</div>
+      <div className="text-[10px] uppercase tracking-widest font-bold text-accent mb-4">Deep Analysis</div>
       <div className="space-y-5">
         {items.map(({ key, fallbackKey, icon, label }) => {
           const text = content[key] || (fallbackKey ? fallback[fallbackKey] : null);
@@ -599,7 +599,7 @@ function InstitutionalFlowRadar({ flow, etfLive }) {
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-accent">
           🏦 Institutional Flow Radar
         </div>
         <div className="text-[10px] text-text-muted">Spot BTC ETFs · Coinbase Premium</div>
@@ -731,7 +731,7 @@ function MacroPulse({ macro, macroLive }) {
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-line/10">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-accent">
           🌐 Macro Pulse
         </div>
         <div className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" style={{
@@ -796,7 +796,7 @@ function WhatChanged({ data }) {
   return (
     <div className="glass-card rounded-2xl p-4 border border-line/10">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">What Changed</div>
+        <div className="text-[10px] uppercase tracking-widest font-bold text-accent">What Changed</div>
         <div className="text-[10px] text-text-muted">vs {data.vs_previous_id} · {data.hours_ago ? `${data.hours_ago}h ago` : ''}</div>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -885,7 +885,7 @@ function SourcesFooter({ report }) {
       <div className="flex items-center justify-center gap-2 flex-wrap">
         {ALL_SOURCES.map(src => (
           <a key={src} href={SOURCE_LINKS[src]} target="_blank" rel="noopener noreferrer"
-            className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-ink/[0.03] text-text-muted hover:text-gold-primary hover:bg-gold-primary/10 transition-colors">
+            className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-ink/[0.03] text-text-muted hover:text-accent hover:bg-accent/12 transition-colors">
             {src}
           </a>
         ))}
@@ -937,13 +937,13 @@ export default function AIArenaPage() {
   if (loading) return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+        <div className="w-16 h-0.5 bg-gradient-to-r from-accent to-transparent" />
         <h2 className="font-display text-2xl font-semibold text-text-primary">AI Arena</h2>
       </div>
       {[...Array(5)].map((_, i) => (
         <div key={i} className="glass-card rounded-2xl p-6 animate-pulse border border-line/10">
-          <div className="h-4 bg-gold-primary/20 rounded w-40 mb-3" />
-          <div className="h-20 bg-gold-primary/10 rounded" />
+          <div className="h-4 bg-accent/12 rounded w-40 mb-3" />
+          <div className="h-20 bg-accent/12 rounded" />
         </div>
       ))}
     </div>
@@ -954,14 +954,14 @@ export default function AIArenaPage() {
       <div className="text-5xl mb-4">🧠</div>
       <h2 className="text-2xl font-display font-bold text-text-primary mb-2">AI Arena</h2>
       <p className="text-text-muted max-w-md mb-6">First report is being generated. Multi-timeframe BTC analysis with DeepSeek R1.</p>
-      <button onClick={fetchData} className="px-6 py-3 bg-gold-primary/20 text-gold-primary rounded-xl hover:bg-gold-primary/30 transition-all font-medium">Refresh</button>
+      <button onClick={fetchData} className="px-6 py-3 bg-accent/12 text-accent rounded-xl hover:bg-accent/12 transition-all font-medium">Refresh</button>
     </div>
   );
 
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
       <p className="text-red-400 mb-4">{error}</p>
-      <button onClick={fetchData} className="px-5 py-2.5 bg-gold-primary/20 text-gold-primary rounded-xl hover:bg-gold-primary/30 transition-all font-medium">Retry</button>
+      <button onClick={fetchData} className="px-5 py-2.5 bg-accent/12 text-accent rounded-xl hover:bg-accent/12 transition-all font-medium">Retry</button>
     </div>
   );
 

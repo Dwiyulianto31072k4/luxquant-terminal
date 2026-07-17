@@ -14,7 +14,7 @@ function Crumbs({ trail }) {
         <span key={i} className="inline-flex items-center gap-1.5">
           {i > 0 && <span className="text-text-primary/25">/</span>}
           {c.to ? (
-            <Link to={c.to} className="hover:text-gold-primary transition-colors">{c.label}</Link>
+            <Link to={c.to} className="hover:text-text-primary transition-colors">{c.label}</Link>
           ) : (
             <span className="text-text-primary/70">{c.label}</span>
           )}
@@ -64,7 +64,7 @@ function CoinDetail({ slug }) {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Coins", to: "/coins" }, { label: coin.symbol }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Coins</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">Coins</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
         {coin.name} <span className="text-text-muted">({coin.symbol})</span>
       </h1>
@@ -74,17 +74,17 @@ function CoinDetail({ slug }) {
         {coin.body.map((p, i) => <p key={i}>{p}</p>)}
       </div>
 
-      <div className="mt-8 rounded-xl border border-line/20 bg-gold-primary/[0.04] p-5">
+      <div className="mt-8 rounded-xl border border-ink/10 bg-surface-secondary p-5">
         <h2 className="text-[15px] font-semibold text-text-primary">Track {coin.symbol} on LuxQuant</h2>
         <p className="mt-1.5 text-[13.5px] text-text-primary/70">Live money flow, on-chain whale activity, and algorithmic signals.</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link to="/money-flow" className="rounded-md bg-gold-primary/15 border border-line/40 px-4 py-2 text-[13px] font-medium text-gold-primary hover:bg-gold-primary/25 transition-colors">Open Money Flow →</Link>
-          <Link to="/onchain" className="rounded-md border border-ink/[0.1] px-4 py-2 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">On-Chain</Link>
-          <Link to="/signals" className="rounded-md border border-ink/[0.1] px-4 py-2 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">Signals</Link>
+          <Link to="/money-flow" className="rounded-md bg-accent border border-ink/15 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/25 transition-colors">Open Money Flow →</Link>
+          <Link to="/onchain" className="rounded-md border border-ink/[0.1] px-4 py-2 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-text-primary transition-colors">On-Chain</Link>
+          <Link to="/signals" className="rounded-md border border-ink/[0.1] px-4 py-2 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-text-primary transition-colors">Signals</Link>
         </div>
         <p className="mt-3 text-[12px] text-text-muted">
           Live {coin.symbol} price &amp; markets: {" "}
-          <a href={`https://www.coingecko.com/en/coins/${coin.cg}`} target="_blank" rel="noopener noreferrer" className="text-gold-primary/80 hover:text-gold-primary">view on CoinGecko →</a>
+          <a href={`https://www.coingecko.com/en/coins/${coin.cg}`} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-text-primary">view on CoinGecko →</a>
         </p>
       </div>
 
@@ -94,7 +94,7 @@ function CoinDetail({ slug }) {
           <div className="flex flex-wrap gap-2">
             {related.map((r) => (
               <Link key={r.slug} to={`/coins/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-line/40 hover:text-gold-primary transition-colors">
+                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-text-primary transition-colors">
                 {r.name} ({r.symbol})
               </Link>
             ))}
@@ -103,9 +103,9 @@ function CoinDetail({ slug }) {
       )}
 
       <div className="mt-8 font-mono text-[12px] text-text-muted">
-        Learn the concepts: <Link to="/learn/money-flow" className="text-gold-primary/80 hover:text-gold-primary">money flow</Link>,{" "}
-        <Link to="/learn/btc-dominance" className="text-gold-primary/80 hover:text-gold-primary">BTC dominance</Link> ·{" "}
-        <Link to="/coins" className="text-gold-primary/80 hover:text-gold-primary">all coins →</Link>
+        Learn the concepts: <Link to="/learn/money-flow" className="text-text-muted hover:text-text-primary">money flow</Link>,{" "}
+        <Link to="/learn/btc-dominance" className="text-text-muted hover:text-text-primary">BTC dominance</Link> ·{" "}
+        <Link to="/coins" className="text-text-muted hover:text-text-primary">all coins →</Link>
       </div>
     </div>
   );
@@ -140,7 +140,7 @@ function CoinsIndex() {
       />
       <Crumbs trail={[{ label: "Home", to: "/" }, { label: "Coins" }]} />
 
-      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Coins</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">Coins</span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">Crypto Coins</h1>
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Money flow, on-chain intelligence, and algorithmic signals for the assets traders watch most.
@@ -149,9 +149,9 @@ function CoinsIndex() {
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {COINS.map((c) => (
           <Link key={c.slug} to={`/coins/${c.slug}`}
-            className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-line/30 hover:bg-ink/[0.02] transition-colors">
+            className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-ink/12 hover:bg-ink/[0.02] transition-colors">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-gold-primary transition-colors">{c.name}</h2>
+              <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-text-primary transition-colors">{c.name}</h2>
               <span className="font-mono text-[12px] text-text-muted">{c.symbol}</span>
             </div>
             <p className="mt-1 font-mono text-[11px] text-text-muted">{c.category}</p>
@@ -160,7 +160,7 @@ function CoinsIndex() {
       </div>
 
       <div className="mt-8 font-mono text-[12px] text-text-muted">
-        New to the terms? Start with the <Link to="/learn" className="text-gold-primary/80 hover:text-gold-primary">glossary →</Link>
+        New to the terms? Start with the <Link to="/learn" className="text-text-muted hover:text-text-primary">glossary →</Link>
       </div>
     </div>
   );

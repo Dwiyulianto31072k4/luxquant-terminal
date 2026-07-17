@@ -67,7 +67,7 @@ const Sparkline = ({ values, up }) => {
 // ─── KPI tile ────────────────────────────────────────────────────
 const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
   <div className="relative rounded-xl bg-surface-raised border border-ink/[0.07] px-4 py-3.5 flex flex-col">
-    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
     <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">{label}</div>
     <div className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-text-primary/95"}`}>
       {value}
@@ -154,7 +154,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
     return [...pool].sort((a, b) => b.expected_value - a.expected_value)[0] || null;
   }, [data]);
 
-  const wrColorCls = wr >= 75 ? "text-emerald-400" : wr >= 50 ? "text-text-primary/95" : "text-red-400";
+  const wrColorCls = wr >= 75 ? "text-profit" : wr >= 50 ? "text-text-primary/95" : "text-red-400";
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
@@ -190,7 +190,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
                 key={r.value}
                 onClick={() => setDays(r.value)}
                 className={`px-3.5 py-2 text-[10px] tracking-[0.18em] font-mono uppercase transition ${
-                  days === r.value ? "bg-gold-primary/12 text-gold-primary" : "text-text-primary/50 hover:text-text-primary"
+                  days === r.value ? "bg-accent/12 text-accent" : "text-text-primary/50 hover:text-text-primary"
                 }`}
               >
                 {r.label}
@@ -214,7 +214,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
           <button
             onClick={() => fetchData(days, sector)}
             disabled={loading}
-            className="px-3 py-2 rounded-md bg-surface-raised border border-ink/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-line/30 hover:text-gold-primary transition disabled:opacity-50"
+            className="px-3 py-2 rounded-md bg-surface-raised border border-ink/[0.08] text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/55 hover:border-line/30 hover:text-accent transition disabled:opacity-50"
           >
             {loading ? "···" : "Refresh"}
           </button>
@@ -254,7 +254,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
                 <Sparkline values={wrTrend.vals} up={(wrTrend.delta ?? 0) >= 0} />
                 {wrTrend.delta != null && (
                   <span
-                    className={`text-[10px] font-mono tabular-nums shrink-0 ${wrTrend.delta >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                    className={`text-[10px] font-mono tabular-nums shrink-0 ${wrTrend.delta >= 0 ? "text-profit" : "text-red-400"}`}
                     title="second half vs first half of range"
                   >
                     {wrTrend.delta >= 0 ? "▲" : "▼"} {Math.abs(wrTrend.delta).toFixed(1)}pp
@@ -273,7 +273,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
               label="Top Edge"
               value={topEdge ? topEdge.pattern : "—"}
               valueClass="text-sm lg:text-base"
-              valueColor="text-gold-primary"
+              valueColor="text-accent"
               sub={topEdge ? `+${topEdge.expected_value?.toFixed(1)}% / trade · n=${topEdge.count}` : "no positive edge"}
             />
 
@@ -294,11 +294,11 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
                   className={`relative px-4 py-3 text-[12px] font-mono uppercase tracking-wider transition whitespace-nowrap ${
-                    isActive ? "text-gold-primary" : "text-text-primary/40 hover:text-text-primary/70"
+                    isActive ? "text-accent" : "text-text-primary/40 hover:text-text-primary/70"
                   }`}
                 >
                   {t.label}
-                  {isActive && <span className="absolute bottom-0 inset-x-3 h-[2px] bg-gold-primary" />}
+                  {isActive && <span className="absolute bottom-0 inset-x-3 h-[2px] bg-accent/12" />}
                 </button>
               );
             })}
