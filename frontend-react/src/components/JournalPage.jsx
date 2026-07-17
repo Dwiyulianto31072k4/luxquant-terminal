@@ -2508,6 +2508,19 @@ const ActionBar = ({ isEdit, saving, onSubmit, onCancel, onDelete, canSubmit }) 
 // ════════════════════════════════════════════════════════════════
 
 const AnalyticsView = ({ stats, insights, entries }) => {
+  // Hooks must run unconditionally (rules-of-hooks)
+  const equityCurve = useMemo(() => {
+    if (!entries?.length) return [];
+    const closedSorted = entries
+      .filter((e) => e.status !== "open" && e.pnl_usd != null && e.exit_at)
+      .sort((a, b) => new Date(a.exit_at) - new Date(b.exit_at));
+    let cum = 0;
+    return closedSorted.map((e) => {
+      cum += e.pnl_usd || 0;
+      return { date: e.exit_at, equity: cum, pnl: e.pnl_usd, pair: e.pair };
+    });
+  }, [entries]);
+
   if (!stats) {
     return (
       <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-12 text-center">
@@ -2520,18 +2533,6 @@ const AnalyticsView = ({ stats, insights, entries }) => {
       </div>
     );
   }
-
-  // Build equity curve from entries directly (analytics view doesn't get it via stats)
-  const equityCurve = useMemo(() => {
-    const closed = entries
-      .filter((e) => e.status !== "open" && e.pnl_usd != null && e.exit_at)
-      .sort((a, b) => new Date(a.exit_at) - new Date(b.exit_at));
-    let cum = 0;
-    return closed.map((e) => {
-      cum += e.pnl_usd || 0;
-      return { date: e.exit_at, equity: cum, pnl: e.pnl_usd, pair: e.pair };
-    });
-  }, [entries]);
 
   // Profit factor
   const closed = entries.filter((e) => e.status !== "open" && e.pnl_usd != null);

@@ -255,7 +255,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
       <div
         className="absolute inset-0 bg-scrim/80 backdrop-blur-md"
         onClick={() => {
-          if (!selectedSignal) onClose();
+          onClose();
         }}
       />
 

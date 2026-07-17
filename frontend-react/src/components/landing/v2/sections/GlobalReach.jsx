@@ -1781,18 +1781,26 @@ function CanvasGlobe() {
           cy,
           radius * 1.85
         );
-        // Warm brown halo in Luxquant; neutral grey in Dark (solid-black taste).
-        const glowDark = document.documentElement.dataset.theme === "dark";
-        ambientGlow.addColorStop(0, glowDark ? "rgba(42,42,46,0.10)" : "rgba(70,30,28,0.12)");
-        ambientGlow.addColorStop(0.32, glowDark ? "rgba(28,28,32,0.05)" : "rgba(45,20,20,0.06)");
-        ambientGlow.addColorStop(0.62, glowDark ? "rgba(15,15,17,0.02)" : "rgba(22,11,11,0.025)");
+        // Theme-aware ambient + sphere: bright=cool slate, dark=neutral, luxquant=warm
+        const appTheme = document.documentElement.dataset.theme || "luxquant";
+        const isBright = appTheme === "bright";
+        const isDark = appTheme === "dark";
+        ambientGlow.addColorStop(
+          0,
+          isBright ? "rgba(15,23,42,0.06)" : isDark ? "rgba(42,42,46,0.10)" : "rgba(70,30,28,0.12)"
+        );
+        ambientGlow.addColorStop(
+          0.32,
+          isBright ? "rgba(15,23,42,0.03)" : isDark ? "rgba(28,28,32,0.05)" : "rgba(45,20,20,0.06)"
+        );
+        ambientGlow.addColorStop(
+          0.62,
+          isBright ? "rgba(15,23,42,0.01)" : isDark ? "rgba(15,15,17,0.02)" : "rgba(22,11,11,0.025)"
+        );
         ambientGlow.addColorStop(1, "rgba(0,0,0,0)");
         context.fillStyle = ambientGlow;
         context.fillRect(cx - radius * 1.9, cy - radius * 1.9, radius * 3.8, radius * 3.8);
         context.restore();
-
-        // Atmosphere rim removed — no gold halo wrapping the globe (kept dark
-        // so the globe sits flat against the page's red/black theme).
 
         // Sphere clip
         context.save();
@@ -1808,11 +1816,25 @@ function CanvasGlobe() {
           cy,
           radius * 1.02
         );
-        globeGradient.addColorStop(0, "rgba(44,17,16,0.92)");
-        globeGradient.addColorStop(0.4, "rgba(25,11,12,0.8)");
-        globeGradient.addColorStop(0.72, "rgba(14,7,8,0.46)");
-        globeGradient.addColorStop(0.9, "rgba(10,5,6,0.16)");
-        globeGradient.addColorStop(1, "rgba(10,5,6,0)");
+        if (isBright) {
+          globeGradient.addColorStop(0, "rgba(241,245,249,0.98)");
+          globeGradient.addColorStop(0.4, "rgba(226,232,240,0.92)");
+          globeGradient.addColorStop(0.72, "rgba(203,213,225,0.55)");
+          globeGradient.addColorStop(0.9, "rgba(226,232,240,0.2)");
+          globeGradient.addColorStop(1, "rgba(245,246,248,0)");
+        } else if (isDark) {
+          globeGradient.addColorStop(0, "rgba(34,38,46,0.95)");
+          globeGradient.addColorStop(0.4, "rgba(24,28,34,0.88)");
+          globeGradient.addColorStop(0.72, "rgba(18,22,28,0.5)");
+          globeGradient.addColorStop(0.9, "rgba(11,14,17,0.18)");
+          globeGradient.addColorStop(1, "rgba(11,14,17,0)");
+        } else {
+          globeGradient.addColorStop(0, "rgba(44,17,16,0.92)");
+          globeGradient.addColorStop(0.4, "rgba(25,11,12,0.8)");
+          globeGradient.addColorStop(0.72, "rgba(14,7,8,0.46)");
+          globeGradient.addColorStop(0.9, "rgba(10,5,6,0.16)");
+          globeGradient.addColorStop(1, "rgba(10,5,6,0)");
+        }
 
         context.fillStyle = globeGradient;
         context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);

@@ -18,6 +18,8 @@ import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
+import { SegGroup } from "./ui/SegGroup";
+import { PageHeader } from "./ui/PageHeader";
 
 const PAGE_SIZE = 28; // multiple of 4 → fills the desktop 4-col grid without lone trailing cards
 
@@ -1341,10 +1343,18 @@ const FilterBar = ({
   stats,
 }) => {
   const typeOptions = [
-    { k: "all", label: "All", count: stats?.total, icon: "all" },
-    { k: "article", label: "Articles", count: stats?.articles, icon: "article" },
-    { k: "photo", label: "Photos", count: stats?.photos, icon: "photo" },
-    { k: "headline", label: "Headlines", count: stats?.headlines, icon: "headline" },
+    { key: "all", label: "All", badge: stats?.total },
+    { key: "article", label: "Articles", badge: stats?.articles },
+    { key: "photo", label: "Photos", badge: stats?.photos },
+    { key: "headline", label: "Headlines", badge: stats?.headlines },
+  ];
+  const topicOptions = [
+    { key: "__all__", label: "Topics" },
+    ...CATEGORY_RULES.map((cat) => ({
+      key: cat.key,
+      label: cat.label,
+      badge: categoryCounts[cat.key],
+    })),
   ];
 
   return (
@@ -1389,52 +1399,23 @@ const FilterBar = ({
         )}
       </div>
 
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 min-w-0">
-        <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5"
-          role="tablist"
+      <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+        <SegGroup
+          size="sm"
+          wrap
           aria-label="Content type"
-        >
-          {typeOptions.map((f) => {
-            const isActive = activeFilter === f.k;
-            return (
-              <FilterChip
-                key={f.k}
-                active={isActive}
-                onClick={() => onFilterChange(f.k)}
-                icon={f.icon}
-              >
-                {f.label}
-                <ChipCount value={f.count} active={isActive} />
-              </FilterChip>
-            );
-          })}
-        </div>
-
-        <div
-          className="inline-flex min-w-0 flex-wrap items-center gap-0.5 overflow-x-auto rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5 no-scrollbar"
-          role="tablist"
+          value={activeFilter}
+          onChange={onFilterChange}
+          options={typeOptions}
+        />
+        <SegGroup
+          size="sm"
+          wrap
           aria-label="Topic"
-        >
-          <FilterChip active={!activeCategory} onClick={() => onCategoryChange(null)}>
-            Topics
-          </FilterChip>
-          {CATEGORY_RULES.map((cat) => {
-            const isActive = activeCategory === cat.key;
-            const count = categoryCounts[cat.key];
-            return (
-              <FilterChip
-                key={cat.key}
-                active={isActive}
-                icon={cat.key}
-                onClick={() => onCategoryChange(isActive ? null : cat.key)}
-              >
-                {cat.label}
-                <ChipCount value={count} active={isActive} />
-              </FilterChip>
-            );
-          })}
-        </div>
+          value={activeCategory || "__all__"}
+          onChange={(key) => onCategoryChange(key === "__all__" ? null : key)}
+          options={topicOptions}
+        />
       </div>
     </div>
   );

@@ -28,6 +28,8 @@ import {
   mountTradingViewEmbed,
   subscribeTheme,
 } from "../utils/themeColors";
+import { SegGroup } from "./ui/SegGroup";
+import { PageHeader } from "./ui/PageHeader";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -585,51 +587,49 @@ const MarketPulsePageInner = () => {
     <div className="space-y-4 pb-10">
       <PulseStyles />
 
-      {/* ═══ PAGE HEADER — Terminal desk ═══ */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
-            Market Pulse
-          </h1>
-          <p className="mt-1.5 text-[13px] text-text-secondary">
+      <PageHeader
+        title="Market Pulse"
+        subtitle={
+          <>
             Real-time event flow across{" "}
             <span className="font-mono font-semibold tabular-nums text-text-primary">
               {stats?.hourly?.unique_coins || 0}
             </span>{" "}
             coins · auto-refresh 10s
-          </p>
-        </div>
-
-        <div className="flex flex-shrink-0 items-center gap-3">
-          <span className="hidden font-mono text-[11px] tabular-nums text-text-muted sm:inline">
-            {lastUpdated
-              ? `Updated ${lastUpdated.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hour12: false,
-                })}`
-              : "Loading…"}
-          </span>
-          <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
-            <span className="relative flex h-1.5 w-1.5 shrink-0">
-              {!loading && (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
-              )}
+          </>
+        }
+        right={
+          <div className="flex flex-shrink-0 items-center gap-3">
+            <span className="hidden font-mono text-[11px] tabular-nums text-text-muted sm:inline">
+              {lastUpdated
+                ? `Updated ${lastUpdated.toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: false,
+                  })}`
+                : "Loading…"}
+            </span>
+            <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                {!loading && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+                )}
+                <span
+                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
+                    loading ? "bg-accent" : "bg-profit"
+                  }`}
+                />
+              </span>
               <span
-                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
-                  loading ? "bg-accent" : "bg-profit"
-                }`}
-              />
-            </span>
-            <span
-              className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${loading ? "text-accent" : "text-profit"}`}
-            >
-              {loading ? "Sync" : "Live"}
-            </span>
+                className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${loading ? "text-accent" : "text-profit"}`}
+              >
+                {loading ? "Sync" : "Live"}
+              </span>
+            </div>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* ═══ PULSE TAPE (Flowscan card pattern + scrolling ticker) ═══ */}
       {tapeItems.length > 0 && <PulseTape items={tapeItems} onSelect={openChartModal} />}
@@ -1171,47 +1171,47 @@ const ControlBar = ({
         </div>
       </div>
 
-      {/* Row 2: Source + Timeframe filter pills */}
-      <div className="flex flex-wrap gap-1.5 items-center pt-3 border-t border-ink/[0.04]">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted mr-1">
-          Source
-        </span>
-        {[
-          { value: "all", label: "All" },
-          { value: "pulse", label: "Pulse" },
-          { value: "price_movement", label: "Price" },
-        ].map((opt) => (
-          <FilterPill
-            key={opt.value}
-            active={sourceFilter === opt.value}
-            onClick={() => setSourceFilter(opt.value)}
-            label={opt.label}
+      {/* Row 2: Source + Timeframe — desk SegGroup (mobile-friendly wrap) */}
+      <div className="flex flex-col gap-2 pt-3 border-t border-ink/[0.04] sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+            Source
+          </span>
+          <SegGroup
+            size="sm"
+            aria-label="Source filter"
+            wrap
+            value={sourceFilter}
+            onChange={setSourceFilter}
+            options={[
+              { key: "all", label: "All" },
+              { key: "pulse", label: "Pulse" },
+              { key: "price_movement", label: "Price" },
+            ]}
           />
-        ))}
-
-        <div className="w-px h-3.5 bg-ink/[0.08] mx-2" />
-
-        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted mr-1">
-          TF
-        </span>
-        {[
-          { value: "all", label: "All" },
-          { value: "5m", label: "5m" },
-          { value: "1h", label: "1h" },
-          { value: "2h", label: "2h" },
-          { value: "4h", label: "4h" },
-          { value: "1d", label: "1d" },
-          { value: "1w", label: "1w" },
-        ].map((opt) => (
-          <FilterPill
-            key={opt.value}
-            active={timeframeFilter === opt.value}
-            onClick={() => setTimeframeFilter(opt.value)}
-            label={opt.label}
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+            TF
+          </span>
+          <SegGroup
+            size="sm"
+            aria-label="Timeframe filter"
+            wrap
+            value={timeframeFilter}
+            onChange={setTimeframeFilter}
+            options={[
+              { key: "all", label: "All" },
+              { key: "5m", label: "5m" },
+              { key: "1h", label: "1h" },
+              { key: "2h", label: "2h" },
+              { key: "4h", label: "4h" },
+              { key: "1d", label: "1d" },
+              { key: "1w", label: "1w" },
+            ]}
           />
-        ))}
-
-        <span className="ml-auto text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted">
+        </div>
+        <span className="sm:ml-auto text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted">
           24h rolling
         </span>
       </div>
@@ -1358,12 +1358,11 @@ const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
 // ACTIVITY FEED PANEL — Flowscan main card pattern
 // ════════════════════════════════════════════════════════
 
-// ── Segmented control (mode switch + side filter) — Flowscan pill group ──
-const SegGroup = ({ options, value, onChange }) => (
+// ── Feed mode switch — solid yellow, or profit/loss when semantic ──
+const PulseSegGroup = ({ options, value, onChange }) => (
   <div className="flex rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
     {options.map((opt) => {
       const active = value === opt.value;
-      // Desk: yellow CTA for mode; solid pos/neg only for pump/dump semantic filters.
       const activeClass =
         opt.accent === "emerald" || opt.accent === "profit"
           ? "bg-profit text-white"
@@ -1543,8 +1542,10 @@ const ActivityFeedPanel = ({
 
         {/* View controls: layout + side */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {!isSplit && <SegGroup options={sideOptions} value={feedSide} onChange={setFeedSide} />}
-          <SegGroup
+          {!isSplit && (
+            <PulseSegGroup options={sideOptions} value={feedSide} onChange={setFeedSide} />
+          )}
+          <PulseSegGroup
             options={[
               { value: "unified", label: "Unified" },
               { value: "split", label: "Split" },

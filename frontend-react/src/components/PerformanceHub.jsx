@@ -15,6 +15,8 @@ import { Suspense, lazy } from "react";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import { SegGroup } from "./ui/SegGroup";
+import { RouteErrorBoundary } from "./ErrorBoundary";
 
 const AnalyzePage = lazy(() => import("./AnalyzePage"));
 const DailyPerformancePage = lazy(() => import("./DailyPerformancePage"));
@@ -307,25 +309,22 @@ const PerformanceHub = () => {
         </div>
       </div>
 
-      {/* ── mobile: horizontal icon-chip scroller ── */}
-      <div className="shrink-0 lg:hidden -mx-3 px-3 mb-3 flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {ALL_ITEMS.map((item) => {
-          const on = item.id === activeId;
-          return (
-            <button
-              key={item.id}
-              onClick={() => go(item)}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
-                on
-                  ? "bg-accent text-accent-fg border-ink/12"
-                  : "bg-ink/[0.03] text-text-muted border-ink/[0.06] hover:text-text-primary"
-              }`}
-            >
-              <TabIcon id={item.id} />
-              {item.label}
-            </button>
-          );
-        })}
+      {/* ── mobile: desk SegGroup scroller ── */}
+      <div className="shrink-0 lg:hidden -mx-3 mb-3 overflow-x-auto px-3 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <SegGroup
+          size="sm"
+          aria-label="Performance views"
+          value={activeId}
+          onChange={(id) => {
+            const item = ALL_ITEMS.find((i) => i.id === id);
+            if (item) go(item);
+          }}
+          options={ALL_ITEMS.map((item) => ({
+            key: item.id,
+            label: item.label,
+            icon: <TabIcon id={item.id} />,
+          }))}
+        />
       </div>
 
       <div className="flex gap-4 items-stretch lg:flex-1 lg:min-h-0">
@@ -383,23 +382,25 @@ const PerformanceHub = () => {
 
         {/* ── content — own scroll region so the sidebar stays put ── */}
         <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1.5 [scrollbar-width:thin] [scrollbar-color:rgb(var(--accent) / 0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-accent/25">
-          <Suspense fallback={<ViewLoader />}>
-            {view === "overview" && <AnalyzePage />}
-            {view === "daily" && (
-              <DailyPerformancePage
-                activeTab={tab}
-                onTabChange={(t) => go({ view: "daily", tab: t })}
-                hideTabBar
-              />
-            )}
-            {view === "research" && (
-              <EdgeLabPage
-                activeTab={tab}
-                onTabChange={(t) => go({ view: "research", tab: t })}
-                hideTabBar
-              />
-            )}
-          </Suspense>
+          <RouteErrorBoundary>
+            <Suspense fallback={<ViewLoader />}>
+              {view === "overview" && <AnalyzePage />}
+              {view === "daily" && (
+                <DailyPerformancePage
+                  activeTab={tab}
+                  onTabChange={(t) => go({ view: "daily", tab: t })}
+                  hideTabBar
+                />
+              )}
+              {view === "research" && (
+                <EdgeLabPage
+                  activeTab={tab}
+                  onTabChange={(t) => go({ view: "research", tab: t })}
+                  hideTabBar
+                />
+              )}
+            </Suspense>
+          </RouteErrorBoundary>
         </main>
       </div>
 

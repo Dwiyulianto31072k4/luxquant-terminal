@@ -6,6 +6,7 @@ import SignalJourneyExtended from "./SignalJourneyExtended";
 import SignalModal from "./SignalModal";
 import { ShimmerStyles } from "./ui/Loaders";
 import { getActiveTheme, getTradingViewTheme, subscribeTheme } from "../utils/themeColors";
+import { SegGroup } from "./ui/SegGroup";
 
 const API_BASE = "/api/v1";
 
@@ -301,25 +302,16 @@ const TopPerformers = () => {
               <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/55">
                 Range
               </span>
-              <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5">
-                {presets.map(({ key, short }) => {
-                  const on = activeFilter === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handlePresetClick(key)}
-                      className={`shrink-0 rounded-[5px] px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-wide transition sm:px-3 sm:text-[11px] ${
-                        on
-                          ? "bg-ink/[0.1] text-text-primary shadow-sm"
-                          : "text-text-muted hover:text-text-primary/75"
-                      }`}
-                    >
-                      {short}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegGroup
+                size="sm"
+                aria-label="Time range"
+                value={activeFilter}
+                onChange={handlePresetClick}
+                options={presets.map(({ key, short }) => ({
+                  key,
+                  label: short,
+                }))}
+              />
             </div>
 
             {showCustom && (

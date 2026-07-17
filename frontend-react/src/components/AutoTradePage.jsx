@@ -655,7 +655,7 @@ export default function AutoTradePage() {
         // Structured rate-limit / circuit-open from Cryptobot P0 API.
         if (err instanceof AutoTradeApiError && err.isRateLimited) {
           const wait = err.retryAfterSeconds || 120;
-          binanceCooldownOffUntilRef.current = Date.now() + wait * 1000;
+          binanceBackOffUntilRef.current = Date.now() + wait * 1000;
           setError(
             err.message || `Binance rate-limited this server. Pausing AutoTrade refresh ~${wait}s.`
           );

@@ -102,22 +102,35 @@ function eventInfo(item) {
     };
   }
   if (action === "execution.failed") {
+    // surface Binance IP ban / rate limit clearly (HTTP 418 / -1003)
+    const rawErr = String(metadata.error || "");
+    const is418 = /HTTP 418|code['"]?\s*:\s*-1003|Way too many requests|IP\([^)]*\) banned/i.test(
+      rawErr
+    );
     return {
       category: "execution",
       tone: "bad",
-      title: `${symbol || "Execution"} failed`,
-      description: metadata.error || "The execution engine returned an error.",
+      title: is418
+        ? `${symbol || "Execution"} blocked — exchange rate limit (418)`
+        : `${symbol || "Execution"} failed`,
+      description: is418
+        ? "Binance temporarily banned this VPS IP for too many REST calls. Wait for ban expiry or use websocket-backed price feeds; raise notional only after IP is clear."
+        : rawErr || "The execution engine returned an error.",
       source: "Execution engine",
     };
   }
   if (action.startsWith("execution.skip_risk_limit.")) {
+    const limitKey = action.split(".").at(-1);
+    const isNotional = limitKey === "max_trade_notional";
     return {
       category: "risk",
       tone: "warn",
       title: `${symbol || "Entry"} blocked by risk limit`,
-      description: action.split(".").at(-1).replaceAll("_", " "),
+      description: isNotional
+        ? "max trade notional — raise Per trade cap to ≥20–50 USDT (Binance futures min) in AutoTrade risk settings"
+        : limitKey.replaceAll("_", " "),
       source: "Risk engine",
-      collapseKey: `risk:${action.split(".").at(-1)}`,
+      collapseKey: `risk:${limitKey}`,
     };
   }
   if (action.startsWith("execution.skip_")) {

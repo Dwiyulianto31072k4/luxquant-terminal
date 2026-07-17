@@ -452,8 +452,8 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 draft.sizing_method === "fixed"
                   ? `Must cover the effective ${effectiveFixedNotional.toFixed(
                       2
-                    )} USDT entry. Protected spot orders may need a slightly higher cap.`
-                  : "Maximum entry notional."
+                    )} USDT entry (≥${MIN_LIVE_ENTRY_USDT} USDT live min). Caps below exchange min → all entries skipped as max_trade_notional.`
+                  : `Maximum entry notional (USDT). Live floor ${MIN_LIVE_ENTRY_USDT} USDT — keep cap ≥ floor or every signal skips.`
               }
             >
               <NumberInput

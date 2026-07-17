@@ -19,7 +19,7 @@ const normalizeSymbol = (raw) => {
   let s = (raw || "")
     .trim()
     .toUpperCase()
-    .replace(/[\s/\-]/g, "");
+    .replace(/[\s/-]/g, "");
   if (!s) return "";
   if (!s.endsWith("USDT")) s += "USDT";
   return s;
