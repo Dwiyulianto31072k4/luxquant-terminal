@@ -474,12 +474,12 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   if (!archive) {
     return (
-      <section className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-6">
-        <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
+      <section className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-6">
+        <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
           Report library
         </div>
-        <h2 className="mt-1 text-2xl font-medium text-text-primary/90">PDF archive is unavailable</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-primary/45">
+        <h2 className="mt-1 text-2xl font-semibold text-text-primary">PDF archive is unavailable</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
           The report itself is still saved in the database. The PDF catalog endpoint may need subscription auth or the PDF generator dependency on the server.
         </p>
       </section>
@@ -487,57 +487,55 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
   }
 
   const pageNumbers = Array.from({ length: pageCount }, (_, index) => index + 1);
+  const pageBtn =
+    "rounded-md border border-ink/[0.1] bg-surface-secondary px-2.5 py-1.5 font-mono text-[10px] font-semibold text-text-secondary transition hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35";
 
   return (
-    <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
-        <div className="border-b border-ink/[0.06] p-5 md:p-6">
+    <div className="space-y-4">
+      <section className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
+        <div className="border-b border-ink/[0.07] p-4 md:p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted">
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                 Report library
               </div>
-              <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-text-primary md:text-3xl">
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
                 Saved Compass PDFs
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-text-primary/45">
-                Four reports per page. Each card shows the stance, price, magnets, and risk snapshot before opening the full archived PDF.
+              <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-secondary">
+                Each card shows stance, price, magnets, and risk — open the themed reader for the full archive.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
-              <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary px-3 py-2">
-                <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Reports</div>
-                <div className="mt-1 text-text-primary/80">{items.length}</div>
+              <div className="rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">Reports</div>
+                <div className="mt-1 text-sm font-semibold text-text-primary">{items.length}</div>
               </div>
-              <div className="rounded-sm border border-profit/15 bg-profit/[0.05] px-3 py-2">
-                <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">PDF ready</div>
-                <div className="mt-1 text-profit">{readyCount}</div>
+              <div className="rounded-md border border-profit/20 bg-profit/[0.07] px-3 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">PDF ready</div>
+                <div className="mt-1 text-sm font-semibold text-profit">{readyCount}</div>
               </div>
-              <div className="rounded-sm border border-ink/[0.04] bg-surface-secondary px-3 py-2">
-                <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Latest</div>
-                <div className="mt-1 text-text-primary/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
+              <div className="rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2">
+                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">Latest</div>
+                <div className="mt-1 text-sm font-semibold text-text-primary">{latest ? formatAge(latest.timestamp) : "—"}</div>
               </div>
             </div>
           </div>
           {error && (
-            <div className="mt-4 rounded-lg border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm text-red-200/85">
+            <div className="mt-4 rounded-lg border border-loss/25 bg-loss/[0.06] px-4 py-3 text-sm text-loss">
               {error}
             </div>
           )}
         </div>
 
         {items.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] bg-scrim/15 px-4 py-3 md:px-5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-primary/35">
-              Showing <span className="text-text-primary/65">{pageStart + 1}-{pageEnd}</span> of <span className="text-text-primary/65">{items.length}</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] bg-surface-secondary/50 px-4 py-2.5 md:px-5">
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Showing <span className="text-text-primary">{pageStart + 1}–{pageEnd}</span> of{" "}
+              <span className="text-text-primary">{items.length}</span>
             </div>
-            <div className="flex items-center gap-1.5 font-mono text-[10px]">
-              <button
-                type="button"
-                onClick={() => setPage((value) => Math.max(1, value - 1))}
-                disabled={page <= 1}
-                className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-ink/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
-              >
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1} className={pageBtn}>
                 Prev
               </button>
               {pageNumbers.map((pageNumber) => (
@@ -545,21 +543,16 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                   key={pageNumber}
                   type="button"
                   onClick={() => setPage(pageNumber)}
-                  className={`h-8 min-w-8 rounded-md border px-2 transition ${
+                  className={`h-8 min-w-8 rounded-md border px-2 font-mono text-[10px] font-semibold transition ${
                     pageNumber === page
-                      ? "border-ink/20 bg-ink/[0.1] text-text-primary"
-                      : "border-ink/[0.07] bg-scrim/20 text-text-primary/40 hover:border-ink/[0.14] hover:text-text-primary/70"
+                      ? "border-transparent bg-accent text-accent-fg"
+                      : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
                   }`}
                 >
                   {pageNumber}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                disabled={page >= pageCount}
-                className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/55 transition hover:bg-ink/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
-              >
+              <button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={page >= pageCount} className={pageBtn}>
                 Next
               </button>
             </div>
@@ -574,66 +567,63 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
             const bearish = String(direction || "").toLowerCase() === "bearish";
             const bullish = String(direction || "").toLowerCase() === "bullish";
             const ringClass = bullish
-              ? "hover:border-emerald-400/35"
+              ? "hover:border-profit/35"
               : bearish
-                ? "hover:border-red-400/35"
-                : "hover:border-line/35";
+                ? "hover:border-loss/35"
+                : "hover:border-ink/20";
             return (
               <article
                 key={item.report_id}
-                className={`group relative overflow-hidden rounded-sm border border-ink/[0.06] bg-surface-secondary p-4 transition ${ringClass} hover:bg-accent/[0.035]`}
+                className={`group relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-secondary p-4 transition ${ringClass} hover:bg-surface-raised`}
               >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/45 to-transparent opacity-60" />
-                <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-accent/10 blur-3xl transition group-hover:bg-accent/15" />
-
                 <div className="relative flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-ink/[0.08] bg-scrim/20 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+                      <span className="rounded-md border border-ink/[0.08] bg-surface-raised px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                         #{pageStart + index + 1}
                       </span>
-                      <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-primary/35">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
                         {formatDateTime(item.timestamp)}
                       </span>
-                      <span className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.1em] ${directionClasses(direction)}`}>
-                        {readableLabel(direction)} {confidence ?? "-"}%
+                      <span className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] ${directionClasses(direction)}`}>
+                        {readableLabel(direction)} {confidence ?? "—"}%
                       </span>
                     </div>
-                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-text-primary/90">
+                    <h3 className="mt-3 line-clamp-2 text-[16px] font-semibold leading-snug text-text-primary">
                       {item.headline || "Compass report"}
                     </h3>
                   </div>
                   <div className="shrink-0 text-right font-mono">
-                    <div className="text-[9px] uppercase tracking-[0.14em] text-text-primary/30">BTC</div>
-                    <div className="mt-1 text-sm text-text-primary/80">{formatMoney(item.btc_price)}</div>
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">BTC</div>
+                    <div className="mt-1 text-sm font-semibold text-text-primary">{formatMoney(item.btc_price)}</div>
                   </div>
                 </div>
 
-                <p className="relative mt-3 line-clamp-3 text-sm leading-6 text-text-primary/45">
+                <p className="relative mt-3 line-clamp-3 text-[13px] leading-6 text-text-secondary">
                   {item.summary || item.tactical_24h?.rationale || "Archived Compass report with full breakdown."}
                 </p>
 
                 <div className="relative mt-4 grid gap-2 text-xs md:grid-cols-3">
-                  <div className="rounded-sm border border-ink/[0.04] bg-scrim/25 p-3">
-                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Below magnet</div>
-                    <div className="mt-1 font-mono text-text-primary/75">{formatMoney(item.nearest_magnet_below)}</div>
+                  <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5">
+                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">Below magnet</div>
+                    <div className="mt-1 font-mono font-semibold text-loss">{formatMoney(item.nearest_magnet_below)}</div>
                   </div>
-                  <div className="rounded-sm border border-ink/[0.04] bg-scrim/25 p-3">
-                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Above magnet</div>
-                    <div className="mt-1 font-mono text-text-primary/75">{formatMoney(item.nearest_magnet_above)}</div>
+                  <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5">
+                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">Above magnet</div>
+                    <div className="mt-1 font-mono font-semibold text-profit">{formatMoney(item.nearest_magnet_above)}</div>
                   </div>
-                  <div className="rounded-sm border border-ink/[0.04] bg-scrim/25 p-3">
-                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">Event risk</div>
-                    <div className="mt-1 font-mono text-text-primary/75">{readableLabel(item.event_risk)}</div>
+                  <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5">
+                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">Event risk</div>
+                    <div className="mt-1 font-mono font-semibold text-text-primary">{readableLabel(item.event_risk)}</div>
                   </div>
                 </div>
 
-                <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] pt-4">
+                <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.07] pt-3.5">
                   <span
-                    className={`rounded-sm border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${
+                    className={`rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${
                       item.pdf_ready
-                        ? "border-profit/20 bg-profit/10 text-profit"
-                        : "border-amber-500/20 bg-amber-500/10 text-amber-400"
+                        ? "border-profit/25 bg-profit/10 text-profit"
+                        : "border-accent/30 bg-accent/10 text-accent"
                     }`}
                   >
                     {item.pdf_ready ? `${formatBytes(item.pdf_size_bytes)} ready` : item.pdf_error || "Pending"}
@@ -642,7 +632,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-ink/15 bg-ink/[0.08] px-3.5 text-[12px] font-semibold leading-none text-text-primary transition hover:bg-ink/[0.12] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-accent px-3.5 text-[12px] font-semibold leading-none text-accent-fg transition hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
                     {loading ? "Opening…" : "Open reader →"}
                   </button>
@@ -670,35 +660,42 @@ function ReportPdfModal({ modal, onClose }) {
   const confidence = item.tactical_24h?.confidence;
   const generatedLabel = formatDateTime(item.timestamp);
 
+  // Full chrome uses theme tokens (bright / dark / luxquant) — no fixed dark wash
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center overflow-hidden bg-surface-raised/88 p-0 text-text-primary backdrop-blur-2xl sm:p-3 lg:p-5"
+      className="fixed inset-0 z-[100000] flex items-end justify-center overflow-hidden p-0 text-text-primary sm:items-center sm:p-3 lg:p-5"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/55 to-transparent" />
+      {/* Backdrop — scrim only, works on every theme */}
+      <button
+        type="button"
+        aria-label="Close reader"
+        onClick={onClose}
+        className="absolute inset-0 bg-scrim/70 backdrop-blur-sm"
+      />
 
-      <div className="relative flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-3xl border-t border-line/20 bg-surface-raised/98 shadow-[0_-20px_60px_rgb(var(--scrim) / 0.82)] ring-1 ring-ink/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-[22px] sm:border">
-        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-ink/25" />
+      <div className="relative z-10 flex h-[min(94dvh,100%)] max-h-[min(94dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-2xl">
+        <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-ink/20" />
         </div>
-        <header className="shrink-0 border-b border-ink/[0.08] bg-surface-raised/98 px-3 py-2.5 md:px-4">
+
+        <header className="shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-3 md:px-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md border border-line/20 bg-accent/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-accent">
+                <span className="rounded-md bg-accent/12 px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
                   Compass reader
                 </span>
-                <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
+                <span className={`rounded-md border px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${directionClasses(direction)}`}>
                   {readableLabel(direction)} {confidence ?? "-"}%
                 </span>
-                <span className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-text-primary/45">
+                <span className="rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
                   {generatedLabel}
                 </span>
               </div>
-              <h3 className="mt-1.5 max-w-[68vw] truncate text-sm font-semibold tracking-[-0.01em] text-text-primary/90 md:text-lg">
+              <h3 className="mt-1.5 max-w-[min(68vw,720px)] truncate text-[15px] font-semibold tracking-tight text-text-primary md:text-lg">
                 {modal.title}
               </h3>
             </div>
@@ -707,59 +704,63 @@ function ReportPdfModal({ modal, onClose }) {
                 href={modal.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-ink/[0.16] hover:bg-ink/[0.08]"
+                className="rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 text-xs font-semibold text-text-secondary transition hover:border-ink/18 hover:text-text-primary"
               >
                 New tab
               </a>
               <a
                 href={modal.url}
                 download={modal.filename || "compass-report.pdf"}
-                className="rounded-lg border border-line/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-line/45 hover:bg-accent/15"
+                className="rounded-md bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition hover:opacity-90"
               >
                 Download
               </a>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-3 py-2 text-xs font-semibold text-text-primary/70 transition hover:border-ink/[0.16] hover:bg-ink/[0.08]"
+                title="Close"
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-ink/[0.12] bg-surface-secondary text-text-primary transition hover:border-ink/20 hover:bg-ink/[0.06]"
               >
-                Close
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth={2.75} strokeLinecap="round" />
+                </svg>
               </button>
             </div>
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,17vw,286px)_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 border-r border-ink/[0.08] bg-surface-raised/92 p-2.5 lg:block">
-            <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-line/15 bg-accent/[0.045] p-4">
-                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 border-r border-ink/[0.08] bg-surface-secondary/40 p-3 lg:block">
+            <div className="flex h-full flex-col gap-2.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+              <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
+                <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                   Reading brief
                 </div>
-                <p className="mt-2 text-sm leading-6 text-text-primary/62">
+                <p className="mt-2 text-[13px] leading-6 text-text-secondary">
                   {item.summary || item.tactical_24h?.rationale || "Full Compass breakdown is archived in this report."}
                 </p>
               </div>
 
-              <div className="grid gap-2 xl:grid-cols-1">
+              <div className="grid gap-2">
                 <ReaderMetric label="BTC at report" value={formatMoney(item.btc_price)} />
-                <ReaderMetric label="Magnet below" value={formatMoney(item.nearest_magnet_below)} />
-                <ReaderMetric label="Magnet above" value={formatMoney(item.nearest_magnet_above)} />
+                <ReaderMetric label="Magnet below" value={formatMoney(item.nearest_magnet_below)} tone="down" />
+                <ReaderMetric label="Magnet above" value={formatMoney(item.nearest_magnet_above)} tone="up" />
                 <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
               </div>
 
-              <div className="mt-auto rounded-2xl border border-ink/[0.08] bg-scrim/20 p-3">
-                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
+              <div className="mt-auto rounded-lg border border-ink/[0.08] bg-surface-raised p-3">
+                <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                   Reader mode
                 </div>
-                <p className="mt-2 text-xs leading-5 text-text-primary/42">
-                  The window stays inside the viewport. Scroll only this reader, not the whole app behind it.
+                <p className="mt-1.5 text-[11px] leading-5 text-text-muted">
+                  Scroll only this panel — the app behind stays locked. Theme follows your desk setting.
                 </p>
               </div>
             </div>
           </aside>
 
-          <main className="min-h-0 bg-[radial-gradient(circle_at_top,rgba(212,168,83,0.08),transparent_30%),linear-gradient(180deg,#130e12,#070507)] p-1.5 md:p-2.5">
+          <main className="min-h-0 bg-surface-secondary p-2 md:p-3">
             <CompassPdfViewer url={modal.url} title={modal.title || "Compass report PDF"} />
           </main>
         </div>
@@ -890,71 +891,60 @@ function CompassPdfViewer({ url, title }) {
   const zoomOut = () => setZoom((value) => Math.max(0.72, Number((value - 0.1).toFixed(2))));
   const zoomIn = () => setZoom((value) => Math.min(1.45, Number((value + 0.1).toFixed(2))));
 
+  const toolbarBtn =
+    "rounded-md border border-ink/[0.1] bg-surface-secondary px-2.5 py-1.5 font-mono text-[11px] font-semibold text-text-secondary transition hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35";
+
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-ink/[0.10] bg-surface-raised shadow-[0_18px_70px_rgb(var(--scrim) / 0.35)_inset]" ref={shellRef}>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-ink/[0.08] bg-surface-raised/95 px-3 py-2 md:px-4">
+    <section
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised shadow-sm"
+      ref={shellRef}
+    >
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-ink/[0.08] bg-surface-raised px-3 py-2 md:px-4">
         <div className="min-w-0">
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-accent/75">
+          <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">
             Fit reader
           </div>
-          <div className="mt-1 max-w-[54vw] truncate text-xs font-semibold text-text-primary/78 md:text-sm">
+          <div className="mt-0.5 max-w-[54vw] truncate text-xs font-semibold text-text-primary md:text-sm">
             {title}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
-          <button
-            type="button"
-            onClick={() => goToPage(-1)}
-            disabled={currentPage <= 1}
-            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07] disabled:opacity-35"
-          >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => goToPage(-1)} disabled={currentPage <= 1} className={toolbarBtn}>
             Prev
           </button>
-          <span className="rounded-md border border-ink/[0.08] bg-scrim/25 px-2.5 py-1.5 text-text-primary/55">
-            {currentPage} / {pageCount || "-"}
+          <span className="rounded-md border border-ink/[0.1] bg-surface-secondary px-2.5 py-1.5 font-mono text-[11px] font-semibold tabular-nums text-text-primary">
+            {currentPage} / {pageCount || "—"}
           </span>
-          <button
-            type="button"
-            onClick={() => goToPage(1)}
-            disabled={!pageCount || currentPage >= pageCount}
-            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07] disabled:opacity-35"
-          >
+          <button type="button" onClick={() => goToPage(1)} disabled={!pageCount || currentPage >= pageCount} className={toolbarBtn}>
             Next
           </button>
-          <span className="mx-1 hidden h-5 w-px bg-ink/[0.08] sm:block" />
-          <button
-            type="button"
-            onClick={zoomOut}
-            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07]"
-          >
-            -
+          <span className="mx-0.5 hidden h-5 w-px bg-ink/10 sm:block" />
+          <button type="button" onClick={zoomOut} className={toolbarBtn}>
+            −
           </button>
           <button
             type="button"
             onClick={() => setZoom(1)}
-            className="rounded-md border border-line/20 bg-accent/10 px-2.5 py-1.5 text-accent transition hover:bg-accent/15"
+            className="rounded-md bg-accent px-2.5 py-1.5 font-mono text-[11px] font-semibold text-accent-fg transition hover:opacity-90"
           >
             Fit {Math.round(zoom * 100)}%
           </button>
-          <button
-            type="button"
-            onClick={zoomIn}
-            className="rounded-md border border-ink/[0.08] bg-ink/[0.035] px-2.5 py-1.5 text-text-primary/60 transition hover:bg-ink/[0.07]"
-          >
+          <button type="button" onClick={zoomIn} className={toolbarBtn}>
             +
           </button>
         </div>
       </div>
 
+      {/* Page well — theme surface, not fixed dark wash */}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,#161115,#0c090c)] px-2 py-3 md:px-4 md:py-4"
+        className="min-h-0 flex-1 overflow-auto bg-ink/[0.04] px-2 py-3 md:px-4 md:py-4"
       >
         {status === "loading" && (
           <div className="flex h-full min-h-[420px] items-center justify-center text-center">
             <div>
-              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-ink/10 border-t-[#d4a853]" />
-              <div className="font-mono text-xs uppercase tracking-[0.18em] text-text-primary/35">
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-ink/10 border-t-accent" />
+              <div className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
                 Rendering PDF
               </div>
             </div>
@@ -962,9 +952,9 @@ function CompassPdfViewer({ url, title }) {
         )}
 
         {status === "error" && (
-          <div className="mx-auto mt-10 max-w-md rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-5 text-center">
-            <h4 className="text-base font-semibold text-text-primary/85">PDF preview failed</h4>
-            <p className="mt-2 text-sm leading-6 text-red-100/65">{error}</p>
+          <div className="mx-auto mt-10 max-w-md rounded-lg border border-loss/25 bg-loss/[0.06] p-5 text-center">
+            <h4 className="text-base font-semibold text-text-primary">PDF preview failed</h4>
+            <p className="mt-2 text-sm leading-6 text-loss">{error}</p>
           </div>
         )}
 
@@ -1032,7 +1022,9 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
         canvas.style.height = `${Math.floor(viewport.height)}px`;
 
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        context.fillStyle = "#070506";
+        // PDF artboard is dark-designed; keep a neutral dark pad under glyphs only
+        // (UI chrome around the page follows theme tokens)
+        context.fillStyle = "#0c0c0e";
         context.fillRect(0, 0, viewport.width, viewport.height);
 
         const renderTask = page.render({ canvasContext: context, viewport });
@@ -1056,19 +1048,22 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
   }, [pdf, pageNumber, availableWidth, zoom]);
 
   return (
-    <article className="mx-auto overflow-hidden rounded-xl border border-ink/[0.10] bg-surface-raised shadow-[0_22px_90px_rgb(var(--scrim) / 0.35)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
-      <div className="flex items-center justify-between border-b border-ink/[0.06] bg-surface-raised px-3 py-2 font-mono text-[10px] text-text-primary/35">
+    <article
+      className="mx-auto overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised shadow-md"
+      style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}
+    >
+      <div className="flex items-center justify-between border-b border-ink/[0.08] bg-surface-secondary px-3 py-2 font-mono text-[10px] font-semibold text-text-muted">
         <span>Page {pageNumber}</span>
-        <span>{pageNumber} / {pageCount}</span>
+        <span className="tabular-nums">{pageNumber} / {pageCount}</span>
       </div>
       <div className="relative bg-surface-raised">
         {!pageSize && !error && (
-          <div className="flex h-[520px] items-center justify-center text-[10px] font-mono uppercase tracking-[0.18em] text-text-primary/25">
+          <div className="flex h-[520px] items-center justify-center font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
             Rendering page
           </div>
         )}
         {error && (
-          <div className="p-8 text-center text-sm text-red-200/80">
+          <div className="p-8 text-center text-sm text-loss">
             {error}
           </div>
         )}
@@ -1078,13 +1073,19 @@ function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
   );
 }
 
-function ReaderMetric({ label, value }) {
+function ReaderMetric({ label, value, tone }) {
+  const valueCls =
+    tone === "up" ? "text-profit"
+    : tone === "down" ? "text-loss"
+    : "text-text-primary";
   return (
-    <div className="rounded-xl border border-ink/[0.07] bg-scrim/20 p-3">
-      <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-primary/30">
+    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3">
+      <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
         {label}
       </div>
-      <div className="mt-1 truncate font-mono text-sm text-text-primary/75">{value || "-"}</div>
+      <div className={`mt-1 truncate font-mono text-sm font-semibold tabular-nums ${valueCls}`}>
+        {value || "—"}
+      </div>
     </div>
   );
 }
