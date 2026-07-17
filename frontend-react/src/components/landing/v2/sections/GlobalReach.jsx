@@ -17,12 +17,22 @@ import countriesTopo from "world-atlas/countries-110m.json";
 // - Tidak ada angka query yang ditampilkan.
 // ════════════════════════════════════════════════════════════════
 
-const COLORS = {
+// Arc / node / label colours. Light golds pop on the dark desks but are
+// invisible on Bright's white canvas, so we swap to a saturated darker gold
+// there. COLORS is reassigned per-frame from the active theme (see render loop).
+const COLORS_DESK = {
   gold: "240,216,144",
   goldStrong: "251,243,218",
   goldMuted: "212,168,83",
   whiteSoft: "255,248,232",
 };
+const COLORS_BRIGHT = {
+  gold: "202,138,4", // amber-600 — reads on white
+  goldStrong: "146,99,4", // amber-800 for nodes/hover
+  goldMuted: "180,130,20",
+  whiteSoft: "71,85,105", // slate-600 for city labels
+};
+let COLORS = COLORS_DESK;
 
 // Intensitas warna per negara (ISO numeric) = level reach.
 // Indonesia (360) dipaksa ke tier terendah. HK & SG tidak ada poligon.
@@ -1456,11 +1466,11 @@ function getAppTheme() {
 function landPalette(theme) {
   if (theme === "bright") {
     return {
-      // Cool slate continents on soft paper ocean — Apple Maps / Linear light desk
-      fillBase: "100,116,139", // slate-500
-      fillAlpha: (intensity) => 0.12 + intensity * 0.55,
-      outline: "rgba(51,65,85,0.28)", // slate-700
-      outlineW: 0.65,
+      // Defined slate continents on soft paper ocean — Apple Maps / Linear light desk
+      fillBase: "71,85,105", // slate-600 (was slate-500 — too pale)
+      fillAlpha: (intensity) => 0.22 + intensity * 0.6,
+      outline: "rgba(51,65,85,0.42)", // slate-700, crisper
+      outlineW: 0.7,
       ocean: [
         "rgba(248,250,252,0.98)",
         "rgba(226,232,240,0.95)",
@@ -1903,6 +1913,7 @@ function CanvasGlobe() {
           context.restore();
         }
 
+        COLORS = appTheme === "bright" ? COLORS_BRIGHT : COLORS_DESK;
         drawGrid(context, radius, cx, cy, yaw, pitch);
         drawChoropleth(context, radius, cx, cy, yaw, pitch, appTheme);
         drawCountryOutlines(context, radius, cx, cy, yaw, pitch, appTheme);

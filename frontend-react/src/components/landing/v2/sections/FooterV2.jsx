@@ -65,7 +65,7 @@ export default function FooterV2({ onNav }) {
       label: "X",
       handle: "@luxquantcrypto",
       href: "https://x.com/luxquantcrypto",
-      bg: "linear-gradient(160deg,#2b2b2f 0%,rgb(var(--surface)) 100%)",
+      bg: "linear-gradient(160deg,#2b2b2f 0%,#050505 100%)",
       glyph: (
         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
       ),
@@ -83,7 +83,7 @@ export default function FooterV2({ onNav }) {
       label: "Daily Rekom Crypto",
       handle: "Look on LQ Premium+ Highlight",
       href: "https://www.instagram.com/dailyrekomcrypto/",
-      bg: "radial-gradient(ellipse at 30% 0%, rgba(150,28,28,0.55) 0%, transparent 62%), linear-gradient(155deg,#3a1012 0%,#1c0809 46%,rgb(var(--surface)) 100%)",
+      bg: "radial-gradient(ellipse at 30% 0%, rgba(150,28,28,0.55) 0%, transparent 62%), linear-gradient(155deg,#3a1012 0%,#1c0809 46%,#0a0506 100%)",
       img: "/DRC%20LOGO.png",
       fbColor: "#ffffff",
     },

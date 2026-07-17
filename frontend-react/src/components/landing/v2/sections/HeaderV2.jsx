@@ -18,7 +18,52 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
+import { useTheme } from "../../../../context/ThemeContext";
 import MoreMenuDropdown from "../../../MoreMenuDropdown";
+
+// Compact appearance picker for the landing header (admin-gated while theming
+// is in preview). Three swatches — click to switch the whole site live.
+const THEME_SWATCH = {
+  luxquant: "linear-gradient(145deg,#1a0a0c 0%,#3d1a12 55%,#e0b25c 150%)",
+  dark: "linear-gradient(145deg,#050506 0%,#18181b 60%,#8a8a96 165%)",
+  bright: "linear-gradient(145deg,#ffffff 0%,#eceef2 45%,#f0b90b 170%)",
+};
+function LandingThemePicker() {
+  const { theme, setTheme, canSwitchTheme, themes } = useTheme();
+  if (!canSwitchTheme) return null;
+  const opts = (themes || ["luxquant", "dark", "bright"]).map((k) => ({
+    k,
+    label: k === "luxquant" ? "Luxquant" : k === "dark" ? "Dark" : "Bright",
+  }));
+  return (
+    <div
+      className="hidden items-center gap-1 rounded-full border border-ink/[0.1] bg-ink/[0.03] p-1 lg:flex"
+      role="radiogroup"
+      aria-label="Appearance"
+    >
+      {opts.map((o) => {
+        const on = theme === o.k;
+        return (
+          <button
+            key={o.k}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            title={o.label}
+            aria-label={o.label}
+            onClick={() => setTheme(o.k)}
+            className={`h-5 w-5 rounded-full border transition-transform ${
+              on
+                ? "border-accent scale-110 shadow-[0_0_0_1.5px_rgb(var(--accent))]"
+                : "border-ink/15 opacity-70 hover:opacity-100 hover:scale-105"
+            }`}
+            style={{ background: THEME_SWATCH[o.k] }}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 const GOLD_BTN = {
   background:
@@ -197,8 +242,9 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             </div>
           </nav>
 
-          {/* Right: Language · Log In · Sign Up */}
+          {/* Right: Appearance · Language · Log In · Sign Up */}
           <div className="hidden shrink-0 items-center gap-2 lg:flex 2xl:gap-3">
+            <LandingThemePicker />
             <button
               type="button"
               className="hidden items-center gap-1.5 whitespace-nowrap text-[13px] text-text-primary/65 transition-colors hover:text-text-primary 2xl:flex"
