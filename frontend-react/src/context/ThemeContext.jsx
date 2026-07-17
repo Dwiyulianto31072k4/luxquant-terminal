@@ -24,9 +24,9 @@ const isMarketingRoute = (pathname) => /^\/(?:$|login|register)/.test(pathname |
 const DEFAULT_THEME = "luxquant";
 const STORAGE_KEY = "lq-theme";
 
-// Bright stays limited to admin staff (in-app) until product sign-off. Set false
-// to offer Bright to everyone in-app.
-const BRIGHT_ADMIN_ONLY = true;
+// Bright is now open to ALL users/roles in-app (product sign-off done).
+// Flip back to true to re-gate Bright to admin staff only.
+const BRIGHT_ADMIN_ONLY = false;
 
 const THEME_COLOR = {
   luxquant: "#0a0506",
