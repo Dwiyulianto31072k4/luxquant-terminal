@@ -431,12 +431,13 @@ export default function Performance({ data }) {
   const stats = data?.stats;
 
   // Click a day on the WR×BTC chart → load that day's calls (winners first).
+  // days=90 is the API max; created_day drills auto-widen scope to the key date.
   const openDay = (date) => {
     if (!date) return;
     setDrillDate(date);
     setDrillData(null);
     setDrillLoading(true);
-    fetch(`/api/v1/analytics/edge-lab/drill?dimension=created_day&key=${date}&days=90&limit=80`)
+    fetch(`/api/v1/analytics/edge-lab/drill?dimension=created_day&key=${encodeURIComponent(date)}&days=90&limit=200`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { setDrillData(j); setDrillLoading(false); })
       .catch(() => setDrillLoading(false));

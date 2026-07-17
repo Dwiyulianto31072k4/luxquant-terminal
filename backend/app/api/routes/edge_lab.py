@@ -521,7 +521,8 @@ async def get_edge_lab_drill(
         if key_date < start_date:
             start_date = key_date
             start_str = start_date.isoformat()
-    cache_key = f"lq:edge-lab:drill:v3:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
+    # v4: include entry/targets/status for public track-record proof modals
+    cache_key = f"lq:edge-lab:drill:v4:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -536,13 +537,18 @@ async def get_edge_lab_drill(
     if sector_filter != "all":
         params["sector"] = sector_filter
 
+    # Resolved signals only (OUTCOMES_CTE) — safe to expose entry/targets for audit.
+    # These are historical hits, not live open-actionable calls.
     scoped_cte = f"""
         scoped AS (
             SELECT r.signal_id, r.outcome, r.hit_date,
                    s.pair, s.peak_pct, s.created_at,
                    NULLIF(s.created_at, '')::timestamptz AS created_ts,
                    j.overall_mfe_pct, j.overall_mae_pct,
-                   j.realized_outcome_pct, j.missed_potential_pct
+                   j.realized_outcome_pct, j.missed_potential_pct,
+                   s.entry, s.target1, s.target2, s.target3, s.target4,
+                   s.stop1, s.stop2, s.status, s.risk_level,
+                   s.entry_chart_path, s.latest_chart_path, s.message_link
             FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id
             LEFT JOIN coins c ON c.pair = s.pair
@@ -552,7 +558,14 @@ async def get_edge_lab_drill(
         )
     """
 
-    select_cols = "sc.signal_id::text AS signal_id, sc.pair, sc.outcome, sc.hit_date::text, sc.peak_pct, sc.created_at, sc.overall_mfe_pct, sc.overall_mae_pct, sc.realized_outcome_pct, sc.missed_potential_pct"
+    select_cols = (
+        "sc.signal_id::text AS signal_id, sc.pair, sc.outcome, sc.hit_date::text, "
+        "sc.peak_pct, sc.created_at, sc.overall_mfe_pct, sc.overall_mae_pct, "
+        "sc.realized_outcome_pct, sc.missed_potential_pct, "
+        "sc.entry, sc.target1, sc.target2, sc.target3, sc.target4, "
+        "sc.stop1, sc.stop2, sc.status, sc.risk_level, "
+        "sc.entry_chart_path, sc.latest_chart_path, sc.message_link"
+    )
     order_by = (
         "ORDER BY (sc.outcome = 'sl') ASC, sc.peak_pct DESC NULLS LAST, sc.hit_date DESC "
         "LIMIT :limit"
@@ -658,6 +671,20 @@ async def get_edge_lab_drill(
         """
 
     rows = db.execute(text(sql), params).fetchall()
+
+    def _chart_url(path):
+        if not path:
+            return None
+        try:
+            from app.utils.chart_urls import chart_path_to_url
+            return chart_path_to_url(path)
+        except Exception:
+            # Fallback: serve via charts path if helper unavailable
+            p = str(path)
+            if p.startswith("http"):
+                return p
+            return f"/api/v1/charts/{p.lstrip('/')}" if p else None
+
     signals = [{
         "signal_id": r[0],
         "pair": r[1],
@@ -669,16 +696,31 @@ async def get_edge_lab_drill(
         "mae_pct": _safe_float(r[7]),
         "realized_pct": _safe_float(r[8]),
         "missed_pct": _safe_float(r[9]),
+        # Public proof fields — resolved-only, safe for track-record audit
+        "entry": _safe_float(r[10]),
+        "target1": _safe_float(r[11]),
+        "target2": _safe_float(r[12]),
+        "target3": _safe_float(r[13]),
+        "target4": _safe_float(r[14]),
+        "stop1": _safe_float(r[15]),
+        "stop2": _safe_float(r[16]),
+        "status": r[17],
+        "risk_level": r[18],
+        "entry_chart_url": _chart_url(r[19]),
+        "latest_chart_url": _chart_url(r[20]),
+        "message_link": r[21],
     } for r in rows]
 
     wins = sum(1 for s in signals if s["outcome"] in ("tp1", "tp2", "tp3", "tp4"))
     total = len(signals)
+    losses = sum(1 for s in signals if s["outcome"] == "sl")
 
     response = {
         "dimension": dimension,
         "key": key,
         "count": total,
         "wins": wins,
+        "losses": losses,
         "win_rate": _wr(wins, total),
         "signals": signals,
     }

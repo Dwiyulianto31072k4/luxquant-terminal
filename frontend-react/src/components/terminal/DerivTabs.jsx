@@ -170,8 +170,24 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
   const zDiv = useZoom(0, 4, 0, 4);
+  // Histogram bin drill — click a bar → list pairs in that L/S band → open call
+  const [lsBin, setLsBin] = useState(null); // { lo, hi, mid }
 
-  const lsrVals = rows.map((r) => r.lsr).filter((v) => v != null);
+  const lsrVals = useMemo(
+    () => rows.map((r) => r.lsr).filter((v) => v != null),
+    [rows],
+  );
+  const lsrBins = useMemo(
+    () => makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4),
+    [lsrVals],
+  );
+  const binPairs = useMemo(() => {
+    if (!lsBin) return [];
+    return rows
+      .filter((r) => r.lsr != null && r.lsr >= lsBin.lo && r.lsr < lsBin.hi)
+      .map((r) => ({ pair: r.pair, lsr: r.lsr, fc: pairFc?.[r.pair] ?? r.fc }))
+      .sort((a, b) => (b.lsr ?? 0) - (a.lsr ?? 0));
+  }, [lsBin, rows, pairFc]);
   const crowdedLong = rows.filter((r) => (r.lsr ?? 0) > 2.5);
   const crowdedShort = rows.filter((r) => r.lsr != null && r.lsr < 0.7);
   const divPts = rows
@@ -278,24 +294,94 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <XCard
           title={t("terminal.viz.lsrDistTitle")}
-          desc={t("terminal.viz.lsrDistDesc")}
+          desc={`${t("terminal.viz.lsrDistDesc")} Click a bar to list pairs → open call.`}
           height={320}
           render={(h) => (
-            <div style={{ height: h }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                  <CartesianGrid stroke={GRID} vertical={false} />
-                  <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
-                  <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
-                  <ReferenceLine x="1" stroke={GOLD} strokeDasharray="3 3" />
-                  <Bar dataKey="count" name="pairs" radius={[3, 3, 0, 0]}>
-                    {makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4).map((b, i) => (
-                      <Cell key={i} fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : GOLD} fillOpacity={0.8} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col" style={{ height: h }}>
+              <div className="min-h-0 flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={lsrBins}
+                    margin={{ top: 4, right: 8, left: -18, bottom: 0 }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
+                    <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(255,255,255,0.06)" }} />
+                    <ReferenceLine x="1" stroke="rgba(255,255,255,0.25)" strokeDasharray="3 3" />
+                    <Bar
+                      dataKey="count"
+                      name="pairs"
+                      radius={[3, 3, 0, 0]}
+                      onClick={(data) => {
+                        const p = data?.payload || data;
+                        if (!p || p.count === 0) return;
+                        const lo = Number(p.x);
+                        const hi = lo + 0.25;
+                        setLsBin({ lo, hi, mid: p.mid ?? (lo + hi) / 2 });
+                      }}
+                    >
+                      {lsrBins.map((b, i) => (
+                        <Cell
+                          key={i}
+                          fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : "rgb(148 163 184)"}
+                          fillOpacity={lsBin && Math.abs(lsBin.mid - b.mid) < 0.01 ? 1 : 0.75}
+                          stroke={lsBin && Math.abs(lsBin.mid - b.mid) < 0.01 ? "rgba(255,255,255,0.5)" : "transparent"}
+                          strokeWidth={1}
+                          cursor="pointer"
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {lsBin && (
+                <div className="mt-2 shrink-0 rounded-lg border border-white/[0.07] bg-white/[0.02]">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] px-2.5 py-1.5">
+                    <span className="font-mono text-[10px] text-text-muted">
+                      L/S {lsBin.lo.toFixed(2)}–{lsBin.hi.toFixed(2)}
+                      <span className="ml-1.5 text-text-primary/70">{binPairs.length} pairs</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLsBin(null)}
+                      className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="max-h-[120px] overflow-y-auto divide-y divide-white/[0.04] [scrollbar-width:thin]">
+                    {binPairs.length === 0 ? (
+                      <div className="px-2.5 py-3 text-center font-mono text-[10px] text-text-muted">No pairs in band</div>
+                    ) : (
+                      binPairs.slice(0, 40).map((p) => (
+                        <button
+                          key={p.pair}
+                          type="button"
+                          onClick={() => openPair?.(p.pair)}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition hover:bg-white/[0.04]"
+                        >
+                          <CoinLogo pair={p.pair} size={16} />
+                          <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-text-primary">
+                            {(p.pair || "").replace(/USDT$/i, "")}
+                          </span>
+                          <span className="font-mono text-[10px] tabular-nums text-text-muted">
+                            L/S {p.lsr?.toFixed?.(2) ?? "—"}
+                          </span>
+                          <span
+                            className={`font-mono text-[10px] tabular-nums ${
+                              p.fc == null ? "text-text-muted" : p.fc >= 0 ? "text-positive" : "text-negative"
+                            }`}
+                          >
+                            {p.fc == null ? "—" : fmtPct(p.fc, 1)}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         />
