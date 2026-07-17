@@ -15,25 +15,41 @@ export const authHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// ── chart palette (industry-standard semantic colors) ──────────────
-// POS/NEG = green/red (PnL). Accent = brand gold. Neutral grid/axis.
-export const GOLD = "#d4a853";
-export const POS = "#22c55e";
-export const NEG = "#ef4444";
-export const CYAN = "#22d3ee";
-export const PURPLE = "#a78bfa";
-export const ORANGE = "#f59e0b";
-export const GRAYBAR = "rgba(255,255,255,0.22)";
-export const GRID = "rgba(255,255,255,0.045)";
-export const AXIS = "rgba(255,255,255,0.38)";
-// Multi-series palette (vs BTC lines, sector stacks) — colorblind-friendly order
-export const SERIES = ["#d4a853", "#22c55e", "#38bdf8", "#a78bfa", "#f472b6", "#f59e0b", "#2dd4bf", "#fb7185", "#94a3b8", "#eab308"];
+// ── chart palette — CSS semantic tokens (follow data-theme luxquant|dark|bright)
+// Channel form in index.css: --accent: 212 168 83 → rgb(var(--accent))
+// Recharts/SVG accept these strings; Tailwind classes stay for layout (bg-surface…).
+export const GOLD = "rgb(var(--accent))";
+export const POS = "rgb(var(--pos))";
+export const NEG = "rgb(var(--neg))";
+export const CYAN = "rgb(34 211 238)";           // chart-only cyan (not theme-bound)
+export const PURPLE = "rgb(167 139 250)";
+export const ORANGE = "rgb(var(--warn))";
+export const GRAYBAR = "rgb(var(--fg) / 0.22)";
+export const GRID = "rgb(var(--fg) / 0.045)";
+export const AXIS = "rgb(var(--fg-muted))";
+// Multi-series (vs BTC lines) — accent first, then fixed distinct hues
+export const SERIES = [
+  "rgb(var(--accent))",
+  "rgb(var(--pos))",
+  "rgb(56 189 248)",
+  "rgb(167 139 250)",
+  "rgb(244 114 182)",
+  "rgb(var(--warn))",
+  "rgb(45 212 191)",
+  "rgb(251 113 133)",
+  "rgb(148 163 184)",
+  "rgb(234 179 8)",
+];
 
 export const STATUS_ORDER = ["open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"];
 export const STATUS_LABEL = { open: "Open", tp1: "TP1", tp2: "TP2", tp3: "TP3", closed_win: "TP4", closed_loss: "SL" };
 export const STATUS_COLORS = {
-  open: "rgba(255,255,255,0.35)", tp1: "#22c55e", tp2: "#4ade80", tp3: "#86efac",
-  closed_win: GOLD, closed_loss: NEG,
+  open: "rgb(var(--fg) / 0.35)",
+  tp1: "rgb(var(--pos))",
+  tp2: "rgb(74 222 128)",
+  tp3: "rgb(134 239 172)",
+  closed_win: GOLD,
+  closed_loss: NEG,
 };
 export const RISK_COLORS = { LOW: POS, NORMAL: GOLD, HIGH: NEG };
 
@@ -128,7 +144,7 @@ export const PLAUSIBLE_HI = 5;
 // bounded scroll region — keeps panels from growing forever (thin gold bar)
 export const ScrollArea = ({ children, max = 460, className = "" }) => (
   <div
-    className={`overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(212,168,83,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25 [&::-webkit-scrollbar-track]:bg-transparent ${className}`}
+    className={`overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--accent)_/_0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25 [&::-webkit-scrollbar-track]:bg-transparent ${className}`}
     style={{ maxHeight: max }}
   >
     {children}
@@ -143,7 +159,11 @@ export const StatusTag = ({ status }) => {
   return (
     <span
       className="px-1.5 py-0.5 rounded-sm font-mono text-[8.5px] uppercase tracking-wider border"
-      style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+      style={{
+        color,
+        borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
+        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+      }}
     >
       {label}
     </span>
@@ -275,7 +295,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
             )}
             {options.map((o) => (
               <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.04] cursor-pointer">
-                <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-[#d4a853] w-3 h-3" />
+                <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-gold-primary w-3 h-3" />
                 <span className="font-mono text-[11px] text-text-primary/85 capitalize">{String(o).replace(/_/g, " ")}</span>
               </label>
             ))}
@@ -575,8 +595,8 @@ export function RankBars({ data, fmt, suffix, onPair, align = "center" }) {
                     ? {
                         width: `${Math.max(pct, 2)}%`,
                         left: 0,
-                        background: `linear-gradient(90deg, ${color}28 0%, ${color} 100%)`,
-                        boxShadow: i === 0 ? `0 0 12px ${color}40` : undefined,
+                        background: `linear-gradient(90deg, color-mix(in srgb, ${color} 18%, transparent) 0%, ${color} 100%)`,
+                        boxShadow: i === 0 ? `0 0 12px color-mix(in srgb, ${color} 30%, transparent)` : undefined,
                       }
                     : {
                         width: `${pct}%`,

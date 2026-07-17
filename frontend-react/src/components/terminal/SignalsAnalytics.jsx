@@ -110,7 +110,7 @@ function RegimeGauge({ macro, pairFc, deriv }) {
           Backdrop for position sizing
         </div>
       </div>
-      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg,#ef4444,#d4a853,#22c55e)" }}>
+      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg,rgb(var(--neg)),rgb(var(--accent)),rgb(var(--pos)))" }}>
         {regime != null && (
           <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-4 rounded-sm bg-white shadow" style={{ left: `${regime}%` }} />
         )}
@@ -702,7 +702,7 @@ export default function SignalsAnalytics() {
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                           {STATUS_ORDER.map((k, i) => (
                             <Bar key={k} dataKey={k} name={STATUS_LABEL[k]} stackId="s" fill={STATUS_COLORS[k]} radius={i === STATUS_ORDER.length - 1 ? [2, 2, 0, 0] : 0} />
                           ))}
@@ -781,7 +781,7 @@ export default function SignalsAnalytics() {
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} unit="h" />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                           <Bar dataKey="count" name="signals" fill={CYAN} fillOpacity={0.75} radius={[2, 2, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -798,7 +798,7 @@ export default function SignalsAnalytics() {
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                           <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
                           <Bar dataKey="tp1" name="TP1" stackId="a" fill="#2dd4a0" fillOpacity={0.9} />
                           <Bar dataKey="tp2" name="TP2" stackId="a" fill="#4ade80" fillOpacity={0.9} />
@@ -946,7 +946,7 @@ export default function SignalsAnalytics() {
                           { c: GRAYBAR, l: t("terminal.viz.legRest"), n: anomMeta.restN },
                         ].map((e) => (
                           <span key={e.l} className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                            <span className="w-2 h-2 rounded-full" style={{ background: e.c, boxShadow: e.c === GOLD ? `0 0 6px ${GOLD}80` : undefined }} />
+                            <span className="w-2 h-2 rounded-full" style={{ background: e.c, boxShadow: e.c === GOLD ? "0 0 6px rgb(var(--accent) / 0.5)" : undefined }} />
                             {e.l}
                             <span className="text-text-primary/45 tabular-nums">{e.n}</span>
                           </span>
@@ -1073,7 +1073,7 @@ export default function SignalsAnalytics() {
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                           <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
                           <Bar dataKey="count" name="signals" radius={[3, 3, 0, 0]}>
                             {makeBins(fcClamped, 2, -20, 20).map((b, i) => (
@@ -1201,7 +1201,7 @@ export default function SignalsAnalytics() {
                             <CartesianGrid stroke={GRID} vertical={false} />
                             <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                             <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                            <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                            <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                             <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
                               {makeBins(agg.betaVals, 0.25, 0, 2.5).map((b, i) => (
                                 <Cell key={i} fill={b.mid < 0.8 ? POS : b.mid <= 1.2 ? GOLD : NEG} fillOpacity={0.8} />
@@ -1259,7 +1259,7 @@ export default function SignalsAnalytics() {
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                           <Bar dataKey="count" name="signals" fill={PURPLE} fillOpacity={0.8} radius={[2, 2, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>

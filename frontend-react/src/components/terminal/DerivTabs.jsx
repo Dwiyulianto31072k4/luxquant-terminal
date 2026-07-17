@@ -287,7 +287,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
                   <CartesianGrid stroke={GRID} vertical={false} />
                   <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                   <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                  <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                   <ReferenceLine x="1" stroke={GOLD} strokeDasharray="3 3" />
                   <Bar dataKey="count" name="pairs" radius={[3, 3, 0, 0]}>
                     {makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4).map((b, i) => (
@@ -687,7 +687,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                     <CartesianGrid stroke={GRID} vertical={false} />
                     <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                    <Tooltip content={<DarkTip />} cursor={{ fill: "rgb(var(--accent) / 0.06)" }} />
                     <Bar dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
                       {makeBins(rsiRows.map((r) => r.rsi), 10, 0, 100).map((b, i) => (
                         <Cell key={i} fill={b.mid < 30 ? POS : b.mid > 70 ? NEG : GOLD} fillOpacity={0.75} />
