@@ -94,8 +94,7 @@ const IconGauge = ({ className = 'w-3.5 h-3.5' }) => (
 // ================================================================
 
 const CardShell = ({ children, className = '', hover = true }) => (
-  <div className={`relative bg-surface-raised rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-line/20 transition-colors' : ''} ${className}`}>
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
+  <div className={`relative bg-surface-raised rounded-xl border border-white/[0.06] overflow-hidden ${hover ? 'hover:border-white/[0.12] transition-colors' : ''} ${className}`}>
     {children}
   </div>
 );
@@ -103,7 +102,7 @@ const CardShell = ({ children, className = '', hover = true }) => (
 const CardHead = ({ icon, label, right }) => (
   <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between gap-3 flex-wrap">
     <div className="flex items-center gap-2.5 min-w-0">
-      <span className="w-6 h-6 flex items-center justify-center rounded-md bg-gold-primary/[0.08] text-gold-primary/80 flex-shrink-0">{icon}</span>
+      <span className="w-6 h-6 flex items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-text-primary/65 flex-shrink-0">{icon}</span>
       <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-text-primary truncate">{label}</h3>
     </div>
     {right}
@@ -253,9 +252,8 @@ const OverviewPage = () => {
 
           {/* KEY METRICS */}
           {data && (
-            <div className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.05]">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/35 to-transparent z-10" />
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-px">
+            <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.04]">
                 <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon={<IconWallet />} />
                 <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon={<IconChart />} />
                 <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon={<IconCrown />} />
@@ -402,7 +400,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
                 href={`https://www.coingecko.com/en/categories/${cat.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] px-2 py-0.5 bg-gold-primary/10 text-gold-primary border border-line/20 hover:bg-gold-primary/15 hover:border-line/40 transition-all rounded-sm"
+                className="font-mono text-[10px] px-2 py-0.5 bg-white/[0.04] text-text-primary/70 border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] hover:text-text-primary transition-all rounded-sm"
               >
                 {cat.name}
               </a>
@@ -415,7 +413,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
         {/* HOT */}
         <div className="p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-500/60" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">{t('overview.hot')}</p>
           </div>
           <div className="space-y-0.5">
@@ -430,7 +428,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
         {/* COOL */}
         <div className="p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_8px] shadow-red-500/60" />
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-400">{t('overview.cool')}</p>
           </div>
           <div className="space-y-0.5">
@@ -497,7 +495,7 @@ const DerivativesPulseCard = ({ data, t }) => {
         {oi && (
           <div className="flex justify-between items-center py-2.5 px-3 bg-white/[0.02] border border-white/[0.06] mb-3 rounded-lg">
             <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.total_oi')}</span>
-            <span className="text-gold-primary font-mono text-base font-light tabular-nums">{formatLargeNumber(oi.total_usd)}</span>
+            <span className="text-text-primary font-mono text-base font-light tabular-nums">{formatLargeNumber(oi.total_usd)}</span>
           </div>
         )}
 
@@ -557,10 +555,7 @@ const CoinListCard = ({ title, icon, coins, isLoser }) => (
 // HELPER COMPONENTS
 // ================================================================
 
-/**
- * Indicator bar — uses gold opacity gradient instead of multi-color
- * opacity prop: 1.0 = full gold, 0.85 = light, 0.55 = mid, 0.4 = dark
- */
+/** Indicator bar — neutral fill; colour is only for semantic PnL elsewhere */
 const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
   <div>
     <div className="flex justify-between items-baseline mb-1.5">
@@ -569,11 +564,10 @@ const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
     </div>
     <div className="h-1.5 bg-white/[0.04] overflow-hidden rounded-full">
       <div
-        className="h-full transition-all duration-700 rounded-full"
+        className="h-full transition-all duration-700 rounded-full bg-text-primary"
         style={{
           width: `${Math.min((pct / max) * 100, 100)}%`,
-          backgroundColor: 'rgb(var(--accent))',
-          opacity,
+          opacity: Math.max(0.35, opacity * 0.7),
         }}
       />
     </div>
@@ -608,8 +602,8 @@ const TriDown = ({ className = 'w-2 h-2' }) => (
 );
 
 const MetricCard = ({ label, value, change, icon }) => (
-  <div className="group bg-surface-raised flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.015] transition-colors">
-    <span className="w-8 h-8 flex items-center justify-center rounded-md bg-gold-primary/[0.08] text-gold-primary/80 flex-shrink-0 transition-transform group-hover:scale-110">{icon}</span>
+  <div className="group bg-surface-raised flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
+    <span className="w-8 h-8 flex items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-text-primary/60 flex-shrink-0">{icon}</span>
     <div className="min-w-0">
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted leading-tight truncate">{label}</p>
       <div className="flex items-baseline gap-2 mt-1.5">
@@ -635,7 +629,7 @@ const CoinRow = ({ coin, rank, isLoser }) => (
         onError={(e) => { e.target.style.display = 'none'; }}
       />
       <div className="min-w-0">
-        <p className="font-mono text-sm text-text-primary group-hover:text-gold-primary transition-colors">{coin.symbol.toUpperCase()}</p>
+        <p className="font-mono text-sm text-text-primary group-hover:text-white transition-colors">{coin.symbol.toUpperCase()}</p>
         <p className="text-text-muted text-[10px] hidden sm:block truncate max-w-[140px]">{coin.name}</p>
       </div>
     </div>
@@ -673,7 +667,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
             />
           ))}
         </div>
-        <span className="text-text-primary text-sm truncate group-hover:text-gold-primary transition-colors">{cat.name}</span>
+        <span className="text-text-primary text-sm truncate group-hover:text-white transition-colors">{cat.name}</span>
       </div>
       <div className="relative flex items-center gap-3 flex-shrink-0">
         <span className="font-mono text-[10px] text-text-muted tabular-nums hidden sm:inline">

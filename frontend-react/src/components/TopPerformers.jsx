@@ -48,11 +48,12 @@ const TopPerformers = () => {
     setHistoryModalSignal(null);
   };
 
-  // Short labels so all filters fit in 4 columns — no horizontal scroll (Binance density)
+  // Desk ranges — denser than old 1D/7D/30D; maps cleanly to API `days`
   const presets = [
     { key: '1d', label: t('top.d1'), short: '1D', days: 1 },
-    { key: '7d', label: t('top.d7'), short: '7D', days: 7 },
-    { key: '30d', label: t('top.d30'), short: '30D', days: 30 },
+    { key: '3d', label: '3D', short: '3D', days: 3 },
+    { key: '7d', label: t('top.d7'), short: '1W', days: 7 },
+    { key: '30d', label: t('top.d30'), short: '1M', days: 30 },
     { key: 'custom', label: t('top.custom'), short: 'Custom', days: null },
   ];
 
@@ -141,96 +142,122 @@ const TopPerformers = () => {
     return (
       <div className="mb-10">
         <ShimmerStyles />
-        <div className="lqsk-group relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised p-3.5 sm:p-5">
-        <div className="mb-5">
-          <div className="h-7 w-48 rounded-lg bg-white/[0.05] sm:h-8 sm:w-64" />
-          <div className="mt-2 h-3 w-40 rounded bg-white/[0.03]" />
-        </div>
-        <div className="mb-3 grid grid-cols-4 gap-1 border-b border-white/[0.06] pb-2">
-          {[...Array(4)].map((_, j) => (
-            <div key={j} className="mx-auto h-3 w-14 rounded bg-white/[0.05]" />
-          ))}
-        </div>
-        <div className="mb-4 h-8 w-full rounded-md bg-white/[0.04]" />
-
-        {/* Open leaderboard rows — borderless, only hairline dividers */}
-        <div className="divide-y divide-white/[0.04]">
-          {[...Array(9)].map((_, j) => (
-            <div key={j} className="flex items-center gap-3 py-3.5">
-              <div className="h-7 w-7 flex-shrink-0 rounded-full bg-white/[0.05]" />
-              <div className="h-7 w-7 flex-shrink-0 rounded-full bg-white/[0.05]" />
-              <div className="min-w-0 flex-1">
-                <div className="h-3.5 w-24 rounded bg-white/[0.05]" />
-                <div className="mt-1.5 h-2.5 w-32 rounded bg-white/[0.03]" />
+        <div className="lqsk-group relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
+          <div className="border-b border-white/[0.06] px-4 py-4 sm:px-5">
+            <div className="h-5 w-36 rounded bg-white/[0.05]" />
+            <div className="mt-2 h-3 w-52 rounded bg-white/[0.03]" />
+          </div>
+          <div className="flex gap-4 border-b border-white/[0.06] px-4 py-3 sm:px-5">
+            {[...Array(4)].map((_, j) => (
+              <div key={j} className="h-3 w-16 rounded bg-white/[0.05]" />
+            ))}
+          </div>
+          <div className="divide-y divide-white/[0.04] px-4 sm:px-5">
+            {[...Array(8)].map((_, j) => (
+              <div key={j} className="flex items-center gap-3 py-3.5">
+                <div className="h-4 w-4 shrink-0 rounded bg-white/[0.04]" />
+                <div className="h-8 w-8 shrink-0 rounded-full bg-white/[0.05]" />
+                <div className="min-w-0 flex-1">
+                  <div className="h-3.5 w-20 rounded bg-white/[0.05]" />
+                  <div className="mt-1.5 h-2.5 w-28 rounded bg-white/[0.03]" />
+                </div>
+                <div className="hidden h-5 w-16 rounded bg-white/[0.03] sm:block" />
+                <div className="h-4 w-14 shrink-0 rounded bg-white/[0.05]" />
               </div>
-              <div className="hidden h-6 w-20 rounded bg-white/[0.03] sm:block" />
-              <div className="h-4 w-16 flex-shrink-0 rounded bg-white/[0.05]" />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Uniform rank — same style for every position (exchange list density)
+  // Quiet mono rank — no medals, no gold badges
   const rankBadge = (rank) => (
-    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-[11px] tabular-nums text-text-primary/35 sm:h-6 sm:w-6 sm:text-[12px]">
+    <span
+      className={`inline-flex w-5 shrink-0 justify-center font-mono text-[11px] tabular-nums sm:w-6 sm:text-[12px] ${
+        rank <= 3 ? 'text-text-primary/55' : 'text-text-primary/30'
+      }`}
+    >
       {rank}
     </span>
   );
 
+  const resultCount = displayed.length;
+
   return (
     <div className="mb-10 relative">
-      {/* Solid panel — same surface as Market Overview (not translucent) */}
+      {/* Timeless desk panel — hairline border only, no gold edge glow */}
       <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-surface-raised">
-        <div className="p-3.5 sm:p-5 lg:p-5">
-          {/* Header — no LIVE badge (exchanges don't do that on lists) */}
-          <div className="mb-3 flex flex-wrap items-end justify-between gap-2 sm:mb-4">
-            <div className="min-w-0">
-              <h2 className="font-display text-lg sm:text-xl font-semibold tracking-tight text-text-primary">
+        {/* Title strip */}
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-4 py-3.5 sm:px-5 sm:py-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
                 Top Gainers
               </h2>
-              <p className="mt-0.5 text-xs text-text-muted">
-                Best resolved calls · tap for proof
-              </p>
+              {resultCount > 0 && (
+                <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                  {resultCount}
+                </span>
+              )}
             </div>
-            {periodRange.from && (
-              <div className="font-mono text-[10px] tabular-nums text-text-muted sm:text-[11px]">
+            <p className="mt-1 text-[12px] leading-snug text-text-muted">
+              Resolved signal leaderboard · open a row for call proof
+            </p>
+          </div>
+          {periodRange.from && (
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/60">
+                Window
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-text-primary/55">
                 {periodRange.from}
                 {periodRange.to ? (
-                  <span className="text-text-muted/60"> → {periodRange.to}</span>
+                  <span className="text-text-muted/50"> – {periodRange.to}</span>
                 ) : null}
-              </div>
-            )}
-          </div>
+              </span>
+            </div>
+          )}
+        </div>
 
-          {/* Filters */}
-          {data && data.top_gainers?.length > 0 && (
-            <div className="mb-2 space-y-2 sm:mb-3">
-              <div className="grid grid-cols-4 gap-0.5 border-b border-white/[0.06]">
-                {CATEGORIES.map((c) => {
-                  const on = category === c.key;
-                  return (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => setCategory(c.key)}
-                      className={`relative min-w-0 px-0.5 pb-2 pt-1 text-center text-[11px] font-medium transition sm:text-[12px] ${
-                        on ? "text-text-primary" : "text-text-muted hover:text-text-primary/80"
-                      }`}
-                    >
-                      <span className="block truncate sm:hidden">{c.short}</span>
-                      <span className="hidden truncate sm:block">{c.label}</span>
-                      {on && (
-                        <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-gold-primary sm:inset-x-4" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+        {/* Category tabs + range — toolbar */}
+        {data && data.top_gainers?.length > 0 && (
+          <div className="border-b border-white/[0.06]">
+            <div
+              className="no-scrollbar flex gap-0 overflow-x-auto px-2 sm:px-3"
+              role="tablist"
+              aria-label="Leaderboard categories"
+            >
+              {CATEGORIES.map((c) => {
+                const on = category === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => setCategory(c.key)}
+                    className={`relative shrink-0 px-3 py-3 text-[12px] font-medium transition sm:px-4 sm:text-[13px] ${
+                      on
+                        ? 'text-text-primary'
+                        : 'text-text-muted hover:text-text-primary/80'
+                    }`}
+                  >
+                    <span className="sm:hidden">{c.short}</span>
+                    <span className="hidden sm:inline">{c.label}</span>
+                    {on && (
+                      <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-text-primary sm:inset-x-4" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-              <div className="grid grid-cols-4 gap-0.5 rounded-md border border-white/[0.06] bg-surface-raised p-0.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.04] px-3 py-2 sm:px-4">
+              <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/55">
+                Range
+              </span>
+              <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md border border-white/[0.07] bg-black/20 p-0.5">
                 {presets.map(({ key, short }) => {
                   const on = activeFilter === key;
                   return (
@@ -238,10 +265,10 @@ const TopPerformers = () => {
                       key={key}
                       type="button"
                       onClick={() => handlePresetClick(key)}
-                      className={`min-w-0 rounded-[5px] py-1.5 text-center font-mono text-[10px] font-medium tracking-wide transition sm:text-[11px] ${
+                      className={`shrink-0 rounded-[5px] px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-wide transition sm:px-3 sm:text-[11px] ${
                         on
-                          ? "bg-white/[0.1] text-text-primary"
-                          : "text-text-muted hover:text-text-primary/75"
+                          ? 'bg-white/[0.1] text-text-primary shadow-sm'
+                          : 'text-text-muted hover:text-text-primary/75'
                       }`}
                     >
                       {short}
@@ -249,215 +276,275 @@ const TopPerformers = () => {
                   );
                 })}
               </div>
-
-              {showCustom && (
-                <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/[0.06] bg-surface-raised p-2 sm:flex sm:flex-wrap sm:items-center">
-                  <label className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-1.5">
-                    <span className="font-mono text-[9px] uppercase text-text-muted">{t("top.from")}</span>
-                    <input
-                      type="date"
-                      value={customFrom}
-                      onChange={(e) => setCustomFrom(e.target.value)}
-                      className="w-full min-w-0 rounded-md border border-white/10 bg-surface-raised px-2 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
-                    />
-                  </label>
-                  <label className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-1.5">
-                    <span className="font-mono text-[9px] uppercase text-text-muted">{t("top.to")}</span>
-                    <input
-                      type="date"
-                      value={customTo}
-                      onChange={(e) => setCustomTo(e.target.value)}
-                      className="w-full min-w-0 rounded-md border border-white/10 bg-surface-raised px-2 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleCustomApply}
-                    disabled={!customFrom || !customTo}
-                    className="col-span-2 rounded-md bg-gold-primary py-1.5 text-[11px] font-semibold text-surface-hover disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-4"
-                  >
-                    {t("top.apply")}
-                  </button>
-                </div>
-              )}
             </div>
-          )}
 
-          {data && (!data.top_gainers || data.top_gainers.length === 0) && (
-            <div className="py-12 text-center">
-              <p className="text-[13px] text-text-primary/35">{t("top.no_tp")}</p>
-            </div>
-          )}
-
-          {data && data.top_gainers?.length > 0 && (
-            <div className={loading ? "opacity-50 transition-opacity" : ""}>
-              <div className="hidden border-b border-white/[0.06] px-1 pb-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_1fr_1.1fr_0.85fr_6.5rem] sm:gap-3">
-                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-primary/30">#</span>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-text-primary/30">Pair</span>
-                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-text-primary/30">
-                  {t("top.first_entry") || "Entry"}
-                </span>
-                <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-primary/30">Path</span>
-                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-text-primary/30">
-                  {t("top.duration") || "Time"}
-                </span>
-                <span className="text-right text-[10px] font-medium uppercase tracking-wider text-text-primary/30">Change</span>
+            {showCustom && (
+              <div className="grid grid-cols-2 gap-2 border-t border-white/[0.04] bg-white/[0.01] px-3 py-2.5 sm:flex sm:flex-wrap sm:items-end sm:px-4">
+                <label className="flex min-w-0 flex-col gap-1">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                    {t('top.from')}
+                  </span>
+                  <input
+                    type="date"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="w-full min-w-0 rounded-md border border-white/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                  />
+                </label>
+                <label className="flex min-w-0 flex-col gap-1">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                    {t('top.to')}
+                  </span>
+                  <input
+                    type="date"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    className="w-full min-w-0 rounded-md border border-white/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary [color-scheme:dark] focus:border-white/25 focus:outline-none"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleCustomApply}
+                  disabled={!customFrom || !customTo}
+                  className="col-span-2 rounded-md border border-white/15 bg-white/[0.08] py-2 text-[11px] font-semibold text-text-primary transition hover:bg-white/[0.12] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-5"
+                >
+                  {t('top.apply')}
+                </button>
               </div>
+            )}
+          </div>
+        )}
 
-              <div className="divide-y divide-white/[0.04]">
-                {displayed.map((item, idx) => {
-                  const rank = idx + 1;
-                  const gainUp = (item.gain_pct || 0) >= 0;
-                  return (
-                    <div
-                      key={`${item.signal_id || item.pair}-${idx}`}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleItemClick(item)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleItemClick(item);
-                        }
-                      }}
-                      style={{ animationDelay: `${Math.min(idx * 28, 280)}ms` }}
-                      className="tp-row group cursor-pointer transition-colors hover:bg-white/[0.025] active:bg-white/[0.04]"
-                    >
-                      <div className="hidden items-center gap-3 px-1 py-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_1fr_1.1fr_0.85fr_6.5rem]">
-                        <div className="flex justify-center">{rankBadge(rank)}</div>
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <CoinLogo pair={cleanPair(item.pair)} size={28} />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="truncate font-mono text-[14px] font-semibold text-text-primary group-hover:text-gold-primary/90">
-                                {coinSymbol(item.pair)}
-                              </span>
-                              <span className="shrink-0 text-[11px] text-text-primary/25">USDT</span>
-                              {item.signal_count > 1 && (
-                                <span className="shrink-0 rounded bg-white/[0.06] px-1 py-px font-mono text-[9px] text-text-primary/45">
-                                  ×{item.signal_count}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right font-mono text-[12px] tabular-nums text-text-primary/45">
-                          ${formatPrice(item.entry)}
-                        </div>
-                        <div className="flex justify-center px-1">
-                          <div className="w-full max-w-[110px]">
-                            <SinceCallSpark item={item} />
-                          </div>
-                        </div>
-                        <div className="text-right font-mono text-[11px] tabular-nums text-text-primary/35">
-                          {item.duration_display}
-                        </div>
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span
-                            className={`font-mono text-[13px] font-semibold tabular-nums leading-none ${
-                              gainUp ? "text-emerald-400" : "text-red-400"
-                            }`}
-                          >
-                            {gainUp ? "+" : ""}
-                            {formatGainDisplay(item.gain_pct)}
-                          </span>
-                          {item.tp_price > 0 && (
-                            <span className="font-mono text-[9px] tabular-nums text-text-primary/25">
-                              ${formatPrice(item.tp_price)}
+        {data && (!data.top_gainers || data.top_gainers.length === 0) && (
+          <div className="px-4 py-14 text-center sm:px-5">
+            <p className="text-[13px] text-text-primary/35">{t('top.no_tp')}</p>
+          </div>
+        )}
+
+        {data && data.top_gainers?.length > 0 && (
+          <div className={loading ? 'opacity-50 transition-opacity' : ''}>
+            {/* Column headers — desk table */}
+            <div className="hidden border-b border-white/[0.05] px-4 py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3 sm:px-5">
+              <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+                #
+              </span>
+              <span className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+                Token
+              </span>
+              <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+                {t('top.first_entry') || 'Entry'}
+              </span>
+              <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+                Path
+              </span>
+              <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+                {t('top.duration') || 'Time'}
+              </span>
+              <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+                Gain
+              </span>
+              <span />
+            </div>
+
+            <div className="divide-y divide-white/[0.04]">
+              {displayed.map((item, idx) => {
+                const rank = idx + 1;
+                const gainUp = (item.gain_pct || 0) >= 0;
+                const multi = (item.signal_count || 1) > 1;
+                return (
+                  <div
+                    key={`${item.signal_id || item.pair}-${idx}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleItemClick(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleItemClick(item);
+                      }
+                    }}
+                    style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
+                    className="tp-row group cursor-pointer transition-colors hover:bg-white/[0.028] active:bg-white/[0.04] focus-visible:bg-white/[0.03] focus-visible:outline-none"
+                  >
+                    {/* Desktop row */}
+                    <div className="hidden items-center gap-3 px-4 py-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:px-5">
+                      <div className="flex justify-center">{rankBadge(rank)}</div>
+
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <CoinLogo pair={cleanPair(item.pair)} size={30} />
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 items-baseline gap-1.5">
+                            <span className="truncate font-mono text-[13.5px] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-white">
+                              {coinSymbol(item.pair)}
                             </span>
+                            <span className="shrink-0 font-mono text-[10px] text-text-primary/28">
+                              USDT
+                            </span>
+                          </div>
+                          {multi && (
+                            <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted/70">
+                              {item.signal_count} calls in window
+                            </p>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 py-2.5 sm:hidden">
-                        {rankBadge(rank)}
-                        <CoinLogo pair={cleanPair(item.pair)} size={32} />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="truncate font-mono text-[14px] font-semibold text-text-primary">
-                              {coinSymbol(item.pair)}
-                            </span>
-                            {item.signal_count > 1 && (
-                              <span className="rounded bg-white/[0.06] px-1 font-mono text-[9px] text-text-primary/40">
-                                ×{item.signal_count}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-text-primary/35">
-                            <span>${formatPrice(item.entry)}</span>
-                            <span className="text-text-primary/15">·</span>
-                            <span>{item.duration_display}</span>
-                          </div>
-                        </div>
-                        <div className="w-[52px] shrink-0">
-                          <SinceCallSpark item={item} compact />
-                        </div>
-                        <div className="w-[4.75rem] shrink-0 text-right">
-                          <span
-                            className={`font-mono text-[13px] font-semibold tabular-nums leading-none ${
-                              gainUp ? "text-emerald-400" : "text-red-400"
-                            }`}
-                          >
-                            {gainUp ? "+" : ""}
-                            {formatGainDisplay(item.gain_pct)}
-                          </span>
+                      <div className="text-right font-mono text-[12px] tabular-nums text-text-primary/50">
+                        ${formatPrice(item.entry)}
+                      </div>
+
+                      <div className="flex justify-center px-1">
+                        <div className="w-full max-w-[120px]">
+                          <SinceCallSpark item={item} />
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
 
-              {displayed.length === 0 && (
-                <div className="py-10 text-center">
-                  <p className="text-[13px] text-text-primary/35">{t("top.no_data")}</p>
-                </div>
-              )}
+                      <div className="text-right font-mono text-[11px] tabular-nums text-text-primary/40">
+                        {item.duration_display}
+                      </div>
+
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span
+                          className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[12.5px] font-semibold tabular-nums leading-none ${
+                            gainUp
+                              ? 'bg-emerald-500/[0.1] text-emerald-400'
+                              : 'bg-red-500/[0.1] text-red-400'
+                          }`}
+                        >
+                          {gainUp ? '+' : ''}
+                          {formatGainDisplay(item.gain_pct)}
+                        </span>
+                        {item.tp_price > 0 && (
+                          <span className="font-mono text-[9px] tabular-nums text-text-primary/28">
+                            peak ${formatPrice(item.tp_price)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end text-text-primary/15 transition-colors group-hover:text-text-primary/40">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Mobile row */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-3 sm:hidden">
+                      {rankBadge(rank)}
+                      <CoinLogo pair={cleanPair(item.pair)} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate font-mono text-[14px] font-semibold text-text-primary">
+                            {coinSymbol(item.pair)}
+                          </span>
+                          {multi && (
+                            <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1 font-mono text-[9px] text-text-primary/45">
+                              ×{item.signal_count}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-text-primary/40">
+                          <span>${formatPrice(item.entry)}</span>
+                          <span className="text-text-primary/15">·</span>
+                          <span>{item.duration_display}</span>
+                        </div>
+                      </div>
+                      <div className="w-[48px] shrink-0 opacity-80">
+                        <SinceCallSpark item={item} compact />
+                      </div>
+                      <div className="w-[4.85rem] shrink-0 text-right">
+                        <span
+                          className={`inline-flex rounded-md px-1.5 py-0.5 font-mono text-[12.5px] font-semibold tabular-nums leading-none ${
+                            gainUp
+                              ? 'bg-emerald-500/[0.1] text-emerald-400'
+                              : 'bg-red-500/[0.1] text-red-400'
+                          }`}
+                        >
+                          {gainUp ? '+' : ''}
+                          {formatGainDisplay(item.gain_pct)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </div>
+
+            {displayed.length === 0 && (
+              <div className="px-4 py-12 text-center">
+                <p className="text-[13px] text-text-primary/35">{t('top.no_data')}</p>
+              </div>
+            )}
+
+            {displayed.length > 0 && (
+              <div className="flex items-center justify-between gap-3 border-t border-white/[0.05] px-4 py-2.5 sm:px-5">
+                <p className="font-mono text-[10px] text-text-muted/55">
+                  Tap a row to open call proof
+                </p>
+                <p className="font-mono text-[10px] tabular-nums text-text-muted/45">
+                  {resultCount} listed
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-
       <style>{`
-        @keyframes tpRowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .tp-row { animation: tpRowIn 0.4s ease-out both; }
-        @keyframes proofHintIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes tpRowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .tp-row { animation: tpRowIn 0.32s ease-out both; }
+        @keyframes proofHintIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .tp-row { animation: none; } }
       `}</style>
 
-      {/* Three-second proof cue on each fresh page visit */}
+      {/* Neutral proof cue — no gold glow */}
       {showProofHint && !modalOpen && (
         <div
           role="status"
           aria-live="polite"
-          className={`pointer-events-none fixed inset-x-4 bottom-[92px] z-[9990] mx-auto max-w-[420px] rounded-2xl border border-line/30 bg-surface-secondary/95 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.42),0_0_24px_rgba(212,168,83,0.10)] backdrop-blur-xl transition-all duration-500 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[360px] ${
-            isProofHintClosing ? 'translate-y-2 opacity-0' : 'animate-[proofHintIn_.35s_cubic-bezier(.16,1,.3,1)] opacity-100'
+          className={`pointer-events-none fixed inset-x-4 bottom-[92px] z-[9990] mx-auto max-w-[400px] rounded-xl border border-white/[0.1] bg-surface-secondary/95 px-4 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[340px] ${
+            isProofHintClosing ? 'translate-y-2 opacity-0' : 'animate-[proofHintIn_.3s_ease-out] opacity-100'
           }`}
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-line/25 bg-gold-primary/10 text-gold-primary">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.05] text-text-primary/70">
               <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
                 <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
               </svg>
             </span>
             <div className="min-w-0">
-              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-gold-primary">Call proof</p>
-              <p className="mt-0.5 text-[12px] leading-snug text-text-primary/84">Tap any listed coin to view the original call proof.</p>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-text-muted">
+                Call proof
+              </p>
+              <p className="mt-0.5 text-[12px] leading-snug text-text-primary/80">
+                Open any row to view the original call.
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* === MODAL (unchanged logic) === */}
       {modalOpen && modalItem && (
-        <SignalDetailModal item={modalItem} detail={signalDetail} loading={detailLoading}
-          signalIds={modalSignalIds} currentIndex={modalIndex} onNavigate={goToSignal}
-          onClose={closeModal} cleanPair={cleanPair} t={t}
-          onOpenHistory={openHistoryModal} />
+        <SignalDetailModal
+          item={modalItem}
+          detail={signalDetail}
+          loading={detailLoading}
+          signalIds={modalSignalIds}
+          currentIndex={modalIndex}
+          onNavigate={goToSignal}
+          onClose={closeModal}
+          cleanPair={cleanPair}
+          t={t}
+          onOpenHistory={openHistoryModal}
+        />
       )}
 
-      <SignalModal signal={historyModalSignal} isOpen={historyModalOpen} onClose={closeHistoryModal} initialTab="history" />
+      <SignalModal
+        signal={historyModalSignal}
+        isOpen={historyModalOpen}
+        onClose={closeHistoryModal}
+        initialTab="history"
+      />
     </div>
   );
 };
