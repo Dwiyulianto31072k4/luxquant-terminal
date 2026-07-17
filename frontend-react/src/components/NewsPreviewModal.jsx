@@ -57,7 +57,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
         Wire
       </span>
       {article.source ? (
-        <span className="inline-flex items-center gap-1.5 rounded border border-ink/[0.1] bg-ink/[0.04] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
           <span className="h-1 w-1 rounded-full bg-ink/45" />
           {article.source}
         </span>
@@ -77,7 +77,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
           href={article.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/15 bg-ink/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-ink/[0.14] active:scale-[0.99]"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-transparent bg-accent text-[12px] font-semibold uppercase tracking-[0.1em] text-accent-fg transition hover:opacity-90 active:scale-[0.99]"
         >
           {t("btc.open_article")}
           <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,7 +88,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
       <button
         type="button"
         onClick={close}
-        className="h-11 shrink-0 rounded-lg border border-ink/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-ink/20 hover:text-text-primary sm:px-5"
+        className="h-11 shrink-0 rounded-md border border-ink/[0.12] bg-surface-secondary px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-secondary transition hover:border-ink/25 hover:text-text-primary sm:px-5"
       >
         Close
       </button>

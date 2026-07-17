@@ -1,9 +1,8 @@
 // src/components/CryptoNewsPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Crypto News v6 (Editorial hierarchy redesign)
-// Lead hero + secondary 2-up + scannable list rows (NN/g best practice)
-// Desktop: lead → secondary → list. Mobile: lead → small left-thumb rows.
-// Boxed gold-edge cards · brand favicons · info-dense · high-contrast chips
+// LuxQuant Terminal — Crypto News (Terminal desk / Bloomberg monochrome)
+// Lead hero + stack + mid-band + wire list. Solid accent CTAs only.
+// Domain chrome is monochrome — no rainbow source colors or glass wash.
 //
 // NOTE (activity-tracking fix): semua fetch ke backend sekarang lewat
 // instance `api` (src/services/authApi.js) bukan `fetch()` polos, supaya
@@ -49,29 +48,6 @@ const timeAgo = (dateStr) => {
   }
 };
 
-const DOMAIN_COLORS = {
-  "tradingview.com": "#2962FF",
-  "cointelegraph.com": "#FFB800",
-  "coindesk.com": "#6366f1",
-  "decrypt.co": "#10b981",
-  "bitcoinworld.co.in": "#f59e0b",
-  "bitcoinmagazine.com": "#ef4444",
-  "theblock.co": "#8b5cf6",
-  "cryptoslate.com": "#06b6d4",
-  "newsbtc.com": "#F7931A",
-  "beincrypto.com": "#22c55e",
-  "cryptobriefing.com": "#3b82f6",
-  "coinpedia.org": "#14b8a6",
-  "u.today": "#f97316",
-  "bitget.com": "#00f0ff",
-};
-
-const getDomainColor = (domain) => {
-  if (!domain) return "#d4a24e";
-  const key = Object.keys(DOMAIN_COLORS).find((d) => domain.includes(d));
-  return key ? DOMAIN_COLORS[key] : "#d4a24e";
-};
-
 const shortDomain = (domain) => {
   if (!domain) return "";
   return domain
@@ -106,12 +82,12 @@ const hasVisual = (item) => !!getImageSrc(item) || hasBrandImage(item);
 
 // Auto-categorize by title keywords (lightweight, client-side)
 const CATEGORY_RULES = [
-  { key: "bitcoin", label: "Bitcoin", icon: "₿", color: "#F7931A", patterns: [/\bbtc\b/i, /\bbitcoin\b/i, /satoshi/i] },
-  { key: "ethereum", label: "Ethereum", icon: "Ξ", color: "#627EEA", patterns: [/\beth\b/i, /\bethereum\b/i, /vitalik/i] },
-  { key: "altcoins", label: "Altcoins", icon: "◎", color: "#9945FF", patterns: [/\bsol\b|solana/i, /\bxrp\b|ripple/i, /cardano|\bada\b/i, /\bdoge\b|dogecoin/i, /toncoin|\bton\b/i, /altcoin/i] },
-  { key: "macro", label: "Macro", icon: "⊞", color: "#22c55e", patterns: [/fed|fomc|rate cut|inflation/i, /etf flow|spot etf/i, /sec\b|regulation|cftc/i, /\bm2\b|liquidity/i] },
-  { key: "defi", label: "DeFi", icon: "⬡", color: "#06b6d4", patterns: [/defi|tvl|yield|staking/i, /\buni\b|uniswap|aave|curve/i, /lending|liquidity pool/i] },
-  { key: "listings", label: "Listings", icon: "▲", color: "rgb(var(--warn))", patterns: [/listing|listed on|upbit|kucoin|binance listing/i, /token unlock|airdrop/i] },
+  { key: "bitcoin", label: "Bitcoin", icon: "₿", patterns: [/\bbtc\b/i, /\bbitcoin\b/i, /satoshi/i] },
+  { key: "ethereum", label: "Ethereum", icon: "Ξ", patterns: [/\beth\b/i, /\bethereum\b/i, /vitalik/i] },
+  { key: "altcoins", label: "Altcoins", icon: "◎", patterns: [/\bsol\b|solana/i, /\bxrp\b|ripple/i, /cardano|\bada\b/i, /\bdoge\b|dogecoin/i, /toncoin|\bton\b/i, /altcoin/i] },
+  { key: "macro", label: "Macro", icon: "⊞", patterns: [/fed|fomc|rate cut|inflation/i, /etf flow|spot etf/i, /sec\b|regulation|cftc/i, /\bm2\b|liquidity/i] },
+  { key: "defi", label: "DeFi", icon: "⬡", patterns: [/defi|tvl|yield|staking/i, /\buni\b|uniswap|aave|curve/i, /lending|liquidity pool/i] },
+  { key: "listings", label: "Listings", icon: "▲", patterns: [/listing|listed on|upbit|kucoin|binance listing/i, /token unlock|airdrop/i] },
 ];
 
 const categorizeItem = (item) => {
@@ -211,81 +187,6 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
   );
 };
 
-const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
-  const [faviconFailed, setFaviconFailed] = useState(false);
-
-  return (
-    <div
-      className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
-      style={{
-        background: `radial-gradient(circle at 35% 25%, ${color}28 0%, ${color}06 55%, ${color}14 100%)`,
-      }}
-    >
-      <div
-        className="absolute inset-0 opacity-25"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgb(var(--ink) / 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgb(var(--ink) / 0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: "18px 18px",
-        }}
-      />
-      <div
-        className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
-        style={{
-          background: `linear-gradient(135deg, transparent 50%, ${color}25 50%)`,
-        }}
-      />
-      <div className="relative z-10 flex flex-col items-center gap-1.5">
-        {faviconUrl && !faviconFailed ? (
-          <div
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center"
-            style={{
-              background: "rgb(var(--ink) / 0.06)",
-              backdropFilter: "blur(8px)",
-              border: `1px solid ${color}40`,
-              boxShadow: `0 4px 20px ${color}30`,
-            }}
-          >
-            <img
-              src={faviconUrl}
-              alt={domain}
-              className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
-              onError={() => setFaviconFailed(true)}
-            />
-          </div>
-        ) : (
-          <div
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-bold text-xl"
-            style={{
-              background: `${color}25`,
-              color,
-              border: `1px solid ${color}50`,
-              fontFamily: "'Space Grotesk', sans-serif",
-              letterSpacing: "-0.05em",
-            }}
-          >
-            {shortDomain(domain).slice(0, 2).toUpperCase()}
-          </div>
-        )}
-        <span
-          className="text-[9px] font-mono uppercase tracking-[0.2em] mt-1"
-          style={{ color: `${color}cc` }}
-        >
-          {shortDomain(domain)}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-// RowThumb — compact thumbnail for list rows (image / brand promo / favicon / initials)
-const RowThumb = ({ item }) => (
-  <MediaBlock item={item} className="absolute inset-0" playSize="sm" compact />
-);
-
-
 // ════════════════════════════════════════════
 // 3. NEWS DETAIL MODAL — reader desk (solid chrome, responsive sheet/dialog)
 // ════════════════════════════════════════════
@@ -321,7 +222,6 @@ const NewsModal = ({ item, onClose }) => {
   const authors = extract?.authors || [];
   const isPhoto = item.content_type === "photo";
   const isVideo = item.content_type === "video" || !!videoSrc;
-  const domainColor = getDomainColor(item.domain);
   const faviconUrl = getFaviconUrl(item.domain, 64);
   const domainShort = shortDomain(item.domain) || item.source || "Wire";
   const domainLabel = (item.domain || item.source || "")
@@ -347,10 +247,7 @@ const NewsModal = ({ item, onClose }) => {
   const header = (
     <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
       {/* Source mark */}
-      <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink/[0.1] bg-ink/[0.04] sm:h-9 sm:w-9"
-        style={{ boxShadow: `inset 0 0 0 1px ${domainColor}22` }}
-      >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1] bg-surface-secondary sm:h-9 sm:w-9">
         {faviconUrl && !faviconFailed ? (
           <img
             src={faviconUrl}
@@ -359,10 +256,7 @@ const NewsModal = ({ item, onClose }) => {
             onError={() => setFaviconFailed(true)}
           />
         ) : (
-          <span
-            className="font-mono text-[10px] font-semibold uppercase"
-            style={{ color: domainColor }}
-          >
+          <span className="font-mono text-[10px] font-semibold uppercase text-text-primary">
             {domainShort.slice(0, 2).toUpperCase()}
           </span>
         )}
@@ -403,7 +297,7 @@ const NewsModal = ({ item, onClose }) => {
         <button
           type="button"
           onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/15 bg-ink/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-text-primary transition hover:bg-ink/[0.14] active:scale-[0.99]"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-transparent bg-accent text-[12px] font-semibold uppercase tracking-[0.1em] text-accent-fg transition hover:opacity-90 active:scale-[0.99]"
         >
           Read full article
           <svg className="h-3.5 w-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -414,7 +308,7 @@ const NewsModal = ({ item, onClose }) => {
       <button
         type="button"
         onClick={close}
-        className="h-11 shrink-0 rounded-lg border border-ink/[0.1] px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-muted transition hover:border-ink/20 hover:text-text-primary sm:px-5"
+        className="h-11 shrink-0 rounded-md border border-ink/[0.12] bg-surface-secondary px-4 text-[12px] font-medium uppercase tracking-[0.1em] text-text-secondary transition hover:border-ink/25 hover:text-text-primary sm:px-5"
       >
         Close
       </button>
@@ -523,7 +417,7 @@ const NewsModal = ({ item, onClose }) => {
             {keywords.slice(0, 12).map((kw, i) => (
               <span
                 key={i}
-                className="rounded-md border border-ink/[0.08] bg-ink/[0.03] px-2 py-0.5 font-mono text-[10px] text-text-muted"
+                className="rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-0.5 font-mono text-[10px] font-semibold text-text-muted"
               >
                 #{kw}
               </span>
@@ -556,7 +450,7 @@ const PulseTicker = ({ items, onSelect }) => {
   const ticker = items.slice(0, 12);
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-ink/5 bg-scrim/20 group">
+    <div className="group relative overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised">
       <style>{`
         @keyframes tickerScroll {
           0% { transform: translateX(0); }
@@ -566,32 +460,33 @@ const PulseTicker = ({ items, onSelect }) => {
         .group:hover .ticker-track { animation-play-state: paused; }
       `}</style>
 
-      <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-surface-secondary to-transparent" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-surface-secondary to-transparent" />
+      <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-surface-raised to-transparent" />
+      <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-surface-raised to-transparent" />
 
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" style={{ boxShadow: "0 0 8px #ef4444" }} />
-        <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400/90">Live</span>
+      <div className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 items-center gap-1.5">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
+        </span>
+        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-profit">Live</span>
       </div>
 
-      <div className="flex ticker-track py-2.5 pl-24" style={{ width: "fit-content" }}>
+      <div className="ticker-track flex py-2.5 pl-24" style={{ width: "fit-content" }}>
         {[...ticker, ...ticker].map((item, i) => (
           <button
             key={`${item.id}-${i}`}
+            type="button"
             onClick={() => onSelect(item)}
-            className="flex items-center gap-2 px-4 mr-2 whitespace-nowrap text-[12px] hover:text-text-primary transition-colors group/item"
+            className="group/item mr-2 flex items-center gap-2 whitespace-nowrap px-4 text-[12px] transition-colors hover:text-text-primary"
           >
-            <span
-              className="w-1 h-1 rounded-full flex-shrink-0"
-              style={{ background: getDomainColor(item.domain) }}
-            />
-            <span className="text-text-muted font-mono text-[10px] uppercase">
+            <span className="h-1 w-1 flex-shrink-0 rounded-full bg-ink/40" />
+            <span className="font-mono text-[10px] uppercase text-text-muted">
               {shortDomain(item.domain)}
             </span>
-            <span className="text-text-primary/70 group-hover/item:text-text-primary transition-colors max-w-[420px] truncate">
+            <span className="max-w-[420px] truncate text-text-primary/80 transition-colors group-hover/item:text-text-primary">
               {item.title}
             </span>
-            <span className="text-text-muted/60 text-[10px] font-mono">{timeAgo(item.created_at)}</span>
+            <span className="font-mono text-[10px] tabular-nums text-text-muted">{timeAgo(item.created_at)}</span>
           </button>
         ))}
       </div>
@@ -896,7 +791,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
   return (
     <div className={horizontal ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" : "space-y-3"}>
       {topics.length > 0 && (
-        <div className="rounded-xl bg-ink/[0.02] border border-ink/[0.06] p-4 relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
           <div className="flex items-center gap-2 mb-3">
             <h3 className="text-text-muted text-[10px] font-mono uppercase tracking-[0.16em]">Trending</h3>
           </div>
@@ -906,22 +801,19 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                 key={t.topic}
                 type="button"
                 onClick={() => onSearchTopic(t.topic)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-mono transition-colors ${
+                className={`rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold transition-colors ${
                   i < 3
-                    ? "bg-ink/[0.08] text-text-primary border border-ink/12"
-                    : "bg-ink/[0.03] text-text-muted border border-ink/[0.06] hover:text-text-primary hover:border-ink/12"
+                    ? "border-transparent bg-accent text-accent-fg"
+                    : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
                 }`}
               >
                 {i < 3 && (
-                  <span
-                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-ink/10 text-text-primary text-[8px] font-bold mr-1"
-                    style={{ verticalAlign: "middle" }}
-                  >
+                  <span className="mr-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/15 text-[8px] font-bold text-accent-fg align-middle">
                     {i + 1}
                   </span>
                 )}
                 {t.topic}
-                <span className="text-[8px] opacity-50 ml-1">×{t.count}</span>
+                <span className={`ml-1 text-[8px] ${i < 3 ? "text-accent-fg/75" : "opacity-50"}`}>×{t.count}</span>
               </button>
             ))}
           </div>
@@ -929,46 +821,37 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
       )}
 
       {topDomains.length > 0 && (
-        <div className="rounded-xl bg-ink/[0.02] border border-ink/5 p-4">
+        <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
           <div className="flex items-center gap-2 mb-3">
             
             <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Top Sources</h3>
           </div>
           <div className="space-y-2.5">
-            {topDomains.map((d) => {
-              const color = getDomainColor(d.domain);
-              return (
-                <div key={d.domain} className="space-y-1 group">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: color, boxShadow: `0 0 4px ${color}` }}
-                      />
-                      <span className="text-[11px] text-text-secondary truncate group-hover:text-text-primary transition-colors">
+            {topDomains.map((d) => (
+                <div key={d.domain} className="group space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink/35" />
+                      <span className="truncate text-[11px] text-text-secondary transition-colors group-hover:text-text-primary">
                         {d.domain}
                       </span>
                     </div>
-                    <span className="text-[10px] text-text-muted font-mono tabular-nums">{d.count}</span>
+                    <span className="font-mono text-[10px] tabular-nums text-text-muted">{d.count}</span>
                   </div>
-                  <div className="h-1 rounded-full bg-ink/5 overflow-hidden">
+                  <div className="h-1 overflow-hidden rounded-full bg-ink/[0.08]">
                     <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${(d.count / maxDC) * 100}%`,
-                        background: `linear-gradient(90deg, ${color}cc, ${color}66)`,
-                      }}
+                      className="h-full rounded-full bg-ink/45 transition-all duration-500"
+                      style={{ width: `${(d.count / maxDC) * 100}%` }}
                     />
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         </div>
       )}
 
       {stats && (
-        <div className="rounded-xl bg-ink/[0.02] border border-ink/5 p-4">
+        <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
           <div className="flex items-center gap-2 mb-3">
             
             <h3 className="text-text-primary text-[10px] font-mono uppercase tracking-[0.2em]">Activity</h3>
@@ -981,7 +864,7 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
             ].map((s) => (
               <div
                 key={s.l}
-                className="rounded-md bg-ink/[0.02] border border-ink/5 p-2 text-center"
+                className="rounded-md border border-ink/[0.08] bg-surface-secondary p-2 text-center"
               >
                 <div className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
                   {s.l}
@@ -1012,9 +895,8 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false })
                         style={{
                           height: `${Math.max((h.count / max) * 100, 6)}%`,
                           background: isPeak
-                            ? "linear-gradient(180deg, rgb(var(--ink) / 0.55), rgb(var(--ink) / 0.2))"
-                            : "linear-gradient(180deg, rgb(var(--ink) / 0.25), rgb(var(--ink) / 0.08))",
-                          boxShadow: "none",
+                            ? "rgb(var(--ink) / 0.55)"
+                            : "rgb(var(--ink) / 0.22)",
                         }}
                         title={`${h.count} articles`}
                       />
@@ -1061,7 +943,7 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
   const srcCount = stats?.top_domains?.length || 0;
 
   return (
-    <div className="rounded-xl border border-ink/[0.07] bg-surface-raised overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
       <button
         type="button"
         onClick={toggle}
@@ -1131,7 +1013,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-ink/[0.03] border border-ink/5 text-text-muted hover:text-text-primary hover:border-ink/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 font-mono text-[11px] font-semibold text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30"
       >
         ← Prev
       </button>
@@ -1144,10 +1026,10 @@ const Pagination = ({ page, totalPages, onChange }) => {
           <button
             key={p}
             onClick={() => onChange(p)}
-            className={`w-9 h-9 rounded-lg text-[11px] font-mono font-medium transition-all ${
+            className={`h-9 w-9 rounded-md font-mono text-[11px] font-semibold transition-colors ${
               p === page
-                ? "bg-ink/[0.1] text-text-primary border border-ink/15"
-                : "bg-ink/[0.03] border border-ink/5 text-text-muted hover:text-text-primary hover:border-ink/15"
+                ? "border border-transparent bg-accent text-accent-fg"
+                : "border border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
             }`}
           >
             {p}
@@ -1157,7 +1039,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className="px-3 py-2 rounded-lg text-[11px] font-mono bg-ink/[0.03] border border-ink/5 text-text-muted hover:text-text-primary hover:border-ink/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        className="rounded-md border border-ink/[0.1] bg-surface-secondary px-3 py-2 font-mono text-[11px] font-semibold text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30"
       >
         Next →
       </button>
@@ -1318,19 +1200,19 @@ const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
   }
 };
 
-// Quiet segment chip — monochrome active (Bloomberg terminal style)
+// Desk segment chip — solid yellow when active (Binance CTA)
 const FilterChip = ({ active, onClick, children, icon }) => {
   const base =
-    "inline-flex items-center gap-1 h-7 px-2 rounded-md text-[10.5px] font-medium tracking-wide transition-colors whitespace-nowrap";
+    "inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors";
 
   if (active) {
     return (
       <button
         type="button"
         onClick={onClick}
-        className={`${base} bg-ink/[0.1] text-text-primary shadow-[inset_0_0_0_1px_rgb(var(--ink)_/_0.1)]`}
+        className={`${base} border border-transparent bg-accent text-accent-fg`}
       >
-        {icon && <Icon name={icon} className="w-3 h-3 opacity-80" />}
+        {icon && <Icon name={icon} className="h-3 w-3 opacity-90" />}
         {children}
       </button>
     );
@@ -1340,9 +1222,9 @@ const FilterChip = ({ active, onClick, children, icon }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`${base} text-text-muted hover:text-text-primary hover:bg-ink/[0.04]`}
+      className={`${base} border border-transparent text-text-muted hover:bg-ink/[0.04] hover:text-text-primary`}
     >
-      {icon && <Icon name={icon} className="w-3 h-3 opacity-70" />}
+      {icon && <Icon name={icon} className="h-3 w-3 opacity-70" />}
       {children}
     </button>
   );
@@ -1352,8 +1234,8 @@ const ChipCount = ({ value, active }) => {
   if (value === undefined || value === null) return null;
   return (
     <span
-      className={`text-[10px] font-mono tabular-nums ml-1 ${
-        active ? "text-text-primary/70" : "text-text-muted/55"
+      className={`ml-1 font-mono text-[10px] tabular-nums ${
+        active ? "text-accent-fg/80" : "text-text-muted/55"
       }`}
     >
       {value}
@@ -1400,7 +1282,7 @@ const FilterBar = ({
           value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search headlines, topics, sources…"
-          className="w-full h-9 pl-9 pr-9 rounded-lg border border-ink/[0.08] bg-surface-raised text-text-primary text-[12.5px] placeholder:text-text-muted/45 focus:outline-none focus:border-ink/18 transition-colors"
+          className="h-9 w-full rounded-md border border-ink/[0.1] bg-surface-raised pl-9 pr-9 font-mono text-[12px] text-text-primary placeholder:text-text-muted transition-colors focus:border-ink/20 focus:outline-none"
         />
         {searchInput && (
           <button
@@ -1418,7 +1300,7 @@ const FilterBar = ({
 
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 min-w-0">
         <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-ink/[0.07] bg-ink/[0.015] p-0.5"
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5"
           role="tablist"
           aria-label="Content type"
         >
@@ -1434,7 +1316,7 @@ const FilterBar = ({
         </div>
 
         <div
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-ink/[0.07] bg-ink/[0.015] p-0.5 min-w-0 overflow-x-auto no-scrollbar"
+          className="inline-flex min-w-0 flex-wrap items-center gap-0.5 overflow-x-auto rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5 no-scrollbar"
           role="tablist"
           aria-label="Topic"
         >
@@ -1701,34 +1583,37 @@ const CryptoNewsPage = () => {
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
       {/* Masthead — single tight row */}
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-ink/[0.1] pb-2 mb-2.5">
-        <div className="flex items-baseline gap-2.5 min-w-0">
-          <h1 className="font-display text-[22px] sm:text-[24px] font-semibold tracking-tight text-text-primary leading-none">
+      <header className="mb-3 flex flex-col gap-3 border-b border-ink/[0.08] pb-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
             News
           </h1>
-          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted hidden sm:inline">
-            Markets wire
-          </span>
+          <p className="mt-1.5 text-[13px] text-text-secondary">
+            Markets wire · live crypto headlines
+          </p>
         </div>
-        <div className="flex items-center gap-3 font-mono text-[10px] text-text-muted">
+        <div className="flex flex-shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums text-text-muted">
           {stats?.last_hour != null && (
             <span>
-              <span className="text-text-muted/45">1h </span>
-              <span className="tabular-nums text-text-primary/85">{stats.last_hour}</span>
+              <span className="text-text-muted">1h </span>
+              <span className="font-semibold text-text-primary">{stats.last_hour}</span>
             </span>
           )}
           {stats?.total != null && (
             <span>
-              <span className="text-text-muted/45">Idx </span>
-              <span className="tabular-nums text-text-primary/85">
+              <span className="text-text-muted">Idx </span>
+              <span className="font-semibold text-text-primary">
                 {Number(stats.total).toLocaleString()}
               </span>
             </span>
           )}
-          <span className="inline-flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-positive" />
-            Live
-          </span>
+          <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-profit">Live</span>
+          </div>
         </div>
       </header>
 
