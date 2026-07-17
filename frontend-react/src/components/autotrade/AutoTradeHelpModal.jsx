@@ -48,7 +48,7 @@ function Code({ children }) {
 function Tip({ tone = "info", children }) {
   const palette =
     tone === "warn"
-      ? "border-[#F3BA2F]/30 bg-[#F3BA2F]/[0.06]"
+      ? "border-accent/30 bg-accent/[0.06]"
       : tone === "danger"
         ? "border-[#F6465D]/30 bg-[#F6465D]/[0.06]"
         : tone === "good"
@@ -75,7 +75,7 @@ function PresetCard({ name, audience, accent, items }) {
     accent === "good"
       ? "border-[#0ECB81]/35"
       : accent === "warn"
-        ? "border-[#F3BA2F]/35"
+        ? "border-accent/35"
         : "border-[#F6465D]/35";
   return (
     <div className={`rounded-lg border ${ring} bg-ink/[0.015] p-4`}>

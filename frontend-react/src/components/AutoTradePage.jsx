@@ -385,9 +385,9 @@ function AutoTradeOverview({
       <PnLSummary portfolio={portfolio} executions={executions} tradeSummary={tradeSummary} />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card hover className="border-[#F3BA2F]/20">
+        <Card hover className="border-accent/20">
           <div className="flex items-start justify-between gap-4">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/10 text-accent">
               <BinanceIcon className="h-6 w-6" />
             </span>
             <StatusBadge tone={binance?.key_status === "valid" ? "good" : "warn"}>
@@ -403,7 +403,7 @@ function AutoTradeOverview({
           <button
             type="button"
             onClick={() => onOpenSettings("connections")}
-            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F] hover:text-accent-light"
+            className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-accent hover:text-accent-light"
           >
             Manage connection →
           </button>

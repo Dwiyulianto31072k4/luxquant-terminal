@@ -44,11 +44,11 @@ export default function AccountsOverview({
       <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
               <BinanceIcon className="h-7 w-7" />
             </span>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#F3BA2F]">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
                 Exchange Connection
               </p>
               <h2 className="mt-1 text-xl font-semibold text-text-primary lg:text-2xl">Binance</h2>
@@ -114,7 +114,7 @@ export default function AccountsOverview({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10 text-accent">
                         <BinanceIcon className="h-5 w-5" />
                       </span>
                       <span className="text-sm font-semibold text-text-primary">
