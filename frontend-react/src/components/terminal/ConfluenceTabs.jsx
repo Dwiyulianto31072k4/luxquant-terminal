@@ -115,10 +115,19 @@ function scoreOf(tags) {
 // postsignal blob (avg_peak) minus the distance already travelled (fc), and
 // is not confounded by tag definitions.
 function roomLeftOf(fc, ps) {
-  const peak = ps?.avg_peak;
+  // Prefer the MEDIAN. The mean is wrecked by a single moonshot in a pair's
+  // last 20 calls (one pair averaged +1169% off n=9), which would put pure
+  // noise at the top of a screener ranked on room left. Falls back to the mean
+  // so a blob written by the previous worker still renders.
+  const peak = ps?.med_peak ?? ps?.avg_peak;
   if (!(peak > 0)) return null;
   const travelled = fc == null ? 0 : fc;
-  return { peak, left: peak - travelled, mae: ps?.avg_mae ?? null, n: ps?.n ?? null };
+  return {
+    peak,
+    left: peak - travelled,
+    mae: ps?.med_mae ?? ps?.avg_mae ?? null,
+    n: ps?.n ?? null,
+  };
 }
 
 // Sort: most room left first, warnings pushed down. Falls back to the
@@ -280,8 +289,13 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
           <div
             className="font-mono text-[16px] tabular-nums leading-none"
             style={{ color: fc == null ? "rgb(var(--ink) / 0.35)" : fc >= 0 ? POS : NEG }}
+            title="Live price vs the entry price of this call. Green = above entry, red = below."
           >
             {fc == null ? "—" : fmtPct(fc)}
+          </div>
+          {/* the number meant nothing without saying what it measures */}
+          <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.1em] text-text-muted/70">
+            from entry
           </div>
           <div className="mt-1.5 flex justify-end">
             <StatusTag status={s.status} />
@@ -386,7 +400,12 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
           >
             {late ? "no room left" : `+${room.left.toFixed(1)}% room`}
           </span>
-          <span className="text-text-muted truncate">typ peak +{room.peak.toFixed(1)}%</span>
+          <span
+            className="truncate text-text-muted"
+            title="The move this pair typically makes after a call, measured as the median of its recent calls (not the average — one moonshot would skew that)."
+          >
+            typ peak +{room.peak.toFixed(1)}%
+          </span>
           {late && (
             <span
               className="ml-auto shrink-0 text-warning"

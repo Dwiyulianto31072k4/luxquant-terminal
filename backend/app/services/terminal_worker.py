@@ -713,6 +713,18 @@ def compute_postsignal_stats():
         def _avg(xs):
             return round(sum(xs) / len(xs), 2) if xs else None
 
+        def _med(xs):
+            # Peak/MAE are heavily skewed: one historical moonshot in a pair's
+            # last 20 calls drags the MEAN to absurd values (VELVET averaged
+            # +1169% off n=9). The median is what a trader can actually expect
+            # next, so anything decision-facing must use it.
+            if not xs:
+                return None
+            ys = sorted(xs)
+            m = len(ys) // 2
+            v = ys[m] if len(ys) % 2 else (ys[m - 1] + ys[m]) / 2
+            return round(v, 2)
+
         out = {}
         for p, a in acc.items():
             if a["n"] < 5:
@@ -723,6 +735,9 @@ def compute_postsignal_stats():
                 "avg_7d": _avg(a["r7d"]),
                 "avg_peak": _avg(a["peak"]),
                 "avg_mae": _avg(a["mae"]),
+                # Preferred by the UI — outlier-resistant.
+                "med_peak": _med(a["peak"]),
+                "med_mae": _med(a["mae"]),
                 "tp1_rate": round(a["tp1"] / a["n"] * 100, 1),
                 "n": a["n"],
             }

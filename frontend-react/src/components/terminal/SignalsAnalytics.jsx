@@ -816,7 +816,7 @@ export default function SignalsAnalytics() {
   return (
     <div className="space-y-2.5">
       {/* ── sticky toolbar (exchange-style: search · status · date · facets) ── */}
-      <div className="sticky top-0 z-30 flex items-center gap-1.5 flex-wrap bg-surface/95 backdrop-blur-md border-b border-ink/[0.05] px-0.5 py-1.5 -mx-0.5">
+      <div className="sticky top-0 z-30 -mx-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-ink/[0.05] bg-surface/95 px-0.5 py-1.5 backdrop-blur-md">
         <div className="relative">
           <svg
             className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted/50"
@@ -898,6 +898,7 @@ export default function SignalsAnalytics() {
         <Chip
           active={filters.dec === "1"}
           onClick={() => setF({ dec: filters.dec === "1" ? "" : "1" })}
+          title="Low β (beta) — coins that move independently of Bitcoin. Useful when you want a setup that isn't just a bet on BTC's direction."
         >
           {t("terminal.viz.decoupled")}
         </Chip>
@@ -923,9 +924,14 @@ export default function SignalsAnalytics() {
               </span>
             </span>
           )}
-          <span className="tabular-nums">{view.length} signals</span>
+          <span className="tabular-nums" title="How many signals match your current filters">
+            {view.length} signals
+          </span>
           {data?.generated_at && (
-            <span className="tabular-nums opacity-80">
+            <span
+              className="tabular-nums opacity-80"
+              title="When this data was last refreshed. Prices update every few minutes; historical stats refresh more slowly."
+            >
               Updated{" "}
               {new Date(data.generated_at).toLocaleTimeString([], {
                 hour: "2-digit",
