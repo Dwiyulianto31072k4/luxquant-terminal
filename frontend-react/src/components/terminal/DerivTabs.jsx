@@ -45,6 +45,7 @@ import {
   fmtMoney,
   makeBins,
   median,
+  fitBound,
   SectionBand,
   Kpi,
   XCard,
@@ -699,7 +700,12 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
-  const zFund = useZoom(-0.15, 0.15, -30, 30);
+  // Fit funding (X) to real values so books don't crush onto the center line.
+  const fundXBound = fitBound(
+    rows.filter((r) => r.funding != null).map((r) => r.funding * 100),
+    0.04
+  );
+  const zFund = useZoom(-fundXBound, fundXBound, -30, 30);
 
   const withF = rows.filter((r) => r.funding != null).map((r) => ({ ...r, fPct: r.funding * 100 }));
   const sorted = [...withF].sort((a, b) => a.fPct - b.fPct);

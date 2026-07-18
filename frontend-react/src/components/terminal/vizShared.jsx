@@ -215,6 +215,18 @@ export const parseMcap = (mc) => {
 };
 export const csv = (s) => (s ? s.split(",").filter(Boolean) : []);
 
+// Data-fit a scatter axis so points spread across the plot instead of crushing
+// onto a fixed, oversized domain (e.g. funding ±0.5% when real values are ±0.05%).
+// Returns a symmetric half-bound: max(floor, |max| × pad).
+export const fitBound = (values, floor = 0, pad = 1.18) => {
+  let m = 0;
+  for (const v of values) {
+    const a = Math.abs(Number(v));
+    if (Number.isFinite(a) && a > m) m = a;
+  }
+  return Math.max(floor, m * pad);
+};
+
 export function makeBins(values, size, min, max) {
   const bins = [];
   for (let lo = min; lo < max; lo += size) bins.push({ lo, hi: lo + size, count: 0 });
