@@ -436,7 +436,7 @@ def _tickers_from_ws():
     if not isinstance(blob, dict):
         return None
     pairs = blob.get("pairs") or {}
-    if len(pairs) < 50:          # a barely-populated blob is worse than none
+    if len(pairs) < 50:          # a barely-populated blob is not worth overlaying
         return None
     out = {}
     for sym, d in pairs.items():
@@ -454,12 +454,22 @@ def _tickers_from_ws():
 
 
 async def _fetch_binance_tickers(client):
-    """Batch futures tickers: WebSocket blob first, REST only as a fallback."""
-    ws = _tickers_from_ws()
-    if ws:
-        return ws
+    """Batch futures tickers: REST for coverage, WebSocket overlaid for freshness.
 
-    # REST fallback. Honour the shared ban before spending a request: Binance
+    The WS blob is NOT a drop-in replacement for the REST call, which is what I
+    shipped first and had to undo. !markPrice@arr carries every symbol each
+    second, but !ticker@arr only pushes a symbol when its ticker actually
+    changed — so quiet pairs can sit in the blob with a mark price and no last
+    price for a long time. Measured on the live blob: 155 of 779 symbols were in
+    exactly that state, and RECALL and CTR were among the ones the table then
+    rendered with an empty price cell.
+
+    So REST decides which symbols exist, and the WS values are laid over the top
+    where they are present — full coverage, plus sub-second prices for the pairs
+    that are actually trading. The REST result is cached for 20s by the caller,
+    so this costs 120 weight/minute against a 2400 ceiling.
+    """
+    # Honour the shared ban before spending a request: Binance
     # escalates a 418 every time it is hit DURING one (2 minutes → 3 days), so
     # calling blind while banned is what makes the ban worse.
     try:
@@ -481,6 +491,13 @@ async def _fetch_binance_tickers(client):
                     "high_24h": float(item.get("highPrice", 0) or 0),
                     "low_24h": float(item.get("lowPrice", 0) or 0),
                 }
+            # Overlay the live stream where it has a price for a symbol REST
+            # already listed. Never introduces symbols, never removes any.
+            ws = _tickers_from_ws()
+            if ws:
+                for sym, v in ws.items():
+                    if sym in tickers and v.get("price"):
+                        tickers[sym] = v
             return tickers
         else:
             if response.status_code in (418, 429):
