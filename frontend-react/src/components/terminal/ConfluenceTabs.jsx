@@ -277,7 +277,7 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
         className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition-all ${
           pinned
             ? "border-accent/40 bg-accent/15 text-accent opacity-100"
-            : "border-ink/10 bg-surface-raised/80 text-text-muted opacity-0 hover:text-text-primary group-hover:opacity-100 focus:opacity-100"
+            : "border-ink/10 bg-surface-raised/80 text-text-muted opacity-70 hover:text-text-primary hover:opacity-100 group-hover:opacity-100"
         }`}
       >
         <svg
