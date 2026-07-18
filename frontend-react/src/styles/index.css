@@ -998,3 +998,29 @@ body::-webkit-scrollbar,
 body[data-lq-selecting] [data-lq-bottomnav] {
   display: none;
 }
+
+/* ── Keyboard focus ─────────────────────────────────────────────────
+   There was no focus indicator anywhere in this stylesheet, and 105 call
+   sites apply Tailwind's focus:outline-none without substituting a ring —
+   so a keyboard user could tab through the app with no idea where they
+   were. Everything made keyboard-reachable is worthless if it is invisible.
+
+   :focus-visible, not :focus — the browser only matches it when focus
+   should be shown, i.e. keyboard and text-entry, not a mouse click on a
+   button. Mouse users see exactly what they saw before.
+
+   !important is deliberate: .focus\:outline-none:focus is a two-class
+   selector and would otherwise win against any element-level rule. */
+*:focus-visible {
+  outline: 2px solid rgb(var(--accent)) !important;
+  outline-offset: 2px !important;
+  border-radius: 3px;
+}
+
+/* Inputs already carry their own border treatment; keep the ring tight so it
+   does not collide with adjacent controls in dense filter rows. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0 !important;
+}

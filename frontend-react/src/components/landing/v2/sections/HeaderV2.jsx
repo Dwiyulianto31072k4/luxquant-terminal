@@ -52,7 +52,7 @@ function LandingThemePicker() {
             title={o.label}
             aria-label={o.label}
             onClick={() => setTheme(o.k)}
-            className={`h-5 w-5 rounded-full border transition-transform ${
+            className={`relative h-5 w-5 rounded-full border transition-transform before:absolute before:-inset-2 before:content-[''] ${
               on
                 ? "border-accent scale-110 shadow-[0_0_0_1.5px_rgb(var(--accent))]"
                 : "border-ink/15 opacity-70 hover:opacity-100 hover:scale-105"

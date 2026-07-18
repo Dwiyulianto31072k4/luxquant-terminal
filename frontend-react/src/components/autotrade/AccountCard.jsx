@@ -159,7 +159,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           <button
             onClick={handleToggle}
             disabled={loading.toggle || !config}
-            className={`relative w-10 h-5 rounded-full transition-colors border ${
+            className={`relative w-10 h-5 before:absolute before:-inset-2 before:content-[''] rounded-full transition-colors border ${
               isEnabled ? "bg-accent/80 border-accent" : "bg-ink/[0.04] border-ink/[0.08]"
             } disabled:opacity-50`}
             title={isEnabled ? "Autotrade ON" : "Autotrade OFF"}

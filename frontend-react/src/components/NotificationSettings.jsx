@@ -30,7 +30,7 @@ const Toggle = ({ on, locked, onClick }) => (
     type="button"
     onClick={onClick}
     aria-pressed={on}
-    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-all ${
+    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-all before:absolute before:-inset-2 before:content-[''] ${
       on ? "bg-accent/80 border-accent" : "bg-ink/[0.04] border-ink/[0.1]"
     } ${locked ? "opacity-50 cursor-pointer" : "cursor-pointer hover:border-ink/15"}`}
     title={locked ? "Link Telegram first" : undefined}

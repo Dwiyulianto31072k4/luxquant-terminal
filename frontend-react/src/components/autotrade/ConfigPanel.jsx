@@ -45,7 +45,7 @@ const Toggle = ({ label, hint, checked, onChange, disabled }) => (
       type="button"
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative shrink-0 w-10 h-5 rounded-full transition-colors border ${
+      className={`relative shrink-0 w-10 h-5 before:absolute before:-inset-2 before:content-[''] rounded-full transition-colors border ${
         checked ? "bg-accent/80 border-accent" : "bg-ink/[0.04] border-ink/[0.08]"
       }`}
     >
