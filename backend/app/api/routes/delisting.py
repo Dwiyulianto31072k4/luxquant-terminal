@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.deps import require_subscription
 from app.models.delisting import DelistingEvent
+from app.core.http_client import binance_get_sync
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,8 @@ def _all_prices():
         return _PRICE_CACHE["map"]
     m = {}
     try:
-        r = requests.get("https://api.binance.com/api/v3/ticker/price", timeout=15,
-                         headers={"User-Agent": "Mozilla/5.0"})
-        if r.status_code == 200:
+        r = binance_get_sync("https://api.binance.com/api/v3/ticker/price", timeout=15)
+        if r is not None and r.status_code == 200:
             for it in r.json():
                 sym = it.get("symbol", "")
                 if sym.endswith("USDT"):

@@ -142,6 +142,62 @@ async def _record_binance_weight(response):
         pass   # accounting must never break a request
 
 
+
+# ── Guarded synchronous Binance GET ──────────────────────────────────────────
+# Two modules (journey_fetcher, delisting) call Binance with plain `requests`,
+# outside the shared async client — so they were invisible to the weight
+# accounting above and, worse, kept calling straight through an active IP ban.
+# Binance escalates a 418 every time it is hit DURING one, 2 minutes to 3 days,
+# so an unaware caller does not just fail: it deepens the ban for everything
+# else on this IP.
+#
+# This gives them the same two guarantees the async client has: refuse to spend
+# a request while banned, and record what was spent.
+def binance_get_sync(url: str, params: dict | None = None, timeout: float = 15.0):
+    """requests.get for Binance that respects the shared ban and reports weight.
+
+    Returns the Response, or None when a ban is active (callers already treat a
+    falsy result as "try the next source").
+    """
+    import requests
+
+    try:
+        from app.services.terminal_worker import _fapi_ok, _note_ban
+    except Exception:
+        _fapi_ok = None
+        _note_ban = None
+
+    if _fapi_ok is not None and not _fapi_ok():
+        return None
+
+    resp = requests.get(url, params=params, timeout=timeout)
+
+    if _note_ban is not None and resp.status_code in (418, 429):
+        try:
+            _note_ban(resp, 600 if resp.status_code == 418 else 120)
+        except Exception:
+            pass
+
+    # Same per-endpoint accounting the async hook does, minus the async plumbing.
+    try:
+        used = resp.headers.get("x-mbx-used-weight-1m")
+        if used is not None:
+            import time as _t
+            from urllib.parse import urlparse
+            from app.core.redis import get_redis
+            r = get_redis()
+            key = _WEIGHT_KEY_FMT % int(_t.time() // 60)
+            pipe = r.pipeline()
+            pipe.hincrby(key, urlparse(url).path or "?", 1)
+            pipe.hset(key, "_peak", int(used))
+            pipe.expire(key, 900)
+            pipe.execute()
+    except Exception:
+        pass
+
+    return resp
+
+
 def init_clients():
     """
     Initialize all shared HTTP clients.

@@ -22,6 +22,7 @@ import requests
 # Avoid hard import of journey_calculator to keep fetcher decoupled
 # Kline dataclass duck-typed: {open_time, open, high, low, close}
 from app.services.journey_calculator import Kline
+from app.core.http_client import binance_get_sync
 
 
 log = logging.getLogger(__name__)
@@ -118,7 +119,11 @@ def _fetch_binance_futures(
         'endTime': end_ms,
         'limit': _needed_candles(start_ms, end_ms, interval, BINANCE_MAX_LIMIT),
     }
-    resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+    resp = binance_get_sync(url, params=params, timeout=HTTP_TIMEOUT)
+    if resp is None:
+        # Shared Binance ban active — say so instead of deepening it. The
+        # caller's Bybit fallback picks this up like any other failure.
+        raise RuntimeError('binance ban active')
     resp.raise_for_status()
     return _parse_binance_klines(resp.json())
 
@@ -138,7 +143,11 @@ def _fetch_binance_spot(
         'endTime': end_ms,
         'limit': _needed_candles(start_ms, end_ms, interval, BINANCE_MAX_LIMIT),
     }
-    resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+    resp = binance_get_sync(url, params=params, timeout=HTTP_TIMEOUT)
+    if resp is None:
+        # Shared Binance ban active — say so instead of deepening it. The
+        # caller's Bybit fallback picks this up like any other failure.
+        raise RuntimeError('binance ban active')
     resp.raise_for_status()
     return _parse_binance_klines(resp.json())
 
