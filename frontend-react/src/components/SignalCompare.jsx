@@ -16,9 +16,10 @@
 // upside is smaller than the distance to the stop. That is the honest basis
 // for a decision, so every ranking here is computed from the live price.
 // ════════════════════════════════════════════════════════════════
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
+import { useDialog } from "../hooks/useDialog";
 
 const num = (v) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -220,6 +221,11 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
     return () => document.body.removeAttribute("data-lq-selecting");
   }, [active]);
 
+  // Escape, scroll lock, focus trap and focus restore for the drawer. Above the
+  // bail-out below, because hooks have to run on every render.
+  const panelRef = useRef(null);
+  useDialog({ isOpen: active && open, onClose: () => setOpen(false), ref: panelRef });
+
   if (!active) return null;
 
   // ── the docked bar: always visible once something is selected ──
@@ -289,6 +295,8 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
       onClick={() => setOpen(false)}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

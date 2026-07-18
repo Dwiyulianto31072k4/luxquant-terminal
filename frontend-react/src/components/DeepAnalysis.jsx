@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import { useDialog } from "../hooks/useDialog";
 
 /**
  * DeepAnalysis v3 — Facts + Tags UI (redesigned shell)
@@ -575,6 +576,9 @@ const ContextTabContent = ({ facts }) => {
 // ============================================================
 
 const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose, pair }) => {
+  // Escape / scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen, onClose, ref: dialogRef });
   const [activeTab, setActiveTab] = useState("all");
   const [v3Data, setV3Data] = useState(null);
   const [loading, setLoading] = useState(false);

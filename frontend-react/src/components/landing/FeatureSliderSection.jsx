@@ -254,6 +254,7 @@ const FeatureSliderSection = () => {
         {/* Transparent Left Controller */}
         <button
           onClick={() => scrollNav("left")}
+          aria-label="Scroll left"
           className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-text-primary/30 hover:text-text-primary transition-all bg-transparent focus:outline-none"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,6 +302,7 @@ const FeatureSliderSection = () => {
         {/* Transparent Right Controller */}
         <button
           onClick={() => scrollNav("right")}
+          aria-label="Scroll right"
           className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-text-primary/30 hover:text-text-primary transition-all bg-transparent focus:outline-none"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

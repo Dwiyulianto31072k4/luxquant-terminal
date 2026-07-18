@@ -8,7 +8,9 @@
 // room left first (can I still catch it), then agreement, then risk.
 // Best value per row is highlighted so the winner is readable at a glance.
 // ════════════════════════════════════════════════════════════════
+import { useRef } from "react";
 import { createPortal } from "react-dom";
+import { useDialog } from "../../hooks/useDialog";
 import CoinLogo from "../CoinLogo";
 import { POS, NEG, GOLD, MUTED, fmtPct, StatusTag } from "./vizShared";
 
@@ -128,6 +130,10 @@ function buildVerdict(rows) {
 }
 
 export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen }) {
+  // Escape, scroll lock, focus trap, focus restore — see hooks/useDialog.
+  const panelRef = useRef(null);
+  useDialog({ isOpen: !!open, onClose: () => setOpen(false), ref: panelRef });
+
   if (!items.length) return null;
 
   const cols = items.length;
@@ -189,6 +195,8 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
       onClick={() => setOpen(false)}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className="flex max-h-[92dvh] w-full max-w-[1120px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl shadow-black/60 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >

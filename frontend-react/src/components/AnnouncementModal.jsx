@@ -9,9 +9,10 @@
 // No localStorage; the server is the source of truth for frequency.
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/authApi";
+import { useDialog } from "../hooks/useDialog";
 
 const INITIAL_DELAY_MS = 5000;
 
@@ -60,6 +61,13 @@ const AnnouncementModal = () => {
     // navigation handled by the <a> href; internal paths use normal nav
   }, [ann]);
 
+  // Escape to dismiss, background scroll locked, focus trapped and handed
+  // back to whatever opened this. See hooks/useDialog.
+  // Declared ABOVE the early return: hooks must run on every render, and this
+  // component bails out with `return null` while hidden.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: visible && !!ann, onClose: dismiss, ref: dialogRef });
+
   if (!visible || !ann) return null;
 
   const isInternal = ann.cta_url && ann.cta_url.startsWith("/");
@@ -71,6 +79,10 @@ const AnnouncementModal = () => {
       onClick={dismiss}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl animate-[annSheetUp_.32s_cubic-bezier(.16,1,.3,1)] bg-surface-raised"
         style={{
           border: "1px solid rgb(var(--ink) / 0.1)",
@@ -142,7 +154,11 @@ const AnnouncementModal = () => {
               href={ann.cta_url}
               onClick={act}
               target={isInternal ? undefined : "_blank"}
-              rel={isInternal ? undefined : "noopener,noreferrer"}
+              // rel is a SPACE-separated token list. Comma-separated, the browser
+              // reads one unknown token and applies neither — so this link looked
+              // protected while the opened page kept window.opener access and could
+              // navigate this tab somewhere else.
+              rel={isInternal ? undefined : "noopener noreferrer"}
               className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
               style={{
                 background: "linear-gradient(135deg, rgb(var(--accent)), #b8893c)",

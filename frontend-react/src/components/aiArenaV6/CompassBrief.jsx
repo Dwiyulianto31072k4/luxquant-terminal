@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { useDialog } from "../../hooks/useDialog";
 import {
   directionArrow,
   directionColor,
@@ -678,6 +679,10 @@ function DetailTabRail({ activeTab, onChange, tabs }) {
 }
 
 function Modal({ title, children, onClose }) {
+  // Escape / scroll lock / focus trap / focus restore — hooks/useDialog.
+  // This component is mounted only while open, so isOpen is simply true.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose, ref: dialogRef });
   if (!title) return null;
   return (
     <div

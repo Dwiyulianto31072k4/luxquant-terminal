@@ -17,10 +17,11 @@
 // takes title/body/benefits/cta as props; only the trigger logic is here.
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import api from "../services/authApi";
+import { useDialog } from "../hooks/useDialog";
 
 const INITIAL_DELAY_MS = 5000;
 const LS_KEY = "lq_tg_nudge_v1";
@@ -156,6 +157,13 @@ const TelegramNudgeModal = () => {
     }
   };
 
+  // Escape to dismiss, background scroll locked, focus trapped and handed
+  // back to whatever opened this. See hooks/useDialog.
+  // Declared ABOVE the early return: hooks must run on every render, and this
+  // component bails out with `return null` while hidden.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: visible && !!stage, onClose: dismiss, ref: dialogRef });
+
   if (!visible || !stage) return null;
 
   const isLink = stage === "link";
@@ -179,6 +187,10 @@ const TelegramNudgeModal = () => {
       onClick={dismiss}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         className="relative w-full max-w-sm max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl bg-surface-raised"
         style={{
           border: "1px solid rgb(var(--ink) / 0.1)",

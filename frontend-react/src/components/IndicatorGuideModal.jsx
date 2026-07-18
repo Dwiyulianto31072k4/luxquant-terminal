@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useDialog } from "../hooks/useDialog";
 
 // ════════════════════════════════════════════════════════════════
 // Indicator education modal — content grounded in 2026 crypto TA
@@ -68,6 +69,10 @@ const I = {
 };
 
 const IndicatorGuideModal = ({ isOpen, onClose }) => {
+  // Background scroll lock + focus trap + focus restore, on top of the Escape
+  // handling this component already did for itself.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen, onClose, ref: dialogRef });
   useEffect(() => {
     if (!isOpen) return;
     const onEsc = (e) => e.key === "Escape" && onClose();

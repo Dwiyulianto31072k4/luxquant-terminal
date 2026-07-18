@@ -1582,6 +1582,7 @@ const CalendarHeatmap = ({ entries }) => {
           <div className="flex items-center gap-1">
             <button
               onClick={goPrev}
+              aria-label="Previous month"
               className="w-6 h-6 rounded-sm border border-ink/[0.06] bg-ink/[0.02] text-text-muted/60 hover:text-text-primary hover:border-ink/[0.14] transition-colors flex items-center justify-center"
             >
               <IconChevL className="h-3 w-3" />
@@ -1594,6 +1595,7 @@ const CalendarHeatmap = ({ entries }) => {
             </button>
             <button
               onClick={goNext}
+              aria-label="Next month"
               className="w-6 h-6 rounded-sm border border-ink/[0.06] bg-ink/[0.02] text-text-muted/60 hover:text-text-primary hover:border-ink/[0.14] transition-colors flex items-center justify-center"
             >
               <IconChevR className="h-3 w-3" />

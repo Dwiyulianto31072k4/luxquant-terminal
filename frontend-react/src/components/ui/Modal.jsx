@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Z } from "../../constants/zIndex";
+import { useDialog } from "../../hooks/useDialog";
 
 const EXIT_MS = 200;
 
@@ -58,24 +59,12 @@ export default function Modal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!mounted) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") requestClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, closing]);
-
-  useEffect(() => {
-    if (!mounted) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mounted]);
+  // Escape, background-scroll lock, focus trap and focus restore all come from
+  // the shared hook. The lock it applies is reference-counted, which the local
+  // version here was not: a dialog opened from inside another dialog used to
+  // unlock the page on its way out while the outer one was still covering it.
+  const cardRef = useRef(null);
+  useDialog({ isOpen: mounted && !closing, onClose: requestClose, ref: cardRef });
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -186,6 +175,8 @@ export default function Modal({
         }`}
       >
         <div
+          ref={cardRef}
+          tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"

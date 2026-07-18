@@ -186,6 +186,7 @@ export default function TerminalPreview() {
       <div className="relative mx-auto mb-8 w-full max-w-4xl px-4 lg:px-12">
         <button
           onClick={() => scrollNav("left")}
+          aria-label="Scroll left"
           className="absolute left-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-text-primary/30 transition-all hover:text-text-primary lg:flex"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -229,6 +230,7 @@ export default function TerminalPreview() {
 
         <button
           onClick={() => scrollNav("right")}
+          aria-label="Scroll right"
           className="absolute right-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-text-primary/30 transition-all hover:text-text-primary lg:flex"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
