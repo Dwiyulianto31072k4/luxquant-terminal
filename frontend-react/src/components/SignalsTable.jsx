@@ -1124,15 +1124,13 @@ const SignalsTable = ({
  /* roomy: sedikit kolom → lega */
  .sig-roomy td, .sig-roomy th { padding: 15px 20px !important; }
 
- /* ── Frozen header ───────────────────────────────────────────────
-    A wide table scrolled past its header turns every number into an
-    unlabelled figure. Pinned below the 64px app bar (this table is lg+ only). */
- .sig-t thead th {
-   position: sticky;
-   top: 64px;
-   z-index: 2;
-   background: rgb(var(--surface));
- }
+ /* NOTE: no sticky thead here. The table sits inside overflow-x-auto, and CSS
+    forces overflow-y to auto alongside it — so that div becomes the scroll
+    container and the top offset is measured from ITS top edge, not the
+    viewport. It never scrolls vertically, so a sticky header just parks itself
+    that many pixels down and lands on top of the first row. Making the header
+    stick to the page would mean giving this container a fixed height and its
+    own vertical scroll, which is a bigger layout change than it's worth. */
 
  /* ── Frozen identity columns ─────────────────────────────────────
     With 8–12 columns you scroll sideways and lose WHICH COIN the row is.
@@ -1147,8 +1145,8 @@ const SignalsTable = ({
  }
  .sig-t th:nth-child(1), .sig-t td:nth-child(1) { left: 0; z-index: 1; }
  .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 40px; z-index: 1; }
- /* header corner cells must sit above both axes */
- .sig-t thead th:nth-child(1), .sig-t thead th:nth-child(2) { z-index: 3; }
+ /* header corner cells still need to outrank the frozen body cells */
+ .sig-t thead th:nth-child(1), .sig-t thead th:nth-child(2) { z-index: 3; background: rgb(var(--surface)); }
  /* hairline marks where the frozen pane ends */
  .sig-t th:nth-child(2), .sig-t td:nth-child(2) { box-shadow: 1px 0 0 rgb(var(--ink) / 0.07); }
 
