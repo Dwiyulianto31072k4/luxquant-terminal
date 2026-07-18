@@ -75,6 +75,29 @@ view. Most are tabs of the "scan" page; Market Map views have their own route.
   risk/reward. Use the chips to shrink a big list down to only the cleanest calls.
 - **Combine with:** RSI / Vol Squeeze / ATR to time the entry; Risk Calculator to
   size it.
+- **"Room left" badge (most important number):** every pair has a *typical peak*
+  after a call. The badge shows that peak MINUS how far price has already
+  travelled — i.e. how much of the usual move is still ahead of you. Green =
+  most of it is left, gold = roughly a quarter, red = nearly spent. Cards are
+  **ranked by room left**, so setups you can still catch sit on top.
+  *Note: we deliberately do NOT rank by historical win rate — tags like
+  LATE_ENTRY and PARABOLIC score the highest win rate simply because they're
+  attached to coins already flying, so ranking on it would surface the most
+  dangerous setups first.*
+- **"late entry" flag:** the pair is already past its typical peak. Chasing
+  there has the worst risk/reward even if the setup looks clean.
+- **Missed the entry? Arm the alert.** Open the signal and click the 🔔 bell —
+  we watch the live price and notify you (in-app *and* Telegram) the moment it
+  comes back within ~1% of the entry. It fires once, then disarms. Click the
+  bell again to cancel. This is the answer to "it already ran +25%": wait for
+  it instead of chasing.
+- **Size it in one click:** the calculator icon on a signal opens the Risk
+  Calculator with pair, side, entry, stop and target already prefilled — you
+  only set account size and risk %.
+- **Too much on screen?** The **Display** button at the top of Confluence lets
+  you switch off any layer: room, timeframe alignment, setup reasons, warnings,
+  flow context, Fear & Greed, KPI strip. Preferences save to your account and
+  follow you across devices. "Show everything" restores them.
 
 ## Overview
 - **Shows:** the market backdrop + scorecard. A **Market Regime gauge** (0–100)

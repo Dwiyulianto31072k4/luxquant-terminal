@@ -17,11 +17,14 @@ export const VIZ_GUIDES = {
       "The 'room' badge is the most important number: this pair's typical peak after a call, minus how far it has already travelled. Green = most of the move is still ahead, gold = about a quarter left, red = nearly spent.",
       "Cards are ranked by room left, so setups you can still catch sit on top and ones that already ran sink — a high win rate is worthless if the move is behind you.",
       "'late entry' means the pair is already past its typical peak. Chasing there has the worst risk/reward even when the setup looks clean.",
+      "Missed one? Open the card and hit the 🔔 bell — we'll notify you (in-app and on Telegram) if price comes back down to the entry. Waiting beats chasing.",
+      "Ready to take it? The calculator icon in the same card hands the call to the Risk Calculator with entry, stop and target already filled in.",
+      "Too much on screen? The 'Display' button up top lets you switch off any layer — room, timeframes, reasons, warnings, flow, Fear & Greed, KPIs. It's saved to your account, so it follows you across devices.",
     ],
     example:
-      "KAITO shows Bullish · HTF strong · full aligned with 4H/1H/15m all green and a 'fresh breakout' tag, sitting at +25% (TP4). All three timeframes point the same way and it already ran to its final target.",
+      "A setup shows 'no room left · late entry' at +25% from entry. Instead of chasing it, you arm the bell. Two days later it pulls back into the entry zone, you get pinged, and you enter with the full typical move ahead of you instead of behind.",
     takeaway:
-      "Prioritise cards where all three timeframes agree AND the tag matches your style — those are the cleanest, highest-conviction entries.",
+      "Take setups with room left and timeframes in agreement. When you're late, set the alert and wait — that single habit is worth more than any extra indicator.",
   },
   anomaly: {
     read: [
@@ -609,6 +612,8 @@ export const VIZ_GUIDES = {
       "Works out position size from your account size, risk-per-trade %, entry and stop.",
       "Size is derived from the STOP distance — a wider stop means a smaller position for the same risk.",
       "The risk % is the only thing you truly control on entry.",
+      "You don't have to type the levels: open any signal and click the calculator icon — it lands here with pair, side, entry, stop and target already filled from that call. You just set your account size and risk %.",
+      "Or pick a signal from the search box here to prefill it manually.",
     ],
     example:
       "A $10,000 account risking 1% ($100) with a 5% stop gives a $2,000 position — not $10,000 of leverage.",
