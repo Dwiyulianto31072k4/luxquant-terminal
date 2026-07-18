@@ -561,11 +561,16 @@ function AppShell({ children }) {
 
   const handleNav = (path) => {
     setMobileMenuOpen(false);
-    if (LOGIN_REQUIRED.includes(path) && !isAuthenticated) {
+    // Prefix match, not equality: nav entries point at concrete children like
+    // /terminal/scan while the gate lists name the section (/terminal). Exact
+    // matching let those slip past the friendly modal and bounce off the
+    // route-level PremiumGate instead. Access was never open — just abrupt.
+    const gatedBy = (list) => list.some((p) => path === p || path.startsWith(p + "/"));
+    if (gatedBy(LOGIN_REQUIRED) && !isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(path)}`);
       return;
     }
-    if (PREMIUM_REQUIRED.includes(path) && isAuthenticated && !isPremiumUser()) {
+    if (gatedBy(PREMIUM_REQUIRED) && isAuthenticated && !isPremiumUser()) {
       setShowPremiumModal(true);
       return;
     }
@@ -681,20 +686,21 @@ function AppShell({ children }) {
       ),
     },
     {
-      path: "/market-pulse",
-      label: "Pulse",
+      path: "/terminal/scan",
+      label: "Terminal",
       icon: (
-        // Lucide "activity" — heartbeat line, sangat nyambung dengan "Pulse"
+        // Panelled workspace — the research desk
         <svg
           className="w-[20px] h-[20px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          strokeWidth={1.7}
+          strokeWidth={1.6}
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.68 3.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4.44 13H2" />
+          <rect width="18" height="16" x="3" y="4" rx="2" />
+          <path d="M3 10h18M10 10v10" />
         </svg>
       ),
     },
@@ -718,10 +724,10 @@ function AppShell({ children }) {
       ),
     },
     {
-      path: "/ai-arena",
-      label: "AI Research",
+      path: "/autotrade",
+      label: "AutoTrade",
       icon: (
-        // Lucide "bot" — robot face, jelas banget "AI"
+        // Lucide "bot" — the agent that trades for you
         <svg
           className="w-[20px] h-[20px]"
           fill="none"
@@ -741,10 +747,13 @@ function AppShell({ children }) {
       ),
     },
     {
-      path: "/markets",
-      label: "Market",
+      // Not a route — opens the overflow sheet. Every major exchange app hides
+      // its long tail behind a hub, but this Home is a market-overview page
+      // that links nowhere internally, so the tail needs its own entry. iOS
+      // tab bars solve the >5-destination case the same way.
+      isMore: true,
+      label: "More",
       icon: (
-        // Candlestick chart — crypto-market signature
         <svg
           className="w-[20px] h-[20px]"
           fill="none"
@@ -754,8 +763,9 @@ function AppShell({ children }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M8 4v3M8 17v3M8 7h0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
-          <path d="M16 2v4M16 18v4M16 6h0a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+          <circle cx="5" cy="12" r="1.4" />
+          <circle cx="12" cy="12" r="1.4" />
+          <circle cx="19" cy="12" r="1.4" />
         </svg>
       ),
     },
@@ -781,24 +791,10 @@ function AppShell({ children }) {
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
             <div className="flex items-center gap-2 lg:gap-6">
-              {/* Mobile menu toggle */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 -ml-1 text-text-secondary hover:text-text-primary rounded-sm transition-colors"
-                aria-label="Toggle menu"
-              >
-                <div className="w-5 h-4 flex flex-col justify-between">
-                  <span
-                    className={`block h-0.5 bg-current rounded-full transition-all duration-300 origin-center ${mobileMenuOpen ? "rotate-45 translate-y-[7px]" : ""}`}
-                  />
-                  <span
-                    className={`block h-0.5 bg-current rounded-full transition-all duration-200 ${mobileMenuOpen ? "opacity-0 scale-x-0" : ""}`}
-                  />
-                  <span
-                    className={`block h-0.5 bg-current rounded-full transition-all duration-300 origin-center ${mobileMenuOpen ? "-rotate-45 -translate-y-[7px]" : ""}`}
-                  />
-                </div>
-              </button>
+              {/* No hamburger: the overflow menu is reached from the More tab in
+                  the bottom bar. Top-left is the hardest corner of a phone to
+                  reach one-handed, and hidden navigation measurably costs task
+                  completion — the long tail belongs in the thumb zone. */}
 
               {/* Logo — bold wordmark, solid mark tile */}
               <div
@@ -879,25 +875,29 @@ function AppShell({ children }) {
 
       {/* ══════════════════════════════════════════════
  MOBILE SLIDE MENU
- v3 FIX:
- - bottom-16 (NOT bottom-0): stops above bottom nav, no overlap
- - border-b at bottom edge: visual transition to bottom nav
- - <nav> pb-6: breathing room so last item easily tappable
- - Admin section moved to TOP (after Navigation header)
+ Bottom SHEET, not a left drawer: it is opened by the More tab in the
+ bottom bar, so it rises from the same place the thumb already is.
+ - bottom-16: rests on top of the bottom nav, never covers it
+ - scrim also stops at bottom-16 so More stays tappable to close
+ - Admin section at TOP (after Navigation header)
  ══════════════════════════════════════════════ */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-scrim/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-x-0 top-0 bottom-16 z-40 bg-scrim/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
       <div
-        className={`fixed top-14 left-0 bottom-16 w-72 z-50 bg-surface backdrop-blur-xl border-r border-ink/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-x-0 bottom-16 z-50 max-h-[72vh] rounded-t-2xl border-t border-ink/[0.08] bg-surface backdrop-blur-xl transform transition-transform duration-300 ease-out lg:hidden ${
+          mobileMenuOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="flex flex-col h-full">
-          <nav className="flex-1 py-6 pb-8 px-3 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* grab handle — signals "drag/tap to dismiss", standard sheet affordance */}
+        <div className="flex justify-center pt-2.5 pb-1">
+          <span className="h-1 w-9 rounded-full bg-ink/20" />
+        </div>
+        <div className="flex max-h-[calc(72vh-1.5rem)] flex-col">
+          <nav className="flex-1 py-3 pb-8 px-3 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {/* ═══════════ ADMIN SECTION (top priority for admins) ═══════════ */}
             {isAdmin && (
               <>
@@ -1345,7 +1345,7 @@ function AppShell({ children }) {
         <div className="bg-bg-primary/90 backdrop-blur-xl">
           <div className="flex items-end justify-around h-16 px-2 max-w-lg mx-auto relative">
             {bottomNavItems.map((item) => {
-              const active = isActive(item.path);
+              const active = item.isMore ? mobileMenuOpen : isActive(item.path);
 
               if (item.isCenter) {
                 // ════════════════════════════════════════
@@ -1390,8 +1390,12 @@ function AppShell({ children }) {
 
               return (
                 <button
-                  key={item.path}
-                  onClick={() => handleNav(item.path)}
+                  key={item.path || item.label}
+                  onClick={() =>
+                    item.isMore ? setMobileMenuOpen((v) => !v) : handleNav(item.path)
+                  }
+                  aria-expanded={item.isMore ? mobileMenuOpen : undefined}
+                  aria-label={item.isMore ? "More destinations" : undefined}
                   className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative group"
                 >
                   {active && (

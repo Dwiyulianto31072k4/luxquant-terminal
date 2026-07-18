@@ -228,9 +228,22 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
       className="fixed inset-x-0 bottom-0 z-[199990] border-t border-ink/[0.09] bg-surface-raised/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
-          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
+      <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4">
+        {/* On a 390px phone the words "3 selected" plus three chips plus two
+            buttons do not fit, and the strip clipped a chip in half — which
+            reads as broken rather than scrollable. Below sm the label collapses
+            to a count badge and the strip fades at its right edge instead. */}
+        <span className="shrink-0 rounded-full bg-ink/[0.06] px-2 py-0.5 font-mono text-[11px] tabular-nums text-text-secondary sm:hidden">
+          {items.length}
+        </span>
+        <div
+          className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            maskImage: "linear-gradient(to right, black calc(100% - 24px), transparent)",
+            WebkitMaskImage: "linear-gradient(to right, black calc(100% - 24px), transparent)",
+          }}
+        >
+          <span className="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted sm:inline">
             {items.length} selected
           </span>
           {rows.map((m) => (
@@ -257,7 +270,7 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
         <button
           onClick={() => setOpen(true)}
           disabled={items.length < 2}
-          className="shrink-0 rounded-lg bg-accent px-4 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-accent-fg transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+          className="shrink-0 rounded-lg bg-accent px-3.5 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-accent-fg sm:px-4 transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           title={items.length < 2 ? "Pick at least two to compare" : undefined}
         >
           Compare
