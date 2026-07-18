@@ -27,7 +27,27 @@ import websockets
 from app.core.redis import cache_set, is_redis_available
 from app.core.leader import is_leader
 
-WS_URL = "wss://fstream.binance.com/stream?streams=!markPrice@arr@1s/!ticker@arr"
+# Binance documents TWO base endpoints for USD-M futures streams. Only the
+# second one actually delivers.
+#
+# fstream.binance.com accepts the TLS handshake in ~0.3s, reports state OPEN,
+# and then sends nothing — no frames, no close, no error — on every path
+# (/ws/, /stream, and the newer /public/… variants) and via every edge IP
+# (Mumbai and Tokyo alike). Reproduced from two machines on different
+# continents, so it is neither this server's IP nor a regional restriction.
+# stream.binancefuture.com, on the same box in the same second, returns a
+# 511-symbol !ticker@arr frame immediately.
+#
+# A silent-but-open socket is the worst failure shape there is: nothing to
+# catch, nothing logged, and every consumer quietly falling back to REST until
+# the weight budget runs out. Hence the ordered list plus the staleness
+# watchdog below — if a host goes deaf we move to the next one.
+WS_HOSTS = [
+    "wss://stream.binancefuture.com",   # verified delivering
+    "wss://fstream.binance.com",        # documented, currently silent — kept as fallback
+]
+WS_PATH = "/stream?streams=!markPrice@arr@1s/!ticker@arr"
+WS_URL = WS_HOSTS[0] + WS_PATH
 WS_BLOB_KEY = "lq:terminal:ws"
 WS_TTL = 120           # blob is refreshed every ~2s; TTL is a generous floor
 _FLUSH_INTERVAL = 2.0
@@ -112,6 +132,7 @@ async def binance_ws_loop():
     print("🔌 Binance WS worker started (markPrice + ticker)")
     backoff = 1
     last_beat = 0.0
+    host_i = 0
     await asyncio.sleep(4)
     while True:
         try:
@@ -122,11 +143,12 @@ async def binance_ws_loop():
                 await asyncio.sleep(15)
                 continue
 
+            url = WS_HOSTS[host_i % len(WS_HOSTS)] + WS_PATH
             async with websockets.connect(
-                WS_URL, ping_interval=20, ping_timeout=20, close_timeout=5,
+                url, ping_interval=20, ping_timeout=20, close_timeout=5,
                 max_size=16 * 1024 * 1024,
             ) as ws:
-                print("🔌 Binance WS connected")
+                print(f"🔌 Binance WS connected ({WS_HOSTS[host_i % len(WS_HOSTS)]})")
                 backoff = 1
                 last_flush = 0.0
                 got_any = False
@@ -135,7 +157,8 @@ async def binance_ws_loop():
                         raw = await asyncio.wait_for(ws.recv(), timeout=STALE_AFTER)
                     except asyncio.TimeoutError:
                         # Connected but deaf — the failure mode that hid for a day.
-                        print(f"🔌 Binance WS silent for {STALE_AFTER}s — reconnecting")
+                        host_i += 1   # deaf host → try the other one
+                        print(f"🔌 Binance WS silent for {STALE_AFTER}s — switching host")
                         break
                     if not is_leader():
                         break
