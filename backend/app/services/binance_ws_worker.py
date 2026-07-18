@@ -30,7 +30,8 @@ from app.core.leader import is_leader
 WS_URL = "wss://fstream.binance.com/stream?streams=!markPrice@arr@1s/!ticker@arr"
 WS_BLOB_KEY = "lq:terminal:ws"
 WS_TTL = 120           # blob is refreshed every ~2s; TTL is a generous floor
-_FLUSH_INTERVAL = 2.0  # write to Redis at most every 2s (don't spam Redis)
+_FLUSH_INTERVAL = 2.0
+STALE_AFTER = 45       # no frame for this long while leader ⇒ the socket is deaf  # write to Redis at most every 2s (don't spam Redis)
 
 _state = {}            # SYMBOL -> {price, mark, funding, chg, vol}
 
@@ -65,12 +66,21 @@ def _apply_ticker(arr):
         price = _f(it.get("c"))
         chg = _f(it.get("P"))
         vol = _f(it.get("q"))
+        high = _f(it.get("h"))
+        low = _f(it.get("l"))
         if price is not None:
             d["price"] = price
         if chg is not None:
             d["chg"] = chg
         if vol is not None:
             d["vol"] = vol
+        # high/low are in the !ticker@arr payload already; carrying them lets
+        # market.py serve batch prices straight from this blob instead of
+        # spending a weight-40 REST call per request.
+        if high is not None:
+            d["high"] = high
+        if low is not None:
+            d["low"] = low
 
 
 def _flush():
@@ -81,15 +91,37 @@ def _flush():
 
 
 async def binance_ws_loop():
-    """Leader-elected WS ingest loop (auto-reconnect + backoff)."""
+    """Leader-elected WS ingest loop (auto-reconnect + backoff).
+
+    Hardened after this worker sat silent for over 24 hours in production:
+    connected at 16:40 on Jul 17, then never flushed, never disconnected and
+    never logged again, while the blob every consumer reads FIRST simply never
+    existed. Everything downstream quietly fell back to REST — which is how a
+    weight-40 ticker call ended up in a user-facing route and got the server
+    IP-banned.
+
+    Three changes, all about never being blind again:
+      · the leader/redis probe moved INSIDE the try. Raising there killed the
+        asyncio task outright, and a dead create_task() reports nothing at all.
+      · a staleness watchdog. A half-open socket delivers no frames and no
+        error, so waiting for an exception can wait forever; if we hold
+        leadership and have not flushed in STALE_AFTER seconds, drop the
+        connection and rebuild it.
+      · a heartbeat, so "no logs" stops being ambiguous between healthy and dead.
+    """
     print("🔌 Binance WS worker started (markPrice + ticker)")
     backoff = 1
+    last_beat = 0.0
     await asyncio.sleep(4)
     while True:
-        if not is_leader() or not is_redis_available():
-            await asyncio.sleep(15)
-            continue
         try:
+            if not is_leader() or not is_redis_available():
+                if time.time() - last_beat > 300:
+                    print("🔌 Binance WS idle (not leader or redis down)")
+                    last_beat = time.time()
+                await asyncio.sleep(15)
+                continue
+
             async with websockets.connect(
                 WS_URL, ping_interval=20, ping_timeout=20, close_timeout=5,
                 max_size=16 * 1024 * 1024,
@@ -97,7 +129,14 @@ async def binance_ws_loop():
                 print("🔌 Binance WS connected")
                 backoff = 1
                 last_flush = 0.0
-                async for raw in ws:
+                got_any = False
+                while True:
+                    try:
+                        raw = await asyncio.wait_for(ws.recv(), timeout=STALE_AFTER)
+                    except asyncio.TimeoutError:
+                        # Connected but deaf — the failure mode that hid for a day.
+                        print(f"🔌 Binance WS silent for {STALE_AFTER}s — reconnecting")
+                        break
                     if not is_leader():
                         break
                     try:
@@ -113,9 +152,17 @@ async def binance_ws_loop():
                     except Exception:
                         continue
                     now = time.time()
-                    if now - last_flush >= _FLUSH_INTERVAL:
+                    # Flush the first batch immediately so the blob exists within
+                    # seconds of connecting, not one interval later.
+                    if not got_any or now - last_flush >= _FLUSH_INTERVAL:
                         _flush()
                         last_flush = now
+                        if not got_any:
+                            got_any = True
+                            print(f"🔌 Binance WS blob live ({len(_state)} symbols)")
+                    if now - last_beat > 300:
+                        print(f"🔌 Binance WS heartbeat — {len(_state)} symbols")
+                        last_beat = now
         except Exception as e:
             print(f"🔌 Binance WS disconnected: {type(e).__name__}: {e} — reconnect in {backoff}s")
             await asyncio.sleep(backoff)

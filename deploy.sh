@@ -26,6 +26,7 @@ LUXQUANT_PATH="/root/luxquant-terminal"
 FRONTEND_PATH="$LUXQUANT_PATH/frontend-react"
 NGINX_WWW_PATH="/var/www/luxquantdata"
 LUXQUANT_SERVICE="luxquant-backend"
+LUXQUANT_POLLER_SERVICE="${LUXQUANT_POLLER_SERVICE:-luxquant-poller.service}"
 LUXQUANT_HEALTH_URL="http://localhost:8002/health"
 LIQUIDATION_STREAM_SERVICE="luxquant-binance-liquidation-stream"
 LIQUIDATION_STREAM_UNIT="$LUXQUANT_PATH/deployment/${LIQUIDATION_STREAM_SERVICE}.service"
@@ -95,6 +96,20 @@ deploy_luxquant() {
     # reload-or-restart: graceful HUP reload if already running (no dropped
     # requests), full restart only if the service was stopped.
     systemctl reload-or-restart "$LUXQUANT_SERVICE"
+    # The pollers run as a SEPARATE service and were never restarted here, so
+    # every change to worker code sat dormant while the API happily reloaded.
+    # Found it after chasing why med_peak never appeared in the post-signal blob:
+    # the file on disk had it, the running poller — untouched since 13 Jul — did
+    # not. Same reason the Binance WS ingest stayed dead and its consumers all
+    # fell back to REST until the server got IP-banned.
+    # Restart, not reload: these are asyncio loops, SIGHUP means nothing to them.
+    if systemctl list-unit-files 2>/dev/null | grep -q "^${LUXQUANT_POLLER_SERVICE}"; then
+        echo "   → Restarting pollers (${LUXQUANT_POLLER_SERVICE})..."
+        systemctl restart "$LUXQUANT_POLLER_SERVICE" || echo "   ⚠️  poller restart failed"
+    else
+        echo "   ⏭️  ${LUXQUANT_POLLER_SERVICE} not installed — skipping"
+    fi
+
     echo "   → Waiting for backend to be ready..."
     for i in {1..30}; do
         sleep 1

@@ -423,8 +423,52 @@ async def get_taker_volume(symbol: str = "BTCUSDT", period: str = "5m", limit: i
 # BATCH PRICES + VOLUME (v5 — Binance → Bybit fallback chain)
 # ============================================================
 
+def _tickers_from_ws():
+    """Serve batch tickers from the WebSocket blob when it is fresh.
+
+    !ticker@arr already streams last price, 24h change, quote volume and the
+    24h high/low for every futures symbol, and WebSocket frames cost nothing
+    against the REST weight budget. Reading it here removes a weight-40 call
+    (/fapi/v1/ticker/24hr with no symbol) from a request-path endpoint — which
+    is what was earning this server its 418s.
+    """
+    blob = cache_get("lq:terminal:ws")
+    if not isinstance(blob, dict):
+        return None
+    pairs = blob.get("pairs") or {}
+    if len(pairs) < 50:          # a barely-populated blob is worse than none
+        return None
+    out = {}
+    for sym, d in pairs.items():
+        px = d.get("price")
+        if px is None:
+            continue
+        out[sym] = {
+            "price": float(px),
+            "volume": float(d.get("vol") or 0),
+            "change": float(d.get("chg") or 0),
+            "high_24h": float(d.get("high") or 0),
+            "low_24h": float(d.get("low") or 0),
+        }
+    return out or None
+
+
 async def _fetch_binance_tickers(client):
-    """Fetch all futures tickers from Binance. Returns dict or None."""
+    """Batch futures tickers: WebSocket blob first, REST only as a fallback."""
+    ws = _tickers_from_ws()
+    if ws:
+        return ws
+
+    # REST fallback. Honour the shared ban before spending a request: Binance
+    # escalates a 418 every time it is hit DURING one (2 minutes → 3 days), so
+    # calling blind while banned is what makes the ban worse.
+    try:
+        from app.services.terminal_worker import _fapi_ok
+        if not _fapi_ok():
+            return None
+    except Exception:
+        pass
+
     try:
         response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
         if response.status_code == 200:
@@ -439,6 +483,12 @@ async def _fetch_binance_tickers(client):
                 }
             return tickers
         else:
+            if response.status_code in (418, 429):
+                try:
+                    from app.services.terminal_worker import _note_ban
+                    _note_ban(response, 600 if response.status_code == 418 else 120)
+                except Exception:
+                    pass
             print(f"⚠️ Binance futures tickers HTTP {response.status_code}")
     except Exception as e:
         print(f"⚠️ Binance futures tickers failed: {type(e).__name__}: {e or '(no message — likely timeout)'}")
