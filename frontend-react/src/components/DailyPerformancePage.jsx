@@ -2612,7 +2612,7 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
     setFilters({ outcome: null, sector: null, pattern: null, btc_trend: null });
   }, []);
 
-  const allSignals = data?.day_detail?.signals || [];
+  const allSignals = useMemo(() => data?.day_detail?.signals || [], [data]);
 
   const filteredSignals = useMemo(() => {
     return allSignals.filter((s) => {

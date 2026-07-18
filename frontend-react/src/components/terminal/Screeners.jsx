@@ -605,7 +605,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
   const { t } = useTranslation();
   const { map: statusMap } = useSignalStatus() || {};
 
-  const book = ob?.pairs || {};
+  const book = useMemo(() => ob?.pairs || {}, [ob]);
   const rowsD = useMemo(() => {
     const seen = new Set();
     const flow = cvd?.pairs || {};

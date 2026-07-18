@@ -158,7 +158,7 @@ function SignalRow({ s, busy, onOpen }) {
 }
 
 export default function DayDrillModal({ date, data, loading, onClose }) {
-  const all = data?.signals || [];
+  const all = useMemo(() => data?.signals || [], [data]);
   const winners = useMemo(() => all.filter((s) => WINS.includes(s.outcome)), [all]);
   const losers = useMemo(() => all.filter((s) => s.outcome === "sl"), [all]);
 

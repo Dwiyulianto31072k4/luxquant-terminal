@@ -663,7 +663,6 @@ const HUBS = [
   },
 ];
 
-
 const REGION_LABELS = [
   { name: "East Asia", lat: 33, lng: 122, size: 13 },
   { name: "Southeast Asia", lat: 8, lng: 111, size: 12 },

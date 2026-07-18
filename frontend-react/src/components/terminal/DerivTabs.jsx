@@ -1024,7 +1024,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
     setSel(movers.slice(0, 10).map((m) => m.pair));
   }, [movers, sel]);
 
-  const selected = sel || [];
+  const selected = useMemo(() => sel || [], [sel]);
   const allSymbols = useMemo(
     () => ["BTCUSDT", ...selected.filter((p) => p !== "BTCUSDT")],
     [selected]

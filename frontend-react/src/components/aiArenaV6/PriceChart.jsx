@@ -279,7 +279,7 @@ export default function PriceChart({ report }) {
     };
   }, []);
 
-  const tech = data?.technicals || {};
+  const tech = useMemo(() => data?.technicals || {}, [data]);
   const lastPrice =
     tech.price ?? data?.candles?.[data.candles.length - 1]?.close ?? report?.btc_price;
   const firstClose = data?.candles?.[0]?.close;

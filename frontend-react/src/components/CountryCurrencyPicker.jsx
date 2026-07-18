@@ -5,6 +5,10 @@ import { useTranslation } from "react-i18next";
 import { COUNTRIES, getCountryByCode, getCountryFlag } from "../data/countries";
 import { CURRENCY_FLAGS } from "../utils/currencyHelpers";
 
+// Constant, so it lives at module scope: declared inside the component it was a
+// fresh array on every render, which silently defeated the memo below it.
+const POPULAR_FIRST = ["USD", "EUR", "GBP", "JPY", "CNY", "IDR", "TWD", "KRW", "INR", "SGD"];
+
 /**
  * Combined country + currency picker for ProfilePage.
  *
@@ -40,7 +44,6 @@ export default function CountryCurrencyPicker({
   const selectedCountry = useMemo(() => getCountryByCode(country), [country]);
 
   // ─── Currency: filtered list + sorted with popular ones first ───
-  const POPULAR_FIRST = ["USD", "EUR", "GBP", "JPY", "CNY", "IDR", "TWD", "KRW", "INR", "SGD"];
 
   const sortedCurrencies = useMemo(() => {
     if (!supportedCurrencies.length) return [];

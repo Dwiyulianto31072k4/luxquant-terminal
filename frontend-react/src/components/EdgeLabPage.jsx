@@ -49,8 +49,6 @@ const SECTOR_OPTIONS = [
   "other",
 ];
 
-
-
 const RGlyph = ({ d, circles }) => (
   <svg
     viewBox="0 0 24 24"

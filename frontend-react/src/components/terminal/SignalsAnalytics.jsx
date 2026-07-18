@@ -90,6 +90,22 @@ import { RiskTab } from "./RiskCalculator";
 import { RsiHeatmapTab, AtrLevelsTab, VolSqueezeTab, OrderFlowTab } from "./Screeners";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
+// Constant tag set — module scope keeps its identity stable across renders.
+const STRONG_TAGS = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
+
+// Constant tag set — module scope keeps its identity stable across renders.
+const WARN_TAGS = [
+  "LATE_ENTRY",
+  "OVEREXTENDED",
+  "PARABOLIC",
+  "EXHAUSTION_CANDLE",
+  "LIQ_VERY_LOW",
+  "LIQ_LOW",
+  "RISK_OFF_REGIME",
+  "HTF_TREND_EXHAUSTED",
+  "MTF_AGAINST_HTF",
+];
+
 // Anomaly scatter dot — hot pumps glow + grow; decoupled stay cyan; rest muted.
 function AnomDot({ cx, cy, payload, statusMap, onPair }) {
   if (cx == null || cy == null || !payload) return null;
@@ -407,7 +423,7 @@ export default function SignalsAnalytics() {
     };
   }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro, fetchLiq, fetchCvd, fetchOb]);
 
-  const items = data?.items || [];
+  const items = useMemo(() => data?.items || [], [data]);
 
   // latest call per pair
   const latestByPair = useMemo(() => {
@@ -745,18 +761,6 @@ export default function SignalsAnalytics() {
     return Math.round((hit / view.length) * 100);
   }, [view]);
   // "coiled" = high-confluence, clean setups still sitting near entry (not pumped)
-  const STRONG_TAGS = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
-  const WARN_TAGS = [
-    "LATE_ENTRY",
-    "OVEREXTENDED",
-    "PARABOLIC",
-    "EXHAUSTION_CANDLE",
-    "LIQ_VERY_LOW",
-    "LIQ_LOW",
-    "RISK_OFF_REGIME",
-    "HTF_TREND_EXHAUSTED",
-    "MTF_AGAINST_HTF",
-  ];
   const coiledCount = useMemo(() => {
     let n = 0;
     Object.values(latestByPair).forEach((s) => {

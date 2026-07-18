@@ -61,7 +61,7 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (user) setUsername(user.username || "");
-  }, [user]);
+  }, [user, setUser]);
   useEffect(() => {
     fetchConnections();
   }, []);

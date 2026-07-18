@@ -479,7 +479,6 @@ const NewsModal = ({ item, onClose }) => {
 // 4. PULSE TICKER — horizontal scrolling latest headlines
 // ════════════════════════════════════════════
 
-
 const sourceLabel = (item) =>
   shortDomain(item?.domain) || (item?.source ? String(item.source).slice(0, 18) : "") || "Wire";
 
@@ -1209,8 +1208,6 @@ const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
       return null;
   }
 };
-
-
 
 const FilterBar = ({
   searchInput,

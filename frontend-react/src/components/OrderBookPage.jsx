@@ -395,7 +395,7 @@ const DerivCard = ({ label, value, children, headerRight }) => (
 // LIQUIDATIONS CARD — compute summary frontend
 // ════════════════════════════════════════════════════════════════
 const LiqCard = ({ data }) => {
-  const recent = data?.recent || [];
+  const recent = useMemo(() => data?.recent || [], [data]);
 
   // Compute summary frontend (backend doesn't provide summary)
   // Must be called before any conditional return (Rules of Hooks)

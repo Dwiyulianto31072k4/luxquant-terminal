@@ -703,7 +703,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
     };
   }, [open, hidden]);
 
-  const all = payload?.signals || [];
+  const all = useMemo(() => payload?.signals || [], [payload]);
   const btcSeries = bucket?.btcSeries || null;
 
   const stats = useMemo(() => {

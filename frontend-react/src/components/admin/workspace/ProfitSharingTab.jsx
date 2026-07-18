@@ -85,8 +85,11 @@ export const ProfitSharingTab = () => {
     [load]
   );
 
-  const rows = data?.rows || [];
-  const totals = data?.totals || { gross: 0, owner: 0, bigstar: 0, external: 0 };
+  const rows = useMemo(() => data?.rows || [], [data]);
+  const totals = useMemo(
+    () => data?.totals || { gross: 0, owner: 0, bigstar: 0, external: 0 },
+    [data]
+  );
   const byScheme = data?.by_scheme || {};
 
   const exportCsv = useMemo(

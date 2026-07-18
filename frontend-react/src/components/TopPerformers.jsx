@@ -51,13 +51,18 @@ const TopPerformers = () => {
   };
 
   // Desk ranges — denser than old 1D/7D/30D; maps cleanly to API `days`
-  const presets = [
-    { key: "1d", label: t("top.d1"), short: "1D", days: 1 },
-    { key: "3d", label: "3D", short: "3D", days: 3 },
-    { key: "7d", label: t("top.d7"), short: "1W", days: 7 },
-    { key: "30d", label: t("top.d30"), short: "1M", days: 30 },
-    { key: "custom", label: t("top.custom"), short: "Custom", days: null },
-  ];
+  // Depends on t(), so it cannot leave the component — memoised instead so its
+  // identity only changes when the language does.
+  const presets = useMemo(
+    () => [
+      { key: "1d", label: t("top.d1"), short: "1D", days: 1 },
+      { key: "3d", label: "3D", short: "3D", days: 3 },
+      { key: "7d", label: t("top.d7"), short: "1W", days: 7 },
+      { key: "30d", label: t("top.d30"), short: "1M", days: 30 },
+      { key: "custom", label: t("top.custom"), short: "Custom", days: null },
+    ],
+    [t]
+  );
 
   const CATEGORIES = [
     { key: "gains", label: "Biggest Gains", short: "Gains" },

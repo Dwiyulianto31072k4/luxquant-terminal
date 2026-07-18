@@ -541,7 +541,7 @@ function readableLabel(value) {
 }
 
 function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
-  const items = archive?.items || [];
+  const items = useMemo(() => archive?.items || [], [archive]);
   const readyCount = items.filter((item) => item.pdf_ready).length;
   const latest = items[0];
   const pageSize = 6;
