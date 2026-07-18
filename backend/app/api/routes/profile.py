@@ -26,6 +26,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
@@ -337,6 +338,28 @@ async def link_google(
             .first()
         ):
             blockers.append("payment history")
+
+        # After a transfer the source account has no login method left, so any
+        # irreplaceable data on it would be orphaned. No account currently in
+        # this state holds any (checked: 0 of 423), but that's luck rather than
+        # design — money and exchange credentials must never be stranded.
+        stranded = db.execute(text("""
+            SELECT
+              EXISTS (SELECT 1 FROM credit_ledger     WHERE user_id = :uid) AS credits,
+              EXISTS (SELECT 1 FROM referral_payouts  WHERE user_id = :uid) AS payouts,
+              EXISTS (SELECT 1 FROM cashout_requests  WHERE user_id = :uid) AS cashouts,
+              EXISTS (SELECT 1 FROM exchange_accounts WHERE user_id = :uid) AS exchanges,
+              EXISTS (SELECT 1 FROM api_keys          WHERE user_id = :uid) AS api_keys
+        """), {"uid": existing.id}).first()
+        if stranded:
+            if stranded.credits:
+                blockers.append("credit balance")
+            if stranded.payouts or stranded.cashouts:
+                blockers.append("referral earnings")
+            if stranded.exchanges:
+                blockers.append("a connected exchange")
+            if stranded.api_keys:
+                blockers.append("API keys")
 
         if blockers:
             raise HTTPException(
