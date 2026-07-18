@@ -426,13 +426,13 @@ const CONF_FILTERS = [
 export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openSignalRow }) {
   const { t } = useTranslation();
   const { prefs } = useUiPrefs(TERMINAL_DISPLAY_DEFAULTS);
-  const [pins, setPins] = useState([]); // signal_ids, max 4
+  const [pins, setPins] = useState([]); // signal_ids, max 6 (see CompareTray)
   const [cmpOpen, setCmpOpen] = useState(false);
   const togglePin = (sig) =>
     setPins((cur) =>
       cur.includes(sig.signal_id)
         ? cur.filter((x) => x !== sig.signal_id)
-        : cur.length >= 4
+        : cur.length >= 6
           ? cur
           : [...cur, sig.signal_id]
     );

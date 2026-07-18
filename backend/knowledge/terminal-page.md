@@ -98,8 +98,17 @@ view. Most are tabs of the "scan" page; Market Map views have their own route.
   **Compare** in the tray at the bottom. Up to 4 setups go side by side across
   room left, typical peak, distance from call, typical drawdown, direction,
   timeframe agreement, HTF trend, why it fired and warnings — with the best
-  value in each row highlighted. Useful when two setups look equally good: the
-  one with more room, full alignment and fewer warnings is the pick.
+  value in each row highlighted. Up to 6 at once.
+- **The compare panel picks a winner for you.** It shows "Best of these" with
+  the reasons (most room left, best risk/reward, all timeframes agreeing, no
+  warnings), and it is honest about doubt: it flags when the runner-up is
+  close, when the winner still carries warnings, and when *none* of the pinned
+  setups are worth taking ("sitting this one out is a position too").
+- **Risk/reward (R)** is the metric the verdict is built on: room still ahead
+  divided by the drawdown this pair typically puts you through. Above 1R means
+  the remaining upside is bigger than the usual pain. It is deliberately NOT
+  win-rate based — win rate is ~85% across the board here and the tags that
+  top it (LATE_ENTRY, PARABOLIC) are the ones you least want to take.
 - **Too much on screen?** The **Display** button at the top of Confluence lets
   you switch off any layer: room, timeframe alignment, setup reasons, warnings,
   flow context, Fear & Greed, KPI strip. Preferences save to your account and

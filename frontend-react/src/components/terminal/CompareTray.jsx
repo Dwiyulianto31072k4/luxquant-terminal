@@ -39,6 +39,71 @@ function Row({ label, hint, cells, best }) {
   );
 }
 
+// ── Which of these is actually the best? ─────────────────────────
+// Deliberately built on risk/reward, NOT win rate. Win rate across this
+// dataset sits ~85% for everything, and the tags that score highest on it
+// (LATE_ENTRY, PARABOLIC) are the ones you least want to take — they attach
+// to coins that already ran. Remaining upside measured against the typical
+// drawdown is the honest question: "what do I stand to make here versus the
+// pain I should expect, entering now?"
+//
+// Returns a winner plus the reasons it leads, and stays quiet when the data
+// doesn't actually support a call.
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function scoreOne(r) {
+  // R:R — remaining room against the drawdown this pair usually puts you through
+  const mae = r.room?.mae != null ? Math.abs(r.room.mae) : null;
+  const rr = r.room && mae ? r.room.left / mae : null;
+
+  let score = 0;
+  if (rr != null)
+    score += clamp(rr, -2, 4) * 2.5; // dominant term
+  else if (r.pctLeft != null) score += (r.pctLeft / 100) * 4; // fallback: room only
+
+  if (r.aligned) score += 2; // all timeframes agree
+  if (r.htf) score += 1; // higher-timeframe trend behind it
+  score -= r.warns.length * 1.5; // each warning is real risk
+  if (r.room && r.room.left <= 0) score -= 4; // the move is already gone
+
+  return { rr, score };
+}
+
+function buildVerdict(rows) {
+  const scored = rows.map((r) => ({ ...r, ...scoreOne(r) }));
+  const usable = scored.filter((r) => r.room != null);
+  // Without post-call history there is nothing honest to compare on.
+  if (usable.length < 2) return { scored, verdict: null };
+
+  const ranked = [...scored].sort((a, b) => b.score - a.score);
+  const win = ranked[0];
+  const second = ranked[1];
+  const margin = win.score - second.score;
+
+  const maxRoom = Math.max(...scored.map((r) => r.pctLeft ?? -Infinity));
+  const maxRR = Math.max(...scored.map((r) => r.rr ?? -Infinity));
+  const minWarn = Math.min(...scored.map((r) => r.warns.length));
+
+  const reasons = [];
+  if (win.pctLeft != null && win.pctLeft === maxRoom)
+    reasons.push(`most room left (+${win.room.left.toFixed(1)}%)`);
+  if (win.rr != null && win.rr === maxRR) reasons.push(`best risk/reward (${win.rr.toFixed(1)}R)`);
+  if (win.aligned) reasons.push("all timeframes agree");
+  if (win.htf) reasons.push("higher-timeframe trend behind it");
+  if (win.warns.length === minWarn && win.warns.length === 0) reasons.push("no warnings");
+
+  // Be honest when it's not actually a clear call.
+  const cautions = [];
+  if (margin < 1.5) cautions.push(`${second.it.s.pair.replace(/USDT$/i, "")} is close behind`);
+  if (win.warns.length)
+    cautions.push(`it still carries ${win.warns.length} warning${win.warns.length > 1 ? "s" : ""}`);
+  if (win.room && win.room.left <= 0) cautions.push("the usual move is already behind it");
+  if (win.rr != null && win.rr < 1)
+    cautions.push("risk/reward is below 1R — the typical drawdown is bigger than the room left");
+
+  return { scored, verdict: { win, reasons, cautions, weak: win.score <= 0 } };
+}
+
 export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen }) {
   if (!items.length) return null;
 
@@ -46,7 +111,7 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
   const grid = { gridTemplateColumns: `120px repeat(${cols}, minmax(0,1fr))` };
 
   // ── derive every comparison input once ──
-  const rows = items.map((it) => {
+  const baseRows = items.map((it) => {
     const v3 = it.s.v3 || {};
     const tags = v3.tags || [];
     const room = it.room; // {peak,left,mae,n} | null
@@ -67,6 +132,7 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
       reasons: it.reasons || [],
     };
   });
+  const { scored: rows, verdict } = buildVerdict(baseRows);
 
   const argMax = (vals) => {
     let bi = -1,
@@ -100,7 +166,7 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
       onClick={() => setOpen(false)}
     >
       <div
-        className="flex max-h-[92dvh] w-full max-w-[900px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl shadow-black/60 sm:rounded-2xl"
+        className="flex max-h-[92dvh] w-full max-w-[1120px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl shadow-black/60 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-ink/[0.07] px-4 py-3">
@@ -128,6 +194,35 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
             </svg>
           </button>
         </div>
+
+        {verdict && (
+          <div className="shrink-0 border-b border-ink/[0.07] bg-accent/[0.05] px-4 py-2.5">
+            {verdict.weak ? (
+              <div className="text-[12px] text-text-secondary">
+                <span className="font-medium text-warning">Nothing here looks good.</span> Every
+                pinned setup is either out of room or carrying too much risk — sitting this one out
+                is a position too.
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[12px]">
+                <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                  Best of these
+                </span>
+                <span className="font-mono text-[14px] font-semibold text-accent">
+                  {verdict.win.it.s.pair.replace(/USDT$/i, "")}
+                </span>
+                {verdict.reasons.length > 0 && (
+                  <span className="text-text-secondary">— {verdict.reasons.join(" · ")}</span>
+                )}
+                {verdict.cautions.length > 0 && (
+                  <span className="w-full text-[11px] text-warning">
+                    Caveat: {verdict.cautions.join(" · ")}.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="grid min-w-[560px] items-stretch" style={grid}>
@@ -181,6 +276,15 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
               cells={rows.map((r) => ({
                 text: r.fc == null ? "—" : fmtPct(r.fc),
                 tone: r.fc == null ? MUTED : r.fc >= 0 ? POS : NEG,
+              }))}
+            />
+            <Row
+              label="Risk / reward"
+              hint="Room still ahead divided by the drawdown this pair typically puts you through. Above 1R means the upside left is bigger than the usual pain. This is what the verdict is built on."
+              best={argMax(rows.map((r) => r.rr ?? null))}
+              cells={rows.map((r) => ({
+                text: r.rr == null ? "—" : `${r.rr.toFixed(1)}R`,
+                tone: r.rr == null ? MUTED : r.rr >= 1.5 ? POS : r.rr >= 1 ? GOLD : NEG,
               }))}
             />
             <Row
