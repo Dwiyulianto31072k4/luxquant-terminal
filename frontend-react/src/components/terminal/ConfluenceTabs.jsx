@@ -263,40 +263,10 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
       }}
       className="group relative cursor-pointer text-left rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/[0.12] hover:bg-ink/[0.035] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent transition-all overflow-hidden flex flex-col"
     >
-      {/* Pin for side-by-side comparison. stopPropagation so pinning
-          doesn't also open the signal. */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onPin?.(s);
-        }}
-        title={pinned ? "Remove from comparison" : "Pin to compare"}
-        aria-label={pinned ? "Remove from comparison" : "Pin to compare"}
-        aria-pressed={!!pinned}
-        className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition-all ${
-          pinned
-            ? "border-accent/40 bg-accent/15 text-accent opacity-100"
-            : "border-ink/10 bg-surface-raised/80 text-text-muted opacity-70 hover:text-text-primary hover:opacity-100 group-hover:opacity-100"
-        }`}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-3 w-3"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 17v5M9 10.8V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6.8a2 2 0 0 0 .6 1.4l1.1 1.1a1 1 0 0 1 .3.7v.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V15a1 1 0 0 1 .3-.7l1.1-1.1a2 2 0 0 0 .6-1.4z" />
-        </svg>
-      </button>
-
       {/* header — pair · direction · PnL · status */}
       <div className="px-3.5 pt-3.5 flex items-center gap-2.5">
         <CoinLogo pair={s.pair} size={28} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="font-mono text-[14px] text-text-primary leading-none truncate">
             {s.pair.replace(/USDT$/i, "")}
           </div>
@@ -316,6 +286,35 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
             <StatusTag status={s.status} />
           </div>
         </div>
+        {/* Pin sits IN the header row — floating it over the corner covered
+            the % value, which is the first thing you read on a card. */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin?.(s);
+          }}
+          title={pinned ? "Remove from comparison" : "Pin to compare"}
+          aria-label={pinned ? "Remove from comparison" : "Pin to compare"}
+          aria-pressed={!!pinned}
+          className={`-mr-1 flex h-7 w-7 shrink-0 items-center justify-center self-start rounded-md border transition-colors ${
+            pinned
+              ? "border-accent/40 bg-accent/15 text-accent"
+              : "border-transparent text-text-muted/50 hover:border-ink/15 hover:text-text-primary"
+          }`}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 17v5M9 10.8V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6.8a2 2 0 0 0 .6 1.4l1.1 1.1a1 1 0 0 1 .3.7v.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V15a1 1 0 0 1 .3-.7l1.1-1.1a2 2 0 0 0 .6-1.4z" />
+          </svg>
+        </button>
       </div>
 
       {/* Multi-timeframe alignment */}
