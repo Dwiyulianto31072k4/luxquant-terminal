@@ -14,6 +14,7 @@ Run via luxquant-poller.service:
 """
 from __future__ import annotations
 
+import signal
 import asyncio
 import os
 
@@ -97,8 +98,21 @@ async def _amain() -> None:
 
     print("✅ LuxQuant poller: all background workers running")
 
-    # Idle forever; systemd SIGTERM cancels this and we clean up below.
+    # Idle until systemd asks us to stop.
+    #
+    # The comment here used to claim SIGTERM cancelled this wait. It does not:
+    # Python's default SIGTERM disposition terminates the process outright, so
+    # the finally block below — including the leadership hand-back — never ran.
+    # The replacement poller then had to wait out the full lock TTL before it
+    # could refresh anything, which is what put 41 slow requests into a single
+    # minute on every deploy.
     stop = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for _sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(_sig, stop.set)
+        except NotImplementedError:      # non-POSIX; nothing to install
+            pass
     try:
         await stop.wait()
     finally:
