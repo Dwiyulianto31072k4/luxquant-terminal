@@ -578,7 +578,16 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
         
         # Cache whatever we got
         if all_tickers:
-            cache_set(cache_key, all_tickers, ttl=5)
+            # 20s, not 5s. /fapi/v1/ticker/24hr with no symbol costs weight 40, so a
+            # 5-second cache spends 480 weight/minute on this one key forever,
+            # whether anyone is looking or not — measured x-mbx-used-weight-1m was
+            # 1469 of the 2400 ceiling, which is why the batch call periodically
+            # came back 418. At 20s the same key costs 120/min.
+            #
+            # Nothing visible is lost: the signals table polls live prices in the
+            # browser on its own interval, and 24h volume/high/low do not move
+            # meaningfully inside twenty seconds.
+            cache_set(cache_key, all_tickers, ttl=20)
         else:
             # All providers failed — try stale cache
             stale, _ = cache_get_with_stale(cache_key)
