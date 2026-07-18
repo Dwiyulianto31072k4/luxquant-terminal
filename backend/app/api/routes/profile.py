@@ -326,7 +326,16 @@ async def link_google(
             blockers.append("Discord linked")
         if existing.password_hash:
             blockers.append("its own password")
-        if db.query(Payment.id).filter(Payment.user_id == existing.id).first():
+        # Only a COMPLETED payment counts. Abandoned checkouts (expired /
+        # cancelled / pending) are not "payment history" — blocking on those
+        # would lock people out of their own account over an invoice they
+        # never paid, which is exactly what happened to the first user to hit
+        # this flow (an invoice that expired 26s after signup).
+        if (
+            db.query(Payment.id)
+            .filter(Payment.user_id == existing.id, Payment.status == "confirmed")
+            .first()
+        ):
             blockers.append("payment history")
 
         if blockers:
