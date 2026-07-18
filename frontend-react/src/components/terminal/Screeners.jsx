@@ -849,6 +849,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
         <>
           <SectionBand
             title="Order Book Pressure"
+            guide="orderbook"
             desc="Passive intent from the live Binance book: resting bids vs asks (top-20 levels). Bid-stacked = buyers defending below; ask-stacked = sellers capping above. Pairs with aggressive CVD are the strongest reads."
           />
           <div className="grid md:grid-cols-2 gap-2">

@@ -616,9 +616,36 @@ export const LegendChips = ({ entries, activeKey, onPick }) => (
 );
 
 // Expandable metric/chart panel — desk card + fullscreen via portal (above app header)
-export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
+export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) {
   const { t } = useTranslation();
   const [big, setBig] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const g = typeof guide === "string" ? VIZ_GUIDES[guide] : guide;
+  const guideBtn = g ? (
+    <button
+      type="button"
+      onClick={() => setGuideOpen((o) => !o)}
+      aria-expanded={guideOpen}
+      title="How to read this chart"
+      className={`inline-flex h-6 items-center gap-1 rounded-md border px-1.5 font-mono text-[8.5px] uppercase tracking-wider transition-colors ${
+        guideOpen
+          ? "border-accent/40 bg-accent/10 text-accent"
+          : "border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
+      }`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-2.5 w-2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8h.01M11 12h1v4h1" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="hidden sm:inline">How to read</span>
+    </button>
+  ) : null;
 
   // Escape + lock body scroll while expanded — never sit under sticky chrome
   useEffect(() => {
@@ -696,6 +723,7 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                {guideBtn}
                 {zoomBtns}
                 <IconBtn onClick={() => setBig(false)} title="close">
                   ✕
@@ -703,6 +731,11 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
               </div>
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 sm:p-6">
+              {g && guideOpen && (
+                <div className="mb-4 shrink-0">
+                  <VizGuidePanel guide={g} />
+                </div>
+              )}
               <div className="min-h-0 flex-1">
                 {body(Math.max(520, Math.round(window.innerHeight * 0.74)))}
               </div>
@@ -728,12 +761,18 @@ export function XCard({ title, desc, render, zoom, hint, height = 360 }) {
             )}
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
+            {guideBtn}
             {zoomBtns}
             <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>
               ↗
             </IconBtn>
           </div>
         </div>
+        {g && guideOpen && (
+          <div className="px-2.5 pt-2.5 sm:px-3">
+            <VizGuidePanel guide={g} />
+          </div>
+        )}
         <div className="min-h-0 flex-1 p-2.5 sm:p-3">{body(height)}</div>
       </div>
       {overlay}

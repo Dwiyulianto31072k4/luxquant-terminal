@@ -180,6 +180,7 @@ export function OITab({ view, deriv, pairFc, openPair }) {
         <>
           <XCard
             title={t("terminal.viz.oiQuadTitle")}
+            guide="oiQuad"
             desc={t("terminal.viz.oiQuadDesc")}
             zoom={zQuad}
             hint={t("terminal.viz.oiQuadHint")}
@@ -270,11 +271,13 @@ export function OITab({ view, deriv, pairFc, openPair }) {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
             <XCard
               title={t("terminal.viz.oiTopTitle")}
+              guide="oiTop"
               desc={t("terminal.viz.oiTopDesc")}
               render={() => <RankBars data={top} onPair={openPair} />}
             />
             <XCard
               title={t("terminal.viz.oiBottomTitle")}
+              guide="oiBottom"
               desc={t("terminal.viz.oiBottomDesc")}
               render={() => <RankBars data={bottom} onPair={openPair} />}
             />
@@ -283,6 +286,7 @@ export function OITab({ view, deriv, pairFc, openPair }) {
       ) : (
         <XCard
           title={t("terminal.viz.oiBigTitle")}
+          guide="oiBig"
           desc={t("terminal.viz.oiBigDesc")}
           render={() => (
             <ScrollArea max={420}>
@@ -462,6 +466,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <XCard
           title={t("terminal.viz.lsrDistTitle")}
+          guide="lsrDist"
           desc={`${t("terminal.viz.lsrDistDesc")} Click a bar to list pairs → open call.`}
           height={320}
           render={(h) => (
@@ -566,6 +571,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
 
         <XCard
           title={t("terminal.viz.lsDivTitle")}
+          guide="lsDiv"
           desc={t("terminal.viz.lsDivDesc")}
           zoom={zDiv}
           hint={t("terminal.viz.lsDivHint")}
@@ -631,6 +637,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <XCard
           title={t("terminal.viz.takerTitle")}
+          guide="taker"
           desc={t("terminal.viz.takerDesc")}
           render={() => (
             <RankBars data={takers.slice(0, 8)} onPair={openPair} fmt={(v) => fmtPct(v, 1)} />
@@ -638,6 +645,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
         />
         <XCard
           title={t("terminal.viz.crowdedTitle")}
+          guide="crowded"
           desc={t("terminal.viz.crowdedDesc")}
           render={() => (
             <div className="py-2 space-y-3">
@@ -777,11 +785,13 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
           <XCard
             title="Perp Premium — richest (mark &gt; index)"
+            guide="perpPremium"
             desc="Perp trading above spot/index — greed / crowded longs paying up to hold."
             render={() => <RankBars data={basisRich} onPair={openPair} fmt={fmtBasis} />}
           />
           <XCard
             title="Perp Premium — cheapest / inverted"
+            guide="perpPremium"
             desc="Perp at or below index — discount, unwinding, or stress."
             render={() => <RankBars data={basisCheap} onPair={openPair} fmt={fmtBasis} />}
           />
@@ -790,6 +800,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 
       <XCard
         title={t("terminal.viz.squeezeTitle")}
+        guide="squeezeRadar"
         desc={t("terminal.viz.squeezeDesc")}
         render={() => (
           <div className="py-2 space-y-3">
@@ -846,6 +857,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         {/* Neg funding = shorts pay → fuel (green); pos funding = longs pay → risk (red) */}
         <XCard
           title={t("terminal.viz.fundNegTitle")}
+          guide="fundNeg"
           desc={t("terminal.viz.fundNegDesc")}
           render={() => (
             <RankBars
@@ -858,6 +870,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         />
         <XCard
           title={t("terminal.viz.fundPosTitle")}
+          guide="fundPos"
           desc={t("terminal.viz.fundPosDesc")}
           render={() => (
             <RankBars
@@ -872,6 +885,7 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 
       <XCard
         title={t("terminal.viz.fundFcTitle")}
+        guide="fundFc"
         desc={t("terminal.viz.fundFcDesc")}
         zoom={zFund}
         render={(h) => (
@@ -1084,6 +1098,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
 
       <XCard
         title={t("terminal.viz.vsChartTitle")}
+        guide="vsChart"
         desc={t("terminal.viz.vsChartDesc")}
         height={380}
         render={(h) => (
@@ -1205,6 +1220,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <XCard
           title={t("terminal.viz.rsiTitle")}
+          guide="rsiDist"
           desc={t("terminal.viz.rsiDesc")}
           height={300}
           render={(h) => (
@@ -1287,6 +1303,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
 
         <XCard
           title={t("terminal.viz.volChgTitle")}
+          guide="volChg"
           desc={t("terminal.viz.volChgDesc")}
           height={300}
           render={() =>
@@ -1371,6 +1388,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
 
       <XCard
         title={t("terminal.viz.momScatterTitle")}
+        guide="momScatter"
         desc={t("terminal.viz.momScatterDesc")}
         zoom={zM}
         hint={t("terminal.viz.momScatterHint")}
@@ -1445,16 +1463,19 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         <XCard
           title={t("terminal.viz.momTopTitle")}
+          guide="momTop"
           desc={t("terminal.viz.momTopDesc")}
           render={() => <RankBars data={byMom} onPair={openPair} fmt={(v) => Math.round(v)} />}
         />
         <XCard
           title={t("terminal.viz.momRsTitle")}
+          guide="momRs"
           desc={t("terminal.viz.momRsDesc")}
           render={() => <RankBars data={byRs} onPair={openPair} fmt={(v) => fmtPct(v, 1)} />}
         />
         <XCard
           title={t("terminal.viz.momAccelTitle")}
+          guide="momAccel"
           desc={t("terminal.viz.momAccelDesc")}
           render={() => <RankBars data={byAccel} onPair={openPair} fmt={(v) => fmtPct(v, 0)} />}
         />
@@ -1532,6 +1553,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
 
       <XCard
         title={t("terminal.viz.sqScatterTitle")}
+        guide="squeeze"
         desc={t("terminal.viz.sqScatterDesc")}
         hint={t("terminal.viz.sqScatterHint")}
         zoom={zSq}
@@ -1614,6 +1636,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <XCard
           title={t("terminal.viz.sqLongTitle")}
+          guide="sqLong"
           desc={t("terminal.viz.sqLongDesc")}
           render={() => (
             <RankBars align="start" data={longList} onPair={openPair} fmt={(v) => Math.round(v)} />
@@ -1621,6 +1644,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
         />
         <XCard
           title={t("terminal.viz.sqShortTitle")}
+          guide="sqShort"
           desc={t("terminal.viz.sqShortDesc")}
           render={() => (
             <RankBars align="start" data={shortList} onPair={openPair} fmt={(v) => Math.round(v)} />

@@ -1006,6 +1006,7 @@ export default function SignalsAnalytics() {
 
               <XCard
                 title={t("terminal.viz.flowTitle")}
+                guide="flow"
                 desc={t("terminal.viz.flowDesc")}
                 render={(h) => (
                   <>
@@ -1057,6 +1058,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
                 <XCard
                   title={t("terminal.viz.funnelTitle")}
+                  guide="funnel"
                   desc={t("terminal.viz.funnelDesc")}
                   render={(h) => (
                     <div style={{ height: h }}>
@@ -1081,6 +1083,7 @@ export default function SignalsAnalytics() {
                 />
                 <XCard
                   title={t("terminal.viz.statusTitle")}
+                  guide="statusMix"
                   desc={t("terminal.viz.statusDesc")}
                   render={(h) => (
                     <Donut
@@ -1098,6 +1101,7 @@ export default function SignalsAnalytics() {
                 />
                 <XCard
                   title={t("terminal.viz.riskTitle")}
+                  guide="riskMix"
                   desc={t("terminal.viz.riskDesc")}
                   render={(h) => (
                     <Donut
@@ -1120,6 +1124,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.tt1Title")}
+                  guide="tt1"
                   desc={t("terminal.viz.tt1Desc")}
                   hint={
                     agg.maeMed != null
@@ -1165,6 +1170,7 @@ export default function SignalsAnalytics() {
                 />
                 <XCard
                   title={t("terminal.viz.equityTitle")}
+                  guide="equity"
                   desc={t("terminal.viz.equityDesc")}
                   render={(h) => (
                     <div style={{ height: h }}>
@@ -1240,6 +1246,7 @@ export default function SignalsAnalytics() {
 
               <XCard
                 title={t("terminal.viz.sectorCountTitle")}
+                guide="sectorCount"
                 desc={t("terminal.viz.sectorCountDesc")}
                 render={() => (
                   <SectorBars
@@ -1413,6 +1420,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.anomTitle")}
+                  guide="anom"
                   desc={t("terminal.viz.anomDesc")}
                   zoom={zAnom}
                   hint={t("terminal.viz.anomHint")}
@@ -1510,6 +1518,7 @@ export default function SignalsAnalytics() {
 
                 <XCard
                   title={t("terminal.viz.spikeTitle")}
+                  guide="spike"
                   desc={t("terminal.viz.spikeDesc")}
                   render={() =>
                     session.spikes.length === 0 ? (
@@ -1543,11 +1552,13 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.rsUpTitle")}
+                  guide="rsUp"
                   desc={t("terminal.viz.rsUpDesc")}
                   render={() => <RankBars data={rsTop} onPair={openPair} />}
                 />
                 <XCard
                   title={t("terminal.viz.rsDownTitle")}
+                  guide="rsDown"
                   desc={t("terminal.viz.rsDownDesc")}
                   render={() => <RankBars data={rsBottom} onPair={openPair} />}
                 />
@@ -1556,6 +1567,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={`${t("terminal.viz.sessTitle")} ↑`}
+                  guide="sess"
                   desc={t("terminal.viz.sessDesc")}
                   render={() =>
                     session.warming ? (
@@ -1569,6 +1581,7 @@ export default function SignalsAnalytics() {
                 />
                 <XCard
                   title={`${t("terminal.viz.sessTitle")} ↓`}
+                  guide="sess"
                   desc={t("terminal.viz.sessDesc")}
                   render={() =>
                     session.warming ? (
@@ -1589,6 +1602,7 @@ export default function SignalsAnalytics() {
             <>
               <SectionBand
                 title={t("terminal.viz.sectionLive")}
+                guide="live"
                 desc={t("terminal.viz.sectionLiveDesc")}
               />
 
@@ -1636,6 +1650,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
                 <XCard
                   title={t("terminal.viz.fcDistTitle")}
+                  guide="fcDist"
                   desc={t("terminal.viz.fcDistDesc")}
                   height={320}
                   render={(h) => (
@@ -1671,6 +1686,7 @@ export default function SignalsAnalytics() {
 
                 <XCard
                   title={t("terminal.viz.oppTitle")}
+                  guide="opp"
                   desc={t("terminal.viz.oppDesc")}
                   zoom={zOpp}
                   height={320}
@@ -1737,6 +1753,7 @@ export default function SignalsAnalytics() {
 
               <XCard
                 title={t("terminal.viz.peakTitle")}
+                guide="peak"
                 desc={t("terminal.viz.peakDesc")}
                 zoom={zPeak}
                 hint={t("terminal.viz.peakHint")}
@@ -1810,11 +1827,13 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.topGainers")}
+                  guide="topGainers"
                   desc={t("terminal.viz.topGainersDesc")}
                   render={() => <RankBars data={gainers} onPair={openPair} />}
                 />
                 <XCard
                   title={t("terminal.viz.topLosers")}
+                  guide="topLosers"
                   desc={t("terminal.viz.topLosersDesc")}
                   render={() => <RankBars data={losers} onPair={openPair} />}
                 />
@@ -1823,6 +1842,7 @@ export default function SignalsAnalytics() {
               {agg.suspects.length > 0 && (
                 <XCard
                   title={t("terminal.viz.suspectTitle")}
+                  guide="suspect"
                   desc={t("terminal.viz.suspectDesc")}
                   render={() => (
                     <div className="flex flex-wrap gap-1.5 py-2">
@@ -1892,6 +1912,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.betaDistTitle")}
+                  guide="betaDist"
                   desc={t("terminal.viz.betaDistDesc")}
                   render={(h) => (
                     <>
@@ -1953,6 +1974,7 @@ export default function SignalsAnalytics() {
 
                 <XCard
                   title={t("terminal.viz.betaPerfTitle")}
+                  guide="betaPerf"
                   desc={t("terminal.viz.betaPerfDesc")}
                   zoom={zBeta}
                   hint={t("terminal.viz.betaPerfHint")}
@@ -2023,6 +2045,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.alignTitle")}
+                  guide="align"
                   desc={t("terminal.viz.alignDesc")}
                   render={(h) => (
                     <div style={{ height: Math.min(h, 220) }}>
@@ -2058,6 +2081,7 @@ export default function SignalsAnalytics() {
 
                 <XCard
                   title={t("terminal.viz.decListTitle")}
+                  guide="decList"
                   desc={t("terminal.viz.decListDesc")}
                   render={() =>
                     agg.decoupledList.length === 0 ? (
@@ -2091,6 +2115,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.radarTitle")}
+                  guide="radar"
                   desc={t("terminal.viz.radarDesc")}
                   render={(h) => (
                     <div style={{ height: Math.max(h, 260) }}>
@@ -2126,6 +2151,7 @@ export default function SignalsAnalytics() {
                 />
                 <XCard
                   title={t("terminal.viz.sectorCountTitle")}
+                  guide="sectorCount"
                   desc={t("terminal.viz.sectorCountDesc")}
                   render={() => (
                     <SectorBars
@@ -2141,6 +2167,7 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <XCard
                   title={t("terminal.viz.sectorFcTitle")}
+                  guide="sectorFc"
                   desc={t("terminal.viz.sectorFcDesc")}
                   render={() => (
                     <SectorBars
@@ -2155,6 +2182,7 @@ export default function SignalsAnalytics() {
                 />
                 <XCard
                   title={t("terminal.viz.sectorTgtTitle")}
+                  guide="sectorTgt"
                   desc={t("terminal.viz.sectorTgtDesc")}
                   render={() => (
                     <SectorBars

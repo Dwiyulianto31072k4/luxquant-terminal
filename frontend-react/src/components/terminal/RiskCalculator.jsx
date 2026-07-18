@@ -154,6 +154,7 @@ export function RiskTab({ view, deriv }) {
     <>
       <SectionBand
         title="Position Size & Risk Calculator"
+        guide="riskcalc"
         desc="Turn any call into a sized, risk-defined trade — how much to buy, your R:R, and where you'd get liquidated. Pick a signal to prefill, or enter levels manually."
       />
 

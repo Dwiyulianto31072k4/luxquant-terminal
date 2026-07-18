@@ -245,7 +245,11 @@ export function EdgeTab() {
 
   return (
     <>
-      <SectionBand title={t("terminal.viz.tabEdge")} desc={t("terminal.viz.edgeDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabEdge")}
+        desc={t("terminal.viz.edgeDesc")}
+        guide="edge"
+      />
 
       <div className="flex items-center gap-1 rounded-md bg-surface-raised border border-ink/[0.1] p-0.5 w-fit">
         <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">
