@@ -14,6 +14,9 @@ export const VIZ_GUIDES = {
       "Green % = the call is in profit, red = underwater. The TP/SL chip shows the furthest target already hit.",
       "4H · 1H · 15m lit up = all three timeframes agree; a greyed frame means that timeframe disagrees.",
       "Tags below (fresh breakout, deep pullback, ob near entry…) describe why the setup fired.",
+      "The 'room' badge is the most important number: this pair's typical peak after a call, minus how far it has already travelled. Green = most of the move is still ahead, gold = about a quarter left, red = nearly spent.",
+      "Cards are ranked by room left, so setups you can still catch sit on top and ones that already ran sink — a high win rate is worthless if the move is behind you.",
+      "'late entry' means the pair is already past its typical peak. Chasing there has the worst risk/reward even when the setup looks clean.",
     ],
     example:
       "KAITO shows Bullish · HTF strong · full aligned with 4H/1H/15m all green and a 'fresh breakout' tag, sitting at +25% (TP4). All three timeframes point the same way and it already ran to its final target.",

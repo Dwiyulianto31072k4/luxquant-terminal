@@ -6,8 +6,10 @@
 // the v3 TAGS vocabulary, extracted from signal_enrichment JSONB
 // (live_snapshot ?? entry_snapshot) by /terminal/screener
 // · deriv blob — live price / Δ from call / spike badges (worker)
-// · postsignal blob — per-pair historical avg move after a call
-// (used only as light context on the card footer)
+// · postsignal blob — per-pair typical move after a call (avg_peak / avg_mae).
+// Drives the "room left" badge AND the ranking: setups with most of their
+// usual move still ahead sort first, spent ones sink. See rankOf() for why
+// we deliberately do NOT rank on tag win-rate.
 // · item.status — the signal's latest lifecycle state (open/tp1…/sl)
 // ════════════════════════════════════════════════════════════════
 import { useState, useMemo, useEffect } from "react";
@@ -17,6 +19,7 @@ import {
   POS,
   NEG,
   GOLD,
+  MUTED,
   ORANGE,
   fmtPct,
   API_BASE,
@@ -82,6 +85,8 @@ const nice = (tag) => tag.replaceAll("_", " ").toLowerCase();
 const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: "rgb(var(--fg-muted))" };
 
 // confluence score = positive important reasons − warnings (for sorting)
+// NOTE: hand-weighted fallback, used only when a pair has no post-call
+// history yet. Primary ranking is room-left (see rankOf).
 function scoreOf(tags) {
   if (!tags?.length) return -99;
   let s = 0;
@@ -91,6 +96,38 @@ function scoreOf(tags) {
     if (t === "MTF_AGAINST_HTF") s -= 2;
   });
   return s;
+}
+
+// ⚠️ DO NOT rank by tag win-rate / EV. Verified against 90d of production
+// data: the top tags by both WR and EV are LATE_ENTRY (90.1%), PARABOLIC
+// (89.1%) and OVEREXTENDED (86.8%) — ABOVE SMC_GOLDEN_SETUP (87.4%).
+// That's a confound, not an edge: those tags are attached to coins that are
+// already flying, and peak_pct measures the coin's move, so a parabolic coin
+// scores high by construction. Ranking on it would surface the most dangerous
+// setups first. Tag stats stay available as context, never as the sort key.
+//
+// What actually matters to someone deciding RIGHT NOW is how much of the
+// typical post-call move is still ahead of them. That comes from the per-pair
+// postsignal blob (avg_peak) minus the distance already travelled (fc), and
+// is not confounded by tag definitions.
+function roomLeftOf(fc, ps) {
+  const peak = ps?.avg_peak;
+  if (!(peak > 0)) return null;
+  const travelled = fc == null ? 0 : fc;
+  return { peak, left: peak - travelled, mae: ps?.avg_mae ?? null, n: ps?.n ?? null };
+}
+
+// Sort: most room left first, warnings pushed down. Falls back to the
+// hand-weighted score when a pair has no post-call history yet.
+function rankOf(tags, fc, ps) {
+  const list = tags || [];
+  const warn =
+    list.filter((t) => WARNING_TAGS.includes(t)).length * 2 +
+    (list.includes("MTF_AGAINST_HTF") ? 4 : 0);
+  const room = roomLeftOf(fc, ps);
+  if (!room) return scoreOf(list) - warn;
+  // Normalise room to a comparable scale, then apply the same warning penalty.
+  return room.left - warn + Math.min(scoreOf(list), 6) * 0.5;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -202,6 +239,14 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
     .filter(Boolean)
     .join(" · ");
 
+  // How much of this pair's typical post-call move is still ahead of you.
+  // This is the decision-relevant number — see the note above rankOf() for why
+  // we deliberately do NOT rank or badge by tag win-rate.
+  const room = roomLeftOf(fc, ps);
+  const pctLeft = room && room.peak > 0 ? (room.left / room.peak) * 100 : null;
+  const roomTone = pctLeft == null ? MUTED : pctLeft >= 60 ? POS : pctLeft >= 25 ? GOLD : NEG;
+  const late = room != null && room.left <= 0;
+
   return (
     <button
       type="button"
@@ -263,6 +308,39 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
         </div>
       )}
 
+      {/* Room left — how much of the typical post-call move is still ahead of
+          you. The decision-relevant number when taking a setup RIGHT NOW. */}
+      {room && (
+        <div className="px-3.5 mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[9.5px]">
+          <span
+            className="rounded border px-1.5 py-0.5"
+            style={{
+              color: roomTone,
+              borderColor: `color-mix(in srgb, ${roomTone} 35%, transparent)`,
+              background: `color-mix(in srgb, ${roomTone} 10%, transparent)`,
+            }}
+            title={
+              `This pair typically peaks near +${room.peak.toFixed(1)}% after a call` +
+              (room.n ? ` (n=${room.n})` : "") +
+              `. It's already ${fc == null ? "—" : fmtPct(fc)} from entry, so roughly ` +
+              `${room.left > 0 ? `+${room.left.toFixed(1)}%` : "none"} of that move is still ahead.` +
+              (room.mae ? ` Typical drawdown against you: ${room.mae.toFixed(1)}%.` : "")
+            }
+          >
+            {late ? "no room left" : `+${room.left.toFixed(1)}% room`}
+          </span>
+          <span className="text-text-muted truncate">typ peak +{room.peak.toFixed(1)}%</span>
+          {late && (
+            <span
+              className="ml-auto shrink-0 text-warning"
+              title="The usual move is already behind you — chasing here carries the worst risk/reward."
+            >
+              late entry
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="mt-auto px-3.5 pt-2 pb-3 mt-2.5 border-t border-ink/[0.04] flex items-center gap-2 font-mono text-[9.5px] min-h-[14px]">
         {warns.length > 0 && (
           <span className="flex items-center gap-1.5 min-w-0 text-warning">
@@ -314,8 +392,14 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
     CONF_FILTERS.forEach(([k, , pred]) => {
       if (on[k]) out = out.filter((s) => pred(s.v3.tags || []));
     });
-    return [...out].sort((a, b) => scoreOf(b.v3?.tags) - scoreOf(a.v3?.tags));
-  }, [view, on]);
+    // Rank by how much of the typical post-call move is still ahead.
+    const ps = postsignal?.pairs || {};
+    return [...out].sort(
+      (a, b) =>
+        rankOf(b.v3?.tags, pairFc[b.pair], ps[b.pair]) -
+        rankOf(a.v3?.tags, pairFc[a.pair], ps[a.pair])
+    );
+  }, [view, on, postsignal, pairFc]);
 
   const stats = useMemo(() => {
     const withV3 = view.filter((s) => s.v3?.tags?.length);
