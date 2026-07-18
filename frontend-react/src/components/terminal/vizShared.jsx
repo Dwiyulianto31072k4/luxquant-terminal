@@ -418,10 +418,11 @@ export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => {
 };
 
 // Active chip = solid yellow + dark ink (Binance filter pattern)
-export const Chip = ({ active, onClick, children, size = "sm" }) => (
+export const Chip = ({ active, onClick, children, size = "sm", title }) => (
   <button
     type="button"
     onClick={onClick}
+    title={title}
     className={`shrink-0 rounded-md font-mono uppercase tracking-wider border transition-colors ${
       size === "xs" ? "px-1.5 py-0.5 text-[8.5px]" : "px-2 py-1 text-[9px]"
     } ${

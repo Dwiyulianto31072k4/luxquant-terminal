@@ -18,6 +18,7 @@ import CoinLogo from "../CoinLogo";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
 import { DisplaySettings, TERMINAL_DISPLAY_DEFAULTS } from "./DisplaySettings";
 import { CompareTray } from "./CompareTray";
+import { tagHint } from "./tagGlossary";
 import {
   POS,
   NEG,
@@ -344,8 +345,23 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
       )}
 
       {prefs.term_reasons !== false && reasons.length > 0 && (
-        <div className="px-3.5 mt-2 text-[11px] text-text-primary/60 leading-relaxed">
-          {reasons.map(nice).join(" · ")}
+        <div className="px-3.5 mt-2 text-[11px] leading-relaxed text-text-primary/60">
+          {reasons.map((r, i) => (
+            <span key={r}>
+              {i > 0 && " · "}
+              {/* hover any tag for a plain-English explanation */}
+              <span
+                title={tagHint(r) || undefined}
+                className={
+                  tagHint(r)
+                    ? "cursor-help decoration-dotted underline-offset-2 hover:underline"
+                    : undefined
+                }
+              >
+                {nice(r)}
+              </span>
+            </span>
+          ))}
         </div>
       )}
 
@@ -386,7 +402,23 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
         {prefs.term_warnings !== false && warns.length > 0 && (
           <span className="flex items-center gap-1.5 min-w-0 text-warning">
             <span className="w-1 h-1 rounded-full shrink-0 bg-warning" />
-            <span className="truncate">{warns.map(nice).join(" · ")}</span>
+            <span className="truncate">
+              {warns.map((w, i) => (
+                <span key={w}>
+                  {i > 0 && " · "}
+                  <span
+                    title={tagHint(w) || undefined}
+                    className={
+                      tagHint(w)
+                        ? "cursor-help decoration-dotted underline-offset-2 hover:underline"
+                        : undefined
+                    }
+                  >
+                    {nice(w)}
+                  </span>
+                </span>
+              ))}
+            </span>
           </span>
         )}
         {prefs.term_flow !== false && flowChips.length > 0 && (
@@ -408,6 +440,22 @@ function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t
 // ════════════════════════════════════════════════════════════════
 // TAB: CONFLUENCE SCREENER (landing)
 // ════════════════════════════════════════════════════════════════
+// What each filter actually keeps — the chip labels are trader shorthand.
+const CONF_FILTER_HINTS = {
+  htf: "HTF = Higher TimeFrame. Keeps only setups where the 4-hour trend is strong, so the bigger picture backs the trade.",
+  aligned:
+    "Keeps setups where all three charts (4H, 1H, 15m) point the same way — the cleanest agreement.",
+  fresh: "Keeps setups that just broke out, so the move is early rather than already run.",
+  pullback:
+    "Keeps setups that pulled back deep into the trend — better entry price, but it has to hold.",
+  golden:
+    "Keeps 'golden setups' — several smart-money conditions lining up at once. Our highest-quality pattern.",
+  volspike:
+    "Keeps setups with volume running 2–3× normal, i.e. real participation behind the move.",
+  nowarn:
+    "Keeps only setups with no risk warnings at all (no late entry, parabolic, thin liquidity…).",
+};
+
 const CONF_FILTERS = [
   ["htf", "confHtf", (tags) => tags.includes("HTF_TREND_STRONG")],
   ["aligned", "confAligned", (tags) => tags.includes("MTF_FULL_ALIGNED")],
@@ -562,8 +610,13 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       {prefs.term_kpis !== false && (
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
           <Kpi compact label="Setups" value={cards.length} sub="Matching filters" />
-          <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" />
-          <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" />
+          <Kpi
+            compact
+            label="HTF strong"
+            value={stats.htf}
+            sub="4H (higher timeframe) trend strong"
+          />
+          <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m all agree" />
           <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" />
         </div>
       )}
@@ -616,7 +669,13 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
 
       <div className="flex items-center gap-1 flex-wrap">
         {CONF_FILTERS.map(([k, label]) => (
-          <Chip key={k} active={!!on[k]} onClick={() => toggle(k)} size="xs">
+          <Chip
+            key={k}
+            active={!!on[k]}
+            onClick={() => toggle(k)}
+            size="xs"
+            title={CONF_FILTER_HINTS[k]}
+          >
             {t(`terminal.viz.${label}`)}
           </Chip>
         ))}

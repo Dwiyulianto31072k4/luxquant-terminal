@@ -12,7 +12,30 @@ import { createPortal } from "react-dom";
 import CoinLogo from "../CoinLogo";
 import { POS, NEG, GOLD, MUTED, fmtPct, StatusTag } from "./vizShared";
 
+import { tagHint } from "./tagGlossary";
+
 const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
+
+// tag list where each term explains itself on hover
+const TagList = ({ tags, className }) => (
+  <span className={className}>
+    {tags.map((t, i) => (
+      <span key={t}>
+        {i > 0 && " · "}
+        <span
+          title={tagHint(t) || undefined}
+          className={
+            tagHint(t)
+              ? "cursor-help decoration-dotted underline-offset-2 hover:underline"
+              : undefined
+          }
+        >
+          {nice(t)}
+        </span>
+      </span>
+    ))}
+  </span>
+);
 
 // ── one comparison row ───────────────────────────────────────────
 function Row({ label, hint, cells, best }) {
@@ -40,7 +63,7 @@ function Row({ label, hint, cells, best }) {
 }
 
 // ── Which of these is actually the best? ─────────────────────────
-// Deliberately built on risk/reward, NOT win rate. Win rate across this
+// Deliberately built on room-vs-dip, NOT win rate. Win rate across this
 // dataset sits ~85% for everything, and the tags that score highest on it
 // (LATE_ENTRY, PARABOLIC) are the ones you least want to take — they attach
 // to coins that already ran. Remaining upside measured against the typical
@@ -52,7 +75,8 @@ function Row({ label, hint, cells, best }) {
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 function scoreOne(r) {
-  // R:R — remaining room against the drawdown this pair usually puts you through
+  // Remaining room against the dip this pair usually puts you through right
+  // after a call (initial_mae_pct — NOT a stop distance, so not true R:R).
   const mae = r.room?.mae != null ? Math.abs(r.room.mae) : null;
   const rr = r.room && mae ? r.room.left / mae : null;
 
@@ -80,12 +104,12 @@ function buildVerdict(rows) {
   const second = ranked[1];
   const margin = win.score - second.score;
 
-  const maxRoom = Math.max(...scored.map((r) => r.pctLeft ?? -Infinity));
+  const maxRoom = Math.max(...scored.map((r) => r.room?.left ?? -Infinity));
   const maxRR = Math.max(...scored.map((r) => r.rr ?? -Infinity));
   const minWarn = Math.min(...scored.map((r) => r.warns.length));
 
   const reasons = [];
-  if (win.pctLeft != null && win.pctLeft === maxRoom)
+  if (win.room?.left != null && win.room.left === maxRoom)
     reasons.push(`most room left (+${win.room.left.toFixed(1)}%)`);
   if (win.rr != null && win.rr === maxRR) reasons.push(`best risk/reward (${win.rr.toFixed(1)}R)`);
   if (win.aligned) reasons.push("all timeframes agree");
@@ -98,8 +122,7 @@ function buildVerdict(rows) {
   if (win.warns.length)
     cautions.push(`it still carries ${win.warns.length} warning${win.warns.length > 1 ? "s" : ""}`);
   if (win.room && win.room.left <= 0) cautions.push("the usual move is already behind it");
-  if (win.rr != null && win.rr < 1)
-    cautions.push("risk/reward is below 1R — the typical drawdown is bigger than the room left");
+  if (win.rr != null && win.rr < 1) cautions.push("the typical dip is bigger than the room left");
 
   return { scored, verdict: { win, reasons, cautions, weak: win.score <= 0 } };
 }
@@ -254,7 +277,7 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
             <Row
               label="Room left"
               hint="Typical peak after a call, minus the distance already travelled. The single best guide to whether you can still catch it."
-              best={argMax(rows.map((r) => r.pctLeft))}
+              best={argMax(rows.map((r) => r.room?.left ?? null))}
               cells={rows.map((r) => ({
                 text:
                   r.room == null ? "—" : r.room.left > 0 ? `+${r.room.left.toFixed(1)}%` : "none",
@@ -279,11 +302,11 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
               }))}
             />
             <Row
-              label="Risk / reward"
-              hint="Room still ahead divided by the drawdown this pair typically puts you through. Above 1R means the upside left is bigger than the usual pain. This is what the verdict is built on."
+              label="Room vs dip"
+              hint="For every 1% this pair typically dips against you just after a call, how many % of upside are still ahead. Higher = the remaining move is large relative to the usual wobble. NOTE: this is not stop-based R:R — your real risk is wherever you place your stop."
               best={argMax(rows.map((r) => r.rr ?? null))}
               cells={rows.map((r) => ({
-                text: r.rr == null ? "—" : `${r.rr.toFixed(1)}R`,
+                text: r.rr == null ? "—" : `${r.rr.toFixed(1)}×`,
                 tone: r.rr == null ? MUTED : r.rr >= 1.5 ? POS : r.rr >= 1 ? GOLD : NEG,
               }))}
             />
@@ -323,9 +346,10 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
               label="Why it fired"
               cells={rows.map((r) => ({
                 node: r.reasons.length ? (
-                  <span className="text-[11px] leading-snug text-text-secondary">
-                    {r.reasons.map(nice).join(" · ")}
-                  </span>
+                  <TagList
+                    tags={r.reasons}
+                    className="text-[11px] leading-snug text-text-secondary"
+                  />
                 ) : (
                   "—"
                 ),
@@ -337,9 +361,7 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
               best={argMin(rows.map((r) => r.warns.length))}
               cells={rows.map((r) => ({
                 node: r.warns.length ? (
-                  <span className="text-[11px] leading-snug text-warning">
-                    {r.warns.map(nice).join(" · ")}
-                  </span>
+                  <TagList tags={r.warns} className="text-[11px] leading-snug text-warning" />
                 ) : (
                   <span className="text-[11px]" style={{ color: POS }}>
                     none
