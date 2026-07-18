@@ -175,6 +175,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <SectionBand
           title="RSI Heatmap"
+          guide="rsi"
           desc={`14-period RSI (${tf}) across every active call. Above 70 = overbought (stretched), below 30 = oversold. Dot ring = signal status.`}
         />
         <div className="flex items-center gap-1.5 shrink-0">
@@ -331,6 +332,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
       <>
         <SectionBand
           title="ATR Levels"
+          guide="atr"
           desc="How much of the expected daily range each call has already used."
         />
         <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
@@ -345,6 +347,7 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
     <>
       <SectionBand
         title="ATR Levels"
+        guide="atr"
         desc="Daily-range exhaustion: today's 24h range vs the expected daily move (1h ATR × √24). Near/over 100% = the coin has used up its typical range — momentum may be exhausted; fresh = room to run."
       />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
@@ -458,6 +461,7 @@ export function VolSqueezeTab({ view, deriv, openPair }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <SectionBand
           title="Volatility Squeeze"
+          guide="volsqueeze"
           desc={`Bollinger band-width percentile (${tf}) vs each coin's own recent history. Low = range has contracted → coiling before expansion. Ring = signal status.`}
         />
         <div className="flex items-center gap-1.5 shrink-0">
@@ -673,6 +677,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
       <>
         <SectionBand
           title="Order Flow (CVD)"
+          guide="orderflow"
           desc="Cumulative volume delta vs price. Streaming in…"
         />
         <div className="rounded-2xl bg-surface-raised border border-ink/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
@@ -715,6 +720,7 @@ export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
     <>
       <SectionBand
         title="Order Flow (CVD)"
+        guide="orderflow"
         desc="Net aggressive buying (green) vs selling (red) over 1h, plotted against 24h price. Watch the divergence corners: price up + CVD down = rally being sold into; price down + CVD up = quiet accumulation."
       />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">

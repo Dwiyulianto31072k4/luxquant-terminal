@@ -1259,6 +1259,7 @@ export default function SignalsAnalytics() {
             <>
               <SectionBand
                 title={t("terminal.viz.sectionAnom")}
+                guide="anomaly"
                 desc={t("terminal.viz.sectionAnomDesc")}
                 badge={
                   <span className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-ink/[0.08] bg-ink/[0.02] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">

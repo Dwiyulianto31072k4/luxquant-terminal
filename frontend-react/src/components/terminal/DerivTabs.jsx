@@ -145,7 +145,11 @@ export function OITab({ view, deriv, pairFc, openPair }) {
 
   return (
     <>
-      <SectionBand title={t("terminal.viz.tabOi")} desc={t("terminal.viz.oiSectionDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabOi")}
+        desc={t("terminal.viz.oiSectionDesc")}
+        guide="oi"
+      />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi
           label={t("terminal.viz.kOiTotal")}
@@ -351,7 +355,11 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
 
   return (
     <div className="space-y-2.5">
-      <SectionBand title={t("terminal.viz.tabLs")} desc={t("terminal.viz.lsSectionDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabLs")}
+        desc={t("terminal.viz.lsSectionDesc")}
+        guide="ls"
+      />
 
       {/* Strength-focused KPIs (no “loser” framing) */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
@@ -727,7 +735,11 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 
   return (
     <>
-      <SectionBand title={t("terminal.viz.tabFunding")} desc={t("terminal.viz.fundSectionDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabFunding")}
+        desc={t("terminal.viz.fundSectionDesc")}
+        guide="funding"
+      />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi
           label={t("terminal.viz.kFundNeg")}
@@ -1058,7 +1070,11 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
 
   return (
     <div className="space-y-2.5">
-      <SectionBand title={t("terminal.viz.tabVsbtc")} desc={t("terminal.viz.vsSectionDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabVsbtc")}
+        desc={t("terminal.viz.vsSectionDesc")}
+        guide="vsbtc"
+      />
 
       <XCard
         title={t("terminal.viz.vsChartTitle")}
@@ -1315,7 +1331,11 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
 
   return (
     <>
-      <SectionBand title={t("terminal.viz.tabMomentum")} desc={t("terminal.viz.momSectionDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabMomentum")}
+        desc={t("terminal.viz.momSectionDesc")}
+        guide="momentum"
+      />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi
           label={t("terminal.viz.kAccel")}
@@ -1473,7 +1493,11 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
 
   return (
     <>
-      <SectionBand title={t("terminal.viz.tabSqueeze")} desc={t("terminal.viz.sqSectionDesc")} />
+      <SectionBand
+        title={t("terminal.viz.tabSqueeze")}
+        desc={t("terminal.viz.sqSectionDesc")}
+        guide="squeeze"
+      />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi
           label={t("terminal.viz.kCrowdedLong")}

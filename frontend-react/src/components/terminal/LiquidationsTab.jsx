@@ -218,6 +218,7 @@ export function LiquidationsTab({ view }) {
     <div className="space-y-2.5">
       <SectionBand
         title="Liquidations"
+        guide="liquidations"
         desc="Where leverage got flushed — risk context. Green = shorts flushed (squeeze up), red = longs flushed."
         badge={
           <div className="flex items-center gap-1">

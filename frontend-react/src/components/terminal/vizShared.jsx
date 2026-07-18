@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import CoinLogo from "../CoinLogo";
 import { SignalStatusContext, STATUS_META, timeAgo } from "../../context/SignalStatusContext";
+import { VIZ_GUIDES } from "./vizGuides";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -261,20 +262,109 @@ export const StatusTag = ({ status }) => {
   );
 };
 
-// Compact section header — Aero-style title row (no heavy card chrome)
-export const SectionBand = ({ title, desc, badge }) => (
-  <div className="flex items-end justify-between gap-3 px-0.5 py-0.5">
-    <div className="min-w-0">
-      <div className="text-[15px] font-medium tracking-tight text-text-primary/95">{title}</div>
-      {desc && (
-        <div className="text-[11px] text-text-muted mt-0.5 leading-snug line-clamp-1 max-w-3xl">
-          {desc}
-        </div>
+// Collapsible "how to read + case study" panel for a viz.
+const VizGuidePanel = ({ guide }) => (
+  <div className="mt-2.5 grid animate-[lqFadeIn_.2s_ease] gap-3 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-3.5 sm:grid-cols-2">
+    <div>
+      <div className="mb-1.5 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-3 w-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8h.01M11 12h1v4h1" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        How to read
+      </div>
+      <ul className="space-y-1.5">
+        {guide.read.map((r, i) => (
+          <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-text-secondary">
+            <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent/70" />
+            <span>{r}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div className="sm:border-l sm:border-ink/[0.07] sm:pl-3.5">
+      <div className="mb-1.5 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-accent">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-3 w-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" />
+        </svg>
+        Case study
+      </div>
+      <p className="text-[12px] leading-relaxed text-text-secondary">{guide.example}</p>
+      {guide.takeaway && (
+        <p className="mt-2 flex gap-1.5 text-[12px] font-medium leading-relaxed text-text-primary">
+          <span className="text-accent">→</span>
+          <span>{guide.takeaway}</span>
+        </p>
       )}
     </div>
-    {badge}
   </div>
 );
+
+// Compact section header — Aero-style title row (no heavy card chrome).
+// Pass `guide` (a VIZ_GUIDES id or a {read, example, takeaway} object) to add
+// a collapsible "How to read + Case study" explainer next to the title.
+export const SectionBand = ({ title, desc, badge, guide }) => {
+  const [open, setOpen] = useState(false);
+  const g = typeof guide === "string" ? VIZ_GUIDES[guide] : guide;
+  return (
+    <div className="px-0.5 py-0.5">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="text-[15px] font-medium tracking-tight text-text-primary/95">
+              {title}
+            </div>
+            {g && (
+              <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                aria-expanded={open}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[8.5px] uppercase tracking-wider transition-colors ${
+                  open
+                    ? "border-accent/40 bg-accent/10 text-accent"
+                    : "border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
+                }`}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-2.5 w-2.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8h.01M11 12h1v4h1" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                How to read
+              </button>
+            )}
+          </div>
+          {desc && (
+            <div className="mt-0.5 line-clamp-1 max-w-3xl text-[11px] leading-snug text-text-muted">
+              {desc}
+            </div>
+          )}
+        </div>
+        {badge}
+      </div>
+      {g && open && <VizGuidePanel guide={g} />}
+    </div>
+  );
+};
 
 // Metric tile — large number, tiny label, optional sub (Aero Economics density)
 // Binance desk KPI: monochrome numbers by default.

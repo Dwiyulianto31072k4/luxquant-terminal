@@ -136,6 +136,7 @@ export function TokenFlowTab({ view }) {
     <div className="space-y-4">
       <SectionBand
         title="Token Flow"
+        guide="tokenflow"
         desc="Spot capital moving in/out of exchanges (24h, on-chain, multi-chain). Coins LEAVING exchanges = accumulation (bullish); coins moving TO exchanges = potential selling (bearish). Not a futures signal."
       />
 

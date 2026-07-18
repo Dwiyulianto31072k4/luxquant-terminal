@@ -414,6 +414,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
     <div className="space-y-2.5">
       <SectionBand
         title={t("terminal.viz.tabConfluence")}
+        guide="confluence"
         desc={t("terminal.viz.confSectionDesc")}
       />
 
