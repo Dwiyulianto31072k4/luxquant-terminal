@@ -411,7 +411,7 @@ async def notification_worker_loop():
     Runs every 60 seconds.
     """
     print("🔔 Notification worker started (interval: 60s)")
-    await asyncio.sleep(10)  # Wait for other workers to init
+    await asyncio.sleep(88)   # boot stagger  # Wait for other workers to init
 
     while True:
         try:

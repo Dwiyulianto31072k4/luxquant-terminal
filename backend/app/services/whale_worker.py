@@ -27,7 +27,7 @@ INTERVAL = 90  # seconds — MUST stay below RAW_CACHE_TTL (600s)
 async def whale_cache_loop():
     """Refresh the whale raw pool on a short interval."""
     print(f"🔄 Whale cache worker started (interval: {INTERVAL}s)")
-    await asyncio.sleep(7)  # let the app finish booting before first fetch
+    await asyncio.sleep(60)   # boot stagger  # let the app finish booting before first fetch
 
     while True:
         if not is_leader():

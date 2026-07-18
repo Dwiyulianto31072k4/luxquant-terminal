@@ -263,7 +263,7 @@ async def overview_coingecko_loop():
     CoinGecko quota usage."""
     interval = 900
     print(f"🔄 Overview CoinGecko worker started (interval: {interval}s)")
-    await asyncio.sleep(8)
+    await asyncio.sleep(46)   # boot stagger
 
     while True:
         if not is_leader():

@@ -113,7 +113,7 @@ async def fx_refresh_loop():
     print(f"💱 [fx_worker] Starting FX rates refresh loop (every {FX_REFRESH_INTERVAL}s)")
 
     # Small delay to let server settle
-    await asyncio.sleep(2)
+    await asyncio.sleep(74)   # boot stagger
 
     while True:
         # Only the elected leader process actually calls CoinGecko; standby

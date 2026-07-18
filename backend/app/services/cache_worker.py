@@ -850,7 +850,7 @@ async def signal_cache_loop():
     """
     interval = settings.SIGNAL_CACHE_INTERVAL
     print(f"🔄 Signal cache worker started (interval: {interval}s)")
-    await asyncio.sleep(2)
+    await asyncio.sleep(4)   # boot stagger — see comment in poller_main
 
     while True:
         if not is_leader():
@@ -978,7 +978,7 @@ async def market_cache_loop():
     CHANGED: interval from config."""
     interval = settings.MARKET_CACHE_INTERVAL
     print(f"🔄 Market cache worker started (interval: {interval}s)")
-    await asyncio.sleep(3)
+    await asyncio.sleep(18)   # boot stagger — see comment in poller_main
 
     while True:
         if not is_leader():
@@ -1025,7 +1025,7 @@ async def coingecko_cache_loop():
     CHANGED: interval from config (180s), longer delays between requests."""
     interval = settings.COINGECKO_CACHE_INTERVAL
     print(f"🔄 CoinGecko cache worker started (interval: {interval}s)")
-    await asyncio.sleep(5)
+    await asyncio.sleep(32)   # boot stagger — see comment in poller_main
 
     while True:
         if not is_leader():
