@@ -10,6 +10,10 @@ import CoinLogo from "./CoinLogo";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { PageHeader } from "./ui/PageHeader";
 
+// Constant, so it belongs at module scope — declared inside the component it
+// was a new array every render, which defeated the memo that depended on it.
+const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 // ════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ════════════════════════════════════════════════════════════════
@@ -2915,7 +2919,6 @@ const MoodPerformanceCard = ({ stats }) => {
 
 // ── Day of Week ─────────────────────────────────────────
 const DayOfWeekCard = ({ stats }) => {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const data = useMemo(() => {
     return days.map((d) => ({ day: d, pnl: stats.pnl_by_day?.[d] || 0 }));
   }, [stats]);
