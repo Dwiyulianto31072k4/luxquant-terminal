@@ -69,7 +69,10 @@ _oi_last = {}    # pair -> last known OI (OI pass alternates sweeps)
 _sweep_n = 0     # sweep counter — heavy blocks alternate to keep sweeps < 60s
 _oi_cursor = 0   # OI is ALSO sliced (rotating) — never a 400+ burst again
 OI_SLICE = 120
-_fapi_banned_until = 0.0  # global cooldown when Binance answers 418/429
+_fapi_banned_until = 0.0  # process-local cooldown when Binance answers 418/429
+# …mirrored in Redis under this key so all workers and every other module that
+# talks to Binance can honour the same ban. Same egress IP, same ban.
+FAPI_BAN_KEY = "lq:binance:fapi_ban"
 
 # post-signal historical stats (heavy — runs every ~6h)
 PS_KEY = "lq:terminal:postsignal"
@@ -94,11 +97,32 @@ def _note_ban(resp, default_secs):
     status = getattr(resp, "status_code", 0)
     floor = 3600 if status == 418 else (600 if status == 429 else default_secs)
     _fapi_banned_until = time.time() + max(default_secs, retry, floor)
+    # Publish the ban so every process sees it, not just this one. The cooldown
+    # used to live only in this module global, which meant each gunicorn worker
+    # kept its own idea of whether Binance had banned us — one backed off while
+    # the others carried on knocking. Binance escalates a 418 every time it is
+    # hit DURING a ban (2min → 3 days), so private ban state actively made the
+    # ban worse. Measured before this changed: 418s went 7/hour to 78/hour.
+    try:
+        cache_set(FAPI_BAN_KEY, {"until": _fapi_banned_until},
+                  ttl=int(max(60, _fapi_banned_until - time.time())) + 60)
+    except Exception:
+        pass
     print(f"⚠️ Terminal deriv: fapi cooldown {round(_fapi_banned_until - time.time())}s (status {status})")
 
 
 def _fapi_ok():
-    return time.time() >= _fapi_banned_until
+    """True when Binance futures is safe to call, per SHARED ban state."""
+    if time.time() < _fapi_banned_until:
+        return False
+    # A ban recorded by another process still applies to this one — same egress IP.
+    try:
+        shared = cache_get(FAPI_BAN_KEY)
+        if shared and float(shared.get("until", 0)) > time.time():
+            return False
+    except Exception:
+        pass
+    return True
 
 
 def _pairs_7d(db):
