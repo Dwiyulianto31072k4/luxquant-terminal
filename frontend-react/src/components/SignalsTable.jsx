@@ -1123,6 +1123,40 @@ const SignalsTable = ({
  .sig-cozy td, .sig-cozy th { padding: 11px 12px !important; }
  /* roomy: sedikit kolom → lega */
  .sig-roomy td, .sig-roomy th { padding: 15px 20px !important; }
+
+ /* ── Frozen header ───────────────────────────────────────────────
+    A wide table scrolled past its header turns every number into an
+    unlabelled figure. Pinned below the 64px app bar (this table is lg+ only). */
+ .sig-t thead th {
+   position: sticky;
+   top: 64px;
+   z-index: 2;
+   background: rgb(var(--surface));
+ }
+
+ /* ── Frozen identity columns ─────────────────────────────────────
+    With 8–12 columns you scroll sideways and lose WHICH COIN the row is.
+    Star + Pair stay put so a row never becomes anonymous. Backgrounds are
+    opaque (and inherited) so body content can't show through underneath. */
+ .sig-t tbody tr { background: rgb(var(--surface)); }
+ .sig-t tbody tr:hover { background: color-mix(in srgb, rgb(var(--ink)) 4%, rgb(var(--surface))); }
+ .sig-t th:nth-child(1), .sig-t td:nth-child(1),
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2) {
+   position: sticky;
+   background: inherit;
+ }
+ .sig-t th:nth-child(1), .sig-t td:nth-child(1) { left: 0; z-index: 1; }
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 40px; z-index: 1; }
+ /* header corner cells must sit above both axes */
+ .sig-t thead th:nth-child(1), .sig-t thead th:nth-child(2) { z-index: 3; }
+ /* hairline marks where the frozen pane ends */
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2) { box-shadow: 1px 0 0 rgb(var(--ink) / 0.07); }
+
+ /* keyboard focus must be visible now that rows are reachable by Tab */
+ .sig-t tbody tr:focus-visible {
+   outline: 1px solid rgb(var(--accent));
+   outline-offset: -1px;
+ }
  `}</style>
           <div className="overflow-x-auto">
             <table className={`sig-t sig-${density} w-full text-left whitespace-nowrap`}>
@@ -1259,7 +1293,15 @@ const SignalsTable = ({
                       <tr
                         key={signal.signal_id || idx}
                         onClick={() => onRowClick && onRowClick(signal)}
-                        className="border-b border-ink/[0.05] hover:bg-ink/[0.03] cursor-pointer transition-colors group"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onRowClick && onRowClick(signal);
+                          }
+                        }}
+                        tabIndex={0}
+                        aria-label={`Open ${signal.pair} signal`}
+                        className="group cursor-pointer border-b border-ink/[0.05] transition-colors"
                       >
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <StarButton
