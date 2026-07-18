@@ -280,15 +280,40 @@ const ProfilePage = () => {
     window.google.accounts.id.initialize({
       client_id: "352504384995-lo53k3ak37t4mst7nuauj3nm6hg0n1j7.apps.googleusercontent.com",
       callback: async (response) => {
-        try {
-          const res = await api.post("/api/v1/profile/link-google", {
+        const postLink = (transfer) =>
+          api.post("/api/v1/profile/link-google", {
             id_token: response.credential,
+            ...(transfer ? { transfer: true } : {}),
           });
+        const onLinked = (res) => {
           setUser(res.data);
           fetchConnections();
           showToast(t("profile.google_linked"));
+        };
+        // detail is a string for plain errors, an object for the 409 conflicts
+        const msgOf = (err) => {
+          const d = err.response?.data?.detail;
+          if (typeof d === "string") return d;
+          return d?.message || t("profile.google_link_failed");
+        };
+
+        try {
+          onLinked(await postLink(false));
         } catch (err) {
-          showToast(err.response?.data?.detail || t("profile.google_link_failed"), "error");
+          const detail = err.response?.data?.detail;
+          // This Google email is still attached to an empty stray account
+          // (the "salah login → kebuat akun baru" case). Offer to move it.
+          if (err.response?.status === 409 && detail?.transferable) {
+            if (window.confirm(detail.message)) {
+              try {
+                onLinked(await postLink(true));
+              } catch (err2) {
+                showToast(msgOf(err2), "error");
+              }
+            }
+          } else {
+            showToast(msgOf(err), "error");
+          }
         } finally {
           setLinkingGoogle(false);
         }

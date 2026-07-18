@@ -17,8 +17,10 @@ Endpoints:
 import os
 import re
 import uuid
+import logging
 import secrets
 from pathlib import Path
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import httpx
@@ -31,8 +33,11 @@ from google.auth.transport import requests as google_requests
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
+from app.models.subscription import Payment
 from app.schemas.user import UserResponse
 from app.schemas.profile import ProfileUpdate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
@@ -257,9 +262,26 @@ async def link_google(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Link Google account to current user"""
+    """Link Google account to current user.
+
+    Handles the classic "salah login pakai Google → malah kebuat akun baru" case.
+    Previously this was a dead end: linking here returned 400 ("sudah terhubung
+    dengan akun lain"), while unlinking from the stray account was also blocked
+    because a Google-created account has no password/Telegram/Discord to fall
+    back on. The user could never reach their premium account.
+
+    Now the Google identity can be TRANSFERRED here, but only when BOTH sides
+    are proven and the stray account holds nothing of value:
+      • ownership of THIS account   → the JWT (get_current_user)
+      • ownership of the GOOGLE id  → a freshly verified Google id_token
+      • the source account has no subscription / payment / other login identity
+
+    The source row is NEVER deleted — it only releases the Google link — so
+    user counts stay exactly the same. Pass {"transfer": true} to confirm.
+    """
 
     id_token_str = data.get("id_token")
+    confirm_transfer = bool(data.get("transfer"))
     if not id_token_str:
         raise HTTPException(status_code=400, detail="id_token diperlukan")
 
@@ -279,12 +301,80 @@ async def link_google(
     if not google_id:
         raise HTTPException(status_code=400, detail="Google ID tidak tersedia")
 
-    # Check if google_id already linked to another user
+    # Is this Google identity already attached to a DIFFERENT account?
     existing = db.query(User).filter(User.google_id == google_id).first()
     if existing and existing.id != current_user.id:
-        raise HTTPException(status_code=400, detail="Akun Google ini sudah terhubung dengan akun lain")
+        # Never strip a Google login off an account that still holds value —
+        # that would be an account-takeover / lockout vector.
+        blockers = []
+        if existing.has_active_access:
+            blockers.append("langganan aktif")
+        if existing.telegram_id:
+            blockers.append("Telegram terhubung")
+        if existing.discord_id:
+            blockers.append("Discord terhubung")
+        if existing.password_hash:
+            blockers.append("punya password sendiri")
+        if db.query(Payment.id).filter(Payment.user_id == existing.id).first():
+            blockers.append("punya riwayat pembayaran")
 
-    # Link
+        if blockers:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "google_linked_elsewhere_locked",
+                    "transferable": False,
+                    "reasons": blockers,
+                    "message": (
+                        "Akun Google ini masih terhubung ke akun lain yang aktif ("
+                        + ", ".join(blockers)
+                        + "). Demi keamanan, pemindahan harus lewat admin."
+                    ),
+                },
+            )
+
+        if not confirm_transfer:
+            # Ask for an explicit confirmation instead of moving silently.
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "google_linked_elsewhere",
+                    "transferable": True,
+                    "from_username": existing.username,
+                    "from_email": existing.email,
+                    "message": (
+                        f"Email Google ini masih menempel di akun '{existing.username}'. "
+                        "Akun tersebut tidak punya langganan maupun pembayaran, jadi "
+                        "koneksi Google-nya bisa dipindahkan ke akun ini. Lanjutkan?"
+                    ),
+                },
+            )
+
+        # ── Transfer: release the link, KEEP the row (user count unchanged) ──
+        existing.google_id = None
+        if existing.auth_provider == "google":
+            existing.auth_provider = "local"
+        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        note = (
+            f"[{stamp}] Koneksi Google ({google_email}) dipindahkan ke akun "
+            f"'{current_user.username}' (id={current_user.id}) atas permintaan "
+            f"pemilik email. Akun ini dipertahankan tanpa login Google."
+        )
+        existing.admin_notes = (
+            f"{existing.admin_notes}\n{note}" if existing.admin_notes else note
+        )
+        # google_id is UNIQUE — push the release UPDATE to the DB before the
+        # new owner claims the same value, otherwise SQLAlchemy may emit the
+        # two UPDATEs in an order that trips a duplicate-key violation.
+        db.flush()
+        logger.warning(
+            "google_link_transfer: google_id=%s email=%s from_user=%s(id=%s) "
+            "to_user=%s(id=%s)",
+            google_id, google_email, existing.username, existing.id,
+            current_user.username, current_user.id,
+        )
+
+    # Link to the current (authenticated) account
     current_user.google_id = google_id
     if not current_user.avatar_url and picture:
         current_user.avatar_url = picture
