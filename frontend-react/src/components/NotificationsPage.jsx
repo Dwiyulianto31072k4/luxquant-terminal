@@ -106,6 +106,18 @@ const NotificationsPage = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const [typeFilter, setTypeFilter] = useState(null);
+  // Group triage. Roughly seven in ten notifications are news, which buries the
+  // ones worth acting on — a watchlist coin being called sits behind hundreds
+  // of headlines. Groups come from the backend's preference registry, so the
+  // tabs and the settings screen can never describe different things.
+  const [group, setGroup] = useState(null);
+  const [groupUnread, setGroupUnread] = useState({});
+  const GROUP_TABS = [
+    { key: null, label: "All" },
+    { key: "signals", label: "Signals" },
+    { key: "market", label: "Market" },
+    { key: "account", label: "Account" },
+  ];
   const [markingAll, setMarkingAll] = useState(false);
 
   // ── Filter options ──
@@ -131,17 +143,19 @@ const NotificationsPage = () => {
         page,
         PAGE_SIZE,
         typeFilter,
-        activeTab === "unread"
+        activeTab === "unread",
+        group
       );
       setNotifications(data.items || []);
       setTotal(data.total || 0);
       setUnreadCount(data.unread_count || 0);
+      setGroupUnread(data.group_unread || {});
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, activeTab]);
+  }, [page, typeFilter, activeTab, group]);
 
   useEffect(() => {
     if (view === "inbox") fetchNotifications();
@@ -333,6 +347,43 @@ const NotificationsPage = () => {
       {/* ════════════════════════════════════════ */}
       {view === "inbox" && (
         <div className="space-y-4">
+          {/* ── Group triage ──────────────────────────────────────────
+              The first cut, before read-state or type. Signals is what a
+              trader came for; Market is the firehose that would otherwise
+              bury it. Counts are unread-per-group so the split is legible
+              at a glance. */}
+          <div className="flex items-center gap-1 overflow-x-auto border-b border-ink/[0.07] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {GROUP_TABS.map((g) => {
+              const on = group === g.key;
+              const n = g.key ? groupUnread[g.key] : unreadCount;
+              return (
+                <button
+                  key={g.label}
+                  onClick={() => {
+                    setGroup(g.key);
+                    setPage(1);
+                  }}
+                  aria-current={on ? "true" : undefined}
+                  className={`relative shrink-0 px-3.5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${
+                    on ? "text-accent" : "text-text-muted hover:text-text-primary"
+                  }`}
+                >
+                  {g.label}
+                  {n > 0 && (
+                    <span
+                      className={`ml-1.5 tabular-nums ${on ? "text-accent" : "text-text-muted/70"}`}
+                    >
+                      {n > 999 ? "999+" : n}
+                    </span>
+                  )}
+                  {on && (
+                    <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-accent" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* ── Toolbar: view segmented + type dropdown ── */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="inline-flex items-center rounded-md border border-ink/[0.08] bg-ink/[0.02] p-0.5">

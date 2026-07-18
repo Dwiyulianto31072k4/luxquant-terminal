@@ -54,6 +54,10 @@ const PricingPage = lazy(() => import("./components/subscription/PricingPage"));
 const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
 const NotificationsPage = lazy(() => import("./components/NotificationsPage"));
+// Shared shell for everything behind the avatar menu. Applied at the route
+// level so the five pages gain persistent sub-navigation and one common
+// measure without any of them having to know about the others.
+const AccountLayout = lazy(() => import("./components/account/AccountLayout"));
 const JournalPage = lazy(() => import("./components/JournalPage"));
 const MarketPulsePage = lazy(() => import("./components/MarketPulsePage"));
 const CryptoNewsPage = lazy(() => import("./components/CryptoNewsPage"));
@@ -724,25 +728,24 @@ function AppShell({ children }) {
       ),
     },
     {
-      path: "/autotrade",
-      label: "AutoTrade",
+      // Slot 4 goes to Pulse on the numbers, not on intuition: over 30 days of
+      // user_activity_events, market_pulse drew 136 distinct users against 39
+      // for news, while autotrade — which held this slot — has not logged a
+      // single event since 2026-06-10.
+      path: "/market-pulse",
+      label: "Pulse",
       icon: (
-        // Lucide "bot" — the agent that trades for you
+        // Lucide "activity" — a heartbeat line, which is what Pulse is
         <svg
           className="w-[20px] h-[20px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          strokeWidth={1.6}
+          strokeWidth={1.7}
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M12 8V4H8" />
-          <rect width="16" height="12" x="4" y="8" rx="2" />
-          <path d="M2 14h2" />
-          <path d="M20 14h2" />
-          <path d="M15 13v2" />
-          <path d="M9 13v2" />
+          <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.68 3.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4.44 13H2" />
         </svg>
       ),
     },
@@ -1657,7 +1660,9 @@ function App() {
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <ProfilePage />
+                          <AccountLayout>
+                            <ProfilePage />
+                          </AccountLayout>
                         </AppShell>
                       </RequireAuth>
                     }
@@ -1668,7 +1673,9 @@ function App() {
                       <RequireAuth>
                         <AppShell>
                           <PremiumGate>
-                            <ApiKeysPage />
+                            <AccountLayout>
+                              <ApiKeysPage />
+                            </AccountLayout>
                           </PremiumGate>
                         </AppShell>
                       </RequireAuth>
@@ -1679,7 +1686,9 @@ function App() {
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <NotificationsPage />
+                          <AccountLayout>
+                            <NotificationsPage />
+                          </AccountLayout>
                         </AppShell>
                       </RequireAuth>
                     }
@@ -1793,7 +1802,9 @@ function App() {
                       <RequireAuth>
                         <AppShell>
                           <PremiumGate>
-                            <WatchlistTabs />
+                            <AccountLayout>
+                              <WatchlistTabs />
+                            </AccountLayout>
                           </PremiumGate>
                         </AppShell>
                       </RequireAuth>

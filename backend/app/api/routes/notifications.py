@@ -7,6 +7,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
+from app.api.routes.notification_preferences import NOTIF_REGISTRY
 from app.models.user import User
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -26,10 +27,19 @@ class NotificationItem(BaseModel):
     created_at: datetime
 
 
+# Derived from the preferences registry rather than restated, so a new notif
+# type lands in the right inbox tab the moment it is registered — one list to
+# keep correct instead of two that quietly disagree.
+NOTIF_GROUPS: dict[str, list[str]] = {}
+for _r in NOTIF_REGISTRY:
+    NOTIF_GROUPS.setdefault(_r["group"], []).append(_r["type"])
+
+
 class NotificationListResponse(BaseModel):
     items: List[NotificationItem]
     total: int
     unread_count: int
+    group_unread: dict[str, int] = {}
 
 
 class NotificationUnreadCount(BaseModel):
@@ -101,6 +111,7 @@ async def get_notifications(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     type_filter: Optional[str] = Query(None, alias="type"),
+    group: Optional[str] = Query(None),
     unread_only: bool = Query(False),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -116,6 +127,21 @@ async def get_notifications(
             conditions.append("n.type = :type_filter")
             params["type_filter"] = type_filter
 
+    # Group filter. News alone accounts for roughly seven in ten notifications,
+    # so an undifferentiated inbox buries the handful that are actually
+    # actionable — a watchlist coin being called sits behind hundreds of
+    # headlines. These groups mirror the taxonomy notification_preferences.py
+    # already defines, so the two surfaces cannot drift apart.
+    if group and group in NOTIF_GROUPS:
+        # "autotrade" is an umbrella in the registry; the stored rows are
+        # autotrade_execution_failed / _position_closed / _risk_limit, which is
+        # why the type filter above matches it with LIKE. Same rule here.
+        if group == "autotrade":
+            conditions.append("n.type LIKE 'autotrade%'")
+        else:
+            conditions.append("n.type = ANY(:group_types)")
+            params["group_types"] = NOTIF_GROUPS[group]
+
     if unread_only:
         conditions.append(SQL_UNREAD)
 
@@ -129,6 +155,25 @@ async def get_notifications(
         text(unread_sql),
         {"uid": current_user.id, "read_at": read_at}
     ).scalar() or 0
+
+    # Per-group unread, so the tabs can carry their own counts and a user can
+    # see at a glance that the noise is noise.
+    group_rows = db.execute(text(
+        "SELECT n.type, COUNT(*) FROM notifications n WHERE "
+        + SQL_VISIBLE + " AND " + SQL_UNREAD + " GROUP BY n.type"
+    ), {"uid": current_user.id, "read_at": read_at}).fetchall()
+    by_type = {r[0]: r[1] for r in group_rows}
+
+    def _count(types: list[str]) -> int:
+        n = 0
+        for t in types:
+            if t == "autotrade":
+                n += sum(v for k, v in by_type.items() if k.startswith("autotrade"))
+            else:
+                n += by_type.get(t, 0)
+        return n
+
+    group_unread = {g: _count(types) for g, types in NOTIF_GROUPS.items()}
 
     offset = (page - 1) * page_size
     params["limit"] = page_size
@@ -149,7 +194,9 @@ async def get_notifications(
         )
         for r in rows
     ]
-    return NotificationListResponse(items=items, total=total, unread_count=unread_count)
+    return NotificationListResponse(
+        items=items, total=total, unread_count=unread_count, group_unread=group_unread
+    )
 
 
 @router.get("/unread-count", response_model=NotificationUnreadCount)

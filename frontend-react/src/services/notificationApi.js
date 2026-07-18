@@ -3,9 +3,16 @@ import api from "./authApi";
 
 export const notificationApi = {
   // Get notifications (paginated)
-  getNotifications: async (page = 1, pageSize = 20, type = null, unreadOnly = false) => {
+  getNotifications: async (
+    page = 1,
+    pageSize = 20,
+    type = null,
+    unreadOnly = false,
+    group = null
+  ) => {
     const params = { page, page_size: pageSize };
     if (type) params.type = type;
+    if (group) params.group = group;
     if (unreadOnly) params.unread_only = true;
     const response = await api.get("/api/v1/notifications/", { params });
     return response.data;
