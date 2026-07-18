@@ -79,7 +79,7 @@ async def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Google token tidak valid: {str(e)}"
+            detail=f"Invalid Google token: {str(e)}"
         )
 
     google_id = idinfo.get('sub')
@@ -91,7 +91,7 @@ async def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
     if not email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email tidak tersedia dari Google"
+            detail="Email not provided by Google"
         )
 
     # Cari user by google_id dulu
@@ -147,7 +147,7 @@ async def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akun tidak aktif"
+            detail="Account is inactive"
         )
 
     # ─── Apply referral KHUSUS user baru ───
@@ -218,13 +218,13 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token tidak valid atau expired"
+            detail="Refresh token is invalid or expired"
         )
 
     if payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token type tidak valid"
+            detail="Invalid token type"
         )
 
     user_id = payload.get("sub")
@@ -233,7 +233,7 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User tidak ditemukan atau tidak aktif"
+            detail="User not found or inactive"
         )
 
     # Note: refresh tidak track login (user baru aja login, ga perlu double-count)

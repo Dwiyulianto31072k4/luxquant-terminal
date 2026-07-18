@@ -81,14 +81,14 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     if not _verify_telegram_hash(data):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Data Telegram tidak valid"
+            detail="Invalid Telegram data"
         )
 
     # Cek auth_date tidak terlalu lama (max 1 hari)
     if time.time() - data.auth_date > 86400:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Autentikasi Telegram sudah expired, silakan coba lagi"
+            detail="Telegram authentication has expired, please try again"
         )
 
     # Cek VIP membership (sedang ada di group atau ga)
@@ -173,7 +173,7 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akun tidak aktif"
+            detail="Account is inactive"
         )
 
     # --- Apply referral KHUSUS user baru ---
@@ -212,7 +212,7 @@ async def check_vip_status(current_user: User = Depends(get_current_user)):
         return {
             "is_vip": False,
             "role": current_user.role,
-            "message": "Akun belum terhubung dengan Telegram"
+            "message": "No Telegram account linked"
         }
 
     is_vip = await _check_vip_membership(current_user.telegram_id)
@@ -238,7 +238,7 @@ async def refresh_vip_status(
         return {
             "updated": False,
             "role": current_user.role,
-            "message": "Akun belum terhubung dengan Telegram"
+            "message": "No Telegram account linked"
         }
 
     is_vip = await _check_vip_membership(current_user.telegram_id)
@@ -284,7 +284,7 @@ async def link_telegram(
     if not _verify_telegram_hash(data):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Data Telegram tidak valid"
+            detail="Invalid Telegram data"
         )
 
     # Cek apakah telegram_id sudah dipakai user lain
@@ -292,7 +292,7 @@ async def link_telegram(
     if existing and existing.id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Akun Telegram ini sudah terhubung dengan akun lain"
+            detail="This Telegram account is already linked to another account"
         )
 
     current_user.telegram_id = data.id
@@ -334,14 +334,14 @@ async def join_vip_group(
     if not current_user.has_active_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Langganan tidak aktif. Berlangganan dulu untuk join VIP group."
+            detail="No active subscription. Subscribe first to join the VIP group."
         )
 
     # 2. Harus sudah link Telegram (krusial buat auto-kick saat expired)
     if not current_user.telegram_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Hubungkan akun Telegram kamu dulu sebelum join VIP group."
+            detail="Link your Telegram account before joining the VIP group."
         )
 
     # 3. Kalau sudah di group, ga perlu link baru
@@ -353,7 +353,7 @@ async def join_vip_group(
         return {
             "already_member": True,
             "invite_link": None,
-            "message": "Kamu sudah jadi member VIP group."
+            "message": "You're already a member of the VIP group."
         }
 
     # 4. Generate invite link sekali-pakai
@@ -364,14 +364,14 @@ async def join_vip_group(
     if not invite_link:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Gagal membuat invite link, coba lagi sebentar."
+            detail="Couldn't create an invite link, please try again shortly."
         )
 
     return {
         "already_member": False,
         "invite_link": invite_link,
         "expires_in": INVITE_LINK_TTL,
-        "message": "Link valid sekali pakai. Klik untuk join VIP group."
+        "message": "Single-use link. Click to join the VIP group."
     }
 
 

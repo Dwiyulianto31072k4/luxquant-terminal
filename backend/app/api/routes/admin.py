@@ -783,7 +783,7 @@ async def admin_vip_followup_bulk(
     """Bulk VIP follow-up. Body: {"user_ids": [1,2,3]}. Capped at 50/call."""
     user_ids = payload.get("user_ids") or []
     if not isinstance(user_ids, list) or not user_ids:
-        raise HTTPException(status_code=400, detail="user_ids kosong")
+        raise HTTPException(status_code=400, detail="user_ids is empty")
     user_ids = user_ids[:50]
 
     sent = 0
@@ -827,7 +827,7 @@ async def admin_send_message(
     text_msg = (payload.get("text") or "").strip()
     with_invite = bool(payload.get("with_invite"))
     if not text_msg:
-        raise HTTPException(status_code=400, detail="Pesan kosong")
+        raise HTTPException(status_code=400, detail="Message is empty")
     if len(text_msg) > 3500:
         raise HTTPException(status_code=400, detail="Pesan terlalu panjang (max 3500 char)")
 

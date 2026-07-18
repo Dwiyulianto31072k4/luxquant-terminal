@@ -312,7 +312,7 @@ async def check_discord_role(current_user: User = Depends(get_current_user)):
         return {
             "has_role": False,
             "role": current_user.role,
-            "message": "Akun belum terhubung dengan Discord",
+            "message": "No Discord account linked",
         }
 
     has_role = await _check_guild_role(current_user.discord_id)
@@ -337,7 +337,7 @@ async def refresh_discord_role(
         return {
             "updated": False,
             "role": current_user.role,
-            "message": "Akun belum terhubung dengan Discord",
+            "message": "No Discord account linked",
         }
 
     has_role = await _check_guild_role(current_user.discord_id)

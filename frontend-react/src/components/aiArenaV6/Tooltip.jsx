@@ -13,11 +13,11 @@ export const GLOSSARY = {
   // Cycle indicators
   "mvrv-z": {
     title: "MVRV Z-Score",
-    desc: "Rasio Market Cap vs Realized Cap, dinormalisasi pakai standard deviation. Score >7 = top zone, <0 = bottom zone. Level current 0–2 menandakan early-cycle / accumulation.",
+    desc: "Market Cap vs Realized Cap ratio, normalized by standard deviation. Score >7 = top zone, <0 = bottom zone. A current level of 0–2 indicates early-cycle / accumulation.",
   },
   puell: {
     title: "Puell Multiple",
-    desc: "Rasio nilai BTC yang dimined dalam USD vs 365-day average. <0.5 = miner capitulation (bottom), >4 = miner profit max (top). Current <1 = undervalued.",
+    desc: "Ratio of the USD value of mined BTC vs its 365-day average. <0.5 = miner capitulation (bottom), >4 = peak miner profit (top). Current <1 = undervalued.",
   },
   mayer: {
     title: "Mayer Multiple",
@@ -29,17 +29,17 @@ export const GLOSSARY = {
   },
   "reserve-risk": {
     title: "Reserve Risk",
-    desc: "Confidence index dari long-term holders. Rendah (<0.002) = HODLers belum sell, attractive entry. Tinggi (>0.02) = HODLers profit-taking, late cycle.",
+    desc: "Confidence index of long-term holders. Low (<0.002) = HODLers aren't selling, an attractive entry. High (>0.02) = HODLers taking profit, late cycle.",
   },
 
   // Macro liquidity
   "m2-global": {
     title: "Global M2 Money Supply",
-    desc: "Total uang beredar global (US, EU, China, Japan, dll). Expanding M2 = liquidity tailwind buat risk assets termasuk BTC, biasanya lead BTC dengan delay 8-12 minggu.",
+    desc: "Total global money supply (US, EU, China, Japan, etc.). Expanding M2 is a liquidity tailwind for risk assets including BTC, and usually leads BTC by 8–12 weeks.",
   },
   "m2-yoy": {
     title: "M2 YoY Change",
-    desc: "Rate of change Global M2 vs setahun lalu. >5% = liquidity expansion bullish, <0% = contraction bearish. Single best macro lead indicator buat crypto.",
+    desc: "Rate of change in global M2 vs a year ago. >5% = bullish liquidity expansion, <0% = bearish contraction. The single best macro lead indicator for crypto.",
   },
   ssr: {
     title: "Stablecoin Supply Ratio (SSR)",
@@ -57,7 +57,7 @@ export const GLOSSARY = {
   },
   "funding-rate": {
     title: "Funding Rate",
-    desc: "Biaya yang dibayar long ke short (atau sebaliknya) di perpetual futures. Positif = longs dominan paying. Negatif = shorts dominan paying. Extreme negative = contrarian bullish setup.",
+    desc: "The fee longs pay shorts (or vice versa) on perpetual futures. Positive = longs are paying. Negative = shorts are paying. Extremely negative = a contrarian bullish setup.",
   },
   basis: {
     title: "Futures Basis",
@@ -71,11 +71,11 @@ export const GLOSSARY = {
   // On-chain
   nupl: {
     title: "Net Unrealized P/L (NUPL)",
-    desc: "Persentase BTC supply yang lagi unrealized profit. <0 = capitulation, 0-0.25 = hope/fear, 0.25-0.5 = optimism/anxiety, 0.5-0.75 = belief, >0.75 = euphoria (top).",
+    desc: "Share of BTC supply sitting in unrealized profit. <0 = capitulation, 0–0.25 = hope/fear, 0.25–0.5 = optimism/anxiety, 0.5–0.75 = belief, >0.75 = euphoria (top).",
   },
   sopr: {
     title: "Spent Output Profit Ratio (SOPR)",
-    desc: "Rasio profit dari coins yang move on-chain. >1 = coins move at profit (selling profitable). <1 = coins move at loss. Level 1.0 = key support — break below = capitulation.",
+    desc: "Profit ratio of coins moving on-chain. >1 = coins moving at a profit (profitable selling). <1 = coins moving at a loss. 1.0 is key support — breaking below = capitulation.",
   },
   "sth-mvrv": {
     title: "Short-Term Holder MVRV",
@@ -83,11 +83,11 @@ export const GLOSSARY = {
   },
   "miner-flow": {
     title: "Miner Net Flow",
-    desc: "BTC yang dipindah masuk/keluar miner wallets. Positif net = miners holding/accumulating (bullish). Negatif net = miners selling (bearish stress, watch for capitulation).",
+    desc: "BTC moving in and out of miner wallets. Net positive = miners holding/accumulating (bullish). Net negative = miners selling (bearish stress, watch for capitulation).",
   },
   "exchange-netflow": {
     title: "Exchange Net Flow",
-    desc: "BTC yang masuk vs keluar dari exchange. Positif inflow = sell pressure building. Negatif outflow (withdrawal) = accumulation, coins moving to cold storage.",
+    desc: "BTC flowing into vs out of exchanges. Net inflow = sell pressure building. Net outflow (withdrawals) = accumulation, coins moving to cold storage.",
   },
   hashribbons: {
     title: "Hash Ribbons",
@@ -109,7 +109,7 @@ export const GLOSSARY = {
   },
   "cycle-score": {
     title: "Cycle Position Score",
-    desc: 'Composite 0-100 dari MVRV-Z, Puell, Mayer, dan Reserve Risk. 0 = cycle bottom, 100 = cycle top. Membantu user identify "where in cycle we are right now".',
+    desc: 'Composite 0–100 of MVRV-Z, Puell, Mayer and Reserve Risk. 0 = cycle bottom, 100 = cycle top. Helps you identify "where in the cycle we are right now".',
   },
   "verdict-evaluation": {
     title: "How Compass outcomes are judged",
@@ -117,7 +117,7 @@ export const GLOSSARY = {
   },
   confluence: {
     title: "Three-Layer Confluence",
-    desc: "Aggregasi rule-based dari 3 layer (Macro, Smart Money, On-chain). 3↑ = strong bullish, 3↓ = strong bearish, mixed = uncertain. AI verdict harus consider confluence — high confidence butuh confluence.",
+    desc: "Rule-based aggregation of 3 layers (Macro, Smart Money, On-chain). 3↑ = strong bullish, 3↓ = strong bearish, mixed = uncertain. The AI verdict must consider confluence — high confidence requires it.",
   },
 };
 

@@ -117,17 +117,17 @@ async def update_profile(
 
         # Validate format (Pydantic already validated, but double-check)
         if len(new_username) < 3:
-            raise HTTPException(status_code=400, detail="Username minimal 3 karakter")
+            raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
         if len(new_username) > 50:
-            raise HTTPException(status_code=400, detail="Username maksimal 50 karakter")
+            raise HTTPException(status_code=400, detail="Username must be at most 50 characters")
         if not re.match(r'^[a-z0-9_]+$', new_username):
-            raise HTTPException(status_code=400, detail="Username hanya boleh huruf kecil, angka, dan underscore")
+            raise HTTPException(status_code=400, detail="Username can only contain lowercase letters, numbers, and underscores")
 
         # Check unique
         if new_username != current_user.username:
             existing = db.query(User).filter(User.username == new_username).first()
             if existing:
-                raise HTTPException(status_code=400, detail="Username sudah dipakai")
+                raise HTTPException(status_code=400, detail="Username is already taken")
             current_user.username = new_username
 
     # ─── Country & Currency (multi-currency support) ───
@@ -168,12 +168,12 @@ async def upload_avatar(
 
     # Validate content type
     if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Format file tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.")
+        raise HTTPException(status_code=400, detail="Unsupported file format. Use JPG, PNG, WebP, or GIF.")
 
     # Read and validate size
     content = await file.read()
     if len(content) > MAX_AVATAR_SIZE:
-        raise HTTPException(status_code=400, detail="Ukuran file maksimal 2MB")
+        raise HTTPException(status_code=400, detail="Maximum file size is 2MB")
 
     # Generate filename
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
@@ -429,7 +429,7 @@ async def unlink_telegram(
     """Unlink Telegram account — must have at least one other login method"""
 
     if not current_user.telegram_id:
-        raise HTTPException(status_code=400, detail="Akun Telegram tidak terhubung")
+        raise HTTPException(status_code=400, detail="No Telegram account linked")
 
     # Must have at least one other login method
     has_google = current_user.google_id is not None
@@ -439,7 +439,7 @@ async def unlink_telegram(
     if not has_google and not has_discord and not has_password:
         raise HTTPException(
             status_code=400,
-            detail="Tidak bisa melepas Telegram. Hubungkan Google atau Discord terlebih dahulu agar tetap bisa login."
+            detail="Can't unlink Telegram — link Google or Discord first so you can still sign in."
         )
 
     current_user.telegram_id = None
@@ -486,7 +486,7 @@ async def link_discord(
     """
     code = data.get("code")
     if not code:
-        raise HTTPException(status_code=400, detail="Authorization code diperlukan")
+        raise HTTPException(status_code=400, detail="Authorization code is required")
 
     # Exchange code for token
     try:
@@ -503,7 +503,7 @@ async def link_discord(
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
             if token_resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Gagal menukar kode Discord")
+                raise HTTPException(status_code=400, detail="Failed to exchange the Discord code")
             token_data = token_resp.json()
 
             # Fetch user info
@@ -512,7 +512,7 @@ async def link_discord(
                 headers={"Authorization": f"Bearer {token_data['access_token']}"},
             )
             if user_resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Gagal mengambil info Discord")
+                raise HTTPException(status_code=400, detail="Failed to fetch Discord profile")
             discord_user = user_resp.json()
     except HTTPException:
         raise
@@ -525,7 +525,7 @@ async def link_discord(
     # Check if already linked to another user
     existing = db.query(User).filter(User.discord_id == discord_id).first()
     if existing and existing.id != current_user.id:
-        raise HTTPException(status_code=400, detail="Akun Discord ini sudah terhubung dengan akun lain")
+        raise HTTPException(status_code=400, detail="This Discord account is already linked to another account")
 
     # Link
     current_user.discord_id = discord_id
@@ -570,7 +570,7 @@ async def unlink_discord(
     """Unlink Discord account — must have at least one other login method"""
 
     if not current_user.discord_id:
-        raise HTTPException(status_code=400, detail="Akun Discord tidak terhubung")
+        raise HTTPException(status_code=400, detail="No Discord account linked")
 
     # Must have at least one other login method
     has_google = current_user.google_id is not None
@@ -580,7 +580,7 @@ async def unlink_discord(
     if not has_google and not has_telegram and not has_password:
         raise HTTPException(
             status_code=400,
-            detail="Tidak bisa melepas Discord. Hubungkan Google atau Telegram terlebih dahulu agar tetap bisa login."
+            detail="Can't unlink Discord — link Google or Telegram first so you can still sign in."
         )
 
     current_user.discord_id = None
@@ -617,18 +617,18 @@ async def link_telegram(
     try:
         tg = TelegramLogin(**data)
     except Exception:
-        raise HTTPException(status_code=400, detail="Data Telegram tidak valid")
+        raise HTTPException(status_code=400, detail="Invalid Telegram data")
 
     # Verifikasi hash — wajib, anti spoof
     if not _verify_telegram_hash(tg):
-        raise HTTPException(status_code=401, detail="Verifikasi Telegram gagal")
+        raise HTTPException(status_code=401, detail="Telegram verification failed")
 
     # Cek telegram_id belum dipakai user lain
     existing = db.query(User).filter(User.telegram_id == tg.id).first()
     if existing and existing.id != current_user.id:
         raise HTTPException(
             status_code=400,
-            detail="Akun Telegram ini sudah terhubung dengan akun lain"
+            detail="This Telegram account is already linked to another account"
         )
 
     # Link + resolve role

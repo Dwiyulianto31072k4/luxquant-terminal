@@ -47,9 +47,9 @@ class VerifyAccessRequest(BaseModel):
 def _require_service_key(x_service_key: str = Header(None)):
     """Autentikasi AutoTrade-the-service (bukan user) via shared secret."""
     if not AUTOTRADE_SERVICE_KEY:
-        raise HTTPException(status_code=503, detail="AUTOTRADE_SERVICE_KEY belum dikonfigurasi di server")
+        raise HTTPException(status_code=503, detail="AUTOTRADE_SERVICE_KEY is not configured on the server")
     if not x_service_key or not hmac.compare_digest(x_service_key, AUTOTRADE_SERVICE_KEY):
-        raise HTTPException(status_code=403, detail="Service key tidak valid")
+        raise HTTPException(status_code=403, detail="Invalid service key")
     return True
 
 
@@ -89,15 +89,15 @@ def verify_access(
     """
     payload = decode_token(body.access_token)
     if payload is None or payload.get("type") != "access":
-        raise HTTPException(status_code=401, detail="Token user tidak valid / expired")
+        raise HTTPException(status_code=401, detail="User token is invalid or expired")
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise HTTPException(status_code=401, detail="Token tidak valid")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="User tidak ditemukan / nonaktif")
+        raise HTTPException(status_code=401, detail="User not found or inactive")
 
     return _entitlement_payload(user)
 
@@ -120,7 +120,7 @@ def get_entitlement(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:
         # Akun dinonaktifkan/ban -> anggap gak punya akses
         data = _entitlement_payload(user)

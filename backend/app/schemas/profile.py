@@ -29,9 +29,9 @@ class ProfileUpdate(BaseModel):
             return v
         v = v.strip().lower()
         if len(v) < 3:
-            raise ValueError('Username minimal 3 karakter')
+            raise ValueError('Username must be at least 3 characters')
         if len(v) > 50:
-            raise ValueError('Username maksimal 50 karakter')
+            raise ValueError('Username must be at most 50 characters')
         if not v.replace('_', '').isalnum():
             raise ValueError('Username hanya boleh huruf, angka, dan underscore')
         return v

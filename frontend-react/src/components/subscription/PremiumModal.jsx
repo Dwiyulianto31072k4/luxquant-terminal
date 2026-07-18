@@ -50,7 +50,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
       onClose();
       navigate("/payment", { state: { invoice, plan } });
     } catch (err) {
-      const msg = err.response?.data?.detail || "Gagal membuat invoice";
+      const msg = err.response?.data?.detail || "Failed to create invoice";
       alert(msg);
     } finally {
       setCreating(false);

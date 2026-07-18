@@ -303,7 +303,7 @@ def preview_redemption(
             "final_amount_after_credit": 0.0,
             "redeem_amount": 0.0,
             "will_succeed": False,
-            "message": f"Payment #{payment_id} tidak ditemukan atau bukan milik kamu.",
+            "message": f"Payment #{payment_id} not found or doesn't belong to you.",
         }
 
     if payment.status != "pending":
@@ -315,7 +315,7 @@ def preview_redemption(
             "final_amount_after_credit": float(payment.final_amount or payment.amount_usdt),
             "redeem_amount": 0.0,
             "will_succeed": False,
-            "message": f"Invoice tidak bisa di-redeem (status: {payment.status}).",
+            "message": f"This invoice can't be redeemed (status: {payment.status}).",
         }
 
     invoice_amount = Decimal(str(payment.amount_usdt))
@@ -411,11 +411,11 @@ def execute_redemption(
     ).first()
 
     if not payment:
-        raise ValueError(f"Payment #{payment_id} tidak ditemukan atau bukan milik kamu.")
+        raise ValueError(f"Payment #{payment_id} not found or doesn't belong to you.")
 
     if payment.status != "pending":
         raise ValueError(
-            f"Invoice tidak bisa di-redeem (status: {payment.status})."
+            f"This invoice can't be redeemed (status: {payment.status})."
         )
 
     invoice_amount = Decimal(str(payment.amount_usdt))

@@ -79,7 +79,7 @@ def create_api_key(
     if active_count >= MAX_ACTIVE_KEYS_PER_USER:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Maksimal {MAX_ACTIVE_KEYS_PER_USER} key aktif. Revoke salah satu dulu.",
+            detail=f"Maximum {MAX_ACTIVE_KEYS_PER_USER} active keys. Revoke one first.",
         )
 
     full_key, key_prefix, key_hash = generate_api_key()
@@ -130,7 +130,7 @@ def rename_api_key(
         .first()
     )
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key tidak ditemukan")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key not found")
     row.name = payload.name
     db.commit()
     db.refresh(row)
@@ -154,7 +154,7 @@ def revoke_api_key(
         .first()
     )
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key aktif tidak ditemukan")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Active API key not found")
     row.is_active = False
     row.revoked_at = datetime.now(timezone.utc)
     db.commit()

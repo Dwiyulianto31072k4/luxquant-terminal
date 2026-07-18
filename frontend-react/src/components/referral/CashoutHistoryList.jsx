@@ -90,7 +90,7 @@ const CashoutRow = ({ item, onUpdate }) => {
   const canCancel = item.status === "pending";
 
   const handleCancel = async () => {
-    if (!window.confirm("Cancel cashout ini? Saldo akan dikembalikan ke balance kamu.")) {
+    if (!window.confirm("Cancel this cashout? The amount will be returned to your balance.")) {
       return;
     }
 
@@ -101,7 +101,7 @@ const CashoutRow = ({ item, onUpdate }) => {
       await referralApi.cancelCashout(item.id);
       if (onUpdate) onUpdate();
     } catch (err) {
-      setError(err.response?.data?.detail || "Gagal cancel cashout");
+      setError(err.response?.data?.detail || "Failed to cancel cashout");
       setCancelling(false);
     }
   };

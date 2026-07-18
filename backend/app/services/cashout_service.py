@@ -82,7 +82,7 @@ def submit_cashout_request(
     if amount <= Decimal("0"):
         raise HTTPException(
             status_code=400,
-            detail="Cashout amount harus lebih besar dari 0.",
+            detail="Cashout amount must be greater than 0.",
         )
 
     current_balance = Decimal(str(user.referral_credit_usdt or 0))
@@ -188,7 +188,7 @@ def cancel_cashout_request(
     if not cashout:
         raise HTTPException(
             status_code=404,
-            detail="Cashout request tidak ditemukan.",
+            detail="Cashout request not found.",
         )
 
     if cashout.status != STATUS_PENDING:
@@ -284,7 +284,7 @@ def admin_complete_cashout(
     if not user:
         raise HTTPException(
             status_code=500,
-            detail=f"User #{cashout.user_id} tidak ditemukan (data inconsistent).",
+            detail=f"User #{cashout.user_id} not found (data inconsistent).",
         )
 
     now = datetime.now(timezone.utc)
@@ -361,7 +361,7 @@ def admin_reject_cashout(
     if not user:
         raise HTTPException(
             status_code=500,
-            detail=f"User #{cashout.user_id} tidak ditemukan (data inconsistent).",
+            detail=f"User #{cashout.user_id} not found (data inconsistent).",
         )
 
     return _refund_cashout(
@@ -387,7 +387,7 @@ def _get_cashout_for_admin(cashout_id: int, db: Session) -> CashoutRequest:
     if not cashout:
         raise HTTPException(
             status_code=404,
-            detail=f"Cashout request #{cashout_id} tidak ditemukan.",
+            detail=f"Cashout request #{cashout_id} not found.",
         )
 
     return cashout

@@ -139,7 +139,7 @@ async def add_coin_watch(
     if not _SYMBOL_RX.match(symbol):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Symbol tidak valid"
+            detail="Invalid symbol"
         )
 
     # Cek dupe
@@ -150,7 +150,7 @@ async def add_coin_watch(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Koin sudah ada di watchlist"
+            detail="Coin is already in your watchlist"
         )
 
     # Cek cap
@@ -161,7 +161,7 @@ async def add_coin_watch(
     if count >= MAX_WATCH:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Maksimal {MAX_WATCH} koin di watchlist"
+            detail=f"Maximum {MAX_WATCH} coins in your watchlist"
         )
 
     db.execute(
@@ -191,7 +191,7 @@ async def remove_coin_watch(
     if result.rowcount == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Koin tidak ada di watchlist"
+            detail="Coin is not in your watchlist"
         )
 
     return {"message": "Koin dihapus", "symbol": symbol}

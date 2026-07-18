@@ -27,14 +27,14 @@ async def get_current_user(
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token tidak valid atau expired",
+            detail="Token is invalid or expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token type tidak valid",
+            detail="Invalid token type",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -42,7 +42,7 @@ async def get_current_user(
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token tidak valid",
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -51,14 +51,14 @@ async def get_current_user(
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User tidak ditemukan",
+            detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akun tidak aktif"
+            detail="Account is inactive"
         )
 
     return user
@@ -141,5 +141,5 @@ async def require_subscription(
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Subscription aktif diperlukan untuk mengakses fitur ini"
+        detail="An active subscription is required to access this feature"
     )

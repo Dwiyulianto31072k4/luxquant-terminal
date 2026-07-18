@@ -80,12 +80,12 @@ async def create_subscription(
         .first()
 
     if not plan:
-        raise HTTPException(status_code=404, detail="Paket tidak ditemukan atau tidak aktif")
+        raise HTTPException(status_code=404, detail="Plan not found or inactive")
 
     if current_user.is_premium and not data.is_upgrade:
         raise HTTPException(
             status_code=400,
-            detail="Kamu sudah punya subscription aktif. Gunakan is_upgrade=true untuk ganti paket."
+            detail="You already have an active subscription. Use is_upgrade=true to change plan."
         )
 
     # Check existing pending payment
@@ -132,7 +132,7 @@ async def create_subscription(
         logger.error(f"Wallet pool empty: {e}")
         raise HTTPException(
             status_code=503,
-            detail="Sistem pembayaran sementara tidak tersedia. Coba lagi nanti."
+            detail="The payment system is temporarily unavailable. Please try again later."
         )
 
     # ── Create payment ──
@@ -183,15 +183,15 @@ async def verify_payment(
         .first()
 
     if not payment:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
 
     if payment.status == "confirmed":
-        raise HTTPException(status_code=400, detail="Payment sudah dikonfirmasi sebelumnya")
+        raise HTTPException(status_code=400, detail="This payment was already confirmed")
 
     if payment.status in ("expired", "cancelled"):
         raise HTTPException(
             status_code=400,
-            detail=f"Payment sudah {payment.status}. Silakan buat invoice baru."
+            detail=f"Payment is already {payment.status}. Please create a new invoice."
         )
 
     tx_hash_clean = data.tx_hash.strip().lower()
@@ -206,7 +206,7 @@ async def verify_payment(
     if existing_confirmed:
         raise HTTPException(
             status_code=400,
-            detail="TX hash ini sudah digunakan di transaksi lain yang berhasil"
+            detail="This TX hash has already been used in another successful transaction"
         )
 
     payment.tx_hash = tx_hash_clean
@@ -272,7 +272,7 @@ async def verify_payment(
 
         response = {
             "status": "confirmed",
-            "message": "Pembayaran berhasil! Subscription aktif.",
+            "message": "Payment successful! Your subscription is active.",
             "subscription": {
                 "role": current_user.role,
                 "plan_label": plan_label,

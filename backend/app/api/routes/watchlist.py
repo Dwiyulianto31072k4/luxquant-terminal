@@ -120,7 +120,7 @@ async def add_to_watchlist(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Signal sudah ada di watchlist"
+            detail="Signal is already in your watchlist"
         )
     
     # Check if signal exists
@@ -132,7 +132,7 @@ async def add_to_watchlist(
     if not signal:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Signal tidak ditemukan"
+            detail="Signal not found"
         )
     
     # Add to watchlist
@@ -165,7 +165,7 @@ async def remove_from_watchlist(
     if result.rowcount == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Signal tidak ada di watchlist"
+            detail="Signal is not in your watchlist"
         )
     
     return {"message": "Signal dihapus dari watchlist", "signal_id": signal_id}

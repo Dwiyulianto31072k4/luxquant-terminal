@@ -151,7 +151,7 @@ const PaymentAuditPanel = ({ defaultOpen = false, id = "payment-audit" }) => {
     }
     if (bulkStatus) patch.status = bulkStatus;
     if (Object.keys(patch).length === 0) {
-      window.alert("Pilih assign admin dan/atau status untuk bulk update.");
+      window.alert("Choose an assignee and/or a status for the bulk update.");
       return;
     }
     setBulkBusy(true);

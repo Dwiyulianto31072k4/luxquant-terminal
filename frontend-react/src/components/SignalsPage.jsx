@@ -1812,7 +1812,7 @@ const SignalsPage = () => {
           {/* Panah kanan — geser lihat hari sebelumnya (MEXC-style, di atas fade) */}
           <button
             onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
-            aria-label="Lihat hari sebelumnya"
+            aria-label="View previous day"
             className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 text-text-primary/60 hover:text-text-primary transition-colors"
           >
             <svg

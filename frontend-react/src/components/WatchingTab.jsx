@@ -157,7 +157,7 @@ const WatchingTab = () => {
       setInput("");
       await fetchData();
     } catch (err) {
-      setError(err?.response?.data?.detail || "Gagal menambah koin");
+      setError(err?.response?.data?.detail || "Failed to add coin");
     } finally {
       setAdding(false);
     }
