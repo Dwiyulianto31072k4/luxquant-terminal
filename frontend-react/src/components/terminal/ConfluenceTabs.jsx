@@ -15,6 +15,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "../CoinLogo";
+import { useUiPrefs } from "../../hooks/useUiPrefs";
+import { DisplaySettings, TERMINAL_DISPLAY_DEFAULTS } from "./DisplaySettings";
 import {
   POS,
   NEG,
@@ -213,7 +215,7 @@ function FngBadge({ value, label }) {
   );
 }
 
-function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
+function SignalCard({ s, live, ps, flow, prefs, onPair, onOpen, t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;
@@ -279,30 +281,32 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
       </div>
 
       {/* Multi-timeframe alignment */}
-      <div className="px-3.5 mt-2.5 flex items-center gap-3 font-mono text-[10px]">
-        {hasIntel ? (
-          <span className="flex items-center gap-2">
-            {[
-              ["4H", v3.h4],
-              ["1H", v3.h1],
-              ["15m", v3.m15],
-            ].map(([lbl, tr]) => (
-              <span
-                key={lbl}
-                title={`${lbl}: ${tr || "?"}`}
-                style={{ color: TREND_DOT[tr] || "rgb(var(--ink) / 0.28)" }}
-              >
-                {lbl}
-              </span>
-            ))}
-          </span>
-        ) : (
-          <span className="text-text-muted/40">No setup data</span>
-        )}
-        {eq && <span className="text-text-muted/70">{nice(eq)}</span>}
-      </div>
+      {prefs.term_mtf !== false && (
+        <div className="px-3.5 mt-2.5 flex items-center gap-3 font-mono text-[10px]">
+          {hasIntel ? (
+            <span className="flex items-center gap-2">
+              {[
+                ["4H", v3.h4],
+                ["1H", v3.h1],
+                ["15m", v3.m15],
+              ].map(([lbl, tr]) => (
+                <span
+                  key={lbl}
+                  title={`${lbl}: ${tr || "?"}`}
+                  style={{ color: TREND_DOT[tr] || "rgb(var(--ink) / 0.28)" }}
+                >
+                  {lbl}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="text-text-muted/40">No setup data</span>
+          )}
+          {eq && <span className="text-text-muted/70">{nice(eq)}</span>}
+        </div>
+      )}
 
-      {reasons.length > 0 && (
+      {prefs.term_reasons !== false && reasons.length > 0 && (
         <div className="px-3.5 mt-2 text-[11px] text-text-primary/60 leading-relaxed">
           {reasons.map(nice).join(" · ")}
         </div>
@@ -310,7 +314,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
 
       {/* Room left — how much of the typical post-call move is still ahead of
           you. The decision-relevant number when taking a setup RIGHT NOW. */}
-      {room && (
+      {prefs.term_room !== false && room && (
         <div className="px-3.5 mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[9.5px]">
           <span
             className="rounded border px-1.5 py-0.5"
@@ -342,13 +346,13 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
       )}
 
       <div className="mt-auto px-3.5 pt-2 pb-3 mt-2.5 border-t border-ink/[0.04] flex items-center gap-2 font-mono text-[9.5px] min-h-[14px]">
-        {warns.length > 0 && (
+        {prefs.term_warnings !== false && warns.length > 0 && (
           <span className="flex items-center gap-1.5 min-w-0 text-warning">
             <span className="w-1 h-1 rounded-full shrink-0 bg-warning" />
             <span className="truncate">{warns.map(nice).join(" · ")}</span>
           </span>
         )}
-        {flowChips.length > 0 && (
+        {prefs.term_flow !== false && flowChips.length > 0 && (
           <span
             className="ml-auto flex items-center gap-1.5 shrink-0"
             style={{
@@ -384,6 +388,7 @@ const CONF_FILTERS = [
 
 export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openSignalRow }) {
   const { t } = useTranslation();
+  const { prefs } = useUiPrefs(TERMINAL_DISPLAY_DEFAULTS);
   const [on, setOn] = useState({});
   const toggle = (k) => setOn((o) => ({ ...o, [k]: !o[k] }));
 
@@ -500,16 +505,21 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
         title={t("terminal.viz.tabConfluence")}
         guide="confluence"
         desc={t("terminal.viz.confSectionDesc")}
+        badge={<DisplaySettings />}
       />
 
-      {fng?.value != null && <FngBadge value={fng.value} label={fng.label} />}
+      {prefs.term_fng !== false && fng?.value != null && (
+        <FngBadge value={fng.value} label={fng.label} />
+      )}
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-        <Kpi compact label="Setups" value={cards.length} sub="Matching filters" />
-        <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" />
-        <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" />
-        <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" />
-      </div>
+      {prefs.term_kpis !== false && (
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+          <Kpi compact label="Setups" value={cards.length} sub="Matching filters" />
+          <Kpi compact label="HTF strong" value={stats.htf} sub="4H trend strong" />
+          <Kpi compact label="Fully aligned" value={stats.aligned} sub="4H · 1H · 15m agree" />
+          <Kpi compact label="Clean setups" value={cleanN} sub="No risk warnings" />
+        </div>
+      )}
 
       {coiled.length > 0 && (
         <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] overflow-hidden">
@@ -581,6 +591,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
                 onOpen={openSignalRow}
                 live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
                 ps={psPairs[s.pair]}
+                prefs={prefs}
                 flow={{ liq: liqMap[s.pair], tf: flowMap[baseSym(s.pair)] }}
               />
             ))}

@@ -70,6 +70,17 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 # key sembarangan. Tambah pref baru = cukup tambah 1 baris di UI_PREF_DEFAULTS.
 UI_PREF_DEFAULTS = {
     "chart_indicators": True,   # SignalModal: tampilkan MACD/RSI/BB di chart
+    # ── Terminal display density ──────────────────────────────────
+    # The Confluence desk is deliberately information-dense. Traders who find
+    # it noisy can switch individual layers off. Everything defaults to ON so
+    # existing users see no change.
+    "term_room": True,          # "room left" badge + typical peak
+    "term_flow": True,          # liquidation / spot-flow context chips
+    "term_mtf": True,           # 4H · 1H · 15m alignment row
+    "term_reasons": True,       # why-this-fired reason tags
+    "term_warnings": True,      # warning chips (late entry, parabolic…)
+    "term_fng": True,           # Fear & Greed gauge
+    "term_kpis": True,          # KPI strip above the grid
 }
 
 
