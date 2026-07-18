@@ -53,6 +53,9 @@ const SignalModal = ({
 
   // State untuk Share signal (toast "Link copied")
   const [shareCopied, setShareCopied] = useState(false);
+  // "ping me when it comes back to entry" — see coin_watch.py entry-alert
+  const [entryAlert, setEntryAlert] = useState(null); // {armed, triggered}
+  const [alertBusy, setAlertBusy] = useState(false);
   const [savingImg, setSavingImg] = useState(false);
   const [tweetUrl, setTweetUrl] = useState(null);
 
@@ -63,6 +66,41 @@ const SignalModal = ({
   const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
   // Toggle "always show indicators" (MACD/RSI/BB) di chart — di-remember per user (DB).
   const [showIndicators, setShowIndicators] = useState(true);
+
+  useEffect(() => {
+    const sid = signal?.signal_id;
+    if (!isOpen || !sid) return undefined;
+    let alive = true;
+    const tk = localStorage.getItem("access_token");
+    fetch(`/api/v1/coin-watch/entry-alert/${encodeURIComponent(sid)}`, {
+      headers: tk ? { Authorization: `Bearer ${tk}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && d && setEntryAlert(d))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, signal?.signal_id]);
+
+  const toggleEntryAlert = async () => {
+    const sid = signal?.signal_id;
+    if (!sid || alertBusy) return;
+    setAlertBusy(true);
+    const armed = entryAlert?.armed;
+    try {
+      const tk = localStorage.getItem("access_token");
+      const r = await fetch(`/api/v1/coin-watch/entry-alert/${encodeURIComponent(sid)}`, {
+        method: armed ? "DELETE" : "POST",
+        headers: tk ? { Authorization: `Bearer ${tk}` } : {},
+      });
+      if (r.ok) setEntryAlert(await r.json());
+    } catch {
+      /* non-fatal */
+    } finally {
+      setAlertBusy(false);
+    }
+  };
   const [livePrice, setLivePrice] = useState(null);
   const [liveChange24h, setLiveChange24h] = useState(null);
   const [derivMetrics, setDerivMetrics] = useState(null);
@@ -1848,6 +1886,67 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         strokeLinejoin="round"
                         d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
                       />
+                    </svg>
+                  </button>
+                  {/* Back-at-entry alert — don't chase a setup that already
+                      ran; get pinged if it returns to the entry zone. */}
+                  <button
+                    type="button"
+                    onClick={toggleEntryAlert}
+                    disabled={alertBusy}
+                    title={
+                      entryAlert?.armed
+                        ? "Alert armed — we'll ping you when price returns to entry. Click to cancel."
+                        : "Alert me when price comes back to entry"
+                    }
+                    aria-label="Alert me when price comes back to entry"
+                    aria-pressed={!!entryAlert?.armed}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:opacity-50 ${
+                      entryAlert?.armed
+                        ? "border-accent/40 bg-accent/10 text-accent"
+                        : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
+                    }`}
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+                    </svg>
+                  </button>
+                  {/* Size this trade — hand the call straight to the Risk
+                      Calculator instead of making the user retype the levels. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCloseClick();
+                      setTimeout(() => {
+                        window.location.href = `/terminal/scan?tab=risk&prefill=${encodeURIComponent(
+                          signal?.pair || ""
+                        )}`;
+                      }, 300);
+                    }}
+                    title="Size this trade — open the risk calculator"
+                    aria-label="Size this trade"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="4" y="3" width="16" height="18" rx="2" />
+                      <path d="M8 7h8M8 12h3M8 16h3M15 12v5M13 14.5h4" />
                     </svg>
                   </button>
                   {tweetUrl && (

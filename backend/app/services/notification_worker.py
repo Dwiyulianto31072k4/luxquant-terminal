@@ -256,6 +256,79 @@ def generate_subscription_expiry_notifications(db):
     return created
 
 
+
+def generate_entry_pullback_notifications(db):
+    """
+    Fire the "it came back to entry" alert.
+
+    A trader who finds a setup already +25% past entry can arm an alert instead
+    of chasing it. We watch the live price (terminal deriv blob) and notify the
+    moment it trades back inside the entry zone.
+
+    One-shot per alert: triggered_at is stamped so it never repeats.
+    Uses source_type='signal', source_id=signal_id, type='entry_pullback'.
+    """
+    rows = db.execute(text("""
+        SELECT ea.id, ea.user_id, ea.signal_id, ea.pair, ea.entry, ea.tolerance_pct
+        FROM entry_alerts ea
+        WHERE ea.triggered_at IS NULL
+    """)).fetchall()
+    if not rows:
+        return 0
+
+    blob = cache_get("lq:terminal:deriv") or {}
+    prices = blob.get("pairs") or {}
+    created = 0
+
+    for alert_id, user_id, signal_id, pair, entry, tol in rows:
+        px = (prices.get(pair) or {}).get("price")
+        if not px or not entry:
+            continue
+        try:
+            px = float(px)
+            entry = float(entry)
+        except (TypeError, ValueError):
+            continue
+        if entry <= 0:
+            continue
+
+        # Back in the zone = within tolerance of entry, approached from above.
+        dist_pct = abs(px - entry) / entry * 100.0
+        if dist_pct > float(tol or 1.0):
+            continue
+
+        coin = (pair or "").replace("USDT", "") or pair
+        db.execute(text("""
+            INSERT INTO notifications (user_id, type, title, body, data, source_type, source_id, created_at)
+            VALUES (:user_id, 'entry_pullback', :title, :body, :data, 'signal', :source_id, NOW())
+            ON CONFLICT DO NOTHING
+        """), {
+            "user_id": user_id,
+            "title": f"{coin} is back at entry",
+            "body": (
+                f"{coin} has pulled back to {px:g} — within {dist_pct:.2f}% of the "
+                f"{entry:g} entry you were waiting for."
+            ),
+            "data": json.dumps({
+                "signal_id": signal_id,
+                "pair": pair,
+                "entry": entry,
+                "price": px,
+                "distance_pct": round(dist_pct, 3),
+            }),
+            "source_id": signal_id,
+        })
+        db.execute(
+            text("UPDATE entry_alerts SET triggered_at = NOW() WHERE id = :id"),
+            {"id": alert_id},
+        )
+        created += 1
+
+    if created > 0:
+        db.commit()
+    return created
+
+
 def generate_coin_called_notifications(db):
     """
     Check for NEW signal calls on coins in any user's coin_watch (waitlist).
@@ -351,12 +424,13 @@ async def notification_worker_loop():
                 wl_count = generate_watchlist_notifications(db)
                 sub_count = generate_subscription_expiry_notifications(db)
                 cc_count = generate_coin_called_notifications(db)
+                ep_count = generate_entry_pullback_notifications(db)
 
-                total = cm_count + btcdom_count + wl_count + sub_count + cc_count
+                total = cm_count + btcdom_count + wl_count + sub_count + cc_count + ep_count
                 elapsed = round((time.time() - start) * 1000)
 
                 if total > 0:
-                    print(f"🔔 Notifications: +{total} new ({cm_count} channel, {btcdom_count} btcdom, {wl_count} watchlist, {sub_count} sub, {cc_count} coin) in {elapsed}ms")
+                    print(f"🔔 Notifications: +{total} new ({cm_count} channel, {btcdom_count} btcdom, {wl_count} watchlist, {sub_count} sub, {cc_count} coin, {ep_count} entry) in {elapsed}ms")
 
                 # Cleanup every hour (check via Redis flag)
                 if is_redis_available():

@@ -223,3 +223,76 @@ async def get_coin_watch_symbols(
         {"user_id": current_user.id}
     )
     return {"symbols": [row[0] for row in result.fetchall()]}
+
+
+# ════════════════════════════════════════════════════════════════
+# Entry pullback alerts
+# ════════════════════════════════════════════════════════════════
+# "This setup already ran +25% — ping me if it comes back to entry."
+# Fired by notification_worker.generate_entry_pullback_notifications
+# (type='entry_pullback'). One-shot: once it triggers it stays triggered.
+
+@router.get("/entry-alert/{signal_id}")
+async def get_entry_alert(
+    signal_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Is an entry alert armed for this signal?"""
+    row = db.execute(
+        text("""
+            SELECT entry, tolerance_pct, triggered_at
+            FROM entry_alerts WHERE user_id = :u AND signal_id = :s
+        """),
+        {"u": current_user.id, "s": signal_id},
+    ).first()
+    if not row:
+        return {"armed": False, "triggered": False}
+    return {
+        "armed": row[2] is None,
+        "triggered": row[2] is not None,
+        "entry": float(row[0]) if row[0] is not None else None,
+        "tolerance_pct": float(row[1]) if row[1] is not None else None,
+    }
+
+
+@router.post("/entry-alert/{signal_id}")
+async def arm_entry_alert(
+    signal_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Arm an alert for when price returns to this signal's entry."""
+    sig = db.execute(
+        text("SELECT pair, entry FROM signals WHERE signal_id = :s"),
+        {"s": signal_id},
+    ).first()
+    if not sig or not sig[1]:
+        raise HTTPException(status_code=404, detail="Signal not found or has no entry price")
+
+    db.execute(
+        text("""
+            INSERT INTO entry_alerts (user_id, signal_id, pair, entry)
+            VALUES (:u, :s, :p, :e)
+            ON CONFLICT (user_id, signal_id)
+            DO UPDATE SET triggered_at = NULL, created_at = NOW()
+        """),
+        {"u": current_user.id, "s": signal_id, "p": sig[0], "e": float(sig[1])},
+    )
+    db.commit()
+    return {"armed": True, "pair": sig[0], "entry": float(sig[1])}
+
+
+@router.delete("/entry-alert/{signal_id}")
+async def disarm_entry_alert(
+    signal_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Cancel the entry alert."""
+    db.execute(
+        text("DELETE FROM entry_alerts WHERE user_id = :u AND signal_id = :s"),
+        {"u": current_user.id, "s": signal_id},
+    )
+    db.commit()
+    return {"armed": False}

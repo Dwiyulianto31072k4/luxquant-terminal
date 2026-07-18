@@ -5,7 +5,8 @@
 // practical tool a signal-follower needs: "here's a call → here's exactly
 // how much to buy, the R:R, and where I get liquidated."
 // ════════════════════════════════════════════════════════════════
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import CoinLogo from "../CoinLogo";
 import { SectionBand, Kpi } from "./vizShared";
 
@@ -23,6 +24,7 @@ const fmtUsd = (v) =>
     : "$" + v.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 export function RiskTab({ view, deriv }) {
+  const [params, setParams] = useSearchParams();
   const [account, setAccount] = useState(1000);
   const [riskPct, setRiskPct] = useState(2);
   const [leverage, setLeverage] = useState(5);
@@ -48,6 +50,23 @@ export function RiskTab({ view, deriv }) {
     }
     return out.slice(0, 8);
   }, [view, q]);
+
+  // Deep link: /terminal/scan?tab=risk&prefill=PAIR — arrive from a signal
+  // with the numbers already filled in, instead of retyping them.
+  const wanted = (params.get("prefill") || "").toUpperCase();
+  const didPrefill = useRef(false);
+  useEffect(() => {
+    if (!wanted || didPrefill.current || !view?.length) return;
+    const hit = view.find((s) => (s.pair || "").toUpperCase() === wanted && s.entry);
+    if (!hit) return;
+    didPrefill.current = true;
+    prefill(hit);
+    // consume the param so a later manual pick isn't clobbered on re-render
+    const next = new URLSearchParams(params);
+    next.delete("prefill");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, view]);
 
   const prefill = (s) => {
     setPair(s.pair);
