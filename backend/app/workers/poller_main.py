@@ -103,6 +103,14 @@ async def _amain() -> None:
         await stop.wait()
     finally:
         print("👋 LuxQuant poller shutting down...")
+        # Resign FIRST, before anything slow. The replacement can only start
+        # refreshing caches once this lock is free, and every second it waits is
+        # a second of cold-cache traffic hitting upstream APIs directly.
+        try:
+            from app.core.leader import resign_leadership
+            resign_leadership()
+        except Exception:
+            pass
         try:
             await close_clients()
         except Exception:
