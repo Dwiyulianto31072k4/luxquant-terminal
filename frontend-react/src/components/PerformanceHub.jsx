@@ -294,7 +294,7 @@ const PerformanceHub = () => {
   };
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised p-3 lg:p-4 shadow-2xl shadow-black/40">
+    <div className="flex flex-col lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden">
       {/* ── breadcrumb strip ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -328,56 +328,41 @@ const PerformanceHub = () => {
       </div>
 
       <div className="flex gap-4 items-stretch lg:flex-1 lg:min-h-0">
-        {/* ── Allium-style left sidebar ── */}
-        <aside className="hidden lg:block w-[196px] shrink-0 lg:overflow-y-auto lg:pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent/20 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <div className="rounded-lg bg-surface-raised border border-ink/[0.07] overflow-hidden">
-            <div className="h-px bg-gradient-to-r from-transparent via-ink/10 to-transparent" />
-            <nav className="p-2 space-y-3">
-              {GROUPS.map(({ g, items }) => (
-                <div key={g}>
-                  <div className="flex items-center gap-2 px-2 mb-1.5">
-                    <span className="font-mono text-[8.5px] uppercase tracking-[0.25em] text-text-muted/70">
-                      {g}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {items.map((item) => {
-                      const on = item.id === activeId;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => go(item)}
-                          className={`relative w-full flex items-center pl-3 pr-2 py-2 rounded-md text-left text-[12.5px] transition-colors ${
-                            on
-                              ? "bg-ink/[0.04] text-accent"
-                              : "text-text-primary/85 hover:bg-ink/[0.04] hover:text-text-primary"
-                          }`}
-                        >
-                          {on && (
-                            <span
-                              className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
-                              style={{
-                                background: "rgb(212,168,83)",
-                                boxShadow: "0 0 6px rgb(var(--accent) / 0.6)",
-                              }}
-                            />
-                          )}
-                          <span
-                            className={`flex items-center gap-2.5 ${on ? "text-accent" : "text-accent/45"}`}
-                          >
-                            <TabIcon id={item.id} />
-                            <span className={on ? "text-accent" : "text-text-primary/85"}>
-                              {item.label}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+        {/* ── slim left nav (no boxed panel — Terminal desk language) ── */}
+        <aside className="hidden lg:block w-[180px] shrink-0 lg:overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-ink/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <nav className="space-y-2.5 pr-1">
+            {GROUPS.map(({ g, items }) => (
+              <div key={g}>
+                <div className="mb-1 px-2 font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55">
+                  {g}
                 </div>
-              ))}
-            </nav>
-          </div>
+                <div className="space-y-px">
+                  {items.map((item) => {
+                    const on = item.id === activeId;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => go(item)}
+                        className={`relative flex w-full items-center gap-2 rounded-md py-1.5 pl-2.5 pr-2 text-left text-[12px] font-medium transition-colors ${
+                          on
+                            ? "bg-ink/[0.07] text-text-primary"
+                            : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
+                        }`}
+                      >
+                        {on && (
+                          <span className="absolute left-0 top-1.5 bottom-1.5 w-[2.5px] rounded-full bg-accent" />
+                        )}
+                        <span className={on ? "text-accent" : "text-text-muted"}>
+                          <TabIcon id={item.id} />
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
         </aside>
 
         {/* ── content — own scroll region so the sidebar stays put ── */}

@@ -43,6 +43,36 @@ const SECTOR_COLORS = {
 
 const sectorColor = (s) => SECTOR_COLORS[s] || SECTOR_COLORS.uncategorized;
 
+// ─── Sector category glyphs ──────────────────────────────────────
+const SECTOR_PATHS = {
+  defi: "M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z M12 3v18 M4 7.5l8 4.5 8-4.5",
+  ai: "M9 3h6v3h3v6h-3v3H9v-3H6V6h3V3z M9 9h6v6H9z",
+  gamefi:
+    "M7 8h10a4 4 0 0 1 4 4 4 4 0 0 1-8 0H9a4 4 0 0 1-8 0 4 4 0 0 1 4-4z M6 11v2 M5 12h2 M16 11h.01 M18 13h.01",
+  infrastructure: "M4 4h16v6H4z M4 14h16v6H4z M7 7h.01 M7 17h.01",
+  hype: "M13 2 4.5 13H11l-1 9 8.5-11H12l1-9z",
+  payments: "M3 6h18v12H3z M3 10h18 M7 15h4",
+  rwa: "M4 21V7l8-4 8 4v14 M9 21v-6h6v6 M9 10h.01 M15 10h.01",
+  privacy: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z",
+  socialfi:
+    "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20a6 6 0 0 1 12 0 M17 11a3 3 0 1 0 0-6 M15 20a6 6 0 0 1 6-6",
+  other: "M12 3a9 9 0 1 0 9 9 M12 8v4l3 2",
+  uncategorized: "M12 3a9 9 0 1 0 9 9 M12 8v4l3 2",
+};
+const SectorGlyph = ({ sector, className = "h-3.5 w-3.5" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d={SECTOR_PATHS[sector] || SECTOR_PATHS.uncategorized} />
+  </svg>
+);
+
 const OUTCOME_COLORS = {
   tp4: "#10b981",
   tp3: "#34d399",
@@ -1739,8 +1769,17 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
                 background: `linear-gradient(to right, transparent, ${sectorColor(s.sector)}88, transparent)`,
               }}
             />
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-sm" style={{ background: sectorColor(s.sector) }} />
+            <div className="flex items-center gap-2.5 mb-3">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
+                style={{
+                  color: sectorColor(s.sector),
+                  background: `color-mix(in srgb, ${sectorColor(s.sector)} 12%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${sectorColor(s.sector)} 26%, transparent)`,
+                }}
+              >
+                <SectorGlyph sector={s.sector} />
+              </span>
               <span className="font-mono uppercase tracking-wider text-sm text-text-primary/90">
                 {s.sector}
               </span>
