@@ -787,8 +787,41 @@ async def terminal_deriv_loop():
             except Exception as e:
                 print(f"   ⚠️ screener prewarm: {type(e).__name__}: {e}")
             # post-signal historical stats — every ~6h (heavy journey scan)
+            #
+            # Due-ness is judged from the BLOB's own generated_at, not only from
+            # _last_ps. _last_ps is per-process, and leadership moves between
+            # gunicorn workers on every deploy; a leader that inherits the role
+            # mid-cycle has no idea when the stats last ran. Observed in
+            # production: the blob sat 159 minutes stale behind fresh workers,
+            # so the Terminal kept serving mean-based peaks after the switch to
+            # medians had already shipped. Reading the artefact itself is the
+            # only source of truth that survives a restart.
             global _last_ps
-            if time.time() - _last_ps > PS_INTERVAL:
+            _ps_due = time.time() - _last_ps > PS_INTERVAL
+            if not _ps_due:
+                try:
+                    _cached = cache_get(PS_KEY)
+                    if not _cached:
+                        _ps_due = True  # blob expired or never written
+                    else:
+                        # cache_get already json.loads() for us — no decoding here.
+                        _gen = _cached.get("generated_at")
+                        _age = (
+                            datetime.now(timezone.utc) - datetime.fromisoformat(_gen)
+                        ).total_seconds() if _gen else None
+                        # Recompute when the artefact is old, or when it predates
+                        # the current schema — that second test is what turns a
+                        # shipped field into a visible one without waiting a cycle.
+                        if _age is None or _age > PS_INTERVAL:
+                            _ps_due = True
+                        else:
+                            _pairs = _cached.get("pairs") or {}
+                            _first = next(iter(_pairs.values()), None)
+                            if _first is not None and "med_peak" not in _first:
+                                _ps_due = True
+                except Exception:
+                    _ps_due = True
+            if _ps_due:
                 try:
                     t_ps = time.time()
                     n_ps = compute_postsignal_stats()
