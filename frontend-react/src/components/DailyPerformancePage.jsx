@@ -2405,6 +2405,112 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
   );
 };
 
+// ─── Per-tab identity ────────────────────────────────────────────
+// Each daily tab has a distinct PURPOSE, so it opens with its own compact
+// header (icon + title + intent + slim context chips) instead of repeating
+// the big Overview donut. Overview is the only tab that shows the full hero.
+
+const TabGlyph = ({ d, circles }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-[18px] w-[18px]"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {d && <path d={d} />}
+    {circles}
+  </svg>
+);
+
+const DAILY_TAB_META = {
+  patterns: {
+    title: "Pattern Performance",
+    intent: "Which setups are firing today — win rate and peak return by pattern.",
+    glyph: <TabGlyph d="M3 3v18h18 M7 15v3 M12 10v8 M17 6v12" />,
+  },
+  correlation: {
+    title: "BTC Correlation",
+    intent: "How today's calls behaved against Bitcoin — decoupled vs coupled edge.",
+    glyph: (
+      <TabGlyph
+        circles={
+          <>
+            <circle cx="6" cy="16" r="1.4" />
+            <circle cx="11" cy="9" r="1.4" />
+            <circle cx="16" cy="13" r="1.4" />
+            <circle cx="20" cy="6" r="1.4" />
+          </>
+        }
+      />
+    ),
+  },
+  sectors: {
+    title: "Sector Rotation",
+    intent: "Where the wins clustered — performance broken down by sector.",
+    glyph: <TabGlyph d="M12 3v9l6.5 3.5 M21 12a9 9 0 1 1-9-9" />,
+  },
+  edge: {
+    title: "Today's Edge",
+    intent: "What to lean into and avoid — loss autopsy and winning setups.",
+    glyph: <TabGlyph d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9z" />,
+  },
+};
+
+const ContextChip = ({ label, value, tone = "muted" }) => {
+  const toneCls =
+    tone === "pos" ? "text-profit" : tone === "neg" ? "text-loss" : "text-text-primary";
+  return (
+    <div className="flex min-w-[76px] flex-col rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-2.5 py-1.5">
+      <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted">
+        {label}
+      </span>
+      <span className={`font-mono text-[13px] font-semibold tabular-nums ${toneCls}`}>{value}</span>
+    </div>
+  );
+};
+
+const TabContextHeader = ({ tab, signals }) => {
+  const meta = DAILY_TAB_META[tab];
+  if (!meta) return null;
+  const total = signals?.length || 0;
+  const wins = signals?.filter((s) => s.outcome?.startsWith("tp")).length || 0;
+  const wr = total ? (wins / total) * 100 : 0;
+  const avgPeak = total ? signals.reduce((a, s) => a + (s.peak_pct || 0), 0) / total : 0;
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-ink/[0.07] bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/25 bg-accent/[0.1] text-accent">
+          {meta.glyph}
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
+            {meta.title}
+          </h2>
+          <p className="mt-0.5 max-w-md text-[12px] leading-relaxed text-text-muted">
+            {meta.intent}
+          </p>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <ContextChip
+          label="Win rate"
+          value={total ? fmtPct(wr, 1) : "—"}
+          tone={wr >= 75 ? "pos" : wr >= 50 ? "muted" : "neg"}
+        />
+        <ContextChip label="Resolved" value={total || "—"} />
+        <ContextChip
+          label="Avg peak"
+          value={total ? `${avgPeak >= 0 ? "+" : ""}${avgPeak.toFixed(2)}%` : "—"}
+          tone={avgPeak >= 0 ? "pos" : "neg"}
+        />
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Page ───────────────────────────────────────────────────
 
 const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {}) => {
@@ -2587,15 +2693,22 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
       {data && (
         <div className="space-y-5">
-          <HeroSection
-            signals={filteredSignals}
-            totalUnfiltered={allSignals.length}
-            summary={summary}
-            correlationSummary={correlationSummary}
-            selectedDate={selectedDate}
-            hasFilters={hasFilters}
-          />
-          <KpiRow signals={filteredSignals} />
+          {/* Tab-specific lead: Overview = full hero; others = compact header */}
+          {activeTab === "overview" ? (
+            <>
+              <HeroSection
+                signals={filteredSignals}
+                totalUnfiltered={allSignals.length}
+                summary={summary}
+                correlationSummary={correlationSummary}
+                selectedDate={selectedDate}
+                hasFilters={hasFilters}
+              />
+              <KpiRow signals={filteredSignals} />
+            </>
+          ) : (
+            <TabContextHeader tab={activeTab} signals={filteredSignals} />
+          )}
           {!hideTabBar && (
             <div className="mt-8">
               <TabSwitcher active={activeTab} onChange={setActiveTab} />
@@ -2622,12 +2735,17 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
             )}
             {activeTab === "edge" && <TodaysEdgeTab signals={filteredSignals} />}
           </div>
-          <SectionHeader label="SIGNALS" />
-          <TopSignalsList
-            signals={filteredSignals}
-            onPickSignal={handlePickSignal}
-            onShowAll={() => setShowAllModal(true)}
-          />
+          {/* Signal-level drill list only where it's the point (summary + edge) */}
+          {(activeTab === "overview" || activeTab === "edge") && (
+            <>
+              <SectionHeader label="SIGNALS" />
+              <TopSignalsList
+                signals={filteredSignals}
+                onPickSignal={handlePickSignal}
+                onShowAll={() => setShowAllModal(true)}
+              />
+            </>
+          )}
         </div>
       )}
 

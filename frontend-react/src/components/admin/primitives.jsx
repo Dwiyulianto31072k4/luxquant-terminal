@@ -271,7 +271,7 @@ export const StatTile = ({
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
           {label}
         </span>
-        {Icon && <IconBadge Icon={Icon} color={accentColor} size={26} iconSize={13} />}
+        {Icon && <IconBadge Icon={Icon} color={accentColor} size={26} iconSize={13} soft />}
       </div>
       <p className="font-mono text-2xl font-semibold tabular-nums leading-none tracking-tight text-text-primary">
         {loading ? (
@@ -304,19 +304,46 @@ export const IconBadge = ({
   size = 36,
   iconSize,
   ink = "auto",
+  soft = false,
   className = "",
   style = {},
 }) => {
   if (!Icon) return null;
-  // Dark ink on gold/amber/cyan-light; white ink on deep brand fills
+  const glyph = iconSize || Math.round(size * 0.48);
+  const r = Math.max(8, Math.round(size * 0.28));
+  const isHex = typeof color === "string" && color.startsWith("#");
+
+  // SOFT chip (default KPI/list look) — light tinted background + the colour
+  // itself as the glyph. Reads on every desk; never dark-glyph-on-dark-fill.
+  if (soft) {
+    return (
+      <span
+        className={`inline-flex shrink-0 items-center justify-center ${className}`}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: r,
+          background: `color-mix(in srgb, ${color} 14%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${color} 24%, transparent)`,
+          color,
+          ...style,
+        }}
+        aria-hidden
+      >
+        <Icon size={glyph} style={{ color }} />
+      </span>
+    );
+  }
+
+  // SOLID fill (brand tiles) — pick a legible ink over the fill.
   const lightFill =
-    /^(#f0b90b|#fcd535|#f7a600|rgb(var(--accent))|rgb(var(--accent-text))|rgb(var(--accent))|#e0bc6a)$/i.test(
-      color
-    ) ||
-    color.toLowerCase().includes("f0b9") ||
-    color.toLowerCase().includes("d4a8") ||
-    color.toLowerCase().includes("fcd5") ||
-    color.toLowerCase().includes("f7a6");
+    /^(#f0b90b|#fcd535|#f7a600|#e0bc6a)$/i.test(color) ||
+    (typeof color === "string" &&
+      (color.includes("--accent") ||
+        color.toLowerCase().includes("f0b9") ||
+        color.toLowerCase().includes("d4a8") ||
+        color.toLowerCase().includes("fcd5") ||
+        color.toLowerCase().includes("f7a6")));
   const iconColor =
     ink === "dark"
       ? "rgb(var(--surface-raised))"
@@ -324,9 +351,7 @@ export const IconBadge = ({
         ? "rgb(var(--fg))"
         : lightFill
           ? "rgb(var(--surface-raised))"
-          : "rgb(var(--fg))";
-  const glyph = iconSize || Math.round(size * 0.48);
-  const r = Math.max(8, Math.round(size * 0.28));
+          : "rgb(var(--surface-raised))";
 
   return (
     <span
@@ -337,7 +362,9 @@ export const IconBadge = ({
         borderRadius: r,
         background: color,
         color: iconColor,
-        boxShadow: `0 2px 10px ${color}55`,
+        boxShadow: isHex
+          ? `0 2px 10px ${color}55`
+          : `0 2px 10px color-mix(in srgb, ${color} 33%, transparent)`,
         ...style,
       }}
       aria-hidden
@@ -390,7 +417,7 @@ export const IntentTile = ({
       }
     >
       <div className="flex items-center gap-1.5 mb-1.5">
-        {Icon && <IconBadge Icon={Icon} color={color} size={22} iconSize={11} />}
+        {Icon && <IconBadge Icon={Icon} color={color} size={22} iconSize={11} soft />}
         <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color }}>
           {label}
         </span>

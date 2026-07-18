@@ -107,6 +107,124 @@ const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
   </div>
 );
 
+// ─── Per-research-tab identity ───────────────────────────────────
+// Each research tab answers a different question, so it opens with its own
+// header (icon + title + intent) plus a slim shared range-context strip —
+// not the same 4-KPI block on every tab.
+
+const RGlyph = ({ d, circles }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-[18px] w-[18px]"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {d && <path d={d} />}
+    {circles}
+  </svg>
+);
+
+const RESEARCH_TAB_META = {
+  calibration: {
+    title: "Calibration",
+    intent: "Are the win-rate claims trustworthy — predicted vs realized by pattern.",
+    glyph: <RGlyph d="M12 3a9 9 0 1 0 9 9 M12 12l5-3 M12 12V6" />,
+  },
+  btc_heatmap: {
+    title: "Pattern × BTC",
+    intent: "How each pattern performs across bullish, ranging and bearish BTC regimes.",
+    glyph: <RGlyph d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" />,
+  },
+  ev: {
+    title: "Expected Value",
+    intent: "Profit per trade — which patterns actually pay after wins and losses.",
+    glyph: <RGlyph d="M3 3v18h18 M7 14l3-4 3 3 5-7" />,
+  },
+  calendar: {
+    title: "Calendar",
+    intent: "Win rate day by day — spot streaks, droughts and seasonality.",
+    glyph: <RGlyph d="M4 5h16v16H4z M4 9h16 M8 3v4 M16 3v4" />,
+  },
+  timing: {
+    title: "Timing",
+    intent: "The best hours and weekdays to take entries.",
+    glyph: <RGlyph d="M12 3a9 9 0 1 0 9 9 M12 7v5l3 2" />,
+  },
+  coins: {
+    title: "Coins",
+    intent: "Per-coin leaderboard — where the edge concentrates.",
+    glyph: (
+      <RGlyph
+        circles={
+          <>
+            <ellipse cx="12" cy="6" rx="7" ry="3" />
+            <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
+          </>
+        }
+      />
+    ),
+  },
+  wrbtc: {
+    title: "WR × BTC",
+    intent: "Win rate plotted against Bitcoin price over time.",
+    glyph: <RGlyph d="M3 17l5-5 3 3 4-6 3 3 3-4" />,
+  },
+};
+
+const RContextChip = ({ label, value, tone = "muted", cls = "" }) => {
+  const toneCls =
+    tone === "pos"
+      ? "text-profit"
+      : tone === "neg"
+        ? "text-loss"
+        : tone === "accent"
+          ? "text-accent"
+          : "text-text-primary";
+  return (
+    <div className="flex min-w-[84px] flex-col rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-2.5 py-1.5">
+      <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted">
+        {label}
+      </span>
+      <span className={`font-mono text-[13px] font-semibold tabular-nums ${toneCls} ${cls}`}>
+        {value}
+      </span>
+    </div>
+  );
+};
+
+const ResearchTabHeader = ({ tab, wr, wrColorCls, totals, topEdge }) => {
+  const meta = RESEARCH_TAB_META[tab] || RESEARCH_TAB_META.calibration;
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-ink/[0.07] bg-surface-raised p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/25 bg-accent/[0.1] text-accent">
+          {meta.glyph}
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
+            {meta.title}
+          </h2>
+          <p className="mt-0.5 max-w-lg text-[12px] leading-relaxed text-text-muted">
+            {meta.intent}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <RContextChip
+          label="Win rate"
+          value={wr != null ? `${wr.toFixed(1)}%` : "—"}
+          cls={wrColorCls}
+        />
+        <RContextChip label="Resolved" value={(totals?.signals_resolved ?? 0).toLocaleString()} />
+        <RContextChip label="Top edge" value={topEdge ? topEdge.pattern : "—"} tone="accent" />
+      </div>
+    </div>
+  );
+};
+
 const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {}) => {
   const [days, setDays] = useState(30);
   const [sector, setSector] = useState("all");
@@ -274,51 +392,14 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
 
       {data && (
         <div className="space-y-5">
-          {/* KPI strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Kpi
-              label="Win Rate"
-              value={wr != null ? `${wr.toFixed(2)}%` : "—"}
-              valueColor={wrColorCls}
-              sub={`${(totals?.wins ?? 0).toLocaleString()}W / ${(totals?.losses ?? 0).toLocaleString()}L`}
-            >
-              <div className="flex items-end justify-between gap-2 mt-2">
-                <Sparkline values={wrTrend.vals} up={(wrTrend.delta ?? 0) >= 0} />
-                {wrTrend.delta != null && (
-                  <span
-                    className={`text-[10px] font-mono tabular-nums shrink-0 ${wrTrend.delta >= 0 ? "text-profit" : "text-loss"}`}
-                    title="second half vs first half of range"
-                  >
-                    {wrTrend.delta >= 0 ? "▲" : "▼"} {Math.abs(wrTrend.delta).toFixed(1)}pp
-                  </span>
-                )}
-              </div>
-            </Kpi>
-
-            <Kpi
-              label="Resolved"
-              value={(totals?.signals_resolved ?? 0).toLocaleString()}
-              sub={`${data.date_range.start} → ${data.date_range.end}`}
-            />
-
-            <Kpi
-              label="Top Edge"
-              value={topEdge ? topEdge.pattern : "—"}
-              valueClass="text-sm lg:text-base"
-              valueColor="text-accent"
-              sub={
-                topEdge
-                  ? `+${topEdge.expected_value?.toFixed(1)}% / trade · n=${topEdge.count}`
-                  : "no positive edge"
-              }
-            />
-
-            <Kpi
-              label="Correlation"
-              value={corrPct != null ? `${corrPct.toFixed(0)}%` : "—"}
-              sub="BTC β coverage"
-            />
-          </div>
+          {/* Per-tab identity header (distinct purpose per research view) */}
+          <ResearchTabHeader
+            tab={activeTab}
+            wr={wr}
+            wrColorCls={wrColorCls}
+            totals={totals}
+            topEdge={topEdge}
+          />
 
           {/* Tabs */}
           {!hideTabBar && (
