@@ -51,7 +51,7 @@ At the top you'll see the current BTC **direction** and **confidence**:
 - Use the **Verdict Ledger** to judge how reliable recent reads have been.
 - Open **Brain** if you want to see what data drove the conclusion.
 - The BTC Compass read here is the same market context that informs how to trade the
-  signals on the Potential Trades page (e.g. "range only" vs trending conditions).
+  signals on the Signals page (e.g. "range only" vs trending conditions).
 
 ## Important note
 

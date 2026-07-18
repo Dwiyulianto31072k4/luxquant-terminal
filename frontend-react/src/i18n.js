@@ -28,7 +28,7 @@ const resources = {
       ...guideEn,
       nav: {
         home: "Home",
-        signals: "Potential Trades",
+        signals: "Signals",
         analytics: "Performance",
         bitcoin: "Bitcoin",
         markets: "Markets",
@@ -138,7 +138,7 @@ const resources = {
         top_losers_24h: "Top Losers (24h)",
       },
       signals: {
-        title: "Potential Trades",
+        title: "Signals",
         last_7d: "Last 7 Days",
         signals: "signals",
         updated: "updated",
@@ -486,7 +486,7 @@ const resources = {
       ...guideZh,
       nav: {
         home: "主页",
-        signals: "潜在交易",
+        signals: "交易信号",
         analytics: "表现",
         bitcoin: "比特币",
         markets: "市场",
@@ -596,7 +596,7 @@ const resources = {
         top_losers_24h: "跌幅榜 (24h)",
       },
       signals: {
-        title: "潜在交易",
+        title: "交易信号",
         last_7d: "过去7天",
         signals: "个信号",
         updated: "已更新",

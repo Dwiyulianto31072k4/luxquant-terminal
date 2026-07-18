@@ -9,6 +9,7 @@ import { InfoTip } from "./GuideInfo";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
 import { ShimmerStyles } from "./ui/Loaders";
+import SignalCompare from "./SignalCompare";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -227,6 +228,22 @@ const SignalsTable = ({
   const [pricesFailed, setPricesFailed] = useState(false); // true only when NO pair could be fetched at all
   const [showNotice, setShowNotice] = useState(false); // the dismissible "data unavailable" toast
 
+  // ── Compare selection ──
+  // Capped at 5: past that the columns get too narrow to read on a laptop and
+  // the decision stops being a comparison and becomes another screener.
+  const COMPARE_MAX = 5;
+  const [compareIds, setCompareIds] = useState([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const isCompared = (id) => compareIds.includes(id);
+  const toggleCompare = (id) =>
+    setCompareIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length >= COMPARE_MAX
+          ? prev
+          : [...prev, id]
+    );
+
   // ── Column visibility (desktop table) ──
   const [visibleCols, setVisibleCols] = useState(loadVisibleCols);
 
@@ -252,10 +269,10 @@ const SignalsTable = ({
     }
   };
 
-  // Total <th>/<td> count = Star (1) + Pair (1) + visible toggleable columns.
+  // Total <th>/<td> count = Compare (1) + Star (1) + Pair (1) + visible toggleable columns.
   // Used for the loading skeleton + empty-state colSpan so they stay aligned.
   const visibleColCount = useMemo(
-    () => 2 + SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length,
+    () => 3 + SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length,
     [visibleCols]
   );
 
@@ -709,6 +726,52 @@ const SignalsTable = ({
     </svg>
   );
 
+  // Compare checkbox. Deliberately always visible rather than hover-revealed:
+  // a hover-only control simply does not exist on a touch device, which is how
+  // the Confluence compare pin ended up unreachable on phones.
+  const CompareBox = ({ signal, size = 16 }) => {
+    const on = isCompared(signal.signal_id);
+    const full = !on && compareIds.length >= COMPARE_MAX;
+    return (
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={on}
+        aria-label={`${on ? "Remove" : "Add"} ${getCoinName(signal.pair)} ${on ? "from" : "to"} compare`}
+        title={
+          full
+            ? `Compare holds ${COMPARE_MAX} at a time`
+            : on
+              ? "Remove from compare"
+              : "Add to compare"
+        }
+        disabled={full}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleCompare(signal.signal_id);
+        }}
+        style={{ width: size, height: size }}
+        className={`inline-flex items-center justify-center rounded-[4px] border transition-colors ${
+          on
+            ? "border-accent bg-accent text-accent-fg"
+            : full
+              ? "cursor-not-allowed border-ink/[0.08] text-transparent"
+              : "border-ink/[0.18] text-transparent hover:border-accent/60 hover:bg-accent/[0.08]"
+        }`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+        >
+          <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+    );
+  };
+
   const MobileSignalCard = ({ signal }) => {
     const currentPrice = getPrice(signal.pair);
     const currentVol = getVolume(signal.pair);
@@ -798,6 +861,9 @@ const SignalsTable = ({
             </div>
           </button>
           <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="px-1.5" onClick={(e) => e.stopPropagation()}>
+              <CompareBox signal={signal} size={18} />
+            </div>
             <div onClick={(e) => e.stopPropagation()}>
               <StarButton
                 signalId={signal.signal_id}
@@ -1139,16 +1205,37 @@ const SignalsTable = ({
  .sig-t tbody tr { background: rgb(var(--surface)); }
  .sig-t tbody tr:hover { background: color-mix(in srgb, rgb(var(--ink)) 4%, rgb(var(--surface))); }
  .sig-t th:nth-child(1), .sig-t td:nth-child(1),
- .sig-t th:nth-child(2), .sig-t td:nth-child(2) {
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2),
+ .sig-t th:nth-child(3), .sig-t td:nth-child(3) {
    position: sticky;
    background: inherit;
+   z-index: 1;
  }
- .sig-t th:nth-child(1), .sig-t td:nth-child(1) { left: 0; z-index: 1; }
- .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 40px; z-index: 1; }
+ /* The density classes rewrite padding with !important, which resizes these two
+    utility columns — measured in Chrome, roomy blew them out to 58px/60px and the
+    frozen panes overlapped each other by 14 and 20 pixels. Pinning width AND
+    padding here (higher specificity than .sig-roomy td, so it wins among
+    !important declarations) keeps the offsets below true at every density. */
+ .sig-t th:nth-child(1), .sig-t td:nth-child(1) {
+   width: 44px;
+   padding-left: 14px !important;
+   padding-right: 14px !important;
+ }
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2) {
+   width: 40px;
+   padding-left: 10px !important;
+   padding-right: 10px !important;
+ }
+ .sig-t th:nth-child(1), .sig-t td:nth-child(1) { left: 0; }
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 44px; }
+ .sig-t th:nth-child(3), .sig-t td:nth-child(3) { left: 84px; }
  /* header corner cells still need to outrank the frozen body cells */
- .sig-t thead th:nth-child(1), .sig-t thead th:nth-child(2) { z-index: 3; background: rgb(var(--surface)); }
+ .sig-t thead th:nth-child(1), .sig-t thead th:nth-child(2), .sig-t thead th:nth-child(3) {
+   z-index: 3;
+   background: rgb(var(--surface));
+ }
  /* hairline marks where the frozen pane ends */
- .sig-t th:nth-child(2), .sig-t td:nth-child(2) { box-shadow: 1px 0 0 rgb(var(--ink) / 0.07); }
+ .sig-t th:nth-child(3), .sig-t td:nth-child(3) { box-shadow: 1px 0 0 rgb(var(--ink) / 0.07); }
 
  /* keyboard focus must be visible now that rows are reachable by Tab */
  .sig-t tbody tr:focus-visible {
@@ -1160,6 +1247,9 @@ const SignalsTable = ({
             <table className={`sig-t sig-${density} w-full text-left whitespace-nowrap`}>
               <thead className="border-b border-ink/[0.08]">
                 <tr>
+                  <th className="py-3 pl-4 pr-1 w-11 text-center">
+                    <span className="sr-only">Compare</span>
+                  </th>
                   <th className="py-3 px-4 w-10 text-center"></th>
                   <SortableHeader field="pair" label="Pair" />
                   {visibleCols.current_price && (
@@ -1252,7 +1342,7 @@ const SignalsTable = ({
                 {loading ? (
                   [...Array(10)].map((_, i) => (
                     <tr key={i} className="border-b border-ink/[0.03]">
-                      {[...Array(visibleColCount + 1)].map((_, j) => (
+                      {[...Array(visibleColCount)].map((_, j) => (
                         <td key={j} className="py-4 px-4">
                           <div className="h-3 bg-ink/[0.04] rounded animate-pulse"></div>
                         </td>
@@ -1261,7 +1351,7 @@ const SignalsTable = ({
                   ))
                 ) : signals?.length === 0 ? (
                   <tr>
-                    <td colSpan={visibleColCount + 1} className="text-center py-16">
+                    <td colSpan={visibleColCount} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-14 h-14 rounded-full bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center">
                           <EmptyStateIcon />
@@ -1301,6 +1391,13 @@ const SignalsTable = ({
                         aria-label={`Open ${signal.pair} signal`}
                         className="group cursor-pointer border-b border-ink/[0.05] transition-colors"
                       >
+                        <td
+                          className="py-3 pl-4 pr-1 text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <CompareBox signal={signal} />
+                        </td>
+
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <StarButton
                             signalId={signal.signal_id}
@@ -1822,6 +1919,32 @@ const SignalsTable = ({
  `}</style>
         </div>
       )}
+
+      {/* The compare bar is position:fixed, so it would otherwise sit on top of
+          the pagination. Reserve its height while anything is selected. */}
+      {compareIds.length > 0 && <div aria-hidden className="h-14" />}
+
+      <SignalCompare
+        items={compareIds
+          .map((id) => signals?.find((x) => x.signal_id === id))
+          .filter(Boolean)
+          .map((sig) => ({
+            signal: sig,
+            // currentPrices[pair] is sometimes a bare number and sometimes an
+            // object, and volume only ever lives on the feed — never on the
+            // signal row. Resolve both through the same helpers the table uses.
+            price: getPrice(sig.pair),
+            volume: getVolume(sig.pair),
+          }))}
+        onRemove={(id) => setCompareIds((prev) => prev.filter((x) => x !== id))}
+        onClear={() => {
+          setCompareIds([]);
+          setCompareOpen(false);
+        }}
+        onOpen={(sig) => onRowClick && onRowClick(sig)}
+        open={compareOpen}
+        setOpen={setCompareOpen}
+      />
 
       {selectedCoinIntel && (
         <CoinDetailModal

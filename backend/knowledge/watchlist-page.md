@@ -1,6 +1,6 @@
 # Guide: Watchlist
 
-The Watchlist is your saved list of signals. Star any signal (on the Potential Trades
+The Watchlist is your saved list of signals. Star any signal (on the Signals page
 page or in a signal modal) to add it here and follow it with live prices. This guide
 explains it.
 

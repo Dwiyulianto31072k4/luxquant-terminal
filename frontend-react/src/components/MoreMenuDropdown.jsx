@@ -391,7 +391,7 @@ const MoreMenuDropdown = ({
         {
           path: "/signals",
           icon: Icon.signals,
-          label: "Potential Trades",
+          label: "Signals",
           desc: "Live algo setups · entries, targets & risk",
         },
         {

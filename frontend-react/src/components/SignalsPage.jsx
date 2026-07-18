@@ -1346,7 +1346,7 @@ const SignalsPage = () => {
       <header className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <PageHeader title="Potential Trades" />
+            <PageHeader title="Signals" />
             <p className="mt-1.5 text-sm text-text-secondary">
               Live algo setups with entry, targets & risk — last 7 days
               <span className="mx-1.5 text-text-muted/40">·</span>

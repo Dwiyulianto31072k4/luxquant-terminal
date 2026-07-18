@@ -1,6 +1,6 @@
 export const enNav = {
   home: "Home",
-  signals: "Potential Trades",
+  signals: "Signals",
   analytics: "Performance",
   bitcoin: "Bitcoin",
   markets: "Markets",
@@ -105,7 +105,7 @@ export const enOverview = {
 };
 
 export const enSignals = {
-  title: "Potential Trades",
+  title: "Signals",
   last_7d: "Last 7 Days",
   signals: "signals",
   updated: "updated",

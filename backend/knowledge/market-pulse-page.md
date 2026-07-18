@@ -19,7 +19,7 @@ it.
 ## How to use it
 
 Use Pulse to catch what's happening **right now** — coins waking up on volume or
-making flash moves — then cross-check with the signals on Potential Trades or the
+making flash moves — then cross-check with the signals on Signals page or the
 coin's chart before drawing conclusions. Sudden moves can reverse quickly.
 
 ## Important note

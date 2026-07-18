@@ -9,7 +9,7 @@ export const moreFeaturesEn = {
   // ── Feature labels & descriptions ──
   home: "Home",
   home_desc: "Dashboard & overview",
-  signals: "Potential Trades",
+  signals: "Signals",
   signals_desc: "Algorithmic trade signals",
   autotrade: "AutoTrade",
   autotrade_desc: "Auto-execute via exchange",
@@ -56,7 +56,7 @@ export const moreFeaturesZh = {
   // ── Feature labels & descriptions ──
   home: "首页",
   home_desc: "仪表板与概览",
-  signals: "潜在交易",
+  signals: "交易信号",
   signals_desc: "算法交易信号",
   autotrade: "自动交易",
   autotrade_desc: "通过交易所自动执行",

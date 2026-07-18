@@ -8,7 +8,7 @@ export const terminalEn = {
   subtitle: "Signal research terminal",
   collapse: "Collapse",
   expand: "Expand",
-  backToSignals: "Potential Trades",
+  backToSignals: "Signals",
 
   groups: {
     signals: "Signals",
@@ -21,8 +21,8 @@ export const terminalEn = {
     scan_desc: "Visual screening — active signals, chart-first",
     map: "Market Map",
     map_desc: "Treemap · bubbles · matrix · sectors",
-    screener: "Trades Table",
-    screener_desc: "Full Potential Trades table",
+    screener: "Signals Table",
+    screener_desc: "The full Signals table",
     replay: "Trade Replay",
     replay_desc: "Per-signal price path + MAE/MFE",
     edge: "Edge Lab",

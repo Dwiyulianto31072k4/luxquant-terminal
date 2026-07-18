@@ -23,7 +23,7 @@ Trades, Bitcoin, or Markets for detail.
 
 ## Where to go next
 
-- **Potential Trades** — the full live signal terminal.
+- **Signals** — the full live signal terminal.
 - **AI Research** — the BTC Compass market read.
 - **Markets / Bitcoin** — broader market and BTC data.
 

@@ -416,7 +416,7 @@ export default function SignalTerminalPage() {
       <Screener model={model} onPick={pick} />
 
       <p className="border-t border-ink/[0.05] pt-2.5 font-mono text-[10px] leading-relaxed text-text-primary/30">
-        Filters mirror Potential Trades · live prices via Binance Futures proxy · click any tile for
+        Filters mirror the Signals page · live prices via Binance Futures proxy · click any tile for
         call proof
       </p>
     </div>

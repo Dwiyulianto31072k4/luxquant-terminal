@@ -1,6 +1,6 @@
 export const zhNav = {
   home: "主页",
-  signals: "潜在交易",
+  signals: "交易信号",
   analytics: "表现",
   bitcoin: "比特币",
   markets: "市场",
@@ -105,7 +105,7 @@ export const zhOverview = {
 };
 
 export const zhSignals = {
-  title: "潜在交易",
+  title: "交易信号",
   last_7d: "过去7天",
   signals: "个信号",
   updated: "已更新",

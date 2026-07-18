@@ -5,7 +5,12 @@
 
 // Display name -> route. Longest names first so "Market Pulse" wins over "Pulse".
 const PAGE_ROUTES = [
+  // "Signals page", not bare "Signals": the linker matches whole words
+  // case-insensitively, and "signals" is the most common noun in this product —
+  // every "3 signals closed today" would turn into a link. "Potential Trades"
+  // stays as an alias so knowledge-base text written before the rename still links.
   ["Potential Trades", "/signals"],
+  ["Signals page", "/signals"],
   ["Performance Hub", "/performance"],
   ["Market Pulse", "/market-pulse"],
   ["Money Flow", "/money-flow"],

@@ -1,4 +1,4 @@
-# Guide: LuxQuant Terminal (Potential Trades → Terminal)
+# Guide: LuxQuant Terminal (Signals page → Terminal)
 
 The **LuxQuant Terminal** is a visual, chart-first cockpit for the 7-day active
 LuxQuant signals ("calls"). It does NOT create signals — it helps you *screen,
