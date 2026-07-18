@@ -94,6 +94,12 @@ view. Most are tabs of the "scan" page; Market Map views have their own route.
 - **Size it in one click:** the calculator icon on a signal opens the Risk
   Calculator with pair, side, entry, stop and target already prefilled — you
   only set account size and risk %.
+- **Comparing a few setups:** hover a card and click the **pin**, then hit
+  **Compare** in the tray at the bottom. Up to 4 setups go side by side across
+  room left, typical peak, distance from call, typical drawdown, direction,
+  timeframe agreement, HTF trend, why it fired and warnings — with the best
+  value in each row highlighted. Useful when two setups look equally good: the
+  one with more room, full alignment and fewer warnings is the pick.
 - **Too much on screen?** The **Display** button at the top of Confluence lets
   you switch off any layer: room, timeframe alignment, setup reasons, warnings,
   flow context, Fear & Greed, KPI strip. Preferences save to your account and

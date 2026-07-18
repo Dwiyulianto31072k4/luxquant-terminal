@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import CoinLogo from "../CoinLogo";
 import { useUiPrefs } from "../../hooks/useUiPrefs";
 import { DisplaySettings, TERMINAL_DISPLAY_DEFAULTS } from "./DisplaySettings";
+import { CompareTray } from "./CompareTray";
 import {
   POS,
   NEG,
@@ -215,7 +216,7 @@ function FngBadge({ value, label }) {
   );
 }
 
-function SignalCard({ s, live, ps, flow, prefs, onPair, onOpen, t }) {
+function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;
@@ -250,11 +251,48 @@ function SignalCard({ s, live, ps, flow, prefs, onPair, onOpen, t }) {
   const late = room != null && room.left <= 0;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
-      className="group text-left rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/[0.12] hover:bg-ink/[0.035] transition-all overflow-hidden flex flex-col"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen ? onOpen(s) : onPair(s.pair);
+        }
+      }}
+      className="group relative cursor-pointer text-left rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/[0.12] hover:bg-ink/[0.035] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent transition-all overflow-hidden flex flex-col"
     >
+      {/* Pin for side-by-side comparison. stopPropagation so pinning
+          doesn't also open the signal. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPin?.(s);
+        }}
+        title={pinned ? "Remove from comparison" : "Pin to compare"}
+        aria-label={pinned ? "Remove from comparison" : "Pin to compare"}
+        aria-pressed={!!pinned}
+        className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition-all ${
+          pinned
+            ? "border-accent/40 bg-accent/15 text-accent opacity-100"
+            : "border-ink/10 bg-surface-raised/80 text-text-muted opacity-0 hover:text-text-primary group-hover:opacity-100 focus:opacity-100"
+        }`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="h-3 w-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 17v5M9 10.8V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6.8a2 2 0 0 0 .6 1.4l1.1 1.1a1 1 0 0 1 .3.7v.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V15a1 1 0 0 1 .3-.7l1.1-1.1a2 2 0 0 0 .6-1.4z" />
+        </svg>
+      </button>
+
       {/* header — pair · direction · PnL · status */}
       <div className="px-3.5 pt-3.5 flex items-center gap-2.5">
         <CoinLogo pair={s.pair} size={28} />
@@ -364,7 +402,7 @@ function SignalCard({ s, live, ps, flow, prefs, onPair, onOpen, t }) {
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -389,6 +427,16 @@ const CONF_FILTERS = [
 export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openSignalRow }) {
   const { t } = useTranslation();
   const { prefs } = useUiPrefs(TERMINAL_DISPLAY_DEFAULTS);
+  const [pins, setPins] = useState([]); // signal_ids, max 4
+  const [cmpOpen, setCmpOpen] = useState(false);
+  const togglePin = (sig) =>
+    setPins((cur) =>
+      cur.includes(sig.signal_id)
+        ? cur.filter((x) => x !== sig.signal_id)
+        : cur.length >= 4
+          ? cur
+          : [...cur, sig.signal_id]
+    );
   const [on, setOn] = useState({});
   const toggle = (k) => setOn((o) => ({ ...o, [k]: !o[k] }));
 
@@ -592,12 +640,36 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
                 live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
                 ps={psPairs[s.pair]}
                 prefs={prefs}
+                pinned={pins.includes(s.signal_id)}
+                onPin={togglePin}
                 flow={{ liq: liqMap[s.pair], tf: flowMap[baseSym(s.pair)] }}
               />
             ))}
           </div>
         </ScrollArea>
       )}
+
+      {/* Side-by-side comparison of the pinned setups */}
+      <CompareTray
+        open={cmpOpen}
+        setOpen={setCmpOpen}
+        onClear={() => setPins([])}
+        onRemove={(id) => setPins((c) => c.filter((x) => x !== id))}
+        onOpen={openSignalRow}
+        items={pins
+          .map((id) => view.find((v) => v.signal_id === id))
+          .filter(Boolean)
+          .map((sig) => {
+            const tags = sig.v3?.tags || [];
+            return {
+              s: sig,
+              fc: pairFc[sig.pair],
+              room: roomLeftOf(pairFc[sig.pair], psPairs[sig.pair]),
+              reasons: REASON_PRIORITY.filter((r) => tags.includes(r)).slice(0, 3),
+              warnings: WARNING_TAGS.filter((w) => tags.includes(w)),
+            };
+          })}
+      />
     </div>
   );
 }

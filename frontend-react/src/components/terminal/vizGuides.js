@@ -20,6 +20,7 @@ export const VIZ_GUIDES = {
       "Missed one? Open the card and hit the 🔔 bell — we'll notify you (in-app and on Telegram) if price comes back down to the entry. Waiting beats chasing.",
       "Ready to take it? The calculator icon in the same card hands the call to the Risk Calculator with entry, stop and target already filled in.",
       "Too much on screen? The 'Display' button up top lets you switch off any layer — room, timeframes, reasons, warnings, flow, Fear & Greed, KPIs. It's saved to your account, so it follows you across devices.",
+      "Torn between a few? Hover a card and hit the pin, then 'Compare' — up to 4 setups go side by side with the best value in each row highlighted, so the winner is obvious.",
     ],
     example:
       "A setup shows 'no room left · late entry' at +25% from entry. Instead of chasing it, you arm the bell. Two days later it pulls back into the entry zone, you get pinged, and you enter with the full typical move ahead of you instead of behind.",
