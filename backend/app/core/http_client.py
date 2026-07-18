@@ -97,6 +97,51 @@ _general_client: Optional[httpx.AsyncClient] = None
 _coingecko_client: Optional[httpx.AsyncClient] = None
 
 
+
+# ── Binance weight accounting ────────────────────────────────────────────────
+# Binance returns x-mbx-used-weight-1m on every response, but nothing here ever
+# read it, so "which code path is eating the budget?" could only be guessed at —
+# and I guessed wrong twice while chasing the 418s. This attributes consumption
+# to the endpoint that caused it: a Redis hash of path → weight spent this
+# minute, plus a warning once the ceiling is in sight.
+#
+# Cheap by construction: one header read per response, one Redis HINCRBY, and
+# the key expires on its own.
+_WEIGHT_KEY_FMT = "lq:binance:weight:%s"
+_WEIGHT_CEILING = 2400          # futures IP limit per minute
+_last_weight_warn = 0.0
+
+
+async def _record_binance_weight(response):
+    global _last_weight_warn
+    try:
+        used = response.headers.get("x-mbx-used-weight-1m")
+        if used is None:
+            return
+        used = int(used)
+        path = response.request.url.path or "?"
+        import time as _t
+        from app.core.redis import get_redis
+        minute = int(_t.time() // 60)
+        r = get_redis()
+        key = _WEIGHT_KEY_FMT % minute
+        pipe = r.pipeline()
+        pipe.hincrby(key, path, 1)          # call count per endpoint
+        pipe.hset(key, "_peak", used)       # highest reading seen this minute
+        pipe.expire(key, 900)               # 15 min of history is plenty
+        pipe.execute()
+        if used > _WEIGHT_CEILING * 0.75 and _t.time() - _last_weight_warn > 60:
+            _last_weight_warn = _t.time()
+            top = sorted(r.hgetall(key).items(), key=lambda kv: -int(kv[1])
+                         if kv[0] not in (b"_peak", "_peak") else 0)[:4]
+            pretty = ", ".join(
+                f"{k.decode() if isinstance(k, bytes) else k}×{int(v)}"
+                for k, v in top if (k if isinstance(k, str) else k.decode()) != "_peak")
+            print(f"⚖️  Binance weight {used}/{_WEIGHT_CEILING} this minute — top callers: {pretty}")
+    except Exception:
+        pass   # accounting must never break a request
+
+
 def init_clients():
     """
     Initialize all shared HTTP clients.
@@ -113,6 +158,7 @@ def init_clients():
         headers=BASE_HEADERS,
         http2=False,
         follow_redirects=False,
+        event_hooks={"response": [_record_binance_weight]},
     )
 
     # ─── CoinGecko: Main (key utama — market data) ───
