@@ -62,6 +62,26 @@ INTERVAL_SECONDS = {
 }
 
 
+def _needed_candles(start_ms: int, end_ms: int, interval: str, cap: int) -> int:
+    """How many candles this range actually spans, capped.
+
+    Binance charges kline weight on the LIMIT PARAMETER, not on the rows it
+    returns. Asking for 1500 to cover a two-day signal cost weight 10 for 48
+    candles; asking for 48 costs 1 and comes back byte-identical — verified
+    against production, same first and last open times both ways.
+
+    Since startTime/endTime already bound the response, limit was only ever
+    acting as a ceiling. Sizing it to the range is a straight 10x saving on the
+    heaviest consumer of the futures weight budget.
+    """
+    step = INTERVAL_SECONDS.get(interval)
+    if not step:
+        return cap
+    span = max(0, int(end_ms) - int(start_ms)) // 1000
+    # +2: one for the partial candle at each edge
+    return max(1, min(cap, span // step + 2))
+
+
 def _floor_to_interval(dt: datetime, interval: str) -> datetime:
     """
     Floor datetime to interval boundary (UTC).
@@ -96,7 +116,7 @@ def _fetch_binance_futures(
         'interval': BINANCE_INTERVAL_MAP[interval],
         'startTime': start_ms,
         'endTime': end_ms,
-        'limit': BINANCE_MAX_LIMIT,
+        'limit': _needed_candles(start_ms, end_ms, interval, BINANCE_MAX_LIMIT),
     }
     resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
@@ -116,7 +136,7 @@ def _fetch_binance_spot(
         'interval': BINANCE_INTERVAL_MAP[interval],
         'startTime': start_ms,
         'endTime': end_ms,
-        'limit': BINANCE_MAX_LIMIT,
+        'limit': _needed_candles(start_ms, end_ms, interval, BINANCE_MAX_LIMIT),
     }
     resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
@@ -137,7 +157,7 @@ def _fetch_bybit_linear(
         'interval': BYBIT_INTERVAL_MAP[interval],
         'start': start_ms,
         'end': end_ms,
-        'limit': BYBIT_MAX_LIMIT,
+        'limit': _needed_candles(start_ms, end_ms, interval, BYBIT_MAX_LIMIT),
     }
     resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
@@ -158,7 +178,7 @@ def _fetch_bybit_spot(
         'interval': BYBIT_INTERVAL_MAP[interval],
         'start': start_ms,
         'end': end_ms,
-        'limit': BYBIT_MAX_LIMIT,
+        'limit': _needed_candles(start_ms, end_ms, interval, BYBIT_MAX_LIMIT),
     }
     resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
