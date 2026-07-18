@@ -700,7 +700,7 @@ function AppShell({ children }) {
     },
     {
       path: "/signals",
-      label: "Trade",
+      label: "Signals",
       isCenter: true,
       icon: (
         // Arrows-swap — iconic untuk trade
@@ -1340,7 +1340,7 @@ function AppShell({ children }) {
  MOBILE BOTTOM NAV — Trade center button: BIGGER + GOLD GLOW HALO
  (Home · Pulse · Trade ✨ · Arena · Market)
  ══════════════════════════════════════════════════════════════ */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+      <nav data-lq-bottomnav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-ink/10 to-transparent" />
         <div className="bg-bg-primary/90 backdrop-blur-xl">
           <div className="flex items-end justify-around h-16 px-2 max-w-lg mx-auto relative">

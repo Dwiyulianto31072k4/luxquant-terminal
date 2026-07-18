@@ -987,3 +987,14 @@ body::-webkit-scrollbar,
 .lp-v2 h3 {
   letter-spacing: -0.02em;
 }
+
+/* ── Selection mode (Signals compare) ──────────────────────────────
+   While rows are selected the compare bar docks at the bottom of the
+   screen on mobile. Stacking it on top of the bottom nav would bury the
+   nav's protruding centre button and eat ~150px of a small viewport, so
+   the bar TAKES THE NAV'S PLACE instead — the contextual-action-bar
+   pattern Gmail and Google Photos use for the same situation. Clearing
+   the selection brings the nav straight back. */
+body[data-lq-selecting] [data-lq-bottomnav] {
+  display: none;
+}

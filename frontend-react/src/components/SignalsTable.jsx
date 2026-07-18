@@ -232,16 +232,21 @@ const SignalsTable = ({
   // Capped at 5: past that the columns get too narrow to read on a laptop and
   // the decision stops being a comparison and becomes another screener.
   const COMPARE_MAX = 5;
-  const [compareIds, setCompareIds] = useState([]);
+  // Holds the SIGNAL OBJECTS, not just their ids. Ids alone meant the tray had
+  // to look each one up in `signals` — which is the filtered, paginated page —
+  // so searching or changing a filter silently dropped every selection that
+  // scrolled out of the result set. Live prices are unaffected either way:
+  // they are fetched for allPairs, not just the visible rows.
+  const [compareSel, setCompareSel] = useState([]);
   const [compareOpen, setCompareOpen] = useState(false);
-  const isCompared = (id) => compareIds.includes(id);
-  const toggleCompare = (id) =>
-    setCompareIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((x) => x !== id)
+  const isCompared = (id) => compareSel.some((s) => s.signal_id === id);
+  const toggleCompare = (signal) =>
+    setCompareSel((prev) =>
+      prev.some((s) => s.signal_id === signal.signal_id)
+        ? prev.filter((s) => s.signal_id !== signal.signal_id)
         : prev.length >= COMPARE_MAX
           ? prev
-          : [...prev, id]
+          : [...prev, signal]
     );
 
   // ── Column visibility (desktop table) ──
@@ -731,7 +736,7 @@ const SignalsTable = ({
   // the Confluence compare pin ended up unreachable on phones.
   const CompareBox = ({ signal, size = 16 }) => {
     const on = isCompared(signal.signal_id);
-    const full = !on && compareIds.length >= COMPARE_MAX;
+    const full = !on && compareSel.length >= COMPARE_MAX;
     return (
       <button
         type="button"
@@ -748,7 +753,7 @@ const SignalsTable = ({
         disabled={full}
         onClick={(e) => {
           e.stopPropagation();
-          toggleCompare(signal.signal_id);
+          toggleCompare(signal);
         }}
         style={{ width: size, height: size }}
         className={`inline-flex items-center justify-center rounded-[4px] border transition-colors ${
@@ -1921,24 +1926,28 @@ const SignalsTable = ({
       )}
 
       {/* The compare bar is position:fixed, so it would otherwise sit on top of
-          the pagination. Reserve its height while anything is selected. */}
-      {compareIds.length > 0 && <div aria-hidden className="h-14" />}
+          the pagination. Desktop only: <main> already carries pb-24 on mobile
+          to clear the bottom nav, which is more than the bar needs. */}
+      {compareSel.length > 0 && <div aria-hidden className="hidden h-14 lg:block" />}
 
       <SignalCompare
-        items={compareIds
-          .map((id) => signals?.find((x) => x.signal_id === id))
-          .filter(Boolean)
-          .map((sig) => ({
+        items={compareSel.map((picked) => {
+          // Prefer the live row when it is on the current page so status and
+          // targets stay fresh; fall back to the snapshot taken at selection
+          // time when a filter has scrolled it out of view.
+          const sig = signals?.find((x) => x.signal_id === picked.signal_id) || picked;
+          return {
             signal: sig,
             // currentPrices[pair] is sometimes a bare number and sometimes an
             // object, and volume only ever lives on the feed — never on the
             // signal row. Resolve both through the same helpers the table uses.
             price: getPrice(sig.pair),
             volume: getVolume(sig.pair),
-          }))}
-        onRemove={(id) => setCompareIds((prev) => prev.filter((x) => x !== id))}
+          };
+        })}
+        onRemove={(id) => setCompareSel((prev) => prev.filter((s) => s.signal_id !== id))}
         onClear={() => {
-          setCompareIds([]);
+          setCompareSel([]);
           setCompareOpen(false);
         }}
         onOpen={(sig) => onRowClick && onRowClick(sig)}

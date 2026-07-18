@@ -16,6 +16,7 @@
 // upside is smaller than the distance to the stop. That is the honest basis
 // for a decision, so every ranking here is computed from the live price.
 // ════════════════════════════════════════════════════════════════
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 
@@ -207,12 +208,26 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
   const rows = items.map(metricsOf);
   const { scored, verdict } = buildVerdict(rows);
   const concentration = concentrationNote(rows);
+  const active = items.length > 0;
 
-  if (!items.length) return null;
+  // Tell the shell we're in selection mode so the mobile bottom nav steps
+  // aside for this bar (see body[data-lq-selecting] in styles/index.css).
+  // Runs on every mount so the flag can never outlive the bar — including
+  // when the whole table unmounts on navigation.
+  useEffect(() => {
+    if (active) document.body.setAttribute("data-lq-selecting", "");
+    else document.body.removeAttribute("data-lq-selecting");
+    return () => document.body.removeAttribute("data-lq-selecting");
+  }, [active]);
+
+  if (!active) return null;
 
   // ── the docked bar: always visible once something is selected ──
   const bar = (
-    <div className="fixed inset-x-0 bottom-0 z-[199990] border-t border-ink/[0.09] bg-surface-raised/95 backdrop-blur-md">
+    <div
+      className="fixed inset-x-0 bottom-0 z-[199990] border-t border-ink/[0.09] bg-surface-raised/95 backdrop-blur-md"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
           <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
