@@ -533,11 +533,11 @@ const SignalModal = ({
       let data = null;
       try {
         data = await fetchBinance();
-      } catch (_) {}
+      } catch {}
       if (!data) {
         try {
           data = await fetchBybit();
-        } catch (_) {}
+        } catch {}
       }
       // Kedua provider gagal → tandai blocked (fallback pesan VPN di UI).
       if (alive) setLiveBlocked(!data);
@@ -700,7 +700,7 @@ const SignalModal = ({
       await navigator.clipboard?.writeText(tweetUrl);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
-    } catch (_) {}
+    } catch {}
   };
 
   // === SAFE MATH HELPERS (Anti-Crash) ===
@@ -1186,7 +1186,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       await navigator.clipboard.writeText(generateAIPrompt());
       setPromptCopied(true);
       setTimeout(() => setPromptCopied(false), 2500);
-    } catch (err) {
+    } catch {
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
       textArea.value = generateAIPrompt();

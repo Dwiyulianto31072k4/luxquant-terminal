@@ -22,7 +22,6 @@ import PaymentAuditPanel from "./PaymentAuditPanel";
 
 import { AlertTriangleIcon, TrendingUpIcon, CheckCircleIcon, PlusIcon } from "../Icons";
 import { IconBadge } from "../primitives";
-import { palette } from "../designSystem";
 
 const PAGE_SIZE = 25;
 

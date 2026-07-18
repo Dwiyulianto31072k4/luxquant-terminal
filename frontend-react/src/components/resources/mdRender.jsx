@@ -208,7 +208,7 @@ export function renderRich(text) {
 export function stripMarkdown(text) {
   return String(text || "")
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, "$1") // links → label
-    .replace(/[#>*_`~\[\]]/g, "") // markdown punctuation
+    .replace(/[#>*_`~[\]]/g, "") // markdown punctuation
     .replace(/https?:\/\/\S+/g, "") // bare urls
     .replace(/\s+/g, " ")
     .trim();

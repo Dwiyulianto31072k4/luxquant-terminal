@@ -87,7 +87,7 @@ const SkeletonCard = () => (
   </div>
 );
 
-export default function TopGainers({ stats, gainers = [], onNav }) {
+export default function TopGainers({ stats, gainers = [], _onNav }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();

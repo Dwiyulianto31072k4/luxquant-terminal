@@ -64,7 +64,7 @@ export function saveRefFromURL() {
     const ref = params.get("ref");
     if (!ref) return null;
     return saveRef(ref);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -88,7 +88,7 @@ export function getStoredRef() {
     }
 
     return code;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -100,7 +100,7 @@ export function clearStoredRef() {
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(EXPIRY_KEY);
-  } catch (e) {
+  } catch {
     /* noop */
   }
 }
@@ -117,7 +117,7 @@ export async function validateRef(code) {
     const response = await fetch(`${API_BASE}/api/v1/referral/validate/${normalized}`);
     if (!response.ok) return null;
     return await response.json();
-  } catch (e) {
+  } catch {
     return null;
   }
 }

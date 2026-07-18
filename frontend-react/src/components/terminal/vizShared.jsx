@@ -381,7 +381,7 @@ export const SectionBand = ({ title, desc, badge, guide }) => {
 // Metric tile — large number, tiny label, optional sub (Aero Economics density)
 // Binance desk KPI: monochrome numbers by default.
 // `tone` only for semantic PnL (text-positive / text-negative). `accent` bar dropped (decorative).
-export const Kpi = ({ label, value, desc, tone, sub, accent, compact }) => {
+export const Kpi = ({ label, value, desc, tone, sub, _accent, compact }) => {
   // Strip leftover decorative multi-color tones (cyan/gold/purple/orange)
   const safeTone =
     tone &&

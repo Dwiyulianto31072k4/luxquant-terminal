@@ -56,7 +56,7 @@ const Toggle = ({ on, locked, onClick }) => (
   </button>
 );
 
-const NotificationSettings = ({ t, navigate }) => {
+const NotificationSettings = ({ _t, navigate }) => {
   const [items, setItems] = useState([]);
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [loading, setLoading] = useState(true);

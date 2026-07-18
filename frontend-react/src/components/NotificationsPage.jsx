@@ -10,28 +10,9 @@ import { useNavigate } from "react-router-dom";
 import { notificationApi } from "../services/notificationApi";
 import NotificationSettings from "./NotificationSettings";
 import { ShimmerStyles } from "./ui/Loaders";
-import { PageHeader } from "./ui/PageHeader";
 
 const PAGE_SIZE = 20;
 
-// ════════════════════════════════════════════════════════════════
-// SECTION HEADER
-// ════════════════════════════════════════════════════════════════
-const SectionHeader = ({ label, small = false }) => (
-  <div className="flex items-center gap-3">
-    <span
-      className={`font-mono uppercase tracking-[0.25em] text-text-muted ${
-        small ? "text-[10px]" : "text-[11px]"
-      }`}
-    >
-      {label}
-    </span>
-  </div>
-);
-
-// ════════════════════════════════════════════════════════════════
-// TYPE-BASED VISUAL TOKEN — smart pump/dump detection
-// ════════════════════════════════════════════════════════════════
 const getTypeToken = (type, data) => {
   // SMART: price_pump can be pump OR dump based on data.percentage
   if (type === "price_pump" && data?.percentage !== undefined && data?.percentage !== null) {

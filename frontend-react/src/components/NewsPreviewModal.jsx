@@ -79,7 +79,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
     </div>
   );
 
-  const footer = (close) => (
+  const footer = (_close) => (
     <div className="flex items-center gap-2">
       {article.link ? (
         <a

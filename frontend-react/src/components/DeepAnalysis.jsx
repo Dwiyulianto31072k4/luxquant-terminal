@@ -668,7 +668,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
       await navigator.clipboard.writeText(content);
       setCopyStatus(`Copied as ${format}`);
       setTimeout(() => setCopyStatus(null), 2000);
-    } catch (err) {
+    } catch {
       setCopyStatus("Copy failed");
       setTimeout(() => setCopyStatus(null), 2000);
     }
@@ -687,7 +687,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
       const data = await resp.json();
       setHistory(data.history || []);
       setShowHistory(true);
-    } catch (err) {
+    } catch {
       setError("Failed to load history");
     }
   };

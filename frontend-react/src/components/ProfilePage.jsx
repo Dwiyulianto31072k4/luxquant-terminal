@@ -17,7 +17,6 @@ import { ensureTelegram, openTelegramAuth } from "../utils/telegramLoader";
 import CountryCurrencyPicker from "./CountryCurrencyPicker";
 import VipGroupCard from "./VipGroupCard";
 import { convertPrice, formatLocalPrice, formatUsdtPrice } from "../utils/currencyHelpers";
-import { PageHeader } from "./ui/PageHeader";
 
 // ─── Lazy-load Google Identity Services — hanya saat dibutuhkan ───
 // AuthContext tidak lagi me-load GSI global (login Google sekarang pakai
@@ -85,7 +84,7 @@ const ProfilePage = () => {
       try {
         const res = await api.get("/api/v1/market/btc-ticker");
         if (!cancelled) setBtcTicker(res.data);
-      } catch (err) {
+      } catch {
         // Silent fail — preview just won't show if unavailable
       }
     };

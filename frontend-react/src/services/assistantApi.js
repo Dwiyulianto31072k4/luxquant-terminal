@@ -17,7 +17,7 @@ export async function getAssistantStatus() {
     const r = await fetch(`${API_BASE}/assistant/status`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json(); // { enabled }
-  } catch (e) {
+  } catch {
     // On failure default to enabled so help stays available.
     return { enabled: true };
   }

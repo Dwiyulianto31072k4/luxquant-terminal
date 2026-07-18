@@ -5,7 +5,6 @@ import calendarApi from "../services/calendarApi";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { SegGroup } from "./ui/SegGroup";
 import { StatCard, StatGrid } from "./ui/StatCard";
-import { PageHeader } from "./ui/PageHeader";
 
 /* ──────────────────────────────────────────────────────────────
  MacroCalendarPage — Terminal desk (theme tokens)
@@ -98,26 +97,6 @@ const TYPE_STYLE = {
   },
 };
 
-// Source badges — monochrome (name identity only)
-const SOURCE_STYLE = {
-  CoinTelegraph: {
-    color: "rgb(var(--fg-secondary))",
-    bg: "rgb(var(--ink) / 0.05)",
-    border: "rgb(var(--ink) / 0.1)",
-  },
-  CoinDesk: {
-    color: "rgb(var(--fg-secondary))",
-    bg: "rgb(var(--ink) / 0.05)",
-    border: "rgb(var(--ink) / 0.1)",
-  },
-  Decrypt: {
-    color: "rgb(var(--fg-secondary))",
-    bg: "rgb(var(--ink) / 0.05)",
-    border: "rgb(var(--ink) / 0.1)",
-  },
-};
-
-// ── Event Translations (EN → ZH) ──
 const EVENT_ZH = {
   "Unemployment Claims": "初请失业金人数",
   "Core PCE Price Index m/m": "核心PCE物价指数 (月率)",
@@ -988,39 +967,6 @@ const NewsItem = ({ article }) => {
   );
 };
 
-// ══════════════════════════════════════
-// Stat Card
-// ══════════════════════════════════════
-const CalendarStat = ({ label, value, icon, color = "default" }) => {
-  const colorStyles = {
-    profit: "text-profit",
-    loss: "text-loss",
-    accent: "text-accent",
-    gold: "text-accent",
-    default: "text-text-primary",
-  };
-  return (
-    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised p-3.5">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-          {label}
-        </p>
-        <div className="flex h-6 w-6 items-center justify-center rounded-md border border-ink/10 bg-surface-secondary text-text-muted">
-          <StatIcon type={icon} />
-        </div>
-      </div>
-      <p
-        className={`font-mono text-xl font-semibold tabular-nums leading-none tracking-tight ${colorStyles[color] || colorStyles.default}`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════
-// Skeletons
-// ══════════════════════════════════════
 const CalendarSkeleton = () => (
   <div className="space-y-2.5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgb(var(--ink) / .06);border-radius:2px}`}</style>

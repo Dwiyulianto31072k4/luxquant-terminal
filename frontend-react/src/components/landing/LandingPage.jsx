@@ -753,7 +753,7 @@ const LandingWinRateChart = ({ data }) => {
         });
         tooltipLabel = `Week of ${dt.toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" })}`;
       }
-    } catch (e) {}
+    } catch {}
 
     return {
       period: shortLabel,
@@ -1901,7 +1901,8 @@ const LandingPage = () => {
             </span>
           </h2>
           <p className="text-text-secondary text-xs lg:text-sm max-w-2xl mx-auto font-mono bg-scrim/40 py-2 px-4 rounded-md border border-ink/5 inline-block">
-            // RAW_DATA <span className="text-accent mx-1">→</span> SANITIZATION{" "}
+            {"// RAW_DATA "}
+            <span className="text-accent mx-1">→</span> SANITIZATION{" "}
             <span className="text-accent mx-1">→</span> ALPHA_MODEL{" "}
             <span className="text-accent mx-1">→</span> API_GATEWAY
           </p>

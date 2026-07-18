@@ -248,7 +248,7 @@ export default function SignalTerminalPage() {
       if (macR.status === "fulfilled" && macR.value.ok) {
         setMacro(await macR.value.json());
       }
-    } catch (e) {
+    } catch {
       /* best-effort */
     }
     setLastUpdated(new Date());
@@ -294,7 +294,7 @@ export default function SignalTerminalPage() {
         try {
           const r = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${batch.join(",")}`);
           if (r.ok) Object.assign(acc, await r.json());
-        } catch (_) {}
+        } catch {}
       }
       // Merge (never replace) so switching filters doesn't blank prices we already have.
       if (alive) setPrices((prev) => ({ ...prev, ...acc }));
@@ -450,160 +450,6 @@ const ST_META = {
   closed_loss: { label: "STOPPED OUT", color: "rgb(var(--neg-text))", desc: "Hit stop loss" },
 };
 
-// ── Signal detail modal — opens when any point/row/tile is clicked ──
-function SignalDetailModal({ d, onClose, onFull }) {
-  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
-  const dialogRef = useRef(null);
-  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
-
-  if (!d) return null;
-  const st = ST_META[d.status] || {
-    label: (d.status || "—").toUpperCase(),
-    color: "rgb(var(--fg-secondary))",
-    desc: "",
-  };
-  const sign = (v) =>
-    v == null ? "text-text-primary/90" : v >= 0 ? "text-positive" : "text-negative";
-  const Stat = ({ label, val, tone }) => (
-    <div className="rounded-xl bg-ink/[0.02] border border-ink/[0.06] px-3 py-2.5">
-      <div className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted">
-        {label}
-      </div>
-      <div className={`font-mono tabular-nums text-[15px] mt-1 ${tone || "text-text-primary/90"}`}>
-        {val}
-      </div>
-    </div>
-  );
-  return (
-    <div
-      ref={dialogRef}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Signal detail"
-      className="fixed inset-0 flex items-end justify-center bg-scrim/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      style={{ zIndex: 200000 }}
-      onClick={onClose}
-    >
-      <div
-        className="relative max-h-[min(92dvh,100%)] w-full max-w-[540px] overflow-auto rounded-t-2xl border-t border-ink/[0.1] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-xl sm:border sm:shadow-2xl sm:shadow-black/60"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="sticky top-0 z-10 flex justify-center bg-surface-raised pb-0 pt-2.5 sm:hidden"
-          aria-hidden="true"
-        >
-          <div className="h-1 w-10 rounded-full bg-ink/25" />
-        </div>
-
-        <div className="flex items-center gap-3 px-5 pt-4 sm:pt-5">
-          <CoinLogo pair={d.pair} size={38} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[18px] font-semibold leading-none text-text-primary">
-                {d.sym}
-              </span>
-              <span className="font-mono text-[11px] text-text-muted">{d.pair}</span>
-            </div>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              {d.risk && (
-                <span className="rounded-sm border border-ink/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-primary/60">
-                  {d.risk} risk
-                </span>
-              )}
-              {d.decoupled && (
-                <span className="rounded-sm border border-accent/25 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent/90">
-                  btc-decoupled
-                </span>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div
-          className="mx-5 mt-4 flex items-center gap-3 rounded-xl px-4 py-3"
-          style={{ background: `${st.color}14`, border: `1px solid ${st.color}44` }}
-        >
-          <span
-            className="font-mono text-[15px] font-bold tracking-wider"
-            style={{ color: st.color }}
-          >
-            {st.label}
-          </span>
-          <span className="hidden text-[11px] text-text-muted sm:block">{st.desc}</span>
-          <span className="ml-auto text-right">
-            <span className="block font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/70">
-              from call
-            </span>
-            <span
-              className="font-mono text-[17px] tabular-nums"
-              style={{
-                color: d.from_call == null ? "#8a8478" : d.from_call >= 0 ? "#34d399" : "#f87171",
-              }}
-            >
-              {d.from_call == null
-                ? "—"
-                : (d.from_call >= 0 ? "+" : "") + d.from_call.toFixed(1) + "%"}
-            </span>
-          </span>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 px-5 sm:grid-cols-3">
-          <Stat
-            label="Win Rate"
-            val={d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}
-            tone="text-text-primary"
-          />
-          <Stat
-            label="Max Target"
-            val={d.max_target == null ? "—" : "+" + d.max_target.toFixed(0) + "%"}
-            tone="text-profit"
-          />
-          <Stat
-            label="24h Δ"
-            val={
-              (d.price_change_24h >= 0 ? "+" : "") + (d.price_change_24h?.toFixed?.(1) ?? "—") + "%"
-            }
-            tone={sign(d.price_change_24h)}
-          />
-          <Stat label="BTC Align" val={d.btc_align == null ? "—" : d.btc_align.toFixed(0)} />
-          <Stat
-            label="Vol / MCap"
-            val={d.flow_intensity ? (d.flow_intensity * 100).toFixed(1) + "%" : "—"}
-          />
-          <Stat label="Market Cap" val={"$" + shortNum(d.market_cap)} />
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-2 px-5">
-          <Stat label="Entry" val={d.entry ? "$" + fmtPrice(d.entry) : "—"} />
-          <Stat label="Live Price" val={d.price ? "$" + fmtPrice(d.price) : "—"} />
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 border-t border-ink/[0.06] px-5 py-4">
-          <button
-            onClick={onFull}
-            className="flex-1 rounded-lg border border-ink/15 bg-ink/[0.1] py-2.5 text-[13px] font-semibold text-text-primary transition hover:bg-ink/[0.14]"
-          >
-            Open full signal →
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-ink/12 px-4 py-2.5 text-[13px] text-text-primary/70 transition hover:border-ink/25"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Encoder select ──
 function Enc({ label, value, onChange }) {
   return (
     <label className="flex items-center gap-2">

@@ -775,7 +775,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
  (consistent with OverviewPage outcome bars pattern)
  ────────────────────────────────────────────────────────────── */
 
-const OutcomeDistribution = ({ data, t }) => {
+const OutcomeDistribution = ({ data, _t }) => {
   const total = data.tp1_count + data.tp2_count + data.tp3_count + data.tp4_count + data.sl_count;
   if (total === 0)
     return (
@@ -858,7 +858,7 @@ const OutcomeDistribution = ({ data, t }) => {
  WIN RATE TREND CHART — muted profit color
  ────────────────────────────────────────────────────────────── */
 
-const WinRateTrendChart = ({ data, mode, t }) => {
+const WinRateTrendChart = ({ data, _mode, t }) => {
   if (!data || data.length === 0)
     return (
       <div className="h-72 lg:h-96 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
@@ -1164,7 +1164,7 @@ const RiskRewardChart = ({ data, t }) => {
  RISK TREND CHART — muted profit/gold/loss palette
  ────────────────────────────────────────────────────────────── */
 
-const RiskTrendChart = ({ data, mode, t }) => {
+const RiskTrendChart = ({ data, _mode, t }) => {
   if (!data || data.length === 0)
     return (
       <div className="h-48 lg:h-64 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
@@ -1935,7 +1935,7 @@ const IconChevronRight = () => (
  LOADING SKELETON
  ────────────────────────────────────────────────────────────── */
 
-const LoadingSkeleton = ({ t }) => (
+const LoadingSkeleton = ({ _t }) => (
   <div className="space-y-5">
     <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgb(var(--ink) / .06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">

@@ -63,7 +63,7 @@ export default function AssistantFullPage() {
       try {
         const res = await askAssistant({ message: q, pageId, history });
         setMessages((m) => [...m, { role: "assistant", content: res.answer || "…" }]);
-      } catch (e) {
+      } catch {
         setMessages((m) => [
           ...m,
           { role: "assistant", content: "Sorry, something went wrong. Please try again." },

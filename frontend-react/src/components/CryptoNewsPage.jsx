@@ -145,21 +145,6 @@ const categorizeItem = (item) => {
 // 2. ATOMS — DomainBadge, BrandThumbnail
 // ════════════════════════════════════════════
 
-const DomainBadge = ({ domain, size = "sm" }) => {
-  if (!domain) return null;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded border border-ink/[0.1] bg-ink/[0.04] font-mono uppercase tracking-[0.12em] text-text-muted ${
-        size === "lg" ? "px-2 py-0.5 text-[10px]" : "px-1.5 py-0.5 text-[9px]"
-      }`}
-    >
-      <span className="h-1 w-1 rounded-full bg-ink/45" />
-      {shortDomain(domain)}
-    </span>
-  );
-};
-
-// Decode HTML entities that sometimes leak into summaries (&nbsp; etc.)
 const cleanText = (s) => {
   if (!s) return "";
   try {
@@ -338,7 +323,7 @@ const NewsModal = ({ item, onClose }) => {
     </div>
   );
 
-  const footer = (close) => (
+  const footer = (_close) => (
     <div className="flex items-stretch gap-2">
       {item.url ? (
         <button
@@ -494,62 +479,6 @@ const NewsModal = ({ item, onClose }) => {
 // 4. PULSE TICKER — horizontal scrolling latest headlines
 // ════════════════════════════════════════════
 
-const PulseTicker = ({ items, onSelect }) => {
-  if (!items || items.length === 0) return null;
-  const ticker = items.slice(0, 12);
-
-  return (
-    <div className="group relative overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised">
-      <style>{`
- @keyframes tickerScroll {
- 0% { transform: translateX(0); }
- 100% { transform: translateX(-50%); }
- }
- .ticker-track { animation: tickerScroll 80s linear infinite; }
- .group:hover .ticker-track { animation-play-state: paused; }
- `}</style>
-
-      <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-surface-raised to-transparent" />
-      <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-surface-raised to-transparent" />
-
-      <div className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 items-center gap-1.5">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
-        </span>
-        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-profit">
-          Live
-        </span>
-      </div>
-
-      <div className="ticker-track flex py-2.5 pl-24" style={{ width: "fit-content" }}>
-        {[...ticker, ...ticker].map((item, i) => (
-          <button
-            key={`${item.id}-${i}`}
-            type="button"
-            onClick={() => onSelect(item)}
-            className="group/item mr-2 flex items-center gap-2 whitespace-nowrap px-4 text-[12px] transition-colors hover:text-text-primary"
-          >
-            <span className="h-1 w-1 flex-shrink-0 rounded-full bg-ink/40" />
-            <span className="font-mono text-[10px] uppercase text-text-muted">
-              {shortDomain(item.domain)}
-            </span>
-            <span className="max-w-[420px] truncate text-text-primary/80 transition-colors group-hover/item:text-text-primary">
-              {item.title}
-            </span>
-            <span className="font-mono text-[10px] tabular-nums text-text-muted">
-              {timeAgo(item.created_at)}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ════════════════════════════════════════════
-// 5. BLOOMBERG EDITORIAL LAYOUT ATOMS
-// ════════════════════════════════════════════
 
 const sourceLabel = (item) =>
   shortDomain(item?.domain) || (item?.source ? String(item.source).slice(0, 18) : "") || "Wire";
@@ -1281,48 +1210,7 @@ const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
   }
 };
 
-// Desk segment chip — solid yellow when active (Binance CTA)
-const FilterChip = ({ active, onClick, children, icon }) => {
-  const base =
-    "inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors";
 
-  if (active) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`${base} border border-transparent bg-accent text-accent-fg`}
-      >
-        {icon && <Icon name={icon} className="h-3 w-3 opacity-90" />}
-        {children}
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`${base} border border-transparent text-text-muted hover:bg-ink/[0.04] hover:text-text-primary`}
-    >
-      {icon && <Icon name={icon} className="h-3 w-3 opacity-70" />}
-      {children}
-    </button>
-  );
-};
-
-const ChipCount = ({ value, active }) => {
-  if (value === undefined || value === null) return null;
-  return (
-    <span
-      className={`ml-1 font-mono text-[10px] tabular-nums ${
-        active ? "text-accent-fg/80" : "text-text-muted/55"
-      }`}
-    >
-      {value}
-    </span>
-  );
-};
 
 const FilterBar = ({
   searchInput,

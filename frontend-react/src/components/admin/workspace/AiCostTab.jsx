@@ -84,7 +84,7 @@ export function AiCostTab() {
       ]);
       setSummary(s);
       setRecent(r.items || []);
-    } catch (e) {
+    } catch {
       setError("Failed to load AI cost data.");
     } finally {
       setLoading(false);

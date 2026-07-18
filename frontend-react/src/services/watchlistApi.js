@@ -31,7 +31,7 @@ export const watchlistApi = {
     try {
       const response = await api.get("/api/v1/watchlist/ids");
       return response.data;
-    } catch (error) {
+    } catch {
       // If endpoint doesn't exist, fallback to getting full watchlist
       console.warn("getWatchlistIds endpoint not found, falling back to full watchlist");
       try {

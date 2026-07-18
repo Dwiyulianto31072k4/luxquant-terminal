@@ -226,7 +226,7 @@ function FngBadge({ value, label }) {
   );
 }
 
-function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, t }) {
+function SignalCard({ s, live, ps, flow, prefs, pinned, onPin, onPair, onOpen, _t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;

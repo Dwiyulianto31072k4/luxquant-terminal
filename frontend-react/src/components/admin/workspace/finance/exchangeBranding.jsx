@@ -501,36 +501,6 @@ export const ExchangeBadge = ({ exchange, dense = false }) => {
 
 /* ── Meta chip (solid inset surface) ──────────────────────────────── */
 
-const MetaChip = ({ icon: Icon, label, value, accent, brand }) => (
-  <div
-    className="flex flex-col gap-0.5 min-w-0 rounded-lg px-2.5 py-2"
-    style={{
-      background: brand.surfaceInset,
-      border: `1px solid ${brand.border}`,
-    }}
-  >
-    <span
-      className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] font-semibold"
-      style={{ color: accent || brand.textMuted }}
-    >
-      {Icon && <Icon size={10} />}
-      {label}
-    </span>
-    <span
-      className="text-[11px] font-medium tabular-nums truncate"
-      style={{ color: brand.text }}
-      title={typeof value === "string" ? value : undefined}
-    >
-      {value || "—"}
-    </span>
-  </div>
-);
-
-/**
- * Bank-card style payment hero — full-bleed solid brand gradient
- * (reference: premium debit/credit card UI). Each exchange paints its own
- * product color system; logo + amount sit on solid color, not washed glass.
- */
 export const ExchangePaymentHero = ({ payment }) => {
   if (!payment) return null;
 

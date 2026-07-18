@@ -524,7 +524,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
       showToast(`Status changed to ${newStatus.replace("_", " ")}`);
       fetchFollowups();
       if (onRefreshStats) onRefreshStats();
-    } catch (e) {
+    } catch {
       showToast("Failed to update status", "error");
     }
   };

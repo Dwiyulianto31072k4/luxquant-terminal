@@ -49,68 +49,7 @@ const SECTOR_OPTIONS = [
   "other",
 ];
 
-// ─── Sparkline (inline SVG, area + line, trend-colored) ──────────
-const Sparkline = ({ values, up }) => {
-  if (!values || values.length < 2) return null;
-  const W = 132,
-    H = 30,
-    pad = 3;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const pts = values.map((v, i) => {
-    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
-    const y = H - pad - ((v - min) / range) * (H - pad * 2);
-    return [x, y];
-  });
-  const line = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`)
-    .join(" ");
-  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
-  const stroke = up ? "#10b981" : "#ef4444";
-  const last = pts[pts.length - 1];
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
-      <path d={area} fill={stroke} fillOpacity="0.10" />
-      <path
-        d={line}
-        fill="none"
-        stroke={stroke}
-        strokeOpacity="0.85"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <circle cx={last[0]} cy={last[1]} r="2" fill={stroke} />
-    </svg>
-  );
-};
 
-// ─── KPI tile ────────────────────────────────────────────────────
-const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
-  <div className="relative rounded-xl bg-surface-raised border border-ink/[0.07] px-4 py-3.5 flex flex-col">
-    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-    <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-text-primary/40">
-      {label}
-    </div>
-    <div
-      className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-text-primary/95"}`}
-    >
-      {value}
-    </div>
-    {children}
-    {sub && (
-      <div className="text-[10px] tracking-[0.12em] font-mono uppercase mt-1.5 text-text-primary/40">
-        {sub}
-      </div>
-    )}
-  </div>
-);
-
-// ─── Per-research-tab identity ───────────────────────────────────
-// Each research tab answers a different question, so it opens with its own
-// header (icon + title + intent) plus a slim shared range-context strip —
-// not the same 4-KPI block on every tab.
 
 const RGlyph = ({ d, circles }) => (
   <svg

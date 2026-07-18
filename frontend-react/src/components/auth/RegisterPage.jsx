@@ -54,11 +54,11 @@ const RegisterPage = () => {
       if (refCode.current) {
         try {
           await referralApi.applyCode(refCode.current);
-        } catch (e) {
+        } catch {
           /* ignore */
         }
       }
-    } catch (err) {
+    } catch {
       /* handled */
     } finally {
       setLoading(false);
@@ -497,10 +497,10 @@ const MobileGlobeInner = () => {
           if (anim.current) cancelAnimationFrame(anim.current);
           try {
             r.dispose();
-          } catch (e) {}
+          } catch {}
           try {
             if (el?.contains(r.domElement)) el.removeChild(r.domElement);
-          } catch (e) {}
+          } catch {}
         };
         ref.current._cleanup = cleanup;
       } catch (e) {

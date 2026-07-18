@@ -66,7 +66,7 @@ export default function AssistantWidget({ pageId = "signals", contextHint = null
       try {
         const res = await askAssistant({ message: q, pageId, history, context: contextHint });
         setMessages((m) => [...m, { role: "assistant", content: res.answer || "…" }]);
-      } catch (e) {
+      } catch {
         setMessages((m) => [
           ...m,
           { role: "assistant", content: "Sorry, something went wrong. Please try again." },

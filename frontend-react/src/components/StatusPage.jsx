@@ -13,7 +13,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { palette, tint, gradient } from "./admin/designSystem";
 import Seo from "./Seo";
-import { PageHeader } from "./ui/PageHeader";
 
 const REFRESH_MS = 30_000;
 const PING_TIMEOUT_MS = 4_000;

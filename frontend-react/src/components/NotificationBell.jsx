@@ -123,7 +123,7 @@ const NotificationBell = () => {
         const data = await notificationApi.getNotifications(1, 5, null, false);
         setPreview(data.items || []);
         setUnreadCount(data.unread_count || 0);
-      } catch (err) {
+      } catch {
         setPreview([]);
       } finally {
         setLoadingPreview(false);

@@ -166,7 +166,7 @@ export const formatLocalPrice = (value, currency, options = {}) => {
         ? { notation: "compact", compactDisplay: "short" }
         : {}),
     }).format(value);
-  } catch (err) {
+  } catch {
     // Fallback for browsers/locales that don't support this currency
     const formatted = value.toFixed(decimals);
     return options.showCode === false ? formatted : `${formatted} ${code}`;

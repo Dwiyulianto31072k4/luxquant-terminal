@@ -86,7 +86,7 @@ export const getFearGreedIndex = async () => {
 // ============================================
 
 // Get BTC Funding Rate
-export const getFundingRate = async (symbol = "BTCUSDT") => {
+export const getFundingRate = async (_symbol = "BTCUSDT") => {
   try {
     const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/overview`);
     if (data?.funding) {
@@ -123,7 +123,7 @@ export const getOpenInterest = async (symbol = "BTCUSDT") => {
 };
 
 // Get Long/Short Ratio
-export const getLongShortRatio = async (symbol = "BTCUSDT", period = "5m") => {
+export const getLongShortRatio = async (_symbol = "BTCUSDT", _period = "5m") => {
   try {
     const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/overview`);
     if (data?.long_short) {

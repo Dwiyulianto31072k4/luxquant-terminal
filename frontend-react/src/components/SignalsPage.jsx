@@ -254,23 +254,6 @@ const Icon = {
   ),
 };
 
-// ================================================================
-// SECTION HEADER — muted mono (no gold)
-// ================================================================
-const SectionHeader = ({ label, hint }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-      {label}
-    </span>
-    {hint && (
-      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
-        {hint}
-      </span>
-    )}
-  </div>
-);
-
-// Product family switcher — Trades · Terminal · AI Research
 const ProductSwitcher = ({ active = "trades", onTerminal, onResearch }) => {
   const base =
     "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
@@ -621,7 +604,7 @@ const SignalsPage = () => {
       const items = Array.isArray(data) ? data : data?.items || data?.watchlist || [];
       setWatchlistSignals(items);
       setWatchlistIds(items.map((i) => i.signal_id).filter(Boolean));
-    } catch (_) {}
+    } catch {}
   }, []);
 
   useEffect(() => {

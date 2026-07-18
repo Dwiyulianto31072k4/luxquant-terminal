@@ -6,7 +6,6 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { watchlistApi } from "../services/watchlistApi";
@@ -15,7 +14,6 @@ import CoinLogo from "./CoinLogo";
 import SignalModal from "./SignalModal";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
-import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const PRICE_REFRESH_INTERVAL = 15000;
@@ -875,7 +873,7 @@ const DesktopRow = ({
 const ExpandedDetail = ({
   item,
   tpList,
-  currentPrice,
+  _currentPrice,
   currentVol,
   formatPrice,
   formatVolume,

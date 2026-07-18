@@ -444,21 +444,17 @@ export const MarketingTab = ({ onRefreshStats }) => {
   };
 
   const handleSave = async (payload) => {
-    try {
-      if (editingItem) {
-        await workspaceApi.updateCampaign(editingItem.id, payload);
-        showToast("Campaign updated");
-      } else {
-        await workspaceApi.createCampaign(payload);
-        showToast("Campaign created");
-      }
-      setPanelOpen(false);
-      setEditingItem(null);
-      fetchCampaigns();
-      if (onRefreshStats) onRefreshStats();
-    } catch (err) {
-      throw err;
+    if (editingItem) {
+      await workspaceApi.updateCampaign(editingItem.id, payload);
+      showToast("Campaign updated");
+    } else {
+      await workspaceApi.createCampaign(payload);
+      showToast("Campaign created");
     }
+    setPanelOpen(false);
+    setEditingItem(null);
+    fetchCampaigns();
+    if (onRefreshStats) onRefreshStats();
   };
 
   const handleDelete = (c) => {

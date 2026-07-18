@@ -408,21 +408,17 @@ export const TodoTab = ({ onRefreshStats }) => {
   };
 
   const handleSave = async (payload) => {
-    try {
-      if (editingItem) {
-        await workspaceApi.updateTodo(editingItem.id, payload);
-        showToast("Todo updated");
-      } else {
-        await workspaceApi.createTodo(payload);
-        showToast("Todo created");
-      }
-      setPanelOpen(false);
-      setEditingItem(null);
-      fetchTodos();
-      if (onRefreshStats) onRefreshStats();
-    } catch (err) {
-      throw err;
+    if (editingItem) {
+      await workspaceApi.updateTodo(editingItem.id, payload);
+      showToast("Todo updated");
+    } else {
+      await workspaceApi.createTodo(payload);
+      showToast("Todo created");
     }
+    setPanelOpen(false);
+    setEditingItem(null);
+    fetchTodos();
+    if (onRefreshStats) onRefreshStats();
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -430,7 +426,7 @@ export const TodoTab = ({ onRefreshStats }) => {
       setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t)));
       await workspaceApi.updateTodo(id, { status: newStatus });
       if (onRefreshStats) onRefreshStats();
-    } catch (e) {
+    } catch {
       showToast("Failed to update status", "error");
       fetchTodos();
     }

@@ -30,14 +30,10 @@ const SignalTerminalPage = lazy(() => import("./components/SignalTerminalPage"))
 const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
 const MarketsPage = lazy(() => import("./components/MarketsPage"));
 const ApiKeysPage = lazy(() => import("./components/ApiKeysPage"));
-const AnalyzePage = lazy(() => import("./components/AnalyzePage"));
-const WatchlistPage = lazy(() => import("./components/WatchlistPage"));
 const WatchlistTabs = lazy(() => import("./components/WatchlistTabs"));
 const TipsPage = lazy(() => import("./components/ResourcesPage"));
-const UserManagementPage = lazy(() => import("./components/UserManagementPage"));
 const AdminWorkspacePage = lazy(() => import("./components/AdminWorkspacePage"));
 const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
-const WhaleAlertPage = lazy(() => import("./components/WhaleAlertPage"));
 const MoneyFlowPage = lazy(() => import("./components/MoneyFlowPage"));
 const DelistingsPage = lazy(() => import("./components/DelistingsPage"));
 const LearnPage = lazy(() => import("./components/LearnPage"));
@@ -64,8 +60,6 @@ const CryptoNewsPage = lazy(() => import("./components/CryptoNewsPage"));
 const OnchainPage = lazy(() => import("./components/OnchainPage"));
 const AutoTradePage = lazy(() => import("./components/AutoTradePage"));
 const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
-const DailyPerformancePage = lazy(() => import("./components/DailyPerformancePage"));
-const EdgeLabPage = lazy(() => import("./components/EdgeLabPage"));
 const TerminalLayout = lazy(() => import("./components/terminal/TerminalLayout"));
 const SignalsAnalytics = lazy(() => import("./components/terminal/SignalsAnalytics"));
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
@@ -434,8 +428,8 @@ const SidebarItem = ({
   label,
   icon,
   path,
-  isPremium,
-  isFreeBadge,
+  _isPremium,
+  _isFreeBadge,
   isAdminAccent,
 }) => {
   const glyph = (path && NAV_ICON_PATHS[path]) || icon;

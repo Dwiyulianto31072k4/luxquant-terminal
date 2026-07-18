@@ -11,7 +11,7 @@ const fmtDate = (d) =>
     ? new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
     : "";
 
-const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
+const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
   const [resource, setResource] = useState(initial);
   const [loading, setLoading] = useState(!initial?.content && initial?.type === "article");
 

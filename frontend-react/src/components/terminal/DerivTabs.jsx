@@ -959,46 +959,50 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 const LINE_COLORS = SERIES.filter((c) => c !== GOLD);
 
 // end-of-line label: coin logo + symbol at the tip of each rebased line
-const makeEndLabel = (sym, color, total) => (props) => {
-  const { x, y, index, value } = props;
-  if (value == null || index !== total - 1 || !Number.isFinite(x) || !Number.isFinite(y))
-    return null;
-  const name = sym.replace(/USDT$/, "");
-  const icon = name.toLowerCase().replace(/^1000/, "");
-  const url = `https://assets.coincap.io/assets/icons/${icon}@2x.png`;
-  const cid = `lqclip-${icon}`;
-  const cx = x + 12,
-    r = 7;
-  return (
-    <g style={{ pointerEvents: "none" }}>
-      <defs>
-        <clipPath id={cid}>
-          <circle cx={cx} cy={y} r={r} />
-        </clipPath>
-      </defs>
-      <circle cx={cx} cy={y} r={r + 1} fill="#0a0806" />
-      <image
-        href={url}
-        x={cx - r}
-        y={y - r}
-        width={r * 2}
-        height={r * 2}
-        preserveAspectRatio="xMidYMid slice"
-        clipPath={`url(#${cid})`}
-      />
-      <circle cx={cx} cy={y} r={r} fill="none" stroke={color} strokeWidth={1.25} opacity={0.65} />
-      <text
-        x={cx + r + 3}
-        y={y + 3.5}
-        fill={color}
-        fontSize={9.5}
-        fontFamily="JetBrains Mono"
-        fontWeight="600"
-      >
-        {name}
-      </text>
-    </g>
-  );
+const makeEndLabel = (sym, color, total) => {
+  const EndLabel = (props) => {
+    const { x, y, index, value } = props;
+    if (value == null || index !== total - 1 || !Number.isFinite(x) || !Number.isFinite(y))
+      return null;
+    const name = sym.replace(/USDT$/, "");
+    const icon = name.toLowerCase().replace(/^1000/, "");
+    const url = `https://assets.coincap.io/assets/icons/${icon}@2x.png`;
+    const cid = `lqclip-${icon}`;
+    const cx = x + 12,
+      r = 7;
+    return (
+      <g style={{ pointerEvents: "none" }}>
+        <defs>
+          <clipPath id={cid}>
+            <circle cx={cx} cy={y} r={r} />
+          </clipPath>
+        </defs>
+        <circle cx={cx} cy={y} r={r + 1} fill="#0a0806" />
+        <image
+          href={url}
+          x={cx - r}
+          y={y - r}
+          width={r * 2}
+          height={r * 2}
+          preserveAspectRatio="xMidYMid slice"
+          clipPath={`url(#${cid})`}
+        />
+        <circle cx={cx} cy={y} r={r} fill="none" stroke={color} strokeWidth={1.25} opacity={0.65} />
+        <text
+          x={cx + r + 3}
+          y={y + 3.5}
+          fill={color}
+          fontSize={9.5}
+          fontFamily="JetBrains Mono"
+          fontWeight="600"
+        >
+          {name}
+        </text>
+      </g>
+    );
+  };
+  EndLabel.displayName = `EndLabel(${sym})`;
+  return EndLabel;
 };
 const WINDOWS = {
   "24h": { interval: "15m", limit: 96 },

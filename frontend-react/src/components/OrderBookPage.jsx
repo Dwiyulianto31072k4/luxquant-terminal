@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import orderbookApi from "../services/orderbookApi";
 import api from "../services/api";
 import AssistantWidget from "./assistant/AssistantWidget";
-import { PageHeader } from "./ui/PageHeader";
 
 // ═══════════════════════════════════════════
 // Config

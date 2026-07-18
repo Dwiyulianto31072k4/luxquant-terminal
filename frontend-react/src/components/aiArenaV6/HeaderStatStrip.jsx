@@ -170,38 +170,6 @@ function useLiveBtcPrice() {
   return { data, loading };
 }
 
-// ── Stat Cell ────────────────────────────────────────
-const StatCell = ({
-  label,
-  value,
-  sublabel,
-  valueClass = "text-text-primary",
-  mono = true,
-  livePulse = false,
-}) => (
-  <div className="flex flex-col gap-0.5 min-w-0">
-    <div className="text-[8.5px] uppercase tracking-[0.15em] text-text-muted font-bold leading-tight flex items-center gap-1.5">
-      {label}
-      {livePulse && (
-        <span className="inline-flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-positive animate-pulse" />
-        </span>
-      )}
-    </div>
-    <div
-      className={`${
-        mono ? "font-mono" : ""
-      } text-sm font-bold leading-tight truncate ${valueClass}`}
-    >
-      {value}
-    </div>
-    {sublabel && (
-      <div className="text-[9px] text-text-muted/80 truncate leading-tight">{sublabel}</div>
-    )}
-  </div>
-);
-
-// ── Main ─────────────────────────────────────────────
 export default function HeaderStatStrip({ data }) {
   const { data: liveBtc } = useLiveBtcPrice();
 

@@ -24,7 +24,7 @@ import "./i18n"; // <--- Baris pemanggil kamus bahasa
         sessionStorage.setItem(KEY, String(Date.now()));
         window.location.reload();
       }
-    } catch (_e) {
+    } catch {
       window.location.reload();
     }
   };

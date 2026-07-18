@@ -216,7 +216,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
         setCoverFile(null);
       }
       if (p.type === "video") setType("video");
-    } catch (err) {
+    } catch {
       setError("Could not fetch preview. You can still fill the fields manually.");
       // still offer a YouTube thumbnail if possible
       const yt = youtubeThumb(sourceUrl);

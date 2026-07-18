@@ -12,7 +12,6 @@ import {
   getScenarioLedger,
 } from "../services/aiArenaV6Api";
 
-import CompassBrief from "./aiArenaV6/CompassBrief";
 import PriceChart from "./aiArenaV6/PriceChart";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
 import BrainPanel from "./aiArenaV6/BrainPanel";

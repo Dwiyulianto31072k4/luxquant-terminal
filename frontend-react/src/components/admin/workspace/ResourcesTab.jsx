@@ -140,7 +140,7 @@ export const ResourcesTab = () => {
       setItems((prev) =>
         prev.map((x) => (x.id === r.id ? { ...x, is_featured: updated.is_featured } : x))
       );
-    } catch (e) {
+    } catch {
       /* noop */
     } finally {
       setBusy(false);
@@ -154,7 +154,7 @@ export const ResourcesTab = () => {
       fd.append("resource_status", r.status === "published" ? "draft" : "published");
       const updated = await resourcesApi.update(r.id, fd);
       setItems((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: updated.status } : x)));
-    } catch (e) {
+    } catch {
       /* noop */
     } finally {
       setBusy(false);

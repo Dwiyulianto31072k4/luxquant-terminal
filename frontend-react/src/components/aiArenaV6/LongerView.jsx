@@ -97,7 +97,7 @@ const VerdictHero = ({ horizon, verdict, note }) => {
 };
 
 /* ── metric grid for a set of rows ── */
-const RowMetrics = ({ rows, horizon = "72h" }) => (
+const RowMetrics = ({ rows, _horizon = "72h" }) => (
   <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
     {rows.map(
       (r) =>

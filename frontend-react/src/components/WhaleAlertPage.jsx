@@ -8,7 +8,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import whaleApi from "../services/whaleApi";
-import { PageHeader } from "./ui/PageHeader";
 
 // ═══════════════════════════════════════════
 // Config

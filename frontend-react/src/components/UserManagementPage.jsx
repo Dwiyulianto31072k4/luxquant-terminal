@@ -372,7 +372,7 @@ const UserManagementPage = () => {
           fetchUsers();
           fetchStats();
           fetchExpiring();
-        } catch (e) {
+        } catch {
           showToast("Cleanup failed", "error");
         }
       },

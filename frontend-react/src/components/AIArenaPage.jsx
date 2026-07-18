@@ -329,7 +329,7 @@ function BlufHero({ report }) {
 // [3] ZONES TO WATCH
 // ════════════════════════════════════════
 
-function ZonesToWatch({ zones, currentPrice }) {
+function ZonesToWatch({ zones, _currentPrice }) {
   if (!zones) return null;
 
   return (
@@ -532,7 +532,7 @@ function PriceChart({ activeTF, onTFChange }) {
         // Zones to watch shading (horizontal price lines)
         const zones = chartData.zones_to_watch;
         if (zones) {
-          const drawZone = (zone, color, opacity) => {
+          const drawZone = (zone, color, _opacity) => {
             if (!zone?.low || !zone?.high) return;
             // Draw as two horizontal lines (low + high)
             [zone.low, zone.high].forEach((val) => {

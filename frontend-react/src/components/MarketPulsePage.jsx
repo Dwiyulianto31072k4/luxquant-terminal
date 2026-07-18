@@ -223,22 +223,6 @@ const IconEmpty = ({ className = "h-8 w-8" }) => (
   </svg>
 );
 
-const IconActivity = ({ className = "h-3.5 w-3.5" }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-  </svg>
-);
-
-// Panel collapse (chevrons →) / expand (chevrons ←)
 const IconChevronsRight = ({ className = "h-3.5 w-3.5" }) => (
   <svg
     className={className}
@@ -810,7 +794,7 @@ const PulseTape = ({ items, onSelect }) => {
 // MARKET BIAS BANNER — breadth verdict (short/long bias, at a glance)
 // ════════════════════════════════════════════════════════
 
-const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
+const MarketBiasBanner = ({ ratio, _pumpCount, _dumpCount }) => {
   const { bull, bear, bullPct, verdict, adRatio } = ratio;
   const bearPct = 100 - bullPct;
   const cfg = {
@@ -1231,23 +1215,7 @@ const ControlBar = ({
   </div>
 );
 
-// ── Filter Pill — solid Binance yellow when active (desk CTA) ─
-const FilterPill = ({ active, onClick, label }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
-      active
-        ? "border-transparent bg-accent text-accent-fg"
-        : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
-    }`}
-  >
-    {label}
-  </button>
-);
-
-// ── Coin Detail Banner (Flowscan inset panel) ───────────
-const CoinDetailBanner = ({ pair, coinDetail, timeAgo, onClose, onOpenChart }) => {
+const CoinDetailBanner = ({ pair, coinDetail, timeAgo, _onClose, onOpenChart }) => {
   const symbol = stripQuote(pair);
   const stats = coinDetail.stats;
   const bullPct = stats.bull_pct;
@@ -1474,7 +1442,7 @@ const SplitColHeader = ({ dir, count }) => {
 };
 
 const ActivityFeedPanel = ({
-  filteredFeed,
+  _filteredFeed,
   feed,
   loading,
   feedLayout,
@@ -2001,7 +1969,7 @@ function HeatTreemap({ data, height, onPick }) {
   );
 }
 
-const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange }) => {
+const HeatmapPanel = ({ heatmap, _selectedCoin, onSelect, sortMode, onSortChange }) => {
   const [expanded, setExpanded] = useState(false);
   const statusCtx = useSignalStatus();
   const calledMap = statusCtx?.map;

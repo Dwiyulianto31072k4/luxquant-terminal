@@ -27,7 +27,7 @@ try {
       });
     }
   }
-} catch (e) {}
+} catch {}
 
 let _saveTimer = null;
 const _saveToStorage = () => {
@@ -42,7 +42,7 @@ const _saveToStorage = () => {
         data[symbol] = "FAIL";
       });
       localStorage.setItem(CACHE_KEY, JSON.stringify({ v: CACHE_VERSION, data }));
-    } catch (e) {}
+    } catch {}
   }, 2000);
 };
 

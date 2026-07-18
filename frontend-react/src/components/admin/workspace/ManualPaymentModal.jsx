@@ -510,7 +510,7 @@ const UserStep = ({
       try {
         const d = await financeApi.searchUsers(query.trim());
         setResults(d.users || []);
-      } catch (e) {
+      } catch {
         setResults([]);
       } finally {
         setSearching(false);
@@ -995,7 +995,7 @@ export const ManualPaymentModal = ({
   isOpen,
   onClose,
   onSuccess,
-  preselectedUserId = null,
+  _preselectedUserId = null,
   preselectedUser = null,
 }) => {
   const [txHash, setTxHash] = useState("");

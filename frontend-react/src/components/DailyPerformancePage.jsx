@@ -377,7 +377,7 @@ const FilterChipsBar = ({ filters, onRemove, onClear, totalUnfiltered, totalFilt
 
 // ─── Coverage banner ─────────────────────────────────────────────
 
-const CoverageBanner = ({ coverage, total, dailyRegime, hasFilters }) => {
+const CoverageBanner = ({ coverage, total, _dailyRegime, hasFilters }) => {
   if (hasFilters) return null;
   const pct = total > 0 ? (coverage / total) * 100 : 0;
   if (pct >= 30) return null;

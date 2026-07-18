@@ -80,7 +80,7 @@ export function SignalStatusProvider({ children }) {
           }
         }
         if (alive) setMap(m);
-      } catch (_) {
+      } catch {
         /* silent — hover status is a nice-to-have overlay */
       }
     };

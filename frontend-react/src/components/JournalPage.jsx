@@ -216,17 +216,6 @@ const IconSearch = (p) => (
     }
   />
 );
-const IconClose = (p) => (
-  <Icon
-    {...p}
-    path={
-      <>
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </>
-    }
-  />
-);
 const IconPlus = (p) => (
   <Icon
     {...p}
@@ -396,25 +385,6 @@ const IconBan = (p) => (
     }
   />
 );
-const IconBolt = (p) => (
-  <Icon {...p} path={<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />} />
-);
-const IconRefresh = (p) => (
-  <Icon
-    {...p}
-    path={
-      <>
-        <polyline points="23 4 23 10 17 10" />
-        <polyline points="1 20 1 14 7 14" />
-        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-      </>
-    }
-  />
-);
-
-// ════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ════════════════════════════════════════════════════════════════
 
 const JournalPage = () => {
   const { user } = useAuth();
@@ -2579,7 +2549,7 @@ const AnalyticsView = ({ stats, insights, entries }) => {
 };
 
 // ── Analytics Hero — 4 hero stats ────────────────────────
-const AnalyticsHero = ({ stats, profitFactor, expectancy, closedCount }) => {
+const AnalyticsHero = ({ stats, _profitFactor, expectancy, closedCount }) => {
   const totalPnl = stats.total_pnl_usd || 0;
   const winRate = stats.win_rate || 0;
   const cards = [
@@ -2646,7 +2616,7 @@ const HeroCard = ({ label, value, sub, accent }) => {
 };
 
 // ── AI Coach Insights ────────────────────────────────────
-const AICoachCard = ({ insights, stats, closedCount }) => (
+const AICoachCard = ({ insights, _stats, closedCount }) => (
   <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
     <div className="relative z-10 p-4 sm:p-5">
       <div className="flex items-center gap-2.5 mb-3">

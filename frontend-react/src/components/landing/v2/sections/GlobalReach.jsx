@@ -663,9 +663,6 @@ const HUBS = [
   },
 ];
 
-const ORIGIN_CODE = "TPE"; // Taipei — Core Operations
-const MAJOR_RANK = 16; // top-16 by volume → hub yang dijangkau panah
-const PRIMARY_CODES = ["SIN", "NRT", "HKG"]; // top-3 hub (Hong Kong dipromosikan)
 
 const REGION_LABELS = [
   { name: "East Asia", lat: 33, lng: 122, size: 13 },
@@ -1939,7 +1936,7 @@ function CanvasGlobe() {
         });
 
         // Animated highlight arcs — hanya hub utama yang "mengalir" (reach tetap garis statis)
-        ARCS.forEach((arc, index) => {
+        ARCS.forEach((arc, _index) => {
           const isActiveArc = arc.code === hoveredCode;
           if (arc.reach && !isActiveArc) return;
           const progress = (((time / arc.duration + arc.offset) % 1) + 1) % 1;

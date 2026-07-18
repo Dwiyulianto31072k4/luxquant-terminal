@@ -80,7 +80,7 @@ export const signalsApi = {
     try {
       const response = await api.get(`/signals/detail/${signalId}`);
       return response.data;
-    } catch (err) {
+    } catch {
       // Fallback for older clients / edge routes
       const response = await api.get(`/signals/${signalId}`);
       return response.data;

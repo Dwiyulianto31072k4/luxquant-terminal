@@ -9,7 +9,6 @@ import {
   mountTradingViewEmbed,
   subscribeTheme,
 } from "../utils/themeColors";
-import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = "/api/v1";
 
@@ -1207,7 +1206,7 @@ const EmptyState = ({ text }) => (
   </div>
 );
 
-const ErrorState = ({ error, onRetry, t }) => (
+const ErrorState = ({ _error, onRetry, t }) => (
   <div className="space-y-5">
     <div className="flex items-center gap-3">
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
