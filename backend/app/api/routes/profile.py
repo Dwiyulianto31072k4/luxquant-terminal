@@ -283,7 +283,7 @@ async def link_google(
     id_token_str = data.get("id_token")
     confirm_transfer = bool(data.get("transfer"))
     if not id_token_str:
-        raise HTTPException(status_code=400, detail="id_token diperlukan")
+        raise HTTPException(status_code=400, detail="id_token is required")
 
     try:
         idinfo = google_id_token.verify_oauth2_token(
@@ -292,14 +292,14 @@ async def link_google(
             GOOGLE_CLIENT_ID
         )
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=f"Google token tidak valid: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
 
     google_id = idinfo.get('sub')
     google_email = idinfo.get('email')
     picture = idinfo.get('picture', '')
 
     if not google_id:
-        raise HTTPException(status_code=400, detail="Google ID tidak tersedia")
+        raise HTTPException(status_code=400, detail="Google ID unavailable")
 
     # Is this Google identity already attached to a DIFFERENT account?
     existing = db.query(User).filter(User.google_id == google_id).first()
@@ -308,15 +308,15 @@ async def link_google(
         # that would be an account-takeover / lockout vector.
         blockers = []
         if existing.has_active_access:
-            blockers.append("langganan aktif")
+            blockers.append("active subscription")
         if existing.telegram_id:
-            blockers.append("Telegram terhubung")
+            blockers.append("Telegram linked")
         if existing.discord_id:
-            blockers.append("Discord terhubung")
+            blockers.append("Discord linked")
         if existing.password_hash:
-            blockers.append("punya password sendiri")
+            blockers.append("its own password")
         if db.query(Payment.id).filter(Payment.user_id == existing.id).first():
-            blockers.append("punya riwayat pembayaran")
+            blockers.append("payment history")
 
         if blockers:
             raise HTTPException(
@@ -326,9 +326,9 @@ async def link_google(
                     "transferable": False,
                     "reasons": blockers,
                     "message": (
-                        "Akun Google ini masih terhubung ke akun lain yang aktif ("
+                        "This Google account is still linked to another active account ("
                         + ", ".join(blockers)
-                        + "). Demi keamanan, pemindahan harus lewat admin."
+                        + "). For security, moving it has to go through an admin."
                     ),
                 },
             )
@@ -343,9 +343,9 @@ async def link_google(
                     "from_username": existing.username,
                     "from_email": existing.email,
                     "message": (
-                        f"Email Google ini masih menempel di akun '{existing.username}'. "
-                        "Akun tersebut tidak punya langganan maupun pembayaran, jadi "
-                        "koneksi Google-nya bisa dipindahkan ke akun ini. Lanjutkan?"
+                        f"This Google email is still attached to the account '{existing.username}'. "
+                        "That account has no subscription or payment history, so its Google "
+                        "connection can be moved to this account. Continue?"
                     ),
                 },
             )
@@ -397,7 +397,7 @@ async def unlink_google(
     """Unlink Google account — must have at least one other login method"""
 
     if not current_user.google_id:
-        raise HTTPException(status_code=400, detail="Akun Google tidak terhubung")
+        raise HTTPException(status_code=400, detail="No Google account linked")
 
     # Must have at least one other login method
     has_telegram = current_user.telegram_id is not None
@@ -407,7 +407,7 @@ async def unlink_google(
     if not has_telegram and not has_discord and not has_password:
         raise HTTPException(
             status_code=400,
-            detail="Tidak bisa melepas Google. Hubungkan Telegram atau Discord terlebih dahulu agar tetap bisa login."
+            detail="Can't unlink Google — link Telegram or Discord first so you can still sign in."
         )
 
     current_user.google_id = None
