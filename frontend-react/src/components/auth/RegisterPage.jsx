@@ -402,6 +402,10 @@ const MobileGlobeInner = () => {
 
   useEffect(() => {
     let dead = false;
+    // Same reason as LandingGlobe: React clears the ref before cleanup, so the
+    // globe's own _cleanup would never be invoked and its WebGL context would
+    // leak on every unmount.
+    const node = ref.current;
     const t = setTimeout(() => {
       if (dead || !ref.current) return;
       const T = window.THREE,
@@ -511,7 +515,7 @@ const MobileGlobeInner = () => {
       dead = true;
       clearTimeout(t);
       if (anim.current) cancelAnimationFrame(anim.current);
-      if (ref.current?._cleanup) ref.current._cleanup();
+      if (node?._cleanup) node._cleanup();
     };
   }, []);
 

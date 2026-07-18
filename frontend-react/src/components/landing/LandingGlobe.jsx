@@ -26,6 +26,11 @@ const LandingGlobe = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Capture the node NOW. React nulls the ref before cleanup runs on unmount,
+    // so reading containerRef.current down there can silently skip removeChild —
+    // and a WebGL canvas that is never detached keeps its context alive. Browsers
+    // cap those at roughly 16, so leaking a few kills the globe entirely.
+    const container = containerRef.current;
     let renderer, scene, camera, globe, frameId;
 
     const loadScript = (src) =>
@@ -124,8 +129,8 @@ const LandingGlobe = () => {
       if (frameId) cancelAnimationFrame(frameId);
       if (renderer) {
         renderer.dispose();
-        if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
-          containerRef.current.removeChild(renderer.domElement);
+        if (container && renderer.domElement.parentNode === container) {
+          container.removeChild(renderer.domElement);
         }
       }
     };
