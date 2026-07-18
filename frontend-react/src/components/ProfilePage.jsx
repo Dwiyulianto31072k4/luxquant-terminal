@@ -322,7 +322,7 @@ const ProfilePage = () => {
     window.google.accounts.id.prompt((n) => {
       if (n.isNotDisplayed() || n.isDismissedMoment()) setLinkingGoogle(false);
     });
-  }, [t]);
+  }, [t, setUser]);
 
   const handleUnlinkGoogle = async () => {
     try {
@@ -361,7 +361,7 @@ const ProfilePage = () => {
     } finally {
       setLinkingTelegram(false);
     }
-  }, [t, isTelegramLinked]);
+  }, [t, isTelegramLinked, setUser]);
 
   // ─── Discord ───
   const handleLinkDiscord = useCallback(async () => {

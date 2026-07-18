@@ -101,7 +101,7 @@ const TopPerformers = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeFilter, customFrom, customTo]);
+  }, [activeFilter, customFrom, customTo, presets]);
 
   useEffect(() => {
     fetchData();

@@ -799,7 +799,6 @@ const SignalsPage = () => {
     verdictByPair,
     coinIntel,
     showWatchlistOnly,
-    watchlistIds,
     watchlistSignals,
   ]);
 
