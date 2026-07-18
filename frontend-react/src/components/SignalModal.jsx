@@ -1653,7 +1653,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   const modalContent = (
     <>
       <div className={`signal-modal-overlay ${isClosing ? "signal-modal-closing" : ""}`}>
-        <div className="signal-modal-backdrop" onClick={handleCloseClick} />
+        <div className="signal-modal-backdrop" onClick={handleCloseClick} aria-hidden="true" />
         <div className="signal-modal-container">
           <div className="signal-modal-content">
             {/* Drag handle mobile */}

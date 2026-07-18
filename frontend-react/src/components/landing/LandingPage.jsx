@@ -994,7 +994,19 @@ export const LivePerformanceStats = ({ data }) => {
       {/* ════════════════════════════════════════
  2. 6-STAT GRID — Naked huge numbers, flat hairline
  ════════════════════════════════════════ */}
-      <div onClick={goPerf} className="cursor-pointer group">
+      <div
+        onClick={goPerf}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            goPerf();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="View performance"
+        className="cursor-pointer group"
+      >
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3 mb-4">
           {statCards.map((card, idx) => (
             <div

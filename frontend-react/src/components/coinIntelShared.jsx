@@ -354,7 +354,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
   const content = (
     <>
       <div className={`cdm-overlay ${isClosing ? "cdm-closing" : ""}`}>
-        <div className="cdm-backdrop" onClick={handleClose} />
+        <div className="cdm-backdrop" onClick={handleClose} aria-hidden="true" />
         <div className="cdm-container">
           <div className="cdm-content" style={{ "--vc": vc }}>
             {/* Drag handle (mobile) */}

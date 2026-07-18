@@ -33,6 +33,7 @@ import {
   parseMcap,
   maxTargetPct,
 } from "../utils/signalFilters";
+import { useDialog } from "../hooks/useDialog";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -451,6 +452,10 @@ const ST_META = {
 
 // ── Signal detail modal — opens when any point/row/tile is clicked ──
 function SignalDetailModal({ d, onClose, onFull }) {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+
   if (!d) return null;
   const st = ST_META[d.status] || {
     label: (d.status || "—").toUpperCase(),
@@ -471,6 +476,11 @@ function SignalDetailModal({ d, onClose, onFull }) {
   );
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Signal detail"
       className="fixed inset-0 flex items-end justify-center bg-scrim/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       style={{ zIndex: 200000 }}
       onClick={onClose}

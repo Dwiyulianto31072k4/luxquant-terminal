@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSuggestions, askAssistant, getAssistantStatus } from "../../services/assistantApi";
 import { renderMarkdown } from "./markdown";
+import { useDialog } from "../../hooks/useDialog";
 
 /**
  * LuxQuant Assistant — floating, page-aware help widget.
@@ -13,6 +14,12 @@ import { renderMarkdown } from "./markdown";
 export default function AssistantWidget({ pageId = "signals", contextHint = null }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  // Escape / scroll lock / focus trap / focus restore — hooks/useDialog.
+  // The chat box carries data-autofocus so opening the panel puts the caret
+  // where someone is about to type, rather than on the header's first button.
+  const panelRef = useRef(null);
+  useDialog({ isOpen: open, onClose: () => setOpen(false), ref: panelRef });
   const [enabled, setEnabled] = useState(null); // null=loading, false=hidden
   const [label, setLabel] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -111,7 +118,14 @@ export default function AssistantWidget({ pageId = "signals", contextHint = null
           />
 
           {/* Panel: mobile bottom sheet, desktop centered wide modal */}
-          <div className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/12 bg-surface-raised shadow-[0_-8px_40px_rgb(var(--scrim) / 0.35)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:h-[600px] sm:w-[760px] sm:max-w-[92vw] sm:-translate-x-1/2 sm:rounded-2xl sm:shadow-[0_25px_60px_rgb(var(--scrim) / 0.35)] lg:w-[900px]">
+          <div
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Assistant"
+            className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/12 bg-surface-raised shadow-[0_-8px_40px_rgb(var(--scrim) / 0.35)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:h-[600px] sm:w-[760px] sm:max-w-[92vw] sm:-translate-x-1/2 sm:rounded-2xl sm:shadow-[0_25px_60px_rgb(var(--scrim) / 0.35)] lg:w-[900px]"
+          >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-ink/10 bg-surface-raised px-4 py-3 sm:px-5">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -268,6 +282,7 @@ export default function AssistantWidget({ pageId = "signals", contextHint = null
                       send();
                     }
                   }}
+                  data-autofocus
                   placeholder="Ask how to use this page…"
                   className="flex-1 resize-none rounded-xl border border-ink/10 bg-surface-raised px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-ink/15 max-h-24 sm:text-[14px]"
                 />

@@ -5,10 +5,11 @@
 // article, PDF guide, video and link — mirrors the inline controls on
 // the public hub, but as a full table.
 // ════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { resourcesApi, coverUrl, youtubeThumb } from "../../../services/resourcesApi";
 import ResourceEditor from "../../resources/ResourceEditor";
 import { palette, tint, surface, motion } from "../designSystem";
+import { useDialog } from "../../../hooks/useDialog";
 
 const TYPE_META = {
   article: { label: "Research", color: palette.blue[400] },
@@ -66,6 +67,12 @@ export const ResourcesTab = () => {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Escape / scroll lock / focus trap. Declared after the state it reads —
+  // referencing it above would be a temporal-dead-zone ReferenceError that
+  // the bundler builds happily and the page then throws on open.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: !!deleteConfirm, onClose: () => setDeleteConfirm(null), ref: dialogRef });
   const [busy, setBusy] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -404,6 +411,11 @@ export const ResourcesTab = () => {
 
       {deleteConfirm && (
         <div
+          ref={dialogRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm delete"
           className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => setDeleteConfirm(null)}
         >

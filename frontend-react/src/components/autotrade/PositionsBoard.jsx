@@ -2,7 +2,7 @@
 // AutoTrade-managed spot positions are intentionally separated from unrelated
 // Binance wallet balances so users can see what the strategy actually owns.
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import CoinLogo from "../CoinLogo";
 import SignalModal from "../SignalModal";
 import {
@@ -32,6 +32,7 @@ import {
   fmtPct,
   fmtUsd,
 } from "./AutoTradeUI";
+import { useDialog } from "../../hooks/useDialog";
 
 function pnlColor(value) {
   const n = Number(value || 0);
@@ -456,6 +457,10 @@ function DetailPanel({ title, children }) {
 }
 
 function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, busy }) {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+
   if (!position) return null;
   const signal = position.signal || {};
   const execution = position.execution || {};
@@ -466,6 +471,11 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Position detail"
       className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-scrim/80 p-0 sm:p-4 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -767,11 +777,20 @@ function ManualBalances({ balances, selectedAssets, onToggleAsset, busy }) {
 }
 
 function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
+  // Same treatment; separate ref because both modals live in this file.
+  const confirmRef = useRef(null);
+  useDialog({ isOpen: true, onClose, ref: confirmRef });
+
   const [confirmation, setConfirmation] = useState("");
   if (!action) return null;
   const matches = confirmation.trim().toUpperCase() === action.phrase;
   return (
     <div
+      ref={confirmRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Confirm action"
       className="fixed inset-0 z-[100010] flex items-end justify-center sm:items-center bg-scrim/85 p-0 sm:p-4 backdrop-blur-sm"
       onClick={onClose}
     >

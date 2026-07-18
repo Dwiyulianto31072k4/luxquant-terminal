@@ -14,13 +14,14 @@
 // - Graceful empty state for pre-backfill dates
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { analyticsApi } from "../services/analyticsApi";
 import { signalsApi } from "../services/api";
 import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
+import { useDialog } from "../hooks/useDialog";
 
 // strip the quote-asset suffix for a clean coin symbol
 const coinSym = (p) => (p || "").replace(/USDT$|USDC$|USD$/i, "");
@@ -2371,9 +2372,18 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
 // ─── All Signals Modal ───────────────────────────────────────────
 
 const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: open, onClose: onClose, ref: dialogRef });
+
   if (!open) return null;
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="All signals"
       className="fixed inset-0 z-40 bg-scrim/70 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >

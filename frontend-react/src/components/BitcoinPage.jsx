@@ -817,7 +817,20 @@ const BitcoinPage = () => {
                 {newsPage === 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {news.articles.slice(0, 2).map((a, i) => (
-                      <div key={i} onClick={() => openArticle(i)} className="group cursor-pointer">
+                      <div
+                        key={i}
+                        onClick={() => openArticle(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openArticle(i);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Read: ${a.title || "article"}`}
+                        className="group cursor-pointer"
+                      >
                         <div className="bg-surface-secondary rounded-md overflow-hidden border border-ink/[0.04] hover:border-ink/12 transition-all duration-200 h-full">
                           {a.image ? (
                             <div className="w-full overflow-hidden bg-scrim/40 flex items-center justify-center">

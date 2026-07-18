@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useDialog } from "../hooks/useDialog";
 
 /**
  * ChartProof - Before/After chart screenshot viewer
@@ -274,8 +275,17 @@ const ChartProof = ({ entryChartUrl, latestChartUrl, pair, status, variant = "ca
 // Lightbox (fullscreen overlay)
 // ═══════════════════════════════════════
 const Lightbox = ({ src, pair, onClose }) => {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Chart preview"
       className="fixed inset-0 z-[100] bg-scrim/90 flex items-center justify-center p-4"
       onClick={onClose}
     >

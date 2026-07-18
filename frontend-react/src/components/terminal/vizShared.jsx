@@ -510,7 +510,7 @@ export function FilterMulti({ label, options, selected, onChange }) {
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden="true" />
           <div className="absolute z-40 mt-1 left-0 min-w-[176px] max-h-64 overflow-y-auto rounded-lg bg-surface border border-ink/[0.1] shadow-2xl shadow-black/50 p-1.5">
             {selected.length > 0 && (
               <button

@@ -697,7 +697,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
   const modalContent = (
     <>
       <div className={`da-modal-overlay ${isClosing ? "da-modal-closing" : ""}`}>
-        <div className="da-modal-backdrop" onClick={handleClose} />
+        <div className="da-modal-backdrop" onClick={handleClose} aria-hidden="true" />
         <div className="da-modal-container">
           <div className="da-modal-content">
             {/* Drag handle mobile */}

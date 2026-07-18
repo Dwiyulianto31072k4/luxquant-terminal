@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../services/authApi";
+import { useDialog } from "../hooks/useDialog";
 
 const IG_AVATAR = "/logo.png";
 const IG_HANDLE = "luxquant.tw";
@@ -770,12 +771,20 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
 
 // ── Instagram-style detail modal ────────────────────────────────
 const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) => {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+
   const [showPrompt, setShowPrompt] = useState(false);
   if (!post) return null;
   const isXai = (post.image_mode || "").startsWith("ai_");
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-[100] bg-scrim/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
       onClick={onClose}
     >

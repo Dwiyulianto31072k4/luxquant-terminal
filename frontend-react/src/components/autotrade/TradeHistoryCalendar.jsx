@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   Area,
   AreaChart,
@@ -25,6 +25,7 @@ import {
   fmtPct,
   fmtUsd,
 } from "./AutoTradeUI";
+import { useDialog } from "../../hooks/useDialog";
 
 const COLORS = { up: "#0ECB81", down: "#F6465D", gold: "rgb(var(--accent))", muted: "#848E9C" };
 const PAGE_SIZE = 10;
@@ -102,6 +103,10 @@ function ChartTooltip({ active, payload, label, basis }) {
 }
 
 function TradeDetailModal({ trade, onClose, basis }) {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+
   if (!trade) return null;
   const signal = trade.signal || {};
   const config = trade.config_snapshot || {};
@@ -110,6 +115,11 @@ function TradeDetailModal({ trade, onClose, basis }) {
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Trade detail"
       className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-scrim/80 p-0 sm:p-4 backdrop-blur-sm"
       onClick={onClose}
     >

@@ -1102,7 +1102,7 @@ export const SignalDetailModal = ({
     <div
       className={`fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-3 lg:p-5 ${isClosing ? "animate-[smBO_.2s_ease-in_forwards]" : "animate-[smBI_.25s_ease-out]"}`}
     >
-      <div className="absolute inset-0 bg-scrim/75" onClick={handleClose} />
+      <div className="absolute inset-0 bg-scrim/75" onClick={handleClose} aria-hidden="true" />
       <div
         className={`relative flex h-[min(92dvh,100%)] max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.08] bg-surface-raised shadow-2xl lg:max-w-[1200px] sm:h-auto sm:max-h-[min(90dvh,900px)] sm:rounded-xl ${
           isClosing

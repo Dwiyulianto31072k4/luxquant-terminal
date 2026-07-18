@@ -1,5 +1,5 @@
 // src/components/ReferralPage.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { referralApi } from "../services/referralApi";
 
@@ -8,6 +8,7 @@ import CashoutHistoryList from "./referral/CashoutHistoryList";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 import { PageHeader } from "./ui/PageHeader";
+import { useDialog } from "../hooks/useDialog";
 
 // ════════════════════════════════════════════════════════════════════
 // Helper Components
@@ -256,6 +257,10 @@ const RefereeRow = ({ referee }) => {
 // ════════════════════════════════════════════════════════════════════
 
 const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: isOpen, onClose: onClose, ref: dialogRef });
+
   const [customCode, setCustomCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -280,6 +285,11 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Generate referral code"
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4"
       style={{ background: "rgb(var(--scrim) / 0.7)" }}
       onClick={onClose}

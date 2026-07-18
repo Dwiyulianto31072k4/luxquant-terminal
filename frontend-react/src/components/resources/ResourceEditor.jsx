@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { resourcesApi, coverUrl, youtubeThumb } from "../../services/resourcesApi";
+import { useDialog } from "../../hooks/useDialog";
 
 const TYPES = [
   { id: "article", label: "Article", hint: "Written research / guide" },
@@ -150,6 +151,10 @@ const inputCls =
   "w-full bg-bg-card border border-ink/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-ink/15 transition-colors";
 
 const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
+  // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+
   const isEdit = !!resource;
   const [type, setType] = useState(resource?.type || "article");
   const [title, setTitle] = useState(resource?.title || "");
@@ -285,6 +290,11 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
 
   return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit resource"
       className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-scrim/75 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >

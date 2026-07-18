@@ -10,7 +10,7 @@
 // • Polished preview card, channel pill, deep-link button.
 // • Full English copy.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { adminApi } from "../../services/adminApi";
 import {
   TelegramIcon,
@@ -23,6 +23,7 @@ import {
   ExternalLinkIcon,
 } from "./Icons";
 import { GoldButton } from "../autotrade/AutoTradeUI";
+import { useDialog } from "../../hooks/useDialog";
 
 const CHANNEL_LABELS = {
   telegram: { Icon: TelegramIcon, label: "Telegram", color: "#229ED9" },
@@ -32,6 +33,11 @@ const CHANNEL_LABELS = {
 };
 
 export const QuickSendPopover = ({ user, templates, reach, onClose, inline = false }) => {
+  // Only behaves as a dialog in its modal form; the inline variant is embedded
+  // in the page and must not steal focus or lock the page's scroll.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: !inline, onClose, ref: dialogRef });
+
   const [selectedId, setSelectedId] = useState(null);
   const [rendered, setRendered] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -378,6 +384,11 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
   /* ── Floating mode: render as overlay ── */
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Quick send"
       className="fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       style={{
         background: "rgb(var(--scrim) / 0.7)",

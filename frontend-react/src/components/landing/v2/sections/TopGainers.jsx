@@ -380,7 +380,11 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
 
                 {pickerOpen && (
                   <>
-                    <div className="fixed inset-0 z-20" onClick={() => setPickerOpen(false)} />
+                    <div
+                      className="fixed inset-0 z-20"
+                      onClick={() => setPickerOpen(false)}
+                      aria-hidden="true"
+                    />
                     <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-ink/12 bg-surface-secondary p-3 shadow-[0_16px_40px_rgb(var(--scrim) / 0.35)]">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">

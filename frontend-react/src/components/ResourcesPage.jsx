@@ -5,7 +5,7 @@
 // all in one mixed feed with type + category filtering, a featured hero,
 // and inline admin quick-controls.
 // ════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -13,6 +13,7 @@ import { resourcesApi, coverUrl, youtubeThumb } from "../services/resourcesApi";
 import ResourceReader from "./resources/ResourceReader";
 import ResourceEditor from "./resources/ResourceEditor";
 import { stripMarkdown } from "./resources/mdRender";
+import { useDialog } from "../hooks/useDialog";
 
 const TYPE_TABS = [
   { id: "all", label: "All" },
@@ -282,6 +283,13 @@ const ResourcesPage = () => {
   const [editing, setEditing] = useState(null); // resource object or {} for new
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // Escape / scroll lock / focus trap for the inline delete-confirm dialog.
+  // Placed after the state it reads: referencing deleteConfirm above its own
+  // declaration is a temporal-dead-zone ReferenceError, and the bundler will
+  // happily build it — the page just explodes on open.
+  const dialogRef = useRef(null);
+  useDialog({ isOpen: !!deleteConfirm, onClose: () => setDeleteConfirm(null), ref: dialogRef });
+
   const fetchAll = useCallback(async () => {
     setError(null);
     try {
@@ -536,6 +544,11 @@ const ResourcesPage = () => {
       {/* Delete confirm */}
       {deleteConfirm && (
         <div
+          ref={dialogRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm delete"
           className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => setDeleteConfirm(null)}
         >
