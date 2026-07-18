@@ -64,9 +64,9 @@ const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
             onClick={onBulkCancelStale}
             className="group flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
             style={{
-              background: "rgba(248,113,113,0.10)",
+              background: "rgb(var(--neg) / 0.10)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.30)",
+              border: "1px solid rgb(var(--neg) / 0.30)",
             }}
           >
             <span className="animate-pulse">
@@ -107,14 +107,14 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
   >
     <div
       className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-      style={{ background: "rgba(52,211,153,0.08)", filter: "blur(40px)" }}
+      style={{ background: "rgb(var(--pos) / 0.08)", filter: "blur(40px)" }}
     />
     <div className="relative">
       <div
         className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
         style={{
-          background: "rgba(52,211,153,0.10)",
-          border: "1px solid rgba(52,211,153,0.22)",
+          background: "rgb(var(--pos) / 0.10)",
+          border: "1px solid rgb(var(--pos) / 0.22)",
           color: "rgb(var(--pos-text))",
         }}
       >
@@ -148,13 +148,13 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "#f87171" : "#34d399";
+  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   const Icon = isError ? AlertTriangleIcon : CheckCircleIcon;
   return (
     <div
       className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl flex items-center gap-2"
       style={{
-        background: isError ? "rgba(248,113,113,0.18)" : "rgba(52,211,153,0.18)",
+        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
         color,
         border: `1px solid ${color}40`,
         backdropFilter: "blur(12px)",

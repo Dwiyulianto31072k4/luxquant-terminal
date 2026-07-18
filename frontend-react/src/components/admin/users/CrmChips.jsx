@@ -17,13 +17,13 @@ const CRM_CHIPS = [
     key: "open",
     label: "In progress",
     hint: "Has an active follow-up (pending / in progress)",
-    color: palette.amber?.[400] || "#fbbf24",
+    color: "rgb(var(--accent-text))",
   },
   {
     key: "tracked",
     label: "Tracked",
     hint: "Followed up & resolved",
-    color: palette.green[400],
+    color: "rgb(var(--pos-text))",
   },
 ];
 

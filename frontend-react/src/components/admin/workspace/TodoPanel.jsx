@@ -56,7 +56,7 @@ const CATEGORIES = [
 
 const PRIORITIES = [
   { value: "urgent", label: "Urgent", color: "rgb(var(--neg-text))" },
-  { value: "high", label: "High", color: "#fb923c" },
+  { value: "high", label: "High", color: "rgb(var(--accent-text))" },
   { value: "normal", label: "Normal", color: "#8a8a93" },
   { value: "low", label: "Low", color: "rgb(var(--fg-muted))" },
 ];
@@ -301,9 +301,9 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
           <div
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
-              background: "rgba(248,113,113,0.08)",
+              background: "rgb(var(--neg) / 0.08)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.25)",
+              border: "1px solid rgb(var(--neg) / 0.25)",
             }}
           >
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />

@@ -88,13 +88,13 @@ const MethodBadge = ({ method, dense = false }) => {
 const TONE = {
   success: {
     color: "rgb(var(--pos-text))",
-    bg: "rgba(52,211,153,0.08)",
-    border: "rgba(52,211,153,0.22)",
+    bg: "rgb(var(--pos) / 0.08)",
+    border: "rgb(var(--pos) / 0.22)",
   },
   danger: {
     color: "rgb(var(--neg-text))",
-    bg: "rgba(248,113,113,0.08)",
-    border: "rgba(248,113,113,0.22)",
+    bg: "rgb(var(--neg) / 0.08)",
+    border: "rgb(var(--neg) / 0.22)",
   },
   gold: {
     color: "rgb(var(--accent-text))",
@@ -136,9 +136,9 @@ const StatusPill = ({ status, isStale, ageHours, dense = false }) => {
       {isStale && (
         <Pill
           label={ageHours ? `Stale ${ageHours}h` : "Stale"}
-          color="#f87171"
-          bg="rgba(248,113,113,0.08)"
-          border="rgba(248,113,113,0.28)"
+          color="rgb(var(--neg-text))"
+          bg="rgb(var(--neg) / 0.08)"
+          border="rgb(var(--neg) / 0.28)"
           Icon={AlertTriangleIcon}
           dense={dense}
           pulse
@@ -246,19 +246,19 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       style={{
         background: "rgb(var(--ink) / 0.018)",
         border: `1px solid ${
-          payment.is_stale ? "rgba(248,113,113,0.20)" : "rgb(var(--ink) / 0.05)"
+          payment.is_stale ? "rgb(var(--neg) / 0.20)" : "rgb(var(--ink) / 0.05)"
         }`,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "rgb(var(--ink) / 0.035)";
         e.currentTarget.style.borderColor = payment.is_stale
-          ? "rgba(248,113,113,0.32)"
+          ? "rgb(var(--neg) / 0.32)"
           : "rgb(var(--accent) / 0.18)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "rgb(var(--ink) / 0.018)";
         e.currentTarget.style.borderColor = payment.is_stale
-          ? "rgba(248,113,113,0.20)"
+          ? "rgb(var(--neg) / 0.20)"
           : "rgb(var(--ink) / 0.05)";
       }}
     >
@@ -386,7 +386,7 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       style={{
         background: "rgb(var(--ink) / 0.02)",
         border: `1px solid ${
-          payment.is_stale ? "rgba(248,113,113,0.22)" : "rgb(var(--ink) / 0.06)"
+          payment.is_stale ? "rgb(var(--neg) / 0.22)" : "rgb(var(--ink) / 0.06)"
         }`,
       }}
     >

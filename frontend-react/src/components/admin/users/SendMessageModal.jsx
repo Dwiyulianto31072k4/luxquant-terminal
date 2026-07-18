@@ -133,7 +133,7 @@ export const SendMessageModal = ({ user, onClose, onSend }) => {
               </label>
               <span
                 className="text-[10px] tabular-nums"
-                style={{ color: tooLong ? "#f87171" : "rgb(var(--fg-muted))" }}
+                style={{ color: tooLong ? "rgb(var(--neg-text))" : "rgb(var(--fg-muted))" }}
               >
                 {charCount}/3500
               </span>

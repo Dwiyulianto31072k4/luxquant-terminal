@@ -287,9 +287,9 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
                   <span
                     className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded ml-1 shrink-0"
                     style={{
-                      background: "rgba(248,113,113,0.12)",
+                      background: "rgb(var(--neg) / 0.12)",
                       color: "rgb(var(--neg-text))",
-                      border: "1px solid rgba(248,113,113,0.25)",
+                      border: "1px solid rgb(var(--neg) / 0.25)",
                     }}
                   >
                     Copy only
@@ -349,9 +349,9 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
               onClick={handleCopy}
               className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-[1.02]"
               style={{
-                background: copied ? "rgba(52,211,153,0.12)" : "rgb(var(--ink) / 0.04)",
-                color: copied ? "#34d399" : "rgb(var(--fg))",
-                border: `1px solid ${copied ? "rgba(52,211,153,0.3)" : "rgb(var(--ink) / 0.1)"}`,
+                background: copied ? "rgb(var(--pos) / 0.12)" : "rgb(var(--ink) / 0.04)",
+                color: copied ? "rgb(var(--pos-text))" : "rgb(var(--fg))",
+                border: `1px solid ${copied ? "rgb(var(--pos) / 0.3)" : "rgb(var(--ink) / 0.1)"}`,
               }}
             >
               {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}

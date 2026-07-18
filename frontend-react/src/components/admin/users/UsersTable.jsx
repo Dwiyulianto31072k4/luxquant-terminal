@@ -157,7 +157,11 @@ const UserCell = ({ user, onClick }) => (
 // ════════════════════════════════════════════════════════════════════
 const CRM_BADGE = {
   untouched: { color: "rgb(var(--fg-muted))", text: "NEW", label: "Never contacted" },
-  open: { color: palette.amber?.[400] || "#fbbf24", text: "OPEN", label: "Follow-up in progress" },
+  open: {
+    color: palette.amber?.[400] || "rgb(var(--accent-text))",
+    text: "OPEN",
+    label: "Follow-up in progress",
+  },
   tracked: { color: palette.green[400], text: "SEEN", label: "Tracked" },
 };
 const CrmBadge = ({ status, lastAt }) => {

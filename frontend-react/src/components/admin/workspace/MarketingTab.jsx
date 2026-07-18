@@ -49,14 +49,14 @@ const STATUS_CONFIG = {
   active: {
     color: "rgb(var(--pos-text))",
     label: "Active",
-    bg: "rgba(52,211,153,0.1)",
-    border: "rgba(52,211,153,0.3)",
+    bg: "rgb(var(--pos) / 0.1)",
+    border: "rgb(var(--pos) / 0.3)",
   },
   paused: {
     color: "rgb(var(--warn))",
     label: "Paused",
-    bg: "rgba(251,191,36,0.1)",
-    border: "rgba(251,191,36,0.3)",
+    bg: "rgb(var(--accent) / 0.1)",
+    border: "rgb(var(--accent) / 0.3)",
   },
   completed: {
     color: "#8a8a93",
@@ -240,7 +240,7 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
           <div className="flex items-baseline gap-2">
             <span
               className="text-lg font-light tabular-nums tracking-tight"
-              style={{ color: overBudget ? "#f87171" : "rgb(var(--fg))" }}
+              style={{ color: overBudget ? "rgb(var(--neg-text))" : "rgb(var(--fg))" }}
             >
               {formatCurrency(spent)}
             </span>
@@ -250,7 +250,13 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
           </div>
           <span
             className="text-[10px] uppercase tracking-wider font-semibold tabular-nums"
-            style={{ color: overBudget ? "#f87171" : pct > 80 ? "#fb923c" : "#34d399" }}
+            style={{
+              color: overBudget
+                ? "rgb(var(--neg-text))"
+                : pct > 80
+                  ? "rgb(var(--accent-text))"
+                  : "rgb(var(--pos-text))",
+            }}
           >
             {pct.toFixed(0)}%
           </span>
@@ -265,10 +271,10 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             style={{
               width: `${Math.min(100, pct)}%`,
               background: overBudget
-                ? "linear-gradient(90deg, #f87171, #fbbf24)"
+                ? "linear-gradient(90deg, rgb(var(--neg-text)), rgb(var(--accent-text)))"
                 : pct > 80
-                  ? "linear-gradient(90deg, rgb(var(--accent)), #fb923c)"
-                  : "linear-gradient(90deg, #34d399, rgb(var(--accent)))",
+                  ? "linear-gradient(90deg, rgb(var(--accent)), rgb(var(--accent-text)))"
+                  : "linear-gradient(90deg, rgb(var(--pos-text)), rgb(var(--accent)))",
             }}
           />
         </div>
@@ -349,8 +355,8 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
             className="p-1.5 rounded-md transition-colors"
             style={{
               color: "rgb(var(--neg-text))",
-              background: "rgba(248,113,113,0.08)",
-              border: "1px solid rgba(248,113,113,0.2)",
+              background: "rgb(var(--neg) / 0.08)",
+              border: "1px solid rgb(var(--neg) / 0.2)",
             }}
           >
             <TrashIcon size={11} />
@@ -366,12 +372,12 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "#f87171" : "#34d399";
+  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   return (
     <div
       className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
       style={{
-        background: isError ? "rgba(248,113,113,0.18)" : "rgba(52,211,153,0.18)",
+        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
         color,
         border: `1px solid ${color}40`,
         backdropFilter: "blur(12px)",
@@ -500,7 +506,12 @@ export const MarketingTab = ({ onRefreshStats }) => {
           accent="#8a8a93"
           Icon={SparklesIcon}
         />
-        <StatCard label="Active" value={activeCount} accent="#34d399" Icon={TrendingUpIcon} />
+        <StatCard
+          label="Active"
+          value={activeCount}
+          accent="rgb(var(--pos-text))"
+          Icon={TrendingUpIcon}
+        />
         <StatCard
           label="Total Budget"
           value={formatCurrency(totalBudget)}
@@ -509,7 +520,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
         <StatCard
           label="Total Spent"
           value={formatCurrency(totalSpent)}
-          accent={totalSpent > totalBudget ? "#f87171" : "#fb923c"}
+          accent={totalSpent > totalBudget ? "rgb(var(--neg-text))" : "rgb(var(--accent-text))"}
         />
       </div>
 
@@ -568,8 +579,8 @@ export const MarketingTab = ({ onRefreshStats }) => {
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
             style={{
               color: "rgb(var(--neg-text))",
-              background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.2)",
+              background: "rgb(var(--neg) / 0.06)",
+              border: "1px solid rgb(var(--neg) / 0.2)",
             }}
           >
             <CloseIcon size={11} />

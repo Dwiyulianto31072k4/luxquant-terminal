@@ -310,7 +310,7 @@ export const IconBadge = ({
   if (!Icon) return null;
   // Dark ink on gold/amber/cyan-light; white ink on deep brand fills
   const lightFill =
-    /^(#f0b90b|#fcd535|#f7a600|rgb(var(--accent))|#fbbf24|rgb(var(--accent))|#e0bc6a)$/i.test(
+    /^(#f0b90b|#fcd535|#f7a600|rgb(var(--accent))|rgb(var(--accent-text))|rgb(var(--accent))|#e0bc6a)$/i.test(
       color
     ) ||
     color.toLowerCase().includes("f0b9") ||

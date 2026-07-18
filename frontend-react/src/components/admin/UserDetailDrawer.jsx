@@ -74,14 +74,14 @@ const relativeTime = (dateStr) => {
 const StatusBadge = ({ status }) => {
   const colors = {
     confirmed: {
-      bg: "rgba(52,211,153,0.10)",
-      text: "#34d399",
-      border: "rgba(52,211,153,0.30)",
+      bg: "rgb(var(--pos) / 0.10)",
+      text: "rgb(var(--pos-text))",
+      border: "rgb(var(--pos) / 0.30)",
     },
     pending: {
-      bg: "rgba(251,191,36,0.10)",
-      text: "#fbbf24",
-      border: "rgba(251,191,36,0.30)",
+      bg: "rgb(var(--accent) / 0.10)",
+      text: "rgb(var(--accent-text))",
+      border: "rgb(var(--accent) / 0.30)",
     },
     cancelled: {
       bg: "rgba(107,92,82,0.10)",
@@ -89,14 +89,14 @@ const StatusBadge = ({ status }) => {
       border: "rgba(107,92,82,0.30)",
     },
     failed: {
-      bg: "rgba(248,113,113,0.10)",
-      text: "#f87171",
-      border: "rgba(248,113,113,0.30)",
+      bg: "rgb(var(--neg) / 0.10)",
+      text: "rgb(var(--neg-text))",
+      border: "rgb(var(--neg) / 0.30)",
     },
     refunded: {
-      bg: "rgba(251,146,60,0.10)",
-      text: "#fb923c",
-      border: "rgba(251,146,60,0.30)",
+      bg: "rgb(var(--accent) / 0.10)",
+      text: "rgb(var(--accent-text))",
+      border: "rgb(var(--accent) / 0.30)",
     },
   };
   const c = colors[status] || colors.cancelled;
@@ -217,33 +217,33 @@ const UserHero = ({ user }) => (
           style={{
             background:
               user.role === "admin"
-                ? "rgba(168,85,247,0.12)"
+                ? "rgb(var(--ink) / 0.12)"
                 : user.role === "co_admin"
                   ? "rgba(138,138,147,0.12)"
                   : user.role === "founder"
-                    ? "rgba(251,191,36,0.12)"
+                    ? "rgb(var(--accent) / 0.12)"
                     : user.role === "subscriber" || user.role === "premium"
-                      ? "rgba(52,211,153,0.12)"
+                      ? "rgb(var(--pos) / 0.12)"
                       : "rgba(107,92,82,0.12)",
             color:
               user.role === "admin"
-                ? "#a855f7"
+                ? "rgb(var(--fg-muted))"
                 : user.role === "co_admin"
                   ? "#8a8a93"
                   : user.role === "founder"
-                    ? "#fbbf24"
+                    ? "rgb(var(--accent-text))"
                     : user.role === "subscriber" || user.role === "premium"
-                      ? "#34d399"
+                      ? "rgb(var(--pos-text))"
                       : "rgb(var(--fg-muted))",
             border: `1px solid ${
               user.role === "admin"
-                ? "rgba(168,85,247,0.3)"
+                ? "rgb(var(--ink) / 0.3)"
                 : user.role === "co_admin"
                   ? "rgba(138,138,147,0.3)"
                   : user.role === "founder"
-                    ? "rgba(251,191,36,0.3)"
+                    ? "rgb(var(--accent) / 0.3)"
                     : user.role === "subscriber" || user.role === "premium"
-                      ? "rgba(52,211,153,0.3)"
+                      ? "rgb(var(--pos) / 0.3)"
                       : "rgba(107,92,82,0.3)"
             }`,
           }}
@@ -264,9 +264,9 @@ const UserHero = ({ user }) => (
           <span
             className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{
-              background: "rgba(248,113,113,0.12)",
+              background: "rgb(var(--neg) / 0.12)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.3)",
+              border: "1px solid rgb(var(--neg) / 0.3)",
             }}
           >
             Banned
@@ -338,7 +338,10 @@ const ActivityPulse = ({ userId }) => {
         <div className="flex items-center justify-center py-6">
           <span
             className="inline-block w-4 h-4 rounded-full animate-spin"
-            style={{ border: "2px solid rgba(45,212,191,0.25)", borderTopColor: "#2dd4bf" }}
+            style={{
+              border: "2px solid rgb(var(--ink) / 0.25)",
+              borderTopColor: "rgb(var(--fg-muted))",
+            }}
           />
         </div>
       </Section>
@@ -349,7 +352,12 @@ const ActivityPulse = ({ userId }) => {
   const spark = data.sparkline_30d || [];
   const maxC = spark.reduce((m, p) => Math.max(m, p.count), 0) || 1;
   const score = data.engagement_score ?? 0;
-  const scoreColor = score >= 60 ? "#34d399" : score >= 30 ? "#fbbf24" : "rgb(var(--fg-muted))";
+  const scoreColor =
+    score >= 60
+      ? "rgb(var(--pos-text))"
+      : score >= 30
+        ? "rgb(var(--accent-text))"
+        : "rgb(var(--fg-muted))";
 
   return (
     <Section title="Activity Pulse" Icon={ClockIcon}>
@@ -384,7 +392,7 @@ const ActivityPulse = ({ userId }) => {
               className="flex-1 rounded-sm"
               style={{
                 height: `${Math.max(6, (p.count / maxC) * 100)}%`,
-                background: p.count > 0 ? "#2dd4bf" : "rgb(var(--ink) / 0.05)",
+                background: p.count > 0 ? "rgb(var(--fg-muted))" : "rgb(var(--ink) / 0.05)",
                 opacity: p.count > 0 ? 0.85 : 1,
               }}
             />
@@ -399,7 +407,7 @@ const ActivityPulse = ({ userId }) => {
             <span
               key={f.feature}
               className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium"
-              style={{ background: "rgba(45,212,191,0.1)", color: "#2dd4bf" }}
+              style={{ background: "rgb(var(--ink) / 0.1)", color: "rgb(var(--fg-muted))" }}
             >
               {featLabel(f.feature)} ·{f.count}
             </span>
@@ -460,7 +468,7 @@ const computeVipDiagnosis = (user) => {
   if (active && !hasTg) {
     return {
       tone: "info",
-      color: "#5aa9e6",
+      color: "rgb(var(--fg-muted))",
       icon: "telegram",
       title: "Paid, but Telegram not linked yet",
       detail:
@@ -525,7 +533,12 @@ const SignalCell = ({ label, value, good }) => (
     <div
       className="text-[12px] font-medium"
       style={{
-        color: good === true ? "#34d399" : good === false ? "#f87171" : "rgb(var(--ink) / 0.45)",
+        color:
+          good === true
+            ? "rgb(var(--pos-text))"
+            : good === false
+              ? "rgb(var(--neg-text))"
+              : "rgb(var(--ink) / 0.45)",
       }}
     >
       {value}
@@ -688,7 +701,7 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
             style={{
               background: "rgb(var(--ink) / 0.04)",
               color: "rgb(var(--pos-text))",
-              border: "1px solid rgba(52,211,153,0.3)",
+              border: "1px solid rgb(var(--pos) / 0.3)",
             }}
           >
             <div
@@ -746,7 +759,7 @@ const AccountTimeline = ({ data }) => {
     events.push({
       ts: user.first_login_at,
       icon: UserIcon,
-      color: "#5aa9e6",
+      color: "rgb(var(--fg-muted))",
       label: "First login",
     });
 
@@ -772,7 +785,10 @@ const AccountTimeline = ({ data }) => {
     events.push({
       ts: user.subscription_expires_at,
       icon: ClockIcon,
-      color: new Date(user.subscription_expires_at) > new Date() ? "#34d399" : "#f87171",
+      color:
+        new Date(user.subscription_expires_at) > new Date()
+          ? "rgb(var(--pos-text))"
+          : "rgb(var(--neg-text))",
       label:
         new Date(user.subscription_expires_at) > new Date()
           ? "Subscription valid until"
@@ -816,7 +832,7 @@ const _fuRgba = (hex, a) => {
 };
 const FU_STATUS = {
   pending: { color: "rgb(var(--warn))", label: "Pending" },
-  in_progress: { color: "#5aa9e6", label: "In progress" },
+  in_progress: { color: "rgb(var(--fg-muted))", label: "In progress" },
   done: { color: "rgb(var(--pos-text))", label: "Done" },
   cancelled: { color: "rgb(var(--fg-muted))", label: "Cancelled" },
 };
@@ -886,7 +902,7 @@ const FollowupTimeline = ({ userId }) => {
                       <span
                         className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
                         style={{
-                          background: _fuRgba("#f87171", 0.12),
+                          background: _fuRgba("rgb(var(--neg-text))", 0.12),
                           color: "rgb(var(--neg-text))",
                         }}
                       >
@@ -940,7 +956,10 @@ const OverviewTab = ({
       {canManageRoles && onSetRole && (
         <div
           className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5"
-          style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.22)" }}
+          style={{
+            background: "rgb(var(--ink) / 0.08)",
+            border: "1px solid rgb(var(--ink) / 0.22)",
+          }}
         >
           <div>
             <p className="text-[11px] font-semibold text-text-primary/90">Staff / member role</p>
@@ -957,9 +976,9 @@ const OverviewTab = ({
             onClick={() => onSetRole(user)}
             className="shrink-0 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
             style={{
-              background: "rgba(168,85,247,0.16)",
-              color: "#c4b5fd",
-              border: "1px solid rgba(168,85,247,0.35)",
+              background: "rgb(var(--ink) / 0.16)",
+              color: "rgb(var(--fg-muted))",
+              border: "1px solid rgb(var(--ink) / 0.35)",
             }}
           >
             Set role
@@ -993,7 +1012,9 @@ const OverviewTab = ({
               value={
                 user.subscription_expires_at ? formatDate(user.subscription_expires_at) : "Lifetime"
               }
-              accent={user.subscription_expires_at ? "#34d399" : "#fbbf24"}
+              accent={
+                user.subscription_expires_at ? "rgb(var(--pos-text))" : "rgb(var(--accent-text))"
+              }
             />
             <StatTile label="Granted" value={formatDate(user.subscription_granted_at)} />
           </div>
@@ -1003,11 +1024,15 @@ const OverviewTab = ({
       {user.referral_credit_usdt > 0 && (
         <Section title="Referral Credit" Icon={SparklesIcon}>
           <div className="grid grid-cols-2 gap-2">
-            <StatTile label="Balance" value={`$${user.referral_credit_usdt}`} accent="#34d399" />
+            <StatTile
+              label="Balance"
+              value={`$${user.referral_credit_usdt}`}
+              accent="rgb(var(--pos-text))"
+            />
             <StatTile
               label="Lifetime Earned"
               value={`$${user.lifetime_credit_earned}`}
-              accent="#fbbf24"
+              accent="rgb(var(--accent-text))"
             />
           </div>
         </Section>
@@ -1125,9 +1150,9 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               <div
                 className="text-xs p-3 rounded-lg flex items-start gap-2"
                 style={{
-                  background: "rgba(248,113,113,0.05)",
+                  background: "rgb(var(--neg) / 0.05)",
                   color: "rgb(var(--neg-text))",
-                  border: "1px solid rgba(248,113,113,0.18)",
+                  border: "1px solid rgb(var(--neg) / 0.18)",
                 }}
               >
                 <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
@@ -1231,9 +1256,9 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               <div
                 className="text-xs px-2 py-1.5 rounded flex items-start gap-2"
                 style={{
-                  background: "rgba(248,113,113,0.1)",
+                  background: "rgb(var(--neg) / 0.1)",
                   color: "rgb(var(--neg-text))",
-                  border: "1px solid rgba(248,113,113,0.3)",
+                  border: "1px solid rgb(var(--neg) / 0.3)",
                 }}
               >
                 <AlertTriangleIcon size={12} className="shrink-0 mt-0.5" />
@@ -1322,15 +1347,15 @@ const PaymentsTab = ({ data }) => {
         <div
           className="relative overflow-hidden rounded-lg p-3"
           style={{
-            background: "rgba(52,211,153,0.04)",
-            border: "1px solid rgba(52,211,153,0.18)",
+            background: "rgb(var(--pos) / 0.04)",
+            border: "1px solid rgb(var(--pos) / 0.18)",
           }}
         >
           <div
             className="absolute inset-x-0 top-0 h-px pointer-events-none"
             style={{
               background:
-                "linear-gradient(to right, transparent, rgba(52,211,153,0.4), transparent)",
+                "linear-gradient(to right, transparent, rgb(var(--pos) / 0.4), transparent)",
             }}
           />
           <p
@@ -1486,8 +1511,8 @@ const ReferralTab = ({ data }) => {
                 key={r.id}
                 className="rounded-lg p-2.5 flex items-center justify-between"
                 style={{
-                  background: "rgba(52,211,153,0.03)",
-                  border: "1px solid rgba(52,211,153,0.15)",
+                  background: "rgb(var(--pos) / 0.03)",
+                  border: "1px solid rgb(var(--pos) / 0.15)",
                 }}
               >
                 <div className="min-w-0">
@@ -1778,9 +1803,9 @@ export const UserDetailDrawer = ({
             <div
               className="rounded-lg p-3 text-xs flex items-start gap-2"
               style={{
-                background: "rgba(248,113,113,0.08)",
+                background: "rgb(var(--neg) / 0.08)",
                 color: "rgb(var(--neg-text))",
-                border: "1px solid rgba(248,113,113,0.25)",
+                border: "1px solid rgb(var(--neg) / 0.25)",
               }}
             >
               <AlertTriangleIcon size={14} className="shrink-0 mt-0.5" />

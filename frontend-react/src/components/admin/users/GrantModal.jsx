@@ -328,9 +328,9 @@ export const GrantModal = ({ user, onClose, onGrant }) => {
           <div
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
-              background: "rgba(248,113,113,0.08)",
+              background: "rgb(var(--neg) / 0.08)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.25)",
+              border: "1px solid rgb(var(--neg) / 0.25)",
             }}
           >
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />

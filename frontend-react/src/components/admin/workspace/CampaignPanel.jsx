@@ -132,8 +132,8 @@ const LineItemRow = ({ item, onChange, onDelete }) => (
         className="rounded-md p-1.5 transition-colors"
         style={{
           color: "rgb(var(--neg-text))",
-          background: "rgba(248,113,113,0.08)",
-          border: "1px solid rgba(248,113,113,0.2)",
+          background: "rgb(var(--neg) / 0.08)",
+          border: "1px solid rgb(var(--neg) / 0.2)",
         }}
       >
         <TrashIcon size={11} />
@@ -170,8 +170,8 @@ const MetadataRow = ({ k, v, onChange, onDelete }) => (
       className="rounded-md p-1.5 transition-colors"
       style={{
         color: "rgb(var(--neg-text))",
-        background: "rgba(248,113,113,0.08)",
-        border: "1px solid rgba(248,113,113,0.2)",
+        background: "rgb(var(--neg) / 0.08)",
+        border: "1px solid rgb(var(--neg) / 0.2)",
       }}
     >
       <TrashIcon size={11} />
@@ -548,9 +548,9 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
           <div
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
-              background: "rgba(248,113,113,0.08)",
+              background: "rgb(var(--neg) / 0.08)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.25)",
+              border: "1px solid rgb(var(--neg) / 0.25)",
             }}
           >
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />

@@ -171,9 +171,9 @@ export const AnnouncementsTab = () => {
             <div
               className="px-3 py-2 rounded-md text-[11px]"
               style={{
-                background: "rgba(248,113,113,0.08)",
+                background: "rgb(var(--neg) / 0.08)",
                 color: palette.red[300],
-                border: "1px solid rgba(248,113,113,0.2)",
+                border: "1px solid rgb(var(--neg) / 0.2)",
               }}
             >
               {err}

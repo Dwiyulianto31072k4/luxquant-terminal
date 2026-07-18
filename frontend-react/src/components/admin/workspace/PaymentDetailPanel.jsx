@@ -294,7 +294,7 @@ const NoteInput = ({ actionType, note, onChange, onCancel, onSubmit, busy }) => 
         />
         <p
           className="text-[9.5px] mt-1 text-right tabular-nums font-mono"
-          style={{ color: note.trim().length >= 3 ? "#34d399" : PANEL.muted }}
+          style={{ color: note.trim().length >= 3 ? "rgb(var(--pos-text))" : PANEL.muted }}
         >
           {note.length} chars
         </p>
@@ -818,7 +818,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
                   label="Over-payment"
                   value={`+${formatUSDT(Math.abs(p.discount_amount))}`}
                   mono
-                  valueColor="#fb923c"
+                  valueColor="rgb(var(--accent-text))"
                 />
               )}
               {p.credit_redeemed > 0 && (

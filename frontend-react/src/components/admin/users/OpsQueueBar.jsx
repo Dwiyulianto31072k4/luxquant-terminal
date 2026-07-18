@@ -16,21 +16,21 @@ const ANOMALY_CHIPS = [
     statKey: "anomaly_paid_outside",
     label: "Paid, outside group",
     hint: "Active access + linked Telegram, but not in VIP group → send invite",
-    color: palette.gold[300],
+    color: "rgb(var(--accent-text))",
   },
   {
     key: "paid_no_tg",
     statKey: "anomaly_paid_no_tg",
     label: "Paid, no Telegram",
     hint: "Active access but no Telegram linked → ask them to connect TG",
-    color: "#5aa9e6",
+    color: "rgb(var(--fg-muted))",
   },
   {
     key: "expired_inside",
     statKey: "anomaly_expired_inside",
     label: "Expired, still in group",
     hint: "Subscription expired but still inside VIP group → should be kicked",
-    color: palette.red[400],
+    color: "rgb(var(--neg-text))",
   },
 ];
 
@@ -45,13 +45,13 @@ const CRM_CHIPS = [
     key: "open",
     label: "In progress",
     hint: "Has an active follow-up (pending / in progress)",
-    color: palette.amber?.[400] || "#fbbf24",
+    color: "rgb(var(--accent-text))",
   },
   {
     key: "tracked",
     label: "Tracked",
     hint: "Followed up & resolved",
-    color: palette.green[400],
+    color: "rgb(var(--pos-text))",
   },
 ];
 
@@ -130,7 +130,7 @@ export const OpsQueueBar = ({ stats, anomaly, crm, onAnomalyToggle, onCrmToggle 
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold"
             style={{
               background: tint(palette.red[400], 0.1),
-              color: palette.red[400],
+              color: "rgb(var(--neg-text))",
               border: `1px solid ${tint(palette.red[400], 0.3)}`,
             }}
             title="Open Finance → Payment gap queue"

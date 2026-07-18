@@ -97,7 +97,7 @@ const ViewOnlyBanner = () => (
       border: "1px solid rgba(96,165,250,0.25)",
     }}
   >
-    <ShieldIcon size={14} style={{ color: "#60a5fa", marginTop: 2, flexShrink: 0 }} />
+    <ShieldIcon size={14} style={{ color: "rgb(var(--fg-muted))", marginTop: 2, flexShrink: 0 }} />
     <div>
       <p className="text-[12px] font-semibold text-text-primary/90">View-only access</p>
       <p className="text-[11px] mt-0.5" style={{ color: "rgb(var(--fg-muted))" }}>

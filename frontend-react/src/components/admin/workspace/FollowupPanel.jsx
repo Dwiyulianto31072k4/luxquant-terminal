@@ -126,8 +126,8 @@ const UserPicker = ({ selectedUser, onChange }) => {
                 className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
                 style={{
                   background:
-                    u.role === "subscriber" ? "rgba(52,211,153,0.12)" : "rgba(107,92,82,0.12)",
-                  color: u.role === "subscriber" ? "#34d399" : "rgb(var(--fg-muted))",
+                    u.role === "subscriber" ? "rgb(var(--pos) / 0.12)" : "rgba(107,92,82,0.12)",
+                  color: u.role === "subscriber" ? "rgb(var(--pos-text))" : "rgb(var(--fg-muted))",
                 }}
               >
                 {u.role}
@@ -192,7 +192,7 @@ const CATEGORIES = [
 
 const PRIORITIES = [
   { value: "urgent", label: "Urgent", color: "rgb(var(--neg-text))" },
-  { value: "high", label: "High", color: "#fb923c" },
+  { value: "high", label: "High", color: "rgb(var(--accent-text))" },
   { value: "normal", label: "Normal", color: "#8a8a93" },
   { value: "low", label: "Low", color: "rgb(var(--fg-muted))" },
 ];
@@ -371,9 +371,9 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
           <div
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
-              background: "rgba(248,113,113,0.08)",
+              background: "rgb(var(--neg) / 0.08)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.25)",
+              border: "1px solid rgb(var(--neg) / 0.25)",
             }}
           >
             <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />

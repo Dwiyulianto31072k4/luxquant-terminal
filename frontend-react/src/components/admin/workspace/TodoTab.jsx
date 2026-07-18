@@ -36,10 +36,14 @@ const formatDate = (dateStr) => {
 const PRIORITY_CONFIG = {
   urgent: {
     color: "rgb(var(--neg-text))",
-    bg: "rgba(248,113,113,0.1)",
-    border: "rgba(248,113,113,0.3)",
+    bg: "rgb(var(--neg) / 0.1)",
+    border: "rgb(var(--neg) / 0.3)",
   },
-  high: { color: "#fb923c", bg: "rgba(251,146,60,0.1)", border: "rgba(251,146,60,0.3)" },
+  high: {
+    color: "rgb(var(--accent-text))",
+    bg: "rgb(var(--accent) / 0.1)",
+    border: "rgb(var(--accent) / 0.3)",
+  },
   normal: { color: "#8a8a93", bg: "rgba(138,138,147,0.08)", border: "rgba(138,138,147,0.22)" },
   low: {
     color: "rgb(var(--fg-muted))",
@@ -188,8 +192,8 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
               className="p-1 rounded transition-colors"
               style={{
                 color: "rgb(var(--pos-text))",
-                background: "rgba(52,211,153,0.08)",
-                border: "1px solid rgba(52,211,153,0.2)",
+                background: "rgb(var(--pos) / 0.08)",
+                border: "1px solid rgb(var(--pos) / 0.2)",
               }}
             >
               <CheckCircleIcon size={10} />
@@ -202,8 +206,8 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
               className="p-1 rounded transition-colors"
               style={{
                 color: "rgb(var(--warn))",
-                background: "rgba(251,191,36,0.08)",
-                border: "1px solid rgba(251,191,36,0.2)",
+                background: "rgb(var(--accent) / 0.08)",
+                border: "1px solid rgb(var(--accent) / 0.2)",
               }}
             >
               <ClockIcon size={10} />
@@ -227,8 +231,8 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
             className="p-1 rounded transition-colors"
             style={{
               color: "rgb(var(--neg-text))",
-              background: "rgba(248,113,113,0.08)",
-              border: "1px solid rgba(248,113,113,0.2)",
+              background: "rgb(var(--neg) / 0.08)",
+              border: "1px solid rgb(var(--neg) / 0.2)",
             }}
           >
             <TrashIcon size={10} />
@@ -329,12 +333,12 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "#f87171" : "#34d399";
+  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   return (
     <div
       className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
       style={{
-        background: isError ? "rgba(248,113,113,0.18)" : "rgba(52,211,153,0.18)",
+        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
         color,
         border: `1px solid ${color}40`,
         backdropFilter: "blur(12px)",
@@ -473,11 +477,11 @@ export const TodoTab = ({ onRefreshStats }) => {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
-          <IconBadge Icon={SparklesIcon} color="#fb923c" size={38} iconSize={18} />
+          <IconBadge Icon={SparklesIcon} color="rgb(var(--accent-text))" size={38} iconSize={18} />
           <div className="min-w-0">
             <p
               className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-              style={{ color: "rgba(251,146,60,0.7)" }}
+              style={{ color: "rgb(var(--accent) / 0.7)" }}
             >
               Internal Work
             </p>
@@ -585,8 +589,8 @@ export const TodoTab = ({ onRefreshStats }) => {
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
             style={{
               color: "rgb(var(--neg-text))",
-              background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.2)",
+              background: "rgb(var(--neg) / 0.06)",
+              border: "1px solid rgb(var(--neg) / 0.2)",
             }}
           >
             <CloseIcon size={11} />
@@ -622,15 +626,15 @@ export const TodoTab = ({ onRefreshStats }) => {
         >
           <div
             className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: "rgba(251,146,60,0.08)", filter: "blur(40px)" }}
+            style={{ background: "rgb(var(--accent) / 0.08)", filter: "blur(40px)" }}
           />
           <div className="relative">
             <div
               className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
               style={{
-                background: "rgba(251,146,60,0.10)",
-                border: "1px solid rgba(251,146,60,0.22)",
-                color: "#fb923c",
+                background: "rgb(var(--accent) / 0.10)",
+                border: "1px solid rgb(var(--accent) / 0.22)",
+                color: "rgb(var(--accent-text))",
               }}
             >
               <SparklesIcon size={20} />

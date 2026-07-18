@@ -47,14 +47,30 @@ export const palette = {
     800: "#1a1411",
   },
 
+  // ── The admin desk speaks ONE cohesive palette: neutral grey · gold/amber
+  //    (warning/attention) · green (success) · red (danger). Everything else
+  //    (orange near-dupes, cool blues/purples/teals) collapses into it so the
+  //    UI reads as a single system instead of a rainbow of unrelated chips.
   green: { 300: "#86efac", 400: "#34d399", 500: "#10b981", 700: "#065f46" },
   red: { 300: "#fca5a5", 400: "#f87171", 500: "#ef4444", 700: "#991b1b" },
   amber: { 300: "#fcd34d", 400: "#fbbf24", 500: "#f59e0b", 700: "#92400e" },
-  orange: { 300: "#fdba74", 400: "#fb923c", 500: "#f97316", 700: "#9a3412" },
-  blue: { 300: "#93c5fd", 400: "#8a8a93", 500: "#3b82f6", 700: "#1e40af" },
-  purple: { 300: "#c4b5fd", 400: "#8a8a93", 500: "#8b5cf6", 700: "#5b21b6" },
-  violet: { 400: "#a855f7", 500: "#9333ea" },
-  teal: { 400: "#2dd4bf", 500: "#14b8a6" },
+  // Orange merged into amber — one warning hue, no clash next to gold.
+  orange: { 300: "#fcd34d", 400: "#fbbf24", 500: "#f59e0b", 700: "#92400e" },
+  // Cool decorative hues retired to a theme-aware neutral (readable on all desks).
+  blue: {
+    300: "rgb(var(--fg-muted))",
+    400: "rgb(var(--fg-muted))",
+    500: "rgb(var(--fg-muted))",
+    700: "rgb(var(--fg-muted))",
+  },
+  purple: {
+    300: "rgb(var(--fg-muted))",
+    400: "rgb(var(--fg-muted))",
+    500: "rgb(var(--fg-muted))",
+    700: "rgb(var(--fg-muted))",
+  },
+  violet: { 400: "rgb(var(--fg-muted))", 500: "rgb(var(--fg-muted))" },
+  teal: { 400: "rgb(var(--fg-muted))", 500: "rgb(var(--fg-muted))" },
 
   channels: {
     telegram: "#229ED9",
@@ -111,17 +127,21 @@ export const surface = {
 // 3. Semantic tokens
 // ════════════════════════════════════════════════════════════════════
 
+// Every tone below resolves to a WCAG-safe colour on ALL desks: the `-text`
+// channels darken green/red/amber for the bright canvas while staying vivid on
+// dark. Fills/borders use the raw channel at low alpha. Cohesive set only:
+// neutral · gold/amber · green · red.
 export const semantic = {
   role: {
     admin: {
-      color: palette.violet[400],
-      bg: "rgba(168,85,247,0.12)",
-      border: "rgba(168,85,247,0.3)",
+      color: "rgb(var(--accent-text))",
+      bg: "rgb(var(--accent) / 0.12)",
+      border: "rgb(var(--accent) / 0.3)",
     },
     subscriber: {
-      color: palette.green[400],
-      bg: "rgba(52,211,153,0.12)",
-      border: "rgba(52,211,153,0.3)",
+      color: "rgb(var(--pos-text))",
+      bg: "rgb(var(--pos) / 0.12)",
+      border: "rgb(var(--pos) / 0.3)",
     },
     free: {
       color: "rgb(var(--fg-muted))",
@@ -131,27 +151,27 @@ export const semantic = {
   },
   status: {
     success: {
-      color: palette.green[400],
-      bg: "rgba(52,211,153,0.1)",
-      border: "rgba(52,211,153,0.3)",
+      color: "rgb(var(--pos-text))",
+      bg: "rgb(var(--pos) / 0.1)",
+      border: "rgb(var(--pos) / 0.3)",
     },
     danger: {
-      color: palette.red[400],
-      bg: "rgba(248,113,113,0.1)",
-      border: "rgba(248,113,113,0.3)",
+      color: "rgb(var(--neg-text))",
+      bg: "rgb(var(--neg) / 0.1)",
+      border: "rgb(var(--neg) / 0.3)",
     },
     warning: {
-      color: palette.amber[400],
-      bg: "rgba(251,191,36,0.1)",
-      border: "rgba(251,191,36,0.3)",
+      color: "rgb(var(--accent-text))",
+      bg: "rgb(var(--accent) / 0.1)",
+      border: "rgb(var(--accent) / 0.3)",
     },
     pending: {
-      color: palette.amber[400],
-      bg: "rgba(251,191,36,0.1)",
-      border: "rgba(251,191,36,0.3)",
+      color: "rgb(var(--accent-text))",
+      bg: "rgb(var(--accent) / 0.1)",
+      border: "rgb(var(--accent) / 0.3)",
     },
     info: {
-      color: palette.blue[400],
+      color: "rgb(var(--fg-muted))",
       bg: "rgb(var(--ink) / 0.06)",
       border: "rgb(var(--ink) / 0.14)",
     },
@@ -161,21 +181,21 @@ export const semantic = {
       border: "rgb(var(--ink) / 0.12)",
     },
     urgent: {
-      color: palette.orange[400],
-      bg: "rgba(251,146,60,0.1)",
-      border: "rgba(251,146,60,0.3)",
+      color: "rgb(var(--accent-text))",
+      bg: "rgb(var(--accent) / 0.1)",
+      border: "rgb(var(--accent) / 0.3)",
     },
   },
   accent: {
     muted: "rgb(var(--fg-muted))",
     blue: "rgb(var(--fg-muted))",
-    green: palette.green[400],
+    green: "rgb(var(--pos-text))",
     gold: "rgb(var(--fg-muted))",
     purple: "rgb(var(--fg-muted))",
-    orange: palette.orange[400],
-    red: palette.red[400],
+    orange: "rgb(var(--accent-text))",
+    red: "rgb(var(--neg-text))",
     teal: "rgb(var(--fg-muted))",
-    amber: palette.amber[400],
+    amber: "rgb(var(--accent-text))",
   },
 };
 
@@ -241,8 +261,14 @@ export const NEUTRAL = "rgb(var(--fg-muted))";
 // 6. Helpers
 // ════════════════════════════════════════════════════════════════════
 
-export const tint = (hex, alpha) => {
-  const h = hex.replace("#", "");
+export const tint = (color, alpha) => {
+  // Token / CSS-var expressions (e.g. "rgb(var(--accent))") can't be parsed as
+  // hex — mix them with transparent so they stay theme-aware instead of
+  // silently producing rgba(NaN,…) (which rendered as an invisible fill).
+  if (typeof color !== "string" || !color.startsWith("#")) {
+    return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+  }
+  const h = color.replace("#", "");
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);

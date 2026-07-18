@@ -31,8 +31,8 @@ const CHANNEL_CONFIG = {
     label: "Email",
     short: "Mail",
     color: "rgb(var(--warn))",
-    bg: "rgba(251,191,36,0.06)",
-    border: "rgba(251,191,36,0.18)",
+    bg: "rgb(var(--accent) / 0.06)",
+    border: "rgb(var(--accent) / 0.18)",
   },
 };
 
@@ -148,9 +148,9 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
             <span
               className="text-[8px] font-bold px-1.5 py-px rounded"
               style={{
-                background: "rgba(251,191,36,0.12)",
+                background: "rgb(var(--accent) / 0.12)",
                 color: "rgb(var(--warn))",
-                border: "1px solid rgba(251,191,36,0.25)",
+                border: "1px solid rgb(var(--accent) / 0.25)",
               }}
               title="The bot hasn't confirmed it can DM this user. Reach them via in-app Announcements."
             >
@@ -176,9 +176,9 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
           title="Copy"
           className="flex items-center justify-center w-7 h-7 rounded transition-colors"
           style={{
-            background: copied ? "rgba(52,211,153,0.12)" : "rgb(var(--ink) / 0.03)",
-            color: copied ? "#34d399" : "rgb(var(--fg-muted))",
-            border: `1px solid ${copied ? "rgba(52,211,153,0.25)" : "rgb(var(--ink) / 0.06)"}`,
+            background: copied ? "rgb(var(--pos) / 0.12)" : "rgb(var(--ink) / 0.03)",
+            color: copied ? "rgb(var(--pos-text))" : "rgb(var(--fg-muted))",
+            border: `1px solid ${copied ? "rgb(var(--pos) / 0.25)" : "rgb(var(--ink) / 0.06)"}`,
           }}
         >
           {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
@@ -199,9 +199,9 @@ export const ContactBadgeRow = ({ user, reach }) => {
       <span
         className="inline-flex items-center text-[10px] px-2 py-0.5 rounded font-medium"
         style={{
-          background: "rgba(248,113,113,0.07)",
+          background: "rgb(var(--neg) / 0.07)",
           color: "rgb(var(--neg-text))",
-          border: "1px solid rgba(248,113,113,0.18)",
+          border: "1px solid rgb(var(--neg) / 0.18)",
         }}
         title="No contact channel available"
       >

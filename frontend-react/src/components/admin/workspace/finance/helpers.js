@@ -70,14 +70,14 @@ export const STATUS_CONFIG = {
   pending: {
     color: "rgb(var(--warn))",
     label: "Pending",
-    bg: "rgba(251,191,36,0.10)",
-    border: "rgba(251,191,36,0.30)",
+    bg: "rgb(var(--accent) / 0.10)",
+    border: "rgb(var(--accent) / 0.30)",
   },
   confirmed: {
     color: "rgb(var(--pos))",
     label: "Confirmed",
-    bg: "rgba(52,211,153,0.10)",
-    border: "rgba(52,211,153,0.30)",
+    bg: "rgb(var(--pos) / 0.10)",
+    border: "rgb(var(--pos) / 0.30)",
   },
   cancelled: {
     color: "rgb(var(--fg-muted))",
@@ -88,8 +88,8 @@ export const STATUS_CONFIG = {
   failed: {
     color: "rgb(var(--neg))",
     label: "Failed",
-    bg: "rgba(248,113,113,0.10)",
-    border: "rgba(248,113,113,0.30)",
+    bg: "rgb(var(--neg) / 0.10)",
+    border: "rgb(var(--neg) / 0.30)",
   },
   expired: {
     color: "#8a8a93",
@@ -98,10 +98,10 @@ export const STATUS_CONFIG = {
     border: "rgba(138,138,147,0.30)",
   },
   refunded: {
-    color: "#fb923c",
+    color: "rgb(var(--accent-text))",
     label: "Refunded",
-    bg: "rgba(251,146,60,0.10)",
-    border: "rgba(251,146,60,0.30)",
+    bg: "rgb(var(--accent) / 0.10)",
+    border: "rgb(var(--accent) / 0.30)",
   },
 };
 
@@ -112,8 +112,8 @@ export const getStatusConfig = (status) => STATUS_CONFIG[status] || STATUS_CONFI
 export const roleStyle = (role) => {
   const isPaid = role === "subscriber" || role === "premium" || role === "admin";
   return {
-    background: isPaid ? "rgba(52,211,153,0.10)" : "rgba(107,92,82,0.12)",
-    color: isPaid ? "#34d399" : "#8a7a6e",
+    background: isPaid ? "rgb(var(--pos) / 0.10)" : "rgba(107,92,82,0.12)",
+    color: isPaid ? "rgb(var(--pos-text))" : "#8a7a6e",
   };
 };
 
@@ -122,11 +122,11 @@ export const roleStyle = (role) => {
 const EXCHANGE_PALETTE = [
   "#f3ba2f", // amber (Binance-ish)
   "#3375bb", // blue
-  "#34d399", // green
+  "rgb(var(--pos-text))", // green
   "#8a8a93", // violet
-  "#fb923c", // orange
+  "rgb(var(--accent-text))", // orange
   "#8a8a93", // sky
-  "#f87171", // red
+  "rgb(var(--neg-text))", // red
   "rgb(var(--accent))", // gold
 ];
 

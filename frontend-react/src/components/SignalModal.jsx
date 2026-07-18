@@ -1624,7 +1624,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </div>
 
             {/* HEADER — exchange trade ticket style */}
-            <div className="relative z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-3 pr-14 sm:px-4 sm:pr-16">
+            <div className="relative z-10 flex-shrink-0 border-b border-ink/[0.08] bg-surface-raised px-3 py-2 pr-14 sm:px-4 sm:pr-16">
               {/* Close — pinned top-right corner (best-practice escape affordance) */}
               <button
                 type="button"
@@ -1688,108 +1688,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           <span className="hidden sm:inline">Indicator guide</span>
                         </span>
                       </button>
-                    </div>
-
-                    {/* Baris 3: Timestamp */}
-                    <p className="text-text-muted text-[10px] truncate">
-                      {formatShortDateTime(signal?.created_at)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center justify-end gap-1 sm:flex-nowrap sm:gap-1.5 sm:flex-shrink-0">
-                  {/* ═══ EXPLORE ON X (cashtag search) ═══ */}
-                  <a
-                    href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query&f=live`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
-                    className="mr-0.5 inline-flex items-center gap-1.5 rounded-md border border-ink/[0.1] bg-ink/[0.04] px-2 py-1 text-[10px] font-medium text-text-primary/80 transition hover:border-ink/20 hover:bg-ink/[0.08] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
-                  >
-                    <span className="hidden sm:inline text-text-muted">Explore on</span>
-                    <svg
-                      className="h-3.5 w-3.5 shrink-0"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      aria-label="X"
-                      role="img"
-                    >
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                  </a>
-                  {/* ═══ TOMBOL JOURNAL (HEADER) ═══ */}
-                  <button
-                    onClick={() => {
-                      sessionStorage.setItem(
-                        "journal_prefill",
-                        JSON.stringify({
-                          signal_id: signal.signal_id,
-                          pair: signal.pair,
-                          planned_entry: signal.entry,
-                          planned_tp1: signal.target1,
-                          planned_tp2: signal.target2,
-                          planned_tp3: signal.target3,
-                          planned_tp4: signal.target4,
-                          planned_sl: signal.stop1,
-                        })
-                      );
-                      handleCloseClick();
-                      setTimeout(() => {
-                        window.location.href = "/journal";
-                      }, 300);
-                    }}
-                    className="mr-0.5 flex items-center gap-1.5 rounded-md border border-ink/[0.08] px-2 py-1 text-[10px] font-medium text-text-primary/65 transition hover:bg-ink/[0.04] hover:text-text-primary sm:mr-1 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
-                    title="Journal This Trade"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
-                      />
-                    </svg>
-                    <span className="hidden sm:inline">Journal</span>
-                  </button>
-                  {/* END TOMBOL JOURNAL */}
-
-                  {/* INSTAGRAM (share X tweet link) — only when a tweet exists */}
-                  {tweetUrl && (
-                    <button
-                      onClick={handleShareTweet}
-                      title="Share to Instagram"
-                      aria-label="Share to Instagram"
-                      className="ml-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                    >
-                      {Ic.instagram("w-3.5 h-3.5")}
-                    </button>
-                  )}
-                  <div className="relative flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleShare}
-                      title="Share signal"
-                      aria-label="Share signal"
-                      className="ml-1 flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-                    >
-                      {Ic.share("w-3.5 h-3.5")}
-                    </button>
-                    {shareCopied && (
-                      <span className="absolute right-0 top-full z-20 mt-1.5 whitespace-nowrap rounded-md border border-ink/10 bg-surface-raised px-2 py-1 text-[10px] font-medium text-text-primary shadow-lg">
-                        Link copied
+                      {/* Timestamp inline — saves a header row */}
+                      <span className="ml-0.5 whitespace-nowrap text-[10px] text-text-muted">
+                        {formatShortDateTime(signal?.created_at)}
                       </span>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Row 2 — navigation tabs (own row, never mixed with close) */}
-              <div className="mt-3 flex items-center">
-                <div className="flex w-full items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5 sm:w-auto">
+              {/* Row 2 — toolbar: navigation tabs (left) + utility actions (right) */}
+              <div className="mt-2.5 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] p-0.5 sm:flex-none">
                   {[
                     {
                       id: "chart",
@@ -1882,9 +1792,91 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       }`}
                     >
                       {icon}
-                      <span>{label}</span>
+                      <span className="hidden sm:inline">{label}</span>
                     </button>
                   ))}
+                </div>
+
+                {/* Utility actions — compact, right of the tab toolbar */}
+                <div className="flex shrink-0 items-center gap-1">
+                  <a
+                    href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query&f=live`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
+                    aria-label="Explore on X"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                  >
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" role="img">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sessionStorage.setItem(
+                        "journal_prefill",
+                        JSON.stringify({
+                          signal_id: signal.signal_id,
+                          pair: signal.pair,
+                          planned_entry: signal.entry,
+                          planned_tp1: signal.target1,
+                          planned_tp2: signal.target2,
+                          planned_tp3: signal.target3,
+                          planned_tp4: signal.target4,
+                          planned_sl: signal.stop1,
+                        })
+                      );
+                      handleCloseClick();
+                      setTimeout(() => {
+                        window.location.href = "/journal";
+                      }, 300);
+                    }}
+                    title="Journal this trade"
+                    aria-label="Journal this trade"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
+                      />
+                    </svg>
+                  </button>
+                  {tweetUrl && (
+                    <button
+                      type="button"
+                      onClick={handleShareTweet}
+                      title="Share to Instagram"
+                      aria-label="Share to Instagram"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                    >
+                      {Ic.instagram("w-3.5 h-3.5")}
+                    </button>
+                  )}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      title="Share signal"
+                      aria-label="Share signal"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+                    >
+                      {Ic.share("w-3.5 h-3.5")}
+                    </button>
+                    {shareCopied && (
+                      <span className="absolute right-0 top-full z-20 mt-1.5 whitespace-nowrap rounded-md border border-ink/10 bg-surface-raised px-2 py-1 text-[10px] font-medium text-text-primary shadow-lg">
+                        Link copied
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

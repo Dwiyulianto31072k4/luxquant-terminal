@@ -65,10 +65,14 @@ const timeUntilDue = (dateStr) => {
 const PRIORITY_CONFIG = {
   urgent: {
     color: "rgb(var(--neg-text))",
-    bg: "rgba(248,113,113,0.1)",
-    border: "rgba(248,113,113,0.3)",
+    bg: "rgb(var(--neg) / 0.1)",
+    border: "rgb(var(--neg) / 0.3)",
   },
-  high: { color: "#fb923c", bg: "rgba(251,146,60,0.1)", border: "rgba(251,146,60,0.3)" },
+  high: {
+    color: "rgb(var(--accent-text))",
+    bg: "rgb(var(--accent) / 0.1)",
+    border: "rgb(var(--accent) / 0.3)",
+  },
   normal: { color: "#8a8a93", bg: "rgba(138,138,147,0.08)", border: "rgba(138,138,147,0.22)" },
   low: {
     color: "rgb(var(--fg-muted))",
@@ -225,7 +229,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
       style={{
         background: "rgb(var(--surface-raised))",
         border: `1px solid ${
-          due?.overdue && isOpen ? "rgba(248,113,113,0.25)" : "rgb(var(--ink) / 0.07)"
+          due?.overdue && isOpen ? "rgb(var(--neg) / 0.25)" : "rgb(var(--ink) / 0.07)"
         }`,
       }}
     >
@@ -287,7 +291,11 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
               <span
                 className="flex items-center gap-1 font-semibold tabular-nums"
                 style={{
-                  color: due.overdue ? "#f87171" : due.urgent ? "#fb923c" : "rgb(var(--fg-muted))",
+                  color: due.overdue
+                    ? "rgb(var(--neg-text))"
+                    : due.urgent
+                      ? "rgb(var(--accent-text))"
+                      : "rgb(var(--fg-muted))",
                 }}
               >
                 <ClockIcon size={10} />
@@ -342,8 +350,8 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                     className="p-1.5 rounded-md transition-colors"
                     style={{
                       color: "rgb(var(--pos-text))",
-                      background: "rgba(52,211,153,0.08)",
-                      border: "1px solid rgba(52,211,153,0.2)",
+                      background: "rgb(var(--pos) / 0.08)",
+                      border: "1px solid rgb(var(--pos) / 0.2)",
                     }}
                   >
                     <CheckCircleIcon size={11} />
@@ -357,8 +365,8 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                   className="p-1.5 rounded-md transition-colors"
                   style={{
                     color: "rgb(var(--warn))",
-                    background: "rgba(251,191,36,0.08)",
-                    border: "1px solid rgba(251,191,36,0.2)",
+                    background: "rgb(var(--accent) / 0.08)",
+                    border: "1px solid rgb(var(--accent) / 0.2)",
                   }}
                 >
                   <ClockIcon size={11} />
@@ -382,8 +390,8 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 className="p-1.5 rounded-md transition-colors"
                 style={{
                   color: "rgb(var(--neg-text))",
-                  background: "rgba(248,113,113,0.08)",
-                  border: "1px solid rgba(248,113,113,0.2)",
+                  background: "rgb(var(--neg) / 0.08)",
+                  border: "1px solid rgb(var(--neg) / 0.2)",
                 }}
               >
                 <TrashIcon size={11} />
@@ -401,12 +409,12 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "#f87171" : "#34d399";
+  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   return (
     <div
       className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
       style={{
-        background: isError ? "rgba(248,113,113,0.18)" : "rgba(52,211,153,0.18)",
+        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
         color,
         border: `1px solid ${color}40`,
         backdropFilter: "blur(12px)",
@@ -586,7 +594,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         <StatCard
           label="Overdue"
           value={counts.overdue}
-          accent="#f87171"
+          accent="rgb(var(--neg-text))"
           Icon={AlertTriangleIcon}
           active={statusFilter === "overdue"}
           onClick={() => setStatusFilter("overdue")}
@@ -595,7 +603,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         <StatCard
           label="Due Today"
           value={counts.today}
-          accent="#fb923c"
+          accent="rgb(var(--accent-text))"
           Icon={ClockIcon}
           active={false}
           onClick={() => {}}
@@ -603,7 +611,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         <StatCard
           label="Done"
           value={counts.done}
-          accent="#34d399"
+          accent="rgb(var(--pos-text))"
           Icon={CheckCircleIcon}
           active={statusFilter === "done"}
           onClick={() => setStatusFilter("done")}
@@ -681,8 +689,8 @@ export const FollowupTab = ({ onRefreshStats }) => {
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
             style={{
               color: "rgb(var(--neg-text))",
-              background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.2)",
+              background: "rgb(var(--neg) / 0.06)",
+              border: "1px solid rgb(var(--neg) / 0.2)",
             }}
           >
             <CloseIcon size={11} />

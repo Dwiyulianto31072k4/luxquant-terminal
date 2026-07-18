@@ -12,7 +12,7 @@ const ROLE_OPTIONS = [
     value: "admin",
     label: ROLE_LABELS.admin,
     desc: "Full access — grant, delete, edit, all actions",
-    tone: "#a855f7",
+    tone: "rgb(var(--fg-muted))",
   },
   {
     value: "co_admin",
@@ -24,13 +24,13 @@ const ROLE_OPTIONS = [
     value: "founder",
     label: ROLE_LABELS.founder,
     desc: "View-only — same as co-admin (founder badge)",
-    tone: "#fbbf24",
+    tone: "rgb(var(--accent-text))",
   },
   {
     value: "subscriber",
     label: ROLE_LABELS.subscriber,
     desc: "Paid member access (lifetime if no expiry set)",
-    tone: "#34d399",
+    tone: "rgb(var(--pos-text))",
   },
   {
     value: "free",
@@ -125,9 +125,9 @@ export const SetRoleModal = ({ user, onClose, onSetRole }) => {
           <p
             className="text-[11px] leading-relaxed rounded-md px-3 py-2"
             style={{
-              background: "rgba(168,85,247,0.08)",
-              border: "1px solid rgba(168,85,247,0.2)",
-              color: "#c4b5fd",
+              background: "rgb(var(--ink) / 0.08)",
+              border: "1px solid rgb(var(--ink) / 0.2)",
+              color: "rgb(var(--fg-muted))",
             }}
           >
             {selected.value === "admin"

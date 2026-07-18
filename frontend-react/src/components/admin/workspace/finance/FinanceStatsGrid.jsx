@@ -104,7 +104,7 @@ export const FinanceStatsGrid = ({ stats, statusFilter, onFilterToggle, loading 
               ? `+${formatUSDTCompact(stats.revenue_this_month)} this month`
               : null
           }
-          accent="#34d399"
+          accent="rgb(var(--pos-text))"
           Icon={TrendingUpIcon}
           loading={loading && !stats}
         />
@@ -116,7 +116,7 @@ export const FinanceStatsGrid = ({ stats, statusFilter, onFilterToggle, loading 
               ? `${stats.pending_count} payment${stats.pending_count === 1 ? "" : "s"}`
               : null
           }
-          accent="#fbbf24"
+          accent="rgb(var(--accent-text))"
           Icon={ClockIcon}
           active={statusFilter === "pending"}
           onClick={() => onFilterToggle("pending")}
@@ -128,7 +128,7 @@ export const FinanceStatsGrid = ({ stats, statusFilter, onFilterToggle, loading 
           sub={
             stats?.stale_value > 0 ? `${formatUSDTCompact(stats.stale_value)} locked` : "All clear"
           }
-          accent="#f87171"
+          accent="rgb(var(--neg-text))"
           Icon={AlertTriangleIcon}
           active={statusFilter === "stale"}
           onClick={() => onFilterToggle("stale")}
@@ -157,7 +157,11 @@ export const FinanceStatsGrid = ({ stats, statusFilter, onFilterToggle, loading 
           }}
         >
           <div className="flex items-center gap-x-5 gap-y-2 flex-wrap text-[10.5px]">
-            <InfoStat label="Today" value={formatUSDT(stats.revenue_today ?? 0)} accent="#34d399" />
+            <InfoStat
+              label="Today"
+              value={formatUSDT(stats.revenue_today ?? 0)}
+              accent="rgb(var(--pos-text))"
+            />
             <Divider />
             <InfoStat label="Total Payments" value={(stats.total_count ?? 0).toLocaleString()} />
             <Divider />

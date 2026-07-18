@@ -47,12 +47,16 @@ const StepHeader = ({ num, title, complete, locked }) => (
       className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums"
       style={{
         background: complete
-          ? "rgba(52,211,153,0.18)"
+          ? "rgb(var(--pos) / 0.18)"
           : locked
             ? "rgb(var(--ink) / 0.04)"
             : "rgb(var(--accent) / 0.16)",
-        color: complete ? "#34d399" : locked ? "rgb(var(--fg-muted))" : "rgb(var(--accent))",
-        border: `1px solid ${complete ? "rgba(52,211,153,0.32)" : locked ? "rgb(var(--ink) / 0.06)" : "rgb(var(--accent) / 0.3)"}`,
+        color: complete
+          ? "rgb(var(--pos-text))"
+          : locked
+            ? "rgb(var(--fg-muted))"
+            : "rgb(var(--accent))",
+        border: `1px solid ${complete ? "rgb(var(--pos) / 0.32)" : locked ? "rgb(var(--ink) / 0.06)" : "rgb(var(--accent) / 0.3)"}`,
       }}
     >
       {complete ? <CheckMini /> : num}
@@ -105,19 +109,19 @@ const TextInput = ({ value, onChange, placeholder, mono, disabled, autoFocus }) 
 const Pill = ({ tone, children, Icon, pulse }) => {
   const tones = {
     green: {
-      bg: "rgba(52,211,153,0.10)",
+      bg: "rgb(var(--pos) / 0.10)",
       color: "rgb(var(--pos-text))",
-      border: "rgba(52,211,153,0.3)",
+      border: "rgb(var(--pos) / 0.3)",
     },
     amber: {
-      bg: "rgba(251,191,36,0.10)",
+      bg: "rgb(var(--accent) / 0.10)",
       color: "rgb(var(--warn))",
-      border: "rgba(251,191,36,0.3)",
+      border: "rgb(var(--accent) / 0.3)",
     },
     red: {
-      bg: "rgba(248,113,113,0.10)",
+      bg: "rgb(var(--neg) / 0.10)",
       color: "rgb(var(--neg-text))",
-      border: "rgba(248,113,113,0.3)",
+      border: "rgb(var(--neg) / 0.3)",
     },
     gold: {
       bg: "rgb(var(--accent) / 0.10)",
@@ -197,9 +201,9 @@ const TxStep = ({
             <div
               className="flex items-start gap-2 rounded-lg px-3 py-2.5 text-xs"
               style={{
-                background: "rgba(248,113,113,0.08)",
+                background: "rgb(var(--neg) / 0.08)",
                 color: "rgb(var(--neg-text))",
-                border: "1px solid rgba(248,113,113,0.28)",
+                border: "1px solid rgb(var(--neg) / 0.28)",
               }}
             >
               <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />
@@ -293,9 +297,9 @@ const TxStep = ({
               key={b.code}
               className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
               style={{
-                background: "rgba(248,113,113,0.08)",
+                background: "rgb(var(--neg) / 0.08)",
                 color: "rgb(var(--neg-text))",
-                border: "1px solid rgba(248,113,113,0.28)",
+                border: "1px solid rgb(var(--neg) / 0.28)",
               }}
             >
               <AlertCircleIcon size={13} className="mt-0.5 shrink-0" />
@@ -307,9 +311,9 @@ const TxStep = ({
               key={w.code}
               className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
               style={{
-                background: "rgba(251,191,36,0.08)",
+                background: "rgb(var(--accent) / 0.08)",
                 color: "rgb(var(--warn))",
-                border: "1px solid rgba(251,191,36,0.28)",
+                border: "1px solid rgb(var(--accent) / 0.28)",
               }}
             >
               <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />
@@ -378,7 +382,7 @@ const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
         <button
           onClick={handleToggle}
           className="text-[9.5px] font-semibold uppercase tracking-wider transition-colors"
-          style={{ color: overriding ? "#f87171" : "rgb(var(--accent))" }}
+          style={{ color: overriding ? "rgb(var(--neg-text))" : "rgb(var(--accent))" }}
         >
           {overriding ? "Reset to TX date" : "Override"}
         </button>
@@ -663,9 +667,12 @@ const UserStep = ({
                             style={{
                               background:
                                 u.role === "subscriber"
-                                  ? "rgba(52,211,153,0.12)"
+                                  ? "rgb(var(--pos) / 0.12)"
                                   : "rgba(107,92,82,0.12)",
-                              color: u.role === "subscriber" ? "#34d399" : "rgb(var(--fg-muted))",
+                              color:
+                                u.role === "subscriber"
+                                  ? "rgb(var(--pos-text))"
+                                  : "rgb(var(--fg-muted))",
                             }}
                           >
                             {u.role}
@@ -726,7 +733,7 @@ const UserStep = ({
 const SelectedUserCard = ({ user, onClear }) => (
   <div
     className="flex items-center gap-3 rounded-lg p-3"
-    style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.22)" }}
+    style={{ background: "rgb(var(--pos) / 0.06)", border: "1px solid rgb(var(--pos) / 0.22)" }}
   >
     <span
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
@@ -852,7 +859,7 @@ const NoteStep = ({ locked, note, setNote }) => {
           />
           <p
             className="mt-1 text-right text-[9.5px] tabular-nums"
-            style={{ color: complete ? "#34d399" : "rgb(var(--ink) / 0.4)" }}
+            style={{ color: complete ? "rgb(var(--pos-text))" : "rgb(var(--ink) / 0.4)" }}
           >
             {note.length} / {NOTE_MIN_CHARS}+
           </p>
@@ -1277,17 +1284,17 @@ export const ManualPaymentModal = ({
           <div
             className="space-y-2 rounded-lg p-3"
             style={{
-              background: "rgba(251,146,60,0.06)",
-              border: "1px solid rgba(251,146,60,0.25)",
+              background: "rgb(var(--accent) / 0.06)",
+              border: "1px solid rgb(var(--accent) / 0.25)",
             }}
           >
             <div className="flex items-start gap-2">
               <AlertTriangleIcon
                 size={13}
                 className="mt-0.5 shrink-0"
-                style={{ color: "#fb923c" }}
+                style={{ color: "rgb(var(--accent-text))" }}
               />
-              <div className="text-[11px]" style={{ color: "#fb923c" }}>
+              <div className="text-[11px]" style={{ color: "rgb(var(--accent-text))" }}>
                 <strong>Amount mismatch:</strong> TX is{" "}
                 <span className="tabular-nums">{txAmount} USDT</span>, but {selectedPlan?.label} is{" "}
                 <span className="tabular-nums">${planPrice.toFixed(2)}</span> (diff{" "}
@@ -1296,7 +1303,7 @@ export const ManualPaymentModal = ({
             </div>
             <label
               className="flex cursor-pointer items-center gap-2 text-[11px]"
-              style={{ color: "#fb923c" }}
+              style={{ color: "rgb(var(--accent-text))" }}
             >
               <input
                 type="checkbox"
@@ -1313,8 +1320,8 @@ export const ManualPaymentModal = ({
           <div
             className="space-y-2 rounded-lg p-3"
             style={{
-              background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.28)",
+              background: "rgb(var(--neg) / 0.06)",
+              border: "1px solid rgb(var(--neg) / 0.28)",
             }}
           >
             <div className="flex items-start gap-2">
@@ -1351,9 +1358,9 @@ export const ManualPaymentModal = ({
           <div
             className="flex items-start gap-2 rounded-lg p-3 text-xs"
             style={{
-              background: "rgba(248,113,113,0.08)",
+              background: "rgb(var(--neg) / 0.08)",
               color: "rgb(var(--neg-text))",
-              border: "1px solid rgba(248,113,113,0.28)",
+              border: "1px solid rgb(var(--neg) / 0.28)",
             }}
           >
             <AlertCircleIcon size={14} className="mt-0.5 shrink-0" />
