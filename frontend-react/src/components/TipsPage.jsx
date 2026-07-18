@@ -15,6 +15,11 @@ const TipsPage = () => {
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  // Read live inside fetchTips. Depending on searchQuery instead would refetch
+  // on every keystroke; capturing it in the closure (what useCallback did on my
+  // first pass) froze it empty and silently broke submit-to-search.
+  const searchRef = useRef("");
+  searchRef.current = searchQuery;
   const [selectedTip, setSelectedTip] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTip, setEditingTip] = useState(null);
@@ -27,7 +32,7 @@ const TipsPage = () => {
       setError(null);
       const params = new URLSearchParams();
       if (activeCategory !== "all") params.append("category", activeCategory);
-      if (searchQuery) params.append("search", searchQuery);
+      if (searchRef.current) params.append("search", searchRef.current);
 
       const res = await fetch(`${API_BASE}/tips/?${params}`);
       if (!res.ok) throw new Error("Failed to fetch tips");

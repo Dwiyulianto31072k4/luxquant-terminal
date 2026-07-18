@@ -1,5 +1,5 @@
 import Seo from "./Seo";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -194,6 +194,10 @@ const OverviewPage = () => {
   const [derivPulse, setDerivPulse] = useState(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState(null);
+  // fetchAll only asks "is anything on screen yet?" — via a ref so the answer is
+  // current, rather than whatever it was on first render.
+  const dataRef = useRef(null);
+  dataRef.current = data;
 
   const fetchAll = useCallback(async () => {
     try {
@@ -251,10 +255,10 @@ const OverviewPage = () => {
               )
               .slice(0, 5),
           });
-        } else if (!data) {
+        } else if (!dataRef.current) {
           setMarketError("Failed to fetch market data");
         }
-      } else if (!data) {
+      } else if (!dataRef.current) {
         setMarketError("Failed to fetch market data");
       }
 
@@ -266,7 +270,7 @@ const OverviewPage = () => {
         setDerivPulse(await derivRes.value.json());
     } catch (err) {
       console.error("Failed to fetch overview data:", err);
-      if (!data) setMarketError(err.message);
+      if (!dataRef.current) setMarketError(err.message);
     } finally {
       setMarketLoading(false);
     }
