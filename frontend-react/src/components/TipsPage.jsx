@@ -1,5 +1,5 @@
 // src/components/TipsPage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next"; // <-- 1. Import i18n
 import { useAuth } from "../context/AuthContext";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -22,12 +22,7 @@ const TipsPage = () => {
 
   const isAdmin = user?.is_admin === true;
 
-  useEffect(() => {
-    fetchTips();
-    fetchCategories();
-  }, [activeCategory]);
-
-  const fetchTips = async () => {
+  const fetchTips = useCallback(async () => {
     try {
       setError(null);
       const params = new URLSearchParams();
@@ -43,7 +38,12 @@ const TipsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeCategory]);
+
+  useEffect(() => {
+    fetchTips();
+    fetchCategories();
+  }, [fetchTips]);
 
   const fetchCategories = async () => {
     try {

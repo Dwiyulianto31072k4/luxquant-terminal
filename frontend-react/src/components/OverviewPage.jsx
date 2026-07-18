@@ -1,5 +1,5 @@
 import Seo from "./Seo";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -195,13 +195,7 @@ const OverviewPage = () => {
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState(null);
 
-  useEffect(() => {
-    fetchAll();
-    const interval = setInterval(fetchAll, 120000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       setMarketError(null);
       const [globalRes, catRes, trendRes, derivRes] = await Promise.allSettled([
@@ -276,7 +270,13 @@ const OverviewPage = () => {
     } finally {
       setMarketLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+    const interval = setInterval(fetchAll, 120000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   return (
     <div className="space-y-5 lg:space-y-7">

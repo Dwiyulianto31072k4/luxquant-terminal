@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 /**
  * MarketHighlights Component
@@ -8,13 +8,7 @@ const MarketHighlights = () => {
   const [marketData, setMarketData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMarketData();
-    const interval = setInterval(fetchMarketData, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchMarketData = async () => {
+  const fetchMarketData = useCallback(async () => {
     try {
       // Fetch coins market data
       const coinsResponse = await fetch(
@@ -122,7 +116,13 @@ const MarketHighlights = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMarketData();
+    const interval = setInterval(fetchMarketData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchMarketData]);
 
   const formatPrice = (price) => {
     if (!price) return "$0.00";

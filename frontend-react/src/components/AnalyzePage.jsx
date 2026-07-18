@@ -69,17 +69,7 @@ const AnalyzePage = () => {
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [showSigFilters, setShowSigFilters] = useState(false);
 
-  useEffect(() => {
-    fetchAnalyzeData();
-  }, [timeRange, trendMode]);
-  useEffect(() => {
-    fetchSignals();
-  }, [sigPage, sigSearch, sigStatus, sigRisk, sigSort, sigOrder]);
-  useEffect(() => {
-    setSigPage(1);
-  }, [sigSearch, sigStatus, sigRisk, sigSort, sigOrder]);
-
-  const fetchAnalyzeData = async () => {
+  const fetchAnalyzeData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -96,7 +86,17 @@ const AnalyzePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange, trendMode]);
+
+  useEffect(() => {
+    fetchAnalyzeData();
+  }, [fetchAnalyzeData]);
+  useEffect(() => {
+    fetchSignals();
+  }, [fetchSignals]);
+  useEffect(() => {
+    setSigPage(1);
+  }, [sigSearch, sigStatus, sigRisk, sigSort, sigOrder]);
 
   const fetchSignals = useCallback(async () => {
     try {
