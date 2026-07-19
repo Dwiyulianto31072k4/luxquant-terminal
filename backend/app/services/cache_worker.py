@@ -930,12 +930,16 @@ async def signal_cache_loop():
                         if pg >= result.get("total_pages", 1):
                             break
 
+                _t4 = time.time()
                 # Step 4: Stats & Active
                 cache_set("lq:signals:stats", query_signals_stats(db), ttl=ttl)
                 cached += 1
                 cache_set("lq:signals:active:20", query_active_signals(db, 20), ttl=ttl)
                 cached += 1
 
+                _ms4 = round((time.time() - _t4) * 1000)
+
+                _t5 = time.time()
                 # Step 5: Analyze — only weekly (daily rarely used)
                 for tr in ["all", "7d", "30d"]:
                     result = query_analyze(db, time_range=tr, trend_mode="weekly")
@@ -946,6 +950,8 @@ async def signal_cache_loop():
                         result_d = query_analyze(db, time_range=tr, trend_mode="daily")
                         cache_set(f"lq:signals:analyze:{tr}:daily", result_d, ttl=ttl)
                         cached += 1
+
+                _ms5 = round((time.time() - _t5) * 1000)
 
                 # Step 6: Coin Intelligence
                 try:
@@ -966,16 +972,23 @@ async def signal_cache_loop():
                 # rare user-triggered recompute is non-fatal. Lazy import avoids
                 # a circular import at module load.
                 try:
+                    _t7 = time.time()
                     from app.api.routes.signals import get_top_performers
                     for (tp_days, tp_limit) in ((7, 10), (1, 10), (7, 20), (1, 20)):
                         await get_top_performers(days=tp_days, limit=tp_limit, db=db)
                         cached += 1
+                    _ms7 = round((time.time() - _t7) * 1000)
                 except Exception as e:
+                    _ms7 = -1
                     print(f"   ⚠️ Top Performers prewarm error: {type(e).__name__}: {e}")
 
                 elapsed = round((time.time() - start) * 1000)
                 intel_info = f" | Intel: {intel_ms}ms" if intel_ms >= 0 else ""
-                print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms{intel_info})")
+                print(
+                    f"✅ Signal cache: {cached} keys in {elapsed}ms "
+                    f"(CTE: {cte_ms}ms{intel_info} | stats+active: {_ms4}ms "
+                    f"| analyze: {_ms5}ms | topperf: {_ms7}ms)"
+                )
 
             finally:
                 db.close()
