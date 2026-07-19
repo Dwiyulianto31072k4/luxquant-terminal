@@ -881,6 +881,7 @@ async def signal_cache_loop():
 
                 date_7d = get_7d_date()
 
+                _tb = time.time()
                 # Step 1b: Cache BULK 7d data (all signals, no pagination)
                 # Frontend fetches this once, then sorts/filters/paginates client-side
                 bulk_7d = query_signals_bulk_7d(db)
@@ -890,6 +891,9 @@ async def signal_cache_loop():
                 cache_set("lq:signals:bulk-7d:sub", bulk_7d, ttl=ttl)
                 cached += 1
 
+                _msb = round((time.time() - _tb) * 1000)
+
+                _t2 = time.time()
                 # Step 2: Cache "Last 7 Days" ALL pages (fallback for server-side pagination)
                 # Each query uses pre-computed _cache_outcomes → fast (~5ms per page)
                 # 8, not 50. Precomputing every page of every status is the bulk of
@@ -918,6 +922,9 @@ async def signal_cache_loop():
                         if pg >= result.get("total_pages", 1):
                             break
 
+                _ms2 = round((time.time() - _t2) * 1000)
+
+                _t3 = time.time()
                 # Step 3: Cache "All time" — first 5 pages per status
                 MAX_PAGES_ALL = 5
                 for st in [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]:
@@ -929,6 +936,8 @@ async def signal_cache_loop():
                         cached += 1
                         if pg >= result.get("total_pages", 1):
                             break
+
+                _ms3 = round((time.time() - _t3) * 1000)
 
                 _t4 = time.time()
                 # Step 4: Stats & Active
@@ -986,7 +995,8 @@ async def signal_cache_loop():
                 intel_info = f" | Intel: {intel_ms}ms" if intel_ms >= 0 else ""
                 print(
                     f"✅ Signal cache: {cached} keys in {elapsed}ms "
-                    f"(CTE: {cte_ms}ms{intel_info} | stats+active: {_ms4}ms "
+                    f"(CTE: {cte_ms}ms | bulk7d: {_msb}ms | pages7d: {_ms2}ms | pagesAll: {_ms3}ms"
+                    f"{intel_info} | stats+active: {_ms4}ms "
                     f"| analyze: {_ms5}ms | topperf: {_ms7}ms)"
                 )
 
