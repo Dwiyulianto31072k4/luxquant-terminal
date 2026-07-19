@@ -98,5 +98,15 @@
   "tests/test_journey_fetcher.py::TestParseCreatedAt::test_iso8601_with_z_suffix",
   "tests/test_journey_fetcher.py::TestParseCreatedAt::test_naive_added_utc",
   "tests/test_journey_fetcher.py::TestSourcesConfig::test_all_sources_callable",
-  "tests/test_journey_fetcher.py::TestSourcesConfig::test_sources_order_per_design"
+  "tests/test_journey_fetcher.py::TestSourcesConfig::test_sources_order_per_design",
+  "tests/test_kline_sizing.py::TestCoversTheRange::test_every_interval_covers_its_own_span",
+  "tests/test_kline_sizing.py::TestCoversTheRange::test_seven_day_hourly_window",
+  "tests/test_kline_sizing.py::TestCoversTheRange::test_two_day_hourly_window",
+  "tests/test_kline_sizing.py::TestEdges::test_never_exceeds_the_cap_for_any_interval",
+  "tests/test_kline_sizing.py::TestEdges::test_reversed_range_does_not_explode",
+  "tests/test_kline_sizing.py::TestEdges::test_unknown_interval_falls_back_to_the_cap",
+  "tests/test_kline_sizing.py::TestEdges::test_zero_length_range",
+  "tests/test_kline_sizing.py::TestStaysCheap::test_long_range_still_uses_the_cap",
+  "tests/test_kline_sizing.py::TestStaysCheap::test_respects_the_bybit_cap_separately",
+  "tests/test_kline_sizing.py::TestStaysCheap::test_short_range_is_far_below_the_cap"
 ]
