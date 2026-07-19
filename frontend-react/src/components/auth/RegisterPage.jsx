@@ -720,7 +720,10 @@ const GoldButton = ({ loading, text, loadingText }) => (
     className="w-full py-3.5 sm:py-4 font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group active:scale-[0.98]"
     style={{
       background: "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 100%)",
-      color: "rgb(var(--surface))",
+      // --accent-fg, not --surface: on the bright theme --surface is near-white,
+      // which put white text on a gold button — the exact washout the accent-fg
+      // token exists to prevent (it stays dark on gold in every theme).
+      color: "rgb(var(--accent-fg))",
       boxShadow: loading ? "none" : "0 10px 25px -5px rgb(var(--accent) / 0.4)",
     }}
   >
