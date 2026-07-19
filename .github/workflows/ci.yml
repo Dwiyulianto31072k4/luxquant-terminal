@@ -1,0 +1,82 @@
+# CI — the checks that were only ever run when somebody remembered.
+#
+# Written after a change of mine broke two of the repo's own tests and shipped
+# anyway: the suite exists, it is good, and nothing was running it. A test
+# nobody runs is decoration.
+#
+# Three gates, matching what was being checked by hand:
+#   · pytest must pass          (100 tests, fully mocked — no DB, Redis or network)
+#   · eslint must have 0 ERRORS (warnings are allowed; ~95 are reviewed and
+#                                deliberate, but rules-of-hooks is an error and
+#                                catches a whole class of React bug)
+#   · vite build must succeed   (a broken build cannot reach production)
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**", "fix/**"]
+  pull_request:
+    branches: [main]
+
+# A newer push makes an in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend · pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"          # matches the production box
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        # The suite mocks every HTTP call and touches no database, so it needs
+        # no services — see tests/test_journey_fetcher.py's "NO real network
+        # call". If that stops being true, this job will say so loudly.
+        run: python -m pytest tests/ -q
+
+  frontend:
+    name: frontend · lint + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend-react
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"              # matches the production box
+          cache: npm
+          cache-dependency-path: frontend-react/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (errors fail, warnings do not)
+        # --max-warnings is deliberately not set. The warning count is real work
+        # that was reviewed case by case; failing on it would push people to
+        # silence warnings rather than read them. Errors are a different matter:
+        # react-hooks/rules-of-hooks is configured as one, and it already caught
+        # me placing hook calls below an early return.
+        run: npx eslint src
+
+      - name: Build
+        run: npm run build
