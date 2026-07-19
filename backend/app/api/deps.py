@@ -1,4 +1,14 @@
 # backend/app/api/deps.py
+#
+# Every dependency here is a plain `def`, NOT `async def`, and that is
+# load-bearing. FastAPI runs async dependencies ON THE EVENT LOOP; these do
+# synchronous SQLAlchemy work (db.query on every authenticated request), so as
+# async functions they blocked the worker's entire loop for the duration of a
+# user lookup. Under database contention a few of those back-to-back exceed
+# gunicorn's 60s heartbeat and the arbiter murders the worker — flipping 123
+# route handlers to def changed nothing, because THIS ran before every one of
+# them. Plain def moves them to the threadpool where a stalled query costs one
+# thread, not the loop. None of them awaits anything, so async bought nothing.
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -16,7 +26,7 @@ security_optional = HTTPBearer(auto_error=False)
 _VIEW_ONLY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
-async def get_current_user(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
@@ -64,7 +74,7 @@ async def get_current_user(
     return user
 
 
-async def get_current_user_optional(
+def get_current_user_optional(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
@@ -87,7 +97,7 @@ async def get_current_user_optional(
     return user
 
 
-async def get_admin_user(
+def get_admin_user(
     request: Request,
     current_user: User = Depends(get_current_user),
 ) -> User:
@@ -112,7 +122,7 @@ async def get_admin_user(
     return current_user
 
 
-async def get_full_admin_user(
+def get_full_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """Require full admin (role=admin). Used for role assignment & destructive ops."""
@@ -124,7 +134,7 @@ async def get_full_admin_user(
     return current_user
 
 
-async def require_subscription(
+def require_subscription(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """Require active subscription or staff"""
