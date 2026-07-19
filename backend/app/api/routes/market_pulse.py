@@ -30,7 +30,7 @@ CACHE_TTL = 10  # 10 seconds — near real-time
 # ============================================================
 
 @router.get("/feed")
-async def get_pulse_feed(
+def get_pulse_feed(
     source: Optional[str] = Query(None, regex="^(pulse|price_movement)$"),
     pair: Optional[str] = Query(None),
     timeframe: Optional[str] = Query(None, regex="^(5m|1h|2h|4h|1d)$"),
@@ -130,7 +130,7 @@ async def get_pulse_feed(
 # ============================================================
 
 @router.get("/stats")
-async def get_pulse_stats():
+def get_pulse_stats():
     """Get aggregated stats: event counts, bull/bear ratio, biggest move, etc."""
     
     cache_key = "lq:pulse:stats"
@@ -229,7 +229,7 @@ async def get_pulse_stats():
 # ============================================================
 
 @router.get("/top-movers")
-async def get_top_movers(
+def get_top_movers(
     period: str = Query("1h", regex="^(1h|4h|24h)$"),
 ):
     """Get top gainers, losers, and most active coins"""
@@ -324,7 +324,7 @@ async def get_top_movers(
 # ============================================================
 
 @router.get("/coin/{pair}")
-async def get_coin_detail(pair: str):
+def get_coin_detail(pair: str):
     """Get detailed activity for a specific coin"""
     
     pair = pair.upper()

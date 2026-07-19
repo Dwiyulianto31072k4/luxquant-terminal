@@ -68,7 +68,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 # ════════════════════════════════════════════
 
 @router.get("/stats")
-async def get_admin_stats(
+def get_admin_stats(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -201,7 +201,7 @@ async def get_admin_stats(
 # ════════════════════════════════════════════
 
 @router.get("/users")
-async def list_users(
+def list_users(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
     search: Optional[str] = Query(None, description="Search by username, email, telegram, admin TG/DC"),
@@ -522,7 +522,7 @@ async def list_users(
 # ════════════════════════════════════════════
 
 @router.post("/users/{user_id}/grant-subscription")
-async def grant_subscription(
+def grant_subscription(
     user_id: int,
     data: GrantSubscription,
     admin: User = Depends(get_admin_user),
@@ -609,7 +609,7 @@ async def grant_subscription(
 # ════════════════════════════════════════════
 
 @router.post("/users/{user_id}/revoke-subscription")
-async def revoke_subscription(
+def revoke_subscription(
     user_id: int,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
@@ -865,7 +865,7 @@ async def admin_send_message(
 # ════════════════════════════════════════════
 
 @router.get("/expiring-subscriptions")
-async def get_expiring_subscriptions(
+def get_expiring_subscriptions(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
     days: int = Query(7, ge=1, le=30, description="Alert dalam berapa hari ke depan"),
@@ -907,7 +907,7 @@ async def get_expiring_subscriptions(
 # ════════════════════════════════════════════
 
 @router.post("/cleanup-expired")
-async def cleanup_expired_subscriptions(
+def cleanup_expired_subscriptions(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -944,7 +944,7 @@ async def cleanup_expired_subscriptions(
 # ════════════════════════════════════════════
 
 @router.post("/users/{user_id}/toggle-active")
-async def toggle_user_active(
+def toggle_user_active(
     user_id: int,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
@@ -980,7 +980,7 @@ async def toggle_user_active(
 # ════════════════════════════════════════════
 
 @router.post("/users/{user_id}/set-role")
-async def set_user_role(
+def set_user_role(
     user_id: int,
     data: UpdateUserRole,
     admin: User = Depends(get_full_admin_user),
@@ -1072,7 +1072,7 @@ async def set_user_role(
 # ════════════════════════════════════════════════════════════
 
 @router.get("/plans", response_model=list[PlanResponse])
-async def list_plans(
+def list_plans(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -1081,7 +1081,7 @@ async def list_plans(
 
 
 @router.put("/plans/{plan_id}", response_model=PlanResponse)
-async def update_plan(
+def update_plan(
     plan_id: int,
     data: PlanUpdate,
     admin: User = Depends(get_admin_user),
@@ -1107,7 +1107,7 @@ async def update_plan(
 # ════════════════════════════════════════════════════════════
 
 @router.get("/payments")
-async def list_payments(
+def list_payments(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -1161,7 +1161,7 @@ async def list_payments(
 # ════════════════════════════════════════════════════════════
 
 @router.get("/users/contact-stats")
-async def get_contact_stats(
+def get_contact_stats(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
@@ -1225,7 +1225,7 @@ async def get_contact_stats(
 
 
 @router.get("/users/{user_id}/full")
-async def get_user_full_detail(
+def get_user_full_detail(
     user_id: int,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
@@ -1392,7 +1392,7 @@ async def list_outreach_templates(
 
 
 @router.post("/outreach/render", response_model=TemplateRenderResponse)
-async def render_outreach_template(
+def render_outreach_template(
     payload: TemplateRenderRequest,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),

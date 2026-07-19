@@ -66,7 +66,7 @@ class CoinWatchResponse(BaseModel):
 # ============ Endpoints ============
 
 @router.get("/", response_model=CoinWatchResponse)
-async def get_coin_watch(
+def get_coin_watch(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -128,7 +128,7 @@ async def get_coin_watch(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def add_coin_watch(
+def add_coin_watch(
     data: CoinWatchAdd,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -174,7 +174,7 @@ async def add_coin_watch(
 
 
 @router.delete("/{symbol}")
-async def remove_coin_watch(
+def remove_coin_watch(
     symbol: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -198,7 +198,7 @@ async def remove_coin_watch(
 
 
 @router.get("/check/{symbol}")
-async def check_coin_watch(
+def check_coin_watch(
     symbol: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -213,7 +213,7 @@ async def check_coin_watch(
 
 
 @router.get("/symbols")
-async def get_coin_watch_symbols(
+def get_coin_watch_symbols(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -233,7 +233,7 @@ async def get_coin_watch_symbols(
 # (type='entry_pullback'). One-shot: once it triggers it stays triggered.
 
 @router.get("/entry-alert/{signal_id}")
-async def get_entry_alert(
+def get_entry_alert(
     signal_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -257,7 +257,7 @@ async def get_entry_alert(
 
 
 @router.post("/entry-alert/{signal_id}")
-async def arm_entry_alert(
+def arm_entry_alert(
     signal_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -284,7 +284,7 @@ async def arm_entry_alert(
 
 
 @router.delete("/entry-alert/{signal_id}")
-async def disarm_entry_alert(
+def disarm_entry_alert(
     signal_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

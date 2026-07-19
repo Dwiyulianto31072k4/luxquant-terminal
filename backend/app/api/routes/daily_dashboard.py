@@ -106,7 +106,7 @@ def _fear_greed_label(value: Optional[int]) -> Optional[str]:
 
 
 @router.get("/analytics/daily/dashboard")
-async def get_daily_dashboard(
+def get_daily_dashboard(
     date: Optional[str] = Query(None, description="YYYY-MM-DD UTC. Default = today UTC"),
     db: Session = Depends(get_db),
 ):

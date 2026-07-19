@@ -65,7 +65,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://luxquant.tw")
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/google", response_model=TokenResponse)
-async def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
+def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
     """
     Login/Register dengan Google OAuth.
     Optional: referral_code dari ?ref di URL atau localStorage.
@@ -210,7 +210,7 @@ def _generate_username(name: str, email: str, db: Session) -> str:
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
+def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
     """Refresh access token menggunakan refresh token"""
 
     payload = decode_token(token_data.refresh_token)

@@ -43,7 +43,7 @@ def _redis_ip_info(r, key_id: int):
 
 
 @router.get("/api-keys")
-async def admin_list_api_keys(
+def admin_list_api_keys(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
     search: Optional[str] = Query(None, description="username / email / key name / prefix"),
@@ -116,7 +116,7 @@ async def admin_list_api_keys(
 
 
 @router.post("/api-keys/{key_id}/revoke")
-async def admin_revoke_api_key(
+def admin_revoke_api_key(
     key_id: int,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),

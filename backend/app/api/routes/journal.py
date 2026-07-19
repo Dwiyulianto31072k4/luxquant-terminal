@@ -80,7 +80,7 @@ def derive_status(pnl_usd: Optional[float]) -> str:
 # ════════════════════════════════════════════
 
 @router.get("/prefill/{signal_id}", response_model=JournalPrefillResponse)
-async def prefill_from_signal(
+def prefill_from_signal(
     signal_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -202,7 +202,7 @@ async def create_journal(
 
 
 @router.get("/", response_model=JournalListResponse)
-async def list_journals(
+def list_journals(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     pair: Optional[str] = None,
@@ -240,7 +240,7 @@ async def list_journals(
 
 
 @router.get("/{journal_id}", response_model=JournalResponse)
-async def get_journal(
+def get_journal(
     journal_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -256,7 +256,7 @@ async def get_journal(
 
 
 @router.put("/{journal_id}", response_model=JournalResponse)
-async def update_journal(
+def update_journal(
     journal_id: int,
     data: JournalUpdate,
     current_user: User = Depends(get_current_user),
@@ -296,7 +296,7 @@ async def update_journal(
 
 
 @router.delete("/{journal_id}")
-async def delete_journal(
+def delete_journal(
     journal_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -318,7 +318,7 @@ async def delete_journal(
 # ════════════════════════════════════════════
 
 @router.get("/stats/overview", response_model=JournalStatsResponse)
-async def get_journal_stats(
+def get_journal_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     date_from: Optional[str] = None,

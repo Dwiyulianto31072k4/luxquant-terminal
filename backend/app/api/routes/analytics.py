@@ -111,7 +111,7 @@ def get_date_filter(time_range: str) -> tuple:
 # ============================================
 
 @router.get("/daily-winrate", response_model=DailyWinRateResponse)
-async def get_daily_winrate(
+def get_daily_winrate(
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     period: str = Query("daily", description="Aggregation period: daily, weekly"),
     db: Session = Depends(get_db)
@@ -216,7 +216,7 @@ async def get_daily_winrate(
 # ============================================
 
 @router.get("/risk-reward", response_model=RiskRewardResponse)
-async def get_risk_reward(
+def get_risk_reward(
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     db: Session = Depends(get_db)
 ):
@@ -349,7 +349,7 @@ async def get_risk_reward(
 # ============================================
 
 @router.get("/coin/{pair}", response_model=CoinDetailResponse)
-async def get_coin_detail(
+def get_coin_detail(
     pair: str,
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     limit: int = Query(50, ge=1, le=200, description="Max signals to return"),

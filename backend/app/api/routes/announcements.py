@@ -48,7 +48,7 @@ def _user_matches_audience(user: User, row) -> bool:
 
 
 @router.get("/active", response_model=Optional[AnnouncementOut])
-async def get_active_announcement(
+def get_active_announcement(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):

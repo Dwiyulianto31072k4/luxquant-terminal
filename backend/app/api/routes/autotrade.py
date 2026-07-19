@@ -209,7 +209,7 @@ async def create_account(
 
 
 @router.get("/accounts", response_model=ExchangeAccountListResponse)
-async def list_accounts(
+def list_accounts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -268,7 +268,7 @@ async def update_account(
 
 
 @router.delete("/accounts/{account_id}", response_model=SuccessResponse)
-async def delete_account(
+def delete_account(
     account_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -431,7 +431,7 @@ async def toggle_config(
 # ============================================================
 
 @router.get("/orders", response_model=TradeOrderListResponse)
-async def list_orders(
+def list_orders(
     status_filter: Optional[str] = Query(None, alias="status"),
     exchange_account_id: Optional[int] = None,
     signal_id: Optional[str] = None,
@@ -470,7 +470,7 @@ async def list_orders(
 
 
 @router.get("/orders/{order_id}", response_model=TradeOrderResponse)
-async def get_order(
+def get_order(
     order_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -486,7 +486,7 @@ async def get_order(
 
 
 @router.get("/orders/{order_id}/logs", response_model=List[TradeLogResponse])
-async def get_order_logs(
+def get_order_logs(
     order_id: int,
     limit: int = Query(50, ge=1, le=500),
     current_user: User = Depends(get_current_user),
@@ -615,7 +615,7 @@ async def close_order_manually(
 # ============================================================
 
 @router.get("/portfolio/summary", response_model=PortfolioSummary)
-async def portfolio_summary(
+def portfolio_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -688,7 +688,7 @@ async def portfolio_summary(
 
 
 @router.get("/portfolio/by-exchange", response_model=List[PortfolioByExchange])
-async def portfolio_by_exchange(
+def portfolio_by_exchange(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -749,7 +749,7 @@ async def portfolio_by_exchange(
 
 
 @router.get("/portfolio/daily-pnl", response_model=DailyPnlListResponse)
-async def portfolio_daily_pnl(
+def portfolio_daily_pnl(
     days: int = Query(30, ge=1, le=365),
     exchange_account_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
@@ -784,7 +784,7 @@ async def portfolio_daily_pnl(
 # ============================================================
 
 @router.get("/engine/status", response_model=EngineStatus)
-async def engine_status(
+def engine_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

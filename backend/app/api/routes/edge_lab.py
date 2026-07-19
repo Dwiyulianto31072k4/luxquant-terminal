@@ -121,7 +121,7 @@ def _reliability_tier(total: int, ci_half_width: Optional[float]) -> str:
 
 
 @router.get("/analytics/edge-lab")
-async def get_edge_lab(
+def get_edge_lab(
     days: int = Query(30, ge=7, le=90, description="7, 30, or 90"),
     sector: str = Query("all", description="'all' or specific sector name"),
     db: Session = Depends(get_db),
@@ -491,7 +491,7 @@ async def get_edge_lab(
 # Mirrors get_edge_lab scoping (OUTCOMES_CTE + sector) so counts match.
 # ════════════════════════════════════════════════════════════════
 @router.get("/analytics/edge-lab/drill")
-async def get_edge_lab_drill(
+def get_edge_lab_drill(
     dimension: str = Query(..., description="calendar_day | timing_cell | pattern | pattern_btc"),
     key: str = Query(..., description="bucket key (see edgeLabApi.getDrill)"),
     days: int = Query(30, ge=7, le=90),
@@ -735,7 +735,7 @@ async def get_edge_lab_drill(
 # Powers Signals page: tag filter (A) + per-signal tag badges (C).
 # ════════════════════════════════════════════════════════════════
 @router.get("/analytics/tag-wr")
-async def get_tag_wr(
+def get_tag_wr(
     days: int = Query(90, ge=7, le=90, description="lookback for WR basis (7/30/90)"),
     min_n: int = Query(200, ge=1, le=5000, description="min resolved samples per tag"),
     db: Session = Depends(get_db),

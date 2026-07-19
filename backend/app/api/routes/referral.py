@@ -130,7 +130,7 @@ def _enrich_code(code_obj: ReferralCode) -> dict:
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/my-code", response_model=Optional[ReferralCodeResponse])
-async def get_my_code(
+def get_my_code(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -156,7 +156,7 @@ async def get_my_code(
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/generate", response_model=ReferralCodeResponse, status_code=status.HTTP_201_CREATED)
-async def generate_referral_code(
+def generate_referral_code(
     data: ReferralCodeCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -205,7 +205,7 @@ async def generate_referral_code(
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/stats", response_model=ReferralStatsResponse)
-async def get_stats(
+def get_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -290,7 +290,7 @@ async def get_referees(
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/ledger", response_model=CreditLedgerResponse)
-async def get_ledger(
+def get_ledger(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -340,7 +340,7 @@ async def get_ledger(
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/qr/{code}")
-async def get_qr_code(
+def get_qr_code(
     code: str,
     db: Session = Depends(get_db),
 ):
@@ -374,7 +374,7 @@ async def get_qr_code(
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/validate/{code}", response_model=ReferralValidateResponse)
-async def validate_code(
+def validate_code(
     code: str,
     db: Session = Depends(get_db),
 ):
@@ -405,7 +405,7 @@ async def validate_code(
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/track-share", response_model=TrackShareResponse)
-async def track_share(
+def track_share(
     data: TrackShareRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -436,7 +436,7 @@ async def track_share(
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/apply", response_model=ReferralValidateResponse)
-async def apply_code_legacy(
+def apply_code_legacy(
     data: ReferralApply,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

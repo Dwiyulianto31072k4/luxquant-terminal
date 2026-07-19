@@ -28,7 +28,7 @@ def _build_cache_key(prefix: str, **kwargs) -> str:
 # ════════════════════════════════════════════
 
 @router.get("/feed")
-async def get_news_feed(
+def get_news_feed(
     limit: int = Query(24, ge=1, le=100),
     offset: int = Query(0, ge=0),
     content_type: Optional[str] = Query(None),
@@ -101,7 +101,7 @@ async def get_news_feed(
 # ════════════════════════════════════════════
 
 @router.get("/stats")
-async def get_news_stats():
+def get_news_stats():
     cache_key = "lq:news:stats"
     cached = cache_get(cache_key)
     if cached:
@@ -169,7 +169,7 @@ async def get_news_stats():
 # ════════════════════════════════════════════
 
 @router.get("/trending")
-async def get_trending_topics():
+def get_trending_topics():
     """
     Trending TOPICS from titles — never sources/handles.
     BossBotOfficial, @mentions, domain names, and telegram channels are excluded.
@@ -287,7 +287,7 @@ async def get_trending_topics():
 # ════════════════════════════════════════════
 
 @router.get("/extract/{news_id}")
-async def extract_article(news_id: int):
+def extract_article(news_id: int):
     """
     Extract article summary + keywords from URL using newspaper3k.
     Cached 24h per news_id.

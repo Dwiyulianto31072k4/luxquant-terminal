@@ -127,7 +127,7 @@ signal_outcomes AS (
 # ============================================
 
 @router.get("/{pair}", response_model=CoinProfileResponse)
-async def get_coin_profile(
+def get_coin_profile(
     pair: str,
     limit: int = Query(5, ge=1, le=10000, description="Number of past calls to return"),
     exclude: Optional[str] = Query(None, description="Signal ID to exclude (current signal)"),

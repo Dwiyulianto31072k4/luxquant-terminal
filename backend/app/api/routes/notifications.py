@@ -107,7 +107,7 @@ SQL_IS_READ = (
 # User endpoints
 
 @router.get("/", response_model=NotificationListResponse)
-async def get_notifications(
+def get_notifications(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     type_filter: Optional[str] = Query(None, alias="type"),
@@ -216,7 +216,7 @@ def get_unread_count(
 
 
 @router.post("/{notification_id}/read")
-async def mark_as_read(
+def mark_as_read(
     notification_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -245,7 +245,7 @@ async def mark_as_read(
 
 
 @router.post("/read-all")
-async def mark_all_as_read(
+def mark_all_as_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -262,7 +262,7 @@ async def mark_all_as_read(
 
 
 @router.delete("/{notification_id}")
-async def delete_notification(
+def delete_notification(
     notification_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -280,7 +280,7 @@ async def delete_notification(
 
 
 @router.get("/channel-messages")
-async def get_channel_messages(
+def get_channel_messages(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     type_filter: Optional[str] = Query(None, alias="type"),
@@ -331,7 +331,7 @@ async def get_channel_messages(
 # Admin endpoints
 
 @router.post("/broadcast")
-async def send_broadcast(
+def send_broadcast(
     data: AdminBroadcast,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -346,7 +346,7 @@ async def send_broadcast(
 
 
 @router.get("/admin/recent")
-async def admin_get_recent_notifications(
+def admin_get_recent_notifications(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     current_user: User = Depends(get_current_user),

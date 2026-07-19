@@ -288,7 +288,7 @@ async def fetch_url_preview(url: str) -> UrlPreviewOut:
 # ============ Public Endpoints ============
 
 @router.get("/", response_model=ResourceListResponse)
-async def list_resources(
+def list_resources(
     type: Optional[str] = None,
     category: Optional[str] = None,
     search: Optional[str] = None,
@@ -333,7 +333,7 @@ async def list_resources(
 
 
 @router.get("/categories")
-async def get_categories(db: Session = Depends(get_db)):
+def get_categories(db: Session = Depends(get_db)):
     rows = (
         db.query(Resource.category)
         .filter(Resource.is_active == True, Resource.status == "published")
@@ -345,7 +345,7 @@ async def get_categories(db: Session = Depends(get_db)):
 
 
 @router.get("/meta")
-async def get_meta(db: Session = Depends(get_db)):
+def get_meta(db: Session = Depends(get_db)):
     """Counts per type for the public tab bar (published + active only)."""
     rows = (
         db.query(Resource.type, func.count(Resource.id))
@@ -380,7 +380,7 @@ async def serve_cover(filename: str):
 
 
 @router.get("/{id_or_slug}", response_model=ResourceOut)
-async def get_resource(
+def get_resource(
     id_or_slug: str,
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
@@ -498,7 +498,7 @@ async def create_resource(
 
 
 @router.put("/{resource_id}", response_model=ResourceOut)
-async def update_resource(
+def update_resource(
     resource_id: int,
     type: str = Form(None),
     title: str = Form(None),
@@ -580,7 +580,7 @@ async def update_resource(
 
 
 @router.delete("/{resource_id}")
-async def delete_resource(
+def delete_resource(
     resource_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -596,7 +596,7 @@ async def delete_resource(
 
 
 @router.delete("/{resource_id}/permanent")
-async def delete_resource_permanent(
+def delete_resource_permanent(
     resource_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

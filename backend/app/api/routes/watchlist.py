@@ -48,7 +48,7 @@ class WatchlistResponse(BaseModel):
 # ============ Endpoints ============
 
 @router.get("/", response_model=WatchlistResponse)
-async def get_watchlist(
+def get_watchlist(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -104,7 +104,7 @@ async def get_watchlist(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def add_to_watchlist(
+def add_to_watchlist(
     data: WatchlistAdd,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -149,7 +149,7 @@ async def add_to_watchlist(
 
 
 @router.delete("/{signal_id}")
-async def remove_from_watchlist(
+def remove_from_watchlist(
     signal_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -172,7 +172,7 @@ async def remove_from_watchlist(
 
 
 @router.get("/check/{signal_id}")
-async def check_in_watchlist(
+def check_in_watchlist(
     signal_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -188,7 +188,7 @@ async def check_in_watchlist(
 
 
 @router.get("/ids")
-async def get_watchlist_ids(
+def get_watchlist_ids(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

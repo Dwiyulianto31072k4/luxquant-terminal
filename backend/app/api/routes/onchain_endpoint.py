@@ -23,7 +23,7 @@ ONCHAIN_IMAGES_DIR = "/opt/luxquant/onchain-images"
 # ════════════════════════════════════════════
 
 @router.get("/feed")
-async def get_onchain_feed(
+def get_onchain_feed(
     page: int = Query(1, ge=1),
     per_page: int = Query(24, ge=1, le=100),
     alert_type: Optional[str] = Query(None),
@@ -124,7 +124,7 @@ async def get_onchain_feed(
 # ════════════════════════════════════════════
 
 @router.get("/stats")
-async def get_onchain_stats():
+def get_onchain_stats():
     """Aggregate stats for onchain dashboard."""
     cached = cache_get("lq:onchain:stats")
     if cached:
@@ -197,7 +197,7 @@ async def get_onchain_stats():
 # ════════════════════════════════════════════
 
 @router.get("/detail/{alert_id}")
-async def get_onchain_detail(alert_id: int):
+def get_onchain_detail(alert_id: int):
     """Get single alert detail."""
     cached = cache_get(f"lq:onchain:detail:{alert_id}")
     if cached:
@@ -241,7 +241,7 @@ async def get_onchain_detail(alert_id: int):
 # ════════════════════════════════════════════
 
 @router.get("/filters")
-async def get_onchain_filters():
+def get_onchain_filters():
     """Get available filter values."""
     cached = cache_get("lq:onchain:filters")
     if cached:

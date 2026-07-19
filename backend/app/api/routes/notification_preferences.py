@@ -64,7 +64,7 @@ class PreferenceUpdate(BaseModel):
 
 
 @router.get("/preferences", response_model=PreferencesResponse)
-async def get_preferences(
+def get_preferences(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -91,7 +91,7 @@ async def get_preferences(
 
 
 @router.put("/preferences")
-async def update_preference(
+def update_preference(
     data: PreferenceUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

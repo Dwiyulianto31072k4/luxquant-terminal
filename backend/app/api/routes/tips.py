@@ -82,7 +82,7 @@ def save_upload_file(upload_file: UploadFile, directory: str, allowed_extensions
 # ============ Public Endpoints ============
 
 @router.get("/", response_model=TipListResponse)
-async def get_tips(
+def get_tips(
     category: Optional[str] = None,
     search: Optional[str] = None,
     page: int = Query(1, ge=1),
@@ -110,7 +110,7 @@ async def get_tips(
 
 
 @router.get("/categories")
-async def get_categories(db: Session = Depends(get_db)):
+def get_categories(db: Session = Depends(get_db)):
     """Get list of unique categories"""
     result = db.query(Tip.category)\
         .filter(Tip.is_active == True)\
@@ -143,7 +143,7 @@ async def serve_cover(filename: str):
 
 
 @router.get("/{tip_id}", response_model=TipResponse)
-async def get_tip(tip_id: int, db: Session = Depends(get_db)):
+def get_tip(tip_id: int, db: Session = Depends(get_db)):
     """Get single tip"""
     tip = db.query(Tip).filter(Tip.id == tip_id, Tip.is_active == True).first()
     if not tip:
@@ -191,7 +191,7 @@ async def create_tip(
 
 
 @router.put("/{tip_id}", response_model=TipResponse)
-async def update_tip(
+def update_tip(
     tip_id: int,
     title: str = Form(None),
     description: str = Form(None),
@@ -239,7 +239,7 @@ async def update_tip(
 
 
 @router.delete("/{tip_id}")
-async def delete_tip(
+def delete_tip(
     tip_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -258,7 +258,7 @@ async def delete_tip(
 
 
 @router.delete("/{tip_id}/permanent")
-async def delete_tip_permanent(
+def delete_tip_permanent(
     tip_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

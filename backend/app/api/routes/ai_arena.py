@@ -31,7 +31,7 @@ def _fix_data_sources(report: dict) -> dict:
 # ══════════════════════════════════════
 
 @router.get("/latest")
-async def get_latest_ai_report():
+def get_latest_ai_report():
     """Get the latest AI market intelligence report. Redis first, DB fallback."""
     try:
         report = cache_get("lq:ai-report:latest")
@@ -61,7 +61,7 @@ async def get_latest_ai_report():
 # ══════════════════════════════════════
 
 @router.get("/history")
-async def get_report_history(limit: int = Query(10, ge=1, le=50)):
+def get_report_history(limit: int = Query(10, ge=1, le=50)):
     """Get recent report history. Redis first, DB fallback."""
     try:
         reports = []
@@ -252,7 +252,7 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
 # ══════════════════════════════════════
 
 @router.get("/anomaly-log")
-async def get_anomaly_log(limit: int = Query(20, ge=1, le=100)):
+def get_anomaly_log(limit: int = Query(20, ge=1, le=100)):
     """Get recent anomaly check logs."""
     try:
         from app.core.database import SessionLocal

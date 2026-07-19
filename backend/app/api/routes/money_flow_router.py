@@ -67,7 +67,7 @@ def _pct_change(now_val, then_val):
 # 1. SECTORS — ranking + delta multi-TF
 # ════════════════════════════════════════════
 @router.get("/sectors")
-async def money_flow_sectors(
+def money_flow_sectors(
     limit: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
@@ -167,7 +167,7 @@ async def money_flow_sector_coins(
 # 2. MACRO — dominance + altseason gauge
 # ════════════════════════════════════════════
 @router.get("/macro")
-async def money_flow_macro(db: Session = Depends(get_db)):
+def money_flow_macro(db: Session = Depends(get_db)):
     """BTC/ETH/stablecoin dominance + altseason index (window 30d).
     Plus delta dominance 7d biar keliatan arah rotasi."""
     latest = _latest_snapshot_at(db, "mf_macro_snapshots")
@@ -210,7 +210,7 @@ async def money_flow_macro(db: Session = Depends(get_db)):
 # 3. COINS — flow intensity + LuxQuant flag
 # ════════════════════════════════════════════
 @router.get("/coins")
-async def money_flow_coins(
+def money_flow_coins(
     limit: int = Query(30, ge=1, le=100),
     luxquant_only: bool = Query(False, description="Cuma koin yang lagi di-call LuxQuant"),
     db: Session = Depends(get_db),

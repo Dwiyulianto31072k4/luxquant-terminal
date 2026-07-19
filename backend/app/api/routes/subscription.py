@@ -57,7 +57,7 @@ PAYMENT_WINDOW_HOURS = 24
 # ============================================
 
 @router.get("/plans", response_model=list[PlanResponse])
-async def get_plans(db: Session = Depends(get_db)):
+def get_plans(db: Session = Depends(get_db)):
     plans = db.query(SubscriptionPlan)\
         .filter(SubscriptionPlan.is_active == True)\
         .order_by(SubscriptionPlan.sort_order)\
@@ -70,7 +70,7 @@ async def get_plans(db: Session = Depends(get_db)):
 # ============================================
 
 @router.post("/subscribe")
-async def create_subscription(
+def create_subscription(
     data: PaymentCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -312,7 +312,7 @@ async def verify_payment(
 # ============================================
 
 @router.get("/me")
-async def get_my_subscription(
+def get_my_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -387,7 +387,7 @@ async def get_my_subscription(
 # ============================================
 
 @router.get("/payments")
-async def get_payment_history(
+def get_payment_history(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

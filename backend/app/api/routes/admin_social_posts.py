@@ -110,7 +110,7 @@ async def list_social_posts(
 
 
 @router.get("/cost-summary")
-async def social_post_cost_summary(
+def social_post_cost_summary(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -227,7 +227,7 @@ async def publish_approved_social_posts(
 
 
 @router.delete("/{post_id}")
-async def delete_social_post(
+def delete_social_post(
     post_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
@@ -395,7 +395,7 @@ async def confirm_post_material(
 
 
 @router.post("/{post_id}/re-render")
-async def re_render_post_image(
+def re_render_post_image(
     post_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),

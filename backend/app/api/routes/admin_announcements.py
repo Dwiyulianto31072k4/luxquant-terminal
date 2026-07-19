@@ -104,7 +104,7 @@ async def create_announcement(
 
 # ── update ──
 @router.put("/{ann_id}")
-async def update_announcement(
+def update_announcement(
     ann_id: int, payload: AnnouncementIn,
     db: Session = Depends(get_db), admin: User = Depends(get_admin_user)
 ):
@@ -125,7 +125,7 @@ async def update_announcement(
 
 # ── delete ──
 @router.delete("/{ann_id}")
-async def delete_announcement(
+def delete_announcement(
     ann_id: int, db: Session = Depends(get_db), admin: User = Depends(get_admin_user)
 ):
     db.execute(text("DELETE FROM announcements WHERE id=:id"), {"id": ann_id})

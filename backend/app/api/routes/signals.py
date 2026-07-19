@@ -296,7 +296,7 @@ def status_to_filter(status_input: str) -> str:
 # ============================================
 
 @router.get("/analyze", response_model=AnalyzeResponse)
-async def get_analyze_data(
+def get_analyze_data(
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     trend_mode: str = Query("weekly", description="Trend grouping: daily, weekly"),
     db: Session = Depends(get_db),
@@ -553,7 +553,7 @@ async def get_analyze_data(
 # ============================================
 
 @router.get("/bulk-7d")
-async def get_signals_bulk_7d(
+def get_signals_bulk_7d(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -678,7 +678,7 @@ async def get_signals_bulk_7d(
 # ============================================
 
 @router.get("/")
-async def get_signals(
+def get_signals(
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.DEFAULT_PAGE_SIZE, ge=1, le=settings.MAX_PAGE_SIZE),
     status: Optional[str] = None,
@@ -890,7 +890,7 @@ def get_active_signals(
 # ============================================
 
 @router.get("/stats", response_model=SignalStats)
-async def get_signal_stats(db: Session = Depends(get_db)):
+def get_signal_stats(db: Session = Depends(get_db)):
     cached = cache_get("lq:signals:stats")
     if cached:
         cached.pop("_cached_at", None)
@@ -936,7 +936,7 @@ async def get_signal_stats(db: Session = Depends(get_db)):
 # ============================================
 
 @router.post("/sync-status")
-async def sync_signal_status(
+def sync_signal_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_admin_user),
 ):
@@ -1495,7 +1495,7 @@ def _build_redacted_detail_response(
 # ============================================
 
 @router.get("/detail/{signal_id}", response_model=SignalDetailResponse)
-async def get_signal_detail_v2(
+def get_signal_detail_v2(
     signal_id: str,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -1620,7 +1620,7 @@ async def get_signal_detail_v2(
 # ============================================
 
 @router.get("/{signal_id}")
-async def get_signal_detail(
+def get_signal_detail(
     signal_id: str,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),

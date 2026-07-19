@@ -269,7 +269,7 @@ async def get_connections(current_user: User = Depends(get_current_user)):
 # ════════════════════════════════════════════
 
 @router.post("/link-google", response_model=UserResponse)
-async def link_google(
+def link_google(
     data: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

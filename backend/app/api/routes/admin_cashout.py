@@ -154,7 +154,7 @@ async def admin_pending_cashouts(
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/cashouts/stats")
-async def admin_cashout_stats(
+def admin_cashout_stats(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):

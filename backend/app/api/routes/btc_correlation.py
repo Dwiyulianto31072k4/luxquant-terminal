@@ -64,7 +64,7 @@ _SELECT_COLS = """
 
 
 @router.get("/{signal_id}/btc-correlation")
-async def get_btc_correlation(signal_id: str, db: Session = Depends(get_db)):
+def get_btc_correlation(signal_id: str, db: Session = Depends(get_db)):
     """
     BTC correlation analysis + interpretation for a single signal.
     404 if not yet computed (worker may still be processing).
@@ -87,7 +87,7 @@ async def get_btc_correlation(signal_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/btc-correlation/recent")
-async def list_recent_correlations(
+def list_recent_correlations(
     limit: int = Query(20, ge=1, le=100),
     decoupled_only: bool = False,
     extended_only: bool = False,
