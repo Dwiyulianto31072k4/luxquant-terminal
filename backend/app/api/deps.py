@@ -9,6 +9,11 @@
 # route handlers to def changed nothing, because THIS ran before every one of
 # them. Plain def moves them to the threadpool where a stalled query costs one
 # thread, not the loop. None of them awaits anything, so async bought nothing.
+#
+# Measured after the flip, same gauntlet that killed 4 then 9 workers (poller
+# cold start + cryptobot DB load): 0 worker timeouts, 0 slow requests, all four
+# rolled pids alive. If you are tempted to make one of these async again, that
+# table is the bar your change has to clear.
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
