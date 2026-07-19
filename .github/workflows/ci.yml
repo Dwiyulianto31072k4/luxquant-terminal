@@ -45,6 +45,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Compile every module
+        # pytest only imports what the tests reach. A file no test touches can
+        # be unparseable and still go green — which is exactly how four sets of
+        # merge conflict markers in notifications.py passed CI and took the
+        # backend workers down with SyntaxError on boot.
+        run: python -m compileall -q app
+
+      - name: Guard against conflict markers
+        # Cheap, and it would have caught the same incident one step earlier.
+        run: |
+          if grep -rn --include='*.py' -E '^(<<<<<<< |>>>>>>> )' app; then
+            echo "::error::merge conflict markers committed"
+            exit 1
+          fi
+
       - name: Run tests
         # The suite mocks every HTTP call and touches no database, so it needs
         # no services — see tests/test_journey_fetcher.py's "NO real network
