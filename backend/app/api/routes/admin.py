@@ -1338,7 +1338,7 @@ def get_user_full_detail(
 
 
 @router.patch("/users/{user_id}/contact")
-async def update_user_contact(
+def update_user_contact(
     user_id: int,
     data: AdminContactUpdate,
     admin: User = Depends(get_admin_user),

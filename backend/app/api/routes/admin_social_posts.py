@@ -81,7 +81,7 @@ def _row_to_dict(row) -> dict:
 
 
 @router.get("")
-async def list_social_posts(
+def list_social_posts(
     status: Optional[str] = None,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -241,7 +241,7 @@ def delete_social_post(
 
 
 @router.patch("/{post_id}/status")
-async def update_social_post_status(
+def update_social_post_status(
     post_id: int,
     payload: StatusIn,
     db: Session = Depends(get_db),

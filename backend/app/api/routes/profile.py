@@ -116,7 +116,7 @@ async def update_ui_prefs(
 # ════════════════════════════════════════════
 
 @router.put("", response_model=UserResponse)
-async def update_profile(
+def update_profile(
     data: ProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

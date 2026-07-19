@@ -95,7 +95,7 @@ def _has_active_subscription(user: Optional[User]) -> bool:
     response_model_exclude_none=False,
     summary='Get full journey breakdown for a signal',
 )
-async def get_signal_journey(
+def get_signal_journey(
     signal_id: str,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),

@@ -169,7 +169,7 @@ def _check_rate_limit(user_id: int, limit_per_min: int) -> int:
         return limit_per_min
 
 
-async def get_api_key_user(
+def get_api_key_user(
     request: Request,
     response: Response,
     creds: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),

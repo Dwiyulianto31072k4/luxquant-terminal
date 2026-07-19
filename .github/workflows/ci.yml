@@ -60,6 +60,14 @@ jobs:
             exit 1
           fi
 
+      - name: Sync-DB-on-loop gate
+        # An async def touching the DB synchronously blocks its worker's event
+        # loop; under contention that murders the worker and every in-flight
+        # request on it — 124 times in one day before it was found. This is the
+        # regression this repo can never re-grow. Negative-tested: reintroducing
+        # the async get_current_user fails the gate.
+        run: python scripts/check_sync_db_on_loop.py
+
       - name: Run tests
         # The suite mocks every HTTP call and touches no database, so it needs
         # no services — see tests/test_journey_fetcher.py's "NO real network

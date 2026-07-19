@@ -67,7 +67,7 @@ def _row_to_dict(r) -> dict:
 
 # ── list ──
 @router.get("")
-async def list_announcements(
+def list_announcements(
     db: Session = Depends(get_db), admin: User = Depends(get_admin_user)
 ):
     rows = db.execute(text("""
@@ -85,7 +85,7 @@ async def list_announcements(
 
 # ── create ──
 @router.post("")
-async def create_announcement(
+def create_announcement(
     payload: AnnouncementIn,
     db: Session = Depends(get_db), admin: User = Depends(get_admin_user)
 ):
