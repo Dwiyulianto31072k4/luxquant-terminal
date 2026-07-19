@@ -22,7 +22,6 @@ import requests
 # Avoid hard import of journey_calculator to keep fetcher decoupled
 # Kline dataclass duck-typed: {open_time, open, high, low, close}
 from app.services.journey_calculator import Kline
-from app.core.http_client import binance_get_sync
 
 
 log = logging.getLogger(__name__)
@@ -61,6 +60,53 @@ INTERVAL_SECONDS = {
     '1h': 3600, '2h': 7200, '4h': 14400, '6h': 21600,
     '12h': 43200, '1d': 86400,
 }
+
+
+def _require_binance_ok() -> None:
+    """Raise if a shared Binance ban is active, before spending the request.
+
+    Binance escalates a 418 every time it is hit DURING one — 2 minutes to 3
+    days — so calling blind while banned deepens the ban for everything else on
+    this IP. Raising here lets the existing Bybit fallback take over exactly as
+    it would for any other failure.
+
+    Deliberately NOT routed through http_client.binance_get_sync: the tests
+    patch app.services.journey_fetcher.requests.get, and moving the call behind
+    another module's helper silently escaped that mock — two tests started
+    reaching the real network before I noticed. The guard belongs here; the call
+    seam stays where the tests can see it.
+    """
+    try:
+        from app.services.terminal_worker import _fapi_ok
+    except Exception:
+        return
+    if not _fapi_ok():
+        raise RuntimeError("binance ban active")
+
+
+def _record_binance_weight(resp) -> None:
+    """Log this call against the per-minute weight budget, and note any ban."""
+    try:
+        from app.services.terminal_worker import _note_ban
+        if getattr(resp, "status_code", 0) in (418, 429):
+            _note_ban(resp, 600 if resp.status_code == 418 else 120)
+    except Exception:
+        pass
+    try:
+        used = resp.headers.get("x-mbx-used-weight-1m")
+        if used is None:
+            return
+        import time as _t
+        from app.core.redis import get_redis
+        r = get_redis()
+        key = "lq:binance:weight:%s" % int(_t.time() // 60)
+        pipe = r.pipeline()
+        pipe.hincrby(key, "/fapi/v1/klines", 1)
+        pipe.hset(key, "_peak", int(used))
+        pipe.expire(key, 900)
+        pipe.execute()
+    except Exception:
+        pass
 
 
 def _needed_candles(start_ms: int, end_ms: int, interval: str, cap: int) -> int:
@@ -119,11 +165,9 @@ def _fetch_binance_futures(
         'endTime': end_ms,
         'limit': _needed_candles(start_ms, end_ms, interval, BINANCE_MAX_LIMIT),
     }
-    resp = binance_get_sync(url, params=params, timeout=HTTP_TIMEOUT)
-    if resp is None:
-        # Shared Binance ban active — say so instead of deepening it. The
-        # caller's Bybit fallback picks this up like any other failure.
-        raise RuntimeError('binance ban active')
+    _require_binance_ok()
+    resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+    _record_binance_weight(resp)
     resp.raise_for_status()
     return _parse_binance_klines(resp.json())
 
@@ -143,11 +187,9 @@ def _fetch_binance_spot(
         'endTime': end_ms,
         'limit': _needed_candles(start_ms, end_ms, interval, BINANCE_MAX_LIMIT),
     }
-    resp = binance_get_sync(url, params=params, timeout=HTTP_TIMEOUT)
-    if resp is None:
-        # Shared Binance ban active — say so instead of deepening it. The
-        # caller's Bybit fallback picks this up like any other failure.
-        raise RuntimeError('binance ban active')
+    _require_binance_ok()
+    resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+    _record_binance_weight(resp)
     resp.raise_for_status()
     return _parse_binance_klines(resp.json())
 
