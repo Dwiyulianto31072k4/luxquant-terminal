@@ -265,34 +265,13 @@ SIGNAL_OUTCOMES_CTE = """
 # ============================================
 LAST_UPDATE_CTE = """
     last_updates AS (
+        -- Precomputed once per cache cycle in precompute_outcomes(); reading
+        -- it here is 3.8ms against ~1.5s for the inline window-function scan
+        -- this used to be (measured live: 26M rows read per 2 minutes across
+        -- all consumers). Freshness contract matches _cache_outcomes, which
+        -- every consumer of this CTE already also reads.
         SELECT signal_id, last_update_at, last_update_type
-        FROM (
-            SELECT 
-                signal_id,
-                update_at as last_update_at,
-                CASE 
-                    WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
-                    WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
-                    WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
-                    WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 'tp1'
-                    WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 'sl'
-                    ELSE update_type
-                END as last_update_type,
-                ROW_NUMBER() OVER (PARTITION BY signal_id ORDER BY 
-                    CASE 
-                        WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 4
-                        WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 3
-                        WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 2
-                        WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 1
-                        WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 0
-                        ELSE -1
-                    END DESC,
-                    update_at DESC
-                ) as rn
-            FROM signal_updates
-            WHERE update_type IS NOT NULL
-        ) ranked
-        WHERE rn = 1
+        FROM _cache_last_updates
     )
 """
 
