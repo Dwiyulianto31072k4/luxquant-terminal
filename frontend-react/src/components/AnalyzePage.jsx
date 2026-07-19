@@ -92,9 +92,6 @@ const AnalyzePage = () => {
     fetchAnalyzeData();
   }, [fetchAnalyzeData]);
   useEffect(() => {
-    fetchSignals();
-  }, [fetchSignals]);
-  useEffect(() => {
     setSigPage(1);
   }, [sigSearch, sigStatus, sigRisk, sigSort, sigOrder]);
 
@@ -129,6 +126,10 @@ const AnalyzePage = () => {
       setSigLoading(false);
     }
   }, [sigPage, sigSearch, sigStatus, sigRisk, sigSort, sigOrder]);
+
+  useEffect(() => {
+    fetchSignals();
+  }, [fetchSignals]);
 
   const timeRangeOptions = [
     { value: "all", label: t("perf.all_time"), short: t("perf.all_time") },
