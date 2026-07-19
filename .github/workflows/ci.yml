@@ -93,5 +93,8 @@ jobs:
         # me placing hook calls below an early return.
         run: npx eslint src
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build

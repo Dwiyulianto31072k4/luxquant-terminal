@@ -98,7 +98,7 @@ export function metricsOf(item) {
 }
 
 // ── which of these is the best trade from here ───────────────────
-function scoreOne(m) {
+export function scoreOne(m) {
   if (m.belowStop) return -99; // price is through the stop: not a trade
   let score = 0;
   if (m.rr != null)
@@ -109,7 +109,7 @@ function scoreOne(m) {
   return score;
 }
 
-function buildVerdict(rows) {
+export function buildVerdict(rows) {
   const scored = rows.map((m) => ({ ...m, score: scoreOne(m) }));
   const usable = scored.filter((m) => m.rr != null && !m.belowStop);
   if (usable.length < 2) return { scored, verdict: null };
@@ -151,7 +151,7 @@ function buildVerdict(rows) {
 // The point most compare screens miss: three highly BTC-correlated coins are
 // one position wearing three names. Worth saying out loud before someone
 // "diversifies" into the same trade three times.
-function concentrationNote(rows) {
+export function concentrationNote(rows) {
   const corrs = rows.map((m) => m.corr).filter((c) => c != null);
   if (corrs.length < 2) return null;
   const high = corrs.filter((c) => c >= 0.7).length;
