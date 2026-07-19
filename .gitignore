@@ -48,3 +48,6 @@ __pycache__/
 # runtime data (jangan di-commit)
 backend/avatars/
 backend/rebackfill_backups/
+
+# pytest run state — machine-local, changes on every run
+.pytest_cache/
