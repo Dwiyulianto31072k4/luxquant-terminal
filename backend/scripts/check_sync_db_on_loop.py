@@ -63,8 +63,18 @@ def main() -> int:
             else:
                 failures.append(where)
 
+    # Ratchet: the 21 existing await-mixing cases are accepted debt, reviewed
+    # individually (low-traffic auth callbacks and payment flows, each query
+    # bounded by the 20s statement_timeout so none can starve the heartbeat
+    # alone). But accepted debt must not grow — a warning nobody can fail on
+    # is advice, not a gate. Fixing one? Lower this number with the fix.
+    WARNING_BASELINE = 21
     for w in warnings:
         print(f"  warning (awaits + sync db — wrap the db calls in run_in_threadpool): {w}")
+    if len(warnings) > WARNING_BASELINE:
+        print(f"\nFAIL — await-mixing sync-DB endpoints grew: {len(warnings)} > baseline {WARNING_BASELINE}.")
+        print("New async endpoints must wrap DB work in run_in_threadpool from day one.")
+        return 1
     if failures:
         print("\nFAIL — async functions doing sync DB with no await (event-loop blockers):")
         for x in failures:
