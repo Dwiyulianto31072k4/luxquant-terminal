@@ -892,7 +892,20 @@ async def signal_cache_loop():
 
                 # Step 2: Cache "Last 7 Days" ALL pages (fallback for server-side pagination)
                 # Each query uses pre-computed _cache_outcomes → fast (~5ms per page)
-                MAX_PAGES_7D = 50  # safety limit — stops when no more pages
+                # 8, not 50. Precomputing every page of every status is the bulk of
+                # this job: 118 keys, ~10s per run, every ~100s — roughly a tenth
+                # of wall-clock time spent here, and the request logs go slow in
+                # exactly those windows.
+                #
+                # nginx access logs across their full retention: page=1 was asked
+                # for 1646 times, pages 2-6 seventeen times between them, and
+                # pages 7+ never once. The worker was building out to page 31.
+                #
+                # 8 covers every page anyone has ever opened plus headroom. Deeper
+                # pages still work — the endpoint falls through cache → stale →
+                # compute, so a request for page 12 costs one query instead of
+                # being precomputed 36 times an hour for nobody.
+                MAX_PAGES_7D = 8
                 statuses = [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]
                 for st in statuses:
                     for pg in range(1, MAX_PAGES_7D + 1):
