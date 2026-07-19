@@ -121,6 +121,10 @@ class TestConnectionResponse(BaseModel):
     markets_loaded: Optional[int] = None
     has_balance_access: Optional[bool] = None
     usdt_free: Optional[float] = None
+    # None = the exchange gave us no way to tell. Reported as unknown rather
+    # than guessed: a false "all good" is what let 25 orders die on a 401.
+    can_trade_futures: Optional[bool] = None
+    permission_note: Optional[str] = None
     error: Optional[str] = None
 
 

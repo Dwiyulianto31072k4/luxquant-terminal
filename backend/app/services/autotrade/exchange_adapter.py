@@ -209,6 +209,35 @@ class ExchangeAdapter:
     # Connection & health
     # ========================================
 
+    async def _probe_trade_permission(self, exchange):
+        """Can this key actually place futures orders? (read-only probe)
+
+        Returns (can_trade, note). can_trade is None when the exchange gives us
+        no way to tell — an unknown is reported as unknown rather than guessed
+        either way, because a false "all good" here is what caused the problem
+        and a false alarm would block a working setup.
+
+        Binance answers directly via the API-restrictions endpoint. Nothing is
+        placed, cancelled or modified.
+        """
+        try:
+            if self.credentials.exchange_id in ("binance", "binanceusdm"):
+                info = await exchange.sapi_get_account_apirestrictions()
+                enabled = bool(info.get("enableFutures"))
+                if enabled:
+                    return True, None
+                return False, (
+                    "This API key cannot trade futures. In Binance → API Management, "
+                    "enable 'Enable Futures' for this key (and check the IP restriction "
+                    "allows this server). Until then AutoTrade will connect but every "
+                    "order will be rejected."
+                )
+        except Exception as e:
+            # Endpoint unavailable, older ccxt, or a non-Binance venue — say so
+            # rather than inventing an answer.
+            return None, f"Could not verify trading permission ({type(e).__name__})."
+        return None, None
+
     async def test_connection(self) -> Dict[str, Any]:
         """
         Test API credentials. Returns dict with success + diagnostics.
@@ -218,12 +247,26 @@ class ExchangeAdapter:
         try:
             await exchange.load_markets()
             balance = await exchange.fetch_balance()
+
+            # Both calls above are READ operations, so a key with no trading
+            # permission passes them and the connection is reported healthy —
+            # then the first real trade dies on POST /fapi/v1/marginType with a
+            # 401. That is not hypothetical: of the 44 autotrade execution
+            # failures in production, 25 were exactly this, spread over 6 users,
+            # and AutoTrade was switched off across the board within two days.
+            #
+            # So ask the key what it is allowed to do, while the user is still
+            # looking at the dialog and can fix it.
+            can_trade, perm_note = await self._probe_trade_permission(exchange)
+
             return {
                 "success": True,
                 "exchange": self.credentials.exchange_id,
                 "markets_loaded": len(exchange.markets),
                 "has_balance_access": True,
                 "usdt_free": float(balance.get("USDT", {}).get("free", 0)),
+                "can_trade_futures": can_trade,
+                "permission_note": perm_note,
             }
         except ccxt_async.AuthenticationError as e:
             return {"success": False, "error": f"Auth failed: {str(e)[:200]}"}

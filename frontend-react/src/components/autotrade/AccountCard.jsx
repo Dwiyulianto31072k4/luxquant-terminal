@@ -253,18 +253,43 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
           </div>
         </div>
 
-        {/* ── Test result (semantic 3-tier) ── */}
+        {/* ── Test result ────────────────────────────────────────────
+            "Connection OK" used to appear whenever auth and market data
+            worked — but both are READ operations, so a key with no trading
+            permission passed and the first real order then died on a 401. In
+            production that was 25 of 44 execution failures across 6 users, and
+            AutoTrade was switched off everywhere within two days. A key that
+            cannot trade now says so here, while it can still be fixed. */}
         {testResult && (
           <div
             className={`mb-3 rounded border text-[11px] font-mono p-2.5 ${
-              testResult.success
-                ? "bg-profit/[0.05] border-profit/25 text-profit"
-                : "bg-negative/[0.05] border-negative/25 text-loss"
+              !testResult.success
+                ? "bg-negative/[0.05] border-negative/25 text-loss"
+                : testResult.can_trade_futures === false
+                  ? "bg-warning/[0.06] border-warning/30 text-warning"
+                  : "bg-profit/[0.05] border-profit/25 text-profit"
             }`}
           >
-            {testResult.success
-              ? `Connection OK · ${testResult.markets_loaded} markets`
-              : `Failed: ${testResult.error}`}
+            {!testResult.success ? (
+              `Failed: ${testResult.error}`
+            ) : testResult.can_trade_futures === false ? (
+              <>
+                <span className="font-semibold">Connected — but this key cannot trade.</span>
+                <span className="mt-1 block font-sans leading-relaxed opacity-90">
+                  {testResult.permission_note}
+                </span>
+              </>
+            ) : (
+              <>
+                {`Connection OK · ${testResult.markets_loaded} markets`}
+                {testResult.can_trade_futures === true && " · futures trading enabled"}
+                {testResult.can_trade_futures == null && testResult.permission_note && (
+                  <span className="mt-1 block font-sans opacity-70">
+                    {testResult.permission_note}
+                  </span>
+                )}
+              </>
+            )}
           </div>
         )}
 
