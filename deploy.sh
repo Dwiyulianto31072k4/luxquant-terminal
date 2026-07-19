@@ -90,24 +90,95 @@ deploy_luxquant() {
     find "$NGINX_WWW_PATH/assets" -type f -mtime +3 -delete 2>/dev/null || true
     chown -R www-data:www-data "$NGINX_WWW_PATH"
 
-    # [3/6] Reload backend (zero-downtime rolling worker replacement)
+    # [3/6] Backend replacement — only when backend code actually changed.
+    #
+    # Measured on this box (2 cores, 4 workers): a plain SIGHUP reload boots all
+    # four new workers at once, the old four exit within a second, and app
+    # startup takes ~12s under the import storm — an 11-SECOND WINDOW WITH ZERO
+    # READY WORKERS. Requests arriving in it sit in the socket backlog; that is
+    # the deploy-time latency spike. The old comment here claimed "never a
+    # moment with zero live workers" — journalctl says otherwise:
+    #   08:17:12 four new workers boot · 08:17:13 old four exit ·
+    #   08:17:24 startup complete.
+    #
+    # Two fixes, both below:
+    #   1. Skip the whole dance when backend/ did not change between the last
+    #      deployed revision and HEAD. Most deploys are frontend-only and were
+    #      paying the gap for nothing.
+    #   2. When it did change, replace workers ONE AT A TIME: TTIN spawns a
+    #      worker on the new code, we wait for its "Application startup
+    #      complete", then TTOU retires the OLDEST worker (verified on this
+    #      box: TTOU kills oldest, not newest). At least three ready workers
+    #      exist at every moment.
     echo ""
-    echo "⚙️  [3/6] Reload Backend Python (gunicorn graceful reload)..."
-    # reload-or-restart: graceful HUP reload if already running (no dropped
-    # requests), full restart only if the service was stopped.
-    systemctl reload-or-restart "$LUXQUANT_SERVICE"
-    # The pollers run as a SEPARATE service and were never restarted here, so
-    # every change to worker code sat dormant while the API happily reloaded.
-    # Found it after chasing why med_peak never appeared in the post-signal blob:
-    # the file on disk had it, the running poller — untouched since 13 Jul — did
-    # not. Same reason the Binance WS ingest stayed dead and its consumers all
-    # fell back to REST until the server got IP-banned.
-    # Restart, not reload: these are asyncio loops, SIGHUP means nothing to them.
-    if systemctl list-unit-files 2>/dev/null | grep -q "^${LUXQUANT_POLLER_SERVICE}"; then
-        echo "   → Restarting pollers (${LUXQUANT_POLLER_SERVICE})..."
-        systemctl restart "$LUXQUANT_POLLER_SERVICE" || echo "   ⚠️  poller restart failed"
+    echo "⚙️  [3/6] Backend replacement (rolling, change-gated)..."
+
+    BACKEND_STAMP="$LUXQUANT_PATH/.deploy-rev-backend"
+    BACKEND_CHANGED=1
+    if [ -f "$BACKEND_STAMP" ]; then
+        last_rev=$(cat "$BACKEND_STAMP" 2>/dev/null || true)
+        if git -C "$LUXQUANT_PATH" cat-file -e "${last_rev}^{commit}" 2>/dev/null; then
+            if [ -z "$(git -C "$LUXQUANT_PATH" diff --name-only "$last_rev" HEAD -- backend/ | head -1)" ]; then
+                BACKEND_CHANGED=0
+            fi
+        fi
+    fi
+
+    rolling_backend_reload() {
+        local master n i before after newpid _w
+        master=$(systemctl show "$LUXQUANT_SERVICE" -p MainPID --value 2>/dev/null || true)
+        if [ -z "$master" ] || [ "$master" = "0" ]; then
+            echo "   → Service not running — full start"
+            systemctl restart "$LUXQUANT_SERVICE"
+            return
+        fi
+        n=$(pgrep -cP "$master" 2>/dev/null || true)
+        if [ -z "$n" ] || [ "$n" -lt 1 ]; then
+            echo "   → No workers found — full restart"
+            systemctl restart "$LUXQUANT_SERVICE"
+            return
+        fi
+        echo "   → Rolling replace of $n workers (master $master)"
+        for i in $(seq 1 "$n"); do
+            before=$(pgrep -P "$master" 2>/dev/null | sort -n || true)
+            kill -TTIN "$master"
+            newpid=""
+            for _w in $(seq 1 30); do
+                sleep 1
+                after=$(pgrep -P "$master" 2>/dev/null | sort -n || true)
+                newpid=$(comm -13 <(printf "%s\n" "$before") <(printf "%s\n" "$after") | head -1 || true)
+                [ -n "$newpid" ] && break
+            done
+            if [ -n "$newpid" ]; then
+                # wait for the new worker's app to be READY before retiring one
+                for _w in $(seq 1 45); do
+                    if journalctl -u "$LUXQUANT_SERVICE" --since "3 minutes ago" 2>/dev/null \
+                        | grep -q "\[$newpid\].*Application startup complete"; then
+                        break
+                    fi
+                    sleep 1
+                done
+            fi
+            kill -TTOU "$master"
+            sleep 1
+            echo "     · worker $i/$n replaced (new pid ${newpid:-unknown})"
+        done
+    }
+
+    if [ "$BACKEND_CHANGED" = "1" ]; then
+        rolling_backend_reload
+        # Pollers run backend code too — same gate. Restart, not reload:
+        # these are asyncio loops, SIGHUP means nothing to them. (This is
+        # also what left worker code dormant for five days when it was
+        # missing entirely.)
+        if systemctl list-unit-files 2>/dev/null | grep -q "^${LUXQUANT_POLLER_SERVICE}"; then
+            echo "   → Restarting pollers (${LUXQUANT_POLLER_SERVICE})..."
+            systemctl restart "$LUXQUANT_POLLER_SERVICE" || echo "   ⚠️  poller restart failed"
+        else
+            echo "   ⏭️  ${LUXQUANT_POLLER_SERVICE} not installed — skipping"
+        fi
     else
-        echo "   ⏭️  ${LUXQUANT_POLLER_SERVICE} not installed — skipping"
+        echo "   ⏭️  backend/ unchanged since last deploy — API and pollers left running"
     fi
 
     echo "   → Waiting for backend to be ready..."
@@ -325,7 +396,8 @@ esac
 
 echo ""
 echo "==============================================="
-echo "🎉 DEPLOYMENT SELESAI ($MODE)"
+git -C "$LUXQUANT_PATH" rev-parse HEAD > "$LUXQUANT_PATH/.deploy-rev-backend" 2>/dev/null || true
+    echo "🎉 DEPLOYMENT SELESAI ($MODE)"
 echo "==============================================="
 echo ""
 echo "💡 Useful commands:"

@@ -51,3 +51,6 @@ backend/rebackfill_backups/
 
 # pytest run state — machine-local, changes on every run
 .pytest_cache/
+
+# deploy stamp — server-local runtime state, never commit
+.deploy-rev-backend
