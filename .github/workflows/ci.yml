@@ -93,6 +93,12 @@ jobs:
         # me placing hook calls below an early return.
         run: npx eslint src
 
+      - name: Effect-deps TDZ scan
+        # Catches the runtime crash class that shipped today: an effect deps
+        # array referencing a const declared later in the file. Build and lint
+        # are both blind to it; the negative test lives in the script header.
+        run: node scripts/check-effect-deps-tdz.mjs src
+
       - name: Test
         run: npm test
 
