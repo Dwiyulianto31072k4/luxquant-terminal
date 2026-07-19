@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LeftBrandPanel, { TypewriterLine } from "./LeftBrandPanel";
 import { referralApi } from "../../services/referralApi";
+import { ensureThree } from "../../lib/ensureThree";
 
 const RegisterPage = () => {
   const { t } = useTranslation();
@@ -406,6 +407,10 @@ const MobileGlobeInner = () => {
     // globe's own _cleanup would never be invoked and its WebGL context would
     // leak on every unmount.
     const node = ref.current;
+    // This page used to lean on <script> tags in index.html for THREE — the
+    // only component that did. Self-load like every other globe so the global
+    // tags could be removed (~800KB saved on every non-globe page).
+    ensureThree().catch(() => {});
     const t = setTimeout(() => {
       if (dead || !ref.current) return;
       const T = window.THREE,
