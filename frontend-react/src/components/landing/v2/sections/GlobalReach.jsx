@@ -1861,7 +1861,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     const st = spawnState.current;
     const pool = (gainersRef.current || []).filter((g) => g.signal_id && g.pair);
     if (!pool.length) return;
-    if (time - st.lastAt < 2400) return;
+    if (time - st.lastAt < 3200) return;
     if (chipsRef.current.length >= 2) return;
     if (chipsRef.current.some((c) => c.country === country)) return;
     st.lastAt = time;
@@ -2269,7 +2269,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
           chipsRef.current.forEach((chip) => {
             const el = chipEls.current[chip.id];
             const age = time - chip.bornAt;
-            if (age > 5200) {
+            if (age > 7600) {
               expired = true;
               return;
             }
@@ -2284,14 +2284,14 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
               return;
             }
             const fadeIn = Math.min(1, age / 260);
-            const fadeOut = age > 4600 ? Math.max(0, 1 - (age - 4600) / 600) : 1;
+            const fadeOut = age > 6900 ? Math.max(0, 1 - (age - 6900) / 600) : 1;
             el.style.left = `${point.x}px`;
             el.style.top = `${point.y}px`;
             el.style.opacity = String(Math.min(fadeIn, fadeOut) * 0.98);
-            el.style.pointerEvents = age > 200 && age < 4800 ? "auto" : "none";
+            el.style.pointerEvents = age > 200 && age < 7200 ? "auto" : "none";
           });
           if (expired) {
-            chipsRef.current = chipsRef.current.filter((c) => time - c.bornAt <= 5200);
+            chipsRef.current = chipsRef.current.filter((c) => time - c.bornAt <= 7600);
             setChipList(chipsRef.current);
           }
         }
@@ -2408,28 +2408,56 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
             type="button"
             onClick={() => onOpenSignal?.(chip.item)}
             title="View trade proof"
-            className="absolute flex -translate-x-1/2 -translate-y-[135%] cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[11px] leading-none transition-transform hover:scale-105"
+            className="lq-gchip absolute -translate-x-1/2 -translate-y-[130%] cursor-pointer rounded-xl border px-3 py-2 text-left leading-none transition-transform hover:scale-105"
             style={{
               opacity: 0,
-              background: "rgba(15,9,10,0.93)",
-              borderColor: "rgba(240,216,144,0.35)",
+              background: "rgba(15,9,10,0.94)",
+              borderColor: "rgba(240,216,144,0.32)",
               color: "rgba(251,243,218,0.96)",
-              boxShadow: "0 6px 22px rgba(0,0,0,0.4)",
+              boxShadow: "0 8px 26px rgba(0,0,0,0.45)",
             }}
           >
-            <CoinLogo pair={chip.item.pair} size={15} />
-            <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
-            <span style={{ color: "#4ade80" }}>+{(chip.item.gain_pct ?? 0).toFixed(1)}%</span>
-            <svg
-              className="h-3 w-3 opacity-70"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.4}
-              aria-hidden="true"
+            <span
+              className="flex items-center gap-1.5 text-[8.5px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "rgba(240,216,144,0.72)" }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
-            </svg>
+              <svg
+                className="lq-gchip-phone h-3 w-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+                <path strokeLinecap="round" d="M11 18h2" />
+              </svg>
+              LuxQuant · now
+            </span>
+            <span className="mt-1.5 grid font-mono text-[11px]">
+              <span className="lq-gchip-a col-start-1 row-start-1 flex items-center gap-1.5">
+                <CoinLogo pair={chip.item.pair} size={14} />
+                <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
+                <span style={{ color: "rgba(251,243,218,0.78)" }}>signal received</span>
+              </span>
+              <span className="lq-gchip-b col-start-1 row-start-1 flex items-center gap-1.5">
+                <CoinLogo pair={chip.item.pair} size={14} />
+                <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
+                <span style={{ color: "#4ade80" }}>
+                  +{(chip.item.gain_pct ?? 0).toFixed(1)}% · WIN
+                </span>
+                <svg
+                  className="h-3 w-3 opacity-70"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.4}
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
+                </svg>
+              </span>
+            </span>
           </button>
         ))}
       </div>
@@ -2587,6 +2615,26 @@ export default function GlobalReach({ gainers = [] }) {
           {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
         </div>
       </div>
+
+      <style>{`
+        .lq-gchip .lq-gchip-a { animation: lqGchipA 7.6s linear forwards; }
+        .lq-gchip .lq-gchip-b { animation: lqGchipB 7.6s linear forwards; opacity: 0; }
+        .lq-gchip-phone { transform-origin: 50% 20%; animation: lqGchipRing 1.1s ease-in-out 2; }
+        @keyframes lqGchipA { 0%, 30% { opacity: 1; } 36%, 100% { opacity: 0; } }
+        @keyframes lqGchipB { 0%, 30% { opacity: 0; } 36%, 100% { opacity: 1; } }
+        @keyframes lqGchipRing {
+          0%, 100% { transform: rotate(0deg); }
+          15% { transform: rotate(-14deg); }
+          30% { transform: rotate(11deg); }
+          45% { transform: rotate(-8deg); }
+          60% { transform: rotate(5deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lq-gchip .lq-gchip-a { animation: none; opacity: 0; }
+          .lq-gchip .lq-gchip-b { animation: none; opacity: 1; }
+          .lq-gchip-phone { animation: none; }
+        }
+      `}</style>
 
       {modalOpen && modalItem && (
         <SignalDetailModal
