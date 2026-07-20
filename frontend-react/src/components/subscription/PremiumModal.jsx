@@ -13,7 +13,9 @@ import subscriptionApi from "../../services/subscriptionApi";
 import Modal from "../ui/Modal";
 import { GoldButton, GhostButton } from "../autotrade/AutoTradeUI";
 
-const PremiumModal = ({ isOpen, onClose }) => {
+// calledPair (optional): the pair whose CALLED badge brought the user here —
+// renders a contextual strip so the upsell answers the exact thing they wanted.
+const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
   const { t } = useTranslation();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,6 +151,14 @@ const PremiumModal = ({ isOpen, onClose }) => {
           {t("pricing.upgrade_to")} <span className="text-accent">{t("pricing.premium")}</span>
         </h2>
         <p className="mx-auto max-w-md text-xs text-text-muted">{t("pricing.modal_subtitle")}</p>
+        {calledPair && (
+          <div className="mx-auto mt-4 inline-flex max-w-md items-center gap-2 rounded-lg border border-accent/25 bg-accent/[0.08] px-3.5 py-2">
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-accent" />
+            <span className="text-left text-xs leading-snug text-text-secondary">
+              {t("pricing.called_context", { pair: calledPair })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Plans */}

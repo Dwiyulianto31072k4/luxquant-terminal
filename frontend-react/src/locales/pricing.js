@@ -122,6 +122,8 @@ export const pricingEn = {
 
   back: "← Back to Terminal",
   modal_subtitle: "Unlock premium access",
+  called_context:
+    "{{pair}} was just called by LuxQuant — subscribers see the entry, targets & stop-loss live.",
   most_popular: "Recommended",
 
   load_error: "Plans could not be loaded. Please try again.",
@@ -244,6 +246,7 @@ export const pricingZh = {
 
   back: "← 返回终端",
   modal_subtitle: "解锁高级访问",
+  called_context: "LuxQuant 刚刚发出了 {{pair}} 信号——订阅者可实时查看入场价、目标价与止损。",
   most_popular: "推荐",
   load_error: "无法加载方案，请重试。",
   retry: "重试",

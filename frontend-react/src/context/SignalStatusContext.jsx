@@ -7,6 +7,9 @@
 // Outside the terminal the context is null → CoinLogo is unchanged.
 // ════════════════════════════════════════════════════════════════
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useAuth } from "./AuthContext";
+import { isEntitled } from "../utils/entitlement";
+import PremiumModal from "../components/subscription/PremiumModal";
 
 export const SignalStatusContext = createContext(null);
 export const useSignalStatus = () => useContext(SignalStatusContext);
@@ -49,6 +52,13 @@ export function timeAgo(ts) {
 export function SignalStatusProvider({ children }) {
   const [map, setMap] = useState(null);
   const [modalPair, setModalPair] = useState(null);
+  // Product rule: the CALLED badge (and every coin-logo dot) is visible to
+  // everyone as proof the call happened, but OPENING a signal from it is a
+  // paid door. Free users get the upgrade modal with the pair they wanted —
+  // the backend still redacts levels regardless, this is the honest UX for it.
+  const { user } = useAuth();
+  const entitled = isEntitled(user);
+  const [paywallPair, setPaywallPair] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -92,14 +102,28 @@ export function SignalStatusProvider({ children }) {
     };
   }, []);
 
-  const openPair = useCallback((pair) => {
-    if (pair) setModalPair(pair.toUpperCase());
-  }, []);
+  const openPair = useCallback(
+    (pair) => {
+      if (!pair) return;
+      const key = pair.toUpperCase();
+      if (!entitled) {
+        setPaywallPair(key);
+        return;
+      }
+      setModalPair(key);
+    },
+    [entitled]
+  );
   const closeModal = useCallback(() => setModalPair(null), []);
 
   return (
-    <SignalStatusContext.Provider value={{ map, openPair, closeModal, modalPair }}>
+    <SignalStatusContext.Provider value={{ map, openPair, closeModal, modalPair, entitled }}>
       {children}
+      <PremiumModal
+        isOpen={!!paywallPair}
+        onClose={() => setPaywallPair(null)}
+        calledPair={paywallPair}
+      />
     </SignalStatusContext.Provider>
   );
 }
