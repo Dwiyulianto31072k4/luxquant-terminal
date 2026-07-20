@@ -1,10 +1,26 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { feature } from "topojson-client";
 import countriesTopo from "world-atlas/countries-110m.json";
+import CoinLogo from "../../../CoinLogo";
+import { SignalDetailModal } from "../../../TopPerformers";
 
 // ════════════════════════════════════════════════════════════════
-// GLOBAL REACH — LuxQuant (v3)
+// GLOBAL REACH — LuxQuant (v4)
 // Canvas globe, no three.js / no react-globe.gl
+//
+// v4: the globe earns its place —
+// · Animated delivery arcs ONLY to the classic city set (the old
+//   three-globe destinations): Jakarta, Singapore, Tokyo, Seoul,
+//   Hong Kong, New York, London, Mumbai, Sydney, Moscow, Paris.
+//   Each pulse leaves Taipei, lands with a ping at the city.
+// · Real data: when a pulse lands, a clickable chip pops with a real
+//   top-gainer call (coin logo + gain) → opens SignalDetailModal,
+//   the same proof modal TopGainers uses. All copy English.
+// · See-through sphere (Cloudflare-style): far-side land + halftone
+//   dots show faintly through a translucent ocean.
+// · Land texture: real country shapes sampled once into an on-sphere
+//   halftone dot grid — richness of the old textured map, vector cost.
 //
 // Choropleth = intensitas warna per negara mengikuti LEVEL REACH
 // (blend DNS reach + Likes). 59 negara total: 57 diwarnai sebagai
@@ -816,6 +832,104 @@ function createCountryShapes() {
 
 const COUNTRY_SHAPES = createCountryShapes();
 
+// Halftone land dots (Cloudflare look) on the REAL country shapes.
+// One-time raster: paint every polygon onto a small equirect canvas,
+// then sample a lat/lng grid against it. ~3k unit vectors.
+function buildLandDots() {
+  if (typeof document === "undefined") return [];
+  try {
+    const raster = document.createElement("canvas");
+    raster.width = 720;
+    raster.height = 360;
+    const g = raster.getContext("2d", { willReadFrequently: true });
+    if (!g) return [];
+    g.fillStyle = "#fff";
+    const feats = feature(countriesTopo, countriesTopo.objects.countries).features;
+    feats.forEach((f) => {
+      const rings = [];
+      collectCountryRings(f.geometry, rings);
+      rings.forEach((ring) => {
+        g.beginPath();
+        ring.forEach(([lng, lat], i) => {
+          const x = (lng + 180) * 2;
+          const y = (90 - lat) * 2;
+          if (i === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        });
+        g.closePath();
+        g.fill();
+      });
+    });
+    const img = g.getImageData(0, 0, 720, 360).data;
+    const dots = [];
+    for (let lat = -58; lat <= 78; lat += 2.1) {
+      const step = 2.1 / Math.max(0.32, Math.cos(degToRad(lat)));
+      for (let lng = -180; lng < 180; lng += step) {
+        const px = Math.min(719, Math.floor((lng + 180) * 2));
+        const py = Math.min(359, Math.floor((90 - lat) * 2));
+        if (img[(py * 720 + px) * 4 + 3] > 40) {
+          dots.push(latLngToVector(lat, lng));
+        }
+      }
+    }
+    return dots;
+  } catch {
+    return [];
+  }
+}
+
+const LAND_DOTS = buildLandDots();
+
+// Far-side land, drawn faintly at the same screen position (orthographic
+// projection folds the back hemisphere onto the same disk) — this is what
+// makes the sphere read as glass instead of a painted ball.
+function drawBackLand(ctx, radius, cx, cy, yaw, pitch, pal) {
+  ctx.save();
+  ctx.beginPath();
+  let any = false;
+  COUNTRY_SHAPES.forEach((country) => {
+    country.rings.forEach((ring) => {
+      let started = false;
+      for (let i = 0; i < ring.length; i += 2) {
+        const rot = rotateVector(ring[i], yaw, pitch);
+        if (rot.z >= -0.03) {
+          started = false;
+          continue;
+        }
+        const x = cx + rot.x * radius;
+        const y = cy - rot.y * radius;
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+          any = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+    });
+  });
+  if (any) {
+    ctx.strokeStyle = pal.backLand;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawLandDots(ctx, radius, cx, cy, yaw, pitch, pal) {
+  const s2 = radius > 260 ? 1.5 : 1.2;
+  for (let i = 0; i < LAND_DOTS.length; i += 1) {
+    const rot = rotateVector(LAND_DOTS[i], yaw, pitch);
+    if (rot.z > 0.02) {
+      ctx.fillStyle = `rgba(${pal.dotBase},${(pal.dotFront * (0.35 + rot.z * 0.65)).toFixed(3)})`;
+      ctx.fillRect(cx + rot.x * radius, cy - rot.y * radius, s2, s2);
+    } else if (rot.z < -0.05 && pal.dotBack > 0) {
+      ctx.fillStyle = `rgba(${pal.dotBase},${pal.dotBack})`;
+      ctx.fillRect(cx + rot.x * radius, cy - rot.y * radius, 1, 1);
+    }
+  }
+}
+
 // 59 country nodes — tiap negara diwakili 1 titik.
 // Negara yang punya data center pakai koordinat kotanya; yang hanya
 // muncul dari Likes pakai ibu kotanya. Indonesia diredupkan, Hong Kong
@@ -863,8 +977,8 @@ const COUNTRY_NODES = [
     lat: 24.958,
     lng: 46.699,
     tier: "hub",
-    arc: true,
-    label: true,
+    arc: false,
+    label: false,
   },
   {
     country: "Pakistan",
@@ -872,8 +986,8 @@ const COUNTRY_NODES = [
     lat: 24.907,
     lng: 67.161,
     tier: "hub",
-    arc: true,
-    label: true,
+    arc: false,
+    label: false,
   },
   {
     country: "Netherlands",
@@ -881,15 +995,15 @@ const COUNTRY_NODES = [
     lat: 52.309,
     lng: 4.764,
     tier: "hub",
-    arc: true,
-    label: true,
+    arc: false,
+    label: false,
   },
   {
     country: "United States",
-    city: "Washington",
-    lat: 38.947,
-    lng: -77.46,
-    tier: "hub",
+    city: "New York",
+    lat: 40.71,
+    lng: -74.01,
+    tier: "primary",
     arc: true,
     label: true,
   },
@@ -899,8 +1013,8 @@ const COUNTRY_NODES = [
     lat: 46.928,
     lng: 28.931,
     tier: "hub",
-    arc: true,
-    label: true,
+    arc: false,
+    label: false,
   },
   {
     country: "United Kingdom",
@@ -917,8 +1031,8 @@ const COUNTRY_NODES = [
     lat: 47.465,
     lng: 8.549,
     tier: "hub",
-    arc: true,
-    label: true,
+    arc: false,
+    label: false,
   },
   {
     country: "Malaysia",
@@ -926,17 +1040,17 @@ const COUNTRY_NODES = [
     lat: 2.746,
     lng: 101.71,
     tier: "hub",
-    arc: true,
-    label: true,
+    arc: false,
+    label: false,
   },
   {
     country: "Australia",
-    city: "Melbourne",
-    lat: -37.673,
-    lng: 144.843,
+    city: "Sydney",
+    lat: -33.87,
+    lng: 151.21,
     tier: "hub",
-    arc: false,
-    label: false,
+    arc: true,
+    label: true,
   },
   {
     country: "Italy",
@@ -967,21 +1081,21 @@ const COUNTRY_NODES = [
   },
   {
     country: "India",
-    city: "Chennai",
-    lat: 12.99,
-    lng: 80.169,
+    city: "Mumbai",
+    lat: 19.089,
+    lng: 72.868,
     tier: "hub",
-    arc: false,
-    label: false,
+    arc: true,
+    label: true,
   },
   {
     country: "France",
-    city: "Marseille",
-    lat: 43.439,
-    lng: 5.221,
+    city: "Paris",
+    lat: 48.86,
+    lng: 2.35,
     tier: "hub",
-    arc: false,
-    label: false,
+    arc: true,
+    label: true,
   },
   {
     country: "Hungary",
@@ -1034,8 +1148,8 @@ const COUNTRY_NODES = [
     lat: 55.409,
     lng: 37.906,
     tier: "hub",
-    arc: false,
-    label: false,
+    arc: true,
+    label: true,
   },
   {
     country: "Sweden",
@@ -1061,8 +1175,8 @@ const COUNTRY_NODES = [
     lat: 37.469,
     lng: 126.451,
     tier: "hub",
-    arc: false,
-    label: false,
+    arc: true,
+    label: true,
   },
   {
     country: "Brazil",
@@ -1382,6 +1496,8 @@ const HUB_POINTS = COUNTRY_NODES.map((node, i) => {
 });
 
 const ORIGIN_HUB = HUB_POINTS.find((h) => h.isOrigin) || HUB_POINTS[0];
+const HUB_INDEX_BY_COUNTRY = Object.fromEntries(HUB_POINTS.map((h, i) => [h.country, i]));
+const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || "—";
 const ORIGIN_VECTOR = ORIGIN_HUB.vector;
 
 const ARCS = HUB_POINTS.filter((h) => h.hasArc).map((hub, index) => ({
@@ -1468,16 +1584,20 @@ function landPalette(theme) {
       outline: "rgba(51,65,85,0.42)", // slate-700, crisper
       outlineW: 0.7,
       ocean: [
-        "rgba(248,250,252,0.98)",
-        "rgba(226,232,240,0.95)",
-        "rgba(203,213,225,0.72)",
-        "rgba(226,232,240,0.28)",
+        "rgba(248,250,252,0.92)",
+        "rgba(226,232,240,0.85)",
+        "rgba(203,213,225,0.6)",
+        "rgba(226,232,240,0.24)",
         "rgba(248,250,252,0)",
       ],
       ambient: ["rgba(15,23,42,0.07)", "rgba(15,23,42,0.035)", "rgba(15,23,42,0.012)"],
       arcDim: 0.12,
       arcReach: 0.22,
       arcStrong: 0.55,
+      backLand: "rgba(71,85,105,0.10)",
+      dotBase: "51,65,85",
+      dotFront: 0.34,
+      dotBack: 0,
     };
   }
   if (theme === "dark") {
@@ -1487,16 +1607,20 @@ function landPalette(theme) {
       outline: "rgba(212,168,83,0.18)",
       outlineW: 0.5,
       ocean: [
-        "rgba(34,38,46,0.95)",
-        "rgba(24,28,34,0.88)",
-        "rgba(18,22,28,0.5)",
-        "rgba(11,14,17,0.18)",
+        "rgba(34,38,46,0.68)",
+        "rgba(24,28,34,0.56)",
+        "rgba(18,22,28,0.34)",
+        "rgba(11,14,17,0.14)",
         "rgba(11,14,17,0)",
       ],
       ambient: ["rgba(42,42,46,0.10)", "rgba(28,28,32,0.05)", "rgba(15,15,17,0.02)"],
       arcDim: 0.05,
       arcReach: 0.09,
       arcStrong: 0.38,
+      backLand: "rgba(212,168,83,0.075)",
+      dotBase: "228,196,120",
+      dotFront: 0.5,
+      dotBack: 0.045,
     };
   }
   // luxquant warm desk
@@ -1506,16 +1630,20 @@ function landPalette(theme) {
     outline: "rgba(212,168,83,0.16)",
     outlineW: 0.5,
     ocean: [
-      "rgba(44,17,16,0.92)",
-      "rgba(25,11,12,0.8)",
-      "rgba(14,7,8,0.46)",
-      "rgba(10,5,6,0.16)",
+      "rgba(44,17,16,0.66)",
+      "rgba(25,11,12,0.54)",
+      "rgba(14,7,8,0.32)",
+      "rgba(10,5,6,0.13)",
       "rgba(10,5,6,0)",
     ],
     ambient: ["rgba(70,30,28,0.12)", "rgba(45,20,20,0.06)", "rgba(22,11,11,0.025)"],
     arcDim: 0.05,
     arcReach: 0.09,
     arcStrong: 0.38,
+    backLand: "rgba(212,168,83,0.07)",
+    dotBase: "228,196,120",
+    dotFront: 0.48,
+    dotBack: 0.04,
   };
 }
 
@@ -1615,7 +1743,7 @@ function drawArc(
     const t = startT + (endT - startT) * ratio;
 
     const curve = slerp(arc.start, arc.end, t);
-    const elevation = 1 + Math.sin(Math.PI * t) * 0.29;
+    const elevation = 1 + Math.sin(Math.PI * t) * 0.17;
 
     const point = projectVector(multiply(curve, elevation), radius, cx, cy, yaw, pitch);
 
@@ -1717,8 +1845,30 @@ function rectsOverlap(a, b) {
   return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
 }
 
-function CanvasGlobe() {
+function CanvasGlobe({ gainersRef, onOpenSignal }) {
   const canvasRef = useRef(null);
+
+  // Delivery state: per-arc progress (to detect the landing wrap), active
+  // arrival pings, and the live signal chips pinned to their cities.
+  const arcProgress = useRef([]);
+  const pings = useRef([]);
+  const chipsRef = useRef([]);
+  const chipEls = useRef({});
+  const spawnState = useRef({ lastAt: 0, nextGainer: 0, id: 0 });
+  const [chipList, setChipList] = useState([]);
+
+  const onArcLand = (country, time) => {
+    const st = spawnState.current;
+    const pool = (gainersRef.current || []).filter((g) => g.signal_id && g.pair);
+    if (!pool.length) return;
+    if (time - st.lastAt < 2400) return;
+    if (chipsRef.current.length >= 2) return;
+    if (chipsRef.current.some((c) => c.country === country)) return;
+    st.lastAt = time;
+    const item = pool[st.nextGainer++ % pool.length];
+    chipsRef.current = [...chipsRef.current, { id: ++st.id, item, country, bornAt: time }];
+    setChipList(chipsRef.current);
+  };
 
   const interactionRef = useRef({
     pointer: { x: 0, y: 0, inside: false },
@@ -1886,6 +2036,7 @@ function CanvasGlobe() {
           globeGradient.addColorStop(stop, pal.ocean[i]);
         });
 
+        drawBackLand(context, radius, cx, cy, yaw, pitch, landPalette(getAppTheme()));
         context.fillStyle = globeGradient;
         context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
 
@@ -1913,6 +2064,7 @@ function CanvasGlobe() {
         drawGrid(context, radius, cx, cy, yaw, pitch);
         drawChoropleth(context, radius, cx, cy, yaw, pitch, appTheme);
         drawCountryOutlines(context, radius, cx, cy, yaw, pitch, appTheme);
+        drawLandDots(context, radius, cx, cy, yaw, pitch, pal);
 
         // Background arcs — garis penghubung statis ke SEMUA negara (murah, no shadow)
         ARCS.forEach((arc) => {
@@ -1935,9 +2087,9 @@ function CanvasGlobe() {
         });
 
         // Animated highlight arcs — hanya hub utama yang "mengalir" (reach tetap garis statis)
-        ARCS.forEach((arc, _index) => {
+        ARCS.forEach((arc, arcIndex) => {
           const isActiveArc = arc.code === hoveredCode;
-          if (arc.reach && !isActiveArc) return;
+          if (!arc.major && !isActiveArc) return;
           const progress = (((time / arc.duration + arc.offset) % 1) + 1) % 1;
           const tailLength = isActiveArc ? 0.42 : 0.22;
           const start = Math.max(0, progress - tailLength);
@@ -1958,6 +2110,29 @@ function CanvasGlobe() {
             isActiveArc ? 2.2 : arc.dim ? 0.7 : 1.05,
             isActiveArc ? 16 : arc.dim ? 3 : 6
           );
+
+          // A wrap in progress = the pulse just LANDED at its city.
+          if (arc.major) {
+            const prev = arcProgress.current[arcIndex];
+            arcProgress.current[arcIndex] = progress;
+            if (prev != null && progress < prev - 0.5) {
+              pings.current.push({ vector: arc.end, code: arc.code, t0: time });
+              onArcLand(arc.code, time);
+            }
+          }
+        });
+
+        // Arrival pings — an expanding ring where a pulse touched down.
+        pings.current = pings.current.filter((ping) => time - ping.t0 < 780);
+        pings.current.forEach((ping) => {
+          const point = projectVector(ping.vector, radius, cx, cy, yaw, pitch);
+          if (!point) return;
+          const k = (time - ping.t0) / 780;
+          context.beginPath();
+          context.arc(point.x, point.y, 4 + k * 20, 0, Math.PI * 2);
+          context.strokeStyle = `rgba(${COLORS.goldStrong},${(1 - k) * 0.7})`;
+          context.lineWidth = 1.4 * (1 - k) + 0.4;
+          context.stroke();
         });
 
         const placedRects = [];
@@ -2088,6 +2263,39 @@ function CanvasGlobe() {
           }
         });
 
+        // Live chips — pin each to its city, fade with age, hide behind rim
+        if (chipsRef.current.length) {
+          let expired = false;
+          chipsRef.current.forEach((chip) => {
+            const el = chipEls.current[chip.id];
+            const age = time - chip.bornAt;
+            if (age > 5200) {
+              expired = true;
+              return;
+            }
+            if (!el) return;
+            const hub = HUB_POINTS[HUB_INDEX_BY_COUNTRY[chip.country]];
+            const point = hub
+              ? projectVector(hub.vector, radius, cx, cy, yaw, pitch)
+              : null;
+            if (!point || point.depth < 0.16) {
+              el.style.opacity = "0";
+              el.style.pointerEvents = "none";
+              return;
+            }
+            const fadeIn = Math.min(1, age / 260);
+            const fadeOut = age > 4600 ? Math.max(0, 1 - (age - 4600) / 600) : 1;
+            el.style.left = `${point.x}px`;
+            el.style.top = `${point.y}px`;
+            el.style.opacity = String(Math.min(fadeIn, fadeOut) * 0.98);
+            el.style.pointerEvents = age > 200 && age < 4800 ? "auto" : "none";
+          });
+          if (expired) {
+            chipsRef.current = chipsRef.current.filter((c) => time - c.bornAt <= 5200);
+            setChipList(chipsRef.current);
+          }
+        }
+
         // Edge fade — rim transparan
         const edgeFade = context.createRadialGradient(cx, cy, radius * 0.42, cx, cy, radius);
         edgeFade.addColorStop(0, "rgba(8,4,5,0)");
@@ -2189,6 +2397,42 @@ function CanvasGlobe() {
 
   return (
     <div className="relative h-full w-full select-none">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+        {chipList.map((chip) => (
+          <button
+            key={chip.id}
+            ref={(el) => {
+              if (el) chipEls.current[chip.id] = el;
+              else delete chipEls.current[chip.id];
+            }}
+            type="button"
+            onClick={() => onOpenSignal?.(chip.item)}
+            title="View trade proof"
+            className="absolute flex -translate-x-1/2 -translate-y-[135%] cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[11px] leading-none transition-transform hover:scale-105"
+            style={{
+              opacity: 0,
+              background: "rgba(15,9,10,0.93)",
+              borderColor: "rgba(240,216,144,0.35)",
+              color: "rgba(251,243,218,0.96)",
+              boxShadow: "0 6px 22px rgba(0,0,0,0.4)",
+            }}
+          >
+            <CoinLogo pair={chip.item.pair} size={15} />
+            <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
+            <span style={{ color: "#4ade80" }}>+{(chip.item.gain_pct ?? 0).toFixed(1)}%</span>
+            <svg
+              className="h-3 w-3 opacity-70"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.4}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
+            </svg>
+          </button>
+        ))}
+      </div>
       <canvas
         ref={canvasRef}
         aria-label="Interactive LuxQuant global network map"
@@ -2208,9 +2452,66 @@ function CanvasGlobe() {
   );
 }
 
-export default function GlobalReach() {
+export default function GlobalReach({ gainers = [] }) {
   const [inView, setInView] = useState(false);
   const sentinelRef = useRef(null);
+  const { t } = useTranslation();
+
+  // Fresh gainers for the draw loop without re-running the canvas effect.
+  const gainersRef = useRef([]);
+  gainersRef.current = gainers;
+
+  // Proof modal — the exact SignalDetailModal recipe TopGainers uses.
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalItem, setModalItem] = useState(null);
+  const [signalDetail, setSignalDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [modalSignalIds, setModalSignalIds] = useState([]);
+  const [modalIndex, setModalIndex] = useState(0);
+
+  const fetchDetail = useCallback(async (sid) => {
+    setDetailLoading(true);
+    setSignalDetail(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/v1/signals/detail/${sid}`, { headers });
+      if (r.ok) setSignalDetail(await r.json());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const onOpenSignal = useCallback(
+    (item) => {
+      if (!item?.signal_id) return;
+      const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
+      const bi = ids.indexOf(item.signal_id);
+      setModalSignalIds(ids);
+      setModalIndex(bi >= 0 ? bi : 0);
+      setModalItem(item);
+      setModalOpen(true);
+      fetchDetail(item.signal_id);
+    },
+    [fetchDetail]
+  );
+
+  const goToSignal = (i) => {
+    if (i >= 0 && i < modalSignalIds.length) {
+      setModalIndex(i);
+      fetchDetail(modalSignalIds[i]);
+    }
+  };
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalSignalIds([]);
+    setModalIndex(0);
+    setModalItem(null);
+    setSignalDetail(null);
+  };
+  const cleanPair = (p) => (p ? p.replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???");
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -2282,8 +2583,24 @@ export default function GlobalReach() {
           }}
         />
 
-        <div className="absolute inset-0">{inView && <CanvasGlobe />}</div>
+        <div className="absolute inset-0">
+          {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
+        </div>
       </div>
+
+      {modalOpen && modalItem && (
+        <SignalDetailModal
+          item={modalItem}
+          detail={signalDetail}
+          loading={detailLoading}
+          signalIds={modalSignalIds}
+          currentIndex={modalIndex}
+          onNavigate={goToSignal}
+          onClose={closeModal}
+          cleanPair={cleanPair}
+          t={t}
+        />
+      )}
     </section>
   );
 }
