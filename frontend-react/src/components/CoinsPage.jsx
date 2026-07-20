@@ -3,10 +3,58 @@
 // Evergreen, crawlable content per coin; live price shown via link-out.
 import { Link, useParams, Navigate } from "react-router-dom";
 import Seo from "./Seo";
-import { COINS, getCoin } from "../content/coins";
-import { PageHeader } from "./ui/PageHeader";
+import { COINS, ALL_COINS, getCoin } from "../content/coins";
 
 const SITE = "https://luxquant.tw";
+
+// Human date for "since {first_call}" (YYYY-MM-DD → e.g. "Jan 2024").
+function sinceLabel(d) {
+  if (!d) return "";
+  const dt = new Date(d + "T00:00:00Z");
+  return dt.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+// Track-record stat tiles shown on every coin page that has call history.
+function TrackRecord({ symbol, stats }) {
+  if (!stats || !stats.n) return null;
+  const tiles = [
+    { n: stats.n.toLocaleString(), l: "Signals called" },
+    stats.wr != null && { n: `${stats.wr}%`, l: "Win rate" },
+    stats.avgPeak != null && { n: `+${stats.avgPeak}%`, l: "Avg peak" },
+    stats.best != null && { n: `+${stats.best}%`, l: "Best call" },
+  ].filter(Boolean);
+  return (
+    <div className="mt-6 rounded-xl border border-ink/10 bg-surface-secondary p-5">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-[15px] font-semibold text-text-primary">
+          {symbol} track record on LuxQuant
+        </h2>
+        {stats.since && (
+          <span className="font-mono text-[11px] text-text-muted">since {sinceLabel(stats.since)}</span>
+        )}
+      </div>
+      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {tiles.map((t, i) => (
+          <div key={i} className="rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2.5">
+            <div className="font-mono text-[19px] font-semibold text-text-primary tabular-nums leading-none">
+              {t.n}
+            </div>
+            <div className="mt-1.5 font-mono text-[9.5px] uppercase tracking-wider text-text-muted">
+              {t.l}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[12px] text-text-muted">
+        Every {symbol} call is timestamped and publicly verifiable — entry, TP1–TP4 and a hard
+        stop-loss.{" "}
+        <Link to="/performance" className="text-text-muted hover:text-text-primary underline">
+          See the full audited record →
+        </Link>
+      </p>
+    </div>
+  );
+}
 
 function Crumbs({ trail }) {
   return (
@@ -32,15 +80,44 @@ function CoinDetail({ slug }) {
   if (!coin) return <Navigate to="/coins" replace />;
 
   const url = `${SITE}/coins/${coin.slug}`;
-  const related = (coin.related || []).map(getCoin).filter(Boolean);
+  const st = coin.stats;
+  const since = st && st.since ? sinceLabel(st.since) : "";
+  const isGen = !!coin.generated;
+  const body =
+    coin.body ||
+    (st
+      ? [
+          `LuxQuant's algorithm has published ${st.n.toLocaleString()} ${coin.symbol} trade signals since ${since}.` +
+            (st.wr != null ? ` Across ${st.resolved} resolved calls, ${coin.symbol} carries a ${st.wr}% win rate` : "") +
+            (st.avgPeak != null ? ` — the average call reached a peak of +${st.avgPeak}% from entry` : "") +
+            (st.best != null ? `, and the strongest ${coin.symbol} call ran +${st.best}%.` : "."),
+          `Each ${coin.symbol} signal ships with a full plan — exact entry, staged take-profits (TP1–TP4) and a hard stop-loss — all timestamped and publicly auditable. On LuxQuant you can track ${coin.name}${coin.name !== coin.symbol ? ` (${coin.symbol})` : ""} money flow, on-chain whale activity, BTC correlation and every new signal in one place.`,
+        ]
+      : [`Track ${coin.name} (${coin.symbol}) money flow, on-chain activity and algorithmic signals on LuxQuant.`]);
+  const category =
+    coin.category || (st ? `${coin.symbol}/USDT · ${st.n.toLocaleString()} signals tracked` : coin.symbol);
+  const seoTitle = isGen
+    ? `${coin.symbol} signal track record — ${st ? st.n.toLocaleString() + " LuxQuant calls" : "LuxQuant"}${
+        st && st.wr != null ? `, ${st.wr}% win rate` : ""
+      } | LuxQuant`
+    : `${coin.name} (${coin.symbol}) — money flow, on-chain & signals | LuxQuant`;
+  const seoDesc =
+    isGen && st
+      ? `LuxQuant has called ${coin.symbol} ${st.n.toLocaleString()} times since ${since}${
+          st.wr != null ? ` at a ${st.wr}% win rate` : ""
+        }${st.avgPeak != null ? `, avg peak +${st.avgPeak}%` : ""}. Timestamped, verifiable signals with entry, TP1–TP4 and stop-loss.`
+      : `${coin.name} (${coin.symbol}): ${body[0].slice(0, 140)}`;
+  const relatedSlugs =
+    coin.related || ["btc", "eth", "sol", "bnb"].filter((x) => x !== coin.slug).slice(0, 4);
+  const related = relatedSlugs.map(getCoin).filter(Boolean);
 
   const jsonLd = [
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      name: `${coin.name} (${coin.symbol}) — money flow, on-chain & signals`,
+      name: `${coin.name} (${coin.symbol}) — LuxQuant signals & track record`,
       url,
-      description: coin.body[0],
+      description: body[0],
       isPartOf: { "@type": "WebSite", name: "LuxQuant Terminal", url: `${SITE}/` },
       about: { "@type": "Thing", name: coin.name, alternateName: coin.symbol },
     },
@@ -58,10 +135,10 @@ function CoinDetail({ slug }) {
   return (
     <div className="w-full max-w-3xl px-1 py-4">
       <Seo
-        title={`${coin.name} (${coin.symbol}) — money flow, on-chain & signals | LuxQuant`}
-        description={`${coin.name} (${coin.symbol}): ${coin.body[0].slice(0, 140)}`}
+        title={seoTitle}
+        description={seoDesc}
         path={`/coins/${coin.slug}`}
-        keywords={`${coin.name}, ${coin.symbol}, ${coin.symbol} analysis, ${coin.name} on-chain, ${coin.name} money flow, luxquant`}
+        keywords={`${coin.name}, ${coin.symbol}, ${coin.symbol} signals, ${coin.symbol} track record, ${coin.symbol} win rate, ${coin.name} money flow, luxquant`}
         type="article"
         jsonLd={jsonLd}
       />
@@ -77,12 +154,15 @@ function CoinDetail({ slug }) {
         Coins
       </span>
       <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-        {coin.name} <span className="text-text-muted">({coin.symbol})</span>
+        {coin.name}
+        {coin.name !== coin.symbol && <span className="text-text-muted"> ({coin.symbol})</span>}
       </h1>
-      <p className="mt-1 font-mono text-[12px] text-text-muted">{coin.category}</p>
+      <p className="mt-1 font-mono text-[12px] text-text-muted">{category}</p>
+
+      <TrackRecord symbol={coin.symbol} stats={st} />
 
       <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-text-primary/75">
-        {coin.body.map((p, i) => (
+        {body.map((p, i) => (
           <p key={i}>{p}</p>
         ))}
       </div>
@@ -114,17 +194,19 @@ function CoinDetail({ slug }) {
             Signals
           </Link>
         </div>
-        <p className="mt-3 text-[12px] text-text-muted">
-          Live {coin.symbol} price &amp; markets:{" "}
-          <a
-            href={`https://www.coingecko.com/en/coins/${coin.cg}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-text-muted hover:text-text-primary"
-          >
-            view on CoinGecko →
-          </a>
-        </p>
+        {coin.cg && (
+          <p className="mt-3 text-[12px] text-text-muted">
+            Live {coin.symbol} price &amp; markets:{" "}
+            <a
+              href={`https://www.coingecko.com/en/coins/${coin.cg}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-text-muted hover:text-text-primary"
+            >
+              view on CoinGecko →
+            </a>
+          </p>
+        )}
       </div>
 
       {related.length > 0 && (
@@ -196,7 +278,9 @@ function CoinsIndex() {
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
         Coins
       </span>
-      <PageHeader title="Crypto Coins" />
+      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
+        Crypto Coins
+      </h1>
       <p className="mt-2 text-[14px] text-text-primary/55 max-w-2xl leading-relaxed">
         Money flow, on-chain intelligence, and algorithmic signals for the assets traders watch
         most.
@@ -220,6 +304,26 @@ function CoinsIndex() {
         ))}
       </div>
 
+      {_restCoins.length > 0 && (
+        <div className="mt-9">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
+            All tracked pairs · {(_restCoins.length + COINS.length).toLocaleString()} coins
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {_restCoins.map((c) => (
+              <Link
+                key={c.slug}
+                to={`/coins/${c.slug}`}
+                title={`${c.name} — LuxQuant track record`}
+                className="rounded-md border border-ink/[0.08] bg-ink/[0.02] px-2.5 py-1 font-mono text-[12px] text-text-primary/70 hover:border-ink/15 hover:text-text-primary transition-colors"
+              >
+                {c.symbol}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 font-mono text-[12px] text-text-muted">
         New to the terms? Start with the{" "}
         <Link to="/learn" className="text-text-muted hover:text-text-primary">
@@ -229,6 +333,9 @@ function CoinsIndex() {
     </div>
   );
 }
+
+const _curatedSet = new Set(COINS.map((c) => c.slug));
+const _restCoins = ALL_COINS.filter((c) => !_curatedSet.has(c.slug));
 
 export default function CoinsPage() {
   const { slug } = useParams();

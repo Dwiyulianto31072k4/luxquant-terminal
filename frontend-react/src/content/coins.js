@@ -295,4 +295,27 @@ export const COINS = [
   },
 ];
 
-export const getCoin = (slug) => COINS.find((c) => c.slug === slug) || null;
+// ── Programmatic expansion ────────────────────────────────────────
+// GEN_COINS: ~600 auto-generated coin pages (pairs with >=20 signals) whose
+// unique, uncopyable content is the real LuxQuant track record.
+// COIN_STATS: build-time snapshot of per-coin call stats, keyed by slug — used
+// by BOTH curated and generated pages.
+import { GEN_COINS, COIN_STATS } from "./coins.generated.js";
+export { COIN_STATS };
+
+const _curatedSlugs = new Set(COINS.map((c) => c.slug));
+const _generated = GEN_COINS.filter((c) => !_curatedSlugs.has(c.slug));
+
+// Full universe for indexes/sitemap/prerender. Curated entries keep their
+// hand-written body; generated entries render from stats + a data template.
+export const ALL_COINS = [...COINS, ..._generated];
+
+export const getCoinStats = (slug) => COIN_STATS[slug] || null;
+
+export const getCoin = (slug) => {
+  const curated = COINS.find((c) => c.slug === slug);
+  if (curated) return { ...curated, stats: COIN_STATS[curated.slug] || null };
+  const gen = _generated.find((c) => c.slug === slug);
+  if (gen) return { ...gen, generated: true, stats: COIN_STATS[gen.slug] || null };
+  return null;
+};
