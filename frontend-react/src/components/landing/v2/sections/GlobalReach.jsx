@@ -1862,6 +1862,14 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     const pool = (gainersRef.current || []).filter((g) => g.signal_id && g.pair);
     if (!pool.length) return;
     if (time - st.lastAt < 3200) return;
+    // Only notify where the viewer can SEE it — a chip born on the far side
+    // silently eats both slots for its whole life and the visible hemisphere
+    // goes quiet (most landings cluster near Taipei's short arcs).
+    const scene = sceneRef.current;
+    const hub = HUB_POINTS[HUB_INDEX_BY_COUNTRY[country]];
+    if (!scene?.radius || !hub) return;
+    const pt = projectVector(hub.vector, scene.radius, scene.cx, scene.cy, scene.yaw, scene.pitch);
+    if (!pt || pt.depth < 0.2) return;
     if (chipsRef.current.length >= 2) return;
     if (chipsRef.current.some((c) => c.country === country)) return;
     st.lastAt = time;
