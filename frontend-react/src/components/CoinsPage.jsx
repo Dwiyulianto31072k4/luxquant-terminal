@@ -14,6 +14,35 @@ function sinceLabel(d) {
   return dt.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
+const FREE_TG = "https://t.me/LuxQuantSignal";
+
+// Primary conversion CTA on every coin page: funnel SEO traffic → free Telegram.
+function TelegramCta({ symbol }) {
+  return (
+    <a
+      href={FREE_TG}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-accent/30 bg-accent/[0.07] p-4 hover:bg-accent/[0.13] transition-colors"
+    >
+      <div>
+        <div className="flex items-center gap-2 text-[14.5px] font-semibold text-text-primary">
+          <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] text-accent" fill="currentColor" aria-hidden="true">
+            <path d="M21.94 4.6l-3.3 15.56c-.25 1.1-.9 1.37-1.82.85l-5.03-3.71-2.43 2.34c-.27.27-.5.5-1 .5l.36-5.12L18 5.6c.4-.36-.09-.56-.62-.2L6.9 12.19l-4.9-1.53c-1.07-.34-1.09-1.07.22-1.58l19.2-7.4c.9-.33 1.68.2 1.34 1.52z"/>
+          </svg>
+          Get free {symbol} calls on Telegram
+        </div>
+        <div className="mt-0.5 text-[12.5px] text-text-primary/65">
+          Live entries, targets &amp; stop-loss — join our free channel, no signup.
+        </div>
+      </div>
+      <span className="shrink-0 rounded-md bg-accent border border-ink/12 px-4 py-2 text-[13px] font-semibold text-accent-fg">
+        Join free →
+      </span>
+    </a>
+  );
+}
+
 // Track-record stat tiles shown on every coin page that has call history.
 function TrackRecord({ symbol, stats }) {
   if (!stats || !stats.n) return null;
@@ -161,6 +190,8 @@ function CoinDetail({ slug }) {
 
       <TrackRecord symbol={coin.symbol} stats={st} />
 
+      <TelegramCta symbol={coin.symbol} />
+
       <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-text-primary/75">
         {body.map((p, i) => (
           <p key={i}>{p}</p>
@@ -177,7 +208,7 @@ function CoinDetail({ slug }) {
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             to="/money-flow"
-            className="rounded-md bg-accent border border-ink/15 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/25 transition-colors"
+            className="rounded-md bg-accent border border-ink/12 px-4 py-2 text-[13px] font-semibold text-accent-fg hover:opacity-90 transition-opacity"
           >
             Open Money Flow →
           </Link>

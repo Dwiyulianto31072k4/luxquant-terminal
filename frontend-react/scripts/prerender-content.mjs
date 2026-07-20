@@ -412,6 +412,7 @@ async function main() {
         `<p>${esc(m.category)}</p>` +
         m.statLine +
         m.paras.map((p) => `<p>${esc(p)}</p>`).join("") +
+        `<p><a href="https://t.me/LuxQuantSignal" rel="noopener"><strong>Get free ${esc(c.symbol)} calls on Telegram →</strong></a></p>` +
         `<p><a href="/signals">${esc(c.symbol)} signals</a> · <a href="/performance">Full track record</a> · <a href="/money-flow">Money Flow</a> · <a href="/onchain">On-Chain</a></p>` +
         (c.cg ? `<p>Live ${esc(c.symbol)} price &amp; markets: <a href="https://www.coingecko.com/en/coins/${c.cg}" rel="noopener">view on CoinGecko</a>.</p>` : "") +
         (related.length
