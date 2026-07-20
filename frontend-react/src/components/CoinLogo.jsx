@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { SignalStatusContext, STATUS_META, timeAgo } from "../context/SignalStatusContext";
+import { LOCAL_COIN_LOGOS } from "../content/coinLogosLocal.generated";
 
 /**
  * CoinLogo — multi-source with fail-over.
- * v4: Binance CDN first (best coverage for perpetual symbols), then OKX / LCW /
- * CoinCap / cryptocurrency-icons. Cache bump clears permanent FAIL entries.
+ * v5: self-hosted manifest first — a 2026-07 audit of every Binance USDT-perp
+ * base symbol found 30 the CDN cascade misses (new listings like ESPORTS,
+ * tokenized stocks like LLY/SMCI, indexes like BTCDOM). Those ship in
+ * /public/coin-logos with a generated manifest, so they cost zero probing.
+ * Then Binance CDN / OKX / LCW / CoinCap / cryptocurrency-icons as before.
+ * Cache bump clears the FAIL entries users cached under v4.
  */
 
 const CACHE_KEY = "lq:coin-logos";
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 
 const _logoCache = new Map();
 const _failedSymbols = new Set();
@@ -51,7 +56,10 @@ const getLogoSources = (symbol) => {
   const base = symbol.replace(/^1000/, "").replace(/^1M/, "");
   const lower = base.toLowerCase();
   const upper = base.toUpperCase();
+  // Audited gaps ship locally — raw symbol first (BTCDOM), stripped base second
+  const local = LOCAL_COIN_LOGOS[symbol.toUpperCase()] || LOCAL_COIN_LOGOS[upper];
   return [
+    ...(local ? [`/coin-logos/${local}`] : []),
     // Binance static logos — widest coverage for perp tickers (W, KAITO, etc.)
     `https://bin.bnbstatic.com/static/assets/logos/${upper}.png`,
     // OKX currency icons

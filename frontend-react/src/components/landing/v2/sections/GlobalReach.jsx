@@ -1498,29 +1498,6 @@ const HUB_POINTS = COUNTRY_NODES.map((node, i) => {
 const ORIGIN_HUB = HUB_POINTS.find((h) => h.isOrigin) || HUB_POINTS[0];
 const HUB_INDEX_BY_COUNTRY = Object.fromEntries(HUB_POINTS.map((h, i) => [h.country, i]));
 
-// Emoji flags render natively on macOS/iOS/Android; Windows falls back to
-// ISO letters — still meaningful, and zero external image dependencies.
-const COUNTRY_FLAGS = {
-  Taiwan: "🇹🇼",
-  Indonesia: "🇮🇩",
-  Singapore: "🇸🇬",
-  Japan: "🇯🇵",
-  "South Korea": "🇰🇷",
-  "Hong Kong": "🇭🇰",
-  "United States": "🇺🇸",
-  "United Kingdom": "🇬🇧",
-  India: "🇮🇳",
-  Australia: "🇦🇺",
-  Russia: "🇷🇺",
-  France: "🇫🇷",
-  "Saudi Arabia": "🇸🇦",
-  Pakistan: "🇵🇰",
-  Netherlands: "🇳🇱",
-  Moldova: "🇲🇩",
-  Switzerland: "🇨🇭",
-  Malaysia: "🇲🇾",
-};
-const flagOf = (country) => COUNTRY_FLAGS[country] || "";
 const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || "—";
 const ORIGIN_VECTOR = ORIGIN_HUB.vector;
 
@@ -2274,8 +2251,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
 
           // persistent label (origin + major only)
           if (hub.label && point.depth > 0.24 && !isHovered) {
-            const flag = flagOf(hub.country);
-            const text = `${flag ? flag + " " : ""}${hub.city}, ${hub.country}`;
+            const text = `${hub.city}, ${hub.country}`;
 
             context.save();
             context.font = "500 10px Inter, ui-sans-serif, system-ui, sans-serif";
@@ -2311,10 +2287,10 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
               x: point.x,
               y: point.y,
               text: hub.isOrigin
-                ? `${flagOf(hub.country)} ${hub.city}, ${hub.country} · Core Operations`
+                ? `${hub.city}, ${hub.country} · Core Operations`
                 : hub.isReach
-                  ? `${flagOf(hub.country)} ${hub.country}`.trim()
-                  : `${flagOf(hub.country)} ${hub.city}, ${hub.country}`.trim(),
+                  ? `${hub.country}`
+                  : `${hub.city}, ${hub.country}`,
             };
           }
         });
