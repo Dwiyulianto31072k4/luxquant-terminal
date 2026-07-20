@@ -1254,20 +1254,83 @@ export const SignalDetailModal = ({
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/10 border-t-white/50" />
             </div>
           ) : detail?.is_redacted ? (
-            <div className="mx-auto max-w-sm py-12 text-center">
-              <p className="text-[15px] font-semibold text-text-primary">Premium live signal</p>
-              <p className="mt-2 text-[13px] text-text-muted">
-                Subscribe to view entry, targets, charts, and journey while the trade is open.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.href = "/pricing";
-                }}
-                className="mt-5 rounded-md bg-accent px-5 py-2.5 text-[13px] font-semibold text-surface-hover"
-              >
-                View plans
-              </button>
+            <div className="space-y-4 pb-2">
+              {/* Peak IS shown — the proof the call worked. Levels are blurred:
+                  they're the actionable alpha subscribers pay for. */}
+              <div className="rounded-xl border border-profit/25 bg-profit/[0.06] px-4 py-3.5 text-center">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                  Peak reached
+                </p>
+                <p className="mt-1 font-mono text-[26px] font-bold leading-none text-profit">
+                  {detail.peak_pct != null
+                    ? `+${Number(detail.peak_pct).toFixed(1)}%`
+                    : "—"}
+                </p>
+                <p className="mt-1.5 text-[11px] text-text-muted">
+                  This call ran {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "in profit"} from entry.
+                </p>
+              </div>
+
+              {/* Blurred levels — shape visible, numbers unreadable */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { k: "Entry", v: "$0.00000" },
+                  { k: "Target", v: "$0.00000" },
+                  { k: "Stop-loss", v: "$0.00000" },
+                  { k: "Risk", v: detail.risk_level || "—" },
+                ].map((c, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2"
+                  >
+                    <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                      {c.k}
+                    </p>
+                    <p
+                      className={`mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary ${
+                        i < 3 ? "select-none blur-[6px]" : ""
+                      }`}
+                      aria-hidden={i < 3}
+                    >
+                      {c.v}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Note + CTA — recency, not status, is the lock */}
+              <div className="rounded-xl border border-accent/25 bg-accent/[0.06] p-4 text-center">
+                <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-accent/15">
+                  <svg
+                    className="h-4.5 w-4.5 text-accent"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                    <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </div>
+                <p className="text-[14px] font-semibold text-text-primary">
+                  Recent call — still within the 7-day window
+                </p>
+                <p className="mx-auto mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-text-muted">
+                  Calls from the last 7 days are for subscribers. Entry, targets, stop-loss,
+                  charts and the full journey unlock with a plan — or open any call older than
+                  7 days free.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = "/pricing";
+                  }}
+                  className="mt-4 rounded-md bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+                >
+                  Unlock full signal
+                </button>
+              </div>
             </div>
           ) : detail ? (
             <div className="space-y-4 pb-2">

@@ -19,7 +19,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc, text
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 import asyncio
 import os
@@ -78,13 +78,46 @@ def _status_is_publicly_viewable(status: Optional[str]) -> bool:
     Strict policy: only signals that have reached final outcome are public.
     - closed_win / tp4 = fully won, all targets hit
     - closed_loss / sl = fully lost, stop hit
-    
+
     Anything else (open, tp1, tp2, tp3) is still actionable and protected.
     """
     if not status:
         return False
     s = status.lower()
     return s in ('closed_win', 'tp4', 'closed_loss', 'sl')
+
+
+# Track-record window. The business model is time-based, not status-based:
+# a call older than this is free to open in full (it's the public proof), while
+# anything newer stays behind the paywall regardless of whether it closed —
+# the exclusivity subscribers pay for. Mirrors signal_journey.PUBLIC_AFTER_DAYS.
+PUBLIC_AFTER_DAYS = 7
+
+
+def _is_recent_signal(created_at) -> bool:
+    """True if the signal is younger than PUBLIC_AFTER_DAYS (still paywalled)."""
+    if not created_at:
+        return False  # unknown age → treat as old (fail open to track record)
+    dt = created_at
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except ValueError:
+            return False
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt > datetime.now(timezone.utc) - timedelta(days=PUBLIC_AFTER_DAYS)
+
+
+def _peak_pct(entry: Optional[float], peak_price: Optional[float]) -> Optional[float]:
+    """Best unrealized gain from entry to peak — the marketing hook, always
+    safe to show (it proves the call worked without revealing the levels)."""
+    try:
+        if entry and peak_price and float(entry) > 0:
+            return round((float(peak_price) - float(entry)) / float(entry) * 100, 2)
+    except (TypeError, ValueError):
+        pass
+    return None
 
 
 # ============================================
@@ -201,6 +234,12 @@ class SignalDetailResponse(BaseModel):
     enrichment: Optional[dict] = None
     # NEW: redact flag for non-subscriber accessing open signals (Opsi B)
     is_redacted: Optional[bool] = False
+    # Peak is shown even when redacted — it proves the call worked (the hook)
+    # without leaking the actionable levels. is_recent tells the UI whether the
+    # lock is a "still active, subscribe" state vs an ordinary closed call.
+    peak_price: Optional[float] = None
+    peak_pct: Optional[float] = None
+    is_recent: Optional[bool] = False
 
     class Config:
         # Allow extra fields for forward compatibility
@@ -1444,8 +1483,14 @@ def _build_redacted_detail_response(
     market_cap: Optional[str],
     risk_reasons: Optional[str],
     updates: List[SignalUpdateItem],
+    peak_price: Optional[float] = None,
+    peak_pct: Optional[float] = None,
 ) -> SignalDetailResponse:
-    """Build response with entry/TP/SL/charts redacted for non-subscriber on open signal."""
+    """Non-subscriber view of a recent call: peak shown, levels blurred.
+
+    Entry/TP/SL/charts are withheld — those are the actionable alpha. Peak (how
+    far it ran) is kept: it's the proof that makes the lock worth unlocking.
+    """
     return SignalDetailResponse(
         signal_id=signal.signal_id,
         channel_id=signal.channel_id,
@@ -1467,6 +1512,9 @@ def _build_redacted_detail_response(
         updates=updates,  # safe, just shows what TP got hit (history)
         enrichment=None,  # redacted (deep analysis is paid)
         is_redacted=True,
+        peak_price=peak_price,
+        peak_pct=peak_pct,
+        is_recent=True,
     )
 
 
@@ -1516,22 +1564,29 @@ def get_signal_detail_v2(
             price = row[1] if (is_subscriber or _status_is_publicly_viewable(signal.status)) else None
             updates.append(SignalUpdateItem(update_type=normalized_type, price=price, update_at=row[2]))
     
-    market_cap = risk_reasons = entry_chart_path = latest_chart_path = None
+    market_cap = risk_reasons = entry_chart_path = latest_chart_path = peak_price = None
     try:
-        extra = db.execute(text("SELECT market_cap, risk_reasons, entry_chart_path, latest_chart_path FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).fetchone()
+        extra = db.execute(text("SELECT market_cap, risk_reasons, entry_chart_path, latest_chart_path, peak_price FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).fetchone()
         if extra:
-            market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
+            market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]; peak_price = extra[4]
     except: pass
+
+    peak_pct = _peak_pct(signal.entry, peak_price)
 
     # Deep-link to the LuxQuant X post for this signal. The x-poster service
     # (luxquant-x-poster) records signal_id → tweet_id in the shared `x_posts`
     # table; we build the canonical tweet URL from the earliest tweet.
     x_post_url = _tweet_url_for_signal(db, signal_id)
     
-    # OPSI B (STRICT): Redact unless user is subscriber OR signal is fully closed
-    # (closed_win = tp4 hit, closed_loss = sl hit). Partial running (tp1/tp2/tp3) hidden.
-    if not is_subscriber and not _status_is_publicly_viewable(signal.status):
-        return _build_redacted_detail_response(signal, market_cap, risk_reasons, updates)
+    # Time-based gate (business model): anything older than PUBLIC_AFTER_DAYS is
+    # free to open in full — that's the public track record. Newer calls stay
+    # redacted for non-subscribers (peak shown, levels blurred), whether or not
+    # they've closed: recency is the exclusivity subscribers pay for. Replaces
+    # the old status-based rule, which leaked every recent closed call for free.
+    if not is_subscriber and _is_recent_signal(signal.created_at):
+        return _build_redacted_detail_response(
+            signal, market_cap, risk_reasons, updates, peak_price, peak_pct
+        )
     
     # Full response (closed signal OR subscriber)
     enrichment_data = None
@@ -1592,6 +1647,9 @@ def get_signal_detail_v2(
         updates=updates,
         enrichment=enrichment_data,
         is_redacted=False,
+        peak_price=peak_price,
+        peak_pct=peak_pct,
+        is_recent=_is_recent_signal(signal.created_at),
     )
 
 
@@ -1630,9 +1688,15 @@ def get_signal_detail(
             elif 'sl' in ut or 'stop' in ut:
                 if 0 > best_level: best_level = 0; derived_status = "closed_loss"
     
-    # OPSI B (STRICT): Redact unless user is subscriber OR signal is fully closed
-    # (closed_win = tp4 hit, closed_loss = sl hit). Partial running (tp1/tp2/tp3) hidden.
-    if not is_subscriber and not _status_is_publicly_viewable(derived_status):
+    # Time-based gate (see get_signal_detail_v2): recent calls redacted for
+    # non-subscribers with peak shown, older calls fully public.
+    _peak = None
+    try:
+        _peak = db.execute(text("SELECT peak_price FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).scalar()
+    except Exception:
+        pass
+    _peak_pct_val = _peak_pct(signal.entry, _peak)
+    if not is_subscriber and _is_recent_signal(signal.created_at):
         return {
             "signal_id": signal.signal_id, "channel_id": signal.channel_id,
             "call_message_id": signal.call_message_id, "message_link": None,
@@ -1647,6 +1711,7 @@ def get_signal_detail(
             "latest_chart_url": None,  # redacted
             "updates": [{"update_type": u.update_type, "price": None, "update_at": u.update_at, "message_link": None} for u in updates],
             "is_redacted": True,
+            "peak_price": _peak, "peak_pct": _peak_pct_val, "is_recent": True,
         }
     
     # Full response
@@ -1662,4 +1727,6 @@ def get_signal_detail(
         "latest_chart_url": chart_path_to_url(signal.latest_chart_path),
         "updates": [{"update_type": u.update_type, "price": u.price, "update_at": u.update_at, "message_link": u.message_link} for u in updates],
         "is_redacted": False,
+        "peak_price": _peak, "peak_pct": _peak_pct_val,
+        "is_recent": _is_recent_signal(signal.created_at),
     }
