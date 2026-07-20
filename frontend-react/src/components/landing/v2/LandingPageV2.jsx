@@ -101,7 +101,7 @@ export default function LandingPageV2() {
       <TerminalPreview />
       <Performance data={performanceData} />
       <CoinSpotlight />
-      <GlobalReach gainers={topGainers} />
+      <GlobalReach gainers={topGainers} stats={stats} />
       <FreeTierV2 />
       <FaqV2 />
       <FooterV2 onNav={scrollTo} />

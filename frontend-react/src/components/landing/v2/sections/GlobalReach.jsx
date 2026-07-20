@@ -1497,6 +1497,30 @@ const HUB_POINTS = COUNTRY_NODES.map((node, i) => {
 
 const ORIGIN_HUB = HUB_POINTS.find((h) => h.isOrigin) || HUB_POINTS[0];
 const HUB_INDEX_BY_COUNTRY = Object.fromEntries(HUB_POINTS.map((h, i) => [h.country, i]));
+
+// Emoji flags render natively on macOS/iOS/Android; Windows falls back to
+// ISO letters — still meaningful, and zero external image dependencies.
+const COUNTRY_FLAGS = {
+  Taiwan: "🇹🇼",
+  Indonesia: "🇮🇩",
+  Singapore: "🇸🇬",
+  Japan: "🇯🇵",
+  "South Korea": "🇰🇷",
+  "Hong Kong": "🇭🇰",
+  "United States": "🇺🇸",
+  "United Kingdom": "🇬🇧",
+  India: "🇮🇳",
+  Australia: "🇦🇺",
+  Russia: "🇷🇺",
+  France: "🇫🇷",
+  "Saudi Arabia": "🇸🇦",
+  Pakistan: "🇵🇰",
+  Netherlands: "🇳🇱",
+  Moldova: "🇲🇩",
+  Switzerland: "🇨🇭",
+  Malaysia: "🇲🇾",
+};
+const flagOf = (country) => COUNTRY_FLAGS[country] || "";
 const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || "—";
 const ORIGIN_VECTOR = ORIGIN_HUB.vector;
 
@@ -1874,7 +1898,10 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
     if (chipsRef.current.some((c) => c.country === country)) return;
     st.lastAt = time;
     const item = pool[st.nextGainer++ % pool.length];
-    chipsRef.current = [...chipsRef.current, { id: ++st.id, item, country, bornAt: time }];
+    // Alternate the vignette so the globe never repeats itself back-to-back:
+    // a phone notification, then someone trading it at a desk.
+    const kind = st.id % 2 === 0 ? "notif" : "desk";
+    chipsRef.current = [...chipsRef.current, { id: ++st.id, item, country, kind, bornAt: time }];
     setChipList(chipsRef.current);
   };
 
@@ -2131,16 +2158,36 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
         });
 
         // Arrival pings — an expanding ring where a pulse touched down.
-        pings.current = pings.current.filter((ping) => time - ping.t0 < 780);
+        pings.current = pings.current.filter((ping) => time - ping.t0 < 1100);
         pings.current.forEach((ping) => {
           const point = projectVector(ping.vector, radius, cx, cy, yaw, pitch);
           if (!point) return;
-          const k = (time - ping.t0) / 780;
+          const k = (time - ping.t0) / 1100;
           context.beginPath();
           context.arc(point.x, point.y, 4 + k * 20, 0, Math.PI * 2);
           context.strokeStyle = `rgba(${COLORS.goldStrong},${(1 - k) * 0.7})`;
           context.lineWidth = 1.4 * (1 - k) + 0.4;
           context.stroke();
+
+          // Location pin dropping onto the city (Cloudflare's "run anywhere"
+          // pin, in gold): falls in the first 30%, then fades out.
+          const drop = Math.min(1, k / 0.3);
+          const py = point.y - 14 * (1 - drop);
+          const alpha = (k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25) * 0.95;
+          context.save();
+          context.strokeStyle = `rgba(${COLORS.goldStrong},${alpha})`;
+          context.fillStyle = `rgba(${COLORS.gold},${alpha * 0.35})`;
+          context.lineWidth = 1.3;
+          context.beginPath();
+          context.arc(point.x, py - 9, 4.4, Math.PI * 0.95, Math.PI * 2.05);
+          context.lineTo(point.x, py);
+          context.closePath();
+          context.fill();
+          context.stroke();
+          context.beginPath();
+          context.arc(point.x, py - 9, 1.6, 0, Math.PI * 2);
+          context.stroke();
+          context.restore();
         });
 
         const placedRects = [];
@@ -2227,7 +2274,8 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
 
           // persistent label (origin + major only)
           if (hub.label && point.depth > 0.24 && !isHovered) {
-            const text = `${hub.city}, ${hub.country}`;
+            const flag = flagOf(hub.country);
+            const text = `${flag ? flag + " " : ""}${hub.city}, ${hub.country}`;
 
             context.save();
             context.font = "500 10px Inter, ui-sans-serif, system-ui, sans-serif";
@@ -2263,10 +2311,10 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
               x: point.x,
               y: point.y,
               text: hub.isOrigin
-                ? `${hub.city}, ${hub.country} · Core Operations`
+                ? `${flagOf(hub.country)} ${hub.city}, ${hub.country} · Core Operations`
                 : hub.isReach
-                  ? `${hub.country}`
-                  : `${hub.city}, ${hub.country}`,
+                  ? `${flagOf(hub.country)} ${hub.country}`.trim()
+                  : `${flagOf(hub.country)} ${hub.city}, ${hub.country}`.trim(),
             };
           }
         });
@@ -2283,9 +2331,7 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
             }
             if (!el) return;
             const hub = HUB_POINTS[HUB_INDEX_BY_COUNTRY[chip.country]];
-            const point = hub
-              ? projectVector(hub.vector, radius, cx, cy, yaw, pitch)
-              : null;
+            const point = hub ? projectVector(hub.vector, radius, cx, cy, yaw, pitch) : null;
             if (!point || point.depth < 0.16) {
               el.style.opacity = "0";
               el.style.pointerEvents = "none";
@@ -2406,56 +2452,66 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
   return (
     <div className="relative h-full w-full select-none">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
-        {chipList.map((chip) => (
-          <button
-            key={chip.id}
-            ref={(el) => {
-              if (el) chipEls.current[chip.id] = el;
-              else delete chipEls.current[chip.id];
-            }}
-            type="button"
-            onClick={() => onOpenSignal?.(chip.item)}
-            title="View trade proof"
-            className="lq-gchip absolute -translate-x-1/2 -translate-y-[130%] cursor-pointer rounded-xl border px-3 py-2 text-left leading-none transition-transform hover:scale-105"
-            style={{
-              opacity: 0,
-              background: "rgba(15,9,10,0.94)",
-              borderColor: "rgba(240,216,144,0.32)",
-              color: "rgba(251,243,218,0.96)",
-              boxShadow: "0 8px 26px rgba(0,0,0,0.45)",
-            }}
-          >
-            <span
-              className="flex items-center gap-1.5 text-[8.5px] font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "rgba(240,216,144,0.72)" }}
+        {chipList.map((chip) =>
+          chip.kind === "desk" ? (
+            <button
+              key={chip.id}
+              ref={(el) => {
+                if (el) chipEls.current[chip.id] = el;
+                else delete chipEls.current[chip.id];
+              }}
+              type="button"
+              onClick={() => onOpenSignal?.(chip.item)}
+              title="View trade proof"
+              className="lq-gchip absolute flex -translate-x-1/2 -translate-y-[120%] cursor-pointer flex-col items-center gap-1 transition-transform hover:scale-105"
+              style={{ opacity: 0 }}
             >
-              <svg
-                className="lq-gchip-phone h-3 w-3"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
+              <span
+                className="flex h-10 w-10 items-center justify-center rounded-full border"
+                style={{
+                  background: "rgba(15,9,10,0.94)",
+                  borderColor: "rgba(240,216,144,0.45)",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
+                }}
               >
-                <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-                <path strokeLinecap="round" d="M11 18h2" />
-              </svg>
-              LuxQuant · now
-            </span>
-            <span className="mt-1.5 grid font-mono text-[11px]">
-              <span className="lq-gchip-a col-start-1 row-start-1 flex items-center gap-1.5">
-                <CoinLogo pair={chip.item.pair} size={14} />
-                <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
-                <span style={{ color: "rgba(251,243,218,0.78)" }}>signal received</span>
-              </span>
-              <span className="lq-gchip-b col-start-1 row-start-1 flex items-center gap-1.5">
-                <CoinLogo pair={chip.item.pair} size={14} />
-                <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
-                <span style={{ color: "#4ade80" }}>
-                  +{(chip.item.gain_pct ?? 0).toFixed(1)}% · WIN
-                </span>
                 <svg
-                  className="h-3 w-3 opacity-70"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgba(251,243,218,0.95)"
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="12" rx="1.8" />
+                  <path strokeLinecap="round" d="M9 20h6M12 16v4" />
+                  <path
+                    strokeLinecap="round"
+                    d="M7.5 12.5v-3M10.5 12.5v-5M13.5 12.5v-2M16.5 12.5v-4"
+                    stroke="rgba(240,185,11,0.95)"
+                  />
+                </svg>
+              </span>
+              <span
+                className="lq-gchip-a rounded-md border px-2 py-1 font-mono text-[9.5px] uppercase tracking-wider"
+                style={{
+                  background: "rgba(15,9,10,0.92)",
+                  borderColor: "rgba(240,216,144,0.3)",
+                  color: "rgba(251,243,218,0.85)",
+                }}
+              >
+                trading {symbolOf(chip.item.pair)}
+              </span>
+              <span
+                className="lq-gchip-b col-start-1 row-start-1 -mt-[22px] flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-[10px]"
+                style={{
+                  background: "rgba(15,9,10,0.92)",
+                  borderColor: "rgba(74,222,128,0.4)",
+                  color: "#4ade80",
+                }}
+              >
+                +{(chip.item.gain_pct ?? 0).toFixed(1)}% · WIN
+                <svg
+                  className="h-2.5 w-2.5 opacity-80"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -2465,9 +2521,74 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
                 </svg>
               </span>
-            </span>
-          </button>
-        ))}
+            </button>
+          ) : (
+            <button
+              key={chip.id}
+              ref={(el) => {
+                if (el) chipEls.current[chip.id] = el;
+                else delete chipEls.current[chip.id];
+              }}
+              type="button"
+              onClick={() => onOpenSignal?.(chip.item)}
+              title="View trade proof"
+              className="lq-gchip absolute -translate-x-1/2 -translate-y-[130%] cursor-pointer rounded-xl border px-3 py-2 text-left leading-none transition-transform hover:scale-105"
+              style={{
+                opacity: 0,
+                background: "rgba(15,9,10,0.94)",
+                borderColor: "rgba(240,216,144,0.32)",
+                color: "rgba(251,243,218,0.96)",
+                boxShadow: "0 8px 26px rgba(0,0,0,0.45)",
+              }}
+            >
+              <span
+                className="flex items-center gap-1.5 text-[8.5px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: "rgba(240,216,144,0.72)" }}
+              >
+                <svg
+                  className="lq-gchip-phone h-3 w-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+                  <path strokeLinecap="round" d="M11 18h2" />
+                </svg>
+                LuxQuant · now
+              </span>
+              <span className="mt-1.5 grid font-mono text-[11px]">
+                <span className="lq-gchip-a col-start-1 row-start-1 flex items-center gap-1.5">
+                  <CoinLogo pair={chip.item.pair} size={14} />
+                  <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
+                  <span style={{ color: "rgba(251,243,218,0.78)" }}>signal received</span>
+                </span>
+                <span className="lq-gchip-b col-start-1 row-start-1 flex items-center gap-1.5">
+                  <CoinLogo pair={chip.item.pair} size={14} />
+                  <span className="font-semibold">{symbolOf(chip.item.pair)}</span>
+                  <span style={{ color: "#4ade80" }}>
+                    +{(chip.item.gain_pct ?? 0).toFixed(1)}% · WIN
+                  </span>
+                  <svg
+                    className="h-3 w-3 opacity-70"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.4}
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 17L17 7M17 7H9M17 7v8"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </button>
+          )
+        )}
       </div>
       <canvas
         ref={canvasRef}
@@ -2488,7 +2609,57 @@ function CanvasGlobe({ gainersRef, onOpenSignal }) {
   );
 }
 
-export default function GlobalReach({ gainers = [] }) {
+// The dashed stat annotation — Cloudflare's "234B daily cyber threats
+// blocked" box, speaking LuxQuant numbers. Rotates so the globe narrates
+// different proof points; positioned off the sphere so it never fights
+// the notification chips for attention.
+function StatAnnotation({ stats }) {
+  const items = [];
+  if (stats?.closed_trades) {
+    items.push({ v: Number(stats.closed_trades).toLocaleString("en-US"), c: "Signals resolved on public record." });
+  }
+  if (stats?.win_rate) {
+    items.push({ v: `${Number(stats.win_rate).toFixed(1)}%`, c: "Verified win rate — every call auditable." });
+  }
+  if (stats?.active_pairs) {
+    items.push({ v: Number(stats.active_pairs).toLocaleString("en-US"), c: "Pairs tracked in real time." });
+  }
+  items.push({ v: "<1s", c: "Calls delivered to every timezone." });
+
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (items.length < 2) return undefined;
+    const iv = setInterval(() => setIdx((i) => (i + 1) % items.length), 5200);
+    return () => clearInterval(iv);
+  }, [items.length]);
+
+  const item = items[idx % items.length];
+  if (!item) return null;
+  return (
+    <div
+      className="pointer-events-none absolute left-[4%] top-[34%] z-20 hidden w-56 select-none lg:block"
+      aria-hidden="true"
+    >
+      <div
+        key={idx}
+        className="lq-statbox rounded-sm border border-dashed px-4 py-3"
+        style={{
+          borderColor: "rgb(var(--accent) / 0.55)",
+          background: "rgb(var(--surface) / 0.6)",
+        }}
+      >
+        <p className="font-mono text-lg font-semibold leading-none" style={{ color: "rgb(var(--accent-text))" }}>
+          {item.v}
+        </p>
+        <p className="mt-1.5 text-xs leading-snug" style={{ color: "rgb(var(--accent-text) / 0.85)" }}>
+          {item.c}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function GlobalReach({ gainers = [], stats = null }) {
   const [inView, setInView] = useState(false);
   const sentinelRef = useRef(null);
   const { t } = useTranslation();
@@ -2622,9 +2793,12 @@ export default function GlobalReach({ gainers = [] }) {
         <div className="absolute inset-0">
           {inView && <CanvasGlobe gainersRef={gainersRef} onOpenSignal={onOpenSignal} />}
         </div>
+        {inView && <StatAnnotation stats={stats} />}
       </div>
 
       <style>{`
+        .lq-statbox { animation: lqStatIn 0.5s ease-out; }
+        @keyframes lqStatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .lq-gchip .lq-gchip-a { animation: lqGchipA 7.6s linear forwards; }
         .lq-gchip .lq-gchip-b { animation: lqGchipB 7.6s linear forwards; opacity: 0; }
         .lq-gchip-phone { transform-origin: 50% 20%; animation: lqGchipRing 1.1s ease-in-out 2; }
