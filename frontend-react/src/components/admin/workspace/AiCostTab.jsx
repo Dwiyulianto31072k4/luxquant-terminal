@@ -212,7 +212,7 @@ export function AiCostTab() {
                       className="w-full rounded-t bg-accent/60 hover:bg-accent transition-all"
                       style={{ height: `${Math.max(2, (d.cost / maxDaily) * 100)}%` }}
                     />
-                    <div className="pointer-events-none absolute bottom-full mb-1 hidden group-hover:block whitespace-nowrap rounded bg-scrim/90 px-2 py-1 font-mono text-[9px] text-text-primary">
+                    <div className="pointer-events-none absolute bottom-full mb-1 hidden group-hover:block whitespace-nowrap rounded bg-ink/95 px-2 py-1 font-mono text-[9px] text-ink-inv">
                       {d.date} · {fmtUSD(d.cost)} · {fmtNum(d.calls)} calls
                     </div>
                   </div>

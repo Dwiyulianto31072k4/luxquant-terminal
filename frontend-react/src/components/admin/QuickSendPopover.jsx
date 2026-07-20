@@ -144,7 +144,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
         <div
           className="flex items-center justify-between px-5 py-3 shrink-0 relative"
           style={{
-            background: "linear-gradient(180deg, #14080d, #12090d)",
+            background: "linear-gradient(180deg, rgb(var(--surface-raised)), rgb(var(--surface)))",
             borderBottom: "1px solid rgb(var(--ink) / 0.06)",
           }}
         >

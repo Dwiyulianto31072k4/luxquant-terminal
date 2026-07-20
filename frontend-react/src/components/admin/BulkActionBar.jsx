@@ -102,7 +102,7 @@ export const BulkActionBar = ({
     <div
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2"
       style={{
-        background: "rgba(18,9,13,0.95)",
+        background: "rgb(var(--surface-raised) / 0.97)",
         border: "1px solid rgb(var(--line) / 0.3)",
         boxShadow: "0 10px 40px rgb(var(--scrim) / 0.35), 0 0 0 1px rgb(var(--accent) / 0.15)",
       }}

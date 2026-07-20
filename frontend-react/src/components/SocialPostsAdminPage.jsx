@@ -140,7 +140,7 @@ const CostBar = ({ cost }) => {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {cards.map((c, i) => (
-          <div key={i} className="rounded-lg bg-scrim/25 border border-ink/[0.08] px-3 py-2.5">
+          <div key={i} className="rounded-lg bg-ink/[0.03] border border-ink/[0.08] px-3 py-2.5">
             <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-text-muted">
               {c.label}
             </p>
@@ -208,7 +208,7 @@ const GenerationConsole = ({
     <div
       className={`relative mb-5 rounded-xl border ${borderTone} ${glow} overflow-hidden`}
       style={{
-        background: "linear-gradient(145deg, rgba(18,18,22,0.95) 0%, rgba(10,10,14,0.98) 100%)",
+        background: "linear-gradient(145deg, rgb(var(--surface-raised)) 0%, rgb(var(--surface)) 100%)",
       }}
     >
       {/* subtle grid */}
@@ -261,7 +261,7 @@ const GenerationConsole = ({
                 </h2>
                 {isRunning && (
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-accent/12 text-accent border border-ink/12">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/12 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                     Live
                   </span>
                 )}
@@ -285,7 +285,7 @@ const GenerationConsole = ({
 
           {/* Controls */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center rounded-lg border border-ink/[0.08] bg-scrim/30 overflow-hidden">
+            <div className="flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.04] overflow-hidden">
               <label className="sr-only" htmlFor="gen-news-id">
                 News ID
               </label>
@@ -314,7 +314,7 @@ const GenerationConsole = ({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold bg-accent/15 text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-45 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-6px_rgb(var(--accent) / 0.7)]"
             >
               {(isRunning || starting) && (
-                <Spinner className="w-3 h-3 border-black/25 border-t-black" />
+                <Spinner className="w-3 h-3 border-accent/30 border-t-accent" />
               )}
               {isRunning || starting ? "Generating…" : "Generate draft"}
             </button>
@@ -323,7 +323,7 @@ const GenerationConsole = ({
 
         {/* Active / recent job panel */}
         {(isRunning || isDone || isError || job) && (
-          <div className="rounded-lg border border-ink/[0.07] bg-scrim/35 p-3.5 sm:p-4 space-y-3.5">
+          <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.04] p-3.5 sm:p-4 space-y-3.5">
             {/* Progress bar + meta */}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -431,7 +431,7 @@ const GenerationConsole = ({
         )}
 
         {!job && !isRunning && (
-          <div className="rounded-lg border border-dashed border-ink/[0.08] bg-scrim/20 px-3.5 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <div className="rounded-lg border border-dashed border-ink/[0.08] bg-ink/[0.03] px-3.5 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {[
               "Pick news",
               "Extract & enrich",
@@ -463,7 +463,7 @@ const ImageCard = ({ post, onOpen }) => {
   return (
     <button
       onClick={() => onOpen(post)}
-      className="group relative rounded-lg overflow-hidden bg-scrim/30 border border-ink/[0.08] hover:border-ink/15 transition-colors text-left"
+      className="group relative rounded-lg overflow-hidden bg-ink/[0.04] border border-ink/[0.08] hover:border-ink/15 transition-colors text-left"
     >
       {post.image_url ? (
         <img
@@ -473,7 +473,7 @@ const ImageCard = ({ post, onOpen }) => {
           className="w-full aspect-[4/5] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
       ) : (
-        <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-3 text-center bg-gradient-to-b from-scrim/40 to-scrim/70">
+        <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-3 text-center bg-gradient-to-b from-ink/[0.05] to-ink/[0.10]">
           <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-accent/90">
             {waiting ? "Waiting for assets" : "No image"}
           </span>
@@ -640,7 +640,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       )}
 
       {pending.length > 0 && (
-        <div className="rounded-lg bg-scrim/35 border border-accent/25 px-3 py-2.5 space-y-1.5">
+        <div className="rounded-lg bg-accent/[0.06] border border-accent/25 px-3 py-2.5 space-y-1.5">
           <p className="text-[11px] font-semibold text-accent">
             Upload before generate ({pending.length}):
           </p>
@@ -862,7 +862,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                   {showPrompt ? "▾ hide image prompt" : "▸ image prompt"}
                 </button>
                 {showPrompt && (
-                  <p className="mt-1 text-[11px] text-text-muted leading-relaxed bg-scrim/30 rounded p-2 border border-ink/5">
+                  <p className="mt-1 text-[11px] text-text-muted leading-relaxed bg-ink/[0.04] rounded p-2 border border-ink/5">
                     {post.image_prompt}
                   </p>
                 )}

@@ -179,8 +179,8 @@ const PremiumModal = ({ isOpen, onClose }) => {
                 className="group relative cursor-pointer rounded-xl border p-5 transition-all duration-300 hover:-translate-y-0.5"
                 style={{
                   background: isHighlighted
-                    ? "linear-gradient(168deg, rgb(var(--accent) / 0.16) 0%, #0c0708 50%)"
-                    : "#0c0708",
+                    ? "linear-gradient(168deg, rgb(var(--accent) / 0.16) 0%, rgb(var(--surface-raised)) 50%)"
+                    : "rgb(var(--surface-raised))",
                   borderColor: isHighlighted
                     ? "rgb(var(--accent) / 0.3)"
                     : "rgb(var(--ink) / 0.06)",
