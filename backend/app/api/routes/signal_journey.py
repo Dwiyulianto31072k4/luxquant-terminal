@@ -64,25 +64,13 @@ def _is_recent(created_at: datetime) -> bool:
 
 def _has_active_subscription(user: Optional[User]) -> bool:
     """
-    Mirror logic dari deps.py require_subscription, but as a pure check
-    (returns bool instead of raising HTTPException).
-    Accepts both 'subscriber' and 'premium' roles for compat.
+    Pure entitlement check (returns bool instead of raising HTTPException).
+
+    Delegates to User.has_active_access. The previous local mirror only
+    bypassed role == 'admin', so co_admin and founder hit the premium lock
+    on every signal younger than PUBLIC_AFTER_DAYS.
     """
-    if user is None:
-        return False
-
-    # Admin bypass
-    if user.is_admin or user.role == 'admin':
-        return True
-
-    # Active subscriber/premium
-    if user.role in ('subscriber', 'premium'):
-        if user.subscription_expires_at is None:
-            return True  # lifetime
-        if user.subscription_expires_at > datetime.now(timezone.utc):
-            return True  # not expired
-
-    return False
+    return bool(user is not None and user.has_active_access)
 
 
 # ============================================================

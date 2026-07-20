@@ -56,34 +56,15 @@ router = APIRouter()
 
 def _user_is_active_subscriber(user: Optional[User]) -> bool:
     """
-    Check if user is active subscriber/premium/admin (no exception thrown).
-    Returns False if user is None (anonymous) or not an active subscriber.
-    Logic mirrors require_subscription dependency in deps.py.
+    Check if user may see full signal levels (no exception thrown).
+    Returns False if user is None (anonymous) or not entitled.
+
+    Delegates to User.has_active_access — the single definition of who is
+    entitled. This function used to re-derive it locally with an admin-only
+    bypass, which silently redacted every signal for co_admin and founder:
+    view-only staff got the same "-" columns as a free user.
     """
-    if not user:
-        return False
-    
-    # Admin bypass
-    if getattr(user, 'is_admin', False) or getattr(user, 'role', None) == 'admin':
-        return True
-    
-    # Premium/subscriber role check
-    role = getattr(user, 'role', None)
-    if role not in ('premium', 'subscriber'):
-        return False
-    
-    # Check subscription expiry
-    expires_at = getattr(user, 'subscription_expires_at', None)
-    if expires_at:
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
-        # Handle naive datetime
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at < now:
-            return False
-    
-    return True
+    return bool(user is not None and user.has_active_access)
 
 
 # ============================================

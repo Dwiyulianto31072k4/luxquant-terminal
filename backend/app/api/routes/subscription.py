@@ -327,7 +327,10 @@ def get_my_subscription(
         "can_downgrade": False,
     }
 
-    if current_user.role == 'admin':
+    # All staff tiers (admin / co_admin / founder), not just role == 'admin':
+    # otherwise view-only staff read as unsubscribed and the UI offers them
+    # an upgrade to the product they help run.
+    if current_user.is_admin_staff:
         base.update(is_subscribed=True, tier="admin", can_upgrade=False)
         return base
 

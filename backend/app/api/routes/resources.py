@@ -302,7 +302,7 @@ def list_resources(
     """List resources. Drafts only visible to admins (include_drafts=true)."""
     query = db.query(Resource).filter(Resource.is_active == True)
 
-    is_admin = bool(user and (user.is_admin or user.role == "admin"))
+    is_admin = bool(user and user.is_admin_staff)  # drafts are a VIEW — view-only staff (co_admin/founder) see them too; writes stay full-admin
     if include_drafts and is_admin:
         pass  # admins may request everything
     else:
@@ -393,7 +393,7 @@ def get_resource(
     if not res:
         raise HTTPException(status_code=404, detail="Resource not found")
 
-    is_admin = bool(user and (user.is_admin or user.role == "admin"))
+    is_admin = bool(user and user.is_admin_staff)  # drafts are a VIEW — view-only staff (co_admin/founder) see them too; writes stay full-admin
     if res.status != "published" and not is_admin:
         raise HTTPException(status_code=404, detail="Resource not found")
 
