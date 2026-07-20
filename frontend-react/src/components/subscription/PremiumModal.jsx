@@ -1,26 +1,50 @@
 // src/components/subscription/PremiumModal.jsx
 // ════════════════════════════════════════════════════════════════
-// Refactor → shell <Modal>. Plan cards & logika dipertahankan.
-// CTA distandarisasi: plan unggulan = GoldButton solid, lainnya =
-// GhostButton gold. Ikon plan SVG dibungkus badge solid gold.
+// Upsell modal — same calm, token-driven aesthetic as /pricing:
+// one continuous panel with dividers, the recommended plan ringed in
+// accent, Space Grotesk pricing, Check-list features. Fully themed
+// (luxquant / dark / bright) via tokens only — no hardcoded colors.
+// Keeps the invoice flow, the "pay with admin" path, and the
+// calledPair contextual strip.
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import subscriptionApi from "../../services/subscriptionApi";
 import Modal from "../ui/Modal";
-import { GoldButton, GhostButton } from "../autotrade/AutoTradeUI";
+import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
 
-// calledPair (optional): the pair whose CALLED badge brought the user here —
-// renders a contextual strip so the upsell answers the exact thing they wanted.
+const Check = ({ className = "h-3.5 w-3.5", tone = "rgb(var(--accent) / 0.85)" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={tone}
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const TelegramIcon = ({ className = "h-3 w-3" }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+  </svg>
+);
+
+// calledPair (optional): the pair whose CALLED badge brought the user here.
 const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
   const { t } = useTranslation();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [adminPlan, setAdminPlan] = useState(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -29,15 +53,23 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
   }, [isOpen]);
 
   const loadPlans = async () => {
+    setLoading(true);
     try {
       const data = await subscriptionApi.getPlans();
-      setPlans(data);
+      setPlans(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to load plans:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const sortedPlans = useMemo(() => {
+    const order = { monthly: 1, yearly: 2, lifetime: 3 };
+    return [...plans].sort(
+      (a, b) => (order[a.name] ?? a.sort_order ?? 99) - (order[b.name] ?? b.sort_order ?? 99)
+    );
+  }, [plans]);
 
   const handleSubscribe = async (plan) => {
     if (!isAuthenticated) {
@@ -52,49 +84,39 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
       onClose();
       navigate("/payment", { state: { invoice, plan } });
     } catch (err) {
-      const msg = err.response?.data?.detail || "Failed to create invoice";
-      alert(msg);
+      alert(err.response?.data?.detail || "Failed to create invoice");
     } finally {
       setCreating(false);
       setSelectedPlan(null);
     }
   };
 
-  const getPlanHighlight = (name) => name === "yearly";
-  const getSavingBadge = (plan) => {
-    if (plan.name === "yearly") return t("pricing.yearly_save");
-    if (plan.name === "lifetime") return t("pricing.best_value");
-    return null;
-  };
-  const getPlanLabel = (plan) => {
-    switch (plan.name) {
-      case "monthly":
-        return t("pricing.monthly");
-      case "yearly":
-        return t("pricing.yearly");
-      case "lifetime":
-        return t("pricing.lifetime");
-      default:
-        return plan.label;
+  const handleAdmin = (plan) => {
+    if (!isAuthenticated) {
+      onClose();
+      navigate("/login");
+      return;
     }
+    setAdminPlan(plan);
   };
-  const getPlanDesc = (plan) => {
-    switch (plan.name) {
-      case "monthly":
-        return t("pricing.monthly_desc");
-      case "yearly":
-        return t("pricing.yearly_desc");
-      case "lifetime":
-        return t("pricing.lifetime_desc");
-      default:
-        return plan.description;
-    }
-  };
-  const getPriceSuffix = (plan) => {
-    if (plan.name === "yearly") return t("pricing.per_year");
-    if (plan.name === "monthly") return t("pricing.per_month");
-    return t("pricing.one_time");
-  };
+
+  const isRecommended = (name) => name === "yearly";
+  const getPlanLabel = (plan) =>
+    ({ monthly: t("pricing.monthly"), yearly: t("pricing.yearly"), lifetime: t("pricing.lifetime") })[
+      plan.name
+    ] || plan.label;
+  const getPlanDesc = (plan) =>
+    ({
+      monthly: t("pricing.monthly_desc"),
+      yearly: t("pricing.yearly_desc"),
+      lifetime: t("pricing.lifetime_desc"),
+    })[plan.name] || plan.description;
+  const getPriceSuffix = (plan) =>
+    plan.name === "yearly"
+      ? t("pricing.per_year")
+      : plan.name === "monthly"
+        ? t("pricing.per_month")
+        : t("pricing.one_time");
   const getFeatures = (plan) => {
     const base = [t("pricing.feat_signals"), t("pricing.feat_analytics"), t("pricing.feat_market")];
     if (plan.name !== "monthly") base.push(t("pricing.feat_support"));
@@ -102,57 +124,21 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
     return base;
   };
 
-  const PlanIcon = ({ name }) => {
-    const color = "rgb(var(--accent))";
-    if (name === "monthly") {
-      return (
-        <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
-          <rect x="3" y="5" width="22" height="18" rx="3" stroke={color} strokeWidth="1.5" />
-          <path d="M3 10h22" stroke={color} strokeWidth="1.5" />
-          <circle cx="14" cy="17" r="2" fill={color} opacity="0.4" />
-        </svg>
-      );
-    }
-    if (name === "yearly") {
-      return (
-        <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
-          <path
-            d="M14 3L17.5 10.5L25 11.5L19.5 17L21 24.5L14 20.5L7 24.5L8.5 17L3 11.5L10.5 10.5L14 3Z"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    }
-    if (name === "lifetime") {
-      return (
-        <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
-          <path
-            d="M14 4C8.477 4 4 8.477 4 14s4.477 10 10 10 10-4.477 10-10S19.523 4 14 4z"
-            stroke={color}
-            strokeWidth="1.5"
-          />
-          <path d="M14 8v6l4 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      );
-    }
-    return null;
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       {/* Header */}
-      <div className="mb-8 text-center">
+      <div className="mb-7 text-center">
         <h2
-          className="mb-2 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.75rem]"
+          style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
         >
           {t("pricing.upgrade_to")} <span className="text-accent">{t("pricing.premium")}</span>
         </h2>
-        <p className="mx-auto max-w-md text-xs text-text-muted">{t("pricing.modal_subtitle")}</p>
+        <p className="mx-auto mt-2 max-w-md text-[13px] text-text-primary/45">
+          {t("pricing.modal_subtitle")}
+        </p>
         {calledPair && (
-          <div className="mx-auto mt-4 inline-flex max-w-md items-center gap-2 rounded-lg border border-accent/25 bg-accent/[0.08] px-3.5 py-2">
+          <div className="mx-auto mt-4 inline-flex max-w-md items-center gap-2 rounded-lg border border-accent/25 bg-accent/[0.07] px-3.5 py-2">
             <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-accent" />
             <span className="text-left text-xs leading-snug text-text-secondary">
               {t("pricing.called_context", { pair: calledPair })}
@@ -161,136 +147,111 @@ const PremiumModal = ({ isOpen, onClose, calledPair = null }) => {
         )}
       </div>
 
-      {/* Plans */}
+      {/* Plans — one continuous panel, dividers between, like /pricing */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-transparent border-t-accent" />
+        <div className="flex items-center justify-center py-16">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-ink/10 border-t-accent" />
         </div>
       ) : (
-        <div className="mb-6 grid gap-3 sm:gap-4 md:grid-cols-3">
-          {plans.map((plan) => {
-            const isHighlighted = getPlanHighlight(plan.name);
-            const badge = getSavingBadge(plan);
-            const features = getFeatures(plan);
-            const cta =
-              creating && selectedPlan === plan.id ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/30 border-t-current" />
-                  {t("pricing.processing")}
-                </span>
-              ) : (
-                t("pricing.select_plan")
-              );
-
-            return (
-              <div
-                key={plan.id}
-                onClick={() => !creating && handleSubscribe(plan)}
-                className="group relative cursor-pointer rounded-xl border p-5 transition-all duration-300 hover:-translate-y-0.5"
-                style={{
-                  background: isHighlighted
-                    ? "linear-gradient(168deg, rgb(var(--accent) / 0.16) 0%, rgb(var(--surface-raised)) 50%)"
-                    : "rgb(var(--surface-raised))",
-                  borderColor: isHighlighted
-                    ? "rgb(var(--accent) / 0.3)"
-                    : "rgb(var(--ink) / 0.06)",
-                }}
-              >
-                {badge && (
-                  <div className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2">
-                    <div
-                      className="rounded-full px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-                      style={{
-                        background: "linear-gradient(135deg, rgb(var(--accent)), #a07c2e)",
-                        color: "rgb(var(--accent-fg))",
-                      }}
-                    >
-                      {badge}
+        <div className="overflow-hidden rounded-2xl border border-ink/[0.08] bg-ink/[0.015]">
+          <div className="grid divide-y divide-ink/[0.06] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {sortedPlans.map((plan) => {
+              const recommended = isRecommended(plan.name);
+              const busy = creating && selectedPlan === plan.id;
+              return (
+                <article
+                  key={plan.id}
+                  className={`relative flex flex-col px-5 py-7 sm:px-6 ${
+                    recommended ? "bg-accent/[0.04] ring-1 ring-inset ring-accent/25" : ""
+                  }`}
+                >
+                  <div className="mb-6">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h3 className="text-[15px] font-medium text-text-primary/90">
+                        {getPlanLabel(plan)}
+                      </h3>
+                      {recommended && (
+                        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-accent">
+                          {t("pricing.recommended")}
+                        </span>
+                      )}
                     </div>
+                    <p className="mt-1 text-[12px] text-text-primary/35">{getPlanDesc(plan)}</p>
                   </div>
-                )}
 
-                <div className="mb-4 mt-1 flex items-center gap-3">
-                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-accent/12 ring-1 ring-accent/25">
-                    <PlanIcon name={plan.name} />
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-bold text-text-primary">{getPlanLabel(plan)}</h3>
-                    <p className="text-[10px] text-text-muted">{getPlanDesc(plan)}</p>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xs text-text-muted">$</span>
-                    <span
-                      className="text-3xl font-bold tracking-tight text-text-primary"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-                    >
-                      {plan.price_usdt}
-                    </span>
-                    <span className="ml-0.5 text-[10px] text-text-muted">
-                      USDT {getPriceSuffix(plan)}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  className="mb-4 h-px"
-                  style={{
-                    background: "linear-gradient(90deg, rgb(var(--accent) / 0.08), transparent)",
-                  }}
-                />
-
-                <ul className="mb-5 space-y-2.5">
-                  {features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2.5 text-xs text-text-secondary">
-                      <svg
-                        className="h-3 w-3 flex-shrink-0 text-accent"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-sm text-text-primary/30">$</span>
+                      <span
+                        className="text-[2.4rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
+                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+                        {plan.price_usdt}
+                      </span>
+                      <span className="ml-1 text-[11px] text-text-primary/30">USDT</span>
+                    </div>
+                    <p className="mt-2 text-[12px] text-text-primary/30">{getPriceSuffix(plan)}</p>
+                  </div>
 
-                {isHighlighted ? (
-                  <GoldButton disabled={creating} className="w-full">
-                    {cta}
-                  </GoldButton>
-                ) : (
-                  <GhostButton tone="gold" disabled={creating} className="w-full">
-                    {cta}
-                  </GhostButton>
-                )}
-              </div>
-            );
-          })}
+                  <ul className="mb-7 flex-1 space-y-2.5">
+                    {getFeatures(plan).map((f) => (
+                      <li
+                        key={f}
+                        className="flex gap-2.5 text-[12.5px] leading-snug text-text-primary/55"
+                      >
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-auto space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSubscribe(plan)}
+                      disabled={creating}
+                      className={`w-full rounded-lg py-2.5 text-[13px] font-semibold transition active:scale-[0.99] disabled:cursor-default ${
+                        recommended
+                          ? "bg-accent text-accent-fg hover:brightness-105"
+                          : "border border-ink/[0.12] text-text-primary/85 hover:border-ink/25 hover:bg-ink/[0.03]"
+                      }`}
+                    >
+                      {busy ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+                          {t("pricing.processing")}
+                        </span>
+                      ) : (
+                        t("pricing.select_plan")
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleAdmin(plan)}
+                      className="flex w-full items-center justify-center gap-1.5 py-1.5 text-[11.5px] text-text-primary/35 transition hover:text-text-primary/60"
+                    >
+                      <TelegramIcon className="h-3 w-3 opacity-70" />
+                      {t("pricing.subscribe_via_admin")}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Payment info */}
-      <div className="border-t border-ink/[0.06] pt-5 text-center">
-        <div className="flex items-center justify-center gap-6 text-[10px] text-text-muted">
-          {[t("pricing.usdt_bep20"), t("pricing.auto_verify"), t("pricing.instant_act")].map(
-            (label, i) => (
-              <span key={i} className="flex items-center gap-1.5">
-                <span className="h-1 w-1 rounded-full bg-accent" />
-                {label}
-              </span>
-            )
-          )}
-        </div>
-      </div>
+      {/* Payment line — quiet footer, tokenized */}
+      <p className="mt-6 text-center text-[11.5px] text-text-primary/30">
+        {[t("pricing.usdt_bep20"), t("pricing.auto_verify"), t("pricing.instant_act")].join(" · ")}
+      </p>
+
+      <SubscribeViaAdminModal
+        isOpen={!!adminPlan}
+        onClose={() => setAdminPlan(null)}
+        plan={adminPlan}
+      />
     </Modal>
   );
 };
