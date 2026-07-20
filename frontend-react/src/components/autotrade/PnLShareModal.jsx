@@ -219,7 +219,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                   className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-black"
                   style={{
                     background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)))",
-                    color: "rgb(var(--surface))",
+                    color: "rgb(var(--accent-fg))",
                   }}
                 >
                   LQ

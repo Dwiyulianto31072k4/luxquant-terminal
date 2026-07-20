@@ -68,7 +68,7 @@ function LandingThemePicker() {
 const GOLD_BTN = {
   background:
     "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-  color: "rgb(var(--surface))",
+  color: "rgb(var(--accent-fg))",
 };
 
 // Landing-section anchors — best-practice: no redundant "Home" (the logo

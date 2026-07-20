@@ -162,7 +162,7 @@ const AnnouncementModal = () => {
               className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold text-center transition-all"
               style={{
                 background: "linear-gradient(135deg, rgb(var(--accent)), #b8893c)",
-                color: "rgb(var(--surface))",
+                color: "rgb(var(--accent-fg))",
                 border: "1px solid rgb(var(--line) / 0.3)",
               }}
             >

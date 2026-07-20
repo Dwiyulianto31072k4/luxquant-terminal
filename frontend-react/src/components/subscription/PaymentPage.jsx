@@ -478,7 +478,7 @@ const PaymentPage = () => {
                   className="w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden group"
                   style={{
                     background: "linear-gradient(135deg, rgb(var(--accent)), #a07c2e)",
-                    color: "rgb(var(--surface))",
+                    color: "rgb(var(--accent-fg))",
                     boxShadow: "0 4px 24px rgb(var(--accent) / 0.15)",
                   }}
                 >

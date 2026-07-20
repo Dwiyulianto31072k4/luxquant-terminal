@@ -24,7 +24,7 @@ import { SignalDetailModal } from "../../../TopPerformers";
 const GOLD_BTN = {
   background:
     "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-  color: "rgb(var(--surface))",
+  color: "rgb(var(--accent-fg))",
 };
 
 const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || "—";

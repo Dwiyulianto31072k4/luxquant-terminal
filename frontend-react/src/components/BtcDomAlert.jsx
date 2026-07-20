@@ -227,7 +227,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
             {/* warning badge */}
             <span
               className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ring-2 ring-surface-secondary"
-              style={{ background: accent, color: "rgb(var(--surface-hover))" }}
+              style={{ background: accent, color: "rgb(var(--accent-fg))" }}
             >
               !
             </span>

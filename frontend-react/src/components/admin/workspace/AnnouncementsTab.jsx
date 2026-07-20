@@ -361,7 +361,7 @@ export const AnnouncementsTab = () => {
               onClick={save}
               disabled={saving}
               className="px-4 py-2 rounded-md text-[11px] uppercase tracking-wider font-bold font-mono transition-all disabled:opacity-50"
-              style={{ background: palette.gold[300], color: "rgb(var(--surface))" }}
+              style={{ background: palette.gold[300], color: "rgb(var(--accent-fg))" }}
             >
               {saving ? "Saving..." : editing === "new" ? "Create" : "Save changes"}
             </button>
@@ -385,7 +385,7 @@ export const AnnouncementsTab = () => {
         <button
           onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[11px] uppercase tracking-wider font-bold font-mono transition-all"
-          style={{ background: palette.gold[300], color: "rgb(var(--surface))" }}
+          style={{ background: palette.gold[300], color: "rgb(var(--accent-fg))" }}
         >
           <PlusIcon size={14} /> New
         </button>

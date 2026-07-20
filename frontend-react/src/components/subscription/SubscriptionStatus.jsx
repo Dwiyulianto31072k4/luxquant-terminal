@@ -132,7 +132,7 @@ const SubscriptionStatus = ({ compact = false }) => {
             className="w-full py-2 rounded-lg text-xs font-semibold transition-all"
             style={{
               background: "linear-gradient(to right, rgb(var(--accent)), rgb(var(--accent)))",
-              color: "rgb(var(--surface))",
+              color: "rgb(var(--accent-fg))",
             }}
           >
             Upgrade Sekarang

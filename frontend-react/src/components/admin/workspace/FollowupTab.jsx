@@ -156,7 +156,7 @@ const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
         className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
         style={{
           background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)))",
-          color: "rgb(var(--surface))",
+          color: "rgb(var(--accent-fg))",
         }}
       >
         <PlusIcon size={13} />

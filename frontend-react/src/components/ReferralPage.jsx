@@ -934,8 +934,8 @@ const ReferralPage = () => {
                 onClick={() => setShowCashoutModal(true)}
                 className="px-4 py-2 rounded-lg text-xs font-bold transition-transform hover:scale-105"
                 style={{
-                  background: "rgb(var(--surface-raised))), #a07c2e)",
-                  color: "rgb(var(--surface))",
+                  background: "linear-gradient(135deg, rgb(var(--accent)), #a07c2e)",
+                  color: "rgb(var(--accent-fg))",
                 }}
               >
                 + New Request

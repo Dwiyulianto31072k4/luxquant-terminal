@@ -194,7 +194,7 @@ function ConfluenceBanner({ summary }) {
       <div className="flex items-center gap-3">
         <span
           className="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded font-bold"
-          style={{ backgroundColor: summary.color, color: "rgb(var(--surface-raised))" }}
+          style={{ backgroundColor: summary.color, color: "rgb(var(--accent-fg))" }}
         >
           {summary.label}
         </span>

@@ -192,7 +192,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
                       className="rounded-full px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                       style={{
                         background: "linear-gradient(135deg, rgb(var(--accent)), #a07c2e)",
-                        color: "rgb(var(--surface))",
+                        color: "rgb(var(--accent-fg))",
                       }}
                     >
                       {badge}

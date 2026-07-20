@@ -179,7 +179,7 @@ const TONE = {
     iconBg: "#120f0c",
   },
   gold: {
-    color: "rgb(var(--surface-hover))",
+    color: "rgb(var(--accent-fg))",
     bg: "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
     border: "rgb(var(--accent))",
     iconBg: "transparent",
@@ -777,7 +777,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
                   style={{
                     background:
                       "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-                    color: "rgb(var(--surface-hover))",
+                    color: "rgb(var(--accent-fg))",
                     border: "1px solid rgb(var(--accent))",
                   }}
                 >

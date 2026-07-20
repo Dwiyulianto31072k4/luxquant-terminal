@@ -1402,7 +1402,7 @@ export default function Performance({ data }) {
           style={{
             background:
               "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-            color: "rgb(var(--surface))",
+            color: "rgb(var(--accent-fg))",
           }}
         >
           See Full Analytics

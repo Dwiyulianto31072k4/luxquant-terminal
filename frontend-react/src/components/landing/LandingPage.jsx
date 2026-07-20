@@ -581,7 +581,7 @@ const TelegramPromo = ({ gainers }) => {
               style={{
                 background:
                   "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-                color: "rgb(var(--surface))",
+                color: "rgb(var(--accent-fg))",
               }}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -1277,7 +1277,7 @@ export const LivePerformanceStats = ({ data }) => {
           style={{
             background:
               "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-            color: "rgb(var(--surface))",
+            color: "rgb(var(--accent-fg))",
           }}
         >
           <span className="tracking-wide">View Full Analytics</span>
@@ -1538,7 +1538,7 @@ const LandingPage = () => {
                 style={{
                   background:
                     "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-                  color: "rgb(var(--surface))",
+                  color: "rgb(var(--accent-fg))",
                 }}
               >
                 <span className="uppercase tracking-widest text-[10px] lg:text-xs">
@@ -1606,7 +1606,7 @@ const LandingPage = () => {
                 className="w-full py-3.5 rounded-xl font-bold text-xs text-center uppercase tracking-widest flex justify-center items-center gap-2 shadow-[0_0_15px_rgb(var(--accent) / 0.15)]"
                 style={{
                   background: "linear-gradient(to right, rgb(var(--accent)), rgb(var(--accent)))",
-                  color: "rgb(var(--surface))",
+                  color: "rgb(var(--accent-fg))",
                 }}
               >
                 Open Platform
@@ -1691,7 +1691,7 @@ const LandingPage = () => {
                 style={{
                   background:
                     "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-                  color: "rgb(var(--surface))",
+                  color: "rgb(var(--accent-fg))",
                 }}
               >
                 <span className="tracking-wide">Open Terminal</span>
@@ -2553,7 +2553,7 @@ const LandingPage = () => {
           style={{
             background:
               "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-            color: "rgb(var(--surface))",
+            color: "rgb(var(--accent-fg))",
           }}
         >
           Open Terminal

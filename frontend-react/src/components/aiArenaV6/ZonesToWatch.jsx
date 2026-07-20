@@ -119,7 +119,7 @@ function ZoneCard({ zone, currentPrice }) {
             className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded font-bold"
             style={{
               backgroundColor: style.color,
-              color: "rgb(var(--surface-raised))",
+              color: "rgb(var(--accent-fg))",
             }}
           >
             ● Active
