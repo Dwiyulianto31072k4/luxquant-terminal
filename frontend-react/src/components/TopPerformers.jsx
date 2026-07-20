@@ -1271,7 +1271,7 @@ export const SignalDetailModal = ({
                 </p>
               </div>
 
-              {/* Blurred levels — shape visible, numbers unreadable */}
+              {/* Levels blurred (the paid alpha), risk shown */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
                   { k: "Entry", v: "$0.00000" },
@@ -1298,37 +1298,66 @@ export const SignalDetailModal = ({
                 ))}
               </div>
 
-              {/* Note + CTA — recency, not status, is the lock */}
-              <div className="rounded-xl border border-accent/25 bg-accent/[0.06] p-4 text-center">
-                <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-accent/15">
-                  <svg
-                    className="h-4.5 w-4.5 text-accent"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  >
-                    <rect x="5" y="11" width="14" height="10" rx="2" />
-                    <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
-                  </svg>
+              {/* Charts ARE shown — the tease. The setup is visible; only the
+                  clean numeric levels above are withheld. */}
+              {(entryImg || afterImg) && (
+                <div>
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    Trade proof
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {[entryImg, afterImg].filter(Boolean).map((img, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setLightboxImg(img)}
+                        className="relative block h-[190px] w-full overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-secondary cursor-zoom-in sm:h-[230px]"
+                      >
+                        <img
+                          src={img}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-[14px] font-semibold text-text-primary">
-                  Recent call — still within the 7-day window
-                </p>
-                <p className="mx-auto mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-text-muted">
-                  Calls from the last 7 days are for subscribers. Entry, targets, stop-loss,
-                  charts and the full journey unlock with a plan — or open any call older than
-                  7 days free.
-                </p>
+              )}
+
+              {/* Slim unlock banner — charts + peak already shown above it */}
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-accent/25 bg-accent/[0.06] p-4 text-center sm:flex-row sm:justify-between sm:text-left">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15">
+                    <svg
+                      className="h-4 w-4 text-accent"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <rect x="5" y="11" width="14" height="10" rx="2" />
+                      <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-[13.5px] font-semibold text-text-primary">
+                      Active call — entry, targets &amp; stop-loss locked
+                    </p>
+                    <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
+                      Live signals unlock with a plan — or open any call older than 7 days free.
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
                     window.location.href = "/pricing";
                   }}
-                  className="mt-4 rounded-md bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+                  className="shrink-0 rounded-md bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
                 >
-                  Unlock full signal
+                  Unlock signal
                 </button>
               </div>
             </div>

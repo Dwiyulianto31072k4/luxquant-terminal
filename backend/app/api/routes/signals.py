@@ -1485,11 +1485,15 @@ def _build_redacted_detail_response(
     updates: List[SignalUpdateItem],
     peak_price: Optional[float] = None,
     peak_pct: Optional[float] = None,
+    entry_chart_path: Optional[str] = None,
+    latest_chart_path: Optional[str] = None,
 ) -> SignalDetailResponse:
-    """Non-subscriber view of a recent call: peak shown, levels blurred.
+    """Non-subscriber view of a still-active recent call: rich tease, levels hidden.
 
-    Entry/TP/SL/charts are withheld — those are the actionable alpha. Peak (how
-    far it ran) is kept: it's the proof that makes the lock worth unlocking.
+    Kept (the hook): the charts, the peak, the call date, the journey shape
+    (which targets hit, when). Withheld (the paid alpha): numeric entry, targets,
+    stop-loss, and the exact journey prices — what a free-rider needs to take
+    the still-open trade.
     """
     return SignalDetailResponse(
         signal_id=signal.signal_id,
@@ -1497,7 +1501,7 @@ def _build_redacted_detail_response(
         call_message_id=signal.call_message_id,
         message_link=None,  # hide telegram link too
         pair=signal.pair,
-        entry=None,  # redacted
+        entry=None,  # redacted — the actionable level
         target1=None, target2=None, target3=None, target4=None,  # redacted
         stop1=None, stop2=None,  # redacted
         risk_level=signal.risk_level,
@@ -1507,9 +1511,9 @@ def _build_redacted_detail_response(
         created_at=signal.created_at,
         market_cap=market_cap,
         risk_reasons=risk_reasons,
-        entry_chart_url=None,  # redacted
-        latest_chart_url=None,  # redacted
-        updates=updates,  # safe, just shows what TP got hit (history)
+        entry_chart_url=chart_path_to_url(entry_chart_path),   # shown (the tease)
+        latest_chart_url=chart_path_to_url(latest_chart_path),  # shown
+        updates=updates,  # structure kept; prices already nulled by the caller
         enrichment=None,  # redacted (deep analysis is paid)
         is_redacted=True,
         peak_price=peak_price,
@@ -1578,14 +1582,20 @@ def get_signal_detail_v2(
     # table; we build the canonical tweet URL from the earliest tweet.
     x_post_url = _tweet_url_for_signal(db, signal_id)
     
-    # Time-based gate (business model): anything older than PUBLIC_AFTER_DAYS is
-    # free to open in full — that's the public track record. Newer calls stay
-    # redacted for non-subscribers (peak shown, levels blurred), whether or not
-    # they've closed: recency is the exclusivity subscribers pay for. Replaces
-    # the old status-based rule, which leaked every recent closed call for free.
-    if not is_subscriber and _is_recent_signal(signal.created_at):
+    # Gate = status AND age. A non-subscriber is blocked only when the call is
+    # BOTH still active (no final TP4/SL yet) AND newer than PUBLIC_AFTER_DAYS:
+    #   · resolved (TP4 win / SL loss) → shown at any age (it's finished proof)
+    #   · older than 7 days           → shown even if still open (attract; stale)
+    #   · active AND recent           → redacted, but rich: charts + peak + date
+    #                                    shown, only the numeric levels blurred.
+    if (
+        not is_subscriber
+        and not _status_is_publicly_viewable(signal.status)
+        and _is_recent_signal(signal.created_at)
+    ):
         return _build_redacted_detail_response(
-            signal, market_cap, risk_reasons, updates, peak_price, peak_pct
+            signal, market_cap, risk_reasons, updates, peak_price, peak_pct,
+            entry_chart_path, latest_chart_path,
         )
     
     # Full response (closed signal OR subscriber)
@@ -1688,15 +1698,20 @@ def get_signal_detail(
             elif 'sl' in ut or 'stop' in ut:
                 if 0 > best_level: best_level = 0; derived_status = "closed_loss"
     
-    # Time-based gate (see get_signal_detail_v2): recent calls redacted for
-    # non-subscribers with peak shown, older calls fully public.
+    # Gate = status AND age (see get_signal_detail_v2): redacted only when the
+    # call is still active (derived_status not final) AND newer than 7 days.
+    # Charts + peak + date kept; only numeric levels blurred.
     _peak = None
     try:
         _peak = db.execute(text("SELECT peak_price FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).scalar()
     except Exception:
         pass
     _peak_pct_val = _peak_pct(signal.entry, _peak)
-    if not is_subscriber and _is_recent_signal(signal.created_at):
+    if (
+        not is_subscriber
+        and not _status_is_publicly_viewable(derived_status)
+        and _is_recent_signal(signal.created_at)
+    ):
         return {
             "signal_id": signal.signal_id, "channel_id": signal.channel_id,
             "call_message_id": signal.call_message_id, "message_link": None,
@@ -1707,8 +1722,8 @@ def get_signal_detail(
             "risk_level": signal.risk_level,
             "volume_rank_num": signal.volume_rank_num, "volume_rank_den": signal.volume_rank_den,
             "status": derived_status, "created_at": signal.created_at,
-            "entry_chart_url": None,  # redacted
-            "latest_chart_url": None,  # redacted
+            "entry_chart_url": chart_path_to_url(signal.entry_chart_path),   # shown (tease)
+            "latest_chart_url": chart_path_to_url(signal.latest_chart_path),  # shown
             "updates": [{"update_type": u.update_type, "price": None, "update_at": u.update_at, "message_link": None} for u in updates],
             "is_redacted": True,
             "peak_price": _peak, "peak_pct": _peak_pct_val, "is_recent": True,
