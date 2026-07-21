@@ -1,12 +1,16 @@
 // Day drill — resolved calls for a WR×BTC day (landing).
 // Layout: header + top filters + full-width list.
-// Row click → navigate to /signals?signal=<id>&tab=trade (same unique URL as
-// Potential Trades, default Trade tab with journey + execution proof).
-// Works for any age signal — SignalsPage fetches by id if outside the 7d list.
+// Row click → opens SignalDetailModal in place (the same redaction-aware proof
+// modal TopGainers and the globe use). It is NOT premium-gated: the backend's
+// /signals/detail endpoint decides what to show by age (full > 7 days, blurred
+// within). The old flow navigated to /signals?signal=, whose whole route sits
+// behind PremiumGate — so a free visitor opening a 40-day-old resolved call
+// hit the upgrade wall instead of the proof they were promised.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import CoinLogo from "../../../CoinLogo";
+import { SignalDetailModal } from "../../../TopPerformers";
 
 const C = { win: "#4ade80", loss: "#f87171" };
 const WINS = ["tp1", "tp2", "tp3", "tp4"];
@@ -75,7 +79,7 @@ function SignalRow({ s, busy, onOpen }) {
       type="button"
       disabled={busy}
       onClick={() => onOpen(s)}
-      className="group grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-x-3 gap-y-1 border-b border-ink/[0.045] px-3 py-3 text-left transition hover:bg-ink/[0.035] active:bg-ink/[0.05] disabled:opacity-60 sm:grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_5rem_1.25rem] sm:px-4 sm:py-2.5"
+      className="group grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-x-3 gap-y-1 border-b border-ink/[0.045] px-3 py-3 text-left transition hover:bg-ink/[0.035] active:bg-ink/[0.05] disabled:opacity-60 sm:grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_1.25rem] sm:px-4 sm:py-2.5"
     >
       {/* Token + meta */}
       <div className="flex min-w-0 items-center gap-2.5">
@@ -133,9 +137,6 @@ function SignalRow({ s, busy, onOpen }) {
       >
         {fmtPct(banked)}
       </div>
-      <div className="hidden text-right font-mono text-[12px] tabular-nums text-loss/90 sm:block">
-        {fmtPct(s.mae_pct)}
-      </div>
       <div className="hidden text-right font-mono text-[11px] tabular-nums text-text-muted sm:block">
         {s.hit_date || "—"}
       </div>
@@ -169,8 +170,14 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     return winners.length ? winners : all;
   }, [tab, winners, losers, all]);
 
-  const navigate = useNavigate();
+  const { t } = useTranslation();
   const [openingId, setOpeningId] = useState(null);
+
+  // In-place proof modal (redaction-aware, not premium-gated) — same recipe
+  // TopGainers uses.
+  const [modalItem, setModalItem] = useState(null);
+  const [signalDetail, setSignalDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Default filter when data arrives
   useEffect(() => {
@@ -191,38 +198,39 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     };
   }, [onClose]);
 
-  // Same deep-link as Potential Trades: unique signal id + Trade tab.
-  // Seed partial drill fields via router state so modal paints immediately
-  // even for calls older than 7 days (trust path for landing visitors).
+  const fetchDetail = useCallback(async (sid) => {
+    setDetailLoading(true);
+    setSignalDetail(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/v1/signals/detail/${sid}`, { headers });
+      if (r.ok) setSignalDetail(await r.json());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  // Open the proof modal in place. The backend decides redaction by age, so a
+  // 40-day-old call opens in full for anyone, a <7-day one blurs its levels —
+  // no premium wall in the path.
   const openSignal = useCallback(
     (row) => {
       if (!row?.signal_id) return;
       setOpeningId(row.signal_id);
-      const sid = String(row.signal_id);
-      const seed = {
-        signal_id: sid,
-        pair: row.pair,
-        entry: row.entry,
-        target1: row.target1,
-        target2: row.target2,
-        target3: row.target3,
-        target4: row.target4,
-        stop1: row.stop1,
-        stop2: row.stop2,
-        status: row.status || row.outcome,
-        risk_level: row.risk_level,
-        created_at: row.created_at,
-        peak_pct: row.peak_pct,
-        entry_chart_url: row.entry_chart_url,
-        latest_chart_url: row.latest_chart_url,
-        message_link: row.message_link,
-      };
-      navigate(`/signals?signal=${encodeURIComponent(sid)}&tab=trade`, {
-        state: { seedSignal: seed },
-      });
+      setModalItem({ ...row, signal_time: row.created_at, gain_pct: row.peak_pct });
+      fetchDetail(row.signal_id).finally(() => setOpeningId(null));
     },
-    [navigate]
+    [fetchDetail]
   );
+
+  const closeSignal = useCallback(() => {
+    setModalItem(null);
+    setSignalDetail(null);
+  }, []);
+  const cleanPair = (p) => (p ? p.replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???");
 
   const dateLabel = (() => {
     try {
@@ -246,7 +254,9 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
   const shell = (
     <div
       className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4 md:p-6"
-      style={{ zIndex: 190000 }}
+      // Drop below SignalDetailModal (z-100000) while a signal is open so it
+      // stacks on top; back to 190000 (above the sticky nav) otherwise.
+      style={{ zIndex: modalItem ? 90000 : 190000 }}
       role="dialog"
       aria-modal="true"
       aria-label={`Calls on ${dateLabel}`}
@@ -331,7 +341,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
         {/* ── Column headers (desktop) ── */}
         {!loading && list.length > 0 && (
-          <div className="hidden shrink-0 grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_5rem_1.25rem] gap-x-3 border-b border-ink/[0.05] bg-ink/[0.015] px-4 py-2 sm:grid">
+          <div className="hidden shrink-0 grid-cols-[minmax(0,1.3fr)_4.5rem_5.5rem_5rem_5rem_1.25rem] gap-x-3 border-b border-ink/[0.05] bg-ink/[0.015] px-4 py-2 sm:grid">
             <span className="font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
               Token
             </span>
@@ -343,9 +353,6 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
             </span>
             <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
               Banked
-            </span>
-            <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
-              Worst
             </span>
             <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-text-muted/55">
               Resolved
@@ -402,5 +409,23 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     </div>
   );
 
-  return createPortal(shell, document.body);
+  return createPortal(
+    <>
+      {shell}
+      {modalItem && (
+        <SignalDetailModal
+          item={modalItem}
+          detail={signalDetail}
+          loading={detailLoading}
+          signalIds={[modalItem.signal_id]}
+          currentIndex={0}
+          onNavigate={() => {}}
+          onClose={closeSignal}
+          cleanPair={cleanPair}
+          t={t}
+        />
+      )}
+    </>,
+    document.body
+  );
 }
