@@ -78,11 +78,45 @@ async function main() {
 
   const { GLOSSARY } = await import("../src/content/glossary.js");
   const { POSTS } = await import("../src/content/posts.js");
-  const { COINS } = await import("../src/content/coins.js");
+  const { COINS, ALL_COINS, COIN_STATS } = await import("../src/content/coins.js");
   const { LANDING_FAQ, landingFaqJsonLd } = await import("../src/content/faq.js");
   const termBy = (slug) => GLOSSARY.find((t) => t.slug === slug);
   const postBy = (slug) => POSTS.find((p) => p.slug === slug);
-  const coinBy = (slug) => COINS.find((c) => c.slug === slug);
+  const coinBy = (slug) => ALL_COINS.find((c) => c.slug === slug);
+  const sinceLbl = (d) => {
+    if (!d) return "";
+    const dt = new Date(d + "T00:00:00Z");
+    return dt.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+  };
+  // Build the crawlable, unique content for one coin — curated body if present,
+  // otherwise a data-driven paragraph from the real track record.
+  const coinMeta = (c) => {
+    const st = COIN_STATS[c.slug] || null;
+    const since = st ? sinceLbl(st.since) : "";
+    const isGen = !c.body;
+    const paras = c.body || (st
+      ? [
+          `LuxQuant's algorithm has published ${st.n.toLocaleString()} ${c.symbol} trade signals since ${since}.` +
+            (st.wr != null ? ` Across ${st.resolved} resolved calls, ${c.symbol} carries a ${st.wr}% win rate` : "") +
+            (st.avgPeak != null ? ` — the average call reached a peak of +${st.avgPeak}% from entry` : "") +
+            (st.best != null ? `, and the strongest ${c.symbol} call ran +${st.best}%.` : "."),
+          `Each ${c.symbol} signal ships with a full plan — exact entry, staged take-profits (TP1–TP4) and a hard stop-loss — all timestamped and publicly auditable on LuxQuant.`,
+        ]
+      : [`Track ${c.name} (${c.symbol}) money flow, on-chain activity and algorithmic signals on LuxQuant.`]);
+    const category = c.category || (st ? `${c.symbol}/USDT · ${st.n.toLocaleString()} signals tracked` : c.symbol);
+    const title = isGen
+      ? `${c.symbol} signal track record — ${st ? st.n.toLocaleString() + " LuxQuant calls" : "LuxQuant"}${st && st.wr != null ? `, ${st.wr}% win rate` : ""} | LuxQuant`
+      : `${c.name} (${c.symbol}) — money flow, on-chain & signals | LuxQuant`;
+    const description = isGen && st
+      ? `LuxQuant has called ${c.symbol} ${st.n.toLocaleString()} times since ${since}${st.wr != null ? ` at a ${st.wr}% win rate` : ""}${st.avgPeak != null ? `, avg peak +${st.avgPeak}%` : ""}. Timestamped, verifiable signals with entry, TP1–TP4 and stop-loss.`
+      : `${c.name} (${c.symbol}): ${paras[0].slice(0, 140)}`;
+    const statLine = st
+      ? `<p><strong>${c.symbol} track record on LuxQuant${since ? ` (since ${esc(since)})` : ""}:</strong> ` +
+        [`${st.n.toLocaleString()} signals called`, st.wr != null && `${st.wr}% win rate`, st.avgPeak != null && `+${st.avgPeak}% average peak`, st.best != null && `+${st.best}% best call`]
+          .filter(Boolean).map(esc).join(" · ") + `.</p>`
+      : "";
+    return { st, paras, category, title, description, statLine };
+  };
 
   const pages = [];
 
@@ -342,36 +376,45 @@ async function main() {
     ],
     body:
       crumb([{ label: "Home", to: "/" }, { label: "Coins" }]) +
-      `<h1>Crypto Coins</h1>` +
-      `<p>Money flow, on-chain intelligence, and algorithmic signals for the assets traders watch most.</p>` +
-      `<ul>${COINS.map((c) => `<li><a href="/coins/${c.slug}">${esc(c.name)} (${esc(c.symbol)})</a> — ${esc(c.category)}</li>`).join("")}</ul>`,
+      `<h1>Crypto Coins — ${ALL_COINS.length.toLocaleString()} tracked pairs</h1>` +
+      `<p>Money flow, on-chain intelligence, and algorithmic signal track records for every pair LuxQuant covers.</p>` +
+      `<ul>${ALL_COINS.map((c) => {
+        const st = COIN_STATS[c.slug];
+        const tail = c.category ? esc(c.category) : st ? `${st.n} signals, ${st.wr != null ? st.wr + "% WR" : "tracked"}` : "tracked";
+        return `<li><a href="/coins/${c.slug}">${esc(c.name)} (${esc(c.symbol)})</a> — ${tail}</li>`;
+      }).join("")}</ul>`,
   });
 
-  // ── Coin detail ──
-  for (const c of COINS) {
-    const related = (c.related || []).map(coinBy).filter(Boolean);
+  // ── Coin detail (curated + generated) ──
+  for (const c of ALL_COINS) {
+    const m = coinMeta(c);
+    const relatedSlugs = c.related || ["btc", "eth", "sol", "bnb"].filter((x) => x !== c.slug).slice(0, 4);
+    const related = relatedSlugs.map(coinBy).filter(Boolean);
     pages.push({
       path: `/coins/${c.slug}`,
-      title: `${c.name} (${c.symbol}) — money flow, on-chain & signals | LuxQuant`,
-      description: `${c.name} (${c.symbol}): ${c.body[0].slice(0, 140)}`,
+      title: m.title,
+      description: m.description,
       jsonLd: [
         {
           "@context": "https://schema.org",
           "@type": "WebPage",
-          name: `${c.name} (${c.symbol}) — money flow, on-chain & signals`,
+          name: `${c.name} (${c.symbol}) — LuxQuant signals & track record`,
           url: `${SITE}/coins/${c.slug}`,
-          description: c.body[0],
+          description: m.paras[0],
           isPartOf: { "@type": "WebSite", name: "LuxQuant Terminal", url: `${SITE}/` },
+          about: { "@type": "Thing", name: c.name, alternateName: c.symbol },
         },
         breadcrumbLd([{ label: "Home", to: "/" }, { label: "Coins", to: "/coins" }, { label: `${c.name} (${c.symbol})`, self: `/coins/${c.slug}` }]),
       ],
       body:
         crumb([{ label: "Home", to: "/" }, { label: "Coins", to: "/coins" }, { label: c.symbol }]) +
-        `<h1>${esc(c.name)} (${esc(c.symbol)})</h1>` +
-        `<p>${esc(c.category)}</p>` +
-        c.body.map((p) => `<p>${esc(p)}</p>`).join("") +
-        `<p><a href="/money-flow">Open Money Flow</a> · <a href="/onchain">On-Chain</a> · <a href="/signals">Signals</a></p>` +
-        `<p>Live ${esc(c.symbol)} price &amp; markets: <a href="https://www.coingecko.com/en/coins/${c.cg}" rel="noopener">view on CoinGecko</a>.</p>` +
+        `<h1>${esc(c.name)}${c.name !== c.symbol ? ` (${esc(c.symbol)})` : ""}</h1>` +
+        `<p>${esc(m.category)}</p>` +
+        m.statLine +
+        m.paras.map((p) => `<p>${esc(p)}</p>`).join("") +
+        `<p><a href="https://t.me/LuxQuantSignal" rel="noopener"><strong>Get free ${esc(c.symbol)} calls on Telegram →</strong></a></p>` +
+        `<p><a href="/signals">${esc(c.symbol)} signals</a> · <a href="/performance">Full track record</a> · <a href="/money-flow">Money Flow</a> · <a href="/onchain">On-Chain</a></p>` +
+        (c.cg ? `<p>Live ${esc(c.symbol)} price &amp; markets: <a href="https://www.coingecko.com/en/coins/${c.cg}" rel="noopener">view on CoinGecko</a>.</p>` : "") +
         (related.length
           ? `<h2>Related coins</h2><ul>${related.map((r) => `<li><a href="/coins/${r.slug}">${esc(r.name)} (${esc(r.symbol)})</a></li>`).join("")}</ul>`
           : "") +
@@ -387,7 +430,35 @@ async function main() {
     writeFileSync(resolve(dir, "index.html"), html, "utf8");
     n++;
   }
-  console.log(`[prerender] wrote ${n} static content pages`);
+
+  // ── Sitemap: every prerendered public route (incl. all coin pages) ──
+  const today = new Date().toISOString().slice(0, 10);
+  const seen = new Set();
+  const urls = [];
+  const addUrl = (path, priority) => {
+    if (seen.has(path)) return;
+    seen.add(path);
+    const loc = path === "/" ? `${SITE}/` : SITE + path;
+    urls.push(`  <url><loc>${loc}</loc><lastmod>${today}</lastmod><priority>${priority}</priority></url>`);
+  };
+  addUrl("/", "1.0");
+  addUrl("/pricing", "0.9");
+  addUrl("/coins", "0.8");
+  addUrl("/learn", "0.7");
+  addUrl("/blog", "0.6");
+  for (const page of pages) {
+    const p = page.path;
+    const pr = p.startsWith("/coins/") ? "0.6" : p.startsWith("/learn/") || p.startsWith("/blog/") ? "0.5" : "0.6";
+    addUrl(p, pr);
+  }
+  const sitemap =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls.join("\n") +
+    `\n</urlset>\n`;
+  writeFileSync(resolve(DIST, "sitemap.xml"), sitemap, "utf8");
+
+  console.log(`[prerender] wrote ${n} static content pages + sitemap (${urls.length} urls)`);
 }
 
 main().catch((e) => {

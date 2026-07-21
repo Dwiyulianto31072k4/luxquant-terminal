@@ -148,7 +148,7 @@ export default function StatusAdminPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight">
