@@ -47,6 +47,21 @@ const fmtWhen = (s) => {
     return "";
   }
 };
+const daysBetween = (a, b) => {
+  const ta = Date.parse(a),
+    tb = Date.parse(b);
+  if (!ta || !tb || Number.isNaN(ta) || Number.isNaN(tb)) return null;
+  return Math.max(0, Math.round((tb - ta) / 86400000));
+};
+// A stopped trade "recovered" when the coin's all-time peak (peak_pct) sits
+// well above the run-up that happened DURING the trade (mfe). The peak is
+// post-stop — honestly labelled with how many days later it happened.
+const recoveryOf = (s) => {
+  if (s.outcome !== "sl" || s.peak_pct == null) return null;
+  const within = s.mfe_pct ?? 0;
+  if (s.peak_pct <= within + 5) return null; // no meaningful recovery
+  return { pct: s.peak_pct, days: daysBetween(s.hit_date, s.peak_at) };
+};
 function Spinner() {
   return (
     <div className="flex flex-1 items-center justify-center py-16">
@@ -80,6 +95,7 @@ function SignalRow({ s, busy, onOpen }) {
   // the all-time peak — that's the marketing run-up number, unchanged.
   const peak = isSl ? (s.mfe_pct ?? s.realized_pct) : (s.peak_pct ?? s.mfe_pct);
   const banked = s.realized_pct;
+  const recovery = recoveryOf(s); // post-stop recovery for losses, honestly labelled
 
   return (
     <button
@@ -124,17 +140,40 @@ function SignalRow({ s, busy, onOpen }) {
         <span className="font-mono text-[8px] uppercase tracking-wide text-text-muted/55">
           {isSl ? "banked" : "peak"}
         </span>
+        {recovery && (
+          <span
+            className="font-mono text-[8px] tabular-nums"
+            style={{ color: "rgba(74,222,128,0.6)" }}
+          >
+            ↑{bigPct(recovery.pct)}
+            {recovery.days != null ? ` · ${recovery.days}d after` : ""}
+          </span>
+        )}
       </div>
 
       {/* Desktop columns */}
       <div className="hidden text-right font-mono text-[12px] tabular-nums text-text-primary/55 sm:block">
         {s.entry != null ? `$${fmtP(s.entry)}` : "—"}
       </div>
-      <div
-        className="hidden text-right font-mono text-[12px] font-semibold tabular-nums sm:block"
-        style={{ color: (peak ?? 0) >= 0 ? C.win : C.loss }}
-      >
-        {bigPct(peak)}
+      <div className="hidden text-right sm:block">
+        <span
+          className="block font-mono text-[12px] font-semibold tabular-nums"
+          style={{ color: (peak ?? 0) >= 0 ? C.win : C.loss }}
+        >
+          {bigPct(peak)}
+        </span>
+        {recovery && (
+          <span
+            className="mt-0.5 block font-mono text-[8.5px] leading-tight tabular-nums"
+            style={{ color: "rgba(74,222,128,0.55)" }}
+            title={`Recovered ${bigPct(recovery.pct)}${
+              recovery.days != null ? ` ${recovery.days} days after the stop` : ""
+            } — after the position had already closed`}
+          >
+            ↑{bigPct(recovery.pct)}
+            {recovery.days != null ? ` ${recovery.days}d` : ""}
+          </span>
+        )}
       </div>
       <div
         className="hidden text-right font-mono text-[12px] font-semibold tabular-nums sm:block"
@@ -340,8 +379,12 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
           </div>
           {tab === "losers" && (
             <p className="mt-2 text-[11px] leading-snug text-text-muted">
-              Peak can stay green after a stop — max run-up before price reversed into SL. Banked is
-              the realized P&amp;L.
+              Peak is the max run-up <span className="text-text-primary/70">during the trade</span> —
+              before price reversed into the stop. Banked is the realized P&amp;L. A green{" "}
+              <span style={{ color: "rgba(74,222,128,0.8)" }}>↑</span> marks calls where the coin
+              later ran higher — but that happened{" "}
+              <span className="text-text-primary/70">after the position was already stopped out</span>
+              , so it&apos;s not a realized gain.
             </p>
           )}
         </header>

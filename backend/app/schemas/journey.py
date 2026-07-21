@@ -103,6 +103,12 @@ class OutcomeSection(BaseModel):
     tp_then_sl: bool = False
     tps_hit_before_sl: Optional[List[str]] = None
 
+    # Post-stop recovery (losses only) — the coin's later run-up above where the
+    # trade actually got, honestly labelled: it happened AFTER the stop, N days
+    # later, and is not a realized gain. None for winners and non-recoveries.
+    post_stop_recovery_pct: Optional[float] = None
+    post_stop_recovery_days: Optional[int] = None
+
 
 # ============================================================
 # LEGEND (static reference)

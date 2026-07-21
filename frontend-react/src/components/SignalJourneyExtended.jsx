@@ -414,6 +414,32 @@ const SignalJourneyExtended = ({ signalId }) => {
                 </div>
               )}
             </div>
+
+            {/* Post-stop recovery — honest: the run-up happened AFTER the
+                position closed, so it is not a realized gain. Losses only. */}
+            {outcome.post_stop_recovery_pct != null && (
+              <div className="mt-2 rounded-lg border border-positive/20 bg-positive/[0.05] px-3 py-2.5">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted">
+                    After the stop
+                  </span>
+                  <span className="font-mono text-[12px] font-bold text-positive">
+                    ↑ {formatPct(outcome.post_stop_recovery_pct)}
+                  </span>
+                </div>
+                <p className="text-[10px] leading-snug text-text-muted">
+                  The coin later ran to {formatPct(outcome.post_stop_recovery_pct)}
+                  {outcome.post_stop_recovery_days != null
+                    ? `, ${outcome.post_stop_recovery_days} day${
+                        outcome.post_stop_recovery_days === 1 ? "" : "s"
+                      } after the stop`
+                    : ""}{" "}
+                  — after this position had already closed
+                  {outcome.realized_pct != null ? ` at ${formatPct(outcome.realized_pct)}` : ""}.{" "}
+                  <span className="text-text-primary/60">Not a realized gain.</span>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

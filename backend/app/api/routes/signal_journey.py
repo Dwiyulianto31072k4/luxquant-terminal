@@ -103,7 +103,7 @@ def get_signal_journey(
     # 1. Fetch signal core data
     # ============================================================
     sig_row = db.execute(text("""
-        SELECT signal_id, pair, status, created_at
+        SELECT signal_id, pair, status, created_at, peak_pct, peak_at
         FROM signals
         WHERE signal_id = :sid
         LIMIT 1
@@ -174,6 +174,8 @@ def get_signal_journey(
         'pair': sig_row['pair'],
         'status': sig_row['status'],
         'created_at_dt': created_at_dt,
+        'peak_pct': sig_row.get('peak_pct'),
+        'peak_at': sig_row.get('peak_at'),
     }
 
     try:

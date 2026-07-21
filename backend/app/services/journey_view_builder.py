@@ -404,6 +404,27 @@ def build_journey_view(
         delta_from_entry = (overall_mfe_at - coverage_from).total_seconds()
         peak_excursion_delta_text = f'at {format_time_main(int(delta_from_entry))}'
 
+    # Post-stop recovery (LOSSES only). When a stopped-out call's coin later ran
+    # far above where the trade actually got (its within-trade MFE), we show it —
+    # honestly: the run-up happened AFTER the position closed, N days later, and
+    # is not a realized gain. Uses the coin's all-time peak (signal_row) vs the
+    # stop time. Winners are untouched.
+    post_stop_recovery_pct = None
+    post_stop_recovery_days = None
+    if last_telegram_event_type == 'sl':
+        alltime_peak = signal_row.get('peak_pct')
+        peak_at = signal_row.get('peak_at')
+        within_trade = overall_mfe if overall_mfe is not None else 0.0
+        if (
+            alltime_peak is not None
+            and alltime_peak > within_trade + 5  # a meaningful recovery beyond the trade
+        ):
+            post_stop_recovery_pct = float(alltime_peak)
+            sl_at = last_event_at or coverage_until
+            peak_at_dt = _parse_iso(peak_at) if isinstance(peak_at, str) else peak_at
+            if peak_at_dt is not None and sl_at is not None and peak_at_dt > sl_at:
+                post_stop_recovery_days = max(0, int((peak_at_dt - sl_at).total_seconds() // 86400))
+
     outcome = {
         'summary_sentence': summary_sentence,
         'realized_pct': realized,
@@ -420,6 +441,8 @@ def build_journey_view(
         ),
         'tp_then_sl': journey_row.get('tp_then_sl', False),
         'tps_hit_before_sl': journey_row.get('tps_hit_before_sl'),
+        'post_stop_recovery_pct': post_stop_recovery_pct,
+        'post_stop_recovery_days': post_stop_recovery_days,
     }
 
     # ============================================================

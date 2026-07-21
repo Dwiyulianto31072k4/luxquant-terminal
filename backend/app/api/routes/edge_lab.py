@@ -548,7 +548,8 @@ def get_edge_lab_drill(
                    j.realized_outcome_pct, j.missed_potential_pct,
                    s.entry, s.target1, s.target2, s.target3, s.target4,
                    s.stop1, s.stop2, s.status, s.risk_level,
-                   s.entry_chart_path, s.latest_chart_path, s.message_link
+                   s.entry_chart_path, s.latest_chart_path, s.message_link,
+                   s.peak_at
             FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id
             LEFT JOIN coins c ON c.pair = s.pair
@@ -564,7 +565,8 @@ def get_edge_lab_drill(
         "sc.realized_outcome_pct, sc.missed_potential_pct, "
         "sc.entry, sc.target1, sc.target2, sc.target3, sc.target4, "
         "sc.stop1, sc.stop2, sc.status, sc.risk_level, "
-        "sc.entry_chart_path, sc.latest_chart_path, sc.message_link"
+        "sc.entry_chart_path, sc.latest_chart_path, sc.message_link, "
+        "sc.peak_at::text"
     )
     order_by = (
         "ORDER BY (sc.outcome = 'sl') ASC, sc.peak_pct DESC NULLS LAST, sc.hit_date DESC "
@@ -709,6 +711,10 @@ def get_edge_lab_drill(
         "entry_chart_url": _chart_url(r[19]),
         "latest_chart_url": _chart_url(r[20]),
         "message_link": r[21],
+        # peak_at = when the all-time high was reached. For a stopped trade the
+        # frontend uses it to show an honest "recovered +X%, N days after the
+        # stop" line — the run-up happened after the position closed.
+        "peak_at": r[22],
     } for r in rows]
 
     wins = sum(1 for s in signals if s["outcome"] in ("tp1", "tp2", "tp3", "tp4"))
