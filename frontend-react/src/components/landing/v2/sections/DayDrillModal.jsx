@@ -71,7 +71,14 @@ function OutcomeChip({ outcome }) {
 /** Compact desktop+mobile row — opens SignalModal on click */
 function SignalRow({ s, busy, onOpen }) {
   const isSl = s.outcome === "sl";
-  const peak = s.peak_pct ?? s.mfe_pct;
+  // Peak semantics. For a STOPPED trade, "peak" means the max run-up DURING the
+  // trade (the journey's within-trade MFE) — exactly what this modal's own note
+  // promises. signals.peak_pct is the coin's all-time high since the call and
+  // keeps climbing long after the stop: INUSDT read +260% weeks later while the
+  // trade itself lost -3.25% and never rose above entry (journey MFE 0%). Using
+  // it made 2,450 stopped calls show a peak that never happened. Winners keep
+  // the all-time peak — that's the marketing run-up number, unchanged.
+  const peak = isSl ? (s.mfe_pct ?? s.realized_pct) : (s.peak_pct ?? s.mfe_pct);
   const banked = s.realized_pct;
 
   return (
