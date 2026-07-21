@@ -122,3 +122,56 @@ class TestPeakPct:
 
     def test_zero_entry_is_safe(self):
         assert _peak_pct(0, 150.0) is None
+
+
+# ════════════════════════════════════════════════════════════════
+# Journey post-stop recovery — tz-safety (the SL-journey 500 regression)
+# ════════════════════════════════════════════════════════════════
+from app.services.journey_view_builder import build_journey_view  # noqa: E402
+
+
+def _min_journey_row(sl_at):
+    return {
+        "signal_id": "sig-x", "direction": "long", "computed_at": None,
+        "last_event_at": None, "data_source": "binance", "kline_interval": "15m",
+        "swing_threshold_pct": 1.0,
+        "coverage_from": datetime(2026, 6, 18, tzinfo=timezone.utc),
+        "coverage_until": datetime(2026, 6, 18, 16, tzinfo=timezone.utc),
+        "coverage_status": "closed",
+        "events": [{"type": "sl", "telegram": True, "at": sl_at}],
+        "overall_mae_pct": -3.25, "overall_mae_at": None,
+        "overall_mfe_pct": 0.0, "overall_mfe_at": None,
+        "initial_mae_pct": -6.3, "initial_mae_at": None, "initial_mae_before": None,
+        "time_to_tp1_seconds": None, "time_to_outcome_seconds": None,
+        "pct_time_above_entry": 0.0, "tp_then_sl": False, "tps_hit_before_sl": None,
+        "realized_outcome_pct": -3.25, "missed_potential_pct": None,
+    }
+
+
+class TestPostStopRecovery:
+    """A stopped call whose coin later mooned must never crash the journey and
+    must report the recovery + days-after honestly (losses only)."""
+
+    def test_naive_event_time_vs_aware_peak_does_not_raise(self):
+        # SL event time is a naive ISO string; peak_at is tz-aware (DB style).
+        jrow = _min_journey_row("2026-06-18T16:01:00")
+        srow = {
+            "pair": "INUSDT", "status": "closed_loss",
+            "created_at_dt": datetime(2026, 6, 18, tzinfo=timezone.utc),
+            "peak_pct": 260.27,
+            "peak_at": datetime(2026, 6, 30, 16, tzinfo=timezone.utc),
+        }
+        view = build_journey_view(journey_row=jrow, signal_row=srow)
+        oc = view["outcome"]
+        assert oc["post_stop_recovery_pct"] == 260.27
+        assert oc["post_stop_recovery_days"] == 11  # 06-18 16:01 → 06-30 16:00, floored
+
+    def test_no_recovery_when_peak_not_above_within_trade(self):
+        jrow = _min_journey_row("2026-06-18T16:01:00")
+        srow = {
+            "pair": "X", "status": "closed_loss",
+            "created_at_dt": datetime(2026, 6, 18, tzinfo=timezone.utc),
+            "peak_pct": 2.0, "peak_at": datetime(2026, 6, 20, tzinfo=timezone.utc),
+        }
+        oc = build_journey_view(journey_row=jrow, signal_row=srow)["outcome"]
+        assert oc["post_stop_recovery_pct"] is None
