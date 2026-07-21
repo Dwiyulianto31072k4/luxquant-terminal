@@ -55,7 +55,7 @@ function TermPage({ slug }) {
   ];
 
   return (
-    <div className="w-full max-w-3xl px-1 py-4">
+    <div className="w-full px-1 py-4">
       <Seo
         title={`${term.term} — meaning & how it works | LuxQuant`}
         description={term.short}
@@ -78,50 +78,61 @@ function TermPage({ slug }) {
         <p className="mt-1 font-mono text-[12px] text-text-muted">Also known as: {term.aka}</p>
       )}
 
-      <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-text-primary/75">
-        {term.body.map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
-      </div>
-
-      {related.length > 0 && (
-        <div className="mt-10 border-t border-ink/[0.08] pt-5">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
-            Related terms
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {related.map((r) => (
-              <Link
-                key={r.slug}
-                to={`/learn/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-accent transition-colors"
-              >
-                {r.term}
-              </Link>
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 min-w-0">
+          <div className="max-w-2xl space-y-4 text-[15px] leading-relaxed text-text-primary/75">
+            {term.body.map((p, i) => (
+              <p key={i}>{p}</p>
             ))}
           </div>
+
+          {related.length > 0 && (
+            <div className="mt-10 border-t border-ink/[0.08] pt-5">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
+                Related terms
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {related.map((r) => (
+                  <Link
+                    key={r.slug}
+                    to={`/learn/${r.slug}`}
+                    className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-accent transition-colors"
+                  >
+                    {r.term}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="mt-8 rounded-xl border border-ink/10 bg-accent/12 p-5">
-        <p className="text-[15px] text-text-primary/80">
-          See {term.term.toLowerCase()} live in the terminal.
-        </p>
-        <Link
-          to="/money-flow"
-          className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/12 border border-ink/15 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/12 transition-colors"
-        >
-          Open LuxQuant Money Flow →
-        </Link>
-      </div>
+        <aside className="lg:col-span-1 space-y-5">
+          <div className="rounded-xl border border-ink/10 bg-accent/12 p-5">
+            <p className="text-[15px] text-text-primary/80">
+              See {term.term.toLowerCase()} live in the terminal.
+            </p>
+            <Link
+              to="/money-flow"
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent border border-ink/12 px-4 py-2 text-[13px] font-semibold text-accent-fg hover:opacity-90 transition-opacity"
+            >
+              Open LuxQuant Money Flow →
+            </Link>
+          </div>
 
-      <div className="mt-8">
-        <Link
-          to="/learn"
-          className="font-mono text-[12px] text-text-muted hover:text-accent transition-colors"
-        >
-          ← Back to glossary
-        </Link>
+          <div className="rounded-xl border border-ink/10 bg-surface-secondary p-5">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
+              Explore
+            </h2>
+            <div className="flex flex-col gap-2 text-[13.5px]">
+              <Link to="/learn" className="text-text-primary/80 hover:text-text-primary">
+                ← All glossary terms
+              </Link>
+              <Link to="/coins" className="text-text-primary/80 hover:text-text-primary">
+                Browse coin track records →
+              </Link>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

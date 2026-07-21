@@ -89,7 +89,7 @@ function PostPage({ slug }) {
   ];
 
   return (
-    <article className="w-full max-w-3xl px-1 py-4">
+    <article className="w-full px-1 py-4">
       <Seo
         title={`${post.title} | LuxQuant`}
         description={post.excerpt}
@@ -110,59 +110,65 @@ function PostPage({ slug }) {
         {fmtDate(post.date)} · {post.readingTime} read
       </p>
 
-      <div className="mt-6">
-        {post.body.map((b, i) => (
-          <Block key={i} block={b} />
-        ))}
-      </div>
-
-      {relatedTerms.length > 0 && (
-        <div className="mt-10 border-t border-ink/[0.08] pt-5">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
-            Terms in this article
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {relatedTerms.map((r) => (
-              <Link
-                key={r.slug}
-                to={`/learn/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-accent transition-colors"
-              >
-                {r.term}
-              </Link>
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 min-w-0 max-w-3xl">
+          <div>
+            {post.body.map((b, i) => (
+              <Block key={i} block={b} />
             ))}
           </div>
+
+          {relatedTerms.length > 0 && (
+            <div className="mt-10 border-t border-ink/[0.08] pt-5">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
+                Terms in this article
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {relatedTerms.map((r) => (
+                  <Link
+                    key={r.slug}
+                    to={`/learn/${r.slug}`}
+                    className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-accent transition-colors"
+                  >
+                    {r.term}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="mt-8 rounded-xl border border-ink/10 bg-accent/12 p-5">
-        <p className="text-[15px] text-text-primary/80">See the data behind this article, live.</p>
-        <Link
-          to="/money-flow"
-          className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/12 border border-ink/15 px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent/12 transition-colors"
-        >
-          Open LuxQuant Money Flow →
-        </Link>
-      </div>
-
-      {relatedPosts.length > 0 && (
-        <div className="mt-8">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
-            Keep reading
-          </h2>
-          <div className="space-y-2">
-            {relatedPosts.map((p) => (
-              <Link
-                key={p.slug}
-                to={`/blog/${p.slug}`}
-                className="block text-[14px] text-accent hover:text-accent transition-colors"
-              >
-                {p.title} →
-              </Link>
-            ))}
+        <aside className="lg:col-span-1 space-y-5">
+          <div className="rounded-xl border border-ink/10 bg-accent/12 p-5">
+            <p className="text-[15px] text-text-primary/80">See the data behind this article, live.</p>
+            <Link
+              to="/money-flow"
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent border border-ink/12 px-4 py-2 text-[13px] font-semibold text-accent-fg hover:opacity-90 transition-opacity"
+            >
+              Open LuxQuant Money Flow →
+            </Link>
           </div>
-        </div>
-      )}
+
+          {relatedPosts.length > 0 && (
+            <div className="rounded-xl border border-ink/10 bg-surface-secondary p-5">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted mb-3">
+                Keep reading
+              </h2>
+              <div className="space-y-2.5">
+                {relatedPosts.map((p) => (
+                  <Link
+                    key={p.slug}
+                    to={`/blog/${p.slug}`}
+                    className="block text-[14px] text-text-primary/80 hover:text-accent transition-colors"
+                  >
+                    {p.title} →
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
     </article>
   );
 }
