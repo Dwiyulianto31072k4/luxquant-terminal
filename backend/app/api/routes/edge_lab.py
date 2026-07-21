@@ -522,7 +522,9 @@ def get_edge_lab_drill(
             start_date = key_date
             start_str = start_date.isoformat()
     # v4: include entry/targets/status for public track-record proof modals
-    cache_key = f"lq:edge-lab:drill:v4:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
+    # v5: response now carries peak_at (post-stop recovery timing). Bump so the
+    # 10-min-cached v4 rows without the field expire immediately.
+    cache_key = f"lq:edge-lab:drill:v5:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
