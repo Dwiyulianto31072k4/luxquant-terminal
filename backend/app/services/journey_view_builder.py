@@ -412,18 +412,24 @@ def build_journey_view(
     post_stop_recovery_pct = None
     post_stop_recovery_days = None
     if last_telegram_event_type == 'sl':
-        alltime_peak = signal_row.get('peak_pct')
-        peak_at = signal_row.get('peak_at')
-        within_trade = overall_mfe if overall_mfe is not None else 0.0
-        if (
-            alltime_peak is not None
-            and alltime_peak > within_trade + 5  # a meaningful recovery beyond the trade
-        ):
-            post_stop_recovery_pct = float(alltime_peak)
-            sl_at = last_event_at or coverage_until
-            peak_at_dt = _parse_iso(peak_at) if isinstance(peak_at, str) else peak_at
-            if peak_at_dt is not None and sl_at is not None and peak_at_dt > sl_at:
-                post_stop_recovery_days = max(0, int((peak_at_dt - sl_at).total_seconds() // 86400))
+        try:
+            alltime_peak = signal_row.get('peak_pct')
+            within_trade = float(overall_mfe) if overall_mfe is not None else 0.0
+            if alltime_peak is not None and float(alltime_peak) > within_trade + 5:
+                post_stop_recovery_pct = float(alltime_peak)
+                # Days after the stop the coin peaked — tz-safe (DB gives
+                # tz-aware, parsed event times can be naive). Best-effort: a
+                # missing/unparseable date just omits the day count, never 500s.
+                peak_at = signal_row.get('peak_at')
+                sl_at = last_event_at or coverage_until
+                peak_at_dt = _parse_iso(peak_at) if isinstance(peak_at, str) else peak_at
+                if peak_at_dt is not None and sl_at is not None:
+                    pa = peak_at_dt if peak_at_dt.tzinfo else peak_at_dt.replace(tzinfo=timezone.utc)
+                    sa = sl_at if sl_at.tzinfo else sl_at.replace(tzinfo=timezone.utc)
+                    if pa > sa:
+                        post_stop_recovery_days = max(0, int((pa - sa).total_seconds() // 86400))
+        except (ValueError, TypeError, AttributeError):
+            post_stop_recovery_pct = post_stop_recovery_pct  # keep whatever parsed; never raise
 
     outcome = {
         'summary_sentence': summary_sentence,
