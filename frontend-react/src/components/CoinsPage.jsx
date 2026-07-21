@@ -3,9 +3,14 @@
 // Evergreen, crawlable content per coin; live price shown via link-out.
 import { Link, useParams, Navigate } from "react-router-dom";
 import Seo from "./Seo";
-import { COINS, ALL_COINS, getCoin } from "../content/coins";
+import CoinLogo from "./CoinLogo";
+import { COINS, ALL_COINS, getCoin, getCoinStats } from "../content/coins";
 
 const SITE = "https://luxquant.tw";
+
+// Pair used by CoinLogo (strips USDT + 1000× internally). Prefer the real
+// traded pair from stats, else synthesize <SYMBOL>USDT.
+const pairOf = (coin) => (coin.stats && coin.stats.pair) || `${coin.symbol}USDT`;
 
 // Human date for "since {first_call}" (YYYY-MM-DD → e.g. "Jan 2024").
 function sinceLabel(d) {
@@ -182,11 +187,18 @@ function CoinDetail({ slug }) {
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
         Coins
       </span>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight mt-1">
-        {coin.name}
-        {coin.name !== coin.symbol && <span className="text-text-muted"> ({coin.symbol})</span>}
-      </h1>
-      <p className="mt-1 font-mono text-[12px] text-text-muted">{category}</p>
+      <div className="mt-2 flex items-center gap-4">
+        <CoinLogo pair={pairOf(coin)} size={56} className="ring-1 ring-ink/10" />
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl lg:text-3xl font-semibold text-text-primary tracking-tight leading-none">
+            {coin.name}
+            {coin.name !== coin.symbol && (
+              <span className="text-text-muted"> ({coin.symbol})</span>
+            )}
+          </h1>
+          <p className="mt-1.5 font-mono text-[12px] text-text-muted">{category}</p>
+        </div>
+      </div>
 
       <TrackRecord symbol={coin.symbol} stats={st} />
 
@@ -250,9 +262,11 @@ function CoinDetail({ slug }) {
               <Link
                 key={r.slug}
                 to={`/coins/${r.slug}`}
-                className="rounded-md border border-ink/[0.1] bg-ink/[0.03] px-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-text-primary transition-colors"
+                className="inline-flex items-center gap-2 rounded-md border border-ink/[0.1] bg-ink/[0.03] pl-1.5 pr-3 py-1.5 text-[13px] text-text-primary/80 hover:border-ink/15 hover:text-text-primary transition-colors"
               >
-                {r.name} ({r.symbol})
+                <CoinLogo pair={pairOf(r)} size={20} />
+                {r.name}
+                {r.name !== r.symbol && <span className="text-text-muted">({r.symbol})</span>}
               </Link>
             ))}
           </div>
@@ -318,21 +332,44 @@ function CoinsIndex() {
       </p>
 
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {COINS.map((c) => (
-          <Link
-            key={c.slug}
-            to={`/coins/${c.slug}`}
-            className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-ink/12 hover:bg-ink/[0.02] transition-colors"
-          >
-            <div className="flex items-baseline gap-2">
-              <h2 className="text-[15px] font-semibold text-text-primary group-hover:text-text-primary transition-colors">
-                {c.name}
-              </h2>
-              <span className="font-mono text-[12px] text-text-muted">{c.symbol}</span>
-            </div>
-            <p className="mt-1 font-mono text-[11px] text-text-muted">{c.category}</p>
-          </Link>
-        ))}
+        {COINS.map((c) => {
+          const s = getCoinStats(c.slug);
+          return (
+            <Link
+              key={c.slug}
+              to={`/coins/${c.slug}`}
+              className="group rounded-xl border border-ink/[0.07] bg-surface-raised p-4 hover:border-ink/12 hover:bg-ink/[0.02] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <CoinLogo pair={pairOf(c)} size={36} className="ring-1 ring-ink/10" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="text-[15px] font-semibold text-text-primary truncate">{c.name}</h2>
+                    <span className="font-mono text-[12px] text-text-muted shrink-0">{c.symbol}</span>
+                  </div>
+                  <p className="mt-0.5 font-mono text-[11px] text-text-muted truncate">{c.category}</p>
+                </div>
+              </div>
+              {s && (
+                <div className="mt-3 flex items-center gap-4 border-t border-ink/[0.06] pt-2.5 font-mono text-[11px]">
+                  <span className="text-text-muted">
+                    <span className="text-text-primary/80">{s.n.toLocaleString()}</span> signals
+                  </span>
+                  {s.wr != null && (
+                    <span className="text-text-muted">
+                      <span className="text-profit">{s.wr}%</span> WR
+                    </span>
+                  )}
+                  {s.best != null && (
+                    <span className="text-text-muted">
+                      best <span className="text-profit">+{s.best}%</span>
+                    </span>
+                  )}
+                </div>
+              )}
+            </Link>
+          );
+        })}
       </div>
 
       {_restCoins.length > 0 && (
@@ -346,8 +383,9 @@ function CoinsIndex() {
                 key={c.slug}
                 to={`/coins/${c.slug}`}
                 title={`${c.name} — LuxQuant track record`}
-                className="rounded-md border border-ink/[0.08] bg-ink/[0.02] px-2.5 py-1 font-mono text-[12px] text-text-primary/70 hover:border-ink/15 hover:text-text-primary transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md border border-ink/[0.08] bg-ink/[0.02] pl-1 pr-2.5 py-1 font-mono text-[12px] text-text-primary/70 hover:border-ink/15 hover:text-text-primary transition-colors"
               >
+                <CoinLogo pair={pairOf(c)} size={18} />
                 {c.symbol}
               </Link>
             ))}
