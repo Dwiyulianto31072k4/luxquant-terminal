@@ -773,7 +773,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
 const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) => {
   // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
   const dialogRef = useRef(null);
-  useDialog({ isOpen: true, onClose: onClose, ref: dialogRef });
+  useDialog({ isOpen: !!post, onClose: onClose, ref: dialogRef });
 
   const [showPrompt, setShowPrompt] = useState(false);
   if (!post) return null;
