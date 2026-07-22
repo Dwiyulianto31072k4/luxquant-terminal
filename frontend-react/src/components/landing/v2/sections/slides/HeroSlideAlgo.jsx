@@ -209,14 +209,14 @@ export default function HeroSlideAlgo() {
         <div className="relative mx-auto flex items-end justify-center">
           {/* iMac — center hero */}
           <IMacMockup
-            src="/mockups/hero-mac-dashboard.png"
+            src="/mockups/hero-mac-dashboard.png?v=2"
             alt="LuxQuant live market intelligence dashboard"
             className="z-10 w-[82%] max-w-[460px] shrink-0 sm:w-[76%] sm:max-w-[500px] lg:w-[560px] xl:w-[620px]"
           />
 
           {/* iPhone — front-right */}
           <PhoneMockup
-            src="/mockup-hp.png"
+            src="/mockup-hp.png?v=2"
             alt="LuxQuant mobile application"
             className="z-30 w-[92px] shrink-0 -ml-[6%] mb-[8px] sm:w-[116px] lg:-ml-[4%] lg:mb-[12px] lg:w-[140px] xl:w-[156px]"
           />
