@@ -29,8 +29,11 @@ function withHead(base, { path, title, description, jsonLd }) {
   const url = SITE + path;
   let html = base;
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`);
+  // NOTE: index.html formats some meta tags across multiple lines, so the
+  // attribute is not adjacent to `<meta`. Match any whitespace/attributes in
+  // between — `[^>]` cannot cross a `>`, so each match stays inside one tag.
   html = html.replace(
-    /<meta name="description"[^>]*>/,
+    /<meta\s[^>]*name="description"[^>]*>/,
     `<meta name="description" content="${esc(description)}" />`
   );
   if (/<link rel="canonical"[^>]*>/.test(html)) {
@@ -38,9 +41,12 @@ function withHead(base, { path, title, description, jsonLd }) {
   } else {
     html = html.replace("</head>", `  <link rel="canonical" href="${url}" />\n</head>`);
   }
-  html = html.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(title)}" />`);
-  html = html.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(description)}" />`);
-  html = html.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`);
+  html = html.replace(/<meta\s[^>]*property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(title)}" />`);
+  html = html.replace(/<meta\s[^>]*property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(description)}" />`);
+  html = html.replace(/<meta\s[^>]*property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`);
+  // Twitter/X card was never per-page either — every route shared one snippet.
+  html = html.replace(/<meta\s[^>]*name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(title)}" />`);
+  html = html.replace(/<meta\s[^>]*name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(description)}" />`);
   const blocks = (Array.isArray(jsonLd) ? jsonLd : [jsonLd]).filter(Boolean);
   if (blocks.length) {
     const ld = blocks.map((o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("\n");
