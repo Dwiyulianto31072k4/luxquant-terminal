@@ -167,13 +167,114 @@ async function main() {
 
   const pages = [];
 
+  // ── Track-record block, rendered INTO the homepage ────────────────
+  // It lives here rather than on /performance because that route is
+  // login-gated: serving crawlers figures that a visitor cannot reach is
+  // cloaking. The landing already shows this same section publicly (#performance),
+  // so the homepage is the honest home for the crawlable version.
+  // Figures are front-loaded — answer engines quote the opening of a section —
+  // and the win-rate method is stated plainly, because an unexplained rate reads
+  // as marketing while an explained one reads as evidence.
+  const trFaq = TR
+    ? [
+        {
+          q: "Is the LuxQuant track record verifiable?",
+          a:
+            `Yes. All ${num(TR.total_signals)} signals published since December 2023 remain on record with their entry, ` +
+            `take-profit targets, stop-loss and outcome. Losing trades are never deleted, and any single day can be opened to read the exact calls behind it.`,
+        },
+        {
+          q: "How is the LuxQuant win rate calculated?",
+          a:
+            `A signal counts as a win when price reaches at least the first take-profit target (TP1) before hitting the stop-loss, ` +
+            `and each call is recorded at the highest milestone it reached. Signals still open are excluded, which is why the win rate covers ` +
+            `${num(TR.closed_trades)} resolved calls rather than all ${num(TR.total_signals)} published.`,
+        },
+        {
+          q: "What happens when a LuxQuant signal fails?",
+          a:
+            `It is published as a stopped-out trade like any other. ${num(TR.sl_count)} of ${num(TR.closed_trades)} resolved calls were stopped out. ` +
+            `Every signal ships with its stop-loss defined before entry, so the downside is stated in advance rather than explained afterwards.`,
+        },
+        {
+          q: "How many crypto pairs does LuxQuant cover?",
+          a: `${num(TR.active_pairs)} trading pairs have been signalled to date, scanned continuously across derivatives positioning, whale flow and order-book liquidity.`,
+        },
+      ]
+    : [];
+  const trBlock = TR
+    ? `<h2>Signal track record — ${TR.win_rate}% win rate across ${num(TR.closed_trades)} resolved calls</h2>` +
+      `<p>LuxQuant's algorithm has published <strong>${num(TR.total_signals)} crypto trade signals</strong> since December 2023. ` +
+      `Of the <strong>${num(TR.closed_trades)}</strong> that have resolved, <strong>${num(TR.total_winners)}</strong> reached a take-profit target and ` +
+      `<strong>${num(TR.sl_count)}</strong> were stopped out — a win rate of <strong>${TR.win_rate}%</strong> across <strong>${num(TR.active_pairs)}</strong> trading pairs. ` +
+      `Every call is timestamped and publicly auditable, and losing trades are never removed.</p>` +
+      (TR30
+        ? `<p>Over the last ${TR30.days} days, ${num(TR30.signals_resolved)} signals resolved — ${num(TR30.wins)} winners and ${num(TR30.losses)} stopped out, a ${TR30.win_rate}% win rate.</p>`
+        : "") +
+      `<h3>Where winning trades exit</h3><ul>` +
+      `<li>First target (TP1): ${num(TR.tp1_count)} calls</li>` +
+      `<li>Second target (TP2): ${num(TR.tp2_count)} calls</li>` +
+      `<li>Third target (TP3): ${num(TR.tp3_count)} calls</li>` +
+      `<li>Final target (TP4 and beyond): ${num(TR.tp4_count)} calls` +
+      (TR.closed_trades
+        ? ` — ${((TR.tp4_count / TR.closed_trades) * 100).toFixed(1)}% of every resolved call runs the full distance`
+        : "") +
+      `</li>` +
+      `<li>Stopped out: ${num(TR.sl_count)} calls</li></ul>` +
+      `<h3>How the win rate is calculated</h3>` +
+      `<p>A signal counts as a win when price reaches at least the first take-profit target before the stop-loss, and each call is recorded at the highest milestone it reached. ` +
+      `Open signals are excluded — which is why the rate covers ${num(TR.closed_trades)} resolved calls rather than all ${num(TR.total_signals)} published. ` +
+      `Stated plainly so the number can be checked rather than trusted.</p>`
+    : "";
+  const trDatasetLd = TR
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        name: "LuxQuant crypto signal track record",
+        description:
+          `${num(TR.total_signals)} crypto trade signals published since December 2023. ` +
+          `${num(TR.closed_trades)} resolved at a ${TR.win_rate}% win rate across ${num(TR.active_pairs)} pairs — every call timestamped, losses included.`,
+        url: `${SITE}/#performance`,
+        isAccessibleForFree: true,
+        temporalCoverage: "2023-12-24/..",
+        creator: { "@type": "Organization", name: "LuxQuant", url: SITE },
+        variableMeasured: [
+          { "@type": "PropertyValue", name: "Signals published", value: TR.total_signals },
+          { "@type": "PropertyValue", name: "Signals resolved", value: TR.closed_trades },
+          { "@type": "PropertyValue", name: "Win rate", value: TR.win_rate, unitText: "percent" },
+          { "@type": "PropertyValue", name: "Winning calls", value: TR.total_winners },
+          { "@type": "PropertyValue", name: "Stopped-out calls", value: TR.sl_count },
+          { "@type": "PropertyValue", name: "Pairs traded", value: TR.active_pairs },
+        ],
+      }
+    : null;
+
   // ── Homepage (overwrites dist/index.html with crawlable body + FAQ schema) ──
   pages.push({
     path: "/",
     title: "LuxQuant Terminal — Quantitative Crypto Intelligence",
     description:
       "LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you.",
-    jsonLd: [landingFaqJsonLd(SITE)],
+    // One FAQPage per page: the landing questions and the track-record
+    // questions are merged into a single block rather than competing.
+    jsonLd: [
+      (() => {
+        const base = landingFaqJsonLd(SITE);
+        if (!trFaq.length || !Array.isArray(base?.mainEntity)) return base;
+        return {
+          ...base,
+          mainEntity: [
+            ...base.mainEntity,
+            ...trFaq.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+          ],
+        };
+      })(),
+      trDatasetLd,
+    ].filter(Boolean),
     body:
       `<h1>LuxQuant Terminal — Quantitative Crypto Intelligence</h1>` +
       // Front-loaded figures: answer engines quote the opening of a page, so the
@@ -185,7 +286,6 @@ async function main() {
         : `<p>A 24/7 quantitative crypto terminal: algorithmic signals with a transparent track record, money-flow and sector rotation, on-chain intelligence, risk scoring, and AI research. Free tier available.</p>`) +
       `<nav aria-label="Popular pages"><ul>` +
       [
-        ["Signal Track Record", "/performance"],
         ["Market Overview", "/home"],
         ["Pricing & Plans", "/pricing"],
         ["Crypto Coins", "/coins"],
@@ -199,115 +299,15 @@ async function main() {
         .map(([label, href]) => `<li><a href="${href}">${esc(label)}</a></li>`)
         .join("") +
       `</ul></nav>` +
+      trBlock +
       `<h2>Frequently asked questions</h2>` +
       LANDING_FAQ.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("") +
+      trFaq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("") +
       `<h2>Learn the concepts</h2><ul>${GLOSSARY.slice(0, 8)
         .map((t) => `<li><a href="/learn/${t.slug}">${esc(t.term)}</a> — ${esc(t.short)}</li>`)
         .join("")}</ul>` +
       `<p><a href="/login">Open app</a> · <a href="/pricing">View pricing</a> · <a href="https://t.me/LuxQuantSignal">Telegram signals</a></p>`,
   });
-
-  // ── Track record (/performance) ────────────────────────────────
-  // The most citable page on the site: a verifiable dataset. Numbers are
-  // front-loaded because AI answer engines quote the opening of a section,
-  // and the methodology is stated plainly — an unexplained win rate reads as
-  // marketing, an explained one reads as evidence. Skipped entirely when the
-  // figures are unavailable rather than shipping a thin page.
-  if (TR) {
-    const wr = TR.win_rate;
-    const resolved = TR.closed_trades;
-    const tp4Share = resolved ? ((TR.tp4_count / resolved) * 100).toFixed(1) : null;
-    const trTitle = `Signal track record — ${wr}% win rate across ${num(resolved)} resolved calls | LuxQuant`;
-    const trDesc =
-      `LuxQuant has published ${num(TR.total_signals)} crypto trade signals since December 2023. ` +
-      `${num(resolved)} have resolved at a ${wr}% win rate across ${num(TR.active_pairs)} pairs — ` +
-      `every call timestamped, losses included.`;
-    const trFaq = [
-      {
-        q: "Is the LuxQuant track record verifiable?",
-        a:
-          `Yes. All ${num(TR.total_signals)} signals published since December 2023 remain on record with their entry, ` +
-          `take-profit targets, stop-loss and outcome. Losing trades are never deleted, and any single day can be opened to read the exact calls behind it.`,
-      },
-      {
-        q: "How is the win rate calculated?",
-        a:
-          `A signal counts as a win when price reaches at least the first take-profit target (TP1) before hitting the stop-loss. ` +
-          `Each call is recorded at its highest milestone reached. Signals still open are excluded, which is why the win rate covers ` +
-          `${num(resolved)} resolved calls rather than all ${num(TR.total_signals)} published.`,
-      },
-      {
-        q: "What happens when a LuxQuant signal fails?",
-        a:
-          `It is published as a stopped-out trade like any other. ${num(TR.sl_count)} of ${num(resolved)} resolved calls were stopped out. ` +
-          `Every signal ships with its stop-loss defined before entry, so the downside is stated in advance rather than explained afterwards.`,
-      },
-      {
-        q: "How many crypto pairs does LuxQuant cover?",
-        a: `${num(TR.active_pairs)} trading pairs have been signalled to date, scanned continuously across derivatives positioning, whale flow and order-book liquidity.`,
-      },
-    ];
-    pages.push({
-      path: "/performance",
-      title: trTitle,
-      description: trDesc,
-      jsonLd: [
-        breadcrumbLd([{ label: "Home", to: "/" }, { label: "Track Record", self: "/performance" }]),
-        {
-          "@context": "https://schema.org",
-          "@type": "Dataset",
-          name: "LuxQuant crypto signal track record",
-          description: trDesc,
-          url: `${SITE}/performance`,
-          isAccessibleForFree: true,
-          temporalCoverage: "2023-12-24/..",
-          creator: { "@type": "Organization", name: "LuxQuant", url: SITE },
-          variableMeasured: [
-            { "@type": "PropertyValue", name: "Signals published", value: TR.total_signals },
-            { "@type": "PropertyValue", name: "Signals resolved", value: resolved },
-            { "@type": "PropertyValue", name: "Win rate", value: wr, unitText: "percent" },
-            { "@type": "PropertyValue", name: "Winning calls", value: TR.total_winners },
-            { "@type": "PropertyValue", name: "Stopped-out calls", value: TR.sl_count },
-            { "@type": "PropertyValue", name: "Pairs traded", value: TR.active_pairs },
-          ],
-        },
-        {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: trFaq.map((f) => ({
-            "@type": "Question",
-            name: f.q,
-            acceptedAnswer: { "@type": "Answer", text: f.a },
-          })),
-        },
-      ],
-      body:
-        crumb([{ label: "Home", to: "/" }, { label: "Track Record" }]) +
-        `<h1>LuxQuant signal track record — ${wr}% win rate across ${num(resolved)} resolved calls</h1>` +
-        `<p>LuxQuant's quantitative algorithm has published <strong>${num(TR.total_signals)} crypto trade signals</strong> since December 2023. ` +
-        `Of the <strong>${num(resolved)}</strong> that have resolved, <strong>${num(TR.total_winners)}</strong> reached a take-profit target and ` +
-        `<strong>${num(TR.sl_count)}</strong> were stopped out — a win rate of <strong>${wr}%</strong> across <strong>${num(TR.active_pairs)}</strong> trading pairs. ` +
-        `Every call is timestamped and publicly auditable, and losing trades are never removed.</p>` +
-        (TR30
-          ? `<p>Over the last ${TR30.days} days, ${num(TR30.signals_resolved)} signals resolved — ${num(TR30.wins)} winners and ${num(TR30.losses)} stopped out, a ${TR30.win_rate}% win rate.</p>`
-          : "") +
-        `<h2>Where winning trades exit</h2>` +
-        `<ul>` +
-        `<li>First target (TP1): ${num(TR.tp1_count)} calls</li>` +
-        `<li>Second target (TP2): ${num(TR.tp2_count)} calls</li>` +
-        `<li>Third target (TP3): ${num(TR.tp3_count)} calls</li>` +
-        `<li>Final target (TP4 and beyond): ${num(TR.tp4_count)} calls${tp4Share ? ` — ${tp4Share}% of every resolved call runs the full distance` : ""}</li>` +
-        `<li>Stopped out: ${num(TR.sl_count)} calls</li>` +
-        `</ul>` +
-        `<h2>How the win rate is calculated</h2>` +
-        `<p>A signal counts as a win when price reaches at least the first take-profit target before the stop-loss, and each call is recorded at the highest milestone it reached. ` +
-        `Open signals are excluded — which is why the rate covers ${num(resolved)} resolved calls rather than all ${num(TR.total_signals)} published. ` +
-        `Stated plainly so the number can be checked rather than trusted.</p>` +
-        `<h2>Frequently asked questions</h2>` +
-        trFaq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join("") +
-        `<p><a href="/">LuxQuant Terminal</a> · <a href="/pricing">Pricing &amp; plans</a> · <a href="/coins">Per-coin records</a> · <a href="https://t.me/LuxQuantSignal">Free signals on Telegram</a></p>`,
-    });
-  }
 
   // ── Market Overview teaser (public doorway; full app may require login client-side) ──
   pages.push({
@@ -569,7 +569,7 @@ async function main() {
         m.statLine +
         m.paras.map((p) => `<p>${esc(p)}</p>`).join("") +
         `<p><a href="https://t.me/LuxQuantSignal" rel="noopener"><strong>Get free ${esc(c.symbol)} calls on Telegram →</strong></a></p>` +
-        `<p><a href="/signals">${esc(c.symbol)} signals</a> · <a href="/performance">Full track record</a> · <a href="/money-flow">Money Flow</a> · <a href="/onchain">On-Chain</a></p>` +
+        `<p><a href="/signals">${esc(c.symbol)} signals</a> · <a href="/#performance">Full track record</a> · <a href="/money-flow">Money Flow</a> · <a href="/onchain">On-Chain</a></p>` +
         (c.cg ? `<p>Live ${esc(c.symbol)} price &amp; markets: <a href="https://www.coingecko.com/en/coins/${c.cg}" rel="noopener">view on CoinGecko</a>.</p>` : "") +
         (related.length
           ? `<h2>Related coins</h2><ul>${related.map((r) => `<li><a href="/coins/${r.slug}">${esc(r.name)} (${esc(r.symbol)})</a></li>`).join("")}</ul>`
@@ -632,7 +632,7 @@ async function main() {
           ? `- Last ${TR30.days} days: ${num(TR30.signals_resolved)} resolved, ${TR30.win_rate}% win rate\n`
           : "") +
         `- Win-rate method: a call counts as a win when price reaches at least TP1 before the stop-loss; each call is recorded at its highest milestone; open signals excluded.\n` +
-        `- Full auditable record: ${SITE}/performance\n`;
+        `- Full auditable record: ${SITE}/#performance\n`;
       const existing = readFileSync(llmsPath, "utf8").replace(
         /\n## Verified track record[\s\S]*?(?=\n## |$)/,
         ""
