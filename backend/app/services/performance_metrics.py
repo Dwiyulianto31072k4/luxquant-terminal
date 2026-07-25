@@ -26,6 +26,13 @@ Two populations, and `hit` is the default:
              tp1/tp2/tp3 calls are marked at the best target reached so far.
   · closed — the subset that finished the ladder or died at the stop: tp4 or sl.
              Every R in it is realised.
+
+WARNING on comparing the two: their win_rate_pct figures share a name and nothing
+else. Under `closed` the only winners are tp4, because the ~35k tp1/tp2/tp3 calls
+are dropped from the denominator — so it reads ~57% against ~86% for `hit` and
+looks like a stricter truth when it is actually a TP4 completion rate. Each
+report carries a win_rate_meaning string saying which one it is. Do not put the
+two side by side under one "win rate" heading.
 """
 
 import statistics
@@ -291,10 +298,28 @@ def compute(db, since=None, until=None, population="hit"):
         if population == "hit" else
         "only calls that finished the ladder (tp4) or died at the stop (sl)"
     )
+    # win_rate_pct is mechanically "share of trades with R > 0", which is right
+    # inside each population but means something completely different between
+    # them — and the two are NOT comparable. Under population=closed the winners
+    # are tp4 only, because tp1/tp2/tp3 calls are excluded from the denominator
+    # entirely, so the figure is a TP4 completion rate rather than a win rate.
+    # Quoting it as "win rate" is how you end up claiming 57% for a book that
+    # wins 86% of the time. Spelled out here so no caller can misread it.
+    report["win_rate_meaning"] = (
+        "share of calls that reached at least TP1 — the win rate in the usual sense"
+        if population == "hit" else
+        "TP4 completion rate: tp4 / (tp4 + sl). NOT a win rate — every tp1/tp2/tp3 "
+        "call is excluded from the denominator, and those are wins. Use "
+        "population=hit for the win rate."
+    )
     report["counts"] = {
         outcome: sum(1 for r in selected if r.outcome == outcome)
         for outcome in ("tp1", "tp2", "tp3", "tp4", "sl")
     }
+    if population == "closed":
+        report["excluded_winners_tp1_tp3"] = sum(
+            1 for r in rows if r.outcome in ("tp1", "tp2", "tp3")
+        )
 
     months = _period_buckets(selected, "month")
     weeks = _period_buckets(selected, "week")
