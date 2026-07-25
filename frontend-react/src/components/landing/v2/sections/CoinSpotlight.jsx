@@ -70,7 +70,7 @@ function Spinner() {
   );
 }
 
-function StatTile({ label, value, accent }) {
+function StatTile({ label, value, accent, sub }) {
   return (
     <div className="group rounded-xl border border-ink/[0.06] bg-surface-raised p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/12 hover:shadow-[0_10px_26px_rgb(var(--scrim) / 0.35)]">
       <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
@@ -80,6 +80,7 @@ function StatTile({ label, value, accent }) {
       >
         {value}
       </p>
+      {sub && <p className="mt-1 font-mono text-[9px] text-text-muted/70">{sub}</p>}
     </div>
   );
 }
@@ -380,6 +381,7 @@ export default function CoinSpotlight() {
                   label="Avg Peak"
                   value={bigPct(peak.avg_peak_excursion_pct)}
                   accent={C.gold}
+                  sub={peak.avg_peak_lag_human ? `${peak.avg_peak_lag_human} after entry` : null}
                 />
                 <StatTile label="Best Call" value={bigPct(peak.best_peak_pct)} accent={C.gold} />
               </div>

@@ -111,6 +111,12 @@ const ExpectedValueTab = ({ data, onDrill }) => {
         tier confidence. A high EV on an <span className="text-loss">unreliable</span> tier is not
         yet trustworthy. <span className="text-text-muted">Click a row</span> to open the signals
         behind it.
+        <span className="mt-2 block text-text-muted">
+          Read this as an upper bound, not a return you would have booked. Both inputs are{" "}
+          <span className="text-text-primary/70">peak</span> excursions, and across the book the
+          median peak arrives about 13 days after the call while trades resolve inside 5 — so a good
+          part of it lands after the position has already closed.
+        </span>
       </Methodology>
 
       <Panel

@@ -49,7 +49,9 @@ LOCK_KEY = 778455123
 # old processed rows get re-folded into the new fields.
 # v7: _bucket now counts highest-TP-reached (TP-then-SL = win at TP), matching
 #     the coin-profile / signals-analyze definition.
-ACC_VERSION = 7
+# v8: peak_lag — seconds from entry to the peak, so avg_peak_excursion_pct can be
+#     shown with how long after the call it arrived instead of bare.
+ACC_VERSION = 8
 # Hourly cadence + small startup delay so it never blocks readiness probes.
 REFRESH_INTERVAL_SECONDS = 3600
 STARTUP_DELAY_SECONDS = 20
@@ -75,7 +77,8 @@ _SELECT_UNPROCESSED = text("""
     SELECT j.signal_id, j.events, j.time_to_tp1_seconds,
            j.missed_potential_pct, j.pct_time_above_entry, s.pair,
            j.overall_mfe_pct, s.status,
-           s.entry, s.target1, s.target2, s.target3, s.target4, s.stop1
+           s.entry, s.target1, s.target2, s.target3, s.target4, s.stop1,
+           j.overall_mfe_at
     FROM signal_journey j
     INNER JOIN signals s ON s.signal_id = j.signal_id
     LEFT JOIN journey_agg_processed p ON p.signal_id = j.signal_id
@@ -98,6 +101,10 @@ def _blank_acc() -> Dict[str, Any]:
         "tp1_entry": {"sum": 0.0, "count": 0, "min": None},
         "missed": {"sum": 0.0, "count": 0},
         "time_above": {"sum": 0.0, "count": 0},
+        # Seconds from entry to the peak. Reported next to the peak percentage so
+        # the figure cannot be read as gain that was available while the position
+        # was still open — across the book the peak lands well after it closed.
+        "peak_lag": {"sum": 0.0, "count": 0},
         # avg realized P/L per final-outcome bucket (TP1–4, SL)
         "pnl": {b: {"sum": 0.0, "count": 0} for b in _BUCKETS},
     }
@@ -120,7 +127,7 @@ def _normalize(raw: Dict[str, Any] | None) -> Dict[str, Any]:
         }
     e = raw.get("tp1_entry") or {}
     a["tp1_entry"] = {"sum": e.get("sum", 0.0) or 0.0, "count": e.get("count", 0) or 0, "min": e.get("min")}
-    for k in ("missed", "time_above"):
+    for k in ("missed", "time_above", "peak_lag"):
         b = raw.get(k) or {}
         a[k] = {"sum": b.get("sum", 0.0) or 0.0, "count": b.get("count", 0) or 0}
     raw_pnl = raw.get("pnl") or {}
@@ -211,6 +218,7 @@ def _fold(acc: Dict[str, Any], rows) -> None:
         entry = r[8]
         tgt = {"TP1": r[9], "TP2": r[10], "TP3": r[11], "TP4": r[12]}
         stop1 = r[13]
+        mfe_at = r[14]
 
         acc["sample_size"] += 1
         if pair:
@@ -269,6 +277,15 @@ def _fold(acc: Dict[str, Any], rows) -> None:
         if missed is not None:
             acc["missed"]["sum"] += missed
             acc["missed"]["count"] += 1
+        # Both sides through _parse_iso: entry_at comes from the journey events
+        # (already UTC-aware) while overall_mfe_at comes straight off the column
+        # and can be naive. Mixing the two is what made SL journeys 500 before.
+        mfe_at_dt = _parse_iso(mfe_at)
+        if mfe_at_dt is not None and entry_at is not None:
+            lag = (mfe_at_dt - entry_at).total_seconds()
+            if lag >= 0:
+                acc["peak_lag"]["sum"] += lag
+                acc["peak_lag"]["count"] += 1
         if tabove is not None:
             acc["time_above"]["sum"] += tabove
             acc["time_above"]["count"] += 1
@@ -350,7 +367,7 @@ def get_result(db: Session) -> Dict[str, Any]:
 
     e = a["tp1_entry"]
     avg_tp1 = (e["sum"] / e["count"]) if e["count"] else None
-    m, t2 = a["missed"], a["time_above"]
+    m, t2, pl = a["missed"], a["time_above"], a["peak_lag"]
 
     # avg realized P/L per final-outcome bucket (TP1–4, SL)
     pnl = a["pnl"]
@@ -384,6 +401,11 @@ def get_result(db: Session) -> Dict[str, Any]:
         "peak_potential": {
             "avg_peak_excursion_pct": _round_or_none((m["sum"] / m["count"]) if m["count"] else None),
             "avg_peak_excursion_sample": m["count"],
+            # How long after entry that peak typically arrives. Shown beside the
+            # percentage so it cannot be mistaken for gain the trade banked.
+            "avg_peak_lag_seconds": int(pl["sum"] / pl["count"]) if pl["count"] else None,
+            "avg_peak_lag_human": _format_duration((pl["sum"] / pl["count"]) if pl["count"] else None),
+            "avg_peak_lag_sample": pl["count"],
         },
         "risk_profile": {
             "avg_time_in_profit_pct": _round_or_none((t2["sum"] / t2["count"]) if t2["count"] else None, 1),

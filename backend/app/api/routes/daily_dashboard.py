@@ -198,7 +198,14 @@ def get_daily_dashboard(
             bc.tail_corr_btc_down,
             bc.tail_corr_btc_up,
             LOWER(bc.interpretation->>'risk_level') AS corr_risk_level,
-            bc.interpretation->>'headline' AS corr_headline
+            bc.interpretation->>'headline' AS corr_headline,
+            -- Appended rather than placed next to peak_pct on purpose: the row is
+            -- read positionally below, so inserting mid-list would silently shift
+            -- every index after it. Paired with peak_pct so the UI can say how
+            -- long after the call the high landed — unlabelled, a peak reads as
+            -- gain the trade banked, and the median one lands 12.8 days out.
+            s.peak_at,
+            s.created_at AS called_at
         FROM resolved r
         JOIN signals s ON s.signal_id = r.signal_id
         LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
@@ -243,6 +250,8 @@ def get_daily_dashboard(
             "risk_level":          r[26],   # 'low' | 'medium' | 'high'
             "headline":            r[27],
         } if r[18] is not None else None,  # use beta_30d as presence sentinel
+        "peak_at": str(r[28]) if r[28] else None,
+        "called_at": str(r[29]) if r[29] else None,
     } for r in signal_rows]
 
     # ─── Q3: BTC context from tags_annotated ───

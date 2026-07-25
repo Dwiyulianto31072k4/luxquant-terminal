@@ -374,7 +374,14 @@ const JourneyInsightsSection = ({ pair }) => {
                 : "—"
             }
             valueColor="text-accent"
-            sublabel="beyond final outcome"
+            // The lag is the point of this sublabel: a peak "beyond final
+            // outcome" is by definition not what the trade banked, and saying
+            // when it arrived is what stops it reading as realized gain.
+            sublabel={
+              peak_potential?.avg_peak_lag_human
+                ? `beyond final outcome · ${peak_potential.avg_peak_lag_human} after entry`
+                : "beyond final outcome"
+            }
           />
           <StatPill
             label="Best Peak Ever"
@@ -392,7 +399,11 @@ const JourneyInsightsSection = ({ pair }) => {
                 : "—"
             }
             valueColor="text-profit"
-            sublabel="from entry to peak"
+            sublabel={
+              peak_potential?.avg_peak_lag_human
+                ? `entry to peak · ${peak_potential.avg_peak_lag_human}`
+                : "from entry to peak"
+            }
           />
         </div>
       </div>

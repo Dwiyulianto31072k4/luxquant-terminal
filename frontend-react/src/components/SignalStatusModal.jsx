@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import CoinLogo from "./CoinLogo";
 import { SignalStatusContext, STATUS_META, timeAgo } from "../context/SignalStatusContext";
+import { peakContextLabel, daysToPeak } from "../utils/peakTiming";
 
 const fmtPrice = (v) => {
   if (!v && v !== 0) return "—";
@@ -18,16 +19,23 @@ const fmtPrice = (v) => {
 };
 const fmtPct0 = (v) => (v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(0) + "%");
 
-function Stat({ label, val, tone }) {
+function Stat({ label, val, tone, sub }) {
   return (
     <div className="flex min-h-[38px] items-center justify-between gap-2 rounded-lg border border-ink/[0.07] bg-ink/[0.03] px-2.5 py-1.5">
       <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted/75">
         {label}
       </span>
-      <span
-        className={`min-w-0 truncate text-right font-mono text-[12px] font-semibold tabular-nums ${tone || "text-text-primary"}`}
-      >
-        {val}
+      <span className="flex min-w-0 flex-col items-end">
+        <span
+          className={`min-w-0 truncate text-right font-mono text-[12px] font-semibold tabular-nums ${tone || "text-text-primary"}`}
+        >
+          {val}
+        </span>
+        {sub && (
+          <span className="min-w-0 truncate text-right font-mono text-[8px] text-text-muted/70">
+            {sub}
+          </span>
+        )}
       </span>
     </div>
   );
@@ -181,6 +189,9 @@ export default function GlobalSignalModalHost() {
       {
         label: "Peak Reached",
         val: s.peak_pct == null ? "—" : fmtPct0(s.peak_pct),
+        // When it got there. Left off, this reads as gain that was on the table
+        // while the position was live; the high often lands days after it closed.
+        sub: peakContextLabel({ days: daysToPeak(s.created_at, s.peak_at) }),
         tone:
           s.peak_pct == null
             ? "text-text-primary"
@@ -283,7 +294,7 @@ export default function GlobalSignalModalHost() {
 
         <div className="mt-2.5 grid grid-cols-2 gap-1.5 pb-3">
           {stats.map((row) => (
-            <Stat key={row.label} label={row.label} val={row.val} tone={row.tone} />
+            <Stat key={row.label} label={row.label} val={row.val} tone={row.tone} sub={row.sub} />
           ))}
         </div>
       </div>

@@ -11,6 +11,7 @@
 import { useState, useMemo } from "react";
 import CoinLogo from "../CoinLogo";
 import { Panel, Methodology, InsightBand, EmptyState } from "./_shared";
+import { peakLagLabel } from "../../utils/peakTiming";
 
 const fmtPeak = (p) => {
   if (p == null) return "—";
@@ -81,7 +82,14 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
         kind: "good",
         label: "Biggest upside",
         value: fmtPair(byMedian.pair),
-        sub: `${fmtPeak(byMedian.median_peak)} median peak · ${byMedian.win_rate}% WR · n=${byMedian.count}`,
+        sub:
+          `${fmtPeak(byMedian.median_peak)} median peak` +
+          // Naming the lag keeps "biggest upside" from reading as gain a
+          // follower could have banked; the peak usually lands after the close.
+          (peakLagLabel(byMedian.median_peak_lag_days)
+            ? ` (${peakLagLabel(byMedian.median_peak_lag_days)} after call)`
+            : "") +
+          ` · ${byMedian.win_rate}% WR · n=${byMedian.count}`,
       });
     const byWr = [...data].filter((d) => d.count >= 15).sort((a, b) => b.win_rate - a.win_rate)[0];
     if (byWr)
@@ -240,8 +248,15 @@ const CoinLeaderboardTab = ({ data, onDrill }) => {
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2 justify-end">
-                        <span className="font-mono tabular-nums text-profit/90 text-[13px]">
-                          {fmtPeak(c.median_peak)}
+                        <span className="flex flex-col items-end">
+                          <span className="font-mono tabular-nums text-profit/90 text-[13px]">
+                            {fmtPeak(c.median_peak)}
+                          </span>
+                          {peakLagLabel(c.median_peak_lag_days) && (
+                            <span className="font-mono text-[9px] text-text-muted/70">
+                              {peakLagLabel(c.median_peak_lag_days)} after call
+                            </span>
+                          )}
                         </span>
                         <div className="h-1.5 w-16 rounded-full bg-ink/[0.05] overflow-hidden shrink-0">
                           <div

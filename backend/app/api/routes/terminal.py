@@ -97,6 +97,10 @@ _SCREENER_SQL = f"""
         s.created_at,
         s.market_cap,
         s.peak_pct,
+        -- Ships with peak_pct on purpose: a peak with no timestamp reads as an
+        -- in-position gain, and the median peak in this book lands 12.8 days
+        -- after the call while trades resolve inside 5.
+        s.peak_at,
         s.volume_rank_num, s.volume_rank_den,
         -- normalized risk (raw column is dirty: high/High, med/Medium/Normal, low)
         CASE
@@ -344,6 +348,7 @@ def get_deep_screener(
                 "risk_norm": r["risk_norm"],
                 "market_cap": r["market_cap"],
                 "peak_pct": _to_float(r["peak_pct"]),
+                "peak_at": str(r["peak_at"]) if r["peak_at"] else None,
                 "volume_rank_num": r["volume_rank_num"],
                 "volume_rank_den": r["volume_rank_den"],
                 # intel

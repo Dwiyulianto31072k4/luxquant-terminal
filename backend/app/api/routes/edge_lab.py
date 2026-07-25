@@ -137,7 +137,10 @@ def get_edge_lab(
     start_str = start_date.isoformat()
     sector_filter = sector.lower().strip()
 
-    cache_key = f"lq:edge-lab:v2:{days}:{sector_filter}:{end_str}"
+    # v3: coin_leaderboard now carries median_peak_lag_days, so the UI can say how
+    # long after the call each coin's median peak arrives. Bumped so cached v2
+    # payloads (which lack the field) are not served to clients expecting it.
+    cache_key = f"lq:edge-lab:v3:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -434,7 +437,12 @@ def get_edge_lab(
         WITH {OUTCOMES_CTE},
         scoped AS (
             SELECT r.signal_id, r.outcome, r.hit_date,
-                   s.pair, s.peak_pct, c.sector
+                   s.pair, s.peak_pct, c.sector,
+                   -- Carried so the leaderboard can say how long after the call
+                   -- each coin's median peak arrives. A peak column on its own
+                   -- invites the reader to assume it happened while in position.
+                   EXTRACT(EPOCH FROM (s.peak_at - s.created_at::timestamptz))/86400
+                       AS peak_lag_days
             FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id
             LEFT JOIN coins c ON c.pair = s.pair
@@ -450,7 +458,10 @@ def get_edge_lab(
                 FILTER (WHERE peak_pct IS NOT NULL) AS median_peak,
             AVG(peak_pct) FILTER (WHERE peak_pct IS NOT NULL) AS avg_peak,
             MAX(peak_pct) AS best_peak,
-            MAX(hit_date)::text AS last_signal
+            MAX(hit_date)::text AS last_signal,
+            percentile_cont(0.5) WITHIN GROUP (ORDER BY peak_lag_days)
+                FILTER (WHERE peak_lag_days IS NOT NULL AND peak_lag_days >= 0)
+                AS median_peak_lag_days
         FROM scoped
         GROUP BY pair
         HAVING COUNT(*) >= 10
@@ -467,6 +478,7 @@ def get_edge_lab(
         "avg_peak": _safe_float(r[5]),
         "best_peak": _safe_float(r[6]),
         "last_signal": r[7],
+        "median_peak_lag_days": _safe_float(r[8]),
     } for r in coin_rows]
 
     # ─── Assemble & cache ───

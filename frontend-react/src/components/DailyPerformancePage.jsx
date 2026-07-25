@@ -22,6 +22,7 @@ import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
 import { useDialog } from "../hooks/useDialog";
+import { peakLagLabel, daysToPeak } from "../utils/peakTiming";
 
 // strip the quote-asset suffix for a clean coin symbol
 const coinSym = (p) => (p || "").replace(/USDT$|USDC$|USD$/i, "");
@@ -483,6 +484,16 @@ const HeroSection = ({
   const regime = wr >= 75 ? "strong" : wr >= 50 ? "neutral" : total > 0 ? "weak" : "no_data";
   const rb = regimeBadge[regime];
   const avgPeak = total > 0 ? signals.reduce((sum, s) => sum + (s.peak_pct || 0), 0) / total : 0;
+  // Median rather than mean: days-to-peak is heavily right-skewed, so a handful
+  // of calls that topped weeks later would drag an average somewhere unhelpful.
+  const medPeakLag = (() => {
+    const lags = signals
+      .map((s) => daysToPeak(s.called_at, s.peak_at))
+      .filter((d) => d != null)
+      .sort((a, b) => a - b);
+    if (!lags.length) return null;
+    return peakLagLabel(lags[Math.floor(lags.length / 2)]);
+  })();
 
   const topSector = useMemo(() => {
     if (!signals?.length) return null;
@@ -572,6 +583,9 @@ const HeroSection = ({
                     {avgPeak > 0 ? "+" : ""}
                     {avgPeak.toFixed(2)}%
                   </span>
+                  {medPeakLag && (
+                    <span className="text-text-muted"> (median {medPeakLag} after call)</span>
+                  )}
                 </>
               )}
               .

@@ -21,6 +21,7 @@ import {
   subscribeTheme,
 } from "../utils/themeColors";
 import { deriveChartWithCard } from "./signalModal/utils";
+import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
 
 const SignalModal = ({
   signal,
@@ -46,6 +47,10 @@ const SignalModal = ({
 
   // State untuk Peak Price & Toggle TradingView di Tab Trade
   const [peakPrice, setPeakPrice] = useState(null);
+  // Kapan peak itu terjadi (ms epoch dari candle-nya). Tanpa ini angka peak
+  // terbaca seolah didapat saat posisi masih hidup — padahal peak di atas TP
+  // tertinggi biasanya datang setelah trade-nya selesai.
+  const [peakAt, setPeakAt] = useState(null);
   const [showTV, setShowTV] = useState(false);
 
   // State untuk AI Prompt copy
@@ -200,6 +205,7 @@ const SignalModal = ({
     setIsClosing(false);
     setLightboxImg(null);
     setPeakPrice(null);
+    setPeakAt(null);
     setShowTV(false);
     setPromptCopied(false);
     setShowDeepAnalysis(false);
@@ -277,28 +283,36 @@ const SignalModal = ({
           }
         });
 
-        // Helper: find peak strictly beyond the highest TP
-        const extractPeak = (candles, getHigh, getLow) => {
+        // Helper: find peak strictly beyond the highest TP. Returns the candle's
+        // open time alongside the price — a peak shown without the elapsed time
+        // reads as an in-position gain, and past the highest TP it usually is not.
+        const extractPeak = (candles, getHigh, getLow, getTime) => {
           if (!Array.isArray(candles) || candles.length === 0) return null;
           let best = highestTpPrice;
+          let bestAt = null;
           candles.forEach((c) => {
             const high = getHigh(c);
             const low = getLow(c);
             if (isShort) {
-              if (low > 0 && low < best) best = low;
-            } else {
-              if (high > best) best = high;
+              if (low > 0 && low < best) {
+                best = low;
+                bestAt = getTime ? getTime(c) : null;
+              }
+            } else if (high > best) {
+              best = high;
+              bestAt = getTime ? getTime(c) : null;
             }
           });
-          // Only return if peak is strictly beyond highest TP
-          if (isShort) return best < highestTpPrice ? best : null;
-          return best > highestTpPrice ? best : null;
+          const beyond = isShort ? best < highestTpPrice : best > highestTpPrice;
+          return beyond ? { price: best, at: bestAt } : null;
         };
 
         const binanceH = (c) => parseFloat(c[2]);
         const binanceL = (c) => parseFloat(c[3]);
+        const binanceT = (c) => Number(c[0]);
         const bybitH = (c) => parseFloat(c.high);
         const bybitL = (c) => parseFloat(c.low);
+        const bybitT = (c) => Number(c.ts ?? c.start ?? c[0]);
 
         let peak = null;
 
@@ -310,7 +324,7 @@ const SignalModal = ({
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0)
-              peak = extractPeak(data, binanceH, binanceL);
+              peak = extractPeak(data, binanceH, binanceL, binanceT);
           }
         } catch (e) {
           console.warn("[PeakPrice] Binance futures failed:", e.message);
@@ -325,7 +339,7 @@ const SignalModal = ({
             if (res.ok) {
               const data = await res.json();
               if (Array.isArray(data) && data.length > 0)
-                peak = extractPeak(data, binanceH, binanceL);
+                peak = extractPeak(data, binanceH, binanceL, binanceT);
             }
           } catch (e) {
             console.warn("[PeakPrice] Binance spot failed:", e.message);
@@ -345,7 +359,7 @@ const SignalModal = ({
                 high: k[2],
                 low: k[3],
               }));
-              peak = extractPeak(list, bybitH, bybitL);
+              peak = extractPeak(list, bybitH, bybitL, bybitT);
             }
           } catch (e) {
             console.warn("[PeakPrice] Bybit ID linear failed:", e.message);
@@ -365,7 +379,7 @@ const SignalModal = ({
                 high: k[2],
                 low: k[3],
               }));
-              peak = extractPeak(list, bybitH, bybitL);
+              peak = extractPeak(list, bybitH, bybitL, bybitT);
             }
           } catch (e) {
             console.warn("[PeakPrice] Bybit global linear failed:", e.message);
@@ -385,7 +399,7 @@ const SignalModal = ({
                 high: k[2],
                 low: k[3],
               }));
-              peak = extractPeak(list, bybitH, bybitL);
+              peak = extractPeak(list, bybitH, bybitL, bybitT);
             }
           } catch (e) {
             console.warn("[PeakPrice] Bybit ID spot failed:", e.message);
@@ -394,7 +408,8 @@ const SignalModal = ({
 
         // Only show if peak exists (strictly beyond highest TP)
         if (peak !== null) {
-          setPeakPrice(peak);
+          setPeakPrice(peak.price);
+          setPeakAt(peak.at || null);
         }
       } catch (error) {
         console.error("[PeakPrice] All providers failed:", error);
@@ -784,6 +799,19 @@ const SignalModal = ({
   if (peakPrice > 0 && entryPrice > 0) {
     peakPricePct = ((Math.abs(Number(peakPrice) - entryPrice) / entryPrice) * 100).toFixed(2);
   }
+
+  // When that high actually happened, and whether the stop had already fired by
+  // then. This peak is by construction beyond the highest TP hit, so it very
+  // often lands after the trade was over — say so instead of letting the badge
+  // read as profit that was on the table.
+  const peakSlAt =
+    signalDetail?.updates?.find((u) => /sl|stop/i.test(u.update_type || ""))?.update_at || null;
+  const peakContext = peakAt
+    ? peakContextLabel({
+        days: daysToPeak(signal?.created_at, new Date(peakAt).toISOString()),
+        afterStop: peakIsAfterStop(new Date(peakAt).toISOString(), peakSlAt),
+      })
+    : null;
 
   // === SIGNAL DATA ===
   const getUpdateInfo = (type) =>
@@ -2233,6 +2261,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           <span className="text-center text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-right">
                             Highest after call
                           </span>
+                          {peakContext && (
+                            <span className="mt-0.5 text-center text-[10px] text-text-muted/70 sm:text-right">
+                              {peakContext}
+                            </span>
+                          )}
                         </div>
                         <div className="hidden h-5 w-px bg-ink/10 sm:block" />
                         <div className="flex items-center gap-3">
