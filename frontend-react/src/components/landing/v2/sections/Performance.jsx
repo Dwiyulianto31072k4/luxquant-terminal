@@ -162,9 +162,9 @@ const INFO = {
   rEdge: {
     title: "Risk-Adjusted Edge",
     lines: [
-      "R is the risk each call defines for itself: 1R = entry minus stop-loss. Every result is measured in multiples of it, so a Bitcoin call and a micro-cap call sit on the same scale.",
-      "Expectancy = average R returned per call. It is the number that decides whether an edge is real — a high win rate on small targets can still lose money.",
-      "How to read: the break-even win rate is what this reward-to-risk geometry demands. The gap between it and the actual win rate is the edge.",
+      "R is the risk each call sets for itself: 1R = entry minus stop-loss. Every result is measured in multiples of it, so a Bitcoin call and a micro-cap call sit on the same scale.",
+      "How to read the ladder: bars right of the line are what each target pays, the bar left of it is what the stop risks. A target shorter than the stop pays less than the trade risks.",
+      "Break-even win rate = what this geometry demands just to stay flat. The distance between that and the win rate above is where the edge actually lives.",
     ],
   },
   patterns: {
@@ -432,6 +432,91 @@ function InfoTip({ info }) {
 }
 
 /**
+ * Reward against risk, on one shared scale.
+ *
+ * The stop runs left of the centre line, the targets right, so the thing you
+ * cannot miss is that TP1 and TP2 are shorter than the stop — the first two
+ * targets pay less than the trade risks. That is the whole argument for why a
+ * win rate quoted alone means nothing, and it reads in one glance.
+ */
+function RrLadder({ geo }) {
+  const rows = [
+    { k: "Stop", r: -1, tone: "loss" },
+    { k: "TP1", r: geo?.median_r_to_tp1, tone: "t1" },
+    { k: "TP2", r: geo?.median_r_to_tp2, tone: "t2" },
+    { k: "TP3", r: geo?.median_r_to_tp3, tone: "t3" },
+    { k: "TP4", r: geo?.median_r_to_tp4, tone: "t4" },
+  ];
+  const maxUp = Math.max(geo?.median_r_to_tp4 || 4.5, 1);
+  // Centre sits where the 1R stop ends, so both sides share one scale.
+  const centre = (1 / (1 + maxUp)) * 100;
+  const fill = {
+    loss: "rgb(var(--neg))",
+    t1: "rgb(var(--accent) / 0.32)",
+    t2: "rgb(var(--accent) / 0.5)",
+    t3: "rgb(var(--accent) / 0.72)",
+    t4: "rgb(var(--accent))",
+  };
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+          Reward against risk
+        </p>
+        {geo?.median_stop_distance_pct != null && (
+          <p className="font-mono text-[9px] text-text-muted">
+            stop ≈ {geo.median_stop_distance_pct.toFixed(1)}% from entry
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 space-y-1.5">
+        {rows.map((row) => {
+          const known = typeof row.r === "number";
+          const w = known ? (Math.abs(row.r) / (1 + maxUp)) * 100 : 0;
+          const neg = row.r < 0;
+          return (
+            <div key={row.k} className="flex items-center gap-2.5">
+              <span className="w-8 flex-shrink-0 font-mono text-[10px] text-text-muted">
+                {row.k}
+              </span>
+              <div className="relative h-3.5 flex-1 rounded-[3px] bg-ink/[0.04]">
+                <span
+                  className="absolute inset-y-0 w-px bg-ink/20"
+                  style={{ left: `${centre}%` }}
+                />
+                {known && (
+                  <span
+                    className="absolute inset-y-0 rounded-[3px]"
+                    style={{
+                      background: fill[row.tone],
+                      width: `${w}%`,
+                      ...(neg ? { right: `${100 - centre}%` } : { left: `${centre}%` }),
+                    }}
+                  />
+                )}
+              </div>
+              <span
+                className={`w-14 flex-shrink-0 text-right font-mono text-[11px] tabular-nums ${
+                  neg ? "text-loss" : "text-text-primary"
+                }`}
+              >
+                {known ? `${neg ? "" : "+"}${row.r.toFixed(2)}R` : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 border-t border-ink/[0.06] pt-2.5 text-[11px] leading-relaxed text-text-muted">
+        TP1 and TP2 both pay less than the stop risks. The edge lives in TP3 and TP4.
+      </p>
+    </div>
+  );
+}
+
+/**
  * A metric the visitor can see exists but not read.
  *
  * The value is never sent — the markup carries bullet glyphs and blurs those,
@@ -618,6 +703,9 @@ export default function Performance({ data }) {
   const [edge, setEdge] = useState(null);
   const [wrbtc, setWrbtc] = useState(null);
   const [timing, setTiming] = useState(null);
+  // Public teaser payload: the R ladder plus the break-even win rate. Everything
+  // else in the R layer stays behind the admin gate on /performance/r-metrics.
+  const [rGeo, setRGeo] = useState(null);
   const [rangeId, setRangeId] = useState("90D");
   const [eventId, setEventId] = useState(null);
   const [customStart, setCustomStart] = useState("");
@@ -664,6 +752,7 @@ export default function Performance({ data }) {
     grab("/api/v1/analytics/edge-lab?days=90&sector=all", setEdge);
     grab("/api/v1/analytics/wr-vs-btc?range=all", setWrbtc);
     grab("/api/v1/signals/journey-insights/ALL", setTiming); // aggregate: all pairs
+    grab("/api/v1/performance/public-summary", setRGeo);
     return () => {
       alive = false;
     };
@@ -990,46 +1079,49 @@ export default function Performance({ data }) {
       </div>
 
       {/* ── RISK-ADJUSTED EDGE — locked teaser ──
- Win rate is public everywhere on this site, so it stays readable. The R
- figures are the paid layer and are NOT rendered as real values here: the
- markup ships bullet glyphs, never the numbers. A CSS blur over the real
- figure would still leave it in the DOM and in the prerendered HTML that
- gets crawled, which is not a gate at all. */}
+ Deliberately does NOT repeat the win rate: it already appears in the KPI
+ strip, the donut and the outcome donut's centre above. A fourth copy is
+ duplicated data-ink and buys nothing.
+
+ What it shows instead is the reward:risk ladder, readable. Those levels are
+ printed on every public signal, so they were never secret, and a preview of
+ the real thing beats a row of blurred numbers — blurring alone tests as no
+ better than showing nothing.
+
+ Only expectancy and cumulative R are held back, and they are NOT rendered as
+ blurred real values: the markup ships glyphs, never the figures, so there is
+ nothing to read in the DOM, in view-source or in the crawled HTML. */}
       <div className="mt-4">
         <Card>
           <CardHead
             title="Risk-Adjusted Edge"
             info={INFO.rEdge}
-            sub="Measured in R — the risk each call defines for itself"
+            sub="Every result in R — the risk each call sets for itself"
           />
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                  Win rate
-                </p>
-                <p className="mt-1.5 font-mono text-[26px] font-bold leading-none tabular-nums text-text-primary">
-                  {stats ? pct(stats.win_rate) : "—"}
-                </p>
-                <p className="mt-1.5 text-[11px] text-text-muted">verified, all time</p>
-              </div>
-              <LockedStat label="Expectancy" hint="per call, in R" />
-              <LockedStat label="Cumulative R" hint="since Dec 2023" />
-              <LockedStat label="Break-even WR" hint="what the geometry needs" />
-            </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-center">
+            <RrLadder geo={rGeo} />
 
-            <div className="flex flex-col gap-2.5 lg:w-56">
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <LockedStat label="Expectancy" hint="per call, in R" />
+                <LockedStat label="Cumulative R" hint="since Dec 2023" />
+              </div>
               <p className="text-[12px] leading-relaxed text-text-muted">
-                A win rate on its own cannot tell you whether a strategy makes money. The R layer
-                can — reward against risk on every target, expectancy per call, and the full
-                equity curve.
+                A win rate cannot tell you whether a strategy makes money — the reward behind it
+                decides that. This ladder needs{" "}
+                <span className="font-semibold text-text-primary">
+                  {rGeo?.breakeven_win_rate_pct != null
+                    ? `a ${rGeo.breakeven_win_rate_pct.toFixed(1)}% win rate`
+                    : "a far lower win rate"}
+                </span>{" "}
+                just to break even. Compare that with the number above.
               </p>
               <button
                 type="button"
                 onClick={() => navigate("/performance")}
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-[12px] font-semibold text-text-primary transition-all hover:border-ink/25 hover:bg-ink/[0.06]"
               >
-                Sign in to view the R breakdown
+                See the full R breakdown
                 <span aria-hidden="true">→</span>
               </button>
             </div>
