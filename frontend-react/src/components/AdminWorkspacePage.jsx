@@ -36,6 +36,7 @@ import { AiCostTab } from "./admin/workspace/AiCostTab";
 import { StatusTab } from "./admin/workspace/StatusTab";
 import { ResourcesTab } from "./admin/workspace/ResourcesTab";
 import SocialPostsAdminPage from "./SocialPostsAdminPage";
+import SignalCardsAdminPage from "./SignalCardsAdminPage";
 
 // Design system
 import { palette, tint, motion, NEUTRAL } from "./admin/designSystem";
@@ -156,6 +157,13 @@ const TABS = [
     id: "socialposts",
     label: "Social Posts",
     description: "AI-generated post drafts",
+    Icon: BroadcastConeIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "signalcards",
+    label: "Signal Cards",
+    description: "Automated card scheduler & drafts",
     Icon: BroadcastConeIcon,
     accent: NEUTRAL,
   },
@@ -623,6 +631,7 @@ const AdminWorkspacePage = () => {
         {activeTab === "apikeys" && <ApiKeysTab />}
         {activeTab === "announcements" && <AnnouncementsTab />}
         {activeTab === "socialposts" && <SocialPostsAdminPage />}
+        {activeTab === "signalcards" && <SignalCardsAdminPage />}
         {activeTab === "resources" && <ResourcesTab />}
         {activeTab === "system" && <SystemTab />}
         {activeTab === "status" && <StatusTab />}
