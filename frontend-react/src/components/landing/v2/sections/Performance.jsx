@@ -438,6 +438,16 @@ function InfoTip({ info }) {
  * cannot miss is that TP1 and TP2 are shorter than the stop — the first two
  * targets pay less than the trade risks. That is the whole argument for why a
  * win rate quoted alone means nothing, and it reads in one glance.
+ *
+ * The bars are real and the target figures are not shown: the shape is what
+ * makes the argument, the exact multiples are the paid layer. The stop keeps its
+ * label because -1.00R is the definition of R, not a result — it is what gives
+ * the other five bars a scale to be read against.
+ *
+ * Note this gates reading, not arithmetic: bar widths are set from the real
+ * medians, so the multiples are recoverable from the inline styles by anyone who
+ * bothers. That is deliberate — faking the widths to close that gap would put a
+ * dishonest chart on the page, which costs more than the numbers are worth.
  */
 function RrLadder({ geo }) {
   const rows = [
@@ -497,13 +507,19 @@ function RrLadder({ geo }) {
                   />
                 )}
               </div>
-              <span
-                className={`w-14 flex-shrink-0 text-right font-mono text-[11px] tabular-nums ${
-                  neg ? "text-loss" : "text-text-primary"
-                }`}
-              >
-                {known ? `${neg ? "" : "+"}${row.r.toFixed(2)}R` : "—"}
-              </span>
+              {neg ? (
+                <span className="w-14 flex-shrink-0 text-right font-mono text-[11px] tabular-nums text-loss">
+                  −1.00R
+                </span>
+              ) : (
+                <span
+                  aria-label={`${row.k} reward — sign in to view`}
+                  className="w-14 flex-shrink-0 select-none text-right font-mono text-[11px] tabular-nums text-text-primary/50"
+                  style={{ filter: "blur(4px)" }}
+                >
+                  <span aria-hidden="true">+0.00R</span>
+                </span>
+              )}
             </div>
           );
         })}
