@@ -19,10 +19,13 @@ to its stop and later ran to a target is recorded at that target. This module
 does not reinterpret that; it is the platform's definition of an outcome and the
 API already serves it everywhere.
 
-Terminology used below, to keep the two populations from blurring together:
-  · closed  — outcome tp4 (ran the whole ladder) or sl (never reached a target)
-  · runners — outcome tp1/tp2/tp3: a target is banked but the call has not
-              finished, so its R is marked at the best target reached so far
+Two populations, and `hit` is the default:
+  · hit    — every call that reached something: tp1/tp2/tp3/tp4 or sl. Calls
+             still sitting at open (no outcome at all) are never included, here
+             or anywhere else in this module — they have no result to measure.
+             tp1/tp2/tp3 calls are marked at the best target reached so far.
+  · closed — the subset that finished the ladder or died at the stop: tp4 or sl.
+             Every R in it is realised.
 """
 
 import statistics
@@ -62,6 +65,7 @@ def _fetch_trades(db, since=None, until=None):
     sql = f"""
         SELECT s.signal_id,
                s.pair,
+               s.risk_level,
                s.created_at::timestamptz AS called_at,
                co.outcome,
                {TARGET_R_SQL} AS r
@@ -245,30 +249,55 @@ def rr_geometry(db):
     }
 
 
-def compute(db, since=None, until=None, include_runners=False):
-    """Full R report. `include_runners` folds tp1/tp2/tp3 calls in at their best
-    target so far; leave it off for the closed-only book."""
+# risk_level arrives from the scraper in mixed case and two spellings of the
+# middle rung ('Medium' and 'med'), so it is folded before being grouped on.
+_RISK_ALIASES = {"med": "medium"}
+
+
+def _risk_label(raw):
+    if not raw:
+        return "unlabelled"
+    key = str(raw).strip().lower()
+    return _RISK_ALIASES.get(key, key)
+
+
+def compute(db, since=None, until=None, population="hit"):
+    """Full R report over calls that reached something.
+
+    population="hit"    — every call with an outcome (tp1/tp2/tp3/tp4/sl).
+                          tp1-tp3 are marked at the best target so far.
+    population="closed" — only tp4 and sl, where every R is realised.
+
+    Calls with no outcome at all (open) are excluded from both: there is
+    nothing to measure yet.
+    """
+    if population not in ("hit", "closed"):
+        raise ValueError("population must be 'hit' or 'closed'")
+
     rows = _fetch_trades(db, since, until)
     rows = [r for r in rows if r.r is not None]
 
-    closed = [r for r in rows if r.outcome in ("tp4", "sl")]
-    runners = [r for r in rows if r.outcome in ("tp1", "tp2", "tp3")]
-    population = closed + runners if include_runners else closed
-    population = sorted(population, key=lambda r: r.called_at)
+    if population == "closed":
+        selected = [r for r in rows if r.outcome in ("tp4", "sl")]
+    else:
+        selected = rows
+    selected = sorted(selected, key=lambda r: r.called_at)
 
-    rs = [float(r.r) for r in population]
+    rs = [float(r.r) for r in selected]
     report = _core(rs)
-    report["population"] = "closed + runners marked at best target" if include_runners else "closed only (tp4 or sl)"
+    report["population"] = population
+    report["population_meaning"] = (
+        "every call that reached a target or its stop; tp1-tp3 marked at best target so far"
+        if population == "hit" else
+        "only calls that finished the ladder (tp4) or died at the stop (sl)"
+    )
     report["counts"] = {
-        "closed_tp4": sum(1 for r in closed if r.outcome == "tp4"),
-        "closed_sl": sum(1 for r in closed if r.outcome == "sl"),
-        "runners_tp1": sum(1 for r in runners if r.outcome == "tp1"),
-        "runners_tp2": sum(1 for r in runners if r.outcome == "tp2"),
-        "runners_tp3": sum(1 for r in runners if r.outcome == "tp3"),
+        outcome: sum(1 for r in selected if r.outcome == outcome)
+        for outcome in ("tp1", "tp2", "tp3", "tp4", "sl")
     }
 
-    months = _period_buckets(population, "month")
-    weeks = _period_buckets(population, "week")
+    months = _period_buckets(selected, "month")
+    weeks = _period_buckets(selected, "week")
     sharpe, mean_monthly = _monthly_sharpe(months)
     report["monthly_sharpe_annualised"] = sharpe
     report["mean_monthly_r"] = mean_monthly
@@ -276,17 +305,40 @@ def compute(db, since=None, until=None, include_runners=False):
     report["weekly"] = _period_table(weeks)
 
     by_outcome = defaultdict(list)
-    for r in population:
+    for r in selected:
         by_outcome[r.outcome].append(float(r.r))
     report["by_outcome"] = {
-        k: {"trades": len(v), "total_r": round(sum(v), 2), "avg_r": round(statistics.fmean(v), 4)}
+        k: {
+            "trades": len(v),
+            "total_r": round(sum(v), 2),
+            "avg_r": round(statistics.fmean(v), 4),
+            "share_of_gross_win_pct": (
+                round(100 * sum(v) / report["gross_win_r"], 2)
+                if sum(v) > 0 and report.get("gross_win_r") else None
+            ),
+        }
         for k, v in sorted(by_outcome.items())
     }
 
-    if population:
+    # Does the risk tag on the call predict anything? Grouped on the folded
+    # label so 'High' and 'high' do not read as two different cohorts.
+    by_risk = defaultdict(list)
+    for r in selected:
+        by_risk[_risk_label(r.risk_level)].append(float(r.r))
+    report["by_risk_level"] = {
+        k: {
+            "trades": len(v),
+            "win_rate_pct": round(100 * sum(1 for x in v if x > 0) / len(v), 2),
+            "expectancy_r": round(statistics.fmean(v), 4),
+            "total_r": round(sum(v), 2),
+        }
+        for k, v in sorted(by_risk.items(), key=lambda kv: -len(kv[1]))
+    }
+
+    if selected:
         report["window"] = {
-            "first_call": population[0].called_at.isoformat(),
-            "last_call": population[-1].called_at.isoformat(),
+            "first_call": selected[0].called_at.isoformat(),
+            "last_call": selected[-1].called_at.isoformat(),
         }
     return report
 

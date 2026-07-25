@@ -37,21 +37,23 @@ def _parse_date(value: Optional[str], field: str):
 def r_metrics(
     since: Optional[str] = Query(None, description="ISO date — only calls made on/after this"),
     until: Optional[str] = Query(None, description="ISO date — only calls made before this"),
-    include_runners: bool = Query(
-        False,
-        description="Fold tp1/tp2/tp3 calls in at the best target reached so far. "
-                    "Off = closed book only (tp4 or sl).",
+    population: str = Query(
+        "hit",
+        pattern="^(hit|closed)$",
+        description="hit = every call that reached a target or its stop (default). "
+                    "closed = only tp4 and sl, where every R is realised. "
+                    "Calls still open are in neither.",
     ),
     db: Session = Depends(get_db),
     _admin: User = Depends(get_admin_user),
 ):
-    """Win rate, expectancy, profit factor, R-multiples, drawdown, SQN, and the
-    monthly/weekly R series — the whole performance layer in one payload."""
+    """Win rate, expectancy, profit factor, R-multiples, drawdown, SQN, the
+    monthly/weekly R series, and breakdowns by outcome and risk level."""
     return pm.compute(
         db,
         since=_parse_date(since, "since"),
         until=_parse_date(until, "until"),
-        include_runners=include_runners,
+        population=population,
     )
 
 
