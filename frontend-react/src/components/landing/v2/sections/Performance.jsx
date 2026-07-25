@@ -159,6 +159,14 @@ const INFO = {
       "Filter by a market period or custom dates — and click any day to reveal that day's winning calls.",
     ],
   },
+  rEdge: {
+    title: "Risk-Adjusted Edge",
+    lines: [
+      "R is the risk each call defines for itself: 1R = entry minus stop-loss. Every result is measured in multiples of it, so a Bitcoin call and a micro-cap call sit on the same scale.",
+      "Expectancy = average R returned per call. It is the number that decides whether an edge is real — a high win rate on small targets can still lose money.",
+      "How to read: the break-even win rate is what this reward-to-risk geometry demands. The gap between it and the actual win rate is the edge.",
+    ],
+  },
   patterns: {
     title: "Highest-Edge Patterns",
     lines: [
@@ -420,6 +428,49 @@ function InfoTip({ info }) {
         </div>
       )}
     </span>
+  );
+}
+
+/**
+ * A metric the visitor can see exists but not read.
+ *
+ * The value is never sent — the markup carries bullet glyphs and blurs those,
+ * so there is nothing to recover from the DOM, from view-source, or from the
+ * prerendered HTML the crawler receives. Blurring a real number would only
+ * hide it from people who do not open devtools.
+ */
+function LockedStat({ label, hint }) {
+  return (
+    <div>
+      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
+      <p
+        aria-label={`${label} — sign in to view`}
+        className="mt-1.5 select-none font-mono text-[26px] font-bold leading-none tabular-nums text-text-primary/45"
+        style={{ filter: "blur(6px)" }}
+      >
+        <span aria-hidden="true">••••</span>
+      </p>
+      <p className="mt-1.5 flex items-center gap-1 text-[11px] text-text-muted">
+        <LockIcon />
+        {hint}
+      </p>
+    </div>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      className="h-2.5 w-2.5 flex-shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      aria-hidden="true"
+    >
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
   );
 }
 
@@ -935,6 +986,54 @@ export default function Performance({ data }) {
           ) : (
             <Spinner />
           )}
+        </Card>
+      </div>
+
+      {/* ── RISK-ADJUSTED EDGE — locked teaser ──
+ Win rate is public everywhere on this site, so it stays readable. The R
+ figures are the paid layer and are NOT rendered as real values here: the
+ markup ships bullet glyphs, never the numbers. A CSS blur over the real
+ figure would still leave it in the DOM and in the prerendered HTML that
+ gets crawled, which is not a gate at all. */}
+      <div className="mt-4">
+        <Card>
+          <CardHead
+            title="Risk-Adjusted Edge"
+            info={INFO.rEdge}
+            sub="Measured in R — the risk each call defines for itself"
+          />
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+                  Win rate
+                </p>
+                <p className="mt-1.5 font-mono text-[26px] font-bold leading-none tabular-nums text-text-primary">
+                  {stats ? pct(stats.win_rate) : "—"}
+                </p>
+                <p className="mt-1.5 text-[11px] text-text-muted">verified, all time</p>
+              </div>
+              <LockedStat label="Expectancy" hint="per call, in R" />
+              <LockedStat label="Cumulative R" hint="since Dec 2023" />
+              <LockedStat label="Break-even WR" hint="what the geometry needs" />
+            </div>
+
+            <div className="flex flex-col gap-2.5 lg:w-56">
+              <p className="text-[12px] leading-relaxed text-text-muted">
+                A win rate on its own cannot tell you whether a strategy makes money. The R layer
+                can — reward against risk on every target, expectancy per call, and the full
+                equity curve.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/performance")}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-[12px] font-semibold text-text-primary transition-all hover:border-ink/25 hover:bg-ink/[0.06]"
+              >
+                Sign in to view the R breakdown
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
         </Card>
       </div>
 
