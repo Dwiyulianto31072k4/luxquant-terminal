@@ -816,22 +816,39 @@ export const SignalDetailModal = ({
         const startTime = new Date(created).getTime();
         if (isNaN(startTime)) return;
 
-        const extractPeak = (candles, gH) => {
+        // For a STOPPED trade, cap the peak at the stop time — the coin's later
+        // run-up is post-stop (shown separately as "After the stop"), not the
+        // trade's peak. Without this the header read the coin's all-time high
+        // (NAORIS: +20% weeks later while the trade lost -4.4%). Winners keep
+        // the full window — that's the marketing run-up number.
+        const status = String(detail.status || item?.outcome || "").toLowerCase();
+        const isLoss = status.includes("loss") || status === "sl";
+        let endTs = null;
+        if (isLoss && Array.isArray(detail.updates) && detail.updates.length) {
+          const slUpd = detail.updates.find((u) => /sl|stop/i.test(u.update_type || ""));
+          const t = (slUpd || detail.updates[detail.updates.length - 1])?.update_at;
+          const ms = t ? Date.parse(t) : NaN;
+          if (!Number.isNaN(ms)) endTs = ms;
+        }
+
+        const extractPeak = (candles, gH, gT) => {
           if (!Array.isArray(candles) || candles.length === 0) return null;
           let best = entryVal;
-          let bestTs = null;
           candles.forEach((c) => {
-            const h = gH(c);
-            if (h > best) {
-              best = h;
-              bestTs = c;
+            if (endTs != null && gT) {
+              const ts = gT(c);
+              if (ts != null && ts > endTs) return; // ignore post-stop candles
             }
+            const h = gH(c);
+            if (h > best) best = h;
           });
           return best > entryVal ? best : null;
         };
 
         const bH = (c) => parseFloat(c[2]);
+        const bT = (c) => Number(c[0]); // Binance open_time (ms)
         const yH = (c) => parseFloat(c.high || c[2]);
+        const yT = (c) => Number(c.ts); // Bybit start (ms)
 
         let peak = null;
 
@@ -841,7 +858,7 @@ export const SignalDetailModal = ({
           );
           if (r.ok) {
             const d = await r.json();
-            if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH);
+            if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH, bT);
           }
         } catch {}
         if (!peak) {
@@ -851,7 +868,7 @@ export const SignalDetailModal = ({
             );
             if (r.ok) {
               const d = await r.json();
-              if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH);
+              if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH, bT);
             }
           } catch {}
         }
@@ -862,8 +879,8 @@ export const SignalDetailModal = ({
             );
             if (r.ok) {
               const j = await r.json();
-              const list = (j?.result?.list || []).map((k) => ({ high: k[2] }));
-              peak = extractPeak(list, yH);
+              const list = (j?.result?.list || []).map((k) => ({ high: k[2], ts: k[0] }));
+              peak = extractPeak(list, yH, yT);
             }
           } catch {}
         }
@@ -874,8 +891,8 @@ export const SignalDetailModal = ({
             );
             if (r.ok) {
               const j = await r.json();
-              const list = (j?.result?.list || []).map((k) => ({ high: k[2] }));
-              peak = extractPeak(list, yH);
+              const list = (j?.result?.list || []).map((k) => ({ high: k[2], ts: k[0] }));
+              peak = extractPeak(list, yH, yT);
             }
           } catch {}
         }
@@ -886,8 +903,8 @@ export const SignalDetailModal = ({
             );
             if (r.ok) {
               const j = await r.json();
-              const list = (j?.result?.list || []).map((k) => ({ high: k[2] }));
-              peak = extractPeak(list, yH);
+              const list = (j?.result?.list || []).map((k) => ({ high: k[2], ts: k[0] }));
+              peak = extractPeak(list, yH, yT);
             }
           } catch {}
         }
