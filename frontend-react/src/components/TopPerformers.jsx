@@ -783,6 +783,7 @@ export const SignalDetailModal = ({
   const [isClosing, setIsClosing] = useState(false);
   const [showTV, setShowTV] = useState(false);
   const [peakPrice, setPeakPrice] = useState(null);
+  const [peakIsPostStop, setPeakIsPostStop] = useState(false);
   const [appTheme, setAppTheme] = useState(getActiveTheme);
   const pair = cleanPair(item.pair || detail?.pair);
   const total = signalIds.length;
@@ -805,6 +806,7 @@ export const SignalDetailModal = ({
   useEffect(() => {
     setShowTV(false);
     setPeakPrice(null);
+    setPeakIsPostStop(false);
   }, [currentIndex]);
 
   useEffect(() => {
@@ -816,33 +818,28 @@ export const SignalDetailModal = ({
         const startTime = new Date(created).getTime();
         if (isNaN(startTime)) return;
 
-        // For a STOPPED trade, cap the peak at the stop time — the coin's later
-        // run-up is post-stop (shown separately as "After the stop"), not the
-        // trade's peak. Without this the header read the coin's all-time high
-        // (NAORIS: +20% weeks later while the trade lost -4.4%). Winners keep
-        // the full window — that's the marketing run-up number.
-        const status = String(detail.status || item?.outcome || "").toLowerCase();
-        const isLoss = status.includes("loss") || status === "sl";
-        let endTs = null;
-        if (isLoss && Array.isArray(detail.updates) && detail.updates.length) {
-          const slUpd = detail.updates.find((u) => /sl|stop/i.test(u.update_type || ""));
-          const t = (slUpd || detail.updates[detail.updates.length - 1])?.update_at;
-          const ms = t ? Date.parse(t) : NaN;
-          if (!Number.isNaN(ms)) endTs = ms;
-        }
+        // The peak is the coin's high over the whole window (the impressive
+        // number the founder wants shown). For a stopped-out call that high is
+        // usually AFTER the stop — we detect that by comparing the peak candle's
+        // time to the stop time, and the header tags it "after stop" so a losing
+        // trade never looks like it peaked +20% in-position.
+        const slUpd = Array.isArray(detail.updates)
+          ? detail.updates.find((u) => /sl|stop/i.test(u.update_type || ""))
+          : null;
+        const slTs = slUpd?.update_at ? Date.parse(slUpd.update_at) : NaN;
 
         const extractPeak = (candles, gH, gT) => {
           if (!Array.isArray(candles) || candles.length === 0) return null;
           let best = entryVal;
+          let bestTs = null;
           candles.forEach((c) => {
-            if (endTs != null && gT) {
-              const ts = gT(c);
-              if (ts != null && ts > endTs) return; // ignore post-stop candles
-            }
             const h = gH(c);
-            if (h > best) best = h;
+            if (h > best) {
+              best = h;
+              bestTs = gT ? gT(c) : null;
+            }
           });
-          return best > entryVal ? best : null;
+          return best > entryVal ? { price: best, ts: bestTs } : null;
         };
 
         const bH = (c) => parseFloat(c[2]);
@@ -909,7 +906,10 @@ export const SignalDetailModal = ({
           } catch {}
         }
 
-        if (peak) setPeakPrice(peak);
+        if (peak) {
+          setPeakPrice(peak.price);
+          setPeakIsPostStop(peak.ts != null && !Number.isNaN(slTs) && peak.ts > slTs);
+        }
       } catch (e) {
         console.error("[PeakPrice] failed:", e);
       }
@@ -1393,6 +1393,11 @@ export const SignalDetailModal = ({
                 <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
                     Peak
+                    {peakPrice && peakIsPostStop && (
+                      <span className="ml-1 rounded-sm bg-accent/12 px-1 py-px text-[7.5px] font-semibold normal-case tracking-normal text-accent">
+                        after stop
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
                     {peakPrice ? `$${formatPrice(peakPrice)}` : "—"}
@@ -1402,6 +1407,11 @@ export const SignalDetailModal = ({
                       </span>
                     )}
                   </p>
+                  {peakPrice && peakIsPostStop && (
+                    <p className="mt-0.5 text-[8.5px] leading-tight text-text-muted/70">
+                      coin&apos;s high after the trade stopped — not realized
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
