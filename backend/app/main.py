@@ -65,6 +65,7 @@ from app.api.routes.onchain_endpoint import router as onchain_router
 from app.api.routes.fx import router as fx_router
 from app.api.routes import assistant
 from app.api.routes import ai_cost
+from app.api.routes import marketing_x_usage
 
 
 
@@ -293,6 +294,7 @@ app.include_router(finance.router, tags=["finance"])
 app.include_router(growth.router, tags=["growth"])
 app.include_router(assistant.router, prefix="/api/v1", tags=["assistant"])
 app.include_router(ai_cost.router, tags=["ai-cost"])
+app.include_router(marketing_x_usage.router, tags=["x-usage"])
 
 
 # ═══════════════════════════════════════════

@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
 import { CampaignPanel } from "./CampaignPanel";
+import { XApiSpendPanel } from "./XApiSpendPanel";
 import { ConfirmModal } from "../users/ConfirmModal";
 import {
   PlusIcon,
@@ -492,6 +493,16 @@ export const MarketingTab = ({ onRefreshStats }) => {
   return (
     <div className="space-y-5">
       <Toast toast={toast} />
+
+      <XApiSpendPanel />
+
+      <div
+        className="h-px w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgb(var(--ink) / 0.12), transparent)",
+        }}
+      />
 
       <MarketingHeader onCreate={handleCreate} />
 

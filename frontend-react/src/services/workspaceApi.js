@@ -44,6 +44,26 @@ export const workspaceApi = {
   },
 
   // ════════════════════════════════════
+  // X API USAGE & SPEND (Marketing tab)
+  // ════════════════════════════════════
+  getXUsageSummary: async (days = 30) => {
+    const response = await api.get("/api/v1/workspace/x-usage/summary", { params: { days } });
+    return response.data;
+  },
+  getXUsageRecent: async (limit = 50) => {
+    const response = await api.get("/api/v1/workspace/x-usage/recent", { params: { limit } });
+    return response.data;
+  },
+  getXUsageSettings: async () => {
+    const response = await api.get("/api/v1/workspace/x-usage/settings");
+    return response.data;
+  },
+  getXUsageTopups: async (limit = 40) => {
+    const response = await api.get("/api/v1/workspace/x-usage/topups", { params: { limit } });
+    return response.data;
+  },
+
+  // ════════════════════════════════════
   // FOLLOW-UPS
   // ════════════════════════════════════
   listFollowups: async (filters = {}) => {
