@@ -4,6 +4,7 @@
 // (image left, caption right) as a mirror preview of the eventual post.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import api from "../services/authApi";
 import { useDialog } from "../hooks/useDialog";
 
@@ -166,6 +167,175 @@ const awaitingImage = (post) =>
     (needsMaterials(post) && !post?.image_url)
   );
 
+// ── News picker modal: browse the crypto-news feed and click a story ──
+const _timeAgo = (iso) => {
+  if (!iso) return "";
+  const d = new Date(String(iso).replace(" ", "T"));
+  const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+};
+
+const NewsPickerModal = ({ onClose, onPick, currentId }) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [err, setErr] = useState(null);
+
+  const load = useCallback(async (search) => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await api.get("/api/v1/crypto-news-feed/feed", {
+        params: { limit: 48, ...(search ? { search } : {}) },
+      });
+      setItems(Array.isArray(res.data?.items) ? res.data.items : []);
+    } catch {
+      setErr("Failed to load news feed");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-3xl max-h-[86vh] flex flex-col rounded-2xl border border-ink/15 overflow-hidden shadow-2xl"
+        style={{ background: "linear-gradient(160deg, rgb(var(--surface-raised)) 0%, rgb(var(--surface)) 100%)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-ink/10">
+          <div className="min-w-0">
+            <h3 className="text-text-primary text-[15px] font-semibold tracking-tight">Choose news</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">Click a story to turn it into a post</p>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              load(q.trim());
+            }}
+            className="ml-auto flex items-center rounded-lg border border-ink/[0.1] bg-ink/[0.04] overflow-hidden"
+          >
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search headlines…"
+              className="w-36 sm:w-52 px-3 py-2 bg-transparent text-text-primary text-[12px] placeholder:text-text-muted/50 focus:outline-none"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQ("");
+                  load();
+                }}
+                className="px-2 text-text-muted hover:text-text-primary text-[13px]"
+              >
+                ✕
+              </button>
+            )}
+          </form>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-colors shrink-0"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* body */}
+        <div className="overflow-y-auto p-4">
+          {loading ? (
+            <div className="py-16 text-center text-text-muted text-[13px]">Loading news…</div>
+          ) : err ? (
+            <div className="py-16 text-center text-loss text-[13px]">{err}</div>
+          ) : items.length === 0 ? (
+            <div className="py-16 text-center text-text-muted text-[13px]">No stories found.</div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {items.map((it) => {
+                const selected = String(it.id) === String(currentId);
+                return (
+                  <button
+                    key={it.id}
+                    onClick={() => onPick(it)}
+                    className={`group text-left rounded-xl overflow-hidden border transition-all ${
+                      selected
+                        ? "border-accent ring-2 ring-accent/40"
+                        : "border-ink/10 hover:border-accent/50 hover:-translate-y-0.5"
+                    }`}
+                  >
+                    <div className="relative aspect-[16/10] bg-ink/10 overflow-hidden">
+                      {it.image_url ? (
+                        <img
+                          src={it.image_url}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                      <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                      <span className="absolute top-2 left-2 text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/55 text-white/85">
+                        #{it.id}
+                      </span>
+                      {it.content_type && it.content_type !== "article" && (
+                        <span className="absolute top-2 right-2 text-[8px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent/80 text-accent-fg">
+                          {it.content_type}
+                        </span>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 p-2.5">
+                        <p
+                          className="text-white text-[12px] font-semibold leading-tight"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {it.title}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 bg-ink/[0.03]">
+                      <span className="text-[10px] text-text-muted truncate">{it.domain || "news"}</span>
+                      <span className="ml-auto text-[10px] text-text-muted/70 shrink-0">
+                        {_timeAgo(it.created_at) && `${_timeAgo(it.created_at)} ago`}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 // ── Generation console: durable progress that survives refresh ──
 const GenerationConsole = ({
   job,
@@ -185,6 +355,10 @@ const GenerationConsole = ({
   const progress = Math.max(0, Math.min(100, Number(job?.progress ?? 0)));
   const elapsed = elapsedLabel(job?.started_at);
   const [tick, setTick] = useState(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickedItem, setPickedItem] = useState(null);
+  const pickedTitle =
+    pickedItem && String(pickedItem.id) === String(newsId) ? pickedItem.title : "";
 
   // Live elapsed timer while running
   useEffect(() => {
@@ -205,6 +379,7 @@ const GenerationConsole = ({
   const glow = isRunning ? "shadow-[0_0_40px_-12px_rgb(var(--accent) / 0.45)]" : "";
 
   return (
+    <>
     <div
       className={`relative mb-5 rounded-xl border ${borderTone} ${glow} overflow-hidden`}
       style={{
@@ -285,29 +460,61 @@ const GenerationConsole = ({
 
           {/* Controls */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.04] overflow-hidden">
-              <label className="sr-only" htmlFor="gen-news-id">
-                News ID
-              </label>
-              <input
-                id="gen-news-id"
-                value={newsId}
-                onChange={(e) => setNewsId(e.target.value)}
+            {/* News picker — click to browse the feed instead of pasting an ID */}
+            {newsId ? (
+              <div className="flex items-center gap-2 rounded-lg border border-accent/35 bg-accent/[0.07] pl-2 pr-1 py-1 max-w-[300px]">
+                {pickedItem?.image_url && String(pickedItem.id) === String(newsId) ? (
+                  <img
+                    src={pickedItem.image_url}
+                    alt=""
+                    className="w-7 h-7 rounded object-cover shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <span className="w-7 h-7 rounded bg-accent/15 text-accent flex items-center justify-center text-[11px] font-mono shrink-0">
+                    #
+                  </span>
+                )}
+                <span className="text-[11.5px] text-text-primary truncate min-w-0">
+                  {pickedTitle || `News #${newsId}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewsId("");
+                    setPickedItem(null);
+                  }}
+                  disabled={isRunning || starting}
+                  className="w-6 h-6 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-ink/10 shrink-0 disabled:opacity-50"
+                  aria-label="Clear selected news"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
                 disabled={isRunning || starting}
-                placeholder="News ID (optional)"
-                className="w-32 sm:w-36 px-3 py-2 bg-transparent text-text-primary text-[12px] placeholder:text-text-muted/50 focus:outline-none disabled:opacity-50"
-              />
-              <div className="w-px self-stretch bg-ink/[0.08]" />
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                disabled={isRunning || starting}
-                className="px-2.5 py-2 bg-transparent text-text-muted text-[11px] font-mono focus:outline-none disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[12px] text-text-primary hover:border-accent/45 hover:bg-accent/[0.05] transition-colors disabled:opacity-50"
               >
-                <option value="x">X / Twitter</option>
-                <option value="instagram">Instagram</option>
-              </select>
-            </div>
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-4 h-4 text-accent"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M7 8h6M7 12h10M7 16h10" strokeLinecap="round" />
+                </svg>
+                Choose news
+                <span className="text-text-muted text-[11px]">or auto</span>
+              </button>
+            )}
+
             <button
               onClick={onGenerate}
               disabled={isRunning || starting}
@@ -454,6 +661,18 @@ const GenerationConsole = ({
         )}
       </div>
     </div>
+    {pickerOpen && (
+      <NewsPickerModal
+        currentId={newsId}
+        onClose={() => setPickerOpen(false)}
+        onPick={(item) => {
+          setNewsId(String(item.id));
+          setPickedItem(item);
+          setPickerOpen(false);
+        }}
+      />
+    )}
+    </>
   );
 };
 
@@ -505,6 +724,9 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
+  const [showManual, setShowManual] = useState(false);
+  const [brief, setBrief] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -564,17 +786,115 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const reRender = async () => {
     setBusy("__render__");
     setErr(null);
+    const startedAt = Date.now();
+    const MAX_MS = 210000; // ~3.5 min ceiling
+
+    // The paid AI image edit can take 1–3 min, which blows past Cloudflare's ~100s
+    // edge timeout (524). The backend keeps working and finishes anyway, so we don't
+    // surface that error — we poll the post until the fresh image lands, then refresh.
+    const direct = api
+      .post(`/api/v1/admin/social-posts/${postId}/re-render`)
+      .then((res) => res?.data?.post || null)
+      .catch((e) => {
+        // A real validation error (e.g. still-missing materials) should show; a
+        // gateway timeout should not — fall through to polling for those.
+        const status = e?.response?.status;
+        const d = e?.response?.data?.detail;
+        if (status && status !== 502 && status !== 503 && status !== 504 && status !== 524) {
+          const msg =
+            (typeof d === "object" && d?.message) || (typeof d === "string" ? d : null);
+          if (msg) throw new Error(msg);
+        }
+        return null;
+      });
+
+    const findPost = async () => {
+      try {
+        const res = await api.get("/api/v1/admin/social-posts", { params: { limit: 80 } });
+        const list = Array.isArray(res.data) ? res.data : [];
+        return list.find((p) => String(p.id) === String(postId)) || null;
+      } catch {
+        return null;
+      }
+    };
+    const isReady = (p) => Boolean(p && p.image_url && !awaitingImage(p));
+
     try {
-      const res = await api.post(`/api/v1/admin/social-posts/${postId}/re-render`);
+      // Recompose (free) returns in ~2s; the AI path won't beat the 10s race → poll.
+      let post = await Promise.race([
+        direct,
+        new Promise((r) => setTimeout(() => r(null), 10000)),
+      ]);
+      while (!isReady(post) && Date.now() - startedAt < MAX_MS) {
+        await new Promise((r) => setTimeout(r, 4000));
+        const p = await findPost();
+        if (isReady(p)) {
+          post = p;
+          break;
+        }
+      }
+      await load();
+      if (isReady(post)) {
+        if (onUpdated) onUpdated(post);
+      } else {
+        setErr(
+          "Image is still finishing — this can take up to ~3 min. Click Refresh in a moment to see it."
+        );
+      }
+    } catch (e) {
+      setErr(e?.message || "Re-render failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const loadBrief = useCallback(async () => {
+    try {
+      const res = await api.get(`/api/v1/admin/social-posts/${postId}/manual-brief`);
+      setBrief(res.data);
+      return res.data;
+    } catch {
+      setErr("Couldn't build the manual brief");
+      return null;
+    }
+  }, [postId]);
+
+  const openManual = async () => {
+    setShowManual((v) => !v);
+    if (!brief) await loadBrief();
+  };
+
+  const copyPrompt = async () => {
+    const b = brief || (await loadBrief());
+    if (!b?.prompt) return;
+    try {
+      await navigator.clipboard.writeText(b.prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setErr("Clipboard blocked — select the prompt text and copy manually.");
+    }
+  };
+
+  const uploadManualImage = async (file) => {
+    if (!file) return;
+    setBusy("__manual__");
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await api.post(`/api/v1/admin/social-posts/${postId}/manual-image`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       await load();
       if (onUpdated && res.data?.post) onUpdated(res.data.post);
     } catch (e) {
-      const d = e?.response?.data?.detail;
-      setErr(
-        (typeof d === "object" && d?.message) ||
-          (typeof d === "string" ? d : null) ||
-          "Re-render failed"
-      );
+      const status = e?.response?.status;
+      if (status === 413) {
+        setErr("Image too large for the server — export a smaller file (under ~20MB) and try again.");
+      } else {
+        setErr(e?.response?.data?.detail || "Upload failed — must be an image file under 20MB.");
+      }
     } finally {
       setBusy(null);
     }
@@ -638,6 +958,95 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
           ) : null}
         </p>
       )}
+
+      {/* Bring-your-own image (e.g. Gemini) — an alternative to uploading assets + auto-gen */}
+      <div className="rounded-lg border border-accent/30 bg-accent/[0.06] overflow-hidden">
+        <button
+          type="button"
+          onClick={openManual}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-accent/[0.04] transition-colors"
+        >
+          <span className="inline-flex items-center gap-2 min-w-0">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-accent shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="2" />
+            </svg>
+            <span className="min-w-0">
+              <span className="block text-[12px] font-semibold text-accent leading-tight">
+                Make it yourself with Gemini — free
+              </span>
+              <span className="block text-[10px] text-text-muted leading-tight mt-0.5">
+                Copy the prompt, generate in Gemini, upload it — no asset uploads needed
+              </span>
+            </span>
+          </span>
+          <span className="text-[11px] font-mono text-accent shrink-0">{showManual ? "▲" : "▼"}</span>
+        </button>
+        {showManual && (
+          <div className="px-3 pb-3 pt-3 space-y-2.5 border-t border-accent/15">
+            <button
+              type="button"
+              onClick={copyPrompt}
+              className="w-full px-3 py-2 rounded-lg text-[12px] font-semibold border border-ink/15 bg-ink/[0.04] text-text-primary hover:bg-ink/[0.08] transition-colors"
+            >
+              {copied ? "✓ Prompt copied — paste into Gemini" : "Copy Gemini prompt"}
+            </button>
+            {brief && (brief.face || (brief.brands || []).length > 0) ? (
+              <div className="text-[10.5px] text-text-muted leading-relaxed">
+                <span className="font-semibold text-text-primary">Attach in Gemini for accuracy:</span>{" "}
+                <span className="inline-flex flex-wrap gap-1 align-middle">
+                  {brief.face && (
+                    <span className="px-1.5 py-0.5 rounded bg-accent/12 text-accent border border-accent/25">
+                      {brief.face} · face
+                    </span>
+                  )}
+                  {(brief.brands || []).map((b) => (
+                    <span key={b} className="px-1.5 py-0.5 rounded bg-accent/12 text-accent border border-accent/25">
+                      {b} · logo
+                    </span>
+                  ))}
+                </span>
+              </div>
+            ) : brief ? (
+              <p className="text-[10.5px] text-text-muted">
+                No specific person or brand to match — just paste the prompt.
+              </p>
+            ) : null}
+            {brief?.story && (
+              <p className="text-[10px] text-text-muted/90 leading-relaxed bg-ink/[0.04] rounded-md p-2 border border-ink/5">
+                <span className="font-semibold text-text-primary">Context:</span> {brief.story}
+              </p>
+            )}
+            {brief?.prompt && (
+              <details className="text-[10px]">
+                <summary className="cursor-pointer text-text-muted hover:text-text-primary select-none">
+                  Preview prompt
+                </summary>
+                <pre className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-ink/[0.05] border border-ink/10 p-2 text-[10px] text-text-muted font-mono leading-relaxed">
+                  {brief.prompt}
+                </pre>
+              </details>
+            )}
+            <label
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-semibold border border-dashed border-accent/40 bg-accent/[0.05] text-accent cursor-pointer hover:bg-accent/[0.1] transition-colors ${
+                busy ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
+              {busy === "__manual__" ? "Composing your poster…" : "Upload your Gemini image"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={!!busy}
+                onChange={(e) => uploadManualImage(e.target.files?.[0])}
+              />
+            </label>
+            <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+              We add the LuxQuant red headline + logo automatically · $0 (your own Gemini)
+            </p>
+            {err && <p className="text-[11px] text-loss text-center leading-snug">{err}</p>}
+          </div>
+        )}
+      </div>
 
       {pending.length > 0 && (
         <div className="rounded-lg bg-accent/[0.06] border border-accent/25 px-3 py-2.5 space-y-1.5">
@@ -760,10 +1169,13 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             : "Generate image with verified assets"}
       </button>
       <p className="text-[9px] font-mono text-text-muted/80 text-center leading-relaxed">
-        {data.needs_materials
-          ? "Image AI is paused until uploads are complete — saves cost & keeps marks accurate."
-          : "Assets verified · one AI call · brand integrated into the scene."}
+        {busy === "__render__"
+          ? "Working — the AI edit can take 1–3 min. Safe to wait, it won't double-charge."
+          : data.needs_materials
+            ? "Image AI is paused until uploads are complete — saves cost & keeps marks accurate."
+            : "Assets verified · one AI call · brand integrated into the scene."}
       </p>
+
       {err && <p className="text-[11px] text-loss">{err}</p>}
     </div>
   );
@@ -776,16 +1188,51 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
   useDialog({ isOpen: !!post, onClose: onClose, ref: dialogRef });
 
   const [showPrompt, setShowPrompt] = useState(false);
+  const [copiedCap, setCopiedCap] = useState(false);
   if (!post) return null;
   const isXai = (post.image_mode || "").startsWith("ai_");
 
-  return (
+  const downloadImage = async () => {
+    if (!post.image_url) return;
+    const name = `luxquant-${post.id}.png`;
+    try {
+      const res = await fetch(post.image_url, { credentials: "include" });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      window.open(post.image_url, "_blank", "noopener");
+    }
+  };
+
+  const copyCaption = async () => {
+    const text = [post.caption, post.hashtags && !String(post.caption || "").includes("#") ? post.hashtags : ""]
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCap(true);
+      setTimeout(() => setCopiedCap(false), 2000);
+    } catch {
+      /* clipboard blocked — ignore */
+    }
+  };
+
+  return createPortal(
     <div
       ref={dialogRef}
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[100] bg-scrim/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
+      className="fixed inset-0 z-[100000] bg-scrim/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
       onClick={onClose}
     >
       <button
@@ -944,6 +1391,28 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                 source ↗
               </a>
             )}
+            {post.image_url && (
+              <button
+                type="button"
+                onClick={downloadImage}
+                className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors inline-flex items-center gap-1"
+              >
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                download
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={copyCaption}
+              className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors inline-flex items-center gap-1"
+            >
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" />
+              </svg>
+              {copiedCap ? "copied ✓" : "copy caption"}
+            </button>
             <div className="ml-auto flex items-center gap-2">
               {post.status !== "approved" && (
                 <button
@@ -968,7 +1437,8 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -582,6 +583,186 @@ def re_render_post_image(
         "visual_materials": visual_materials,
         "recompose_free": composed_free,
     }
+
+
+def _post_meta(row) -> dict:
+    meta = row.get("gen_meta") or {}
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            meta = {}
+    return meta or {}
+
+
+@router.get("/{post_id}/manual-brief")
+def manual_image_brief(
+    post_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Copy-paste brief for generating the image yourself (e.g. Gemini): a ready prompt
+    plus the exact brands/person to attach as references so the result stays accurate."""
+    from app.services.social_entity_assets import resolve_entity_assets
+    from app.services.social_image_generator import build_visual_prompt
+
+    row = _get_post_row(db, post_id)
+    meta = _post_meta(row)
+    entities = meta.get("entities") or []
+    featured = meta.get("featured_person")
+    headline = row.get("headline") or "News"
+    angle = row.get("angle")
+    summary = row.get("caption") or headline
+
+    assets = resolve_entity_assets(
+        entities, featured_person=featured, headline=headline or "", visual_only=True
+    )
+    brands = [b for b in (assets.get("verified_brand_names") or []) if b]
+    if not brands and assets.get("primary_org"):
+        po = assets.get("primary_org") or {}
+        if po.get("name"):
+            brands = [po["name"]]
+
+    # Prefer the editorial AI's story-specific scene (it was written with the full article
+    # context), so the manual image stays tied to the actual news; fall back to the template.
+    scene = (row.get("image_prompt") or "").strip() or build_visual_prompt(
+        headline=headline,
+        article_summary=summary,
+        source_domain=row.get("source_domain"),
+        angle=angle,
+        reference_image_url=None,
+    )
+
+    # Plain, factual story context from the news row so the scene matches the event.
+    story = ""
+    try:
+        nid = row.get("news_id")
+        if nid:
+            nr = db.execute(
+                text("SELECT description, title FROM crypto_news WHERE id = :i"), {"i": int(nid)}
+            ).fetchone()
+            if nr:
+                story = (nr[0] or nr[1] or "").strip()
+    except Exception:
+        story = ""
+    if not story:
+        story = (summary or "").strip()
+    story = " ".join(story.split())[:600]
+
+    attach = []
+    if featured:
+        attach.append(f"a real photo of {featured} — keep the face 1:1 identical, do not invent a different person")
+    for b in brands:
+        attach.append(f"the official {b} logo — render the real mark as a physical element in the scene (signage, product, screen), never as a corner sticker or invented wordmark")
+
+    parts = [
+        "SCENE TO GENERATE (photoreal, zero readable text):",
+        scene,
+        "",
+        "STORY CONTEXT — the scene must match this news event (do NOT render any of this text in the image):",
+        headline.rstrip(".") + ".",
+        story,
+        f"Source: {row.get('source_domain') or 'news'}. Angle: {(angle or 'news brief').replace('_', ' ')}.",
+        "",
+        "FORMAT: vertical 4:5 portrait, 1024x1536, cinematic photoreal premium financial-news poster. "
+        "No readable text, no captions, no logos drawn as typography. Keep the lower 40% darker (a headline is composited on later).",
+    ]
+    if attach:
+        parts += [
+            "",
+            "ATTACH these reference images in your image tool for accuracy: "
+            + "; ".join(attach)
+            + ". If you cannot attach a reference, show that subject abstractly rather than guessing a face or logo.",
+        ]
+    prompt = "\n".join(parts)
+
+    return {
+        "post_id": post_id,
+        "headline": headline,
+        "story": story,
+        "prompt": prompt,
+        "aspect": "4:5 portrait (1024x1536)",
+        "face": featured,
+        "brands": brands,
+        "inventory": assets.get("inventory") or [],
+    }
+
+
+def _save_manual_image(db: Session, post_id: int, data: bytes) -> dict:
+    """Write the uploaded background, compose the card, persist the result.
+
+    Module-level and synchronous on purpose: a PIL compose plus two DB round-trips is
+    far too slow for the event loop, so the async endpoint hands this to the threadpool
+    in one hop (see backend/scripts/check_sync_db_on_loop.py for the incident behind it).
+    """
+    from app.services.social_image_generator import recompose_from_raw
+
+    row = _get_post_row(db, post_id)
+    news_id = int(row.get("news_id") or post_id)
+    headline = row.get("headline") or "News"
+    angle = row.get("angle")
+    Path(SOCIAL_POST_ASSETS_DIR).mkdir(parents=True, exist_ok=True)
+    raw_path = str(Path(SOCIAL_POST_ASSETS_DIR) / f"manual_raw_{post_id}.png")
+    out_path = str(Path(SOCIAL_POST_ASSETS_DIR) / f"ai_{news_id}_manual_{post_id}.png")
+    # PIL sniffs the real format on open, so a .png name is fine for jpg/webp bytes too.
+    with open(raw_path, "wb") as fh:
+        fh.write(data)
+    try:
+        recompose_from_raw(
+            raw_path=raw_path,
+            out_path=out_path,
+            headline=headline,
+            entity_logos=None,
+            angle=angle,
+        )
+    except Exception as exc:
+        raise HTTPException(400, f"could not process image: {type(exc).__name__}") from exc
+
+    meta = _post_meta(row)
+    meta["awaiting_image"] = False
+    meta["needs_materials"] = False
+    meta["manual_image"] = True
+    meta["raw_image_path"] = raw_path
+    meta["image_provider"] = "manual"
+    meta["image_model"] = "manual_upload"
+    vm = meta.get("visual_materials") or {}
+    vm["needs_materials"] = False
+    vm["manual_image"] = True
+    meta["visual_materials"] = vm
+
+    db.execute(text("""
+        UPDATE social_posts
+        SET image_path = :image_path,
+            image_mode = 'manual_upload',
+            gen_meta = CAST(:gen_meta AS jsonb),
+            updated_at = now()
+        WHERE id = :id
+    """), {"id": post_id, "image_path": out_path, "gen_meta": json.dumps(meta)})
+    db.commit()
+    return _row_to_dict(_get_post_row(db, post_id))
+
+
+@router.post("/{post_id}/manual-image")
+async def upload_manual_image(
+    post_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Bring-your-own image: admin uploads an externally-generated background (e.g. from
+    Gemini). We run the free LuxQuant compose (crop + gradient + red headline + logo) —
+    no paid AI image call is made, so it adds $0 to the draft's cost."""
+    data = await file.read()
+    if not data or len(data) < 2_000:
+        raise HTTPException(400, "image too small")
+    if len(data) > 20_000_000:
+        raise HTTPException(400, "image too large (max 20MB)")
+    ctype = file.content_type or "image/png"
+    if not ctype.startswith("image/"):
+        raise HTTPException(400, "file must be an image")
+
+    post = await run_in_threadpool(_save_manual_image, db, post_id, data)
+    return {"ok": True, "post": post}
 
 
 @router.post("/seed-logos")

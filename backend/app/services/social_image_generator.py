@@ -114,8 +114,9 @@ def build_visual_prompt(
         "person, product, or market floor — not surreal crypto meme art.",
         "Hero subject large in the upper/middle frame; natural cinematic lighting.",
         "ZERO readable text in the image (no wall slogans, no logos invented as type). Lower 40% darker for overlay.",
+        f"DEPICT THE SPECIFIC EVENT of this story — the actual who / what / where — not a generic crypto backdrop. "
         f"Story context (inspire the scene, never paint as text): {context}",
-        f"Source: {source}. Angle: {angle_label}. Headline idea (do not paint these words): {headline}.",
+        f"Source: {source}. Angle: {angle_label}. Headline (do NOT paint these words, but the scene must clearly match it): {headline}.",
         reference_line,
         "Prefer plausible institutional/city/product settings. Avoid chains-on-books, floating holograms, raining money.",
         "STRICT NEGATIVE: no readable text, no fake logos/wordmarks, no red subtitle bars, no watermarks, no collage seams.",
@@ -823,6 +824,15 @@ def _compose_editorial_card(
     width, height = 1080, 1350
     img = _cover_image(Image.open(raw_path).convert("RGB"), (width, height)).convert("RGBA")
     img = _apply_editorial_shadow(img)
+    # Sink the bottom-right corner under a soft vignette so any generator watermark
+    # (e.g. the Gemini / SynthID sparkle on bring-your-own uploads) disappears; the white
+    # LuxQuant mark then sits on top and reads better against the darker corner.
+    _corner = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(_corner).ellipse([width - 520, height - 520, width + 200, height + 220], fill=255)
+    _corner = _corner.filter(ImageFilter.GaussianBlur(90))
+    _shade = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    _shade.putalpha(_corner.point(lambda a: int(a * 0.92)))
+    img = Image.alpha_composite(img, _shade)
     draw = ImageDraw.Draw(img)
     fnt = _font(54, bold=True)
     lines = _wrap_headline(draw, str(headline).strip(), fnt)
