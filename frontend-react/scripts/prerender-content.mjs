@@ -135,6 +135,15 @@ async function main() {
     const dt = new Date(d + "T00:00:00Z");
     return dt.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
   };
+  // Kept in step with peakDelay() in src/components/CoinsPage.jsx — this file
+  // renders the crawlable copy, that one renders the same claim to the visitor,
+  // and the two must not disagree about when the peak happened.
+  const peakDelay = (days) => {
+    if (days == null || !isFinite(days) || days < 0) return null;
+    if (days < 1) return `~${Math.max(1, Math.round(days * 24))}h`;
+    const d = Math.round(days);
+    return `${d} day${d === 1 ? "" : "s"}`;
+  };
   // Build the crawlable, unique content for one coin — curated body if present,
   // otherwise a data-driven paragraph from the real track record.
   const coinMeta = (c) => {
@@ -145,7 +154,11 @@ async function main() {
       ? [
           `LuxQuant's algorithm has published ${st.n.toLocaleString()} ${c.symbol} trade signals since ${since}.` +
             (st.wr != null ? ` Across ${st.resolved} resolved calls, ${c.symbol} carries a ${st.wr}% win rate` : "") +
-            (st.avgPeak != null ? ` — the average call reached a peak of +${st.avgPeak}% from entry` : "") +
+            (st.avgPeak != null
+              ? ` — the average call reached a peak of +${st.avgPeak}% from entry${
+                  st.medPeakDays != null ? `, typically ${peakDelay(st.medPeakDays)} after the call` : ""
+                }`
+              : "") +
             (st.best != null ? `, and the strongest ${c.symbol} call ran +${st.best}%.` : "."),
           `Each ${c.symbol} signal ships with a full plan — exact entry, staged take-profits (TP1–TP4) and a hard stop-loss — all timestamped and publicly auditable on LuxQuant.`,
         ]
@@ -155,11 +168,11 @@ async function main() {
       ? `${c.symbol} signal track record — ${st ? st.n.toLocaleString() + " LuxQuant calls" : "LuxQuant"}${st && st.wr != null ? `, ${st.wr}% win rate` : ""} | LuxQuant`
       : `${c.name} (${c.symbol}) — money flow, on-chain & signals | LuxQuant`;
     const description = isGen && st
-      ? `LuxQuant has called ${c.symbol} ${st.n.toLocaleString()} times since ${since}${st.wr != null ? ` at a ${st.wr}% win rate` : ""}${st.avgPeak != null ? `, avg peak +${st.avgPeak}%` : ""}. Timestamped, verifiable signals with entry, TP1–TP4 and stop-loss.`
+      ? `LuxQuant has called ${c.symbol} ${st.n.toLocaleString()} times since ${since}${st.wr != null ? ` at a ${st.wr}% win rate` : ""}${st.avgPeak != null ? `, avg peak +${st.avgPeak}%${st.medPeakDays != null ? ` ${peakDelay(st.medPeakDays)} after the call` : ""}` : ""}. Timestamped, verifiable signals with entry, TP1–TP4 and stop-loss.`
       : `${c.name} (${c.symbol}): ${paras[0].slice(0, 140)}`;
     const statLine = st
       ? `<p><strong>${c.symbol} track record on LuxQuant${since ? ` (since ${esc(since)})` : ""}:</strong> ` +
-        [`${st.n.toLocaleString()} signals called`, st.wr != null && `${st.wr}% win rate`, st.avgPeak != null && `+${st.avgPeak}% average peak`, st.best != null && `+${st.best}% best call`]
+        [`${st.n.toLocaleString()} signals called`, st.wr != null && `${st.wr}% win rate`, st.avgPeak != null && `+${st.avgPeak}% average peak${st.medPeakDays != null ? ` (${peakDelay(st.medPeakDays)} after the call)` : ""}`, st.best != null && `+${st.best}% best call`]
           .filter(Boolean).map(esc).join(" · ") + `.</p>`
       : "";
     return { st, paras, category, title, description, statLine };

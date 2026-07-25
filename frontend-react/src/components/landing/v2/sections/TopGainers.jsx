@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../../context/AuthContext";
 import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
+import { peakLagFromSeconds } from "../../../../utils/peakTiming";
 
 const GOLD_BTN = {
   background:
@@ -70,7 +71,11 @@ const GainerCard = ({ item, onClick }) => (
     <p className="text-xl lg:text-2xl font-semibold text-profit leading-none tabular-nums">
       +{(item.gain_pct ?? 0).toFixed(1)}%
     </p>
-    <p className="text-text-muted text-[10px] mt-1.5 uppercase tracking-wider">Peak since call</p>
+    <p className="text-text-muted text-[10px] mt-1.5 uppercase tracking-wider">
+      {peakLagFromSeconds(item.duration_seconds)
+        ? `Peak · ${peakLagFromSeconds(item.duration_seconds)} after call`
+        : "Peak since call"}
+    </p>
   </button>
 );
 
@@ -209,6 +214,12 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       value: fmtPct(bestGain),
       accent: "text-profit",
       pair: bestGainer?.pair,
+      // The headline number on the page. Without the elapsed time it reads as
+      // an instant gain; the peak usually lands well after the call.
+      sub: (() => {
+        const lag = peakLagFromSeconds(bestGainer?.duration_seconds);
+        return lag ? `peak ${lag} after call` : null;
+      })(),
       onClick: bestGainer?.signal_id ? () => handleItemClick(bestGainer) : null,
     },
     {
@@ -248,7 +259,8 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
 
         <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-base leading-relaxed text-text-primary/55">
           Not market noise — every coin below is a real LuxQuant entry. These are the peak gains
-          each one ran after our call.
+          each one ran after our call, each labelled with how long after the call that peak
+          arrived — so you can check any of them on a chart.
         </p>
       </div>
 
@@ -319,6 +331,12 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                       <span className="text-text-muted font-normal">USDT</span>
                     </span>
                   </div>
+                )}
+
+                {s.sub && (
+                  <p className="mt-1 text-[9px] text-text-muted sm:text-[10px] lg:mt-1.5 lg:text-[11px]">
+                    {s.sub}
+                  </p>
                 )}
               </Wrap>
             );

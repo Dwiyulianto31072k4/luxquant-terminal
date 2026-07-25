@@ -19,6 +19,19 @@ function sinceLabel(d) {
   return dt.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
+// How long after the call the peak landed. Reads in the largest unit that still
+// says something useful — "~4h" for a same-session high, "12 days" for the more
+// common case where the high arrives well after the trade is over.
+function peakDelay(days) {
+  if (days == null || !isFinite(days) || days < 0) return null;
+  if (days < 1) {
+    const h = Math.max(1, Math.round(days * 24));
+    return `~${h}h`;
+  }
+  const d = Math.round(days);
+  return `${d} day${d === 1 ? "" : "s"}`;
+}
+
 const FREE_TG = "https://t.me/LuxQuantSignal";
 
 const TgIcon = () => (
@@ -80,7 +93,13 @@ function TrackRecord({ symbol, stats }) {
   const tiles = [
     { n: stats.n.toLocaleString(), l: "Signals called" },
     stats.wr != null && { n: `${stats.wr}%`, l: "Win rate" },
-    stats.avgPeak != null && { n: `+${stats.avgPeak}%`, l: "Avg peak" },
+    stats.avgPeak != null && {
+      n: `+${stats.avgPeak}%`,
+      l: "Avg peak",
+      // A peak with no elapsed time reads as if it happened on day one. It
+      // usually did not, and saying so is what makes the number checkable.
+      s: stats.medPeakDays != null ? `${peakDelay(stats.medPeakDays)} after call` : null,
+    },
     stats.best != null && { n: `+${stats.best}%`, l: "Best call" },
   ].filter(Boolean);
   return (
@@ -102,6 +121,11 @@ function TrackRecord({ symbol, stats }) {
             <div className="mt-1.5 font-mono text-[9.5px] uppercase tracking-wider text-text-muted">
               {t.l}
             </div>
+            {t.s && (
+              <div className="mt-1 font-mono text-[9.5px] tracking-wide text-text-muted/70">
+                {t.s}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -149,7 +173,11 @@ function CoinDetail({ slug }) {
       ? [
           `LuxQuant's algorithm has published ${st.n.toLocaleString()} ${coin.symbol} trade signals since ${since}.` +
             (st.wr != null ? ` Across ${st.resolved} resolved calls, ${coin.symbol} carries a ${st.wr}% win rate` : "") +
-            (st.avgPeak != null ? ` — the average call reached a peak of +${st.avgPeak}% from entry` : "") +
+            (st.avgPeak != null
+              ? ` — the average call reached a peak of +${st.avgPeak}% from entry${
+                  st.medPeakDays != null ? `, typically ${peakDelay(st.medPeakDays)} after the call` : ""
+                }`
+              : "") +
             (st.best != null ? `, and the strongest ${coin.symbol} call ran +${st.best}%.` : "."),
           `Each ${coin.symbol} signal ships with a full plan — exact entry, staged take-profits (TP1–TP4) and a hard stop-loss — all timestamped and publicly auditable. On LuxQuant you can track ${coin.name}${coin.name !== coin.symbol ? ` (${coin.symbol})` : ""} money flow, on-chain whale activity, BTC correlation and every new signal in one place.`,
         ]
@@ -165,7 +193,13 @@ function CoinDetail({ slug }) {
     isGen && st
       ? `LuxQuant has called ${coin.symbol} ${st.n.toLocaleString()} times since ${since}${
           st.wr != null ? ` at a ${st.wr}% win rate` : ""
-        }${st.avgPeak != null ? `, avg peak +${st.avgPeak}%` : ""}. Timestamped, verifiable signals with entry, TP1–TP4 and stop-loss.`
+        }${
+          st.avgPeak != null
+            ? `, avg peak +${st.avgPeak}%${
+                st.medPeakDays != null ? ` ${peakDelay(st.medPeakDays)} after the call` : ""
+              }`
+            : ""
+        }. Timestamped, verifiable signals with entry, TP1–TP4 and stop-loss.`
       : `${coin.name} (${coin.symbol}): ${body[0].slice(0, 140)}`;
   const relatedSlugs =
     coin.related || ["btc", "eth", "sol", "bnb"].filter((x) => x !== coin.slug).slice(0, 4);

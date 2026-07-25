@@ -45,6 +45,7 @@ SELECT pair, count(*) n,
   min(created_at::timestamptz)::date first_call,
   round(100.0*count(*) FILTER (WHERE status IN ('closed_win','tp1','tp2','tp3'))/NULLIF(count(*) FILTER (WHERE status<>'open'),0),1) wr,
   round(avg(peak_pct) FILTER (WHERE peak_pct IS NOT NULL)::numeric,1) avg_peak,
+  round(percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (peak_at - created_at::timestamptz))/86400)::numeric,1) med_peak_days,
   round(max(peak_pct)::numeric,1) best,
   count(*) FILTER (WHERE status IN ('closed_win','tp1','tp2','tp3')) wins,
   count(*) FILTER (WHERE status<>'open') resolved
@@ -60,14 +61,19 @@ const gen = [];
 const seen = new Set();
 for (const line of raw.trim().split("\n")) {
   if (!line) continue;
-  const [pair, n, first, wr, avgPeak, best, wins, resolved] = line.split("\t");
+  const [pair, n, first, wr, avgPeak, medPeakDays, best, wins, resolved] = line.split("\t");
   const sym = symbolOf(pair);
   const slug = slugify(sym);
   if (!slug || seen.has(slug)) continue;
   seen.add(slug);
   stats[slug] = {
     n: +n, since: first, wr: wr === "" ? null : +wr,
-    avgPeak: avgPeak === "" ? null : +avgPeak, best: best === "" ? null : +best,
+    avgPeak: avgPeak === "" ? null : +avgPeak,
+    // Days from call to that peak. Without it "avg peak +40%" reads as if it
+    // happened straight away; the median across the book is 12.8 days, and for
+    // stopped calls the high usually lands after the trade was already over.
+    medPeakDays: medPeakDays === "" ? null : +medPeakDays,
+    best: best === "" ? null : +best,
     wins: +wins, resolved: +resolved, pair,
   };
   if (CURATED.has(slug)) continue;

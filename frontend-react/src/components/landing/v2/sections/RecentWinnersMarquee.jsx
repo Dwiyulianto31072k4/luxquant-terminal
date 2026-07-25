@@ -18,6 +18,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
+import { peakLagFromSeconds } from "../../../../utils/peakTiming";
 
 const deriveChartWithCard = (rawUrl) => {
   if (!rawUrl || typeof rawUrl !== "string") return null;
@@ -57,6 +58,11 @@ const timeAgo = (iso) => {
 // pick per signal so it stays stable), professional and not templated. The
 // numbers are real; the tone gently implies "this is what LuxQuant does".
 // No dash characters anywhere.
+//
+// Every peak claim carries how long after the call that peak arrived. Across the
+// book the median peak lands 12.8 days out while trades resolve inside 5, so a
+// bare "+80% peak" invites the reader to assume something that did not happen.
+// Naming the lag costs one clause and makes the claim checkable on a chart.
 const buildCaption = (w) => {
   const sym = cleanPair(w.pair);
   const peak = fmtInt(w.gain_pct);
@@ -65,21 +71,22 @@ const buildCaption = (w) => {
   const levPeak = lev && w.gain_pct != null ? fmtInt(w.gain_pct * lev) : null;
   const date = fmtDate(w.signal_time);
   const ago = timeAgo(w.signal_time);
+  const lag = peakLagFromSeconds(w.duration_seconds);
 
   const c = [];
   if (peak) {
-    c.push(`Called ${ago}, $${sym} ran to a +${peak}% peak from entry.`);
-    c.push(`The algorithm flagged $${sym} on ${date}; it topped near +${peak}%.`);
-    c.push(`Entry to peak, +${peak}% on $${sym}. The kind of call we make daily.`);
-    c.push(`$${sym} climbed +${peak}% after the call. Live, not hindsight.`);
-    c.push(`$${sym} pushed +${peak}% above entry. Proof, not promises.`);
+    c.push(`Called ${ago}, $${sym} ran to a +${peak}% peak${lag ? ` ${lag} after entry` : " from entry"}.`);
+    c.push(`The algorithm flagged $${sym} on ${date}; it topped near +${peak}%${lag ? ` about ${lag} later` : ""}.`);
+    c.push(`Entry to peak, +${peak}% on $${sym}${lag ? ` over ${lag}` : ""}. The kind of call we make daily.`);
+    c.push(`$${sym} climbed +${peak}% after the call${lag ? `, topping out ${lag} in` : ""}. Live, not hindsight.`);
+    c.push(`$${sym} pushed +${peak}% above entry${lag ? ` within ${lag}` : ""}. Proof, not promises.`);
   }
   if (peak && realized) {
-    c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high.`);
-    c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak.`);
+    c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high${lag ? ` ${lag} in` : ""}.`);
+    c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak${lag ? ` ${lag} after entry` : ""}.`);
   }
   if (peak && levPeak) {
-    c.push(`$${sym} peaked +${peak}%. At ${lev}x, that is roughly +${levPeak}%.`);
+    c.push(`$${sym} peaked +${peak}%${lag ? ` ${lag} after the call` : ""}. At ${lev}x, that is roughly +${levPeak}%.`);
   }
   if (c.length === 0) return `$${sym}, called ${ago || "recently"}.`;
 
