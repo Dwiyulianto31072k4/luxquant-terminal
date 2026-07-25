@@ -10,13 +10,21 @@ import {
   ReliabilityBadge,
 } from "./_shared";
 
+// The EV that drives sorting, the bar and every insight is the REALIZED one.
+// The peak-based figure the API also returns is not a second opinion, it is
+// broken as a return: peak_pct for a stopped-out call is the coin's later high,
+// which averages positive (+15.8% over the last 90 days), so a losing trade
+// contributes a GAIN to a peak-based EV. It survives only as a labelled ceiling.
+const EV_FIELD = "expected_value_realized";
+const evOf = (d) => d?.[EV_FIELD] ?? null;
+
 const ExpectedValueTab = ({ data, onDrill }) => {
-  const [sortBy, setSortBy] = useState("expected_value");
+  const [sortBy, setSortBy] = useState(EV_FIELD);
   const [sortDir, setSortDir] = useState("desc");
 
   const maxAbsEV = useMemo(() => {
     if (!data?.length) return 1;
-    return Math.max(...data.map((d) => Math.abs(d.expected_value ?? 0)), 1);
+    return Math.max(...data.map((d) => Math.abs(evOf(d) ?? 0)), 1);
   }, [data]);
 
   const sorted = useMemo(() => {
@@ -31,28 +39,28 @@ const ExpectedValueTab = ({ data, onDrill }) => {
   const insights = useMemo(() => {
     if (!data?.length) return [];
     const out = [];
-    const reliable = data.filter((d) => d.reliability !== "unreliable" && d.expected_value != null);
-    const topEV = [...reliable].sort((a, b) => b.expected_value - a.expected_value)[0];
+    const reliable = data.filter((d) => d.reliability !== "unreliable" && evOf(d) != null);
+    const topEV = [...reliable].sort((a, b) => evOf(b) - evOf(a))[0];
     if (topEV) {
       out.push({
         kind: "good",
         label: "Highest EV (trusted)",
         value: `${topEV.pattern}`,
-        sub: `+${topEV.expected_value.toFixed(2)}% / trade · ${topEV.win_rate?.toFixed(0)}% WR · n=${topEV.count}`,
+        sub: `+${evOf(topEV).toFixed(2)}% / trade realized · ${topEV.win_rate?.toFixed(0)}% WR · n=${topEV.count}`,
       });
     }
     const neg = [...data]
-      .filter((d) => (d.expected_value ?? 0) < 0)
-      .sort((a, b) => a.expected_value - b.expected_value)[0];
+      .filter((d) => (evOf(d) ?? 0) < 0)
+      .sort((a, b) => evOf(a) - evOf(b))[0];
     if (neg) {
       out.push({
         kind: "bad",
         label: "Negative EV — skip",
         value: `${neg.pattern}`,
-        sub: `${neg.expected_value.toFixed(2)}% / trade · loses money on average`,
+        sub: `${evOf(neg).toFixed(2)}% / trade · loses money on average`,
       });
     }
-    const posCount = data.filter((d) => (d.expected_value ?? 0) > 0).length;
+    const posCount = data.filter((d) => (evOf(d) ?? 0) > 0).length;
     out.push({
       kind: "neutral",
       label: "Edge breadth",
@@ -103,7 +111,7 @@ const ExpectedValueTab = ({ data, onDrill }) => {
       <Methodology title="How EV is computed">
         EV ={" "}
         <span className="font-mono text-text-primary/85">
-          (WR × avg_win_peak) + (LR × avg_loss_peak)
+          (WR × avg_win) + (LR × avg_loss)
         </span>{" "}
         — the expected % return per signal. Positive ={" "}
         <span className="text-profit">edge exists</span>, negative ={" "}
@@ -112,10 +120,13 @@ const ExpectedValueTab = ({ data, onDrill }) => {
         yet trustworthy. <span className="text-text-muted">Click a row</span> to open the signals
         behind it.
         <span className="mt-2 block text-text-muted">
-          Read this as an upper bound, not a return you would have booked. Both inputs are{" "}
-          <span className="text-text-primary/70">peak</span> excursions, and across the book the
-          median peak arrives about 13 days after the call while trades resolve inside 5 — so a good
-          part of it lands after the position has already closed.
+          The headline number is <span className="text-text-primary/70">realized</span>: the gain at
+          the target that was actually hit, or the loss at the stop. That is what exiting to plan
+          pays. The <span className="text-text-primary/70">ceiling</span> underneath it runs the same
+          formula over peak excursions — the coin's high after the call, which lands a median 13 days
+          out while trades resolve inside 5. Treat the gap between them as the cost of not being able
+          to sell the top, and note the ceiling flatters losers: a stopped call's later high is a
+          positive number, so it adds to the ceiling instead of subtracting.
         </span>
       </Methodology>
 
@@ -133,9 +144,9 @@ const ExpectedValueTab = ({ data, onDrill }) => {
                 </th>
                 <SortHeader id="count" label="N" w={56} />
                 <SortHeader id="win_rate" label="WR" w={70} />
-                <SortHeader id="avg_win_peak" label="Avg Win" w={90} />
-                <SortHeader id="avg_loss_peak" label="Avg Loss" w={90} />
-                <SortHeader id="expected_value" label="EV" w={80} />
+                <SortHeader id="avg_win_realized" label="Avg Win" w={90} />
+                <SortHeader id="avg_loss_realized" label="Avg Loss" w={90} />
+                <SortHeader id={EV_FIELD} label="EV" w={90} />
                 <th
                   className="px-3 py-3 text-[10px] tracking-[0.18em] font-mono uppercase text-text-primary/40 font-normal text-left"
                   style={{ minWidth: 160 }}
@@ -146,7 +157,8 @@ const ExpectedValueTab = ({ data, onDrill }) => {
             </thead>
             <tbody>
               {sorted.map((p) => {
-                const ev = p.expected_value;
+                const ev = evOf(p);
+                const evCeiling = p.expected_value_peak;
                 const tierColor = TIER_COLORS[p.reliability];
                 const barPct = ev == null ? 0 : (Math.abs(ev) / maxAbsEV) * 50; // half-width max
                 const pos = (ev ?? 0) >= 0;
@@ -184,15 +196,32 @@ const ExpectedValueTab = ({ data, onDrill }) => {
                       {p.win_rate?.toFixed(1)}%
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono tabular-nums text-profit/80">
-                      {p.avg_win_peak != null ? `+${p.avg_win_peak.toFixed(1)}%` : "—"}
+                      {p.avg_win_realized != null ? `+${p.avg_win_realized.toFixed(1)}%` : "—"}
+                      {p.avg_win_peak != null && (
+                        <span className="block text-[9px] text-text-muted/60">
+                          peak +{p.avg_win_peak.toFixed(1)}%
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono tabular-nums text-loss/70">
-                      {p.avg_loss_peak != null ? `${p.avg_loss_peak.toFixed(1)}%` : "—"}
+                      {p.avg_loss_realized != null ? `${p.avg_loss_realized.toFixed(1)}%` : "—"}
+                      {p.avg_loss_peak != null && (
+                        <span className="block text-[9px] text-text-muted/60">
+                          peak {p.avg_loss_peak > 0 ? "+" : ""}
+                          {p.avg_loss_peak.toFixed(1)}%
+                        </span>
+                      )}
                     </td>
                     <td
                       className={`px-3 py-2.5 text-right font-mono tabular-nums font-semibold ${ev == null ? "text-text-primary/30" : pos ? "text-profit" : "text-loss"}`}
                     >
                       {ev == null ? "—" : `${pos ? "+" : ""}${ev.toFixed(2)}`}
+                      {evCeiling != null && (
+                        <span className="block font-normal text-[9px] text-text-muted/60">
+                          ceiling {evCeiling > 0 ? "+" : ""}
+                          {evCeiling.toFixed(2)}
+                        </span>
+                      )}
                     </td>
                     {/* diverging bar */}
                     <td className="px-3 py-2.5">

@@ -235,10 +235,16 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
   }, [data]);
 
   const topEdge = useMemo(() => {
+    // Ranked on realized EV. The peak-based figure credits a stopped-out call
+    // with the coin's later high, so ranking on it can crown a pattern whose
+    // apparent edge is entirely post-trade.
     const ev = data?.pattern_ev || [];
-    const trusted = ev.filter((p) => p.reliability !== "unreliable" && p.expected_value != null);
-    const pool = trusted.length ? trusted : ev.filter((p) => p.expected_value != null);
-    return [...pool].sort((a, b) => b.expected_value - a.expected_value)[0] || null;
+    const has = (p) => p.expected_value_realized != null;
+    const trusted = ev.filter((p) => p.reliability !== "unreliable" && has(p));
+    const pool = trusted.length ? trusted : ev.filter(has);
+    return (
+      [...pool].sort((a, b) => b.expected_value_realized - a.expected_value_realized)[0] || null
+    );
   }, [data]);
 
   const wrColorCls = wr >= 75 ? "text-profit" : wr >= 50 ? "text-text-primary/95" : "text-loss";

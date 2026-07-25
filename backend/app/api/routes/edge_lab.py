@@ -138,9 +138,11 @@ def get_edge_lab(
     sector_filter = sector.lower().strip()
 
     # v3: coin_leaderboard now carries median_peak_lag_days, so the UI can say how
-    # long after the call each coin's median peak arrives. Bumped so cached v2
-    # payloads (which lack the field) are not served to clients expecting it.
-    cache_key = f"lq:edge-lab:v3:{days}:{sector_filter}:{end_str}"
+    #     long after the call each coin's median peak arrives.
+    # v4: pattern_ev now carries a realized EV alongside the peak one.
+    # Bumped so cached payloads missing these fields are not served to clients
+    # that expect them.
+    cache_key = f"lq:edge-lab:v4:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -259,12 +261,27 @@ def get_edge_lab(
     } for r in heatmap_rows]
 
     # ─── Q2: Expected Value per pattern ───
-    # EV = (win_rate × avg_win_peak) − (loss_rate × abs(avg_loss_peak))
-    # peak_pct on signals is the realized peak gain (signed)
+    # Two EVs, because they answer different questions and only one of them is a
+    # return anybody could have booked:
+    #
+    #   realized — the gain at the level the outcome actually reached: the TP that
+    #              was hit, or the stop. What exiting to plan pays.
+    #   peak     — the same formula over peak_pct, the coin's high after the call.
+    #              An upper bound: the median peak lands ~13 days out while trades
+    #              resolve inside 5, so much of it is post-trade.
+    #
+    # realized is the headline; peak is shown beside it as the ceiling.
     ev_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         scoped AS (
-            SELECT r.signal_id, r.outcome, s.peak_pct
+            SELECT r.signal_id, r.outcome, s.peak_pct,
+                   CASE r.outcome
+                     WHEN 'tp4' THEN (s.target4 - s.entry) / NULLIF(s.entry, 0) * 100
+                     WHEN 'tp3' THEN (s.target3 - s.entry) / NULLIF(s.entry, 0) * 100
+                     WHEN 'tp2' THEN (s.target2 - s.entry) / NULLIF(s.entry, 0) * 100
+                     WHEN 'tp1' THEN (s.target1 - s.entry) / NULLIF(s.entry, 0) * 100
+                     WHEN 'sl'  THEN (s.stop1   - s.entry) / NULLIF(s.entry, 0) * 100
+                   END AS realized_pct
             FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id
             LEFT JOIN coins c ON c.pair = s.pair
@@ -282,6 +299,7 @@ def get_edge_lab(
                 sc.signal_id,
                 sc.outcome,
                 sc.peak_pct,
+                sc.realized_pct,
                 tag_obj->>'name' AS pattern
             FROM scoped sc
             JOIN latest_snap ls ON ls.signal_id = sc.signal_id,
@@ -295,7 +313,9 @@ def get_edge_lab(
             COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
             COUNT(*) FILTER (WHERE outcome = 'sl') AS losses,
             AVG(peak_pct) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4'))::float AS avg_win_peak,
-            AVG(peak_pct) FILTER (WHERE outcome = 'sl')::float AS avg_loss_peak
+            AVG(peak_pct) FILTER (WHERE outcome = 'sl')::float AS avg_loss_peak,
+            AVG(realized_pct) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4'))::float AS avg_win_realized,
+            AVG(realized_pct) FILTER (WHERE outcome = 'sl')::float AS avg_loss_realized
         FROM signal_patterns
         GROUP BY pattern
         HAVING COUNT(*) >= 5
@@ -309,17 +329,24 @@ def get_edge_lab(
         l = int(r[3])
         avg_win = _safe_float(r[4])
         avg_loss = _safe_float(r[5])
+        avg_win_real = _safe_float(r[6])
+        avg_loss_real = _safe_float(r[7])
         wr_pct = w / cnt if cnt else 0
         lr_pct = l / cnt if cnt else 0
-        # EV per trade in % terms: (WR × avg_win) + (LR × avg_loss)  [avg_loss is negative already]
-        # Non-resolved (neither tp* nor sl) treated as 0 contribution
-        ev = None
-        if avg_win is not None and avg_loss is not None:
-            ev = round(wr_pct * avg_win + lr_pct * avg_loss, 3)
-        elif avg_win is not None:
-            ev = round(wr_pct * avg_win, 3)
-        elif avg_loss is not None:
-            ev = round(lr_pct * avg_loss, 3)
+
+        # EV per trade in % terms: (WR × avg_win) + (LR × avg_loss)  [avg_loss is
+        # negative already]. Non-resolved (neither tp* nor sl) contribute 0.
+        def _ev(win, loss):
+            if win is not None and loss is not None:
+                return round(wr_pct * win + lr_pct * loss, 3)
+            if win is not None:
+                return round(wr_pct * win, 3)
+            if loss is not None:
+                return round(lr_pct * loss, 3)
+            return None
+
+        ev = _ev(avg_win, avg_loss)
+        ev_realized = _ev(avg_win_real, avg_loss_real)
 
         # Wilson 95% CI on win rate
         ci_lo, ci_hi, ci_half = _wilson_ci(w, cnt)
@@ -337,7 +364,15 @@ def get_edge_lab(
             "reliability": reliability,
             "avg_win_peak": round(avg_win, 3) if avg_win is not None else None,
             "avg_loss_peak": round(avg_loss, 3) if avg_loss is not None else None,
+            "avg_win_realized": round(avg_win_real, 3) if avg_win_real is not None else None,
+            "avg_loss_realized": round(avg_loss_real, 3) if avg_loss_real is not None else None,
+            # expected_value keeps its original peak-based meaning so existing
+            # consumers do not silently change; expected_value_peak is the same
+            # number under an honest name, and expected_value_realized is what a
+            # follower exiting to plan would actually have booked.
             "expected_value": ev,
+            "expected_value_peak": ev,
+            "expected_value_realized": ev_realized,
         })
 
     # ─── Q2b: Pattern Calibration (subset of pattern_ev for reliability-focused UI) ───

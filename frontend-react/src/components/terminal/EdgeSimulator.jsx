@@ -59,11 +59,15 @@ function EdgeTip({ active, payload }) {
         Win rate: <span className="text-text-primary/90">{p.win_rate?.toFixed(1)}%</span>
       </div>
       <div className="text-text-primary/60">
+        {/* Realized: the gain at the target actually hit, or the loss at the stop.
+            The peak-based EV counts a stopped call's later high as a gain. */}
         Expected value:{" "}
-        <span style={{ color: evColor(p.expected_value) }}>
-          {p.expected_value == null
+        <span style={{ color: evColor(p.expected_value_realized) }}>
+          {p.expected_value_realized == null
             ? "—"
-            : (p.expected_value >= 0 ? "+" : "") + p.expected_value.toFixed(2) + "%/trade"}
+            : (p.expected_value_realized >= 0 ? "+" : "") +
+              p.expected_value_realized.toFixed(2) +
+              "%/trade"}
         </span>
       </div>
       <div className="text-text-primary/60">
@@ -193,10 +197,12 @@ export function EdgeTab() {
     [pev]
   );
   const bestEV = useMemo(() => {
-    const rel = pev.filter((p) => p.reliability !== "unreliable" && p.expected_value != null);
-    return [...rel].sort((a, b) => b.expected_value - a.expected_value)[0] || null;
+    const rel = pev.filter(
+      (p) => p.reliability !== "unreliable" && p.expected_value_realized != null
+    );
+    return [...rel].sort((a, b) => b.expected_value_realized - a.expected_value_realized)[0] || null;
   }, [pev]);
-  const posCount = pev.filter((p) => (p.expected_value ?? 0) > 0).length;
+  const posCount = pev.filter((p) => (p.expected_value_realized ?? 0) > 0).length;
 
   // pan/zoom (seeded from the data extent; hook stays unconditional)
   const xsA = pts.map((p) => p.x),
@@ -221,7 +227,7 @@ export function EdgeTab() {
           cx={cx}
           cy={cy}
           r={r}
-          fill={evColor(p.expected_value)}
+          fill={evColor(p.expected_value_realized)}
           fillOpacity={active ? 0.85 : 0.5}
           stroke={active ? GOLD : "rgb(var(--scrim) / 0.35)"}
           strokeWidth={active ? 1.6 : 0.6}
@@ -292,7 +298,7 @@ export function EdgeTab() {
               value={bestEV ? nice(bestEV.pattern) : "—"}
               desc={
                 bestEV
-                  ? `+${bestEV.expected_value.toFixed(2)}%/trade · ${bestEV.win_rate?.toFixed(0)}% WR`
+                  ? `+${bestEV.expected_value_realized.toFixed(2)}%/trade · ${bestEV.win_rate?.toFixed(0)}% WR`
                   : "—"
               }
               tone="text-positive"

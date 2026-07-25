@@ -717,10 +717,14 @@ export default function Performance({ data }) {
   const ttp = timing?.time_to_each_tp || [];
   const maxSec = Math.max(...ttp.map((t) => t.avg_seconds || 0), 1);
 
+  // Realized EV, not the peak-based one. peak_pct for a stopped-out call is the
+  // coin's later high — a positive number — so a peak-based EV credits losing
+  // trades with a gain. Fine as a labelled ceiling inside Edge Lab; not a figure
+  // to put in front of a prospect as a per-trade return.
   const patterns = [...(edge?.pattern_ev || [])]
-    .sort((a, b) => (b.expected_value || 0) - (a.expected_value || 0))
+    .sort((a, b) => (b.expected_value_realized || 0) - (a.expected_value_realized || 0))
     .slice(0, 6);
-  const maxEv = patterns[0]?.expected_value || 1;
+  const maxEv = patterns[0]?.expected_value_realized || 1;
 
   const coins = (edge?.coin_leaderboard || []).slice(0, 6);
   const maxPeak = coins[0]?.median_peak || 1;
@@ -1258,11 +1262,11 @@ export default function Performance({ data }) {
                             className="font-mono text-[13px] font-bold tabular-nums"
                             style={{ color: C.gold }}
                           >
-                            +{p.expected_value.toFixed(1)}%
+                            +{(p.expected_value_realized ?? 0).toFixed(1)}%
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Bar3D pct={(p.expected_value / maxEv) * 100} />
+                          <Bar3D pct={((p.expected_value_realized ?? 0) / maxEv) * 100} />
                           <span className="w-12 text-right font-mono text-[10px] tabular-nums text-text-muted">
                             {pct(p.win_rate)}
                           </span>
