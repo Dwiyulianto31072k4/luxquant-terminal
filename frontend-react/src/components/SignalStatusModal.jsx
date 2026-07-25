@@ -163,7 +163,7 @@ export default function GlobalSignalModalHost() {
       <button
         type="button"
         onClick={close}
-        className="w-full rounded-xl bg-accent py-3.5 text-[13px] font-bold text-surface-hover active:scale-[0.99]"
+        className="w-full rounded-xl bg-accent py-3.5 text-[13px] font-bold text-accent-fg active:scale-[0.99]"
       >
         Done
       </button>
@@ -305,7 +305,7 @@ export default function GlobalSignalModalHost() {
         <button
           type="button"
           onClick={openFull}
-          className="flex-1 rounded-xl bg-accent py-3.5 text-[13px] font-bold text-surface-hover shadow-[0_4px_16px_rgb(var(--accent) / 0.3)] active:scale-[0.99]"
+          className="flex-1 rounded-xl bg-accent py-3.5 text-[13px] font-bold text-accent-fg shadow-[0_4px_16px_rgb(var(--accent) / 0.3)] active:scale-[0.99]"
         >
           Open full signal →
         </button>

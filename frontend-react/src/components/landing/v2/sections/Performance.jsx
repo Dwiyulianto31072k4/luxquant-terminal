@@ -697,15 +697,28 @@ function TabIcon({ id, className = "h-4 w-4" }) {
   return null;
 }
 
+/**
+ * Segmented control. Selected item is a solid accent fill.
+ *
+ * The selected label uses accent-fg, not surface. Those happen to match on the
+ * dark desks, which is why the bug hid, but --surface is near-white under Bright
+ * — that rendered white text on yellow at roughly 1.7:1. accent-fg is dark ink in
+ * every theme precisely because it is the colour that goes on top of a yellow
+ * fill.
+ */
 function Seg({ items, value, onChange }) {
   return (
-    <div className="flex rounded-lg border border-ink/10 p-0.5 font-mono text-[10px]">
+    <div className="flex rounded-lg border border-ink/10 bg-surface-raised p-0.5 font-mono text-[10px]">
       {items.map((it) => (
         <button
           key={it}
           onClick={() => onChange(it)}
-          className={`rounded-md px-2.5 py-1 transition-colors ${value === it ? "text-surface" : "text-text-muted hover:text-text-primary"}`}
-          style={value === it ? { background: C.gold } : {}}
+          aria-pressed={value === it}
+          className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
+            value === it
+              ? "bg-accent text-accent-fg"
+              : "text-text-muted hover:bg-surface-hover hover:text-text-primary"
+          }`}
         >
           {it}
         </button>
@@ -1146,9 +1159,16 @@ export default function Performance({ data }) {
       </div>
 
       {/* ── DEEP ANALYTICS — tabbed block ──
- Horizontal pill tabs on top for ALL breakpoints. Mobile: pills fill
- the row edge-to-edge (flex-1, no empty gap). Desktop: compact pills,
- content-sized & left-aligned; chart panel runs full width below. */}
+ Horizontal tabs on top for ALL breakpoints. Mobile: they fill the row
+ edge-to-edge (flex-1, no empty gap). Desktop: roomier, chart panel runs
+ full width below.
+
+ Every colour is a theme token, so the row follows Luxquant / Dark / Bright
+ without a per-theme branch. The selected tab is a solid accent fill with
+ accent-fg text — dark ink on yellow, which is the one pairing that stays
+ legible in all three (yellow-on-white is ~1.7:1 and fails outright). The
+ rest sit on surface-raised rather than a transparent tint, so they read as
+ real controls on the Bright canvas instead of vanishing into it. */}
       <div className="mt-4">
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
           {ANA_TABS.map((tb) => {
@@ -1158,15 +1178,16 @@ export default function Performance({ data }) {
                 key={tb.id}
                 onClick={() => setAnaTab(tb.id)}
                 title={tb.label}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-[12.5px] font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm ${
+                aria-pressed={on}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2.5 text-[12.5px] font-semibold transition-all duration-200 sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
                   on
-                    ? "border-ink/18 bg-accent/12 text-text-primary shadow-[0_4px_14px_rgb(var(--accent) / 0.2)]"
-                    : "border-ink/10 bg-ink/[0.02] text-text-muted hover:border-ink/25 hover:text-text-primary"
+                    ? "border-accent bg-accent text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)/0.28)]"
+                    : "border-ink/10 bg-surface-raised text-text-secondary hover:border-ink/20 hover:bg-surface-hover hover:text-text-primary"
                 }`}
               >
                 <TabIcon
                   id={tb.id}
-                  className={`h-[15px] w-[15px] flex-shrink-0 ${on ? "text-accent" : ""}`}
+                  className={`h-[15px] w-[15px] flex-shrink-0 ${on ? "text-accent-fg" : "text-text-muted"}`}
                 />
                 <span className="whitespace-nowrap">{tb.label}</span>
               </button>

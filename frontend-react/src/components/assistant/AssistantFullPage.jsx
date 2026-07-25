@@ -181,7 +181,7 @@ export default function AssistantFullPage() {
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
                 m.role === "user"
-                  ? "whitespace-pre-wrap bg-accent text-surface-hover font-medium"
+                  ? "whitespace-pre-wrap bg-accent text-accent-fg font-medium"
                   : "bg-ink/[0.05] text-text-primary/90 border border-ink/5"
               }`}
             >
@@ -237,7 +237,7 @@ export default function AssistantFullPage() {
           <button
             onClick={() => send()}
             disabled={loading || !input.trim()}
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-accent text-surface-hover disabled:opacity-30 hover:bg-accent/90 transition-all active:scale-[0.97]"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-accent text-accent-fg disabled:opacity-30 hover:bg-accent/90 transition-all active:scale-[0.97]"
             aria-label="Send"
           >
             <svg

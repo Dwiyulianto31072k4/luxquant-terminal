@@ -42,7 +42,7 @@ export default function HeroSignupPill({ text = "Start using LuxQuant today", cl
       <button
         type="button"
         onClick={goPlatform}
-        className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1.5 text-left text-[11px] font-medium text-surface-hover outline-none sm:px-4 sm:py-2 sm:text-[13px]"
+        className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1.5 text-left text-[11px] font-medium text-accent-fg outline-none sm:px-4 sm:py-2 sm:text-[13px]"
       >
         {text}
       </button>
@@ -50,7 +50,7 @@ export default function HeroSignupPill({ text = "Start using LuxQuant today", cl
       <button
         type="button"
         onClick={goPlatform}
-        className="ml-1.5 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-3.5 text-[11px] font-semibold text-surface-hover shadow-[0_5px_14px_rgb(var(--accent) / 0.22)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_8px_18px_rgb(var(--accent) / 0.35)] sm:h-9 sm:px-5 sm:text-[13px]"
+        className="ml-1.5 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-3.5 text-[11px] font-semibold text-accent-fg shadow-[0_5px_14px_rgb(var(--accent) / 0.22)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_8px_18px_rgb(var(--accent) / 0.35)] sm:h-9 sm:px-5 sm:text-[13px]"
       >
         Sign Up
       </button>
