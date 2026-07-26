@@ -485,7 +485,7 @@ function RrLadder() {
               <span className="w-8 flex-shrink-0 font-mono text-[10px] text-text-muted">
                 {row.k}
               </span>
-              <div className="relative h-3.5 flex-1 rounded-[3px] bg-ink/[0.04]">
+              <div className="relative h-3.5 flex-1 overflow-hidden rounded-[3px] bg-ink/[0.04]">
                 <span
                   className="absolute inset-y-0 w-px bg-ink/20"
                   style={{ left: `${CENTRE_PCT}%` }}
@@ -521,9 +521,6 @@ function RrLadder() {
         })}
       </div>
 
-      <p className="mt-3 border-t border-ink/[0.06] pt-2.5 text-[11px] leading-relaxed text-text-muted">
-        TP1 and TP2 both pay less than the stop risks. The edge lives in TP3 and TP4.
-      </p>
     </div>
   );
 }
@@ -1141,13 +1138,27 @@ export default function Performance({ data }) {
                 </span>{" "}
                 just to break even. Compare that with the number above.
               </p>
+              {/* The section's one real action, so it looks like one. It was a
+   transparent 2%-tint ghost at 12px — no fill, no weight, the
+   "mystery meat" shape that reads as decoration. Now: solid accent,
+   48px tall so it clears the 44px touch target, 15px label, and three
+   words instead of five. accent-fg keeps it legible in every theme. */}
               <button
                 type="button"
                 onClick={() => navigate("/performance")}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink/12 bg-ink/[0.03] px-4 py-2.5 text-[12px] font-semibold text-text-primary transition-all hover:border-ink/25 hover:bg-ink/[0.06]"
+                className="group inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-[15px] font-semibold text-accent-fg shadow-[0_6px_20px_rgb(var(--accent)/0.26)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-light hover:shadow-[0_10px_26px_rgb(var(--accent)/0.36)] active:translate-y-0 active:scale-[0.99]"
               >
-                See the full R breakdown
-                <span aria-hidden="true">→</span>
+                Unlock full breakdown
+                <svg
+                  className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.4}
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
               </button>
             </div>
           </div>
