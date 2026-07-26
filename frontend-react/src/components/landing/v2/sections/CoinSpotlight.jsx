@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import CoinLogo from "../../../CoinLogo";
+import LockedPct, { isLockedTarget } from "./shared/LockedPct";
 
 const C = {
   gold: "#e7c373",
@@ -443,12 +444,18 @@ export default function CoinSpotlight() {
                           >
                             {o.label === "TP4" ? "TP4+" : o.label}
                           </span>
-                          <span
-                            className="flex-1 text-right font-mono text-[11px] tabular-nums"
-                            style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}
-                          >
-                            {signedPct(o.avg)}
-                          </span>
+                          {isLockedTarget(o.label) ? (
+                            <LockedPct className="flex-1 text-right font-mono text-[11px]" />
+                          ) : (
+                            <span
+                              className="flex-1 text-right font-mono text-[11px] tabular-nums"
+                              style={{
+                                color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss,
+                              }}
+                            >
+                              {signedPct(o.avg)}
+                            </span>
+                          )}
                           <span className="w-9 text-right font-mono text-[11px] tabular-nums text-text-primary">
                             {o.count}
                           </span>

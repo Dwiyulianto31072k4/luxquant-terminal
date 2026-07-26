@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import CoinLogo from "../../../CoinLogo";
 import DayDrillModal from "./DayDrillModal";
+import LockedPct, { isLockedTarget } from "./shared/LockedPct";
 
 const C = {
   gold: "#e7c373",
@@ -147,7 +148,7 @@ const INFO = {
     title: "Where Winners Exit",
     lines: [
       "How closed trades split across the four take-profits (TP1–TP4) and the stop-loss (SL).",
-      "Avg P/L = the actual gain at TP1–TP3, the peak gain at TP4 (it usually breaks through), and the loss for SL.",
+      "Avg P/L = the actual gain at TP1–TP3 (visible once you sign in), the peak gain at TP4 (it usually breaks through), and the loss for SL.",
       "How to read: bigger TP3/TP4 slices mean winners ran further. SL (red) is the only losing bucket.",
     ],
   },
@@ -1067,12 +1068,16 @@ export default function Performance({ data }) {
                         >
                           {o.label === "TP4" ? "TP4+" : o.label}
                         </span>
-                        <span
-                          className="text-right font-mono text-[12px] tabular-nums"
-                          style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}
-                        >
-                          {o.avg == null ? "—" : signed(o.avg)}
-                        </span>
+                        {isLockedTarget(o.label) ? (
+                          <LockedPct className="text-right font-mono text-[12px]" />
+                        ) : (
+                          <span
+                            className="text-right font-mono text-[12px] tabular-nums"
+                            style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}
+                          >
+                            {o.avg == null ? "—" : signed(o.avg)}
+                          </span>
+                        )}
                         <span className="text-right font-mono text-[12px] tabular-nums text-text-primary">
                           {nfmt(o.count)}
                         </span>
@@ -1089,7 +1094,8 @@ export default function Performance({ data }) {
                 </div>
               </div>
               <p className="mt-3 border-t border-ink/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
-                Avg P/L · TP1–TP3 = actual target gains ·{" "}
+                Avg P/L · TP1–TP3 = actual target gains,{" "}
+                <span className="text-text-primary">shown on sign-in</span> ·{" "}
                 <span className="text-text-primary">TP4+ = avg peak</span> (TP4 is the final target
                 — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
               </p>
