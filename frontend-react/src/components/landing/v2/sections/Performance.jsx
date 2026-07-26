@@ -431,42 +431,39 @@ function InfoTip({ info }) {
   );
 }
 
+// Every locked bar is drawn at the same width, so the row conveys that five
+// levels exist and nothing about how they compare.
+const PLACEHOLDER_PCT = 26;
+const CENTRE_PCT = 22;
+
 /**
- * Reward against risk, on one shared scale.
+ * Reward against risk — shown as locked.
  *
- * The stop runs left of the centre line, the targets right, so the thing you
- * cannot miss is that TP1 and TP2 are shorter than the stop — the first two
- * targets pay less than the trade risks. That is the whole argument for why a
- * win rate quoted alone means nothing, and it reads in one glance.
+ * An earlier cut drew the real proportions, on the reasoning that a preview of
+ * the actual thing converts better than a blur. It did, and it also gave the
+ * whole ladder away twice over: the bar widths were computed from the real
+ * medians and sat in the inline styles, and the card above prints avg P/L per
+ * exit while this one printed the median stop distance — and R is nothing more
+ * than one divided by the other. 1.75% at TP1 over a 3.3% stop is 0.53R, no
+ * account required.
  *
- * The bars are real and the target figures are not shown: the shape is what
- * makes the argument, the exact multiples are the paid layer. The stop keeps its
- * label because -1.00R is the definition of R, not a result — it is what gives
- * the other five bars a scale to be read against.
+ * So the bars are now uniform placeholders and the stop distance is gone. The
+ * numerators can stay on the card above: without a denominator they convert to
+ * nothing. That was the cheaper half of the fix and it leaves an honest, useful
+ * panel intact rather than blurring four cells out of it.
  *
- * Note this gates reading, not arithmetic: bar widths are set from the real
- * medians, so the multiples are recoverable from the inline styles by anyone who
- * bothers. That is deliberate — faking the widths to close that gap would put a
- * dishonest chart on the page, which costs more than the numbers are worth.
+ * The stop keeps its -1.00R label — that is the definition of R, true of every
+ * call in every system, and it reveals nothing about this book.
  */
-function RrLadder({ geo }) {
+function RrLadder() {
   const rows = [
-    { k: "Stop", r: -1, tone: "loss" },
-    { k: "TP1", r: geo?.median_r_to_tp1, tone: "t1" },
-    { k: "TP2", r: geo?.median_r_to_tp2, tone: "t2" },
-    { k: "TP3", r: geo?.median_r_to_tp3, tone: "t3" },
-    { k: "TP4", r: geo?.median_r_to_tp4, tone: "t4" },
+    { k: "Stop", r: -1 },
+    { k: "TP1", r: 1 },
+    { k: "TP2", r: 1 },
+    { k: "TP3", r: 1 },
+    { k: "TP4", r: 1 },
   ];
-  const maxUp = Math.max(geo?.median_r_to_tp4 || 4.5, 1);
-  // Centre sits where the 1R stop ends, so both sides share one scale.
-  const centre = (1 / (1 + maxUp)) * 100;
-  const fill = {
-    loss: "rgb(var(--neg))",
-    t1: "rgb(var(--accent) / 0.32)",
-    t2: "rgb(var(--accent) / 0.5)",
-    t3: "rgb(var(--accent) / 0.72)",
-    t4: "rgb(var(--accent))",
-  };
+  const fill = { loss: "rgb(var(--neg))", locked: "rgb(var(--accent))" };
 
   return (
     <div>
@@ -474,17 +471,14 @@ function RrLadder({ geo }) {
         <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
           Reward against risk
         </p>
-        {geo?.median_stop_distance_pct != null && (
-          <p className="font-mono text-[9px] text-text-muted">
-            stop ≈ {geo.median_stop_distance_pct.toFixed(1)}% from entry
-          </p>
-        )}
+        <p className="flex items-center gap-1 font-mono text-[9px] text-text-muted">
+          <LockIcon />
+          locked
+        </p>
       </div>
 
       <div className="mt-3 space-y-1.5">
         {rows.map((row) => {
-          const known = typeof row.r === "number";
-          const w = known ? (Math.abs(row.r) / (1 + maxUp)) * 100 : 0;
           const neg = row.r < 0;
           return (
             <div key={row.k} className="flex items-center gap-2.5">
@@ -494,18 +488,20 @@ function RrLadder({ geo }) {
               <div className="relative h-3.5 flex-1 rounded-[3px] bg-ink/[0.04]">
                 <span
                   className="absolute inset-y-0 w-px bg-ink/20"
-                  style={{ left: `${centre}%` }}
+                  style={{ left: `${CENTRE_PCT}%` }}
                 />
-                {known && (
-                  <span
-                    className="absolute inset-y-0 rounded-[3px]"
-                    style={{
-                      background: fill[row.tone],
-                      width: `${w}%`,
-                      ...(neg ? { right: `${100 - centre}%` } : { left: `${centre}%` }),
-                    }}
-                  />
-                )}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 rounded-[3px] opacity-60"
+                  style={{
+                    background: neg ? fill.loss : fill.locked,
+                    filter: "blur(3px)",
+                    width: `${PLACEHOLDER_PCT}%`,
+                    ...(neg
+                      ? { right: `${100 - CENTRE_PCT}%` }
+                      : { left: `${CENTRE_PCT}%` }),
+                  }}
+                />
               </div>
               {neg ? (
                 <span className="w-14 flex-shrink-0 text-right font-mono text-[11px] tabular-nums text-loss">
@@ -1128,7 +1124,7 @@ export default function Performance({ data }) {
             sub="Every result in R — the risk each call sets for itself"
           />
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-center">
-            <RrLadder geo={rGeo} />
+            <RrLadder />
 
             <div className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-3">

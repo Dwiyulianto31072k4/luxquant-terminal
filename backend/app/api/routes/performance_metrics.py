@@ -23,7 +23,9 @@ from app.services import performance_metrics as pm
 
 router = APIRouter(prefix="/performance", tags=["performance"])
 
-_PUBLIC_SUMMARY_KEY = "lq:performance:public-summary:v1"
+# v2: dropped the R ladder from the payload — the landing stopped drawing it, so
+# shipping it anyway just moved the leak from the DOM to the network tab.
+_PUBLIC_SUMMARY_KEY = "lq:performance:public-summary:v2"
 
 
 def _parse_date(value: Optional[str], field: str):
@@ -71,33 +73,28 @@ def rr_geometry(
 
 @router.get("/public-summary")
 def public_summary(db: Session = Depends(get_db)):
-    """The teaser payload for the landing page. Deliberately public, deliberately small.
+    """The teaser payload for the landing page. Two numbers, and they are the only
+    two the landing renders.
 
-    Two things go out and nothing else:
+    It used to carry the R ladder as well. That was a leak by another route: the
+    landing does not draw those bars any more, but the values still travelled in
+    this response, so the ladder was one network tab away. Anything the page does
+    not print does not go out.
 
-      · the reward:risk ladder — medians of the target and stop levels. Every one
-        of those levels is already printed on every public signal, so a reader
-        could compute this themselves from the free channel. Withholding it buys
-        nothing and it is the most interesting shape in the whole book.
-      · the break-even win rate this geometry demands. One number, and the only
-        one here that needs outcome history. It cannot be run backwards into
-        expectancy, profit factor or the equity curve — those stay behind the
-        admin gate on /r-metrics.
+    The break-even win rate survives because it is the whole argument — it is what
+    the reader compares the published win rate against — and because it runs
+    nowhere: knowing the geometry needs 33.7% tells you nothing about expectancy,
+    profit factor, drawdown or the equity curve. Those need /r-metrics and an
+    admin token.
 
-    Cached for an hour: it moves on the order of a decimal per month.
+    Cached for an hour; it moves by a decimal a month.
     """
     cached = cache_get(_PUBLIC_SUMMARY_KEY)
     if cached:
         return cached
 
-    geo = pm.rr_geometry(db)
     report = pm.compute(db)
     payload = {
-        "median_r_to_tp1": geo.get("median_r_to_tp1"),
-        "median_r_to_tp2": geo.get("median_r_to_tp2"),
-        "median_r_to_tp3": geo.get("median_r_to_tp3"),
-        "median_r_to_tp4": geo.get("median_r_to_tp4"),
-        "median_stop_distance_pct": geo.get("median_stop_distance_pct"),
         "breakeven_win_rate_pct": report.get("breakeven_win_rate_pct"),
         "calls_measured": report.get("trades"),
     }
