@@ -1,9 +1,13 @@
 """Track-record performance in R units.
 
-Admin-gated for now: these figures (expectancy, drawdown, the gap between win
-rate and average win) are the honest shape of the book, and how they get
-presented publicly is a decision to make deliberately. Dropping the
-`Depends(get_admin_user)` line is all it takes to open any of them up.
+Gating, decided deliberately and in this order:
+  · /public-summary — anonymous. Two numbers the landing teaser prints.
+  · /r-metrics, /rr-geometry, /position-size — any signed-in user. The landing
+    button literally says "sign in to view the R breakdown", so sign-in is the
+    price; making it admin-only would turn that button into a lie.
+
+The full r-metrics pass folds ~53k rows in Python (~2s on the box), so the
+no-filter variants are cached; a date-filtered call computes live.
 
 The maths lives in app/services/performance_metrics.py — see that module's
 header for what 1R means here and where outcomes come from.
@@ -15,7 +19,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_admin_user
+from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set
 from app.models.user import User
@@ -26,6 +30,8 @@ router = APIRouter(prefix="/performance", tags=["performance"])
 # v2: dropped the R ladder from the payload — the landing stopped drawing it, so
 # shipping it anyway just moved the leak from the DOM to the network tab.
 _PUBLIC_SUMMARY_KEY = "lq:performance:public-summary:v2"
+_R_METRICS_KEY = "lq:performance:r-metrics:v1"  # + :population, unfiltered only
+_R_METRICS_TTL = 900  # the numbers move by decimals per day; 15 min is generous
 
 
 def _parse_date(value: Optional[str], field: str):
@@ -50,22 +56,33 @@ def r_metrics(
                     "Calls still open are in neither.",
     ),
     db: Session = Depends(get_db),
-    _admin: User = Depends(get_admin_user),
+    _user: User = Depends(get_current_user),
 ):
     """Win rate, expectancy, profit factor, R-multiples, drawdown, SQN, the
     monthly/weekly R series, and breakdowns by outcome and risk level."""
-    return pm.compute(
+    # Only the unfiltered book is cached — that is what the Performance page
+    # asks for, and it is the expensive one to recompute per visitor.
+    cacheable = since is None and until is None
+    key = f"{_R_METRICS_KEY}:{population}"
+    if cacheable:
+        cached = cache_get(key)
+        if cached:
+            return cached
+    report = pm.compute(
         db,
         since=_parse_date(since, "since"),
         until=_parse_date(until, "until"),
         population=population,
     )
+    if cacheable:
+        cache_set(key, report, ttl=_R_METRICS_TTL)
+    return report
 
 
 @router.get("/rr-geometry")
 def rr_geometry(
     db: Session = Depends(get_db),
-    _admin: User = Depends(get_admin_user),
+    _user: User = Depends(get_current_user),
 ):
     """The reward:risk the calls promise before any outcome — the shape of the book."""
     return pm.rr_geometry(db)
@@ -109,7 +126,7 @@ def position_size(
     entry: float = Query(..., gt=0),
     stop: float = Query(..., gt=0),
     max_leverage: Optional[int] = Query(None, gt=0, description="Venue cap, if any"),
-    _admin: User = Depends(get_admin_user),
+    _user: User = Depends(get_current_user),
 ):
     """Turn a call into a sized trade: quantity, notional, leverage, loss at stop."""
     try:

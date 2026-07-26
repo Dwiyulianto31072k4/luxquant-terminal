@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
+import RiskRSection from "./performance/RiskRSection";
 
 const API_BASE = "/api/v1";
 
@@ -290,6 +291,12 @@ const AnalyzePage = () => {
         </div>
         <WinRateTrendChart data={data.win_rate_trend} mode={trendMode} t={t} />
       </div>
+
+      {/* ── RISK-ADJUSTED PERFORMANCE (R) — the full breakdown the landing
+ teaser locks. Own data source (/performance/r-metrics, signed-in),
+ own population toggle; deliberately independent of timeRange above
+ because the R book is defined over the whole record. ── */}
+      <RiskRSection />
 
       {/* ── OUTCOME & R:R ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
