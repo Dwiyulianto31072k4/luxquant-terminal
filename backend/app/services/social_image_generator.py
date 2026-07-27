@@ -1217,16 +1217,27 @@ def _compose_editorial_card(
     accent = _card_accent_span(flat)
 
     line_h = int(size * 1.16)
-    # The bottom block is placed from the card's edge inwards, using where the
-    # type actually inks rather than where its box starts: the account line's
-    # ink sits the same 58px off the bottom as everything sits off the left, so
-    # the corner reads square instead of bottom-heavy.
+    # Everything below the headline is placed from the card's edge inwards, and
+    # measured where the type actually inks rather than where its box starts —
+    # a box carries slack above the caps and below the baseline, which is what
+    # made a "26px" gap read as almost nothing.
+    #
+    # The account line's ink clears the bottom by the same 58px everything
+    # clears the left by, and the invitation sits with EQUAL ink gaps above and
+    # below: it used to hug the account line while a wide band of gradient sat
+    # between it and the headline, so it read as attached to the handle instead
+    # of standing on its own.
     _f_cta_m = _card_font(25, "SemiBold")
     _f_row_m = _card_font(21, "ExtraBold")
+    BREATH = 44
     foot_y = height - 58 - _f_row_m.getbbox(CARD_HANDLE)[3]
     cta_y = (foot_y + _f_row_m.getbbox(CARD_HANDLE)[1]
-             - 26 - _f_cta_m.getbbox(CARD_CTA_LEAD)[3])
-    y = cta_y - 62 - len(lines) * line_h
+             - BREATH - _f_cta_m.getbbox(CARD_CTA_LEAD)[3])
+    # The headline's last line inks lower than its box: measure that line, not
+    # the box, or a line ending in a descender would crowd the invitation.
+    _tail_ink = font.getbbox(" ".join(lines[-1]))[3] if lines else int(size * 1.1)
+    y = (cta_y + _f_cta_m.getbbox(CARD_CTA_LEAD)[1]
+         - BREATH - _tail_ink - (len(lines) - 1) * line_h)
 
     img, _alpha = _card_measured_scrim(img, height - 620, y - 24, foot_y + 40)
     draw = ImageDraw.Draw(img)
