@@ -325,7 +325,15 @@ def get_analyze_data(
     cached = cache_get(cache_key)
     if cached:
         return AnalyzeResponse(**cached)
-    
+    # Cold, this query takes ~2.2s against the full book. Rather than make the
+    # visitor who happens to arrive on expiry wait for it — and rather than let
+    # a crowd of them all recompute at once — serve the stale copy immediately.
+    # Same pattern the edge-lab endpoint already uses.
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return AnalyzeResponse(**_stale)
+
+
     try:
         date_filter = ""
         if time_range != 'all':
@@ -558,7 +566,11 @@ def get_analyze_data(
             risk_distribution=risk_distribution, risk_trend=risk_trend,
             time_range=time_range)
 
-        cache_set(cache_key, response.model_dump(), ttl=60)
+        # 60s was pointlessly tight for a lifetime track record that moves by
+        # decimals — it just guaranteed most visitors paid the 2.2s recompute.
+        # cache_set also writes a stale copy at 10x TTL, which the miss path above
+        # serves, so the slow query is effectively never in a user's way.
+        cache_set(cache_key, response.model_dump(), ttl=300)
         return response
 
     except Exception as e:

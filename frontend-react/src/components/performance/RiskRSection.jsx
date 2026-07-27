@@ -31,6 +31,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
+import { InfoTip, SECTION_INFO } from "./MetricInfo";
 
 const API_BASE = "/api/v1";
 
@@ -148,8 +149,9 @@ export default function RiskRSection() {
       {/* header */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-normal tracking-tight text-text-primary">
+          <h3 className="flex items-center gap-1.5 text-sm font-normal tracking-tight text-text-primary">
             Risk-Adjusted Performance
+            <InfoTip info={SECTION_INFO.r_section} />
           </h3>
           <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
             every result in R · 1R = entry − stop

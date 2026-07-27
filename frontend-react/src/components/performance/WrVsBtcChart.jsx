@@ -25,6 +25,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
+import { InfoTip, SECTION_INFO } from "./MetricInfo";
 
 const API_BASE = "/api/v1";
 const RANGES = [
@@ -173,8 +174,9 @@ export default function WrVsBtcChart() {
       {/* header */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-normal tracking-tight text-text-primary">
+          <h3 className="flex items-center gap-1.5 text-sm font-normal tracking-tight text-text-primary">
             Win Rate × Bitcoin
+            <InfoTip info={SECTION_INFO.wr_btc} />
           </h3>
           <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
             does the edge survive every BTC regime?

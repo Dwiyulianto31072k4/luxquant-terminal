@@ -19,6 +19,7 @@ import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
 import RiskRSection from "./performance/RiskRSection";
 import WrVsBtcChart from "./performance/WrVsBtcChart";
+import { InfoTip, KPI_INFO, SECTION_INFO } from "./performance/MetricInfo";
 
 const API_BASE = "/api/v1";
 
@@ -228,32 +229,38 @@ const AnalyzePage = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <KPICard
           label={t("perf.win_rate")}
+          info={KPI_INFO.win_rate}
           value={`${data.stats.win_rate.toFixed(1)}%`}
           color={data.stats.win_rate >= 75 ? "profit" : data.stats.win_rate >= 55 ? "gold" : "loss"}
           accent
         />
         <KPICard
           label={t("perf.closed_trades")}
+          info={KPI_INFO.closed_trades}
           value={data.stats.closed_trades.toLocaleString()}
           sub={`of ${data.stats.total_signals.toLocaleString()}`}
         />
         <KPICard
           label={t("perf.winners")}
+          info={KPI_INFO.winners}
           value={data.stats.total_winners.toLocaleString()}
           color="profit"
         />
         <KPICard
           label={t("perf.losses")}
+          info={KPI_INFO.losses}
           value={data.stats.sl_count.toLocaleString()}
           color="loss"
         />
         <KPICard
           label={`${t("perf.avg_rr")} (${maxTpRR.level})`}
+          info={KPI_INFO.avg_rr}
           value={`${maxTpRR.rr.toFixed(2)}R`}
           color="gold"
         />
         <KPICard
           label={t("perf.not_hit")}
+          info={KPI_INFO.not_hit}
           value={data.stats.open_signals.toLocaleString()}
           sub={`${data.stats.active_pairs} ${t("perf.pairs")}`}
           color="muted"
@@ -282,7 +289,7 @@ const AnalyzePage = () => {
             <IconOutcome />
             <div>
               <h3 className="text-text-primary text-sm font-normal tracking-tight">
-                {t("perf.outcome_dist")}
+                {t("perf.outcome_dist")} <InfoTip info={SECTION_INFO.outcome} />
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5 tabular-nums">
                 {data.stats.closed_trades.toLocaleString()} {t("perf.closed_trades")}
@@ -297,7 +304,7 @@ const AnalyzePage = () => {
             <IconRR />
             <div>
               <h3 className="text-text-primary text-sm font-normal tracking-tight">
-                {t("perf.risk_reward")}
+                {t("perf.risk_reward")} <InfoTip info={SECTION_INFO.rr} />
               </h3>
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
                 {t("perf.rr_desc")} · Best{" "}
@@ -315,7 +322,7 @@ const AnalyzePage = () => {
           <IconRisk />
           <div>
             <h3 className="text-text-primary text-sm font-normal tracking-tight">
-              {t("perf.risk_analysis")}
+              {t("perf.risk_analysis")} <InfoTip info={SECTION_INFO.risk_level} />
             </h3>
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
               {t("perf.risk_desc")}
@@ -501,7 +508,7 @@ const AnalyzePage = () => {
               <IconPairs />
               <div>
                 <h3 className="text-text-primary text-sm font-normal tracking-tight">
-                  {t("perf.top_pairs")}
+                  {t("perf.top_pairs")} <InfoTip info={SECTION_INFO.top_pairs} />
                 </h3>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
                   {t("perf.top_pairs_desc")}
@@ -521,10 +528,11 @@ const AnalyzePage = () => {
               <IconHistory />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-text-primary text-sm font-normal tracking-tight">
+                  <h3 className="flex items-center gap-1.5 text-text-primary text-sm font-normal tracking-tight">
                     {t("perf.sig_history")}
+                    <InfoTip info={SECTION_INFO.signal_history} />
                   </h3>
-                  <span className="px-2 py-0.5 rounded-sm bg-accent/12 border border-ink/12 text-accent font-mono text-[10px] uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-sm bg-accent/12 border border-ink/12 text-accent-text font-mono text-[10px] uppercase tracking-wider">
                     Proof of Calls
                   </span>
                 </div>
@@ -718,7 +726,7 @@ const FilterField = ({ label, children, className }) => (
  KPI CARD — Flowscan flat hairline pattern
  ────────────────────────────────────────────────────────────── */
 
-const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
+const KPICard = ({ label, value, sub, color = "default", accent = false, info = null }) => {
   const colorStyles = {
     profit: "text-profit",
     loss: "text-loss",
@@ -731,7 +739,7 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border p-4 transition-all duration-200 ${
+      className={`group relative rounded-xl border p-4 transition-all duration-200 ${
         accent
           ? "border-accent/25 bg-accent/[0.07] shadow-[0_4px_16px_rgb(var(--accent)/0.10)]"
           : "border-ink/[0.06] bg-surface-raised hover:-translate-y-px hover:border-ink/[0.14]"
@@ -740,9 +748,13 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
       {accent && (
         <span className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent" />
       )}
-      <p className="mb-2.5 truncate font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65">
-        {label}
-      </p>
+      {/* No overflow-hidden on the card: it would clip the info popover. */}
+      <div className="mb-2.5 flex items-center gap-1.5">
+        <p className="min-w-0 truncate font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65">
+          {label}
+        </p>
+        <InfoTip info={info} />
+      </div>
       <p
         className={`font-mono text-[26px] font-semibold leading-none tabular-nums ${colorStyles[color]}`}
       >

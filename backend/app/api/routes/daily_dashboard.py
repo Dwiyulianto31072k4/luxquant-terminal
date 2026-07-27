@@ -40,7 +40,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 
 from app.core.database import get_db
-from app.core.redis import cache_get, cache_set
+from app.core.redis import cache_get, cache_set, cache_get_with_stale
 
 router = APIRouter()
 
@@ -123,6 +123,12 @@ def get_daily_dashboard(
     cached = cache_get(cache_key)
     if cached:
         return cached
+    # ~3.4s cold. Serve the stale copy on a miss so the visitor who lands on
+    # expiry gets a page instead of a spinner, and so a crowd arriving together
+    # does not stampede the same rebuild.
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
 
     trend_start = target_date - timedelta(days=13)
     target_str = target_date.isoformat()
@@ -527,5 +533,6 @@ def get_daily_dashboard(
         "trend_14d": trend_14d,
     }
 
-    cache_set(cache_key, response, ttl=120)
+    # A day's dashboard is settled data; 120s just guaranteed misses.
+    cache_set(cache_key, response, ttl=600)
     return response
