@@ -503,6 +503,15 @@ def re_render_post_image(
       - If a raw background already exists → free recompose (type + lockup only)
       - Else → one paid AI image, on the model/quality the caller picked
     """
+    # Log what was ASKED for, at the door. A poster came back from Grok when the
+    # click was meant for GPT Image 2, and nothing in the logs said which
+    # provider the request carried — so the diagnosis had to be reconstructed
+    # from file timestamps and a suspiciously short 11-second run.
+    logger.info(
+        "re-render post=%s requested provider=%s model=%s quality=%s",
+        post_id, provider or "auto", model or "default", quality or "default",
+    )
+
     from app.services.social_entity_assets import resolve_entity_assets
     from app.services.social_image_generator import (
         find_raw_image,
@@ -699,6 +708,9 @@ def re_render_post_image(
     #
     # One retry: rollback invalidates the dead connection, and the next
     # statement checks out a fresh (pre-pinged) one.
+    meta["requested_provider"] = provider or "auto"
+    meta["requested_model"] = model or "default"
+
     slide2 = _build_caption_slide(post_id, headline, row.get("caption") or "")
     if slide2:
         meta["slide2_path"] = slide2
