@@ -1428,7 +1428,10 @@ def generate_ai_social_image(
             verified_brand_names = [primary_org_name]
         visual_materials = _materials_dict(assets)
     except Exception as exc:
-        logger = __import__("logging").getLogger(__name__)
+        # Do NOT rebind `logger` here. Assigning it anywhere in this function
+        # makes it local for the whole function, so the outer failure handler —
+        # which runs when this block did not — hit UnboundLocalError and buried
+        # the real error, taking the automatic xAI fallback down with it.
         logger.warning("entity asset resolve failed: %s", exc)
 
     # Pause expensive AI image when primary materials missing (unless forced).

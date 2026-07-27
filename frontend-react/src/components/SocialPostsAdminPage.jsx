@@ -1191,7 +1191,6 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
               We add the headline, the CTA and the lockup automatically · $0
             </p>
-            {err && <p className="text-[11px] text-loss text-center leading-snug">{err}</p>}
           </div>
         )}
       </div>
