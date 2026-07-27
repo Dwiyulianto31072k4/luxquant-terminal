@@ -1286,7 +1286,16 @@ def _compose_editorial_card(
     strip = Image.new("RGBA", (width * ss, strip_h * ss), (0, 0, 0, 0))
     sd = ImageDraw.Draw(strip)
 
-    tail = (16 + 21 + 11) * ss + sd.textlength(CARD_DOMAIN, font=f_dom)
+    # An icon sits label-close to its text, so the gap is specified INK to INK,
+    # not box to box. Both icons leave empty space inside their square — the X
+    # path stops at 22.8 of 24, the globe circle at 21 — and the glyph after it
+    # carries its own left bearing, so a 12px box gap measured 14-15px on the
+    # card. Stated as ink, 9px is 9px.
+    GAP = 9 * ss
+    icon = 21 * ss
+    X_INK_RIGHT, GLOBE_INK_RIGHT = 22.827 / 24, 21 / 24
+
+    tail = 16 * ss + icon + GAP + sd.textlength(CARD_DOMAIN, font=f_dom)
     room = (width - 58 - (lock_w + 58 + 44 if lock_w else 58)) * ss - tail
     lead = next(
         (c for c in (CARD_CTA_LEAD, "Read daily crypto news at",
@@ -1301,17 +1310,15 @@ def _compose_editorial_card(
     x = 58 * ss
     sd.text((x, cta_row), lead, font=f_cta, fill=ink)
     x += sd.textlength(lead, font=f_cta) + 16 * ss
-    globe = 21 * ss
-    sd_centre = _card_line_centre(f_dom, CARD_DOMAIN, cta_row)
-    _card_globe_icon(sd, x, sd_centre - globe / 2, globe, ink)
-    x += globe + 11 * ss
+    _card_globe_icon(sd, x, _card_line_centre(f_dom, CARD_DOMAIN, cta_row)
+                     - icon / 2, icon, ink)
+    x += icon * GLOBE_INK_RIGHT + GAP - f_dom.getbbox(CARD_DOMAIN)[0]
     sd.text((x, cta_row), CARD_DOMAIN, font=f_dom, fill=ink)
 
     x = 58 * ss
-    mark = 21 * ss
-    row_centre = _card_line_centre(f_row, CARD_HANDLE, foot_row)
-    _card_x_icon(strip, x, row_centre - mark / 2, mark, ink)
-    x += mark + 12 * ss
+    _card_x_icon(strip, x, _card_line_centre(f_row, CARD_HANDLE, foot_row)
+                 - icon / 2, icon, ink)
+    x += icon * X_INK_RIGHT + GAP - f_row.getbbox(CARD_HANDLE)[0]
     sd.text((x, foot_row), CARD_HANDLE, font=f_row, fill=ink)
 
     img.alpha_composite(
