@@ -167,6 +167,14 @@ const awaitingImage = (post) =>
     (needsMaterials(post) && !post?.image_url)
   );
 
+// Priced from OpenAI's published token rates against the output-token count for
+// our 1024x1536 poster, so the labels are the real cost of one click.
+const AI_IMAGE_TIERS = [
+  { key: "cheap", label: "Hemat", price: "~$0.013", model: "gpt-image-1-mini", quality: "medium" },
+  { key: "std", label: "Standar", price: "~$0.05", model: "gpt-image-2", quality: "medium" },
+  { key: "max", label: "Maksimal", price: "~$0.19", model: "gpt-image-2", quality: "high" },
+];
+
 // ── News picker modal: browse the crypto-news feed and click a story ──
 const _timeAgo = (iso) => {
   if (!iso) return "";
@@ -858,6 +866,71 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
     load();
   }, [load]);
 
+  const reRender = async (opt) => {
+    setBusy("__render__");
+    setErr(null);
+    const startedAt = Date.now();
+    const MAX_MS = 210000; // ~3.5 min ceiling
+
+    // The paid AI image edit can take 1–3 min, which blows past Cloudflare's ~100s
+    // edge timeout (524). The backend keeps working and finishes anyway, so we don't
+    // surface that error — we poll the post until the fresh image lands, then refresh.
+    const direct = api
+      .post(`/api/v1/admin/social-posts/${postId}/re-render`, null, { params: opt })
+      .then((res) => res?.data?.post || null)
+      .catch((e) => {
+        // A real validation error (e.g. still-missing materials) should show; a
+        // gateway timeout should not — fall through to polling for those.
+        const status = e?.response?.status;
+        const d = e?.response?.data?.detail;
+        if (status && status !== 502 && status !== 503 && status !== 504 && status !== 524) {
+          const msg =
+            (typeof d === "object" && d?.message) || (typeof d === "string" ? d : null);
+          if (msg) throw new Error(msg);
+        }
+        return null;
+      });
+
+    const findPost = async () => {
+      try {
+        const res = await api.get("/api/v1/admin/social-posts", { params: { limit: 80 } });
+        const list = Array.isArray(res.data) ? res.data : [];
+        return list.find((p) => String(p.id) === String(postId)) || null;
+      } catch {
+        return null;
+      }
+    };
+    const isReady = (p) => Boolean(p && p.image_url && !awaitingImage(p));
+
+    try {
+      // Recompose (free) returns in ~2s; the AI path won't beat the 10s race → poll.
+      let post = await Promise.race([
+        direct,
+        new Promise((r) => setTimeout(() => r(null), 10000)),
+      ]);
+      while (!isReady(post) && Date.now() - startedAt < MAX_MS) {
+        await new Promise((r) => setTimeout(r, 4000));
+        const p = await findPost();
+        if (isReady(p)) {
+          post = p;
+          break;
+        }
+      }
+      await load();
+      if (isReady(post)) {
+        if (onUpdated) onUpdated(post);
+      } else {
+        setErr(
+          "Image is still finishing — this can take up to ~3 min. Click Refresh in a moment to see it."
+        );
+      }
+    } catch (e) {
+      setErr(e?.message || "Re-render failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const loadBrief = useCallback(async () => {
     try {
       const res = await api.get(`/api/v1/admin/social-posts/${postId}/manual-brief`);
@@ -1201,12 +1274,35 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         )}
       </div>
 
-      {/* No "generate with AI" button any more: the image API charged ~$0.05 a
-          post for the same picture Gemini makes for nothing. The prompt above is
-          the whole workflow — generate there, upload here, compose is free. */}
-      <p className="text-[9px] font-mono text-text-muted/80 text-center leading-relaxed">
-        Images come from your own Gemini · the poster itself composes free
-      </p>
+      {/* Gemini first — it costs nothing. This is the fallback for when it argues
+          with you, priced per click so the expensive tier is never the default. */}
+      <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-2.5 space-y-2">
+        <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
+          or let our AI draw it — you pay per click
+        </p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {AI_IMAGE_TIERS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              disabled={!!busy}
+              onClick={() => reRender({ model: t.model, quality: t.quality })}
+              className="px-2 py-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-text-primary hover:border-accent/45 hover:bg-accent/[0.06] disabled:opacity-40 transition-colors text-left"
+              title={`${t.model} · ${t.quality}`}
+            >
+              <span className="block text-[11px] font-semibold leading-tight">{t.label}</span>
+              <span className="block text-[10px] font-mono text-text-muted tabular-nums mt-0.5">
+                {t.price}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+          {busy === "__render__"
+            ? "Working — the AI image takes 1–3 min. Safe to wait, it won't double-charge."
+            : "Free when a background already exists: that only re-composes."}
+        </p>
+      </div>
 
       {err && <p className="text-[11px] text-loss">{err}</p>}
     </div>

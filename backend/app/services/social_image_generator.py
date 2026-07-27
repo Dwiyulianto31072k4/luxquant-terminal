@@ -14,6 +14,7 @@ Quality-first + cost-efficient defaults (2026):
 from __future__ import annotations
 
 import base64
+import contextvars
 import logging
 import os
 import re
@@ -30,10 +31,29 @@ logger = logging.getLogger(__name__)
 ASSETS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
 # gpt-image-2 + medium + portrait = best quality/cost for social posters
 OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
+# Chosen per click, not per deploy: the same poster costs $0.013 on the mini
+# model and $0.19 at high quality, so the choice belongs to whoever is looking
+# at the draft. A context var carries it instead of threading a parameter
+# through six call sites; generate_ai_social_image sets it for its own call.
+IMAGE_MODELS_ALLOWED = ("gpt-image-1-mini", "gpt-image-2", "gpt-image-1.5", "gpt-image-1")
+IMAGE_QUALITIES_ALLOWED = ("low", "medium", "high")
+_IMAGE_OVERRIDE = contextvars.ContextVar("social_image_override", default=None)
 OPENAI_IMAGE_SIZE = os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")
 OPENAI_IMAGE_QUALITY = os.environ.get("OPENAI_IMAGE_QUALITY", "medium")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 IMAGE_TIMEOUT = int(os.environ.get("SOCIAL_IMAGE_TIMEOUT", "180"))
+
+
+def _image_model() -> str:
+    """The override is validated where it is set; validated here too, because
+    an unknown id reaching the API is a charge at a rate we cannot price."""
+    picked = (_IMAGE_OVERRIDE.get() or {}).get("model")
+    return picked if picked in IMAGE_MODELS_ALLOWED else OPENAI_IMAGE_MODEL
+
+
+def _image_quality() -> str:
+    picked = (_IMAGE_OVERRIDE.get() or {}).get("quality")
+    return picked if picked in IMAGE_QUALITIES_ALLOWED else OPENAI_IMAGE_QUALITY
 
 
 @dataclass
@@ -292,10 +312,10 @@ def _merge_usage(a: Optional[dict], b: Optional[dict]) -> dict:
 def _generate_openai_image(prompt: str, out_path: Path) -> dict:
     """Returns usage dict from API (may be empty)."""
     payload = {
-        "model": OPENAI_IMAGE_MODEL,
+        "model": _image_model(),
         "prompt": prompt,
         "size": OPENAI_IMAGE_SIZE,
-        "quality": OPENAI_IMAGE_QUALITY,
+        "quality": _image_quality(),
         "n": 1,
     }
     payload["response_format"] = "b64_json"
@@ -332,10 +352,10 @@ def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> dict
     with open(reference_path, "rb") as image_file:
         files = {"image": (file_name, image_file, mime)}
         data = {
-            "model": OPENAI_IMAGE_MODEL,
+            "model": _image_model(),
             "prompt": prompt,
             "size": OPENAI_IMAGE_SIZE,
-            "quality": OPENAI_IMAGE_QUALITY,
+            "quality": _image_quality(),
             "n": "1",
         }
         response = requests.post(
@@ -1341,12 +1361,21 @@ def generate_ai_social_image(
     skip_if_needs_materials: bool = False,
     force: bool = False,
     force_provider: Optional[str] = None,
+    image_model: Optional[str] = None,
+    image_quality: Optional[str] = None,
 ) -> GeneratedSocialImage:
     """Generate cinematic poster image.
 
     Default provider: OpenAI gpt-image-2 (medium, portrait) when key present;
     else xAI Grok Imagine. force_provider overrides auto/env selection.
     """
+    # Honour only a known model and quality: a typo must fall back to the
+    # configured default rather than reach the API as an unknown, unpriced id.
+    _IMAGE_OVERRIDE.set({
+        "model": image_model if image_model in IMAGE_MODELS_ALLOWED else None,
+        "quality": image_quality if image_quality in IMAGE_QUALITIES_ALLOWED else None,
+    })
+
     # When the AI editorial pack supplies its own image prompt, use it verbatim;
     # otherwise fall back to the deterministic template prompt.
     prompt = (override_prompt or "").strip() or build_visual_prompt(
@@ -1448,7 +1477,7 @@ def generate_ai_social_image(
         image_api_calls = 0
         image_usage_acc: dict = {}
         image_is_edit = False
-        model_label = OPENAI_IMAGE_MODEL if provider == "openai" else XAI_IMAGE_MODEL
+        model_label = _image_model() if provider == "openai" else XAI_IMAGE_MODEL
 
         if face_ok:
             # Single face edit (1:1). Cheap: no second brand API call.
@@ -1546,7 +1575,7 @@ def generate_ai_social_image(
                 "cheap_mode": CHEAP_MODE,
                 "image_provider": provider,
                 "image_model": model_label,
-                "image_quality": OPENAI_IMAGE_QUALITY if provider == "openai" else "default",
+                "image_quality": _image_quality() if provider == "openai" else "default",
                 "image_size": OPENAI_IMAGE_SIZE if provider == "openai" else "3:4",
                 "image_is_edit": image_is_edit,
                 "image_usage": image_usage_acc,

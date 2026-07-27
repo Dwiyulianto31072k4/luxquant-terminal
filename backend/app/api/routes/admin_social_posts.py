@@ -398,14 +398,16 @@ async def confirm_post_material(
 @router.post("/{post_id}/re-render")
 def re_render_post_image(
     post_id: int,
+    model: Optional[str] = None,
+    quality: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    """Generate or recompose image after admin uploads materials.
+    """Generate or recompose the image on demand.
 
     Cost-aware:
-      - If a raw AI background already exists → free recompose (logos + type only)
-      - Else → one paid AI image generation with current materials
+      - If a raw background already exists → free recompose (type + lockup only)
+      - Else → one paid AI image, on the model/quality the caller picked
     """
     from app.services.social_entity_assets import resolve_entity_assets
     from app.services.social_image_generator import (
@@ -507,6 +509,11 @@ def re_render_post_image(
             entities=entities,
             skip_if_needs_materials=False,
             force=True,
+            # Chosen in the panel, per click: the same poster runs $0.013 on the
+            # mini model and $0.19 at high quality. Anything unrecognised falls
+            # back to the configured default inside the generator.
+            image_model=model,
+            image_quality=quality,
         )
         if not result.image_path:
             raise HTTPException(500, result.error_message or "re-render failed")
