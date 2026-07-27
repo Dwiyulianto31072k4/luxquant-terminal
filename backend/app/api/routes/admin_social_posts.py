@@ -308,9 +308,15 @@ async def get_post_materials(
         headline=row.get("headline") or "",
         visual_only=True,
     )
+    _meta = _post_meta(row) or {}
     return {
         "post_id": post_id,
         "headline": row.get("headline"),
+        # Carried so the panel can show WHY the last attempt failed: the HTTP
+        # response that held the error usually died at the edge timeout.
+        "last_image_error": _meta.get("last_image_error"),
+        "last_image_error_at": _meta.get("last_image_error_at"),
+        "last_image_attempt": _meta.get("last_image_attempt"),
         "entities": entities,
         "featured_person": featured,
         "primary_org": assets.get("primary_org"),

@@ -473,6 +473,125 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
   );
 };
 
+// ── Spend by what you picked ───────────────────────────────────────
+// The CostBar above already carries the totals. What it cannot answer is the
+// question the price buttons create: where did the money actually go, and on
+// which model? Read from each draft's recorded cost — nothing estimated here.
+const ModelSpendBreakdown = () => {
+  const [data, setData] = useState(null);
+  const [days, setDays] = useState(30);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .get("/api/v1/admin/social-posts/cost-summary", { params: { days } })
+      .then((r) => alive && setData(r.data))
+      .catch(() => alive && setData(null));
+    return () => {
+      alive = false;
+    };
+  }, [days]);
+
+  if (!data) return null;
+  const usd = (n) => `$${Number(n || 0).toFixed(Number(n) >= 1 ? 2 : 4)}`;
+  const peak = Math.max(1, ...(data.daily || []).map((d) => d.usd));
+
+  return (
+    <div className="mb-5 rounded-xl border border-ink/[0.08] bg-ink/[0.02] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-ink/[0.03] transition-colors"
+      >
+        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
+          Rincian per model · {data.days}h
+        </span>
+        <span className="text-[13px] font-semibold text-text-primary tabular-nums">
+          {usd(data.total_usd)}
+        </span>
+        <span className="text-[11px] text-text-muted tabular-nums truncate">
+          {data.drafts} draft · {usd(data.avg_per_draft)}/draft · {data.paid_images} gambar berbayar
+        </span>
+        <span className="ml-auto text-[11px] font-mono text-text-muted shrink-0">
+          {open ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-3.5 pb-3.5 pt-1 space-y-3 border-t border-ink/[0.07]">
+          <div className="flex items-center gap-1.5">
+            {[7, 30, 90].map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDays(d)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                  days === d
+                    ? "border-accent/45 bg-accent/10 text-accent"
+                    : "border-ink/[0.1] text-text-muted hover:text-text-primary"
+                }`}
+              >
+                {d}h
+              </button>
+            ))}
+            <span className="ml-auto text-[10px] font-mono text-text-muted">
+              gambar {usd(data.image_usd)} · teks {usd(data.chat_usd)} · search {usd(data.search_usd)}
+            </span>
+          </div>
+
+          {(data.by_model || []).length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-ink/[0.07]">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="text-text-muted text-[10px] uppercase tracking-wide">
+                    <th className="text-left font-medium px-3 py-1.5">Model dipilih</th>
+                    <th className="text-left font-medium px-3 py-1.5">Kualitas</th>
+                    <th className="text-right font-medium px-3 py-1.5">Dipakai</th>
+                    <th className="text-right font-medium px-3 py-1.5">Rata-rata</th>
+                    <th className="text-right font-medium px-3 py-1.5">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.by_model.map((m) => (
+                    <tr key={`${m.model}-${m.quality}`} className="border-t border-ink/[0.06]">
+                      <td className="px-3 py-1.5 text-text-primary font-medium">{m.model}</td>
+                      <td className="px-3 py-1.5 text-text-muted font-mono text-[11px]">{m.quality}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-text-muted">{m.count}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-text-muted">
+                        {m.avg_usd ? usd(m.avg_usd) : "—"}
+                      </td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-text-primary font-medium">
+                        {usd(m.usd)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {(data.daily || []).length > 1 && (
+            <div>
+              <p className="text-[10px] text-text-muted mb-1.5">Per hari</p>
+              <div className="flex items-end gap-[3px] h-10">
+                {data.daily.map((d) => (
+                  <div
+                    key={d.day}
+                    title={`${d.day} · ${usd(d.usd)} · ${d.count} draft`}
+                    className="flex-1 bg-accent/35 hover:bg-accent/60 rounded-sm transition-colors"
+                    style={{ height: `${Math.max(6, (d.usd / peak) * 100)}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Generation console: durable progress that survives refresh ──
 const GenerationConsole = ({
   job,
@@ -864,6 +983,8 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const [showManual, setShowManual] = useState(true);
   const [brief, setBrief] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [stage, setStage] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -871,6 +992,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
     try {
       const res = await api.get(`/api/v1/admin/social-posts/${postId}/materials`);
       setData(res.data);
+      return res.data;
     } catch (e) {
       setErr(e?.response?.data?.detail || "Failed to load materials");
     } finally {
@@ -885,6 +1007,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const reRender = async (opt) => {
     setBusy("__render__");
     setErr(null);
+    setStage({ at: Date.now(), text: `Mengirim ke ${opt?.provider === "xai" ? "Grok" : "OpenAI"}…` });
     const startedAt = Date.now();
     // 5 min. High quality renders 6,240 output tokens against medium's 1,584 —
     // about 4x the work — so the old 3.5 min ceiling could give up while the
@@ -929,26 +1052,46 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       ]);
       while (!isReady(post) && Date.now() - startedAt < MAX_MS) {
         await new Promise((r) => setTimeout(r, 4000));
+        // The stage text is honest about what we can actually observe: we know
+        // it was sent and we know it has not come back yet.
+        setStage({
+          at: startedAt,
+          text: "Model sedang merender — poster belum kembali",
+        });
         const p = await findPost();
         if (isReady(p)) {
           post = p;
           break;
         }
       }
-      await load();
+      const fresh = await load();
       if (isReady(post)) {
         if (onUpdated) onUpdated(post);
       } else {
+        // The backend writes the real reason onto the draft, because the
+        // response itself often never survives the edge timeout.
+        const logged = fresh?.last_image_error || (await load())?.last_image_error;
         setErr(
-          "Image is still finishing — high quality can take up to ~4 min. Click Refresh in a moment to see it."
+          logged
+            ? `Gagal: ${logged}`
+            : "Gambar masih diproses — kualitas tinggi bisa sampai ~4 menit. Klik Refresh sebentar lagi."
         );
       }
     } catch (e) {
       setErr(e?.message || "Re-render failed");
     } finally {
       setBusy(null);
+      setStage(null);
     }
   };
+
+  // A minute of silence looks like a hang. A counter that moves says otherwise.
+  useEffect(() => {
+    if (!stage?.at) return undefined;
+    setElapsed(Math.round((Date.now() - stage.at) / 1000));
+    const t = setInterval(() => setElapsed(Math.round((Date.now() - stage.at) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [stage?.at]);
 
   const loadBrief = useCallback(async () => {
     try {
@@ -1337,11 +1480,37 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             </button>
           ))}
         </div>
-        <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
-          {busy === "__render__"
-            ? "Working — high quality takes 1–4 min. Safe to wait, it won't double-charge."
-            : "Alternatif lebih murah · gratis kalau background-nya sudah ada (cuma compose ulang)"}
-        </p>
+        {busy === "__render__" ? (
+          <div className="rounded-md border border-accent/25 bg-accent/[0.05] px-2.5 py-2 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
+              <span className="text-[11px] text-text-primary leading-snug">{stage?.text}</span>
+              <span className="ml-auto text-[11px] font-mono tabular-nums text-accent">
+                {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}
+              </span>
+            </div>
+            <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+              Aman ditinggal — tidak akan menagih dua kali. Biasanya 1–4 menit di kualitas tinggi.
+            </p>
+          </div>
+        ) : (
+          <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+            Alternatif lebih murah · gratis kalau background-nya sudah ada (cuma compose ulang)
+          </p>
+        )}
+        {!busy && data?.last_image_error && (
+          <details className="rounded-md border border-negative/30 bg-negative/[0.06] px-2.5 py-2">
+            <summary className="cursor-pointer text-[11px] text-loss font-medium select-none">
+              Percobaan terakhir gagal — lihat log
+            </summary>
+            <p className="mt-1.5 text-[10px] font-mono text-loss/90 leading-relaxed break-words">
+              {data.last_image_error}
+            </p>
+            <p className="mt-1 text-[9px] font-mono text-text-muted">
+              {data.last_image_attempt} · {data.last_image_error_at}
+            </p>
+          </details>
+        )}
       </div>
 
       {err && <p className="text-[11px] text-loss">{err}</p>}
@@ -1781,6 +1950,8 @@ const SocialPostsAdminPage = () => {
       />
 
       <CostBar cost={cost} />
+
+      <ModelSpendBreakdown />
 
       <div className="flex items-center gap-1.5 mb-5 flex-wrap">
         {STATUS_TABS.map((tab) => (
