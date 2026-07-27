@@ -198,19 +198,21 @@ def build_visual_prompt(
         "Infer a cinematic crypto-media poster from the story."
     )
 
+    # Same order as the manual brief: house style first, story second. Whatever
+    # opens the prompt wins, and what must never vary is the style.
     return "\n".join([
-        "Create an original photoreal premium financial-news Instagram vertical poster scene.",
-        "One continuous REAL-WORLD scene a Bloomberg photo editor would approve — architecture, institution, "
-        "person, product, or market floor — not surreal crypto meme art.",
-        "Hero subject large in the upper/middle frame; natural cinematic lighting.",
-        "ZERO readable text in the image (no wall slogans, no logos invented as type). Lower 40% darker for overlay.",
-        f"DEPICT THE SPECIFIC EVENT of this story — the actual who / what / where — not a generic crypto backdrop. "
-        f"Story context (inspire the scene, never paint as text): {context}",
-        f"Source: {source}. Angle: {angle_label}. Headline (do NOT paint these words, but the scene must clearly match it): {headline}.",
-        reference_line,
-        "Prefer plausible institutional/city/product settings. Avoid chains-on-books, floating holograms, raining money.",
-        "STRICT NEGATIVE: no readable text, no fake logos/wordmarks, no red subtitle bars, no watermarks, no collage seams.",
         BRAND_VISUAL_SIGNATURE,
+        "",
+        "THIS STORY — the only part that changes between posters:",
+        f"DEPICT THE SPECIFIC EVENT — the actual who / what / where, not a generic crypto backdrop. "
+        f"Story context (inspire the scene, never paint as text): {context}",
+        f"Source: {source}. Angle: {angle_label}. Headline (never paint these words, but the scene must "
+        f"clearly match it): {headline}.",
+        reference_line,
+        "One continuous real-world scene a Bloomberg photo editor would approve — architecture, "
+        "institution, person, product or market floor. Not surreal crypto meme art.",
+        "AVOID: readable text or wordmarks anywhere in frame, invented logos, red subtitle bars, "
+        "watermarks, collage seams, chains-on-books, floating holograms, raining money.",
     ])
 
 

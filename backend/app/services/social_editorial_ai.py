@@ -34,13 +34,16 @@ PACK_KEYS = ("headline", "image_prompt", "caption", "hashtags", "source_note")
 
 # Rational premium news poster: real-world subject first, mild cinematic grade.
 # Avoid viral-crypto clichés (chains on books, floating coins, fantasy vaults).
+# Subject and framing only. This rides along on every stored image_prompt, so
+# anything it says about light or grade would contradict the house style that
+# owns those — which is exactly what "Natural directional lighting, subtle
+# cinematic contrast" used to do. The ratio was wrong too: the poster is 4:5.
 IMAGE_STYLE_SUFFIX = (
-    "Photorealistic premium financial-news Instagram vertical poster, 3:4. "
+    "Photoreal premium financial-news poster, vertical 4:5. "
     "One continuous real-world scene a serious editor would approve — architecture, "
     "institution interiors, trading floors, city skylines, people, products, or documents "
-    "as physical props without readable writing. Hero subject large in upper/middle frame. "
-    "Natural directional lighting, subtle cinematic contrast, shallow depth of field. "
-    "Lower 40% darker and calmer for later headline overlay. "
+    "as physical props without readable writing. Hero subject large in the upper two thirds, "
+    "built solid and three-dimensional. Lower 35-40% kept clear for the headline. "
     "Prefer plausible reality over surreal symbolism."
 )
 # Always-on negatives — ban cheesy AI tropes + invented marks + on-image text.
