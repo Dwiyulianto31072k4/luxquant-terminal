@@ -1,8 +1,8 @@
 """
 Social AI Image Generator
 
-Instagram-ready AI backgrounds for social posts, then classic LuxQuant red-box
-compose.
+Instagram-ready AI backgrounds for social posts, then composed into an editorial
+card on the shared social-card design system (Poppins, gold accent, CTA).
 
 Quality-first + cost-efficient defaults (2026):
   - Primary image model: OpenAI gpt-image-2 @ medium, 1024x1536 (~$0.04/img)
@@ -315,133 +315,6 @@ def _cover_image(img, size: tuple[int, int]):
     left = max(0, (img.width - target_w) // 2)
     top = max(0, (img.height - target_h) // 2)
     return img.crop((left, top, left + target_w, top + target_h))
-
-
-def _measure(draw, text_value: str, font) -> int:
-    bbox = draw.textbbox((0, 0), text_value, font=font)
-    return bbox[2] - bbox[0]
-
-
-def _stepped_headline_lines(draw, headline: str, font, widths: list[int]) -> list[str]:
-    words = re.sub(r"\s+", " ", headline or "").strip().upper().split()
-    if not words:
-        return []
-
-    lines = []
-    idx = 0
-    for max_width in widths:
-        if idx >= len(words):
-            break
-        line = words[idx]
-        idx += 1
-        while idx < len(words):
-            test = f"{line} {words[idx]}"
-            if _measure(draw, test, font) <= max_width:
-                line = test
-                idx += 1
-            else:
-                break
-        lines.append(line)
-
-    if idx < len(words):
-        remainder = " ".join(words[idx:])
-        if lines:
-            lines[-1] = f"{lines[-1]} {remainder}"
-        else:
-            lines.append(remainder)
-    return lines[:4]
-
-
-def _visual_topic_label(angle: Optional[str], headline: str) -> str:
-    text_value = f"{angle or ''} {headline or ''}".lower()
-    crypto_terms = (
-        "bitcoin", "btc", "ethereum", "eth", "solana", "xrp", "crypto",
-        "blockchain", "protocol", "layer 2", "defi", "base", "polkadot",
-        "moonbeam", "token", "stablecoin", "ai agent",
-    )
-    if any(term in text_value for term in crypto_terms):
-        return "CRYPTO"
-    labels = {
-        "macro": "MACRO",
-        "policy": "POLICY",
-        "market_pulse": "MARKET",
-        "news_brief": "CRYPTO",
-    }
-    return labels.get(angle or "", "CRYPTO")
-
-
-def compose_luxquant_image(
-    *,
-    background_path: str,
-    out_path: str,
-    headline: str,
-    source_domain: Optional[str],
-    angle: Optional[str],
-) -> str:
-    from PIL import Image, ImageDraw, ImageFilter
-
-    width, height = 1080, 1350
-    img = Image.open(background_path).convert("RGB")
-    img = _cover_image(img, (width, height))
-
-    # Keep generated image alive, but add enough contrast for editorial overlay.
-    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    od = ImageDraw.Draw(overlay)
-    for y in range(height):
-        t = y / height
-        if y < 650:
-            alpha = int(18 + 38 * (1 - t))
-        else:
-            alpha = int(40 + 145 * ((y - 650) / (height - 650)))
-        od.line([(0, y), (width, y)], fill=(0, 0, 0, min(190, alpha)))
-    img = Image.alpha_composite(img.convert("RGBA"), overlay)
-    draw = ImageDraw.Draw(img)
-
-    gold = (218, 176, 85, 255)
-    cream = (255, 244, 220, 255)
-    red = (198, 40, 40, 238)
-    dark_red = (94, 10, 14, 245)
-
-    # Top source strip.
-    label_font = _font(24, True)
-    small_font = _font(18, True)
-    draw.rounded_rectangle((62, 58, 242, 98), radius=4, fill=(8, 10, 11, 188), outline=(218, 176, 85, 150), width=1)
-    draw.text((78, 66), "LUXQUANT", font=label_font, fill=gold)
-    angle_label = _visual_topic_label(angle, headline)
-    source = (source_domain or "LuxQuant News").upper()
-    draw.text((62, 112), f"{angle_label} / {source}", font=small_font, fill=(232, 222, 202, 210))
-
-    # Left-aligned stepped highlight: fixed left, right side gets shorter lower down.
-    headline_font = _font(63, True)
-    line_font = headline_font
-    x = 62
-    y = 930
-    line_h = 82
-    widths = [890, 780, 650, 520]
-    lines = _stepped_headline_lines(draw, headline, line_font, widths)
-    while len(lines) > 4 and line_font.size > 46:
-        line_font = _font(line_font.size - 4, True)
-        lines = _stepped_headline_lines(draw, headline, line_font, widths)
-
-    for i, line in enumerate(lines):
-        bbox = draw.textbbox((0, 0), line, font=line_font)
-        tw = bbox[2] - bbox[0]
-        th = bbox[3] - bbox[1]
-        pad_x = 22
-        pad_y = 10
-        rect = (x, y - pad_y, x + tw + pad_x * 2, y + th + pad_y + 4)
-        fill = red if i == 0 else dark_red
-        draw.rounded_rectangle(rect, radius=2, fill=fill)
-        draw.text((x + pad_x, y), line, font=line_font, fill=cream)
-        y += line_h
-
-    # Bottom accent.
-    draw.rectangle((62, 1274, 210, 1282), fill=gold)
-    draw.text((230, 1260), "SOURCE VERIFIED / AI-GENERATED VISUAL", font=_font(17, True), fill=(238, 229, 210, 210))
-
-    img = img.convert("RGB").filter(ImageFilter.UnsharpMask(radius=1.0, percent=105, threshold=3))
-    img.save(out_path, quality=96)
-    return out_path
 
 
 # ── xAI (Grok) image generation + prototype editorial renderer ──────────
