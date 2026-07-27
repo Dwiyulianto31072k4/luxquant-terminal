@@ -1164,6 +1164,9 @@ def _compose_editorial_card(
     widths = [900, 850, 780, 690]
 
     def wrap(fnt):
+        """Lay the headline into the stepped column. Returns the lines and any
+        words that would not fit — the leftovers used to be dumped onto the last
+        line, which pushed it past the right edge whenever it happened."""
         words = (headline or "").replace("—", "-").split()
         out = []
         for w_max in widths:
@@ -1175,15 +1178,20 @@ def _compose_editorial_card(
                     break
                 line.append(words.pop(0))
             out.append(line)
-        if words and out:
-            out[-1].extend(words)
-        return out[:4]
+        return out, words
 
-    lines = wrap(font)
-    while len(lines) > 3 and size > 46:
+    # One size for every poster. The old rule forced the headline into three
+    # lines and shrank the type until it fit, so a long headline came out 56px
+    # next to a short one at 64px — a visible 12% jump in a grid of four. Four
+    # lines are allowed instead, and the type only shrinks for a headline that
+    # genuinely will not fit in four, which is where legibility beats uniformity.
+    lines, leftover = wrap(font)
+    while leftover and size > 46:
         size -= 4
         font = _card_font(size, "ExtraBold")
-        lines = wrap(font)
+        lines, leftover = wrap(font)
+    if leftover and lines:
+        lines[-1].extend(leftover)
 
     flat = [w for line in lines for w in line]
     accent = _card_accent_span(flat)
