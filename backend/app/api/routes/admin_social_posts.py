@@ -99,26 +99,38 @@ def _build_caption_slide(post_id: int, headline: str, caption: str) -> Optional[
         return None
 
 
+def _asset_url(path: Optional[str]) -> Optional[str]:
+    """Public URL for a rendered asset, stamped with the file's mtime.
+
+    A re-compose writes the SAME filename, so without the stamp the browser
+    keeps showing the previous render — which is exactly how a card that had
+    already been fixed still looked wrong on screen.
+    """
+    if not path:
+        return None
+    try:
+        rel = os.path.relpath(path, SOCIAL_POST_ASSETS_DIR)
+        if rel.startswith(".."):
+            return path
+    except ValueError:
+        return path
+    try:
+        stamp = int(os.path.getmtime(path))
+    except OSError:
+        stamp = 0
+    return f"/api/v1/social-post-images/{rel}?v={stamp}"
+
+
 def _row_to_dict(row) -> dict:
     data = dict(row)
     image_path = data.get("image_path")
     if image_path:
-        try:
-            rel = os.path.relpath(image_path, SOCIAL_POST_ASSETS_DIR)
-            if not rel.startswith(".."):
-                data["image_url"] = f"/api/v1/social-post-images/{rel}"
-        except ValueError:
-            data["image_url"] = image_path
+        data["image_url"] = _asset_url(image_path)
     meta_raw = data.get("gen_meta")
     _m = meta_raw if isinstance(meta_raw, dict) else {}
     slide2 = _m.get("slide2_path") if isinstance(_m, dict) else None
     if slide2:
-        try:
-            rel2 = os.path.relpath(slide2, SOCIAL_POST_ASSETS_DIR)
-            if not rel2.startswith(".."):
-                data["slide2_url"] = f"/api/v1/social-post-images/{rel2}"
-        except ValueError:
-            pass
+        data["slide2_url"] = _asset_url(slide2)
 
     # Normalize gen_meta JSON
     meta = data.get("gen_meta")
@@ -718,8 +730,8 @@ def _post_meta(row) -> dict:
     return meta or {}
 
 
-@router.get("/cost-summary")
-def cost_summary(
+@router.get("/spend-by-model")
+def spend_by_model(
     days: int = 30,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),

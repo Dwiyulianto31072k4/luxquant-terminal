@@ -491,7 +491,7 @@ const ModelSpendBreakdown = () => {
   useEffect(() => {
     let alive = true;
     api
-      .get("/api/v1/admin/social-posts/cost-summary", { params: { days } })
+      .get("/api/v1/admin/social-posts/spend-by-model", { params: { days } })
       .then((r) => alive && setData(r.data))
       .catch(() => alive && setData(null));
     return () => {
