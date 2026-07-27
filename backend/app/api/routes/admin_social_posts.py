@@ -74,15 +74,29 @@ def _build_caption_slide(post_id: int, headline: str, caption: str) -> Optional[
     """
     from app.services.social_image_generator import compose_caption_slide
 
-    body = (caption or "").strip()
+    # A caption ends with furniture — source credit, the AI-illustration note,
+    # the disclaimer, the read-more line, hashtags. On a slide those are noise,
+    # and worse: the last paragraph gets the gold accent, so leaving them in put
+    # the emphasis on a row of hashtags instead of on the point.
+    skip = re.compile(
+        r"^\s*(source\s*:|illustration|image generated|not financial advice|"
+        r"disclaimer|read more|click the link|link in bio|#\S+(\s+#\S+)*\s*$)",
+        re.I,
+    )
+    kept = [
+        para.strip()
+        for para in re.split(r"\n\s*\n", (caption or "").strip())
+        if para.strip() and not skip.match(para.strip())
+    ]
+    body = "\n\n".join(kept)
     if len(body) < 40:                      # nothing worth a slide of its own
         return None
-    # The caption's own CTA line belongs in the post text, not burned into the
-    # picture — the slide already ends with the lockup.
-    body = re.sub(r"\n\s*(read more|link in bio)[^\n]*$", "", body, flags=re.I).strip()
     out = str(Path(SOCIAL_POST_ASSETS_DIR) / f"slide2_{post_id}.png")
     try:
-        return compose_caption_slide(body, out, kicker=(headline or "").strip()[:70] or None)
+        kicker = (headline or "").strip()
+        if len(kicker) > 62:                # cut on a word, never mid-word
+            kicker = kicker[:62].rsplit(" ", 1)[0] + "…"
+        return compose_caption_slide(body, out, kicker=kicker or None)
     except Exception:
         logger.warning("caption slide failed for post %s", post_id, exc_info=True)
         return None
