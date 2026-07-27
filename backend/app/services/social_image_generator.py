@@ -912,6 +912,17 @@ def _card_globe_icon(draw, x, y, size, colour):
                  outline=colour, width=w)
 
 
+def _card_line_centre(font, text: str, y: float) -> float:
+    """The vertical centre an icon should sit on beside a line of type.
+
+    Cap/ascender top to baseline, descenders excluded. Centring on the raw ink
+    box instead put the X mark visibly low next to "@luxquantcrypto", because
+    the tails of y and p dragged the box down past the baseline.
+    """
+    ascent = font.getmetrics()[0]
+    return (y + font.getbbox(text)[1] + y + ascent) / 2
+
+
 def _card_measured_scrim(img, band_top: int, text_top: int, text_bottom: int):
     """Darken the headline band until cream type clears CARD_CONTRAST_FLOOR.
 
@@ -1206,8 +1217,15 @@ def _compose_editorial_card(
     accent = _card_accent_span(flat)
 
     line_h = int(size * 1.16)
-    foot_y = height - 112           # the account line, bottom of the block
-    cta_y = foot_y - 58             # the invitation, directly above it
+    # The bottom block is placed from the card's edge inwards, using where the
+    # type actually inks rather than where its box starts: the account line's
+    # ink sits the same 58px off the bottom as everything sits off the left, so
+    # the corner reads square instead of bottom-heavy.
+    _f_cta_m = _card_font(25, "SemiBold")
+    _f_row_m = _card_font(21, "ExtraBold")
+    foot_y = height - 58 - _f_row_m.getbbox(CARD_HANDLE)[3]
+    cta_y = (foot_y + _f_row_m.getbbox(CARD_HANDLE)[1]
+             - 26 - _f_cta_m.getbbox(CARD_CTA_LEAD)[3])
     y = cta_y - 62 - len(lines) * line_h
 
     img, _alpha = _card_measured_scrim(img, height - 620, y - 24, foot_y + 40)
@@ -1251,7 +1269,6 @@ def _compose_editorial_card(
     f_cta = _card_font(25 * ss, "SemiBold")
     f_dom = _card_font(25 * ss, "ExtraBold")
     f_row = _card_font(21 * ss, "ExtraBold")
-    icon = 22
 
     # The longest wording that still fits beside the lockup. Measured, not
     # assumed: a wider handle or a longer domain must shorten the copy, never
@@ -1269,7 +1286,7 @@ def _compose_editorial_card(
     strip = Image.new("RGBA", (width * ss, strip_h * ss), (0, 0, 0, 0))
     sd = ImageDraw.Draw(strip)
 
-    tail = (16 + icon + 10) * ss + sd.textlength(CARD_DOMAIN, font=f_dom)
+    tail = (16 + 21 + 11) * ss + sd.textlength(CARD_DOMAIN, font=f_dom)
     room = (width - 58 - (lock_w + 58 + 44 if lock_w else 58)) * ss - tail
     lead = next(
         (c for c in (CARD_CTA_LEAD, "Read daily crypto news at",
@@ -1280,16 +1297,21 @@ def _compose_editorial_card(
 
     cta_row = (cta_y - strip_top) * ss
     foot_row = (foot_y - strip_top) * ss
+
     x = 58 * ss
     sd.text((x, cta_row), lead, font=f_cta, fill=ink)
     x += sd.textlength(lead, font=f_cta) + 16 * ss
-    _card_globe_icon(sd, x, cta_row + 5 * ss, icon * ss, ink)
-    x += (icon + 10) * ss
-    sd.text((x, cta_row - ss), CARD_DOMAIN, font=f_dom, fill=ink)
+    globe = 21 * ss
+    sd_centre = _card_line_centre(f_dom, CARD_DOMAIN, cta_row)
+    _card_globe_icon(sd, x, sd_centre - globe / 2, globe, ink)
+    x += globe + 11 * ss
+    sd.text((x, cta_row), CARD_DOMAIN, font=f_dom, fill=ink)
 
     x = 58 * ss
-    _card_x_icon(strip, x, foot_row + 2 * ss, 21 * ss, ink)
-    x += (21 + 11) * ss
+    mark = 21 * ss
+    row_centre = _card_line_centre(f_row, CARD_HANDLE, foot_row)
+    _card_x_icon(strip, x, row_centre - mark / 2, mark, ink)
+    x += mark + 12 * ss
     sd.text((x, foot_row), CARD_HANDLE, font=f_row, fill=ink)
 
     img.alpha_composite(
