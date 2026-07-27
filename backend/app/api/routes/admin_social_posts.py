@@ -498,6 +498,29 @@ def re_render_post_image(
         except Exception:
             composed_free = False
 
+    def _record_failure(message: str) -> None:
+        """Write the error onto the draft.
+
+        The HTTP response is often lost — Cloudflare cuts the connection at
+        ~100s and a high-quality render runs past that — so an error that only
+        travels in the response body is an error the admin never sees.
+        """
+        try:
+            db.execute(text("""
+                UPDATE social_posts
+                SET gen_meta = COALESCE(gen_meta, '{}'::jsonb) || jsonb_build_object(
+                        'last_image_error', :msg,
+                        'last_image_error_at', to_char(now() at time zone 'utc',
+                                                       'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                        'last_image_attempt', :attempt),
+                    updated_at = now()
+                WHERE id = :id
+            """), {"id": post_id, "msg": message[:600],
+                   "attempt": f"{provider or 'auto'} · {model or 'default'} · {quality or 'default'}"})
+            db.commit()
+        except Exception:
+            db.rollback()
+
     if not composed_free:
         result = generate_ai_social_image(
             news_id=news_id,
@@ -518,6 +541,13 @@ def re_render_post_image(
             image_quality=quality,
             force_provider=provider if provider in ("openai", "xai") else None,
         )
+        if not result.image_path:
+            _record_failure(result.error_message or "image generation returned nothing")
+            raise HTTPException(
+                502,
+                {"message": result.error_message or "Image generation failed",
+                 "attempt": f"{provider or 'auto'} · {model or 'default'}"},
+            )
         if not result.image_path:
             raise HTTPException(500, result.error_message or "re-render failed")
         result_path = result.image_path
@@ -595,6 +625,11 @@ def re_render_post_image(
             "reference_image_path": ref_path,
             "gen_meta": json.dumps(meta),
         })
+        db.execute(
+            text("UPDATE social_posts SET gen_meta = gen_meta - 'last_image_error' "
+                 "- 'last_image_error_at' - 'last_image_attempt' WHERE id = :id"),
+            {"id": post_id},
+        )
         db.commit()
 
     try:
@@ -623,6 +658,73 @@ def _post_meta(row) -> dict:
         except Exception:
             meta = {}
     return meta or {}
+
+
+@router.get("/cost-summary")
+def cost_summary(
+    days: int = 30,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """What this feature has actually spent, split by what was chosen at generate time.
+
+    Every draft carries its own cost block in gen_meta, written from the API's
+    reported usage where available. This only reads those blocks — it never
+    estimates on the fly, so a number here is a number that was recorded.
+    """
+    _ensure_gen_meta(db)
+    days = max(1, min(int(days or 30), 365))
+
+    totals = db.execute(text(f"""
+        SELECT count(*) FILTER (WHERE gen_meta ? 'total_usd')                      AS drafts,
+               round(coalesce(sum((gen_meta->>'total_usd')::numeric), 0), 4)       AS total_usd,
+               round(coalesce(sum((gen_meta->>'image_usd')::numeric), 0), 4)       AS image_usd,
+               round(coalesce(sum((gen_meta->>'chat_usd')::numeric), 0), 4)        AS chat_usd,
+               round(coalesce(sum((gen_meta->>'search_usd')::numeric), 0), 4)      AS search_usd,
+               count(*) FILTER (WHERE coalesce((gen_meta->>'image_usd')::numeric, 0) > 0) AS paid_images
+        FROM social_posts
+        WHERE created_at > now() - interval '{days} days'
+    """)).fetchone()
+
+    by_model = db.execute(text(f"""
+        SELECT coalesce(nullif(gen_meta->>'image_model', ''), 'no image')          AS model,
+               coalesce(nullif(gen_meta->>'image_quality', ''), '-')               AS quality,
+               count(*)                                                            AS n,
+               round(coalesce(sum((gen_meta->>'image_usd')::numeric), 0), 4)       AS usd,
+               round(coalesce(avg(nullif((gen_meta->>'image_usd')::numeric, 0)), 0), 4) AS avg_usd
+        FROM social_posts
+        WHERE created_at > now() - interval '{days} days' AND gen_meta ? 'total_usd'
+        GROUP BY 1, 2
+        ORDER BY usd DESC
+    """)).fetchall()
+
+    daily = db.execute(text(f"""
+        SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD')                AS day,
+               count(*)                                                            AS n,
+               round(coalesce(sum((gen_meta->>'total_usd')::numeric), 0), 4)       AS usd
+        FROM social_posts
+        WHERE created_at > now() - interval '{days} days' AND gen_meta ? 'total_usd'
+        GROUP BY 1 ORDER BY 1
+    """)).fetchall()
+
+    drafts = int(totals[0] or 0)
+    total_usd = float(totals[1] or 0)
+    return {
+        "days": days,
+        "drafts": drafts,
+        "total_usd": total_usd,
+        "avg_per_draft": round(total_usd / drafts, 4) if drafts else 0.0,
+        "image_usd": float(totals[2] or 0),
+        "chat_usd": float(totals[3] or 0),
+        "search_usd": float(totals[4] or 0),
+        "paid_images": int(totals[5] or 0),
+        "by_model": [
+            {"model": r[0], "quality": r[1], "count": int(r[2]),
+             "usd": float(r[3]), "avg_usd": float(r[4])}
+            for r in by_model
+        ],
+        "daily": [{"day": r[0], "count": int(r[1]), "usd": float(r[2])} for r in daily],
+    }
 
 
 @router.get("/{post_id}/manual-brief")
