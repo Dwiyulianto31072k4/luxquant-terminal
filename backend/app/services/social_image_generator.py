@@ -941,8 +941,12 @@ def _card_measured_scrim(img, band_top: int, text_top: int, text_bottom: int):
     ramp = max(1, text_top - band_top)
     for y in range(band_top, height):
         t = min(1.0, (y - band_top) / ramp)
-        d.line([(0, y), (width, y)], fill=int(alpha * (t ** 0.65)))
-    scrim = scrim.filter(ImageFilter.GaussianBlur(26))
+        # Same reason as the gradient: t**0.65 rises almost vertically out of
+        # zero, which drew an edge where the scrim began, and it arrives at full
+        # strength with slope still on — a second kink where it flattens off.
+        # Smoothstep removes both, so the only thing left is the darkening.
+        d.line([(0, y), (width, y)], fill=int(alpha * (t * t * (3.0 - 2.0 * t))))
+    scrim = scrim.filter(ImageFilter.GaussianBlur(40))
     layer = Image.new("RGBA", (width, height), CARD_BASE_DARK + (0,))
     layer.putalpha(scrim)
     return Image.alpha_composite(img, layer), alpha
@@ -963,7 +967,11 @@ def _card_bottom_gradient(img, height_px: int = 460, peak: float = 0.72):
     top = height - height_px
     for y in range(top, height):
         t = (y - top) / max(1, height_px)
-        d.line([(0, y), (width, y)], fill=int(255 * peak * (t ** 1.5)))
+        # Smoothstep, not a power curve: t**1.5 leaves a kink where the ramp
+        # begins, and measured on a flat grey that showed up as a curvature
+        # spike — a visible line across the picture. Smoothstep's slope is zero
+        # at both ends, so the darkening starts and finishes invisibly.
+        d.line([(0, y), (width, y)], fill=int(255 * peak * (t * t * (3.0 - 2.0 * t))))
     layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     layer.putalpha(grad)
     return Image.alpha_composite(img, layer)
