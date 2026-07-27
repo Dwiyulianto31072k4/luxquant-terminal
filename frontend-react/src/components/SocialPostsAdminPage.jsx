@@ -886,7 +886,10 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
     setBusy("__render__");
     setErr(null);
     const startedAt = Date.now();
-    const MAX_MS = 210000; // ~3.5 min ceiling
+    // 5 min. High quality renders 6,240 output tokens against medium's 1,584 —
+    // about 4x the work — so the old 3.5 min ceiling could give up while the
+    // image was still coming, on a call that had already been paid for.
+    const MAX_MS = 300000;
 
     // The paid AI image edit can take 1–3 min, which blows past Cloudflare's ~100s
     // edge timeout (524). The backend keeps working and finishes anyway, so we don't
@@ -937,7 +940,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         if (onUpdated) onUpdated(post);
       } else {
         setErr(
-          "Image is still finishing — this can take up to ~3 min. Click Refresh in a moment to see it."
+          "Image is still finishing — high quality can take up to ~4 min. Click Refresh in a moment to see it."
         );
       }
     } catch (e) {
@@ -1337,7 +1340,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         </div>
         <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
           {busy === "__render__"
-            ? "Working — the AI image takes 1–3 min. Safe to wait, it won't double-charge."
+            ? "Working — high quality takes 1–4 min. Safe to wait, it won't double-charge."
             : "Alternatif lebih murah · gratis kalau background-nya sudah ada (cuma compose ulang)"}
         </p>
       </div>
