@@ -91,6 +91,28 @@ def download_reference_image(url: Optional[str], *, news_id: int) -> Optional[st
         return None
 
 
+# The colour signature. Akademi Crypto is recognisable in a grid thumbnail
+# because every image carries the same purple; ours carried nothing, so posts
+# read as stock photos with a headline on them. Written as PRACTICAL LIGHT —
+# rim-light, screens, haze — because "make it red" gets a red wash over the whole
+# frame, which kills skin tones and looks like a broken filter.
+#
+# Our real accent token is gold (#F0B90B / #FCD535, see the frontend theme); the
+# ground the cards sit on is dark maroon. So the signature is a crimson-maroon
+# world with ONE gold highlight, not an all-red frame.
+BRAND_VISUAL_SIGNATURE = "\n".join([
+    "LUXQUANT COLOUR SIGNATURE — required in every image, this is what makes it ours at thumbnail size:",
+    "- World: near-black ground (#0A0506) deepening into dark maroon (#241014). Never a bright, white, pastel or daylight-flat background.",
+    "- Carry the brand red as PRACTICAL LIGHT IN THE SCENE, never as a filter, wash or colour grade over the whole frame: "
+    "deep crimson (#BE001C) rim-light tracing the hero subject's edges and shoulders, red-lit screens / LED strips / signage / "
+    "tail-lights deep in the background, a faint crimson haze low in the frame, red specular glints on glass, metal and wet surfaces.",
+    "- Exactly ONE small warm-gold highlight (#FCD535) somewhere in frame — a lamp, a coin edge, a monitor glow. One, not everywhere.",
+    "- Faces, skin tones and real brand colours stay natural and accurate. The red lives on edges, in shadows and in background light.",
+    "- If the real setting would be lit blue or teal (offices, trading floors, city night), warm it toward crimson instead. No cyan or blue dominance, and no purple.",
+    "- The lower 35-40% of the frame stays dark and visually quiet — a headline is composited there afterwards.",
+])
+
+
 def build_visual_prompt(
     *,
     headline: str,
@@ -120,6 +142,7 @@ def build_visual_prompt(
         reference_line,
         "Prefer plausible institutional/city/product settings. Avoid chains-on-books, floating holograms, raining money.",
         "STRICT NEGATIVE: no readable text, no fake logos/wordmarks, no red subtitle bars, no watermarks, no collage seams.",
+        BRAND_VISUAL_SIGNATURE,
     ])
 
 
@@ -446,7 +469,7 @@ CARD_BASE_DARK = (10, 5, 6)      # #0A0506 — the cards' floor colour
 # background; 9:1 keeps that character while leaving dark photos untouched.
 CARD_CONTRAST_FLOOR = 9.0
 CARD_CTA_LEAD = os.environ.get(
-    "SOCIAL_CTA_LEAD", "Daily crypto & finance news on"
+    "SOCIAL_CTA_LEAD", "Read daily crypto & finance news"
 )
 CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
 CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantcrypto")
@@ -862,6 +885,17 @@ def _card_globe_icon(draw, x, y, size, colour):
                  outline=colour, width=w)
 
 
+def _card_arrow(draw, x, cy, length, colour):
+    """A right arrow: shaft plus two barbs. Drawn rather than typed — Poppins
+    ships no U+2192, and a missing glyph would silently render as a box."""
+    w = 3
+    draw.line([(x, cy), (x + length, cy)], fill=colour, width=w)
+    head = length * 0.34
+    for dy in (-head, head):
+        draw.line([(x + length - head, cy + dy), (x + length, cy)],
+                  fill=colour, width=w)
+
+
 def _card_measured_scrim(img, band_top: int, text_top: int, text_bottom: int):
     """Darken the headline band until cream type clears CARD_CONTRAST_FLOOR.
 
@@ -1174,34 +1208,31 @@ def _compose_editorial_card(
             idx += 1
         y += line_h
 
-    # ── CTA ───────────────────────────────────────────────────────────
-    # `.cta` from the cards: muted lead-in, gold on the part you act on. This is
-    # where the domain lives now — it used to appear twice (web line + source
-    # line) and neither instance asked for anything. Once, as an invitation.
-    c_lead = _card_font(25, "SemiBold")
-    c_link = _card_font(26, "ExtraBold")
-    lead = CARD_CTA_LEAD
+    # ── the bottom block: one instruction, one identity row ───────────
+    # Gold stops at the headline. Down here everything is cream, exactly like
+    # the recap card's `.fh` row — a second accent colour in the footer competes
+    # with the accent that is actually carrying meaning three lines above it.
+    # No underline either: the arrow is what says "go", and a rule under a
+    # domain that nobody can click was decoration pretending to be a link.
+    c_lead = _card_font(26, "SemiBold")
     x = 58
-    draw.text((x, cta_y), lead, font=c_lead, fill=CARD_WEB + (255,))
-    x += draw.textlength(lead, font=c_lead) + 15
-    _card_globe_icon(draw, x, cta_y + 4, 25, CARD_GOLD + (255,))
-    x += 25 + 10
-    draw.text((x, cta_y - 1), CARD_DOMAIN, font=c_link, fill=CARD_GOLD + (255,))
-    # A hairline under the domain — it reads as a link without a boxed button.
-    lw = draw.textlength(CARD_DOMAIN, font=c_link)
-    draw.line([(x, cta_y + 33), (x + lw, cta_y + 33)],
-              fill=CARD_GOLD + (150,), width=2)
+    draw.text((x, cta_y), CARD_CTA_LEAD, font=c_lead, fill=CARD_CREAM + (240,))
+    x += draw.textlength(CARD_CTA_LEAD, font=c_lead) + 14
+    _card_arrow(draw, x, cta_y + 17, 30, CARD_CREAM + (240,))
 
-    # ── footer: one row, nothing said twice ───────────────────────────
-    # `.fh` from the cards, handle only — the domain is the CTA's job. The
-    # source line, the AI-visual note and the disclaimer are gone: they belong
-    # in the post copy, not burned into the picture next to the headline.
-    f_handle = _card_font(21, "ExtraBold")
+    # `.fh` from the cards: X + handle · globe + domain, all one colour.
+    f_row = _card_font(21, "ExtraBold")
     icon = 21
     x = 58
     _card_x_icon(draw, x, foot_y + 2, icon, CARD_CREAM + (255,))
     x += icon + 11
-    draw.text((x, foot_y), CARD_HANDLE, font=f_handle, fill=CARD_CREAM + (255,))
+    draw.text((x, foot_y), CARD_HANDLE, font=f_row, fill=CARD_CREAM + (255,))
+    x += draw.textlength(CARD_HANDLE, font=f_row) + 12
+    draw.text((x, foot_y - 1), "·", font=f_row, fill=CARD_CREAM + (255,))
+    x += draw.textlength("·", font=f_row) + 12
+    _card_globe_icon(draw, x, foot_y + 2, icon, CARD_CREAM + (255,))
+    x += icon + 9
+    draw.text((x, foot_y + 1), CARD_DOMAIN, font=f_row, fill=CARD_CREAM + (255,))
 
     if SOCIAL_LOCKUP_PATH.exists():
         lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")

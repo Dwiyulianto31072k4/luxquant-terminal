@@ -604,7 +604,10 @@ def manual_image_brief(
     """Copy-paste brief for generating the image yourself (e.g. Gemini): a ready prompt
     plus the exact brands/person to attach as references so the result stays accurate."""
     from app.services.social_entity_assets import resolve_entity_assets
-    from app.services.social_image_generator import build_visual_prompt
+    from app.services.social_image_generator import (
+        BRAND_VISUAL_SIGNATURE,
+        build_visual_prompt,
+    )
 
     row = _get_post_row(db, post_id)
     meta = _post_meta(row)
@@ -666,6 +669,11 @@ def manual_image_brief(
         "",
         "FORMAT: vertical 4:5 portrait, 1024x1536, cinematic photoreal premium financial-news poster. "
         "No readable text, no captions, no logos drawn as typography. Keep the lower 40% darker (a headline is composited on later).",
+        "",
+        # `scene` is usually the editorial AI's own image_prompt, which predates the
+        # signature and has no colour direction in it. Append it here so a manual
+        # Gemini image comes back looking like the rest of the feed.
+        BRAND_VISUAL_SIGNATURE,
     ]
     if attach:
         parts += [
