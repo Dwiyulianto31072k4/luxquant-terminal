@@ -13,7 +13,9 @@ Materials workflow (cost-aware):
 """
 
 import json
+import logging
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -32,6 +34,8 @@ from app.services.social_generation_job import get_job, start_job
 from app.services.social_news_worker import generate_drafts
 from app.services.social_post_publisher import publish_ready_posts
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/admin/social-posts", tags=["admin-social-posts"])
 SOCIAL_POST_ASSETS_DIR = os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts")
@@ -62,6 +66,28 @@ def _ensure_gen_meta(db) -> None:
         db.rollback()
 
 
+def _build_caption_slide(post_id: int, headline: str, caption: str) -> Optional[str]:
+    """Slide 2 of the carousel: the story as type, on our own ground.
+
+    Free — no API call, just PIL — so it is rebuilt every time the poster is,
+    and a caption edit is never left with a stale slide.
+    """
+    from app.services.social_image_generator import compose_caption_slide
+
+    body = (caption or "").strip()
+    if len(body) < 40:                      # nothing worth a slide of its own
+        return None
+    # The caption's own CTA line belongs in the post text, not burned into the
+    # picture — the slide already ends with the lockup.
+    body = re.sub(r"\n\s*(read more|link in bio)[^\n]*$", "", body, flags=re.I).strip()
+    out = str(Path(SOCIAL_POST_ASSETS_DIR) / f"slide2_{post_id}.png")
+    try:
+        return compose_caption_slide(body, out, kicker=(headline or "").strip()[:70] or None)
+    except Exception:
+        logger.warning("caption slide failed for post %s", post_id, exc_info=True)
+        return None
+
+
 def _row_to_dict(row) -> dict:
     data = dict(row)
     image_path = data.get("image_path")
@@ -72,6 +98,17 @@ def _row_to_dict(row) -> dict:
                 data["image_url"] = f"/api/v1/social-post-images/{rel}"
         except ValueError:
             data["image_url"] = image_path
+    meta_raw = data.get("gen_meta")
+    _m = meta_raw if isinstance(meta_raw, dict) else {}
+    slide2 = _m.get("slide2_path") if isinstance(_m, dict) else None
+    if slide2:
+        try:
+            rel2 = os.path.relpath(slide2, SOCIAL_POST_ASSETS_DIR)
+            if not rel2.startswith(".."):
+                data["slide2_url"] = f"/api/v1/social-post-images/{rel2}"
+        except ValueError:
+            pass
+
     # Normalize gen_meta JSON
     meta = data.get("gen_meta")
     if isinstance(meta, str):
@@ -613,6 +650,10 @@ def re_render_post_image(
     #
     # One retry: rollback invalidates the dead connection, and the next
     # statement checks out a fresh (pre-pinged) one.
+    slide2 = _build_caption_slide(post_id, headline, row.get("caption") or "")
+    if slide2:
+        meta["slide2_path"] = slide2
+
     def _persist() -> None:
         db.execute(text("""
             UPDATE social_posts
@@ -893,6 +934,9 @@ def _save_manual_image(db: Session, post_id: int, data: bytes) -> dict:
     vm["needs_materials"] = False
     vm["manual_image"] = True
     meta["visual_materials"] = vm
+    slide2 = _build_caption_slide(post_id, row.get("headline") or "", row.get("caption") or "")
+    if slide2:
+        meta["slide2_path"] = slide2
 
     db.execute(text("""
         UPDATE social_posts

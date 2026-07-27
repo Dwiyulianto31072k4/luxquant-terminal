@@ -1320,6 +1320,114 @@ def _compose_editorial_card(
     return out_path
 
 
+def compose_caption_slide(
+    caption: str,
+    out_path: str,
+    *,
+    kicker: Optional[str] = None,
+) -> str:
+    """Slide 2: the story as type on our own ground.
+
+    The poster carries the headline over a photograph; this carries the reading.
+    It draws its own background rather than dimming a picture, so the type sits
+    at full contrast and the reader is not fighting an image for attention.
+
+    The LAST paragraph is set in gold — a caption's final line is where the
+    takeaway lives, and giving it the accent means a reader who only scans the
+    slide still leaves with the point.
+    """
+    from PIL import Image, ImageDraw
+
+    width, height = 1080, 1350
+    margin = 84
+    col = width - margin * 2
+
+    # Same world as the poster: near-black falling into dark maroon, so the two
+    # slides read as one post rather than two designs.
+    img = Image.new("RGB", (width, height), (10, 5, 6))
+    grad = ImageDraw.Draw(img)
+    for y in range(height):
+        t = y / height
+        grad.line(
+            [(0, y), (width, y)],
+            fill=(
+                int(26 - 16 * t),
+                int(12 - 7 * t),
+                int(15 - 9 * t),
+            ),
+        )
+    img = img.convert("RGBA")
+
+    ss = 3                                   # same supersampled text as the poster
+    layer = Image.new("RGBA", (width * ss, height * ss), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", caption or "") if p.strip()]
+    if not paragraphs:
+        paragraphs = [(caption or "").strip() or "—"]
+
+    def layout(size: int):
+        """Wrap every paragraph at `size` and report the total height."""
+        font = _card_font(size * ss, "SemiBold")
+        gold_font = _card_font(size * ss, "ExtraBold")
+        line_h = int(size * 1.42)
+        para_gap = int(size * 0.78)
+        block, total = [], 0
+        for i, para in enumerate(paragraphs):
+            fnt = gold_font if i == len(paragraphs) - 1 and len(paragraphs) > 1 else font
+            words, lines = para.split(), []
+            while words:
+                line = [words.pop(0)]
+                while words and d.textlength(
+                    " ".join(line + [words[0]]), font=fnt
+                ) <= col * ss:
+                    line.append(words.pop(0))
+                lines.append(" ".join(line))
+            block.append((lines, fnt, i == len(paragraphs) - 1 and len(paragraphs) > 1))
+            total += len(lines) * line_h + (para_gap if i else 0)
+        return block, total, line_h, para_gap
+
+    # Fit the text to the column instead of truncating it: a caption that runs
+    # long gets smaller type, never a cut-off sentence.
+    # The text lives between the top margin and the lockup's band, so it is
+    # centred in THAT space rather than in the whole canvas — centring on the
+    # canvas left the block riding high with a hole above the mark.
+    band_top, band_bottom = 180, height - 190
+    size = 40
+    block, total, line_h, para_gap = layout(size)
+    while total > (band_bottom - band_top) and size > 22:
+        size -= 2
+        block, total, line_h, para_gap = layout(size)
+
+    y = band_top + max(0, (band_bottom - band_top - total) // 2)
+    if kicker:
+        k_font = _card_font(19 * ss, "ExtraBold")
+        d.text((margin * ss, (y - 58) * ss), kicker.upper(), font=k_font,
+               fill=CARD_WEB + (255,))
+
+    for lines, fnt, is_gold in block:
+        for line in lines:
+            d.text((margin * ss, y * ss), line, font=fnt,
+                   fill=(CARD_GOLD if is_gold else CARD_CREAM) + (255,))
+            y += line_h
+        y += para_gap
+
+    img.alpha_composite(
+        layer.resize((width, height), Image.Resampling.LANCZOS), (0, 0))
+
+    if SOCIAL_LOCKUP_PATH.exists():
+        lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")
+        lh = 54
+        lw = int(lock.width * lh / lock.height)
+        lock = lock.resize((lw, lh), Image.Resampling.LANCZOS)
+        lock.putalpha(lock.getchannel("A").point(lambda a: int(a * 0.95)))
+        img.alpha_composite(lock, (width - lw - margin, height - lh - 86))
+
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    img.convert("RGB").save(out_path, quality=96)
+    return out_path
+
+
 def recompose_from_raw(
     *,
     raw_path: str,

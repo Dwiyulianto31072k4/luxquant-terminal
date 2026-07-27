@@ -1526,6 +1526,8 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
 
 // ── Instagram-style detail modal ────────────────────────────────
 const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) => {
+  // 0 = the poster, 1 = the caption slide. Instagram reads them in that order.
+  const [slide, setSlide] = useState(0);
   // Escape / background-scroll lock / focus trap / focus restore — hooks/useDialog.
   const dialogRef = useRef(null);
   useDialog({ isOpen: !!post, onClose: onClose, ref: dialogRef });
@@ -1535,22 +1537,29 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
   if (!post) return null;
   const isXai = (post.image_mode || "").startsWith("ai_");
 
+  // Both slides, numbered — Instagram uploads a carousel in filename order.
   const downloadImage = async () => {
-    if (!post.image_url) return;
-    const name = `luxquant-${post.id}.png`;
-    try {
-      const res = await fetch(post.image_url, { credentials: "include" });
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      window.open(post.image_url, "_blank", "noopener");
+    const slides = [post.image_url, post.slide2_url].filter(Boolean);
+    if (!slides.length) return;
+    for (let i = 0; i < slides.length; i += 1) {
+      const src = slides[i];
+      const name = `luxquant-${post.id}-${i + 1}.png`;
+      try {
+        const res = await fetch(src, { credentials: "include" });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // Browsers drop a second download fired in the same tick.
+        if (i < slides.length - 1) await new Promise((r) => setTimeout(r, 400));
+      } catch {
+        window.open(src, "_blank", "noopener");
+      }
     }
   };
 
@@ -1597,13 +1606,40 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* Left — post image (contained, never overflows) */}
-        <div className="md:w-[50%] flex-shrink-0 bg-black flex items-center justify-center min-h-0 max-h-[42vh] md:max-h-none overflow-hidden">
+        <div className="md:w-[50%] flex-shrink-0 bg-black flex items-center justify-center min-h-0 max-h-[42vh] md:max-h-none overflow-hidden relative">
           {post.image_url ? (
-            <img
-              src={post.image_url}
-              alt=""
-              className="max-w-full max-h-full w-auto h-auto object-contain"
-            />
+            <>
+              <img
+                src={slide === 1 && post.slide2_url ? post.slide2_url : post.image_url}
+                alt=""
+                className="max-w-full max-h-full w-auto h-auto object-contain"
+              />
+              {post.slide2_url && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSlide((v) => (v === 0 ? 1 : 0))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white text-[15px] leading-none flex items-center justify-center transition-colors"
+                    aria-label="Slide berikutnya"
+                  >
+                    {slide === 0 ? "›" : "‹"}
+                  </button>
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                    {[0, 1].map((i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSlide(i)}
+                        aria-label={`Slide ${i + 1}`}
+                        className={`h-1.5 rounded-full transition-all ${
+                          slide === i ? "w-5 bg-white/90" : "w-1.5 bg-white/40"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-6 text-center">
               <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-accent/90">
