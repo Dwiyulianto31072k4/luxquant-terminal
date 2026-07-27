@@ -469,7 +469,7 @@ CARD_BASE_DARK = (10, 5, 6)      # #0A0506 — the cards' floor colour
 # background; 9:1 keeps that character while leaving dark photos untouched.
 CARD_CONTRAST_FLOOR = 9.0
 CARD_CTA_LEAD = os.environ.get(
-    "SOCIAL_CTA_LEAD", "Read daily crypto & finance news"
+    "SOCIAL_CTA_LEAD", "Read daily crypto & finance news at"
 )
 CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
 CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantcrypto")
@@ -912,17 +912,6 @@ def _card_globe_icon(draw, x, y, size, colour):
                  outline=colour, width=w)
 
 
-def _card_arrow(draw, x, cy, length, colour):
-    """A right arrow: shaft plus two barbs. Drawn rather than typed — Poppins
-    ships no U+2192, and a missing glyph would silently render as a box."""
-    w = 3
-    draw.line([(x, cy), (x + length, cy)], fill=colour, width=w)
-    head = length * 0.34
-    for dy in (-head, head):
-        draw.line([(x + length - head, cy + dy), (x + length, cy)],
-                  fill=colour, width=w)
-
-
 def _card_measured_scrim(img, band_top: int, text_top: int, text_bottom: int):
     """Darken the headline band until cream type clears CARD_CONTRAST_FLOOR.
 
@@ -1217,8 +1206,9 @@ def _compose_editorial_card(
     accent = _card_accent_span(flat)
 
     line_h = int(size * 1.16)
-    foot_y = height - 120           # the one bottom row, level with the lockup
-    y = foot_y - 78 - len(lines) * line_h
+    foot_y = height - 112           # the account line, bottom of the block
+    cta_y = foot_y - 58             # the invitation, directly above it
+    y = cta_y - 62 - len(lines) * line_h
 
     img, _alpha = _card_measured_scrim(img, height - 620, y - 24, foot_y + 40)
     draw = ImageDraw.Draw(img)
@@ -1234,59 +1224,58 @@ def _compose_editorial_card(
             idx += 1
         y += line_h
 
-    # ── the bottom row: everything on one line, level with the lockup ──
-    # Gold stops at the headline. Down here everything is cream, like the recap
-    # card's `.fh` — a second accent colour in the footer competes with the
-    # accent that is actually carrying meaning three lines above it.
+    # ── the bottom block ──────────────────────────────────────────────
+    # Two lines, shaped like the Track Record card's footer: the invitation on
+    # top with the address it sends you to, the account below it, the lockup at
+    # the right holding both.
     #
-    # It is ONE row, not an instruction line above an identity line: the short
-    # CTA left a dead band of gradient to the right of its arrow, so the arrow
-    # read as pointing at nothing. Here it points into the handle and domain,
-    # which is where it was always sending you.
+    # No arrow. An arrow only points; the preposition says what to do with the
+    # address — "read the news AT luxquant.tw" is a sentence, "news →" was a
+    # gesture. Dropping it also freed the width the full wording needed: the
+    # handle used to share this line, which is what forced the copy down to
+    # three words.
+    #
+    # Gold stops at the headline. Everything here is cream — a second accent in
+    # the footer competes with the accent carrying meaning three lines above.
+    f_cta = _card_font(25, "SemiBold")
+    f_dom = _card_font(25, "ExtraBold")
     f_row = _card_font(21, "ExtraBold")
-    f_cta = _card_font(21, "SemiBold")
-    icon = 21
+    icon = 22
     ink = CARD_CREAM + (255,)
 
-    # Reserve the lockup's space first, then pick the longest CTA wording that
-    # still clears it — the row must never collide with the mark.
-    lock_w = 0
+    # The longest wording that still fits beside the lockup. Measured, not
+    # assumed: a wider handle or a longer domain must shorten the copy, never
+    # push it under the mark.
+    lock_w, lock_h = 0, 50                       # .lockup{height:50px}
     if SOCIAL_LOCKUP_PATH.exists():
         lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")
-        lock_h = 50                              # .lockup{height:50px}
         lock_w = int(lock.width * lock_h / lock.height)
         lock = lock.resize((lock_w, lock_h), Image.Resampling.LANCZOS)
         lock.putalpha(lock.getchannel("A").point(lambda a: int(a * 0.95)))
-        img.alpha_composite(lock, (width - lock_w - 58, foot_y - 15))
+        # Centred across both lines, so each one is anchored on the right.
+        img.alpha_composite(lock, (width - lock_w - 58,
+                                   (cta_y + foot_y + 30 - lock_h) // 2))
 
-    identity_w = (icon + 11 + draw.textlength(CARD_HANDLE, font=f_row) + 12
-                  + draw.textlength("·", font=f_row) + 12
-                  + icon + 9 + draw.textlength(CARD_DOMAIN, font=f_row))
-    budget = width - 58 - (lock_w + 58 + 40 if lock_w else 58) - identity_w - 26 - 44
-
-    lead = ""
-    for candidate in (CARD_CTA_LEAD, "Read daily crypto news", "Read the daily news",
-                      "Daily news"):
-        if draw.textlength(candidate, font=f_cta) <= budget:
-            lead = candidate
-            break
+    tail = 16 + icon + 10 + draw.textlength(CARD_DOMAIN, font=f_dom)
+    room = width - 58 - (lock_w + 58 + 44 if lock_w else 58) - tail
+    lead = next(
+        (c for c in (CARD_CTA_LEAD, "Read daily crypto news at",
+                     "Read the daily news at", "Daily news at")
+         if draw.textlength(c, font=f_cta) <= room),
+        "Daily news at",
+    )
 
     x = 58
-    if lead:
-        draw.text((x, foot_y + 1), lead, font=f_cta, fill=ink)
-        x += draw.textlength(lead, font=f_cta) + 13
-        _card_arrow(draw, x, foot_y + 13, 26, ink)
-        x += 26 + 27          # a wider gap here is the only break between the
-        #                       instruction and the identity it points into
-    _card_x_icon(img, x, foot_y + 2, icon, ink)
-    x += icon + 11
+    draw.text((x, cta_y), lead, font=f_cta, fill=ink)
+    x += draw.textlength(lead, font=f_cta) + 16
+    _card_globe_icon(draw, x, cta_y + 5, icon, ink)
+    x += icon + 10
+    draw.text((x, cta_y - 1), CARD_DOMAIN, font=f_dom, fill=ink)
+
+    x = 58
+    _card_x_icon(img, x, foot_y + 2, 21, ink)
+    x += 21 + 11
     draw.text((x, foot_y), CARD_HANDLE, font=f_row, fill=ink)
-    x += draw.textlength(CARD_HANDLE, font=f_row) + 12
-    draw.text((x, foot_y - 1), "·", font=f_row, fill=ink)
-    x += draw.textlength("·", font=f_row) + 12
-    _card_globe_icon(draw, x, foot_y + 2, icon, ink)
-    x += icon + 9
-    draw.text((x, foot_y + 1), CARD_DOMAIN, font=f_row, fill=ink)
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
