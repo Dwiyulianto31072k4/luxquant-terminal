@@ -18,6 +18,7 @@ import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 import { PageHeader } from "./ui/PageHeader";
 import RiskRSection from "./performance/RiskRSection";
+import WrVsBtcChart from "./performance/WrVsBtcChart";
 
 const API_BASE = "/api/v1";
 
@@ -259,38 +260,14 @@ const AnalyzePage = () => {
         />
       </div>
 
-      {/* ── WIN RATE TREND ── */}
-      <div className="bg-surface-raised rounded-xl p-5 border border-ink/[0.07] relative overflow-hidden">
-        <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <IconTrend />
-            <div>
-              <h3 className="text-text-primary text-sm font-normal tracking-tight">
-                {t("perf.wr_trend")}
-              </h3>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
-                {t("perf.wr_trend_desc")}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-1 p-1 bg-surface-secondary rounded-sm border border-ink/[0.04]">
-            {["daily", "weekly"].map((m) => (
-              <button
-                key={m}
-                onClick={() => setTrendMode(m)}
-                className={`px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
-                  trendMode === m
-                    ? "bg-ink/10 text-text-primary border border-ink/[0.08]"
-                    : "text-text-muted hover:text-text-primary border border-transparent"
-                }`}
-              >
-                {m === "daily" ? t("perf.daily") : t("perf.weekly")}
-              </button>
-            ))}
-          </div>
-        </div>
-        <WinRateTrendChart data={data.win_rate_trend} mode={trendMode} t={t} />
-      </div>
+      {/* ── WIN RATE × BITCOIN ──
+ Replaces the old bare win-rate trend. A win-rate line alone has nothing
+ to be judged against; the real question is whether the edge holds while
+ BTC falls, so the line now sits over BTC candles with the correlation and
+ the up-day/down-day split spelled out underneath. Same treatment as the
+ landing page, so a visitor who signed in on the strength of that chart
+ finds the same thing here. ── */}
+      <WrVsBtcChart />
 
       {/* ── RISK-ADJUSTED PERFORMANCE (R) — the full breakdown the landing
  teaser locks. Own data source (/performance/r-metrics, signed-in),
@@ -745,27 +722,29 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
   const colorStyles = {
     profit: "text-profit",
     loss: "text-loss",
-    gold: "text-accent",
+    // accent-text, not accent: yellow as TEXT fails contrast on the Bright
+    // canvas, and this token is the dark amber that survives all three themes.
+    gold: "text-accent-text",
     muted: "text-text-secondary",
     default: "text-text-primary",
   };
 
   return (
     <div
-      className={`group relative rounded-md p-4 border transition-all overflow-hidden ${
+      className={`group relative overflow-hidden rounded-xl border p-4 transition-all duration-200 ${
         accent
-          ? "bg-gradient-to-b from-accent/[0.07] to-transparent border-ink/12"
-          : "bg-surface-raised border-ink/[0.06] hover:border-ink/[0.13]"
+          ? "border-accent/25 bg-accent/[0.07] shadow-[0_4px_16px_rgb(var(--accent)/0.10)]"
+          : "border-ink/[0.06] bg-surface-raised hover:-translate-y-px hover:border-ink/[0.14]"
       }`}
     >
       {accent && (
-        <span className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full bg-accent/80" />
+        <span className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent" />
       )}
-      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65 mb-2.5 truncate">
+      <p className="mb-2.5 truncate font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65">
         {label}
       </p>
       <p
-        className={`font-mono text-[26px] font-light tabular-nums leading-none ${colorStyles[color]}`}
+        className={`font-mono text-[26px] font-semibold leading-none tabular-nums ${colorStyles[color]}`}
       >
         {value}
       </p>
@@ -862,238 +841,6 @@ const OutcomeDistribution = ({ data, _t }) => {
   );
 };
 
-/* ──────────────────────────────────────────────────────────────
- WIN RATE TREND CHART — muted profit color
- ────────────────────────────────────────────────────────────── */
-
-const WinRateTrendChart = ({ data, _mode, t }) => {
-  if (!data || data.length === 0)
-    return (
-      <div className="h-72 lg:h-96 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
-        No trend data available
-      </div>
-    );
-
-  const chartData = data.map((item) => {
-    const d = (() => {
-      try {
-        const dt = new Date(item.period);
-        return isNaN(dt)
-          ? item.period
-          : dt.toLocaleDateString("en", { month: "short", day: "numeric" });
-      } catch {
-        return item.period;
-      }
-    })();
-    return {
-      period: d,
-      fullDate: item.period,
-      winRate: item.win_rate,
-      winners: item.winners,
-      losers: item.losers,
-      total: item.total_closed,
-    };
-  });
-
-  const validRates = chartData.map((d) => d.winRate).filter((v) => v > 0);
-  const avgWR =
-    validRates.length > 0 ? validRates.reduce((s, v) => s + v, 0) / validRates.length : 0;
-
-  const maxVol = Math.max(...chartData.map((d) => d.total), 1);
-
-  const bestPeriod = chartData.reduce(
-    (best, d) => (d.winRate > (best?.winRate || 0) ? d : best),
-    chartData[0]
-  );
-  const worstPeriod = chartData
-    .filter((d) => d.winRate > 0)
-    .reduce((worst, d) => (d.winRate < (worst?.winRate || 100) ? d : worst), chartData[0]);
-
-  const currentWR = chartData.length > 0 ? chartData[chartData.length - 1].winRate : 0;
-  const prevWR = chartData.length > 1 ? chartData[chartData.length - 2].winRate : currentWR;
-  const wrTrend = currentWR > prevWR ? "up" : currentWR < prevWR ? "down" : "flat";
-
-  const currentColor =
-    currentWR >= 70 ? "text-profit" : currentWR >= 55 ? "text-accent" : "text-loss";
-
-  return (
-    <div className="space-y-3">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 flex-wrap font-mono text-[11px] uppercase tracking-wider">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-5 h-px bg-profit" />
-          <span className="text-text-muted/80">{t("perf.win_rate")}</span>
-          <span className={`tabular-nums ${currentColor}`}>{currentWR.toFixed(1)}%</span>
-          {wrTrend !== "flat" && (
-            <span className={wrTrend === "up" ? "text-profit" : "text-loss"}>
-              {wrTrend === "up" ? <IconArrowUpMini /> : <IconArrowDownMini />}
-            </span>
-          )}
-        </div>
-        <span className="text-text-muted/40">·</span>
-        <span className="text-text-muted/80">
-          Avg <span className="text-text-primary tabular-nums">{avgWR.toFixed(1)}%</span>
-        </span>
-      </div>
-
-      {/* Chart */}
-      <div className="h-64 lg:h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-            <defs>
-              <linearGradient id="winRateArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C.profit} stopOpacity={0.18} />
-                <stop offset="50%" stopColor={C.profit} stopOpacity={0.05} />
-                <stop offset="100%" stopColor={C.profit} stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="volBarGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C.gold} stopOpacity={0.25} />
-                <stop offset="100%" stopColor={C.gold} stopOpacity={0.04} />
-              </linearGradient>
-            </defs>
-
-            <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--ink) / 0.04)" vertical={false} />
-
-            <XAxis
-              dataKey="period"
-              stroke="#6b5c52"
-              fontSize={9}
-              fontFamily="JetBrains Mono, monospace"
-              tickLine={false}
-              axisLine={false}
-              interval={Math.max(
-                0,
-                Math.floor(
-                  chartData.length /
-                    (typeof window !== "undefined" && window.innerWidth < 640 ? 5 : 10)
-                )
-              )}
-              dy={4}
-            />
-
-            <YAxis
-              yAxisId="rate"
-              stroke="#6b5c52"
-              fontSize={10}
-              fontFamily="JetBrains Mono, monospace"
-              domain={[0, 100]}
-              ticks={[0, 20, 40, 60, 80, 100]}
-              tickFormatter={(v) => `${v}%`}
-              tickLine={false}
-              axisLine={false}
-              width={36}
-            />
-
-            <YAxis yAxisId="vol" orientation="right" domain={[0, maxVol * 5]} hide />
-
-            <ReferenceLine
-              yAxisId="rate"
-              y={avgWR}
-              stroke="rgb(var(--accent) / 0.2)"
-              strokeDasharray="4 4"
-            />
-
-            <Bar
-              yAxisId="vol"
-              dataKey="total"
-              fill="url(#volBarGrad)"
-              radius={[0, 0, 0, 0]}
-              maxBarSize={6}
-              isAnimationActive={false}
-            />
-
-            <Area
-              yAxisId="rate"
-              type="monotone"
-              dataKey="winRate"
-              stroke="none"
-              fill="url(#winRateArea)"
-              fillOpacity={1}
-              dot={false}
-              activeDot={false}
-              isAnimationActive={false}
-              connectNulls
-            />
-
-            <Line
-              yAxisId="rate"
-              type="monotone"
-              dataKey="winRate"
-              stroke={C.profit}
-              strokeWidth={1.5}
-              dot={false}
-              activeDot={{
-                r: 4,
-                fill: C.profit,
-                stroke: "rgb(var(--surface-raised))",
-                strokeWidth: 2,
-              }}
-              connectNulls
-            />
-
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                const d =
-                  payload.find((p) => p.dataKey === "winRate")?.payload || payload[0]?.payload;
-                if (!d) return null;
-                const wrColor =
-                  d.winRate >= 70 ? "text-profit" : d.winRate >= 55 ? "text-accent" : "text-loss";
-                return (
-                  <div className="bg-surface border border-ink/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgb(var(--scrim) / 0.35)]">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-2 pb-2 border-b border-ink/[0.04]">
-                      {d.fullDate || label}
-                    </p>
-                    <div className="flex items-center justify-between mb-1.5 font-mono text-[10px] uppercase tracking-wider">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-profit" />
-                        <span className="text-text-muted">{t("perf.win_rate")}</span>
-                      </div>
-                      <span className={`tabular-nums ${wrColor}`}>{d.winRate.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1.5 border-t border-ink/[0.04] font-mono text-[10px] tabular-nums">
-                      <span className="text-text-muted uppercase tracking-wider">
-                        {d.total} {t("perf.trades")}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-profit/80">{d.winners}W</span>
-                        <span className="text-text-muted/40">·</span>
-                        <span className="text-loss/80">{d.losers}L</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }}
-              cursor={{ stroke: "rgb(var(--accent) / 0.2)", strokeWidth: 1 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="flex items-center justify-between flex-wrap gap-2 font-mono text-[10px] uppercase tracking-wider tabular-nums">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="text-text-muted/70">{t("perf.best")}</span>
-            <span className="text-profit">{bestPeriod.winRate.toFixed(0)}%</span>
-            <span className="text-text-muted/50">({bestPeriod.period})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-text-muted/70">{t("perf.worst")}</span>
-            <span className="text-loss">{worstPeriod.winRate.toFixed(0)}%</span>
-            <span className="text-text-muted/50">({worstPeriod.period})</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-text-muted/70">{chartData.length} periods</span>
-          <span className="text-text-muted/40">·</span>
-          <span className="text-text-muted/70">
-            {chartData.reduce((s, d) => s + d.total, 0).toLocaleString()} {t("perf.trades")}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 /* ──────────────────────────────────────────────────────────────
  RISK:REWARD CHART — Gold opacity gradient (Flowscan-consistent)
@@ -1737,23 +1484,6 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
 /* ──────────────────────────────────────────────────────────────
  SVG ICONS — Lucide-style minimal
  ────────────────────────────────────────────────────────────── */
-
-const IconTrend = () => (
-  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">
-    <svg
-      className="w-3.5 h-3.5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 3v18h18" />
-      <path d="M7 14l4-4 4 4 6-6" />
-    </svg>
-  </div>
-);
 
 const IconOutcome = () => (
   <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-secondary border border-ink/10 text-accent">

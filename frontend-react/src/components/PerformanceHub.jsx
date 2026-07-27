@@ -343,10 +343,11 @@ const PerformanceHub = () => {
                       <button
                         key={item.id}
                         onClick={() => go(item)}
-                        className={`relative flex w-full items-center gap-2 rounded-md py-1.5 pl-2.5 pr-2 text-left text-[12px] font-medium transition-colors ${
+                        aria-current={on ? "page" : undefined}
+                        className={`relative flex w-full items-center gap-2 rounded-lg py-2 pl-2.5 pr-2 text-left text-[12px] transition-all duration-150 ${
                           on
-                            ? "bg-ink/[0.07] text-text-primary"
-                            : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
+                            ? "bg-accent/[0.12] font-semibold text-text-primary shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.22)]"
+                            : "font-medium text-text-muted hover:bg-surface-hover hover:text-text-primary"
                         }`}
                       >
                         {on && (
