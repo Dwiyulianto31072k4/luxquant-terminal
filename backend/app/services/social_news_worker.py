@@ -28,6 +28,13 @@ from app.services.social_image_generator import generate_ai_social_image
 
 POSTS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
 DEFAULT_PLATFORM = os.environ.get("SOCIAL_POST_DEFAULT_PLATFORM", "x")
+# Paid image generation is OFF. Every poster's background now comes from the
+# admin's own Gemini: the draft carries the prompt, the admin generates it there
+# and uploads it, and compose stays free. That takes ~$0.05 of the ~$0.07 out of
+# each post. Set SOCIAL_AUTO_IMAGE=1 to buy the image from the API again.
+AUTO_IMAGE = os.environ.get("SOCIAL_AUTO_IMAGE", "0").strip().lower() not in (
+    "0", "false", "no", "",
+)
 
 
 MARKET_KEYWORDS = {
@@ -518,17 +525,21 @@ def build_draft(
         except Exception:
             pre_assets = None
 
-        if visual_materials and visual_materials.get("needs_materials"):
-            # Save caption/entities draft WITHOUT AI image cost
+        if not AUTO_IMAGE or (visual_materials and visual_materials.get("needs_materials")):
+            # Save the caption/entities draft WITHOUT paying for an image. The
+            # prompt travels with the draft; the admin generates it in their own
+            # Gemini and uploads the result, which composes for free.
             awaiting_materials = True
             draft.image_mode = "awaiting_materials"
             draft.image_path = None
             draft.image_prompt = ai_image_prompt
-            missing_n = visual_materials.get("missing_count") or 0
+            missing_n = visual_materials.get("missing_count") if visual_materials else 0
             _progress(
                 progress_cb,
                 "save",
-                f"Safe mode: paused for admin upload ({missing_n} logo/face) — no AI image cost yet",
+                "Prompt ready — generate the image in Gemini and upload it (no image cost)"
+                if not AUTO_IMAGE
+                else f"Safe mode: paused for admin upload ({missing_n or 0} logo/face) — no AI image cost yet",
             )
         else:
             _progress(progress_cb, "image", "Generating cinematic poster with AI (30–90s)…")

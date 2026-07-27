@@ -177,38 +177,87 @@ const _timeAgo = (iso) => {
   return `${Math.floor(s / 86400)}d`;
 };
 
+// One page per request. The picker used to ask for 48 stories and stop there,
+// so anything older than roughly a day was unreachable even though it was still
+// on the news page. The feed endpoint already paginates and returns `total`;
+// this walks it instead of taking the first slice.
+const NEWS_PAGE_SIZE = 24;
+
 const NewsPickerModal = ({ onClose, onPick, currentId }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [err, setErr] = useState(null);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const bodyRef = useRef(null);
+  const reqRef = useRef(0);
 
-  const load = useCallback(async (search) => {
+  // `search` is passed in rather than read from state: a fresh search must load
+  // page 0 in the same tick it resets the page, or the request would carry the
+  // previous page's offset and land the reader somewhere in the middle.
+  const load = useCallback(async (search, pageIndex) => {
+    // Only the newest request may write state. Two quick clicks on Next fire two
+    // requests, and if the first one answers last you end up looking at the
+    // previous page while the pager says you moved on.
+    const ticket = ++reqRef.current;
     setLoading(true);
     setErr(null);
     try {
       const res = await api.get("/api/v1/crypto-news-feed/feed", {
-        params: { limit: 48, ...(search ? { search } : {}) },
+        params: {
+          limit: NEWS_PAGE_SIZE,
+          offset: pageIndex * NEWS_PAGE_SIZE,
+          ...(search ? { search } : {}),
+        },
       });
+      if (ticket !== reqRef.current) return;
       setItems(Array.isArray(res.data?.items) ? res.data.items : []);
+      setTotal(Number(res.data?.total) || 0);
     } catch {
-      setErr("Failed to load news feed");
+      if (ticket === reqRef.current) setErr("Failed to load news feed");
     } finally {
-      setLoading(false);
+      if (ticket === reqRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
+    load("", 0);
   }, [load]);
+
+  const pages = Math.max(1, Math.ceil(total / NEWS_PAGE_SIZE));
+  const go = useCallback(
+    (next) => {
+      const target = Math.min(Math.max(0, next), pages - 1);
+      if (target === page) return;
+      setPage(target);
+      load(q.trim(), target);
+      // Back to the top: landing mid-grid on a new page loses your place.
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    },
+    [load, page, pages, q]
+  );
+
+  const search = useCallback(
+    (term) => {
+      setPage(0);
+      load(term, 0);
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    },
+    [load]
+  );
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") return onClose();
+      // Arrows page through, but not while the reader is typing a search.
+      if (e.target?.tagName === "INPUT") return;
+      if (e.key === "ArrowRight") go(page + 1);
+      if (e.key === "ArrowLeft") go(page - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, go, page]);
 
   return createPortal(
     <div
@@ -224,12 +273,17 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
         <div className="flex items-center gap-3 px-5 py-4 border-b border-ink/10">
           <div className="min-w-0">
             <h3 className="text-text-primary text-[15px] font-semibold tracking-tight">Choose news</h3>
-            <p className="text-[11px] text-text-muted mt-0.5">Click a story to turn it into a post</p>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Click a story to turn it into a post
+              {total > 0 && (
+                <span className="tabular-nums"> · {total.toLocaleString()} in the feed</span>
+              )}
+            </p>
           </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              load(q.trim());
+              search(q.trim());
             }}
             className="ml-auto flex items-center rounded-lg border border-ink/[0.1] bg-ink/[0.04] overflow-hidden"
           >
@@ -244,13 +298,28 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
                 type="button"
                 onClick={() => {
                   setQ("");
-                  load();
+                  search("");
                 }}
                 className="px-2 text-text-muted hover:text-text-primary text-[13px]"
+                aria-label="Clear search"
               >
                 ✕
               </button>
             )}
+            {/* A real submit button: a form whose only control is a text field
+                does not reliably submit on Enter, and there was nothing to click
+                either — the search silently did nothing. */}
+            <button
+              type="submit"
+              className="px-2.5 self-stretch text-text-muted hover:text-accent transition-colors"
+              aria-label="Search headlines"
+              title="Search"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-4.5-4.5" strokeLinecap="round" />
+              </svg>
+            </button>
           </form>
           <button
             onClick={onClose}
@@ -262,15 +331,19 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
         </div>
 
         {/* body */}
-        <div className="overflow-y-auto p-4">
-          {loading ? (
+        <div ref={bodyRef} className="overflow-y-auto p-4 flex-1">
+          {loading && items.length === 0 ? (
             <div className="py-16 text-center text-text-muted text-[13px]">Loading news…</div>
           ) : err ? (
             <div className="py-16 text-center text-loss text-[13px]">{err}</div>
           ) : items.length === 0 ? (
             <div className="py-16 text-center text-text-muted text-[13px]">No stories found.</div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div
+              className={`grid grid-cols-2 sm:grid-cols-3 gap-3 transition-opacity ${
+                loading ? "opacity-40" : "opacity-100"
+              }`}
+            >
               {items.map((it) => {
                 const selected = String(it.id) === String(currentId);
                 return (
@@ -330,6 +403,46 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
             </div>
           )}
         </div>
+
+        {/* pager — the whole feed is reachable, one page at a time */}
+        {total > NEWS_PAGE_SIZE && (
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-ink/10 bg-ink/[0.03]">
+            <span className="text-[11px] text-text-muted tabular-nums">
+              {page * NEWS_PAGE_SIZE + 1}–{Math.min((page + 1) * NEWS_PAGE_SIZE, total)} of{" "}
+              {total.toLocaleString()}
+            </span>
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => go(0)}
+                disabled={page === 0 || loading}
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-ink/[0.1] text-text-muted hover:text-text-primary hover:border-accent/45 disabled:opacity-35 disabled:hover:border-ink/[0.1] transition-colors"
+                title="Newest"
+              >
+                Newest
+              </button>
+              <button
+                type="button"
+                onClick={() => go(page - 1)}
+                disabled={page === 0 || loading}
+                className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-ink/[0.1] bg-ink/[0.04] text-text-primary hover:border-accent/45 hover:bg-accent/[0.05] disabled:opacity-35 disabled:hover:border-ink/[0.1] disabled:hover:bg-ink/[0.04] transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="text-[11px] text-text-muted tabular-nums px-1">
+                {page + 1} / {pages.toLocaleString()}
+              </span>
+              <button
+                type="button"
+                onClick={() => go(page + 1)}
+                disabled={page >= pages - 1 || loading}
+                className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-ink/[0.1] bg-ink/[0.04] text-text-primary hover:border-accent/45 hover:bg-accent/[0.05] disabled:opacity-35 disabled:hover:border-ink/[0.1] disabled:hover:bg-ink/[0.04] transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
@@ -724,7 +837,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
-  const [showManual, setShowManual] = useState(false);
+  const [showManual, setShowManual] = useState(true);
   const [brief, setBrief] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -744,6 +857,25 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const loadBrief = useCallback(async () => {
+    try {
+      const res = await api.get(`/api/v1/admin/social-posts/${postId}/manual-brief`);
+      setBrief(res.data);
+      return res.data;
+    } catch {
+      setErr("Couldn't build the manual brief");
+      return null;
+    }
+  }, [postId]);
+
+  // The prompt is the whole point of this panel now — fetch it with the panel
+  // rather than waiting for a click nobody has a reason to make. Declared after
+  // loadBrief on purpose: the dependency array is read during render, so a
+  // const declared below would be in its temporal dead zone.
+  useEffect(() => {
+    loadBrief();
+  }, [loadBrief]);
 
   const upload = async (item, file) => {
     if (!file) return;
@@ -782,82 +914,6 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       setBusy(null);
     }
   };
-
-  const reRender = async () => {
-    setBusy("__render__");
-    setErr(null);
-    const startedAt = Date.now();
-    const MAX_MS = 210000; // ~3.5 min ceiling
-
-    // The paid AI image edit can take 1–3 min, which blows past Cloudflare's ~100s
-    // edge timeout (524). The backend keeps working and finishes anyway, so we don't
-    // surface that error — we poll the post until the fresh image lands, then refresh.
-    const direct = api
-      .post(`/api/v1/admin/social-posts/${postId}/re-render`)
-      .then((res) => res?.data?.post || null)
-      .catch((e) => {
-        // A real validation error (e.g. still-missing materials) should show; a
-        // gateway timeout should not — fall through to polling for those.
-        const status = e?.response?.status;
-        const d = e?.response?.data?.detail;
-        if (status && status !== 502 && status !== 503 && status !== 504 && status !== 524) {
-          const msg =
-            (typeof d === "object" && d?.message) || (typeof d === "string" ? d : null);
-          if (msg) throw new Error(msg);
-        }
-        return null;
-      });
-
-    const findPost = async () => {
-      try {
-        const res = await api.get("/api/v1/admin/social-posts", { params: { limit: 80 } });
-        const list = Array.isArray(res.data) ? res.data : [];
-        return list.find((p) => String(p.id) === String(postId)) || null;
-      } catch {
-        return null;
-      }
-    };
-    const isReady = (p) => Boolean(p && p.image_url && !awaitingImage(p));
-
-    try {
-      // Recompose (free) returns in ~2s; the AI path won't beat the 10s race → poll.
-      let post = await Promise.race([
-        direct,
-        new Promise((r) => setTimeout(() => r(null), 10000)),
-      ]);
-      while (!isReady(post) && Date.now() - startedAt < MAX_MS) {
-        await new Promise((r) => setTimeout(r, 4000));
-        const p = await findPost();
-        if (isReady(p)) {
-          post = p;
-          break;
-        }
-      }
-      await load();
-      if (isReady(post)) {
-        if (onUpdated) onUpdated(post);
-      } else {
-        setErr(
-          "Image is still finishing — this can take up to ~3 min. Click Refresh in a moment to see it."
-        );
-      }
-    } catch (e) {
-      setErr(e?.message || "Re-render failed");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const loadBrief = useCallback(async () => {
-    try {
-      const res = await api.get(`/api/v1/admin/social-posts/${postId}/manual-brief`);
-      setBrief(res.data);
-      return res.data;
-    } catch {
-      setErr("Couldn't build the manual brief");
-      return null;
-    }
-  }, [postId]);
 
   const openManual = async () => {
     setShowManual((v) => !v);
@@ -909,7 +965,6 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const requests = data.requests || [];
   const primaryName = data.primary_org?.name;
   const pending = inv.filter((i) => i.status === "missing" || i.status === "needs_upload");
-  const ready = inv.filter((i) => i.status === "resolved");
 
   const statusStyle = (st) => {
     if (st === "resolved") return "bg-positive/15 text-positive border-positive/25";
@@ -922,11 +977,12 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-accent">
-            Safe materials · all story brands
+            Make the image · your Gemini
           </p>
           <p className="text-[11px] text-text-muted mt-0.5 leading-snug">
-            Every brand in the story (Coinbase, Hyperliquid, Circle, banks…) + face must be
-            admin-uploaded before AI image. Unverified marks are forbidden — no invented HYPE logos.
+            Copy the prompt, generate it in Gemini, upload the result — we compose the
+            headline and lockup for free. Any real logo or face below should be attached
+            in Gemini so the mark stays accurate.
           </p>
         </div>
         {data.needs_materials ? (
@@ -972,10 +1028,10 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             </svg>
             <span className="min-w-0">
               <span className="block text-[12px] font-semibold text-accent leading-tight">
-                Make it yourself with Gemini — free
+                Gemini prompt — carries the LuxQuant colour signature
               </span>
               <span className="block text-[10px] text-text-muted leading-tight mt-0.5">
-                Copy the prompt, generate in Gemini, upload it — no asset uploads needed
+                Copy it, generate in Gemini, upload the image back here
               </span>
             </span>
           </span>
@@ -1041,7 +1097,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               />
             </label>
             <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
-              We add the LuxQuant red headline + logo automatically · $0 (your own Gemini)
+              We add the headline, the CTA and the lockup automatically · $0
             </p>
             {err && <p className="text-[11px] text-loss text-center leading-snug">{err}</p>}
           </div>
@@ -1051,7 +1107,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       {pending.length > 0 && (
         <div className="rounded-lg bg-accent/[0.06] border border-accent/25 px-3 py-2.5 space-y-1.5">
           <p className="text-[11px] font-semibold text-accent">
-            Upload before generate ({pending.length}):
+            Attach in Gemini for accuracy ({pending.length}):
           </p>
           {pending.map((r, i) => (
             <p key={i} className="text-[11px] text-accent/90 leading-snug">
@@ -1140,40 +1196,16 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         })}
         {inv.length === 0 && (
           <p className="text-[11px] text-text-muted py-2">
-            No logo/face required for this story — you can generate the image.
+            No logo or face to match in this story — the prompt above is all you need.
           </p>
         )}
       </div>
 
-      {ready.length > 0 && data.needs_materials && (
-        <p className="text-[9px] font-mono text-text-muted">
-          {ready.length} verified · {pending.length} still need admin action
-        </p>
-      )}
-
-      <button
-        type="button"
-        disabled={!!busy || data.needs_materials}
-        onClick={reRender}
-        className={`w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border transition-colors disabled:opacity-40 ${
-          data.needs_materials
-            ? "bg-ink/[0.04] text-text-muted border-ink/10"
-            : "bg-accent/15 text-accent hover:text-accent-fg border-ink/15 hover:bg-accent shadow-[0_0_18px_-6px_rgb(var(--accent) / 0.6)]"
-        }`}
-        title={data.needs_materials ? "Upload / confirm all materials first" : undefined}
-      >
-        {busy === "__render__"
-          ? "Generating cinematic poster…"
-          : data.needs_materials
-            ? "Upload assets to unlock AI image"
-            : "Generate image with verified assets"}
-      </button>
+      {/* No "generate with AI" button any more: the image API charged ~$0.05 a
+          post for the same picture Gemini makes for nothing. The prompt above is
+          the whole workflow — generate there, upload here, compose is free. */}
       <p className="text-[9px] font-mono text-text-muted/80 text-center leading-relaxed">
-        {busy === "__render__"
-          ? "Working — the AI edit can take 1–3 min. Safe to wait, it won't double-charge."
-          : data.needs_materials
-            ? "Image AI is paused until uploads are complete — saves cost & keeps marks accurate."
-            : "Assets verified · one AI call · brand integrated into the scene."}
+        Images come from your own Gemini · the poster itself composes free
       </p>
 
       {err && <p className="text-[11px] text-loss">{err}</p>}
