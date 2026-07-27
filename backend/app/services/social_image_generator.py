@@ -91,26 +91,87 @@ def download_reference_image(url: Optional[str], *, news_id: int) -> Optional[st
         return None
 
 
-# The colour signature. Akademi Crypto is recognisable in a grid thumbnail
-# because every image carries the same purple; ours carried nothing, so posts
-# read as stock photos with a headline on them. Written as PRACTICAL LIGHT —
-# rim-light, screens, haze — because "make it red" gets a red wash over the whole
-# frame, which kills skin tones and looks like a broken filter.
+# The house style. Not just colour any more: the three posters the user picked
+# out as "this is it" shared a shape, not a palette — a large 3D hero object
+# anchoring the story (a wall-mounted mark, a pedestal product, storage tanks),
+# a person standing in for the institution, a hall with real depth, crimson
+# practical light, one warm lamp, a glossy floor holding the reflection.
 #
-# Our real accent token is gold (#F0B90B / #FCD535, see the frontend theme); the
-# ground the cards sit on is dark maroon. So the signature is a crimson-maroon
-# world with ONE gold highlight, not an all-red frame.
+# It goes FIRST in the prompt and it owns lighting outright, because the
+# editorial scene line used to open with "soft natural daylight from a large
+# window" and whatever is said first wins.
 BRAND_VISUAL_SIGNATURE = "\n".join([
-    "LUXQUANT COLOUR SIGNATURE — required in every image, this is what makes it ours at thumbnail size:",
-    "- World: near-black ground (#0A0506) deepening into dark maroon (#241014). Never a bright, white, pastel or daylight-flat background.",
-    "- Carry the brand red as PRACTICAL LIGHT IN THE SCENE, never as a filter, wash or colour grade over the whole frame: "
-    "deep crimson (#BE001C) rim-light tracing the hero subject's edges and shoulders, red-lit screens / LED strips / signage / "
-    "tail-lights deep in the background, a faint crimson haze low in the frame, red specular glints on glass, metal and wet surfaces.",
-    "- Exactly ONE small warm-gold highlight (#FCD535) somewhere in frame — a lamp, a coin edge, a monitor glow. One, not everywhere.",
-    "- Faces, skin tones and real brand colours stay natural and accurate. The red lives on edges, in shadows and in background light.",
-    "- If the real setting would be lit blue or teal (offices, trading floors, city night), warm it toward crimson instead. No cyan or blue dominance, and no purple.",
-    "- The lower 35-40% of the frame stays dark and visually quiet — a headline is composited there afterwards.",
+    "LUXQUANT HOUSE STYLE — identical in every poster. This is what makes the feed one family.",
+    "- Look: cinematic 3D product-render realism. Physically-based materials, true reflections, "
+    "contact shadows, fine grain. No illustration, no flat vector.",
+    "- World: a dark interior with real depth — hall, corridor, plant floor, stage. Near-black "
+    "#0A0506 falling into dark maroon #241014. Never daylight, never a flat backdrop.",
+    "- HERO OBJECT: build the story's one physical element LARGE and solid in 3D — a backlit sign or "
+    "moulded emblem on the far wall, a product on a lit pedestal, a machine, storage tanks. It says "
+    "what the story is at a glance, so it must read solid, never a flat sticker or a ghost.",
+    "- PERSON, when the story has one: centred, standing in for the institution, half to full body, "
+    "medium distance, calm. Not a floating head, not a silhouette that disappears.",
+    "- Light is PRACTICAL, inside the scene, never a filter over the frame: crimson #BE001C from LED "
+    "strips, screens, signage and cove light; a crimson rim on the hero's edges; low red haze at the "
+    "floor; red glints on glass, metal and the polished floor, which holds a soft reflection.",
+    "- Exactly ONE warm-gold accent #FCD535 — a desk lamp, a lit edge, one monitor glow.",
+    "- Faces, skin tones and real brand colours stay accurate; the red lives on edges, in shadow and "
+    "in background light. Warm any blue or teal setting to crimson. No cyan, no purple.",
+    "- Frame: vertical 4:5, hero in the upper two thirds, lower 35-40% dark and free of detail — the "
+    "headline is composited there.",
 ])
+
+
+# The attach list is the other half of consistency. Same style references every
+# time -> same look every time; that is what the reference kit is for.
+STYLE_KIT_NOTE = (
+    "your 2-3 approved posters as a fixed STYLE KIT — copy their light, depth, materials and mood, "
+    "and ignore their subject, their text and any mark on them. Attach the SAME ones every time: one "
+    "reused set is what makes ten posters look like one shoot"
+)
+
+# Lighting written into the story line is what broke the look: it opened the
+# prompt, so it beat the house style that followed, and every story got a
+# different one. New drafts no longer contain it; this cleans the ones written
+# before that rule changed.
+#
+# Clause-level, not sentence-level. A first pass deleted whole sentences and
+# took the subject with them — "Modern data center interior with rows of server
+# racks under soft overhead lighting" is the subject AND the light in one line.
+import re as _re
+
+_LIGHT_SENTENCE = _re.compile(
+    r"^\s*(soft|cool|warm|natural|ambient|dramatic|subtle|bright|dim|institutional|overhead)?\s*"
+    r"[\w\s]{0,40}?(lighting|daylight|illumination|light source)\b",
+    _re.I,
+)
+_LIGHT_CLAUSE = _re.compile(
+    r"(,\s*|\s+)(under|with|in|beneath|lit by|bathed in)\s+[^,.;]{0,24}?"
+    r"(lighting|daylight|light|glow|illumination)\b",
+    _re.I,
+)
+_LIGHT_TAIL = _re.compile(
+    r",\s*[^,.;]{0,60}?(atmosphere|mood|contrast|depth of field|bokeh|shadows?|daylight"
+    r"|lighting|illuminating|light)\b[^,.;]*",
+    _re.I,
+)
+
+
+def strip_lighting(scene: str) -> str:
+    """Remove light/mood description while keeping the subject it was glued to."""
+    out = []
+    for part in _re.split(r"(?<=[.!?])\s+", scene or ""):
+        part = part.strip()
+        if not part:
+            continue
+        if _LIGHT_SENTENCE.match(part):
+            continue                      # the whole sentence is about the light
+        part = _LIGHT_CLAUSE.sub("", part)
+        part = _LIGHT_TAIL.sub("", part)
+        part = _re.sub(r"\s+([,.])", r"\1", part).strip()
+        if len(part.split()) >= 3:
+            out.append(part if part.endswith((".", "!", "?")) else part + ".")
+    return " ".join(out).strip()
 
 
 def build_visual_prompt(

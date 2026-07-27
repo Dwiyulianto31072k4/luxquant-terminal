@@ -606,7 +606,9 @@ def manual_image_brief(
     from app.services.social_entity_assets import resolve_entity_assets
     from app.services.social_image_generator import (
         BRAND_VISUAL_SIGNATURE,
+        STYLE_KIT_NOTE,
         build_visual_prompt,
+        strip_lighting,
     )
 
     row = _get_post_row(db, post_id)
@@ -652,36 +654,52 @@ def manual_image_brief(
         story = (summary or "").strip()
     story = " ".join(story.split())[:600]
 
-    attach = []
+    # The stored image_prompt is the editorial scene plus ~250 words of style and
+    # negatives glued on. Recover just the scene: the boilerplate is re-stated
+    # below in a better order, and repeating it twice only dilutes it.
+    for marker in (" Story institutions:", "Photorealistic premium financial-news"):
+        cut = scene.find(marker)
+        if cut > 40:
+            scene = scene[:cut]
+            break
+    scene = strip_lighting(" ".join(scene.split()).strip())
+
+    attach = [f"STYLE KIT: {STYLE_KIT_NOTE}"]
     if featured:
-        attach.append(f"a real photo of {featured} — keep the face 1:1 identical, do not invent a different person")
+        attach.append(
+            f"a real photo of {featured} — the face must be 1:1 identical, do not invent a "
+            f"different person; place them centred, half to full body, not a floating head"
+        )
     for b in brands:
-        attach.append(f"the official {b} logo — render the real mark as a physical element in the scene (signage, product, screen), never as a corner sticker or invented wordmark")
+        attach.append(
+            f"the official {b} mark — build it LARGE and physical in the scene: a backlit sign on "
+            f"the wall, a moulded 3D emblem, or the face of a product on a pedestal. This is the "
+            f"prop that tells the reader what the story is about, so it should be unmistakable and "
+            f"solid — never a flat corner sticker, never a faint ghost"
+        )
 
     parts = [
-        "SCENE TO GENERATE (photoreal, zero readable text):",
-        scene,
+        BRAND_VISUAL_SIGNATURE,
         "",
-        "STORY CONTEXT — the scene must match this news event (do NOT render any of this text in the image):",
+        "THIS STORY — the only part that changes between posters:",
+        scene or headline,
+        "",
+        "STORY CONTEXT — the scene must match this event (never render any of this as text):",
         headline.rstrip(".") + ".",
         story,
         f"Source: {row.get('source_domain') or 'news'}. Angle: {(angle or 'news brief').replace('_', ' ')}.",
         "",
-        "FORMAT: vertical 4:5 portrait, 1024x1536, cinematic photoreal premium financial-news poster. "
-        "No readable text, no captions, no logos drawn as typography. Keep the lower 40% darker (a headline is composited on later).",
+        "ATTACH, in this order:",
+        "\n".join(f"{i}. {a}" for i, a in enumerate(attach, 1)),
+        "If you cannot attach a face or a mark, show that subject through architecture and "
+        "atmosphere instead — never guess a face and never invent a logo.",
         "",
-        # `scene` is usually the editorial AI's own image_prompt, which predates the
-        # signature and has no colour direction in it. Append it here so a manual
-        # Gemini image comes back looking like the rest of the feed.
-        BRAND_VISUAL_SIGNATURE,
+        "OUTPUT: vertical 4:5, 1024x1536.",
+        "AVOID: readable text, captions or wordmarks drawn as typography anywhere in the frame; "
+        "invented brand marks; fake chart labels or UI text; corner stickers; collage seams; "
+        "daylight or flat white backgrounds; chains-on-books, padlocks, floating holographic coins, "
+        "raining money and the rest of the crypto-cliché drawer.",
     ]
-    if attach:
-        parts += [
-            "",
-            "ATTACH these reference images in your image tool for accuracy: "
-            + "; ".join(attach)
-            + ". If you cannot attach a reference, show that subject abstractly rather than guessing a face or logo.",
-        ]
     prompt = "\n".join(parts)
 
     return {

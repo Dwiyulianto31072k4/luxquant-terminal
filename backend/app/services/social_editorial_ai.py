@@ -54,7 +54,7 @@ IMAGE_NEGATIVE_BASE = (
     "no cheesy crypto clichés: no chains wrapping books, no padlocks on ledgers, "
     "no floating holographic coins, no glowing blockchain cubes, no cyberpunk vault fantasy, "
     "no money raining, no robot hands holding cash, no over-literal metaphors. "
-    "Only admin-verified brand marks may appear as logos; never invent a brand emblem."
+    "Marks supplied as attached references SHOULD appear, large and physical; never invent one you were not given."
 )
 # Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
 # render and forbid all others — stops the model defaulting to generic Bitcoin.
@@ -317,8 +317,9 @@ def build_editorial_pack(
         "(6) featured_person only when set — chest-up hero portrait; if null, no identifiable face; "
         "(7) do NOT invent brand logos/wordmarks; brands are handled later from verified assets; "
         "(8) lower third darker/calmer for headline overlay; "
-        "(9) lighting: natural or soft institutional key light, not neon cyberpunk. "
-        "Describe ONLY subject, setting, lighting — no style lists, hashtags, or on-image text.\n\n"
+        "(9) do NOT describe lighting, colour, grade, mood or atmosphere AT ALL — the house style block owns those, and a scene that specifies its own light contradicts it; "
+        "(10) name the ONE physical hero element that carries the story (the institution's sign, a product, a coin, a machine) so it can be built large in 3D. "
+        "Describe ONLY subject, setting and that hero element — no lighting, no style lists, no hashtags, no on-image text.\n\n"
         "Caption: Write like a sharp human editor, NOT an AI. 3-4 short punchy paragraphs, plain English. Open with a "
         "strong hook in the FIRST ~80 characters that sparks curiosity and states the key fact — never a generic "
         "AI-sounding intro (banned openers include 'In today's fast-paced world', 'In a groundbreaking move', 'In an "
@@ -432,8 +433,11 @@ def build_editorial_pack(
         if story_names:
             org_clause = (
                 f" Story institutions: {', '.join(story_names)}. "
-                "Show them via real architecture/atmosphere only — do NOT invent logos, wall slogans, "
-                "wordmarks, or token emblems. No corner stickers. No chains-on-books or crypto meme props."
+                "If their real mark is ATTACHED as a reference image, build it LARGE and physical in the "
+                "scene — a backlit sign on the wall, a monument, a moulded 3D emblem on a pedestal — since "
+                "that mark is what tells the reader what the story is about. If no mark is attached, show "
+                "the institution through architecture and atmosphere instead and invent nothing. "
+                "No corner stickers, no chains-on-books, no crypto meme props."
             )
         pack["image_prompt"] = (
             f"{content_prompt}{org_clause} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"
