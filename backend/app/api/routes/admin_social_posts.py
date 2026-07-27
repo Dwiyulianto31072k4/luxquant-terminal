@@ -369,6 +369,32 @@ async def get_post_materials(
         visual_only=True,
     )
     _meta = _post_meta(row) or {}
+
+    # The draft stores a snapshot of what was missing when it was written, so the
+    # card list does not have to re-resolve every asset to render. But assets get
+    # uploaded AFTER a draft exists, and then the snapshot is a lie that keeps
+    # Approve greyed out while this very panel shows every logo as OK. We have
+    # just resolved the truth — write it back.
+    _live_needs = bool(assets.get("needs_materials"))
+    _live_missing = int(assets.get("missing_count") or 0)
+    if (bool(_meta.get("needs_materials")) != _live_needs
+            or int((_meta.get("visual_materials") or {}).get("missing_count") or 0) != _live_missing):
+        try:
+            db.execute(text("""
+                UPDATE social_posts
+                SET gen_meta = COALESCE(gen_meta, '{}'::jsonb)
+                    || jsonb_build_object('needs_materials', :needs)
+                    || jsonb_build_object('visual_materials',
+                           COALESCE(gen_meta->'visual_materials', '{}'::jsonb)
+                           || jsonb_build_object('needs_materials', :needs,
+                                                 'missing_count', :missing))
+                WHERE id = :id
+            """), {"id": post_id, "needs": _live_needs, "missing": _live_missing})
+            db.commit()
+            _meta["needs_materials"] = _live_needs
+        except Exception:
+            db.rollback()
+
     return {
         "post_id": post_id,
         "headline": row.get("headline"),
