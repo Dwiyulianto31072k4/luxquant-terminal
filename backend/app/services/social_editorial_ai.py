@@ -284,7 +284,11 @@ def build_editorial_pack(
     user = (
         "Create a complete social-news pack from this source context. Return JSON only with keys: "
         "headline, visual_concept, image_prompt, caption, hashtags, source_note, topic, tokens, entities, used_references.\n\n"
-        "Headline: 7-12 words, premium editorial, clear, not clickbait.\n\n"
+        "Headline: 7-12 words AND AT MOST 64 CHARACTERS including spaces. Premium editorial, clear, "
+        "not clickbait. The hard character limit is a layout rule, not a style one: the poster sets "
+        "every headline at one fixed size and wraps it into three lines, and measured across our own "
+        "feed anything past 64 characters drops to a fourth line. Word count does not decide this — "
+        "long words do, so prefer short ones (\'wins\' over \'secures\', \'rules\' over \'certification\').\n\n"
         "entities: array of the most important named entities THIS story is about (max 6). Each item: "
         "{name, type, role, domain}. type is 'person' or 'org'. role is a short label "
         "(e.g. 'Hyperliquid founder', 'U.S. regulator', 'SEC chair'). domain is optional website host for orgs "
