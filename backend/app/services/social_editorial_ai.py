@@ -40,10 +40,10 @@ PACK_KEYS = ("headline", "image_prompt", "caption", "hashtags", "source_note")
 # cinematic contrast" used to do. The ratio was wrong too: the poster is 4:5.
 IMAGE_STYLE_SUFFIX = (
     "Photoreal premium financial-news poster, vertical 4:5. "
-    "One continuous real-world scene a serious editor would approve — architecture, "
-    "institution interiors, trading floors, city skylines, people, products, or documents "
-    "as physical props without readable writing. Hero subject large in the upper two thirds, "
-    "built solid and three-dimensional. Lower 35-40% kept clear for the headline. "
+    "SIMPLE: one subject and one brand mark against dark, near-empty space. A person, or a single "
+    "object — not a room full of things. No crowds, no banks of monitors, no busy trading floors. "
+    "Hero subject large in the upper two thirds, built solid and three-dimensional, cleanly "
+    "separated from the background. Lower 35-40% kept clear for the headline. "
     "Prefer plausible reality over surreal symbolism."
 )
 # Always-on negatives — ban cheesy AI tropes + invented marks + on-image text.
@@ -313,8 +313,9 @@ def build_editorial_pack(
         "Think premium financial news photography with mild cinematic grade — NOT viral crypto meme art, "
         "NOT fantasy symbolism. START with primary_subject, then setting, then lighting. Rules: "
         "(1) primary_subject large and clear in upper/middle frame (~40-60%); "
-        "(2) scene_type must match the story: e.g. DTCC/clearing/banks/tokenization pilot → marble institution "
-        "lobby, secure data floor, or modern exchange architecture — NOT chains on books or floating coins; "
+        "(2) KEEP IT SPARE — one subject against a simple dark setting, never a busy room. A named person "
+        "beats a place; a single object beats a scene. If the story has no person, pick ONE object that "
+        "stands for it. Never describe crowds, rows of desks, walls of monitors or a full trading floor; "
         "lawsuit → courthouse/steps or formal legal desk without readable text; token rally with tokens array "
         "non-empty → physical coins OK; pure institutional news → NO crypto coin props; "
         "(3) encode sentiment lightly via light/mood, not cheesy symbols (no padlocks, raining money, robot hands); "

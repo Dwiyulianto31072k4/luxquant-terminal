@@ -133,14 +133,20 @@ BRAND_VISUAL_SIGNATURE = "\n".join([
     "LUXQUANT HOUSE STYLE — identical in every poster. This is what makes the feed one family.",
     "- Look: cinematic 3D product-render realism. Physically-based materials, true reflections, "
     "contact shadows, fine grain. No illustration, no flat vector.",
-    "- World: a dark interior with real depth — hall, corridor, plant floor, stage. Near-black "
-    "#0A0506 falling into dark maroon #241014, with a faint red atmospheric wash in the far "
-    "background. The red is the ROOM, not the lighting. Never daylight, never a flat backdrop.",
-    "- HERO OBJECT: build the story's one physical element LARGE and solid in 3D — a backlit sign or "
-    "moulded emblem on the far wall, a product on a lit pedestal, a machine, storage tanks. It says "
-    "what the story is at a glance, so it must read solid, never a flat sticker or a ghost.",
-    "- PERSON, when the story has one: centred, standing in for the institution, half to full body, "
-    "medium distance, calm. Not a floating head, not a silhouette that disappears.",
+    "- COMPOSITION — the hardest rule: TWO focal elements, no more. One subject (a person, or a "
+    "single object) and one brand mark. Everything else is empty dark space. Do NOT fill the frame "
+    "with rows of monitors, crowds of traders, banks of screens, busy trading floors or scattered "
+    "props; a poster with three things in it is already too busy. Emptiness is the style.",
+    "- World: a dark, simple setting — a plain wall, a quiet lobby, a shallow stage. Near-black "
+    "#0A0506 falling into dark maroon #241014, with a faint red atmospheric wash behind the subject. "
+    "The red is the ROOM, not the lighting. Never daylight, never a flat backdrop, never clutter.",
+    "- THE BRAND MARK IS THE SECOND SUBJECT: when a mark is supplied as a reference it MUST appear, "
+    "large, clean and unmistakable — a backlit sign on the wall behind the subject, a moulded 3D "
+    "emblem, or a big circular badge beside them. Give it room; it should read at thumbnail size. "
+    "If no mark is supplied, leave that space empty rather than inventing something to fill it.",
+    "- PERSON, when the story has one: centred or slightly off-centre, half to full body, medium "
+    "distance, calm and still, cleanly separated from the background. Not a floating head, not a "
+    "silhouette that disappears, and never one of a crowd.",
     "- Light is PRACTICAL and it is GOLD: warm amber #FCD535 / #F0B90B is what actually glows in "
     "the scene — desk lamps, lit signage, monitor and screen glow, cove lighting, a gold rim tracing "
     "the hero's edges and shoulders, gold specular on glass, metal and the polished floor, which "
