@@ -172,11 +172,23 @@ const awaitingImage = (post) =>
 // tier reads 0.015 and not the 0.013 its output tokens alone would suggest.
 // xAI bills flat per image; OpenAI bills by tokens, so quality moves the price
 // more than the model does.
+// The default is the one that wins the blind-vote arena, not the one that is
+// cheapest: GPT Image 2 (high) is #1 on Artificial Analysis' text-to-image Elo
+// board (1338), ahead of Reve 2.1 and both Nano Banana 2 models. The cheaper
+// rungs stay as alternates — grok-imagine-image-quality is #12 (1203) and
+// gpt-image-1-mini is #78 (1090), which is the difference you are paying for.
+const AI_IMAGE_BEST = {
+  key: "best",
+  label: "GPT Image 2 · high",
+  price: "$0.19",
+  provider: "openai",
+  model: "gpt-image-2",
+  quality: "high",
+};
 const AI_IMAGE_TIERS = [
-  { key: "cheap", label: "Hemat", price: "$0.015", provider: "openai", model: "gpt-image-1-mini", quality: "medium" },
+  { key: "cheap", label: "Mini", price: "$0.015", provider: "openai", model: "gpt-image-1-mini", quality: "medium" },
   { key: "grok", label: "Grok", price: "$0.02", provider: "xai", model: "grok-imagine-image" },
   { key: "std", label: "Standar", price: "$0.05", provider: "openai", model: "gpt-image-2", quality: "medium" },
-  { key: "max", label: "Maksimal", price: "$0.19", provider: "openai", model: "gpt-image-2", quality: "high" },
 ];
 
 // ── News picker modal: browse the crypto-news feed and click a story ──
@@ -1284,7 +1296,27 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
           or let our AI draw it — you pay per click
         </p>
-        <div className="grid grid-cols-4 gap-1.5">
+        <button
+          type="button"
+          disabled={!!busy}
+          onClick={() =>
+            reRender({
+              provider: AI_IMAGE_BEST.provider,
+              model: AI_IMAGE_BEST.model,
+              quality: AI_IMAGE_BEST.quality,
+            })
+          }
+          className="w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border border-ink/15 bg-accent/15 text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-40 transition-colors shadow-[0_0_18px_-6px_rgb(var(--accent) / 0.6)]"
+          title={`${AI_IMAGE_BEST.model} · ${AI_IMAGE_BEST.quality}`}
+        >
+          {busy === "__render__"
+            ? "Generating…"
+            : `Generate · ${AI_IMAGE_BEST.label} · ${AI_IMAGE_BEST.price}`}
+        </button>
+        <p className="text-[9px] font-mono text-text-muted/70 text-center">
+          #1 di arena blind-vote Artificial Analysis (Elo 1338)
+        </p>
+        <div className="grid grid-cols-3 gap-1.5">
           {AI_IMAGE_TIERS.map((t) => (
             <button
               key={t.key}
@@ -1306,7 +1338,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
           {busy === "__render__"
             ? "Working — the AI image takes 1–3 min. Safe to wait, it won't double-charge."
-            : "Free when a background already exists: that only re-composes."}
+            : "Alternatif lebih murah · gratis kalau background-nya sudah ada (cuma compose ulang)"}
         </p>
       </div>
 
