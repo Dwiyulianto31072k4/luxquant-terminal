@@ -145,6 +145,10 @@ _LIGHT_SENTENCE = _re.compile(
     r"[\w\s]{0,40}?(lighting|daylight|illumination|light source)\b",
     _re.I,
 )
+_LIGHT_VERB = _re.compile(
+    r"\b(creates?|casts?|fills?|bathes?|illuminates?|adds?|gives?|produces?|emphasi[sz]es?)\b",
+    _re.I,
+)
 _LIGHT_CLAUSE = _re.compile(
     r"(,\s*|\s+)(under|with|in|beneath|lit by|bathed in)\s+[^,.;]{0,24}?"
     r"(lighting|daylight|light|glow|illumination)\b",
@@ -164,8 +168,11 @@ def strip_lighting(scene: str) -> str:
         part = part.strip()
         if not part:
             continue
-        if _LIGHT_SENTENCE.match(part):
-            continue                      # the whole sentence is about the light
+        # Drop the sentence only when the light IS the subject ("Cool blue
+        # lighting creates a calm atmosphere") — not merely mentioned in it, or
+        # "A vault door under soft overhead lighting" loses the vault door.
+        if _LIGHT_SENTENCE.match(part) and _LIGHT_VERB.search(part):
+            continue
         part = _LIGHT_CLAUSE.sub("", part)
         part = _LIGHT_TAIL.sub("", part)
         part = _re.sub(r"\s+([,.])", r"\1", part).strip()
