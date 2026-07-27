@@ -22,6 +22,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_admin_user
@@ -567,24 +568,44 @@ def re_render_post_image(
         except Exception:
             pass
 
-    db.execute(text("""
-        UPDATE social_posts
-        SET image_path = :image_path,
-            image_mode = :image_mode,
-            image_prompt = COALESCE(:image_prompt, image_prompt),
-            reference_image_path = :reference_image_path,
-            gen_meta = CAST(:gen_meta AS jsonb),
-            updated_at = now()
-        WHERE id = :id
-    """), {
-        "id": post_id,
-        "image_path": result_path,
-        "image_mode": image_mode,
-        "image_prompt": image_prompt,
-        "reference_image_path": ref_path,
-        "gen_meta": json.dumps(meta),
-    })
-    db.commit()
+    # The session was checked out before the image call and sat idle through it.
+    # A high-quality render takes minutes, and Postgres closes the connection
+    # underneath us in the meantime — pool_pre_ping only tests a connection when
+    # it LEAVES the pool, so it cannot help here. That is how a poster that had
+    # been generated and paid for still showed as "image paused": the file was
+    # on disk and this UPDATE was the thing that died.
+    #
+    # One retry: rollback invalidates the dead connection, and the next
+    # statement checks out a fresh (pre-pinged) one.
+    def _persist() -> None:
+        db.execute(text("""
+            UPDATE social_posts
+            SET image_path = :image_path,
+                image_mode = :image_mode,
+                image_prompt = COALESCE(:image_prompt, image_prompt),
+                reference_image_path = :reference_image_path,
+                gen_meta = CAST(:gen_meta AS jsonb),
+                updated_at = now()
+            WHERE id = :id
+        """), {
+            "id": post_id,
+            "image_path": result_path,
+            "image_mode": image_mode,
+            "image_prompt": image_prompt,
+            "reference_image_path": ref_path,
+            "gen_meta": json.dumps(meta),
+        })
+        db.commit()
+
+    try:
+        _persist()
+    except OperationalError:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        _persist()
+
     out = _row_to_dict(_get_post_row(db, post_id))
     return {
         "ok": True,
