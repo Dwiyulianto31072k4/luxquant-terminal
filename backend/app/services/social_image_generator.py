@@ -858,18 +858,45 @@ def _card_contrast(a, b) -> float:
 # The cards inline these as SVG. PIL has no SVG, so they are drawn — kept to
 # the same 24-unit grid as the source paths so proportions carry over.
 
-def _card_x_icon(draw, x, y, size, colour):
-    """X wordmark. Two crossing strokes, the leading one heavier, matching the
-    weight relationship in the card's inline SVG."""
-    s = size / 24.0
-    for (x0, y0, x1, y1, w) in (
-        (2.2, 2.4, 21.6, 21.6, 4.6),
-        (21.6, 2.4, 2.2, 21.6, 3.4),
-    ):
-        draw.line(
-            [(x + x0 * s, y + y0 * s), (x + x1 * s, y + y1 * s)],
-            fill=colour, width=max(1, round(w * s)),
-        )
+# The real X mark, as the two polygons of the official logo path
+# (`M18.244 2.25h3.308l-7.227 8.26 ... z` — the same `d` the cards inline).
+# Every segment is straight, so the path needs no curve support: subpath one is
+# the mark, subpath two is the notch that cuts the thin stroke's corners.
+# Two crossed lines were NOT this logo — the real mark has mitred, tapering ends.
+_X_MARK_OUTER = [
+    (18.244, 2.25), (21.552, 2.25), (14.325, 10.51), (22.827, 21.75),
+    (16.170, 21.75), (10.956, 14.933), (4.990, 21.75), (1.680, 21.75),
+    (9.410, 12.915), (1.254, 2.25), (8.080, 2.25), (12.793, 8.481),
+]
+_X_MARK_NOTCH = [
+    (17.083, 19.77), (18.916, 19.77), (7.084, 4.126), (5.117, 4.126),
+]
+
+
+def _card_x_icon(img, x, y, size, colour):
+    """Paste the real X logo at (x, y), `size` px on a side.
+
+    Takes the image rather than a draw handle because the notch is a hole: it is
+    cut out of an alpha mask, not painted in a background colour — the icon sits
+    on a photo, so anything painted opaque would show as a coloured wedge.
+    Rasterised 4x and downsampled, since a 21px mark drawn at 1x has visibly
+    ragged diagonals.
+    """
+    from PIL import Image, ImageDraw
+
+    ss = 4
+    box = int(size * ss)
+    mask = Image.new("L", (box, box), 0)
+    md = ImageDraw.Draw(mask)
+    scale = box / 24.0
+    md.polygon([(px * scale, py * scale) for px, py in _X_MARK_OUTER], fill=255)
+    md.polygon([(px * scale, py * scale) for px, py in _X_MARK_NOTCH], fill=0)
+    mask = mask.resize((int(size), int(size)), Image.Resampling.LANCZOS)
+    if len(colour) == 4 and colour[3] < 255:
+        mask = mask.point(lambda a: a * colour[3] // 255)
+    layer = Image.new("RGBA", mask.size, tuple(colour[:3]) + (0,))
+    layer.putalpha(mask)
+    img.alpha_composite(layer, (int(x), int(y)))
 
 
 def _card_globe_icon(draw, x, y, size, colour):
@@ -1190,9 +1217,8 @@ def _compose_editorial_card(
     accent = _card_accent_span(flat)
 
     line_h = int(size * 1.16)
-    foot_y = height - 118           # single footer row baseline
-    cta_y = foot_y - 68             # the CTA sits between headline and footer
-    y = cta_y - 54 - len(lines) * line_h
+    foot_y = height - 120           # the one bottom row, level with the lockup
+    y = foot_y - 78 - len(lines) * line_h
 
     img, _alpha = _card_measured_scrim(img, height - 620, y - 24, foot_y + 40)
     draw = ImageDraw.Draw(img)
@@ -1208,39 +1234,59 @@ def _compose_editorial_card(
             idx += 1
         y += line_h
 
-    # ── the bottom block: one instruction, one identity row ───────────
-    # Gold stops at the headline. Down here everything is cream, exactly like
-    # the recap card's `.fh` row — a second accent colour in the footer competes
-    # with the accent that is actually carrying meaning three lines above it.
-    # No underline either: the arrow is what says "go", and a rule under a
-    # domain that nobody can click was decoration pretending to be a link.
-    c_lead = _card_font(26, "SemiBold")
-    x = 58
-    draw.text((x, cta_y), CARD_CTA_LEAD, font=c_lead, fill=CARD_CREAM + (240,))
-    x += draw.textlength(CARD_CTA_LEAD, font=c_lead) + 14
-    _card_arrow(draw, x, cta_y + 17, 30, CARD_CREAM + (240,))
-
-    # `.fh` from the cards: X + handle · globe + domain, all one colour.
+    # ── the bottom row: everything on one line, level with the lockup ──
+    # Gold stops at the headline. Down here everything is cream, like the recap
+    # card's `.fh` — a second accent colour in the footer competes with the
+    # accent that is actually carrying meaning three lines above it.
+    #
+    # It is ONE row, not an instruction line above an identity line: the short
+    # CTA left a dead band of gradient to the right of its arrow, so the arrow
+    # read as pointing at nothing. Here it points into the handle and domain,
+    # which is where it was always sending you.
     f_row = _card_font(21, "ExtraBold")
+    f_cta = _card_font(21, "SemiBold")
     icon = 21
-    x = 58
-    _card_x_icon(draw, x, foot_y + 2, icon, CARD_CREAM + (255,))
-    x += icon + 11
-    draw.text((x, foot_y), CARD_HANDLE, font=f_row, fill=CARD_CREAM + (255,))
-    x += draw.textlength(CARD_HANDLE, font=f_row) + 12
-    draw.text((x, foot_y - 1), "·", font=f_row, fill=CARD_CREAM + (255,))
-    x += draw.textlength("·", font=f_row) + 12
-    _card_globe_icon(draw, x, foot_y + 2, icon, CARD_CREAM + (255,))
-    x += icon + 9
-    draw.text((x, foot_y + 1), CARD_DOMAIN, font=f_row, fill=CARD_CREAM + (255,))
+    ink = CARD_CREAM + (255,)
 
+    # Reserve the lockup's space first, then pick the longest CTA wording that
+    # still clears it — the row must never collide with the mark.
+    lock_w = 0
     if SOCIAL_LOCKUP_PATH.exists():
         lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")
-        lh = 50                                  # .lockup{height:50px}
-        lw = int(lock.width * lh / lock.height)
-        lock = lock.resize((lw, lh), Image.Resampling.LANCZOS)
+        lock_h = 50                              # .lockup{height:50px}
+        lock_w = int(lock.width * lock_h / lock.height)
+        lock = lock.resize((lock_w, lock_h), Image.Resampling.LANCZOS)
         lock.putalpha(lock.getchannel("A").point(lambda a: int(a * 0.95)))
-        img.alpha_composite(lock, (width - lw - 58, foot_y - 14))
+        img.alpha_composite(lock, (width - lock_w - 58, foot_y - 15))
+
+    identity_w = (icon + 11 + draw.textlength(CARD_HANDLE, font=f_row) + 12
+                  + draw.textlength("·", font=f_row) + 12
+                  + icon + 9 + draw.textlength(CARD_DOMAIN, font=f_row))
+    budget = width - 58 - (lock_w + 58 + 40 if lock_w else 58) - identity_w - 26 - 44
+
+    lead = ""
+    for candidate in (CARD_CTA_LEAD, "Read daily crypto news", "Read the daily news",
+                      "Daily news"):
+        if draw.textlength(candidate, font=f_cta) <= budget:
+            lead = candidate
+            break
+
+    x = 58
+    if lead:
+        draw.text((x, foot_y + 1), lead, font=f_cta, fill=ink)
+        x += draw.textlength(lead, font=f_cta) + 13
+        _card_arrow(draw, x, foot_y + 13, 26, ink)
+        x += 26 + 27          # a wider gap here is the only break between the
+        #                       instruction and the identity it points into
+    _card_x_icon(img, x, foot_y + 2, icon, ink)
+    x += icon + 11
+    draw.text((x, foot_y), CARD_HANDLE, font=f_row, fill=ink)
+    x += draw.textlength(CARD_HANDLE, font=f_row) + 12
+    draw.text((x, foot_y - 1), "·", font=f_row, fill=ink)
+    x += draw.textlength("·", font=f_row) + 12
+    _card_globe_icon(draw, x, foot_y + 2, icon, ink)
+    x += icon + 9
+    draw.text((x, foot_y + 1), CARD_DOMAIN, font=f_row, fill=ink)
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
