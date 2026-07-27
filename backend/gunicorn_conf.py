@@ -23,7 +23,12 @@ workers = int(os.getenv("LUXQUANT_WORKERS", "4"))
 worker_class = "uvicorn.workers.UvicornWorker"
 
 # Rolling-reload / shutdown behaviour
-graceful_timeout = int(os.getenv("LUXQUANT_GRACEFUL_TIMEOUT", "20"))
+# Long enough for an image generation to finish. A deploy used to kill one mid
+# flight: the poster call had been running 59s of the 1-4 minutes it needs when
+# the restart landed, and the work — possibly already billed by the provider —
+# was lost with the worker. A retiring worker only waits when it is actually
+# serving something, so an idle deploy is still instant.
+graceful_timeout = int(os.getenv("LUXQUANT_GRACEFUL_TIMEOUT", "300"))
 timeout = int(os.getenv("LUXQUANT_TIMEOUT", "60"))
 keepalive = int(os.getenv("LUXQUANT_KEEPALIVE", "5"))
 
