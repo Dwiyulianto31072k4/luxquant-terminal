@@ -1520,15 +1520,33 @@ def generate_ai_social_image(
         "quality": image_quality if image_quality in IMAGE_QUALITIES_ALLOWED else None,
     })
 
-    # When the AI editorial pack supplies its own image prompt, use it verbatim;
-    # otherwise fall back to the deterministic template prompt.
-    prompt = (override_prompt or "").strip() or build_visual_prompt(
-        headline=headline,
-        article_summary=article_summary,
-        source_domain=source_domain,
-        angle=angle,
-        reference_image_url=reference_image_url,
-    )
+    # The house style goes FIRST, whatever the scene came from.
+    #
+    # This used to read `override_prompt or build_visual_prompt(...)`, and a
+    # draft always carries its own image_prompt — so build_visual_prompt, the
+    # only place the signature lived, was never called on the paid path. The
+    # posters that came out of it had no maroon world and no gold light, because
+    # nothing in the prompt asked for any: the editorial writer had just been
+    # told to stop describing light, and the style block never arrived to
+    # replace it. Only the Gemini brief was ever styled, because that one
+    # appends the signature itself.
+    scene = (override_prompt or "").strip()
+    if scene:
+        # Older drafts still carry the suffix sentence that argued with the
+        # style block before it was rewritten.
+        scene = scene.replace(
+            "Natural directional lighting, subtle cinematic contrast, "
+            "shallow depth of field. ", ""
+        )
+        prompt = f"{BRAND_VISUAL_SIGNATURE}\n\n{scene}"
+    else:
+        prompt = build_visual_prompt(
+            headline=headline,
+            article_summary=article_summary,
+            source_domain=source_domain,
+            angle=angle,
+            reference_image_url=reference_image_url,
+        )
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     slug = _safe_slug(headline, f"news-{news_id}")
     raw_path = ASSETS_DIR / f"ai_raw_{news_id}_{slug}.png"
