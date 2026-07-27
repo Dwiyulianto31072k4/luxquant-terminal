@@ -157,8 +157,14 @@ const CostBar = ({ cost }) => {
   );
 };
 
-const needsMaterials = (post) =>
-  Boolean(post?.gen_meta?.needs_materials || post?.gen_meta?.visual_materials?.needs_materials);
+// The detailed inventory is the truth; the flat flag is a legacy summary that
+// was set for every paused draft, which is every draft now. Prefer the
+// inventory when it is present, so Approve is gated on something real.
+const needsMaterials = (post) => {
+  const vm = post?.gen_meta?.visual_materials;
+  if (vm && typeof vm.needs_materials !== "undefined") return Boolean(vm.needs_materials);
+  return Boolean(post?.gen_meta?.needs_materials);
+};
 
 const awaitingImage = (post) =>
   Boolean(
@@ -1581,7 +1587,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
       </button>
 
       <div
-        className="relative flex flex-col md:flex-row w-full max-w-[880px] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
+        className="relative flex flex-col md:flex-row w-full max-w-[min(1180px,95vw)] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -1591,7 +1597,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
         {/* Left — post image (contained, never overflows) */}
-        <div className="md:w-[55%] flex-shrink-0 bg-black flex items-center justify-center min-h-0 max-h-[42vh] md:max-h-none overflow-hidden">
+        <div className="md:w-[50%] flex-shrink-0 bg-black flex items-center justify-center min-h-0 max-h-[42vh] md:max-h-none overflow-hidden">
           {post.image_url ? (
             <img
               src={post.image_url}
@@ -1710,7 +1716,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
           </div>
 
           {/* actions */}
-          <div className="px-4 py-3 border-t border-ink/[0.08] flex items-center gap-3">
+          <div className="px-4 py-3 border-t border-ink/[0.08] flex items-center gap-x-3 gap-y-2 flex-wrap">
             <button
               disabled={busy}
               onClick={() => onDelete(post.id)}

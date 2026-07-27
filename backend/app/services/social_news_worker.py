@@ -626,7 +626,13 @@ def build_draft(
         if visual_materials.get("raw_image_path"):
             draft.gen_meta["raw_image_path"] = visual_materials["raw_image_path"]
     if awaiting_materials:
-        draft.gen_meta["needs_materials"] = True
+        # "No image yet" is not "materials missing". Since paid generation was
+        # turned off, EVERY draft takes the awaiting branch — flagging them all
+        # as missing materials left Approve permanently greyed out on drafts
+        # where nothing was missing at all. Read the inventory instead.
+        draft.gen_meta["needs_materials"] = bool(
+            visual_materials and visual_materials.get("needs_materials")
+        )
         draft.gen_meta["awaiting_image"] = True
 
     return draft
