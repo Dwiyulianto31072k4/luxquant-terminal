@@ -427,12 +427,29 @@ XAI_IMAGE_MODEL = os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality"
 XAI_IMAGE_EDIT_MODEL = os.environ.get("XAI_IMAGE_EDIT_MODEL", "grok-imagine-image-quality")
 XAI_IMAGE_TIMEOUT = int(os.environ.get("XAI_IMAGE_TIMEOUT", "280"))
 # Legacy env name still read via _resolve_image_provider(); default is "auto"
-SOCIAL_LOGO_PATH = os.environ.get("SOCIAL_LOGO_PATH", str(ASSETS_DIR / "logo-luxquant.png"))
 # Curated library of real face photos keyed by slug, e.g. faces/vitalik-buterin.jpg.
 # When a story's featured_person matches a file here, the image is generated via
 # xAI image-edit conditioned on that photo so the likeness is accurate.
 SOCIAL_FACE_DIR = Path(os.environ.get("SOCIAL_FACE_DIR", str(ASSETS_DIR / "faces")))
-LUX_RED = (190, 0, 28, 238)
+# Social-card design tokens. The news image and the render_*.py cards are one
+# family now, so the values live in one place and are copied from those files:
+# Poppins, cream headline, gold accent, muted web grey.
+SOCIAL_FONT_DIR = Path(os.environ.get("SOCIAL_FONT_DIR", "/opt/luxquant/fonts"))
+SOCIAL_LOCKUP_PATH = Path(
+    os.environ.get("SOCIAL_LOCKUP_PATH", str(ASSETS_DIR / "lux_lockup.png"))
+)
+CARD_GOLD = (252, 213, 53)       # #FCD535
+CARD_CREAM = (247, 240, 226)     # #F7F0E2
+CARD_WEB = (195, 181, 166)       # #c3b5a6
+CARD_BASE_DARK = (10, 5, 6)      # #0A0506 — the cards' floor colour
+# Cream over the scrim must clear this. The cards sit near 17:1 on their own
+# background; 9:1 keeps that character while leaving dark photos untouched.
+CARD_CONTRAST_FLOOR = 9.0
+CARD_CTA_LEAD = os.environ.get(
+    "SOCIAL_CTA_LEAD", "Daily crypto & finance news on"
+)
+CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
+CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantcrypto")
 # Cheap mode: hard-cap paid image API calls per draft (default 1 — no face+brand double hit).
 CHEAP_MODE = os.environ.get("SOCIAL_CHEAP_MODE", "1").strip().lower() not in ("0", "false", "no")
 IMAGE_MAX_CALLS = int(os.environ.get("SOCIAL_IMAGE_MAX_CALLS", "1" if CHEAP_MODE else "2"))
@@ -633,28 +650,6 @@ def _apply_editorial_shadow(img):
     return Image.alpha_composite(img, shade)
 
 
-def _text_width(draw, text_value: str, fnt) -> int:
-    box = draw.textbbox((0, 0), text_value, font=fnt)
-    return box[2] - box[0]
-
-
-def _wrap_headline(draw, text_value: str, fnt) -> list:
-    """Classic LuxQuant stepped headline wrap (shorter lines lower down)."""
-    words = (text_value or "").replace("—", "-").split()
-    widths = [820, 760, 690, 590]
-    lines: list = []
-    for width in widths:
-        if not words:
-            break
-        line = words.pop(0)
-        while words and _text_width(draw, f"{line} {words[0]}", fnt) <= width:
-            line += " " + words.pop(0)
-        lines.append(line)
-    if words and lines:
-        lines[-1] += " " + " ".join(words)
-    return lines[:4]
-
-
 # Identity-first pipeline: face edit alone, then optional brand pass.
 # Dual face|logo collage refs destroy likeness — never use them.
 IDENTITY_LOCK_PREFIX = (
@@ -803,6 +798,283 @@ def _prepare_logos_sheet(logo_paths: list[str], *, news_id: int) -> Optional[str
         return None
 
 
+def _card_font(size: int, weight: str = "Bold"):
+    """Poppins if present, DejaVu otherwise — the card must still render on a
+    host that never got the font drop."""
+    from PIL import ImageFont
+
+    for cand in (
+        SOCIAL_FONT_DIR / f"Poppins-{weight}.ttf",
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    ):
+        try:
+            if cand.exists():
+                return ImageFont.truetype(str(cand), size)
+        except Exception:
+            continue
+    return _font(size, bold=True)
+
+
+def _card_luminance(rgb) -> float:
+    def chan(v):
+        v /= 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (chan(c) for c in rgb[:3])
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _card_contrast(a, b) -> float:
+    la, lb = _card_luminance(a), _card_luminance(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+# ── icons ──────────────────────────────────────────────────────────────
+# The cards inline these as SVG. PIL has no SVG, so they are drawn — kept to
+# the same 24-unit grid as the source paths so proportions carry over.
+
+def _card_x_icon(draw, x, y, size, colour):
+    """X wordmark. Two crossing strokes, the leading one heavier, matching the
+    weight relationship in the card's inline SVG."""
+    s = size / 24.0
+    for (x0, y0, x1, y1, w) in (
+        (2.2, 2.4, 21.6, 21.6, 4.6),
+        (21.6, 2.4, 2.2, 21.6, 3.4),
+    ):
+        draw.line(
+            [(x + x0 * s, y + y0 * s), (x + x1 * s, y + y1 * s)],
+            fill=colour, width=max(1, round(w * s)),
+        )
+
+
+def _card_globe_icon(draw, x, y, size, colour):
+    """Globe: circle, equator, meridian — the card's stroke-width:2 on a
+    24-unit box."""
+    s = size / 24.0
+    w = max(1, round(2 * s))
+    r = 9 * s
+    cx, cy = x + 12 * s, y + 12 * s
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=colour, width=w)
+    draw.line([(cx - r, cy), (cx + r, cy)], fill=colour, width=w)
+    draw.ellipse([cx - r * 0.46, cy - r, cx + r * 0.46, cy + r],
+                 outline=colour, width=w)
+
+
+def _card_measured_scrim(img, band_top: int, text_top: int, text_bottom: int):
+    """Darken the headline band until cream type clears CARD_CONTRAST_FLOOR.
+
+    Measure only where the type actually lands (text_top..text_bottom), but
+    fade the scrim in from band_top so there is no visible edge. Sampling the
+    whole lower half instead made every photo pay for brightness that sits
+    nowhere near the text — a night skyline with one lit window got dimmed as
+    hard as an overcast sky.
+    """
+    from PIL import Image, ImageDraw, ImageFilter
+
+    width, height = img.size
+    band = img.convert("RGB").crop((0, text_top, width, min(height, text_bottom)))
+    band = band.resize((max(1, width // 12), max(1, band.height // 12)))
+    pixels = list(band.getdata())
+    # The brightest decile decides it: a mean would let a small blown-out patch
+    # sit under the text unreadable while the average looked fine.
+    pixels.sort(key=_card_luminance)
+    hot = pixels[int(len(pixels) * 0.9)] if pixels else (0, 0, 0)
+
+    alpha = 0
+    while alpha < 235:
+        mixed = tuple(int(c * (1 - alpha / 255)) for c in hot)
+        if _card_contrast(CARD_CREAM, mixed) >= CARD_CONTRAST_FLOOR:
+            break
+        alpha += 5
+
+    # Ramp to full strength by the time the type starts, then hold. Fading all
+    # the way to the bottom meant the band only ever received ~55% of the alpha
+    # the solver had committed to, so on a blown-out photo the safety net
+    # under-delivered exactly when it was the only thing standing.
+    scrim = Image.new("L", (width, height), 0)
+    d = ImageDraw.Draw(scrim)
+    ramp = max(1, text_top - band_top)
+    for y in range(band_top, height):
+        t = min(1.0, (y - band_top) / ramp)
+        d.line([(0, y), (width, y)], fill=int(alpha * (t ** 0.65)))
+    scrim = scrim.filter(ImageFilter.GaussianBlur(26))
+    layer = Image.new("RGBA", (width, height), CARD_BASE_DARK + (0,))
+    layer.putalpha(scrim)
+    return Image.alpha_composite(img, layer), alpha
+
+
+def _card_bottom_gradient(img, height_px: int = 460, peak: float = 0.72):
+    """The cards' `.botgrad`, deepened.
+
+    Theirs is 240px of transparent -> rgba(0,0,0,0.6) over an already-dark
+    canvas. Here it sits over a photo and has to carry the whole floor, so it
+    runs taller and lands closer to black.
+    """
+    from PIL import Image, ImageDraw
+
+    width, height = img.size
+    grad = Image.new("L", (width, height), 0)
+    d = ImageDraw.Draw(grad)
+    top = height - height_px
+    for y in range(top, height):
+        t = (y - top) / max(1, height_px)
+        d.line([(0, y), (width, y)], fill=int(255 * peak * (t ** 1.5)))
+    layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    layer.putalpha(grad)
+    return Image.alpha_composite(img, layer)
+
+
+# ── headline accent ────────────────────────────────────────────────────
+# The cards put the coin in cream and the number in gold ($ESPORTS +109%). A
+# headline has no such fixed slot, so the accent is found — and it is a phrase,
+# not a word: one gold word ("Iraq") names an actor without saying what happened,
+# so the reader still has to parse the whole line. A phrase carries the claim.
+#
+#   figure present  -> the quantity phrase      "Cut 4,800 Jobs" · "Pull In $69M"
+#   short subject   -> subject + verb           "Iraq Rejects" · "DTCC Launches"
+#   long subject    -> verb + object head       "Post First Weekly Inflows"
+
+
+_CARD_FIGURE = re.compile(r"^[\$€£]?\d[\d,.]*[%kmbtKMBT]?$")
+_CARD_YEAR = re.compile(r"^(19|20)\d\d$")
+_CARD_TICKER = re.compile(r"^\$[A-Za-z]{2,10}$")
+
+# Words that must never open or close a gold span — they read as a cut-off.
+_CARD_EDGE_STOP = {
+    "the", "a", "an", "and", "or", "of", "in", "on", "at", "to", "for", "from",
+    "with", "by", "as", "after", "before", "amid", "while", "over", "under",
+    "into", "than", "that", "but", "since", "against", "about", "ahead",
+    "during", "beyond", "between", "through", "among", "amongst", "per",
+    "its", "his", "her", "their", "this", "these", "those", "is", "are", "was",
+    "were", "be", "been", "will", "may", "could", "would", "should", "can",
+}
+
+# Units that belong to the number in front of them.
+_CARD_UNITS = {
+    "billion", "million", "trillion", "bn", "mn", "m", "k", "percent", "pct",
+    "basis", "bps", "points", "point",
+}
+
+# Headline verbs. A closed list beats POS-guessing here: our feed writes in a
+# narrow register, and a fixed list makes the accent predictable enough to
+# review. Base forms only — inflections are matched by stripping s/es/ed/ing.
+_CARD_VERBS = {
+    "accumulate", "acquire", "add", "admit", "adopt", "agree", "allow", "appeal",
+    "announce", "approve", "attract", "back", "ban", "beat", "blast", "block",
+    "boost", "break", "burn", "buy", "call", "cancel", "charge", "claim",
+    "clear", "climb", "close", "confirm", "conduct", "consider", "crash",
+    "cut", "declare", "delay", "delist", "deliver", "deny", "deploy", "detail",
+    "dip", "disrupt", "double", "drop", "ease", "end", "exceed", "expand",
+    "expect", "extend", "face", "fall", "file", "fine", "fire", "forecast",
+    "freeze", "fund", "gain", "halt", "halve", "hike", "hire", "hit", "hold",
+    "indict", "integrate", "invest", "investigate", "issue", "join", "jump",
+    "keep", "land", "launch", "lead", "leave", "lift", "list", "lose", "lower",
+    "mandate", "meet", "merge", "mint", "miss", "move", "name", "open",
+    "order", "outperform", "partner", "pass", "pause", "plan", "post", "price",
+    "probe", "project", "propose", "pull", "push", "quit", "raise", "rally",
+    "reach", "rebound", "recommend", "reclaim", "record", "recover", "refuse",
+    "reject", "release", "remove", "require", "restart", "resume", "reaffirm",
+    "respond", "reveal", "revise", "rise", "risk", "roll", "rule", "say",
+    "secure", "seek", "seize", "sell", "send", "set", "settle", "sign", "sink",
+    "slash", "slide", "slip", "slow", "slump", "soar", "spike", "stake",
+    "stall", "start", "step", "sue", "surge", "tap", "target", "tease", "test",
+    "threaten", "tighten", "top", "trail", "trigger", "trim", "tumble",
+    "unlock", "unveil", "urge", "value", "vote", "warn", "weigh", "win",
+    "withdraw", "report", "rival", "publish", "describe", "estimate",
+}
+
+
+def _card_bare(word: str) -> str:
+    return word.strip(",.:;'\"()").lower()
+
+
+def _card_is_verb(word: str) -> bool:
+    w = _card_bare(word)
+    if w in _CARD_VERBS:
+        return True
+    for suffix, cut in (("ies", 3), ("es", 2), ("s", 1), ("ed", 2), ("ing", 3)):
+        if w.endswith(suffix) and len(w) > cut + 2:
+            stem = w[:-cut]
+            if stem in _CARD_VERBS or (stem + "e") in _CARD_VERBS:
+                return True
+    return False
+
+
+def _card_figure_index(words):
+    for i, w in enumerate(words):
+        if _CARD_TICKER.match(_card_bare(w)) or _CARD_TICKER.match(w.strip(",.:;")):
+            return i
+    for i, w in enumerate(words):
+        bare = w.strip(",.:;")
+        if _CARD_FIGURE.match(bare) and not _CARD_YEAR.match(bare):
+            return i
+    return None
+
+
+def _card_accent_span(words, max_words: int = 4):
+    """Indices to set in gold. Empty when nothing carries the claim."""
+    if len(words) < 3:
+        return set()
+
+    fig = _card_figure_index(words)
+    if fig is not None:
+        lo = hi = fig
+        # The unit belongs to the number: "$1.6 Billion".
+        if hi + 1 < len(words) and _card_bare(words[hi + 1]) in _CARD_UNITS:
+            hi += 1
+        # The noun it counts, but only when it closes the phrase — taking it
+        # mid-phrase produced cuts like "2% Inflation" before "Target".
+        nxt, after = hi + 1, hi + 2
+        if nxt < len(words) and _card_bare(words[nxt]) not in _CARD_EDGE_STOP \
+                and not _card_is_verb(words[nxt]) \
+                and (after >= len(words) or _card_bare(words[after]) in _CARD_EDGE_STOP):
+            hi = nxt
+        # Reach left for the action. Cross a preposition only to land on a verb
+        # ("Pull In $69M") — otherwise the span picks up an unrelated noun.
+        if lo > 0 and _card_bare(words[lo - 1]) not in _CARD_EDGE_STOP:
+            lo -= 1
+        elif lo > 1 and _card_is_verb(words[lo - 2]):
+            lo -= 2
+        # A lone number says nothing: run right to the end of the phrase.
+        while hi - lo + 1 < max_words and hi + 1 < len(words) \
+                and lo == hi and _card_bare(words[hi + 1]) not in _CARD_EDGE_STOP:
+            hi += 1
+        return set(range(lo, hi + 1))
+
+    verb = next((i for i, w in enumerate(words) if i and _card_is_verb(w)), None)
+    if verb is None:
+        # No verb we know: the opening actor plus one word is still better than
+        # a lone word, as long as neither end is a fragment.
+        start = 1 if _card_bare(words[0]) in {"the", "a", "an"} else 0
+        end = start + 1
+        while end + 1 < len(words) and _card_bare(words[end]) in _CARD_EDGE_STOP:
+            end += 1
+        return set(range(start, min(end + 1, len(words))))
+
+    start = 1 if _card_bare(words[0]) in {"the", "a", "an"} else 0
+    if verb - start + 1 <= max_words:
+        # Subject + verb is the claim: "Iraq Rejects", "UK and France Announce".
+        return set(range(start, verb + 1))
+
+    # Subject too long to gold — highlighting five words of subject highlights
+    # nothing. Gold the predicate instead: "Post First Weekly Inflows".
+    hi = verb
+    while hi + 1 < len(words) and hi - verb + 1 < max_words:
+        if _card_bare(words[hi + 1]) in _CARD_EDGE_STOP:
+            break
+        hi += 1
+    if hi + 1 < len(words) and _card_bare(words[hi + 1]) not in _CARD_EDGE_STOP:
+        # Ran into the word cap mid-phrase — that reads as a cut. Fall back to
+        # the verb and one word.
+        hi = min(verb + 1, len(words) - 1)
+    if hi == verb:
+        # A lone verb is no better than a lone noun: use the opening actor.
+        return set(range(start, min(start + 2, len(words))))
+    return set(range(verb, hi + 1))
+
+
 def _compose_editorial_card(
     raw_path: str,
     headline: str,
@@ -811,58 +1083,133 @@ def _compose_editorial_card(
     entity_logos: Optional[list] = None,
     angle: Optional[str] = None,
 ) -> str:
-    """Classic LuxQuant editorial card on a cinematic AI background:
-    cover-crop 4:5, bottom vignette, white headline on stepped LuxQuant-red
-    highlight boxes (lower-left), LuxQuant mark lower-right.
+    """The posted news image, on the social-card design system.
 
-    Brands belong IN the AI raw scene (via reference edit) — never corner stickers.
-    entity_logos is ignored (kept for call-site compatibility).
+    WHY THE RED BOXES WENT
+    ----------------------
+    The stepped red/white boxes did two jobs at once: LuxQuant identity, and
+    giving the type a readable backing on an unpredictable AI photo. The
+    render_*.py social cards need no boxes because they own their canvas — a
+    dark gradient they draw themselves. So porting that look means reproducing
+    the *condition*, not copying pixels: guarantee the headline band is dark,
+    then set the type straight onto it exactly as the cards do.
+
+    A fixed scrim cannot make that guarantee — a bright sky and a night skyline
+    land in completely different places. So the scrim is measured (see
+    _card_measured_scrim): dark photos keep their detail, bright ones get pushed
+    down only as far as they must.
+
+    entity_logos / angle are ignored, kept for call-site compatibility: brands
+    belong IN the AI raw scene (via reference edit), never as corner stickers.
     """
+    del entity_logos, angle
     from PIL import Image, ImageDraw, ImageFilter
 
-    del entity_logos  # no corner paste — brand is in the raw scene
     width, height = 1080, 1350
     img = _cover_image(Image.open(raw_path).convert("RGB"), (width, height)).convert("RGBA")
     img = _apply_editorial_shadow(img)
-    # Sink the bottom-right corner under a soft vignette so any generator watermark
-    # (e.g. the Gemini / SynthID sparkle on bring-your-own uploads) disappears; the white
-    # LuxQuant mark then sits on top and reads better against the darker corner.
-    _corner = Image.new("L", (width, height), 0)
-    ImageDraw.Draw(_corner).ellipse([width - 520, height - 520, width + 200, height + 220], fill=255)
-    _corner = _corner.filter(ImageFilter.GaussianBlur(90))
-    _shade = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    _shade.putalpha(_corner.point(lambda a: int(a * 0.92)))
-    img = Image.alpha_composite(img, _shade)
+
+    # Kept from the original renderer: sink the bottom-right corner so a
+    # generator watermark (the Gemini / SynthID sparkle on bring-your-own
+    # uploads) disappears under it, and the lockup reads on a darker patch.
+    # Dropping this would quietly put other people's watermarks back on our
+    # posts.
+    corner = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(corner).ellipse(
+        [width - 520, height - 520, width + 200, height + 220], fill=255)
+    corner = corner.filter(ImageFilter.GaussianBlur(90))
+    shade = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    shade.putalpha(corner.point(lambda a: int(a * 0.92)))
+    img = Image.alpha_composite(img, shade)
+
+    img = _card_bottom_gradient(img)
     draw = ImageDraw.Draw(img)
-    fnt = _font(54, bold=True)
-    lines = _wrap_headline(draw, str(headline).strip(), fnt)
-    y = height - (len(lines) * 68 + max(0, len(lines) - 1) * 14) - 150
-    x0 = 58
 
-    for index, line in enumerate(lines):
-        x = x0
-        bbox = draw.textbbox((0, 0), line, font=fnt)
-        tw = bbox[2] - bbox[0]
-        glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        gd = ImageDraw.Draw(glow)
-        gd.rectangle((x - 10, y - 5, x + tw + 32, y + 62), fill=(0, 0, 0, 145))
-        img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(9)))
-        draw = ImageDraw.Draw(img)
-        draw.rectangle((x - 4, y - 2, x + tw + 24, y + 58), fill=LUX_RED)
-        draw.text((x + 10, y + 28), line, font=fnt, fill=(255, 255, 255, 255), anchor="lm")
-        y += 82
+    # ── headline ──────────────────────────────────────────────────────
+    size = 64
+    font = _card_font(size, "ExtraBold")
+    widths = [900, 850, 780, 690]
 
-    logo_path = Path(SOCIAL_LOGO_PATH)
-    if logo_path.exists():
-        logo = Image.open(logo_path).convert("RGBA")
-        bbox = logo.getbbox()
-        if bbox:
-            logo = logo.crop(bbox)
-        target_w = 190
-        target_h = int(logo.height * target_w / max(1, logo.width))
-        logo = logo.resize((target_w, target_h), Image.Resampling.LANCZOS)
-        logo.putalpha(logo.getchannel("A").point(lambda a: int(a * 0.9)))
-        img.alpha_composite(logo, (width - target_w - 52, height - target_h - 52))
+    def wrap(fnt):
+        words = (headline or "").replace("—", "-").split()
+        out = []
+        for w_max in widths:
+            if not words:
+                break
+            line = [words.pop(0)]
+            while words:
+                if draw.textlength(" ".join(line + [words[0]]), font=fnt) > w_max:
+                    break
+                line.append(words.pop(0))
+            out.append(line)
+        if words and out:
+            out[-1].extend(words)
+        return out[:4]
+
+    lines = wrap(font)
+    while len(lines) > 3 and size > 46:
+        size -= 4
+        font = _card_font(size, "ExtraBold")
+        lines = wrap(font)
+
+    flat = [w for line in lines for w in line]
+    accent = _card_accent_span(flat)
+
+    line_h = int(size * 1.16)
+    foot_y = height - 118           # single footer row baseline
+    cta_y = foot_y - 68             # the CTA sits between headline and footer
+    y = cta_y - 54 - len(lines) * line_h
+
+    img, _alpha = _card_measured_scrim(img, height - 620, y - 24, foot_y + 40)
+    draw = ImageDraw.Draw(img)
+
+    idx = 0
+    for line in lines:
+        x = 58
+        for word in line:
+            colour = (CARD_GOLD if idx in accent else CARD_CREAM) + (255,)
+            draw.text((x + 2, y + 2), word, font=font, fill=(0, 0, 0, 95))
+            draw.text((x, y), word, font=font, fill=colour)
+            x += draw.textlength(word + " ", font=font)
+            idx += 1
+        y += line_h
+
+    # ── CTA ───────────────────────────────────────────────────────────
+    # `.cta` from the cards: muted lead-in, gold on the part you act on. This is
+    # where the domain lives now — it used to appear twice (web line + source
+    # line) and neither instance asked for anything. Once, as an invitation.
+    c_lead = _card_font(25, "SemiBold")
+    c_link = _card_font(26, "ExtraBold")
+    lead = CARD_CTA_LEAD
+    x = 58
+    draw.text((x, cta_y), lead, font=c_lead, fill=CARD_WEB + (255,))
+    x += draw.textlength(lead, font=c_lead) + 15
+    _card_globe_icon(draw, x, cta_y + 4, 25, CARD_GOLD + (255,))
+    x += 25 + 10
+    draw.text((x, cta_y - 1), CARD_DOMAIN, font=c_link, fill=CARD_GOLD + (255,))
+    # A hairline under the domain — it reads as a link without a boxed button.
+    lw = draw.textlength(CARD_DOMAIN, font=c_link)
+    draw.line([(x, cta_y + 33), (x + lw, cta_y + 33)],
+              fill=CARD_GOLD + (150,), width=2)
+
+    # ── footer: one row, nothing said twice ───────────────────────────
+    # `.fh` from the cards, handle only — the domain is the CTA's job. The
+    # source line, the AI-visual note and the disclaimer are gone: they belong
+    # in the post copy, not burned into the picture next to the headline.
+    f_handle = _card_font(21, "ExtraBold")
+    icon = 21
+    x = 58
+    _card_x_icon(draw, x, foot_y + 2, icon, CARD_CREAM + (255,))
+    x += icon + 11
+    draw.text((x, foot_y), CARD_HANDLE, font=f_handle, fill=CARD_CREAM + (255,))
+
+    if SOCIAL_LOCKUP_PATH.exists():
+        lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")
+        lh = 50                                  # .lockup{height:50px}
+        lw = int(lock.width * lh / lock.height)
+        lock = lock.resize((lw, lh), Image.Resampling.LANCZOS)
+        lock.putalpha(lock.getchannel("A").point(lambda a: int(a * 0.95)))
+        img.alpha_composite(lock, (width - lw - 58, foot_y - 14))
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
