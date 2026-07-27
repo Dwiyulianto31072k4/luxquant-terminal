@@ -23,9 +23,24 @@ PRICE_CHAT_OUTPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_OUTPUT_PER_M", 
 PRICE_OAI_IMG_IN_PER_M = float(os.environ.get("SOCIAL_COST_OAI_IMG_IN_PER_M", "8.0"))
 PRICE_OAI_IMG_OUT_PER_M = float(os.environ.get("SOCIAL_COST_OAI_IMG_OUT_PER_M", "30.0"))
 PRICE_OAI_TEXT_IN_PER_M = float(os.environ.get("SOCIAL_COST_OAI_TEXT_IN_PER_M", "5.0"))
+# Per-model rates (in, out) $/1M tokens, from OpenAI's pricing table. The mini
+# model bills at a quarter of the standard rate, so charging every model the
+# gpt-image-2 rate overstated it roughly 4x in our own dashboard.
+PRICE_OAI_IMAGE_BY_MODEL = {
+    "gpt-image-1-mini": (2.5, 8.0),
+    "gpt-image-1.5": (8.0, 32.0),
+    "gpt-image-2": (PRICE_OAI_IMG_IN_PER_M, PRICE_OAI_IMG_OUT_PER_M),
+}
 
 # ── xAI image flat (no public per-token usage on generations) ────
 PRICE_IMAGE_XAI = float(os.environ.get("SOCIAL_COST_XAI_IMAGE", "0.05"))
+# Flat per image, from xAI's own /v1/image-generation-models (image_price is in
+# units of 1e-10 USD) and their published table. The quality model is 2.5x the
+# standard one, so billing them at one rate overstated the cheap path.
+PRICE_IMAGE_XAI_BY_MODEL = {
+    "grok-imagine-image": float(os.environ.get("SOCIAL_COST_XAI_IMAGE_STD", "0.02")),
+    "grok-imagine-image-quality": PRICE_IMAGE_XAI,
+}
 PRICE_SEARCH_USD = float(os.environ.get("SOCIAL_COST_SEARCH_USD", "0.016"))
 # Legacy flat fallback
 PRICE_IMAGE_USD = float(os.environ.get("SOCIAL_COST_IMAGE_USD", "0.045"))
@@ -78,6 +93,7 @@ def compute_openai_image_usd(
     quality: str = "medium",
     image_count: int = 1,
     is_edit: bool = False,
+    model: Optional[str] = None,
 ) -> dict:
     """
     OpenAI image cost.
@@ -97,6 +113,9 @@ def compute_openai_image_usd(
         }
 
     usage = usage or {}
+    _in_rate, _out_rate = PRICE_OAI_IMAGE_BY_MODEL.get(
+        (model or "").lower(), (PRICE_OAI_IMG_IN_PER_M, PRICE_OAI_IMG_OUT_PER_M)
+    )
     # Normalize usage keys from Images API / Responses variants
     in_tok = int(
         usage.get("input_tokens")
@@ -119,12 +138,12 @@ def compute_openai_image_usd(
     if out_tok or in_tok or text_in or img_in:
         usd = (
             _usd_from_tokens(text_in, PRICE_OAI_TEXT_IN_PER_M)
-            + _usd_from_tokens(img_in or (in_tok - text_in if in_tok > text_in else 0), PRICE_OAI_IMG_IN_PER_M)
-            + _usd_from_tokens(out_tok, PRICE_OAI_IMG_OUT_PER_M)
+            + _usd_from_tokens(img_in or (in_tok - text_in if in_tok > text_in else 0), _in_rate)
+            + _usd_from_tokens(out_tok, _out_rate)
         )
         # If only total input without split, bill all input at image input rate
         if in_tok and not text_in and not img_in:
-            usd = _usd_from_tokens(in_tok, PRICE_OAI_IMG_IN_PER_M) + _usd_from_tokens(out_tok, PRICE_OAI_IMG_OUT_PER_M)
+            usd = _usd_from_tokens(in_tok, _in_rate) + _usd_from_tokens(out_tok, _out_rate)
         return {
             "image_usd": round(usd, 6),
             "image_count": n,
@@ -142,13 +161,13 @@ def compute_openai_image_usd(
     text_est = 400 * n
     usd = (
         _usd_from_tokens(text_est, PRICE_OAI_TEXT_IN_PER_M)
-        + _usd_from_tokens(out_sched, PRICE_OAI_IMG_OUT_PER_M)
+        + _usd_from_tokens(out_sched, _out_rate)
     )
     if is_edit:
         # Reference image input tokens — use same order as output for edit metering approx
         # Prefer actual usage when API returns it; schedule adds image-input for edits
         in_sched = openai_image_output_tokens(size, "low") * n  # lower bound for ref tiles
-        usd += _usd_from_tokens(in_sched, PRICE_OAI_IMG_IN_PER_M)
+        usd += _usd_from_tokens(in_sched, _in_rate)
     return {
         "image_usd": round(usd, 6),
         "image_count": n,
@@ -162,15 +181,18 @@ def compute_openai_image_usd(
     }
 
 
-def compute_xai_image_usd(*, image_count: int = 1, usage: Optional[dict] = None) -> dict:
+def compute_xai_image_usd(
+    *, image_count: int = 1, usage: Optional[dict] = None, model: Optional[str] = None
+) -> dict:
     n = max(0, int(image_count or 0))
+    unit = PRICE_IMAGE_XAI_BY_MODEL.get(str(model or ""), PRICE_IMAGE_XAI)
     usage = usage or {}
     # If xAI ever returns usage tokens, prefer them (rate via env)
     pt = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
     ct = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
     if pt or ct:
         # No official public split — use env flat derived from tokens if provided
-        usd = n * PRICE_IMAGE_XAI  # still unit until xAI publishes token rates
+        usd = n * unit  # flat per image; xAI publishes no token rate for images
         return {
             "image_usd": round(usd, 6),
             "image_count": n,
@@ -179,7 +201,7 @@ def compute_xai_image_usd(*, image_count: int = 1, usage: Optional[dict] = None)
             "image_output_tokens": ct,
         }
     return {
-        "image_usd": round(n * PRICE_IMAGE_XAI, 6),
+        "image_usd": round(n * unit, 6),
         "image_count": n,
         "image_source": "published_rate" if n else "none",
         "image_input_tokens": 0,
@@ -242,9 +264,10 @@ def build_generation_cost(
             quality=image_quality,
             image_count=image_count,
             is_edit=image_is_edit,
+            model=image_model,
         )
     elif provider == "xai" or "grok" in model or "imagine" in model:
-        img = compute_xai_image_usd(image_count=image_count, usage=image_usage)
+        img = compute_xai_image_usd(image_count=image_count, usage=image_usage, model=image_model)
     else:
         img = {
             "image_usd": round(image_count * PRICE_IMAGE_USD, 6),

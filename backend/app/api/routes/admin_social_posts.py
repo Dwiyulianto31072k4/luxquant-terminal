@@ -400,6 +400,7 @@ def re_render_post_image(
     post_id: int,
     model: Optional[str] = None,
     quality: Optional[str] = None,
+    provider: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -514,6 +515,7 @@ def re_render_post_image(
             # back to the configured default inside the generator.
             image_model=model,
             image_quality=quality,
+            force_provider=provider if provider in ("openai", "xai") else None,
         )
         if not result.image_path:
             raise HTTPException(500, result.error_message or "re-render failed")

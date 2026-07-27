@@ -167,12 +167,16 @@ const awaitingImage = (post) =>
     (needsMaterials(post) && !post?.image_url)
   );
 
-// Priced from OpenAI's published token rates against the output-token count for
-// our 1024x1536 poster, so the labels are the real cost of one click.
+// Every label is what the cost tracker actually records for that click, checked
+// against it — including the prompt's own input tokens, which is why the mini
+// tier reads 0.015 and not the 0.013 its output tokens alone would suggest.
+// xAI bills flat per image; OpenAI bills by tokens, so quality moves the price
+// more than the model does.
 const AI_IMAGE_TIERS = [
-  { key: "cheap", label: "Hemat", price: "~$0.013", model: "gpt-image-1-mini", quality: "medium" },
-  { key: "std", label: "Standar", price: "~$0.05", model: "gpt-image-2", quality: "medium" },
-  { key: "max", label: "Maksimal", price: "~$0.19", model: "gpt-image-2", quality: "high" },
+  { key: "cheap", label: "Hemat", price: "$0.015", provider: "openai", model: "gpt-image-1-mini", quality: "medium" },
+  { key: "grok", label: "Grok", price: "$0.02", provider: "xai", model: "grok-imagine-image" },
+  { key: "std", label: "Standar", price: "$0.05", provider: "openai", model: "gpt-image-2", quality: "medium" },
+  { key: "max", label: "Maksimal", price: "$0.19", provider: "openai", model: "gpt-image-2", quality: "high" },
 ];
 
 // ── News picker modal: browse the crypto-news feed and click a story ──
@@ -1280,15 +1284,17 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
           or let our AI draw it — you pay per click
         </p>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {AI_IMAGE_TIERS.map((t) => (
             <button
               key={t.key}
               type="button"
               disabled={!!busy}
-              onClick={() => reRender({ model: t.model, quality: t.quality })}
+              onClick={() =>
+                reRender({ provider: t.provider, model: t.model, quality: t.quality })
+              }
               className="px-2 py-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-text-primary hover:border-accent/45 hover:bg-accent/[0.06] disabled:opacity-40 transition-colors text-left"
-              title={`${t.model} · ${t.quality}`}
+              title={[t.model, t.quality].filter(Boolean).join(" · ")}
             >
               <span className="block text-[11px] font-semibold leading-tight">{t.label}</span>
               <span className="block text-[10px] font-mono text-text-muted tabular-nums mt-0.5">

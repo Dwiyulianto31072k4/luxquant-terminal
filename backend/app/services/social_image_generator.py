@@ -36,6 +36,10 @@ OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
 # at the draft. A context var carries it instead of threading a parameter
 # through six call sites; generate_ai_social_image sets it for its own call.
 IMAGE_MODELS_ALLOWED = ("gpt-image-1-mini", "gpt-image-2", "gpt-image-1.5", "gpt-image-1")
+# xAI is the other account we hold a key for. Its two image models are flat-rate
+# ($0.02 and $0.05 an image, confirmed against /v1/image-generation-models),
+# which makes grok-imagine-image a useful middle rung.
+XAI_MODELS_ALLOWED = ("grok-imagine-image", "grok-imagine-image-quality")
 IMAGE_QUALITIES_ALLOWED = ("low", "medium", "high")
 _IMAGE_OVERRIDE = contextvars.ContextVar("social_image_override", default=None)
 OPENAI_IMAGE_SIZE = os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")
@@ -54,6 +58,11 @@ def _image_model() -> str:
 def _image_quality() -> str:
     picked = (_IMAGE_OVERRIDE.get() or {}).get("quality")
     return picked if picked in IMAGE_QUALITIES_ALLOWED else OPENAI_IMAGE_QUALITY
+
+
+def _xai_model() -> str:
+    picked = (_IMAGE_OVERRIDE.get() or {}).get("model")
+    return picked if picked in XAI_MODELS_ALLOWED else XAI_IMAGE_MODEL
 
 
 @dataclass
@@ -544,7 +553,7 @@ def _edit_xai_image(
     ext = Path(reference_path).suffix.lstrip(".").lower() or "png"
     mime = "jpeg" if ext in ("jpg", "jpeg") else ext
     payload = {
-        "model": XAI_IMAGE_EDIT_MODEL,
+        "model": _xai_model(),
         "prompt": prompt,
         "image": {"url": f"data:image/{mime};base64,{b64}", "type": "image_url"},
         "response_format": "b64_json",
@@ -587,7 +596,7 @@ def _generate_xai_image(prompt: str, out_path: Path) -> dict:
         f"{XAI_API_BASE.rstrip('/')}/images/generations",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         json={
-            "model": XAI_IMAGE_MODEL,
+            "model": _xai_model(),
             "prompt": prompt,
             "n": 1,
             "aspect_ratio": "3:4",
@@ -1372,7 +1381,9 @@ def generate_ai_social_image(
     # Honour only a known model and quality: a typo must fall back to the
     # configured default rather than reach the API as an unknown, unpriced id.
     _IMAGE_OVERRIDE.set({
-        "model": image_model if image_model in IMAGE_MODELS_ALLOWED else None,
+        "model": image_model
+        if image_model in IMAGE_MODELS_ALLOWED + XAI_MODELS_ALLOWED
+        else None,
         "quality": image_quality if image_quality in IMAGE_QUALITIES_ALLOWED else None,
     })
 
@@ -1477,7 +1488,7 @@ def generate_ai_social_image(
         image_api_calls = 0
         image_usage_acc: dict = {}
         image_is_edit = False
-        model_label = _image_model() if provider == "openai" else XAI_IMAGE_MODEL
+        model_label = _image_model() if provider == "openai" else _xai_model()
 
         if face_ok:
             # Single face edit (1:1). Cheap: no second brand API call.
