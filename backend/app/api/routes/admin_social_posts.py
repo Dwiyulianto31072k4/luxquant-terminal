@@ -93,10 +93,7 @@ def _build_caption_slide(post_id: int, headline: str, caption: str) -> Optional[
         return None
     out = str(Path(SOCIAL_POST_ASSETS_DIR) / f"slide2_{post_id}.png")
     try:
-        kicker = (headline or "").strip()
-        if len(kicker) > 62:                # cut on a word, never mid-word
-            kicker = kicker[:62].rsplit(" ", 1)[0] + "…"
-        return compose_caption_slide(body, out, kicker=kicker or None)
+        return compose_caption_slide(body, out)
     except Exception:
         logger.warning("caption slide failed for post %s", post_id, exc_info=True)
         return None

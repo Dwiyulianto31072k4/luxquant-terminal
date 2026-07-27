@@ -445,6 +445,13 @@ CARD_CTA_LEAD = os.environ.get(
 )
 CARD_DOMAIN = os.environ.get("SOCIAL_CARD_DOMAIN", "luxquant.tw")
 CARD_HANDLE = os.environ.get("SOCIAL_CARD_HANDLE", "@luxquantcrypto")
+# The lockup's box, shared by every card we publish. The nine render_*.py signal
+# cards already sit at these numbers (measured on the rendered PNGs, not read off
+# the CSS), so the news poster and the caption slide adopt them: in a 3-wide
+# Instagram grid the mark must land on the same pixel in every tile.
+CARD_MARGIN = 64
+CARD_LOCKUP_H = 50
+CARD_LOCKUP_BOTTOM = 44
 # Cheap mode: hard-cap paid image API calls per draft (default 1 — no face+brand double hit).
 CHEAP_MODE = os.environ.get("SOCIAL_CHEAP_MODE", "1").strip().lower() not in ("0", "false", "no")
 IMAGE_MAX_CALLS = int(os.environ.get("SOCIAL_IMAGE_MAX_CALLS", "1" if CHEAP_MODE else "2"))
@@ -1210,7 +1217,7 @@ def _compose_editorial_card(
     _f_cta_m = _card_font(25, "SemiBold")
     _f_row_m = _card_font(21, "ExtraBold")
     BREATH = 44
-    foot_y = height - 58 - _f_row_m.getbbox(CARD_HANDLE)[3]
+    foot_y = height - CARD_MARGIN - _f_row_m.getbbox(CARD_HANDLE)[3]
     cta_y = (foot_y + _f_row_m.getbbox(CARD_HANDLE)[1]
              - BREATH - _f_cta_m.getbbox(CARD_CTA_LEAD)[3])
     # The headline's last line inks lower than its box: measure that line, not
@@ -1224,7 +1231,7 @@ def _compose_editorial_card(
 
     idx = 0
     for line in lines:
-        x = 58
+        x = CARD_MARGIN
         for word in line:
             colour = (CARD_GOLD if idx in accent else CARD_CREAM) + (255,)
             draw.text((x + 2, y + 2), word, font=font, fill=(0, 0, 0, 95))
@@ -1264,15 +1271,20 @@ def _compose_editorial_card(
     # The longest wording that still fits beside the lockup. Measured, not
     # assumed: a wider handle or a longer domain must shorten the copy, never
     # push it under the mark.
-    lock_w, lock_h = 0, 50                       # .lockup{height:50px}
+    lock_w, lock_h = 0, CARD_LOCKUP_H
     if SOCIAL_LOCKUP_PATH.exists():
         lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")
         lock_w = int(lock.width * lock_h / lock.height)
         lock = lock.resize((lock_w, lock_h), Image.Resampling.LANCZOS)
         lock.putalpha(lock.getchannel("A").point(lambda a: int(a * 0.95)))
-        # Centred across both lines, so each one is anchored on the right.
-        img.alpha_composite(lock, (width - lock_w - 58,
-                                   (cta_y + foot_y + 30 - lock_h) // 2))
+        # Pinned to the card's corner, not centred on the text beside it: the
+        # mark has to land in the same place on every card in the grid, and text
+        # blocks are different heights from one poster to the next.
+        img.alpha_composite(lock, (width - lock_w - CARD_MARGIN,
+                                   height - lock_h - CARD_LOCKUP_BOTTOM))
+    else:
+        logger.warning("lockup missing at %s — card rendered without the mark",
+                       SOCIAL_LOCKUP_PATH)
 
     strip = Image.new("RGBA", (width * ss, strip_h * ss), (0, 0, 0, 0))
     sd = ImageDraw.Draw(strip)
@@ -1287,7 +1299,8 @@ def _compose_editorial_card(
     X_INK_RIGHT, GLOBE_INK_RIGHT = 22.827 / 24, 21 / 24
 
     tail = 16 * ss + icon + GAP + sd.textlength(CARD_DOMAIN, font=f_dom)
-    room = (width - 58 - (lock_w + 58 + 44 if lock_w else 58)) * ss - tail
+    room = (width - CARD_MARGIN
+            - (lock_w + CARD_MARGIN + 44 if lock_w else CARD_MARGIN)) * ss - tail
     lead = next(
         (c for c in (CARD_CTA_LEAD, "Read daily crypto news at",
                      "Read the daily news at", "Daily news at")
@@ -1298,7 +1311,7 @@ def _compose_editorial_card(
     cta_row = (cta_y - strip_top) * ss
     foot_row = (foot_y - strip_top) * ss
 
-    x = 58 * ss
+    x = CARD_MARGIN * ss
     sd.text((x, cta_row), lead, font=f_cta, fill=ink)
     x += sd.textlength(lead, font=f_cta) + 16 * ss
     _card_globe_icon(sd, x, _card_line_centre(f_dom, CARD_DOMAIN, cta_row)
@@ -1306,7 +1319,7 @@ def _compose_editorial_card(
     x += icon * GLOBE_INK_RIGHT + GAP - f_dom.getbbox(CARD_DOMAIN)[0]
     sd.text((x, cta_row), CARD_DOMAIN, font=f_dom, fill=ink)
 
-    x = 58 * ss
+    x = CARD_MARGIN * ss
     _card_x_icon(strip, x, _card_line_centre(f_row, CARD_HANDLE, foot_row)
                  - icon / 2, icon, ink)
     x += icon * X_INK_RIGHT + GAP - f_row.getbbox(CARD_HANDLE)[0]
@@ -1320,12 +1333,7 @@ def _compose_editorial_card(
     return out_path
 
 
-def compose_caption_slide(
-    caption: str,
-    out_path: str,
-    *,
-    kicker: Optional[str] = None,
-) -> str:
+def compose_caption_slide(caption: str, out_path: str) -> str:
     """Slide 2: the story as type on our own ground.
 
     The poster carries the headline over a photograph; this carries the reading.
@@ -1339,7 +1347,7 @@ def compose_caption_slide(
     from PIL import Image, ImageDraw
 
     width, height = 1080, 1350
-    margin = 84
+    margin = CARD_MARGIN
     col = width - margin * 2
 
     # Same world as the poster: near-black falling into dark maroon, so the two
@@ -1400,11 +1408,6 @@ def compose_caption_slide(
         block, total, line_h, para_gap = layout(size)
 
     y = band_top + max(0, (band_bottom - band_top - total) // 2)
-    if kicker:
-        k_font = _card_font(19 * ss, "ExtraBold")
-        d.text((margin * ss, (y - 58) * ss), kicker.upper(), font=k_font,
-               fill=CARD_WEB + (255,))
-
     for lines, fnt, is_gold in block:
         for line in lines:
             d.text((margin * ss, y * ss), line, font=fnt,
@@ -1417,11 +1420,14 @@ def compose_caption_slide(
 
     if SOCIAL_LOCKUP_PATH.exists():
         lock = Image.open(SOCIAL_LOCKUP_PATH).convert("RGBA")
-        lh = 54
+        lh = CARD_LOCKUP_H
         lw = int(lock.width * lh / lock.height)
         lock = lock.resize((lw, lh), Image.Resampling.LANCZOS)
         lock.putalpha(lock.getchannel("A").point(lambda a: int(a * 0.95)))
-        img.alpha_composite(lock, (width - lw - margin, height - lh - 86))
+        img.alpha_composite(lock, (width - lw - margin, height - lh - CARD_LOCKUP_BOTTOM))
+    else:
+        logger.warning("lockup missing at %s — slide rendered without the mark",
+                       SOCIAL_LOCKUP_PATH)
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
