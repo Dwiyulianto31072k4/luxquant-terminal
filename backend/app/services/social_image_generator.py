@@ -1237,11 +1237,21 @@ def _compose_editorial_card(
     #
     # Gold stops at the headline. Everything here is cream — a second accent in
     # the footer competes with the accent carrying meaning three lines above.
-    f_cta = _card_font(25, "SemiBold")
-    f_dom = _card_font(25, "ExtraBold")
-    f_row = _card_font(21, "ExtraBold")
-    icon = 22
+    # Drawn into a 4x strip and downscaled, NOT straight onto the card. At 21-25px
+    # every glyph advance lands on a whole pixel, and the rounding is not even:
+    # measured on the card, letters sat 1-3px apart but "nt" sat 4px apart, wide
+    # enough that "luxquant.tw" read as two words. The social cards never show
+    # this because Chromium renders them at device_scale_factor=2 with subpixel
+    # positioning — this does the same thing by hand.
     ink = CARD_CREAM + (255,)
+    ss = 4
+    strip_top = cta_y - 34
+    strip_h = height - strip_top
+
+    f_cta = _card_font(25 * ss, "SemiBold")
+    f_dom = _card_font(25 * ss, "ExtraBold")
+    f_row = _card_font(21 * ss, "ExtraBold")
+    icon = 22
 
     # The longest wording that still fits beside the lockup. Measured, not
     # assumed: a wider handle or a longer domain must shorten the copy, never
@@ -1256,26 +1266,34 @@ def _compose_editorial_card(
         img.alpha_composite(lock, (width - lock_w - 58,
                                    (cta_y + foot_y + 30 - lock_h) // 2))
 
-    tail = 16 + icon + 10 + draw.textlength(CARD_DOMAIN, font=f_dom)
-    room = width - 58 - (lock_w + 58 + 44 if lock_w else 58) - tail
+    strip = Image.new("RGBA", (width * ss, strip_h * ss), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(strip)
+
+    tail = (16 + icon + 10) * ss + sd.textlength(CARD_DOMAIN, font=f_dom)
+    room = (width - 58 - (lock_w + 58 + 44 if lock_w else 58)) * ss - tail
     lead = next(
         (c for c in (CARD_CTA_LEAD, "Read daily crypto news at",
                      "Read the daily news at", "Daily news at")
-         if draw.textlength(c, font=f_cta) <= room),
+         if sd.textlength(c, font=f_cta) <= room),
         "Daily news at",
     )
 
-    x = 58
-    draw.text((x, cta_y), lead, font=f_cta, fill=ink)
-    x += draw.textlength(lead, font=f_cta) + 16
-    _card_globe_icon(draw, x, cta_y + 5, icon, ink)
-    x += icon + 10
-    draw.text((x, cta_y - 1), CARD_DOMAIN, font=f_dom, fill=ink)
+    cta_row = (cta_y - strip_top) * ss
+    foot_row = (foot_y - strip_top) * ss
+    x = 58 * ss
+    sd.text((x, cta_row), lead, font=f_cta, fill=ink)
+    x += sd.textlength(lead, font=f_cta) + 16 * ss
+    _card_globe_icon(sd, x, cta_row + 5 * ss, icon * ss, ink)
+    x += (icon + 10) * ss
+    sd.text((x, cta_row - ss), CARD_DOMAIN, font=f_dom, fill=ink)
 
-    x = 58
-    _card_x_icon(img, x, foot_y + 2, 21, ink)
-    x += 21 + 11
-    draw.text((x, foot_y), CARD_HANDLE, font=f_row, fill=ink)
+    x = 58 * ss
+    _card_x_icon(strip, x, foot_row + 2 * ss, 21 * ss, ink)
+    x += (21 + 11) * ss
+    sd.text((x, foot_row), CARD_HANDLE, font=f_row, fill=ink)
+
+    img.alpha_composite(
+        strip.resize((width, strip_h), Image.Resampling.LANCZOS), (0, strip_top))
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
