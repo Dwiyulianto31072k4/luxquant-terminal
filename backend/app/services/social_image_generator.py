@@ -134,16 +134,19 @@ BRAND_VISUAL_SIGNATURE = "\n".join([
     "- Look: cinematic 3D product-render realism. Physically-based materials, true reflections, "
     "contact shadows, fine grain. No illustration, no flat vector.",
     "- World: a dark interior with real depth — hall, corridor, plant floor, stage. Near-black "
-    "#0A0506 falling into dark maroon #241014. Never daylight, never a flat backdrop.",
+    "#0A0506 falling into dark maroon #241014, with a faint red atmospheric wash in the far "
+    "background. The red is the ROOM, not the lighting. Never daylight, never a flat backdrop.",
     "- HERO OBJECT: build the story's one physical element LARGE and solid in 3D — a backlit sign or "
     "moulded emblem on the far wall, a product on a lit pedestal, a machine, storage tanks. It says "
     "what the story is at a glance, so it must read solid, never a flat sticker or a ghost.",
     "- PERSON, when the story has one: centred, standing in for the institution, half to full body, "
     "medium distance, calm. Not a floating head, not a silhouette that disappears.",
-    "- Light is PRACTICAL, inside the scene, never a filter over the frame: crimson #BE001C from LED "
-    "strips, screens, signage and cove light; a crimson rim on the hero's edges; low red haze at the "
-    "floor; red glints on glass, metal and the polished floor, which holds a soft reflection.",
-    "- Exactly ONE warm-gold accent #FCD535 — a desk lamp, a lit edge, one monitor glow.",
+    "- Light is PRACTICAL and it is GOLD: warm amber #FCD535 / #F0B90B is what actually glows in "
+    "the scene — desk lamps, lit signage, monitor and screen glow, cove lighting, a gold rim tracing "
+    "the hero's edges and shoulders, gold specular on glass, metal and the polished floor, which "
+    "holds a soft reflection. Never a filter over the frame; it must come from objects in the shot.",
+    "- Crimson #BE001C stays where the room is: deep background haze, distant LED strips, the far "
+    "end of a corridor. It is atmosphere, never the key light and never the rim.",
     "- Faces, skin tones and real brand colours stay accurate; the red lives on edges, in shadow and "
     "in background light. Warm any blue or teal setting to crimson. No cyan, no purple.",
     "- Frame: vertical 4:5, hero in the upper two thirds, lower 35-40% dark and free of detail — the "
