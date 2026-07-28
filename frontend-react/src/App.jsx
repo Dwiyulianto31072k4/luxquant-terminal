@@ -152,10 +152,38 @@ function TerminalIndex() {
   );
 }
 
+// Shown instead of the login page when the session is intact but /auth/me was
+// unreachable (backend reload, network blip). The token is untouched, so a
+// reload once the API answers puts the user straight back where they were.
+function AuthUnreachableNotice() {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 bg-bg-primary">
+      <div className="max-w-sm text-center space-y-3">
+        <p className="text-text-primary font-semibold">Koneksi ke server terputus</p>
+        <p className="text-sm text-text-muted leading-relaxed">
+          Sesi kamu masih aktif — server sedang tidak bisa dihubungi sebentar.
+          Coba muat ulang.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-lg bg-accent text-bg-primary text-sm font-semibold"
+        >
+          Muat ulang
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RequireAuth({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, authUnreachable } = useAuth();
   const location = useLocation();
   if (loading) return null;
+  // A token we still hold + a backend we could not reach is a connection
+  // problem, not a logout. Bouncing to /login here threw an admin out of a
+  // half-finished workspace during a backend reload; offer a retry instead.
+  if (!isAuthenticated && authUnreachable) return <AuthUnreachableNotice />;
   if (!isAuthenticated)
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   // Login-gated content = a thin login/app shell to crawlers → keep it out of
@@ -1316,8 +1344,16 @@ function AppShell({ children }) {
         </div>
       </div>
 
-      {/* MAIN CONTENT — route boundary keeps shell/nav alive on page crash (desktop + mobile) */}
-      <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
+      {/* MAIN CONTENT — route boundary keeps shell/nav alive on page crash (desktop + mobile)
+ NO z-index here on purpose. A positioned element with a z-index opens a stacking
+ context, and every `fixed` overlay a page renders inside it — modals, bottom
+ sheets — gets trapped in that layer no matter how high its own z-index is. This
+ used to carry z-10, so the footer (a later sibling, also z-10) painted OVER page
+ modals: the referral sheet was clipped in half by it and its buttons were dead.
+ Bumping the sheet to z-[9999] could never fix that; only removing this could.
+ `relative` alone is enough to clear the fixed .luxury-bg (z-index:0) — main comes
+ after it in DOM order, so it already paints on top. See constants/zIndex.js. */}
+      <main className="relative max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
         <RouteErrorBoundary>
           <Suspense fallback={<ContentLoader />}>{children}</Suspense>
         </RouteErrorBoundary>

@@ -1,7 +1,9 @@
 // src/components/ReferralPage.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { referralApi } from "../services/referralApi";
+import { Z } from "../constants/zIndex";
 
 import CashoutRequestModal from "./referral/CashoutRequestModal";
 import CashoutHistoryList from "./referral/CashoutHistoryList";
@@ -283,15 +285,21 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
 
   if (!isOpen) return null;
 
-  return (
+  // Rendered through a portal to <body>, NOT in place. Raising the z-index alone
+  // never worked: any ancestor that is positioned with a z-index (Layout's <main>
+  // used to be `relative z-10`) opens a stacking context and caps everything
+  // inside it, so the app footer painted over this sheet and swallowed the submit
+  // buttons. A portal takes the sheet out of that subtree entirely, so it stays
+  // correct even if some ancestor grows a stacking context again later.
+  return createPortal(
     <div
       ref={dialogRef}
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Generate referral code"
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{ background: "rgb(var(--scrim) / 0.7)" }}
+      className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-4"
+      style={{ background: "rgb(var(--scrim) / 0.7)", zIndex: Z.modal }}
       onClick={onClose}
     >
       <div
@@ -359,7 +367,7 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
             style={{
               background:
                 customCode.length >= 4
-                  ? "rgb(var(--surface-raised))) 0%, rgb(var(--accent)) 100%)"
+                  ? "linear-gradient(135deg, rgb(var(--surface-raised)) 0%, rgb(var(--accent)) 100%)"
                   : "rgb(var(--accent) / 0.1)",
               color: customCode.length >= 4 ? "rgb(var(--surface))" : "rgb(var(--fg-muted))",
               border: "none",
@@ -370,7 +378,8 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
