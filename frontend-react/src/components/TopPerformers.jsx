@@ -194,17 +194,20 @@ const TopPerformers = () => {
     return (
       <div className="mb-10">
         <ShimmerStyles />
-        <div className="lqsk-group relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
-          <div className="border-b border-ink/[0.06] px-4 py-4 sm:px-5">
-            <div className="h-5 w-36 rounded bg-ink/[0.05]" />
+        {/* Skeleton mirrors the loaded layout — flush, no panel. When this drew a
+ boxed card the border vanished the moment data arrived, which read as the
+ section jumping. Same rhythm in, same rhythm out. */}
+        <div className="lqsk-group relative">
+          <div className="py-1">
+            <div className="h-7 w-44 rounded bg-ink/[0.05]" />
             <div className="mt-2 h-3 w-52 rounded bg-ink/[0.03]" />
           </div>
-          <div className="flex gap-4 border-b border-ink/[0.06] px-4 py-3 sm:px-5">
+          <div className="mt-5 flex gap-6 border-b border-ink/[0.09] pb-2.5">
             {[...Array(4)].map((_, j) => (
-              <div key={j} className="h-3 w-16 rounded bg-ink/[0.05]" />
+              <div key={j} className="h-3.5 w-16 rounded bg-ink/[0.05]" />
             ))}
           </div>
-          <div className="divide-y divide-ink/[0.04] px-4 sm:px-5">
+          <div className="divide-y divide-ink/[0.04]">
             {[...Array(8)].map((_, j) => (
               <div key={j} className="flex items-center gap-3 py-3.5">
                 <div className="h-4 w-4 shrink-0 rounded bg-ink/[0.04]" />
