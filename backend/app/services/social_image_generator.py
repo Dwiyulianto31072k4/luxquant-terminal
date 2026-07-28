@@ -152,14 +152,16 @@ BRAND_VISUAL_SIGNATURE = "\n".join([
     "- PERSON, when the story has one: centred or slightly off-centre, half to full body, medium "
     "distance, calm and still, cleanly separated from the background. Not a floating head, not a "
     "silhouette that disappears, and never one of a crowd.",
-    "- Light is PRACTICAL and it is GOLD: warm amber #FCD535 / #F0B90B is what actually glows in "
-    "the scene — desk lamps, lit signage, monitor and screen glow, cove lighting, a gold rim tracing "
-    "the hero's edges and shoulders, gold specular on glass, metal and the polished floor, which "
-    "holds a soft reflection. Never a filter over the frame; it must come from objects in the shot.",
-    "- Crimson #BE001C stays where the room is: deep background haze, distant LED strips, the far "
-    "end of a corridor. It is atmosphere, never the key light and never the rim.",
-    "- Faces, skin tones and real brand colours stay accurate; the red lives on edges, in shadow and "
-    "in background light. Warm any blue or teal setting to crimson. No cyan, no purple.",
+    "- Light is PHOTOGRAPHIC first: light the place the way that place is really lit, with correct "
+    "white balance and believable sources, as a camera would record it. Real colours stay true — a "
+    "green logo stays green, a teal server aisle stays teal, skin stays natural.",
+    "- Gold is a MINOR accent, never the grade. One warm lamp, a lit edge, a single reflection on "
+    "glass or metal — a touch the eye finds after the subject, not before it. Do NOT wash the frame "
+    "in amber or make the room itself gold: if it reads as 'a gold room', it is wrong.",
+    "- Crimson #BE001C is the same size of gesture: a little atmosphere far back, a distant LED "
+    "strip, haze at the end of a corridor. Never the key light, never the rim, never a colour wash.",
+    "- Overall it should look like a photograph taken in a dark room, not a graded poster. Keep the "
+    "two brand colours quiet enough that a viewer would call the picture realistic first.",
     "- Frame: vertical 4:5, hero in the upper two thirds, lower 35-40% dark and free of detail — the "
     "headline is composited there.",
 ])
