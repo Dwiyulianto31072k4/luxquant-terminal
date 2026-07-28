@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import contextvars
+import json
 import logging
 import os
 import re
@@ -331,6 +332,28 @@ def _merge_usage(a: Optional[dict], b: Optional[dict]) -> dict:
     return out
 
 
+def _raise_openai(response, where: str) -> None:
+    """Fail with the API's own words.
+
+    requests' raise_for_status() reports only the status line, so a 400 arrived
+    as "400 Client Error: Bad Request" with the reason — the one thing that
+    identifies the fault — thrown away. Diagnosing one of these cost an hour of
+    probing and a wasted image; it should cost one click.
+    """
+    if response.status_code < 400:
+        return
+    detail = ""
+    try:
+        body = response.json()
+        err = body.get("error") or body
+        detail = err.get("message") or json.dumps(err)[:300]
+        if err.get("param"):
+            detail = f"{detail} (param: {err['param']})"
+    except Exception:
+        detail = (response.text or "")[:300]
+    raise RuntimeError(f"{where} {response.status_code}: {detail}")
+
+
 def _generate_openai_image(prompt: str, out_path: Path) -> dict:
     """Returns usage dict from API (may be empty)."""
     payload = {
@@ -355,7 +378,7 @@ def _generate_openai_image(prompt: str, out_path: Path) -> dict:
             json=payload,
             timeout=IMAGE_TIMEOUT,
         )
-    response.raise_for_status()
+    _raise_openai(response, "openai images/generations")
     body = response.json()
     out_path.write_bytes(_decode_openai_image(body))
     return _extract_usage(body)
@@ -387,7 +410,7 @@ def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> dict
             files=files,
             timeout=IMAGE_TIMEOUT,
         )
-    response.raise_for_status()
+    _raise_openai(response, "openai images/edits")
     body = response.json()
     out_path.write_bytes(_decode_openai_image(body))
     return _extract_usage(body)
