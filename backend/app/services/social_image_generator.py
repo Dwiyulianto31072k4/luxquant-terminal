@@ -805,6 +805,41 @@ def _brand_pass_prompt(
     )
 
 
+def _readable_image(path: str) -> Optional["object"]:
+    """Open a library asset as a real raster image, whatever it claims to be.
+
+    The library is admin-uploaded, so it holds what the internet gave us:
+    ibm.jpg is an SVG, anthropic.png is an SVG, several PNGs are palette-mode.
+    PIL cannot open the SVGs at all, and OpenAI rejects the odd modes with
+    "Invalid image file or mode" — which is exactly how a poster failed with
+    both logos sitting there marked OK.
+    """
+    from PIL import Image
+
+    try:
+        return Image.open(path).convert("RGBA")
+    except Exception:
+        pass
+    # Vector file wearing a raster extension. ImageMagick has rsvg behind it.
+    try:
+        import subprocess
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            out = tmp.name
+        subprocess.run(
+            ["convert", "-background", "none", "-density", "300",
+             path, "-resize", "512x512", out],
+            check=True, capture_output=True, timeout=25,
+        )
+        img = Image.open(out).convert("RGBA")
+        Path(out).unlink(missing_ok=True)
+        return img
+    except Exception as exc:
+        logger.warning("logo asset unreadable, skipping: %s (%s)", path, exc)
+        return None
+
+
 def _prepare_logos_sheet(logo_paths: list[str], *, news_id: int) -> Optional[str]:
     """Optional multi-logo plate for brand pass (logos only — never mixed with face)."""
     from PIL import Image
@@ -815,9 +850,13 @@ def _prepare_logos_sheet(logo_paths: list[str], *, news_id: int) -> Optional[str
     try:
         tiles = []
         for p in paths:
-            im = Image.open(p).convert("RGBA")
+            im = _readable_image(p)
+            if im is None:                      # unreadable asset: leave it out
+                continue                        # rather than poison the sheet
             im.thumbnail((320, 320), Image.Resampling.LANCZOS)
             tiles.append(im)
+        if not tiles:
+            return None
         n = len(tiles)
         cell = 360
         cols = min(2, n)
@@ -828,9 +867,9 @@ def _prepare_logos_sheet(logo_paths: list[str], *, news_id: int) -> Optional[str
             x = c * cell + (cell - im.width) // 2
             y = r * cell + (cell - im.height) // 2
             sheet.paste(im, (x, y), im)
-        out = ASSETS_DIR / f"ref_logos_{news_id}.jpg"
+        out = ASSETS_DIR / f"ref_logos_{news_id}.png"
         ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-        sheet.save(out, quality=95)
+        sheet.save(out)                          # real PNG, RGB, no surprises
         return str(out)
     except Exception:
         return None
@@ -1721,9 +1760,12 @@ def generate_ai_social_image(
                     )
 
         elif logo_ok:
+            # No silent fallback to the raw file: that is what sent an SVG to
+            # the images endpoint. If the sheet cannot be built from anything
+            # readable, generate without a logo reference instead of failing.
             logo_ref = _prepare_logos_sheet(
                 [str(p) for p in logo_paths], news_id=news_id
-            ) or str(logo_paths[0])
+            )
             edit_prompt = (
                 "Cinematic vertical Instagram poster. "
                 f"Use ONLY the official brand mark(s) from the reference for: {', '.join(allow)}. "
@@ -1732,13 +1774,22 @@ def generate_ai_social_image(
                 f"{_brand_allowlist_clause(allow)} "
                 "Never corner stickers. Full scene: " + scene_prompt
             )
-            u = _edit_image(edit_prompt, logo_ref, raw_path, provider=provider)
-            image_usage_acc = _merge_usage(image_usage_acc, u)
-            image_api_calls = 1
-            image_is_edit = True
-            ref_used = logo_ref
-            mode = f"ai_{provider}_brands_scene"
-            gen_prompt = edit_prompt
+            if logo_ref:
+                u = _edit_image(edit_prompt, logo_ref, raw_path, provider=provider)
+                image_usage_acc = _merge_usage(image_usage_acc, u)
+                image_api_calls = 1
+                image_is_edit = True
+                ref_used = logo_ref
+                mode = f"ai_{provider}_brands_scene"
+                gen_prompt = edit_prompt
+            else:
+                logger.warning(
+                    "no readable logo asset for %s — generating without the mark", allow)
+                gen_prompt = f"{scene_prompt} {_brand_allowlist_clause([])}"
+                u = _generate_image(gen_prompt, raw_path, provider=provider)
+                image_usage_acc = _merge_usage(image_usage_acc, u)
+                image_api_calls = 1
+                mode = f"ai_{provider}_poster"
         else:
             if featured_person:
                 # No usable photo of them, so leave them out entirely. Asking for
