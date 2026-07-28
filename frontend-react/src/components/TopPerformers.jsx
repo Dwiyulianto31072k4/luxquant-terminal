@@ -238,34 +238,37 @@ const TopPerformers = () => {
 
   return (
     <div className="mb-10 relative">
-      {/* Timeless desk panel — hairline border only, no gold edge glow */}
-      <div className="relative overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
-        {/* Title strip */}
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.015] px-4 py-3.5 sm:px-5 sm:py-4">
+      {/* Exchange-leaderboard layout: the section sits FLUSH on the page — no
+ panel, no card. Structure carries the hierarchy (heading → tabs → table),
+ not a border. Row hover bleeds past the text margin, which is what makes a
+ borderless table still read as a table. */}
+      <div className="relative">
+        {/* Section head */}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
+              <h2 className="font-display text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
                 Top Gainers
               </h2>
               {resultCount > 0 && (
-                <span className="rounded border border-ink/[0.08] bg-ink/[0.03] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                <span className="rounded border border-ink/[0.09] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
                   {resultCount}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[12px] leading-snug text-text-muted">
+            <p className="mt-1 text-[12.5px] leading-snug text-text-muted">
               Resolved signal leaderboard · open a row for call proof
             </p>
           </div>
           {periodRange.from && (
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/60">
+            <div className="flex items-baseline gap-2 font-mono text-[11px] tabular-nums">
+              <span className="text-[9px] uppercase tracking-[0.16em] text-text-muted/60">
                 Window
               </span>
-              <span className="font-mono text-[11px] tabular-nums text-text-primary/55">
+              <span className="text-text-secondary">
                 {periodRange.from}
                 {periodRange.to ? (
-                  <span className="text-text-muted/50"> – {periodRange.to}</span>
+                  <span className="text-text-muted/60"> – {periodRange.to}</span>
                 ) : null}
               </span>
             </div>
@@ -274,53 +277,54 @@ const TopPerformers = () => {
 
         {/* Category tabs + range — toolbar */}
         {data && data.top_gainers?.length > 0 && (
-          <div className="border-b border-ink/[0.06]">
-            <div
-              className="no-scrollbar flex gap-0 overflow-x-auto px-2 sm:px-3"
-              role="tablist"
-              aria-label="Leaderboard categories"
-            >
-              {CATEGORIES.map((c) => {
-                const on = category === c.key;
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={on}
-                    onClick={() => setCategory(c.key)}
-                    className={`relative shrink-0 px-3 py-3 text-[12px] font-medium transition sm:px-4 sm:text-[13px] ${
-                      on ? "text-text-primary" : "text-text-muted hover:text-text-primary/80"
-                    }`}
-                  >
-                    <span className="sm:hidden">{c.short}</span>
-                    <span className="hidden sm:inline">{c.label}</span>
-                    {on && (
-                      <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-text-primary sm:inset-x-4" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          <div>
+            {/* Tabs ride ON the table's top hairline (-mb-px), so the active
+ underline replaces that line instead of stacking a second one under it.
+ Range control shares the row — one bar, not a stack of toolbars. */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ink/[0.09]">
+              <div
+                className="no-scrollbar -mb-px flex gap-5 overflow-x-auto sm:gap-7"
+                role="tablist"
+                aria-label="Leaderboard categories"
+              >
+                {CATEGORIES.map((c) => {
+                  const on = category === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => setCategory(c.key)}
+                      className={`shrink-0 border-b-2 pb-2.5 text-[14px] transition-colors sm:text-[15px] ${
+                        on
+                          ? "border-accent font-semibold text-text-primary"
+                          : "border-transparent font-medium text-text-muted hover:text-text-primary"
+                      }`}
+                    >
+                      <span className="sm:hidden">{c.short}</span>
+                      <span className="hidden sm:inline">{c.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/[0.04] px-3 py-2 sm:px-4">
-              <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/55">
-                Range
-              </span>
-              <SegGroup
-                size="sm"
-                aria-label="Time range"
-                value={activeFilter}
-                onChange={handlePresetClick}
-                options={presets.map(({ key, short }) => ({
-                  key,
-                  label: short,
-                }))}
-              />
+              <div className="shrink-0 pb-2">
+                <SegGroup
+                  size="sm"
+                  aria-label="Time range"
+                  value={activeFilter}
+                  onChange={handlePresetClick}
+                  options={presets.map(({ key, short }) => ({
+                    key,
+                    label: short,
+                  }))}
+                />
+              </div>
             </div>
 
             {showCustom && (
-              <div className="grid grid-cols-2 gap-2 border-t border-ink/[0.04] bg-ink/[0.01] px-3 py-2.5 sm:flex sm:flex-wrap sm:items-end sm:px-4">
+              <div className="grid grid-cols-2 gap-2 border-b border-ink/[0.07] py-3 sm:flex sm:flex-wrap sm:items-end">
                 <label className="flex min-w-0 flex-col gap-1">
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
                     {t("top.from")}
@@ -357,8 +361,8 @@ const TopPerformers = () => {
         )}
 
         {data && (!data.top_gainers || data.top_gainers.length === 0) && (
-          <div className="px-4 py-14 text-center sm:px-5">
-            <p className="text-[13px] text-text-primary/35">{t("top.no_tp")}</p>
+          <div className="border-t border-ink/[0.07] py-14 text-center">
+            <p className="text-[13px] text-text-muted">{t("top.no_tp")}</p>
           </div>
         )}
 
@@ -369,7 +373,7 @@ const TopPerformers = () => {
               <div
                 role="status"
                 aria-live="polite"
-                className={`mx-3 mt-2 flex items-center gap-2.5 overflow-hidden rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 sm:mx-4 transition-all duration-400 ${
+                className={`mt-3 flex items-center gap-2.5 overflow-hidden rounded-lg border border-ink/[0.09] bg-ink/[0.02] px-3 py-2 transition-all duration-400 ${
                   isProofHintClosing
                     ? "max-h-0 opacity-0 border-transparent py-0 mt-0"
                     : "max-h-20 opacity-100 animate-[proofHintIn_.28s_ease-out]"
@@ -396,7 +400,7 @@ const TopPerformers = () => {
             )}
 
             {/* Column headers — desk table */}
-            <div className="hidden border-b border-ink/[0.05] px-4 py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3 sm:px-5">
+            <div className="hidden border-b border-ink/[0.07] py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3">
               <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
                 #
               </span>
@@ -436,10 +440,10 @@ const TopPerformers = () => {
                       }
                     }}
                     style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
-                    className="tp-row group cursor-pointer transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none"
+                    className="tp-row group -mx-3 cursor-pointer px-3 transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none sm:-mx-4 sm:px-4"
                   >
                     {/* Desktop row */}
-                    <div className="hidden items-center gap-3 px-4 py-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:px-5">
+                    <div className="hidden items-center gap-3 py-3.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem]">
                       <div className="flex justify-center">{rankBadge(rank)}</div>
 
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -510,7 +514,7 @@ const TopPerformers = () => {
                     </div>
 
                     {/* Mobile row */}
-                    <div className="flex items-center gap-2.5 px-3.5 py-3 sm:hidden">
+                    <div className="flex items-center gap-2.5 py-3 sm:hidden">
                       {rankBadge(rank)}
                       <CoinLogo pair={cleanPair(item.pair)} size={32} />
                       <div className="min-w-0 flex-1">
@@ -556,11 +560,11 @@ const TopPerformers = () => {
             )}
 
             {displayed.length > 0 && (
-              <div className="flex items-center justify-between gap-3 border-t border-ink/[0.05] px-4 py-2.5 sm:px-5">
-                <p className="font-mono text-[10px] text-text-muted/55">
+              <div className="flex items-center justify-between gap-3 border-t border-ink/[0.07] py-2.5">
+                <p className="font-mono text-[10px] text-text-muted/60">
                   Tap a row to open call proof
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-text-muted/45">
+                <p className="font-mono text-[10px] tabular-nums text-text-muted/50">
                   {resultCount} listed
                 </p>
               </div>
