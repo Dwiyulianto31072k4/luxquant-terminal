@@ -33,6 +33,34 @@ logger = logging.getLogger(__name__)
 
 ASSETS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
 LOGO_DIR = Path(os.environ.get("SOCIAL_LOGO_DIR", str(ASSETS_DIR / "logos")))
+# 368 curated coin marks already ship with the app — the signal cards draw from
+# them. News posters never looked here, so a story about Ethereum or Bitcoin
+# resolved to no mark at all and the panel said "no logo to match".
+COIN_LOGO_DIR = Path(os.environ.get("COIN_LOGO_DIR", "/opt/luxquant/coin-logos"))
+COIN_SYMBOLS = {
+    "bitcoin": "BTC", "btc": "BTC", "ether": "ETH", "ethereum": "ETH", "eth": "ETH",
+    "solana": "SOL", "sol": "SOL", "xrp": "XRP", "ripple": "XRP", "bnb": "BNB",
+    "cardano": "ADA", "ada": "ADA", "dogecoin": "DOGE", "doge": "DOGE",
+    "avalanche": "AVAX", "avax": "AVAX", "chainlink": "LINK", "link": "LINK",
+    "polygon": "MATIC", "matic": "MATIC", "polkadot": "DOT", "dot": "DOT",
+    "litecoin": "LTC", "ltc": "LTC", "tron": "TRX", "trx": "TRX",
+    "usdc": "USDC", "usdt": "USDT", "tether usdt": "USDT", "hyperliquid": "HYPE",
+    "hype": "HYPE", "sui": "SUI", "aptos": "APT", "arbitrum": "ARB",
+    "optimism": "OP", "toncoin": "TON", "ton": "TON", "shiba inu": "SHIB",
+}
+
+
+def _coin_logo(name: str) -> Optional[str]:
+    """A coin mark from the app's own library, keyed by ticker."""
+    key = (name or "").strip().lower().lstrip("$")
+    sym = COIN_SYMBOLS.get(key) or (key.upper() if 2 <= len(key) <= 6 else None)
+    if not sym:
+        return None
+    for ext in (".png", ".webp", ".jpg"):
+        path = COIN_LOGO_DIR / f"{sym}{ext}"
+        if path.exists() and path.stat().st_size > 300:
+            return str(path)
+    return None
 FACE_DIR = Path(os.environ.get("SOCIAL_FACE_DIR", str(ASSETS_DIR / "faces")))
 WIKI_SUMMARY = os.environ.get("SOCIAL_WIKI_API", "https://en.wikipedia.org/api/rest_v1/page/summary/")
 WIKI_SEARCH = os.environ.get(
@@ -314,6 +342,12 @@ def resolve_logo(name: str, *, domain: Optional[str] = None) -> Optional[str]:
         path = LOGO_DIR / f"{slug}{ext}"
         if path.exists() and path.stat().st_size > 500:
             return str(path)
+
+    # Assets are entities too: a story about Ether or Bitcoin has a mark, and we
+    # already ship it. These are our own curated files, so they need no upload.
+    coin = _coin_logo(raw)
+    if coin:
+        return coin
 
     miss = LOGO_DIR / f"{slug}.miss"
     if _is_fresh_miss(miss) or not LOGO_AUTOFETCH:
