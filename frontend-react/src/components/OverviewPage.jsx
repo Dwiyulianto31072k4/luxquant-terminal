@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
-import { PageHeader } from "./ui/PageHeader";
 
 const API_BASE = "/api/v1";
 
@@ -290,13 +289,18 @@ const OverviewPage = () => {
         path="/home"
         keywords="crypto market overview, live crypto data, market analytics, luxquant"
       />
-      {/* PAGE HEADER — same voice as every other page (h1 + subtitle) */}
-      <div>
-        <PageHeader title="Home" />
-        <p className="mt-2 text-sm text-text-secondary">
-          Top calls, market state, and today&apos;s highlights in one view.
-        </p>
-      </div>
+      {/* LIVE MARKET RIBBON — replaces the dead "Home" title with functional,
+          always-live context. Renders only once market data is in, so Top
+          Gainers stays the first thing on a cold load. Hairline-divided,
+          tabular-mono; theme-token colours keep it correct in every theme. */}
+      {data && (
+        <div className="no-scrollbar -mt-1 flex items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-ink/[0.08] pb-4 font-mono text-[12px] tabular-nums sm:gap-x-6">
+          <RibbonItem k={t("overview.total_mcap")} v={formatLargeNumber(data.totalMarketCap)} chg={data.marketCapChange24h} first />
+          <RibbonItem k={t("overview.vol_24h")} v={formatLargeNumber(data.totalVolume24h)} />
+          <RibbonItem k="BTC.D" v={`${data.btcDominance.toFixed(1)}%`} />
+          <RibbonItem k="Fear & Greed" v={data.fearGreed.value} extra={data.fearGreed.label} extraColor={fgStroke(data.fearGreed.value)} />
+        </div>
+      )}
 
       <TopPerformers />
 
@@ -858,6 +862,29 @@ const FGStat = ({ label, value }) => (
     <p className="font-mono text-sm tabular-nums" style={{ color: fgStroke(value) }}>
       {value}
     </p>
+  </div>
+);
+
+/**
+ * Live market ribbon item — a single stat in the top context strip.
+ * Hairline left divider (except the first), muted label + primary value, with
+ * an optional 24h change or a coloured tag (e.g. Fear & Greed label).
+ */
+const RibbonItem = ({ k, v, chg, extra, extraColor, first }) => (
+  <div className={`flex shrink-0 items-baseline gap-1.5 ${first ? "" : "border-l border-ink/[0.08] pl-4 sm:pl-6"}`}>
+    <span className="text-text-muted">{k}</span>
+    <span className="font-medium text-text-primary">{v}</span>
+    {chg != null && (
+      <span className={chg >= 0 ? "text-profit" : "text-loss"}>
+        {chg >= 0 ? "+" : ""}
+        {chg.toFixed(2)}%
+      </span>
+    )}
+    {extra != null && (
+      <span style={extraColor ? { color: extraColor } : undefined} className={extraColor ? "" : "text-text-muted"}>
+        {extra}
+      </span>
+    )}
   </div>
 );
 
