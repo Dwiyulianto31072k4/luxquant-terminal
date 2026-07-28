@@ -50,6 +50,8 @@ function IMacMockup({ src, alt, className = "" }) {
             <img
               src={src}
               alt={alt}
+              width="1600"
+              height="1000"
               className="relative z-10 h-full w-full object-cover object-top"
               onError={hideOnError}
             />
@@ -119,6 +121,8 @@ function PhoneMockup({ src, alt, className = "" }) {
             <img
               src={src}
               alt={alt}
+              width="748"
+              height="1622"
               className="relative z-10 block h-auto w-full"
               onError={hideOnError}
             />

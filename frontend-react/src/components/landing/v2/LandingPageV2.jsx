@@ -94,16 +94,18 @@ export default function LandingPageV2() {
       <div aria-hidden="true" className="lux-warm-page pointer-events-none absolute inset-0 z-0" />
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
-      <HeroSlider onNav={scrollTo} gainers={topGainers} onSlideChange={onHeroSlideChange} />
-      <RecentWinnersMarquee gainers={topGainers} blendWithHero={heroIsVideo} />
-      <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
-      <Architecture />
-      <TerminalPreview />
-      <Performance data={performanceData} />
-      <CoinSpotlight />
-      <GlobalReach gainers={topGainers} stats={stats} />
-      <FreeTierV2 />
-      <FaqV2 />
+      <main id="main">
+        <HeroSlider onNav={scrollTo} gainers={topGainers} onSlideChange={onHeroSlideChange} />
+        <RecentWinnersMarquee gainers={topGainers} blendWithHero={heroIsVideo} />
+        <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
+        <Architecture />
+        <TerminalPreview />
+        <Performance data={performanceData} />
+        <CoinSpotlight />
+        <GlobalReach gainers={topGainers} stats={stats} />
+        <FreeTierV2 />
+        <FaqV2 />
+      </main>
       <FooterV2 onNav={scrollTo} />
     </div>
   );

@@ -350,6 +350,10 @@ const FeatureSliderSection = () => {
                 key={`mac-${feat.id}`}
                 src={feat.macImg}
                 alt={`${feat.title} Desktop`}
+                width="1600"
+                height="1000"
+                loading="lazy"
+                decoding="async"
                 className={`absolute top-6 lg:top-8 left-0 w-full h-[calc(100%-1.5rem)] lg:h-[calc(100%-2rem)] object-cover object-top transition-all duration-700 ease-in-out ${
                   activeIdx === idx ? "opacity-100 z-10 scale-100" : "opacity-0 z-0 scale-[1.02]"
                 }`}
