@@ -134,12 +134,16 @@ BRAND_VISUAL_SIGNATURE = "\n".join([
     "- Look: cinematic 3D product-render realism. Physically-based materials, true reflections, "
     "contact shadows, fine grain. No illustration, no flat vector.",
     "- COMPOSITION — the hardest rule: TWO focal elements, no more. One subject (a person, or a "
-    "single object) and one brand mark. Everything else is empty dark space. Do NOT fill the frame "
-    "with rows of monitors, crowds of traders, banks of screens, busy trading floors or scattered "
-    "props; a poster with three things in it is already too busy. Emptiness is the style.",
-    "- World: a dark, simple setting — a plain wall, a quiet lobby, a shallow stage. Near-black "
-    "#0A0506 falling into dark maroon #241014, with a faint red atmospheric wash behind the subject. "
-    "The red is the ROOM, not the lighting. Never daylight, never a flat backdrop, never clutter.",
+    "single object) and one brand mark. Nothing else competes for attention: no crowds, no rows of "
+    "monitors, no banks of screens, no busy trading floor.",
+    "- BUT NOT EMPTY. It must look like a real place someone photographed, not a symbolic staging. "
+    "Give the room the ordinary things it would actually contain — a desk, a chair, books, a plant, "
+    "a city window — and keep them quiet: out of focus, low-lit, behind the subject. A lone figure "
+    "on a bare plaza, or an object floating in a void, reads as fake and is exactly wrong.",
+    "- World: a specific, believable interior, lit from inside. Near-black #0A0506 falling into dark "
+    "maroon #241014, with a faint red atmospheric wash in the depth. The red is the ROOM, not the "
+    "lighting. Never daylight, never a flat backdrop. Prefer an interior over a monument exterior — "
+    "a room gives the light something to fall on.",
     "- THE BRAND MARK IS THE SECOND SUBJECT: when a mark is supplied as a reference it MUST appear, "
     "large, clean and unmistakable — a backlit sign on the wall behind the subject, a moulded 3D "
     "emblem, or a big circular badge beside them. Give it room; it should read at thumbnail size. "
@@ -1714,9 +1718,15 @@ def generate_ai_social_image(
             gen_prompt = edit_prompt
         else:
             if featured_person:
+                # No usable photo of them, so leave them out entirely. Asking for
+                # a back-turned silhouette produced exactly the poster the user
+                # rejected: one anonymous figure on an empty plaza, symbolic
+                # rather than photographed. The place and the object carry the
+                # story better than a person we are not allowed to show.
                 gen_prompt = scene_prompt + (
-                    " Show the central person only from behind or as a shadowed silhouette, "
-                    "face not visible, to avoid depicting an inaccurate likeness."
+                    " Do NOT include the central person at all — no back-turned figure, no "
+                    "shadowed silhouette, no anonymous stand-in. Build the frame around the "
+                    "place and its objects instead, as a real photographed moment."
                 )
             else:
                 gen_prompt = scene_prompt
