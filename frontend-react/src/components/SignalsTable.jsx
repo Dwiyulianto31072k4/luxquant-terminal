@@ -454,9 +454,22 @@ const SignalsTable = ({
     setPricesLoading(true);
     runFetch().finally(() => setPricesLoading(false));
 
-    intervalRef.current = setInterval(runFetch, 15000);
+    // Prices come straight from the exchange, so this costs the user's data and
+    // battery rather than our server — which is exactly why a hidden tab should
+    // not keep paying for quotes nobody is reading. Coming back refreshes at
+    // once, so the visible tab is never showing a price from minutes ago.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") runFetch();
+    };
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      runFetch();
+    };
+    intervalRef.current = setInterval(tick, 15000);
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      document.removeEventListener("visibilitychange", onVisible);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;

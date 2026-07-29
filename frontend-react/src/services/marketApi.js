@@ -1,7 +1,7 @@
 // Market API Service - Uses BACKEND APIs with caching
 // Backend handles: Bybit fallback for derivatives, CoinGecko caching
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // Helper: fetch dengan timeout
 const fetchWithTimeout = async (url, timeout = 10000) => {

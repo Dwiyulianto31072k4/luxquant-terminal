@@ -2,7 +2,7 @@
 // Client for the unified Resource Hub (research / pdf / video / link).
 import api from "./authApi";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8002";
+const API_URL = import.meta.env.VITE_API_URL || "";
 const BASE = "/api/v1/resources";
 
 // ── URL helpers ─────────────────────────────────────────────

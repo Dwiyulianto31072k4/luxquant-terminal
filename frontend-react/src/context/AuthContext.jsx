@@ -20,6 +20,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Token is still held but /auth/me could not be reached. NOT the same thing
+  // as logged out — see the guard in App.jsx.
+  const [authUnreachable, setAuthUnreachable] = useState(false);
 
   // ─── Check token on mount ───
   useEffect(() => {
@@ -43,12 +46,19 @@ export const AuthProvider = ({ children }) => {
       // /auth/me never bounces a still-logged-in user to the login page. Only a
       // genuine 401 (token invalid/expired — and authApi already tried a token
       // refresh before surfacing it) means we should actually log out.
+      // After MAX_ATTEMPTS we stop the spinner and show the "can't reach the
+      // server" screen, but we KEEP probing every RETRY_MS — a screen that sits
+      // there stuck until the user thinks to click reload is barely better than
+      // the login bounce it replaced. When the API answers, the session simply
+      // resumes on its own.
       const MAX_ATTEMPTS = 4;
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS && !cancelled; attempt++) {
+      const RETRY_MS = 5000;
+      for (let attempt = 1; !cancelled; attempt++) {
         try {
           const userData = await getMeWithTimeout();
           if (!cancelled) {
             setUser(userData);
+            setAuthUnreachable(false);
             setLoading(false);
           }
           return;
@@ -69,9 +79,17 @@ export const AuthProvider = ({ children }) => {
             continue;
           }
           // Retries exhausted but token is still (as far as we know) valid —
-          // do NOT destroy the session; just stop the spinner. Per-request auth
-          // will re-validate once the backend is reachable again.
-          if (!cancelled) setLoading(false);
+          // do NOT destroy the session; just stop the spinner.
+          //
+          // Keeping the token was never enough on its own: `user` stayed null,
+          // so isAuthenticated read false and the route guard bounced a still
+          // logged-in admin to /login mid-deploy. Flag the difference between
+          // "not authenticated" and "could not ask" so the guard can wait.
+          if (!cancelled) {
+            setAuthUnreachable(true);
+            setLoading(false);
+          }
+          await new Promise((r) => setTimeout(r, RETRY_MS));
         }
       }
     };
@@ -221,6 +239,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     isAuthenticated: !!user,
+    authUnreachable,
     // googleReady dipertahankan demi kompatibilitas konsumen lama.
     // Redirect flow tidak butuh SDK, jadi selalu siap.
     googleReady: true,

@@ -240,18 +240,18 @@ const TopPerformers = () => {
   const resultCount = displayed.length;
 
   return (
-    <div className="mb-10 relative">
-      {/* Exchange-leaderboard layout: the section sits FLUSH on the page — no
- panel, no card. Structure carries the hierarchy (heading → tabs → table),
- not a border. Row hover bleeds past the text margin, which is what makes a
- borderless table still read as a table. */}
-      <div className="relative">
+    <div className="relative">
+      {/* Was flush and borderless on purpose, back when it was the only block on
+ the page. Everything around it is a card now, so staying flush read as a
+ mistake rather than a choice. Row hover still bleeds past the text margin,
+ which is what keeps a borderless table reading as a table inside the card. */}
+      <div className="relative rounded-xl border border-ink/[0.06] bg-surface-raised p-4 sm:p-5">
         {/* Section head */}
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
               <h2 className="font-display text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
-                Top Gainers
+                LuxQuant Calls
               </h2>
               {resultCount > 0 && (
                 <span className="rounded border border-ink/[0.09] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
@@ -263,19 +263,6 @@ const TopPerformers = () => {
               Resolved signal leaderboard · open a row for call proof
             </p>
           </div>
-          {periodRange.from && (
-            <div className="flex items-baseline gap-2 font-mono text-[11px] tabular-nums">
-              <span className="text-[9px] uppercase tracking-[0.16em] text-text-muted/60">
-                Window
-              </span>
-              <span className="text-text-secondary">
-                {periodRange.from}
-                {periodRange.to ? (
-                  <span className="text-text-muted/60"> – {periodRange.to}</span>
-                ) : null}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Category tabs + range — toolbar */}
@@ -287,7 +274,18 @@ const TopPerformers = () => {
             {/* Two dropdowns instead of a tab strip beside a pill group. Four
                 tabs plus five pills stopped fitting the row long before the
                 viewport got small, and the widths shifted with every label. */}
-            <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-b border-ink/[0.09] pb-3">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-ink/[0.09] pb-3">
+              {/* The window belongs beside the controls that set it, not floating
+                  in the header with nothing to balance it on the left. */}
+              <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                {periodRange.from ? (
+                  <>
+                    {periodRange.from}
+                    {periodRange.to ? ` – ${periodRange.to}` : ""}
+                  </>
+                ) : null}
+              </span>
+              <div className="flex items-center gap-2">
               <GateSelect
                 label="View"
                 value={category}
@@ -304,6 +302,7 @@ const TopPerformers = () => {
                   hint: short && label !== short ? label : undefined,
                 }))}
               />
+              </div>
             </div>
 
             {showCustom && (

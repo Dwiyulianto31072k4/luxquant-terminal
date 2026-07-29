@@ -342,21 +342,73 @@ const pairMatchesQuery = (pair, rawQuery) => {
 };
 
 // ================================================================
+// LAST-RESULT CACHE
+// ================================================================
+// The page used to start from `useState([])` + `loading = true` on every mount,
+// so returning to Signals — from another page, from a reload, from the menu —
+// blanked the table and showed a skeleton for 1-2s even though the very same
+// rows had been on screen seconds earlier. The data was thrown away and asked
+// for again.
+//
+// Two layers: a module variable (survives unmount, costs nothing) and
+// sessionStorage (survives a reload, and is per-tab so one tab can't hand its
+// rows to another). The cached rows are rendered immediately and revalidated in
+// the background; the existing "Syncing / Updated HH:MM" chip is what keeps that
+// honest, so a trader can always see how old the numbers are.
+const SIGNALS_CACHE_KEY = "lq:signals:last";
+// Past this the data is stale enough that a clean load is the better trade.
+const SIGNALS_CACHE_MAX_AGE = 10 * 60 * 1000;
+
+let signalsMemCache = null;
+
+function readSignalsCache() {
+  if (signalsMemCache) {
+    return Date.now() - signalsMemCache.at > SIGNALS_CACHE_MAX_AGE ? null : signalsMemCache;
+  }
+  try {
+    const raw = sessionStorage.getItem(SIGNALS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.at || Date.now() - parsed.at > SIGNALS_CACHE_MAX_AGE) return null;
+    signalsMemCache = parsed;
+    return parsed;
+  } catch {
+    return null; // private mode, quota, corrupt entry — just load fresh
+  }
+}
+
+function writeSignalsCache(payload) {
+  signalsMemCache = payload;
+  try {
+    sessionStorage.setItem(SIGNALS_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    /* over quota — the in-memory copy still covers navigation */
+  }
+}
+
+// ================================================================
 // MAIN PAGE
 // ================================================================
 const SignalsPage = () => {
   const { t } = useTranslation();
 
-  const [allSignals, setAllSignals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Read once, at mount, so the first paint already has rows. useState's lazy
+  // initialiser rather than useRef(readSignalsCache()) — the latter re-runs the
+  // read on every render and throws the result away.
+  const [bootCache] = useState(readSignalsCache);
+
+  const [allSignals, setAllSignals] = useState(() => bootCache?.signals || []);
+  const [loading, setLoading] = useState(!bootCache);
   const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [stats, setStats] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(() =>
+    bootCache ? new Date(bootCache.at) : null
+  );
+  const [stats, setStats] = useState(() => bootCache?.stats || null);
 
   // Coin Intelligence map { pair: coinObj } — used to join win-streak (and other
   // anomaly data) onto signal rows for the new column / filter / sort.
-  const [coinIntel, setCoinIntel] = useState({});
-  const [currentFlow, setCurrentFlow] = useState(null);
+  const [coinIntel, setCoinIntel] = useState(() => bootCache?.coinIntel || {});
+  const [currentFlow, setCurrentFlow] = useState(() => bootCache?.currentFlow ?? null);
 
   const currentPricesRef = useRef({});
   const [priceVersion, setPriceVersion] = useState(0);
@@ -389,7 +441,7 @@ const SignalsPage = () => {
   const [sortOrder, setSortOrder] = useState("desc");
 
   // Tag intelligence (historical WR per important tag + active signal map).
-  const [tagWr, setTagWr] = useState([]); // raw list from /analytics/tag-wr
+  const [tagWr, setTagWr] = useState(() => bootCache?.tagWr || []); // raw list from /analytics/tag-wr
   const [selectedTags, setSelectedTags] = useState([]); // tag names the user filters by
   const [showAllTags, setShowAllTags] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -417,14 +469,20 @@ const SignalsPage = () => {
         fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=90&min_n=200`, { headers: authHeaders }),
       ]);
+      // Collected as we go so the cache written at the end holds one coherent
+      // snapshot — never a mix of this fetch and the previous one.
+      const snapshot = {};
+
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
-        setAllSignals(data.items || []);
+        snapshot.signals = data.items || [];
+        setAllSignals(snapshot.signals);
       } else {
         throw new Error("Failed to fetch signals.");
       }
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
         const statsData = await statsRes.value.json();
+        snapshot.stats = statsData;
         setStats(statsData);
       }
       // Coin Intelligence is best-effort: if it fails, the Win Streak column /
@@ -436,15 +494,29 @@ const SignalsPage = () => {
         for (const c of all) {
           if (c && c.pair) map[c.pair] = c;
         }
+        snapshot.coinIntel = map;
+        snapshot.currentFlow = intel.current_flow ?? null;
         setCoinIntel(map);
-        setCurrentFlow(intel.current_flow ?? null);
+        setCurrentFlow(snapshot.currentFlow);
       }
       // Tag WR is best-effort: failure just hides the tag filter / badges.
       if (tagWrRes.status === "fulfilled" && tagWrRes.value.ok) {
         const tw = await tagWrRes.value.json();
-        setTagWr(Array.isArray(tw.tags) ? tw.tags : []);
+        snapshot.tagWr = Array.isArray(tw.tags) ? tw.tags : [];
+        setTagWr(snapshot.tagWr);
       }
-      setLastUpdated(new Date());
+      const at = Date.now();
+      setLastUpdated(new Date(at));
+      // Only the mandatory part is required to be present; the best-effort
+      // pieces fall back to whatever the previous snapshot held.
+      writeSignalsCache({
+        at,
+        signals: snapshot.signals,
+        stats: snapshot.stats ?? bootCache?.stats ?? null,
+        coinIntel: snapshot.coinIntel ?? bootCache?.coinIntel ?? {},
+        currentFlow: snapshot.currentFlow ?? bootCache?.currentFlow ?? null,
+        tagWr: snapshot.tagWr ?? bootCache?.tagWr ?? [],
+      });
     } catch (err) {
       console.error("Error fetching signals:", err);
       setError(err.message);
@@ -454,10 +526,26 @@ const SignalsPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchBulkSignals(true);
-    const interval = setInterval(() => fetchBulkSignals(false), 30000);
-    return () => clearInterval(interval);
-  }, [fetchBulkSignals]);
+    // With cached rows already on screen, revalidate WITHOUT the skeleton —
+    // blanking a table the user can read is the thing being fixed here. The
+    // "Syncing" chip still reports that a refresh is in flight.
+    fetchBulkSignals(!bootCache);
+
+    // Only the tab being looked at does the work. Three open tabs used to poll
+    // in lockstep even though two of them were hidden. Same pattern as
+    // AutoTradePage: skip while hidden, and refresh the moment the tab comes
+    // back so what you see is never the version you left behind.
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchBulkSignals(false);
+    };
+    const interval = setInterval(refresh, 30000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [fetchBulkSignals, bootCache]);
 
   // ── Modal sinyal didorong oleh URL: ?signal=<id>&tab=chart|trade|research|history ──
   // Sumber kebenaran tunggal — buka via klik baris, deep-link, atau back/forward

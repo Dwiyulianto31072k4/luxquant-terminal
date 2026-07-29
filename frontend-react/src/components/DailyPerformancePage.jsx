@@ -2392,13 +2392,16 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
 
   if (!open) return null;
   return (
+    // Same defect the referral sheet had: a bottom sheet sitting BELOW the
+    // mobile bottom nav's z-50, so the nav covered its lowest 64px and
+    // swallowed taps meant for the sheet.
     <div
       ref={dialogRef}
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="All signals"
-      className="fixed inset-0 z-40 bg-scrim/70 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4"
+      className="fixed inset-0 z-[9999] bg-scrim/70 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div

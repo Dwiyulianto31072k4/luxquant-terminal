@@ -1,13 +1,10 @@
 import Seo from "./Seo";
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import CoinLogo from "./CoinLogo";
 import GateMarketTable from "./market/GateMarketTable";
 import GateSnapshotRow from "./market/GateSnapshotRow";
-// ECharts is ~180 KB gzip — far more than the rest of this route combined.
-// Lazy so it arrives as its own chunk after the page is already usable.
-const EtfFlowBars = lazy(() => import("./charts/EtfFlowBars"));
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 
@@ -199,11 +196,6 @@ const OverviewPage = () => {
   const [derivPulse, setDerivPulse] = useState(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState(null);
-  // Gate-style feature cards below Top Gainers — fetched independently so a
-  // hiccup here never touches the main market grid. ETF flow via the same
-  // SoSoValue-backed endpoint the auto-poster uses; track record from analyze.
-  const [etf, setEtf] = useState(null);
-  const [track, setTrack] = useState(null);
   // fetchAll only asks "is anything on screen yet?" — via a ref so the answer is
   // current, rather than whatever it was on first render.
   const dataRef = useRef(null);
@@ -292,27 +284,6 @@ const OverviewPage = () => {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  useEffect(() => {
-    let alive = true;
-    const loadCards = async () => {
-      const [e, a] = await Promise.allSettled([
-        fetch(`${API_BASE}/market/etf-flows`),
-        fetch(`${API_BASE}/signals/analyze`),
-      ]);
-      try {
-        if (alive && e.status === "fulfilled" && e.value.ok) setEtf(await e.value.json());
-      } catch { /* leave etf null → card hides */ }
-      try {
-        if (alive && a.status === "fulfilled" && a.value.ok) setTrack((await a.value.json()).stats);
-      } catch { /* leave track null → card hides */ }
-    };
-    loadCards();
-    const iv = setInterval(loadCards, 300000);
-    return () => {
-      alive = false;
-      clearInterval(iv);
-    };
-  }, []);
 
   return (
     <div className="space-y-5 lg:space-y-7">
@@ -341,16 +312,7 @@ const OverviewPage = () => {
 
       {/* Gate's four-card strip. Fed entirely from state already fetched above,
           so it adds no request of its own. */}
-      <GateSnapshotRow hot={data?.topCoins} gainers={data?.topGainers} etf={etf} />
-
-      {/* GATE-STYLE FEATURE CARDS — institutional ETF flow + the verifiable
-          track record (the edge no exchange shows). Each guards its own data. */}
-      {(etf || track) && (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <EtfNetFlowCard data={etf} />
-          <TrackRecordCard stats={track} />
-        </div>
-      )}
+      <GateSnapshotRow hot={data?.topCoins} gainers={data?.topGainers} />
 
       {/* MARKET TABLE — the Gate /price anchor: quick filters, sortable columns,
           a 24h sparkline per row and a dumbbell for where price sits in range.
@@ -974,86 +936,6 @@ const Spark = ({ points, color, w = 96, h = 24 }) => {
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <path d={d} fill="none" stroke={color} strokeWidth="1.4" strokeLinejoin="round" />
     </svg>
-  );
-};
-
-/** One ticker row inside the ETF net-flow card. Real coin logo, not a glyph. */
-const EtfRow = ({ name, pair, series, last }) => {
-  const up = (last ?? 0) >= 0;
-  const pts = (series || []).slice(0, 10).map((r) => r.netFlow).reverse();
-  return (
-    <div className="flex items-center justify-between py-2.5">
-      <div className="flex items-center gap-2.5">
-        {/* Was a hardcoded Binance URL with a cryptocurrency-icons fallback.
-            Binance hotlink-403s every request from a browser, so the primary
-            never once resolved. CoinLogo owns the audited source order. */}
-        <CoinLogo pair={pair} size={24} />
-        <span className="text-[13px] text-text-secondary">{name}</span>
-      </div>
-      <div className="text-right">
-        <div className={`font-mono text-[15px] font-medium tabular-nums ${up ? "text-profit" : "text-loss"}`}>
-          {fmtFlow(last)}
-        </div>
-        <div className="mt-0.5 flex justify-end">
-          <Spark points={pts} color={up ? "#0ECB81" : "#F6465D"} w={70} h={16} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/** Gate-style "Crypto ETF net flow" card — BTC + ETH daily net flow. */
-const EtfNetFlowCard = ({ data }) => {
-  if (!data || (!data.btc && !data.eth)) return null;
-  const btc = data.btc?.records?.[0];
-  const eth = data.eth?.records?.[0];
-  return (
-    <div className="rounded-xl border border-ink/[0.06] bg-surface-raised p-4 lg:p-5">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-text-muted">Crypto ETF net flow</span>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60">daily</span>
-      </div>
-      <div className="divide-y divide-ink/[0.06]">
-        <EtfRow
-          name="Bitcoin"
-          pair="BTCUSDT"
-          series={data.btc?.records}
-          last={btc?.netFlow}
-        />
-        <EtfRow
-          name="Ethereum"
-          pair="ETHUSDT"
-          series={data.eth?.records}
-          last={eth?.netFlow}
-        />
-      </div>
-      <Suspense fallback={<div className="mt-3 h-[56px]" />}>
-        <EtfFlowBars records={data.btc?.records} />
-      </Suspense>
-    </div>
-  );
-};
-
-/** Track-record card — the verifiable edge no exchange shows. */
-const TrackRecordCard = ({ stats }) => {
-  if (!stats || stats.win_rate == null) return null;
-  const resolved = stats.closed_trades ?? 0;
-  return (
-    <div
-      className="rounded-xl border border-ink/[0.08] p-4 lg:p-5"
-      style={{ background: "linear-gradient(100deg, rgb(var(--accent) / 0.06), transparent 55%)" }}
-    >
-      <div className="mb-2 text-[12px] font-medium text-accent">Track record · verify, don&apos;t trust</div>
-      <div className="flex items-baseline gap-3">
-        <span className="font-mono text-3xl font-medium tabular-nums text-accent">
-          {stats.win_rate.toFixed(1)}%
-        </span>
-        <span className="text-[12px] text-text-muted">win rate</span>
-      </div>
-      <div className="mt-2 font-mono text-[12px] tabular-nums text-text-secondary">
-        {resolved.toLocaleString()} resolved · {(stats.total_winners ?? 0).toLocaleString()} winners · since 2023
-      </div>
-    </div>
   );
 };
 

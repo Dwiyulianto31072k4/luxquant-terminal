@@ -1240,13 +1240,25 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
 
       {(primaryName || (data.story_orgs || []).length > 0) && (
         <p className="text-[10px] font-mono text-text-muted leading-relaxed">
-          Brands required:{" "}
+          In the image:{" "}
           <span className="text-text-primary">
-            {(data.story_orgs || [])
-              .map((o) => o?.name)
-              .filter(Boolean)
-              .join(" · ") || primaryName}
+            {(data.hero_brand_names || []).join(" · ") ||
+              (data.story_orgs || [])
+                .map((o) => o?.name)
+                .filter(Boolean)
+                .slice(0, 1)
+                .join(" · ") ||
+              primaryName}
           </span>
+          {(data.support_brand_names || []).length > 0 ? (
+            <>
+              {" "}
+              · context only (not drawn):{" "}
+              <span className="text-text-muted">
+                {(data.support_brand_names || []).join(" · ")}
+              </span>
+            </>
+          ) : null}
           {data.featured_person ? (
             <>
               {" "}

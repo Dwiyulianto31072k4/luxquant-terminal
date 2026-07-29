@@ -6,7 +6,7 @@ import { Skeleton, ShimmerStyles } from "./ui/Loaders";
  * Uses backend API with caching (same pattern as BitcoinPage)
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 const MarketDashboard = () => {
   const [marketData, setMarketData] = useState(null);
@@ -75,8 +75,19 @@ const MarketDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+    // Hidden tabs stop refreshing; returning to the tab refreshes immediately.
+    // market/overview is the busiest endpoint on the box, and most of that came
+    // from tabs nobody was looking at.
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchData();
+    };
+    const interval = setInterval(refresh, 30000); // Refresh every 30s
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [fetchData]);
 
   // Format number with suffix (K, M, B)
