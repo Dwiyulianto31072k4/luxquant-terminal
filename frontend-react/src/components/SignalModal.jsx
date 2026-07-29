@@ -76,6 +76,10 @@ const SignalModal = ({
   // our own chart, the only one that can draw entry/TP/SL, because the TV embed
   // is a cross-origin iframe nothing outside it can write to.
   const [chartMode, setChartMode] = useState("tv");
+  // Fullscreen is a CSS position change on the existing column, never a move or
+  // remount — the TradingView widget owns DOM inside it and re-parenting would
+  // reopen the removeChild fight.
+  const [chartFull, setChartFull] = useState(false);
 
   useEffect(() => {
     const sid = signal?.signal_id;
@@ -598,6 +602,20 @@ const SignalModal = ({
       return "Etc/UTC";
     }
   };
+
+  useEffect(() => {
+    if (!chartFull) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setChartFull(false);
+      }
+    };
+    // Capture phase so this runs before the modal's own Escape handler and the
+    // first press returns you to the modal instead of closing everything.
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [chartFull]);
 
   const [appTheme, setAppTheme] = useState(getActiveTheme);
   useEffect(() => subscribeTheme(setAppTheme), []);
@@ -2022,9 +2040,37 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               {/* TAB 1: CHART */}
               {activeTab === "chart" && (
                 <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-                  <div className="relative flex-1 min-w-0 min-h-0 bg-surface-raised">
+                  <div
+                    className={
+                      chartFull
+                        ? "fixed inset-0 z-[70] bg-surface-raised"
+                        : "relative flex-1 min-w-0 min-h-0 bg-surface-raised"
+                    }
+                  >
                     {/* Floating control: toggle indikator (MACD/RSI/BB), di-remember per user */}
                     <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setChartFull((v) => !v)}
+                        title={chartFull ? "Back to the signal (Esc)" : "Focus the chart"}
+                        className="flex items-center gap-1.5 rounded-md border border-ink/15 bg-surface/80 px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
+                      >
+                        {chartFull ? (
+                          <>
+                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M9 3v6H3M15 21v-6h6M3 15h6v6M21 9h-6V3" />
+                            </svg>
+                            Back
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                            </svg>
+                            Full
+                          </>
+                        )}
+                      </button>
                       <div className="flex items-center rounded-md border border-ink/15 bg-surface/80 p-0.5 backdrop-blur-md">
                         {[
                           { k: "tv", label: "TradingView" },
@@ -2074,22 +2120,31 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </button>
                       )}
                     </div>
-                    {chartMode === "levels" ? (
-                      <div className="h-full w-full p-3 pt-12">
+                    {/* Both hosts stay mounted and are toggled with CSS. Swapping
+                        them with a conditional made React unmount a div whose
+                        children the TradingView script had replaced, and the two
+                        fought over the same nodes: "Failed to execute
+                        'removeChild' on 'Node'". Keeping the host alive means
+                        React never touches DOM the widget owns. */}
+                    <div
+                      className="h-full w-full p-3 pt-12"
+                      style={{ display: chartMode === "levels" ? "block" : "none" }}
+                    >
+                      {chartMode === "levels" && (
                         <SignalLevelsChart signal={signal} theme={appTheme} />
-                      </div>
-                    ) : (
-                      <div
-                        id="tv_chart_modal_main"
-                        ref={chartContainerRef}
-                        className="w-full h-full"
-                      />
-                    )}
+                      )}
+                    </div>
+                    <div
+                      id="tv_chart_modal_main"
+                      ref={chartContainerRef}
+                      className="w-full h-full"
+                      style={{ display: chartMode === "levels" ? "none" : "block" }}
+                    />
                   </div>
-                  <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar">
+                  <div className={`${chartFull ? "hidden" : "hidden lg:block"} w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar`}>
                     {renderTargetsPanel("sidebar")}
                   </div>
-                  <div className="lg:hidden flex-shrink-0 bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel">
+                  <div className={`${chartFull ? "hidden" : "lg:hidden"} flex-shrink-0 bg-surface-raised border-t border-ink/10 overflow-y-auto custom-scrollbar mobile-targets-panel`}>
                     {renderTargetsPanel("bottom")}
                   </div>
                 </div>

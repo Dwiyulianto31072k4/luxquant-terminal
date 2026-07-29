@@ -81,28 +81,40 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     let alive = true;
     setError(null);
     setCandles(null);
-    fetch(`${API_BASE}/market/klines?symbol=${encodeURIComponent(pair)}&interval=${interval}&limit=300`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((rows) => {
-        if (!alive) return;
-        if (!Array.isArray(rows) || !rows.length) throw new Error("no candles");
-        setCandles(
-          rows.map((k) => ({
-            time: Math.floor(Number(k[0]) / 1000),
-            open: Number(k[1]),
-            high: Number(k[2]),
-            low: Number(k[3]),
-            close: Number(k[4]),
-            volume: Number(k[5]),
-          }))
-        );
-      })
-      .catch((e) => alive && setError(e.message));
+
+    const load = (first) =>
+      fetch(`${API_BASE}/market/klines?symbol=${encodeURIComponent(pair)}&interval=${interval}&limit=300`)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((rows) => {
+          if (!alive) return;
+          if (!Array.isArray(rows) || !rows.length) throw new Error("no candles");
+          setCandles(
+            rows.map((k) => ({
+              time: Math.floor(Number(k[0]) / 1000),
+              open: Number(k[1]),
+              high: Number(k[2]),
+              low: Number(k[3]),
+              close: Number(k[4]),
+              volume: Number(k[5]),
+            }))
+          );
+        })
+        // A failed refresh must not blank a chart that is already drawn — only
+        // the first load is allowed to surface an error.
+        .catch((e) => alive && first && setError(e.message));
+
+    load(true);
+    // Not a websocket: this is a REST poll of the same klines endpoint the rest
+    // of the app uses. 20s is well inside a 15m candle and costs one cached
+    // request. TradingView mode streams properly; this trades that for the
+    // ability to draw the levels at all.
+    const iv = window.setInterval(() => load(false), 20000);
     return () => {
       alive = false;
+      window.clearInterval(iv);
     };
   }, [pair, interval]);
 
