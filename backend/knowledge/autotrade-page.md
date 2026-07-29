@@ -68,8 +68,9 @@ These caps are enforced before every live entry:
   coin.
 - **Max open positions** — the most positions the bot may hold at once (default 3).
 - **Max daily trades** — the most trades the bot may open per day (default 5).
-- **Max trade notional (USDT)** — the largest size per trade in USDT (default 10) —
-  effectively your per-trade position cap.
+- **Max trade notional (USDT)** — the largest margin per trade in USDT (default 50) —
+  effectively your per-trade position cap. Live configs must keep it at 5 USDT or
+  above; anything lower makes every signal skip as `max_trade_notional`.
 - **Min available (USDT)** — the minimum free balance required before opening a trade
   (default 5); below this the bot won't enter.
 

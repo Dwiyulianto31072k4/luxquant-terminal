@@ -176,7 +176,9 @@ function SectionSizing() {
 
       <Field label="Amount">
         The numeric value for the chosen method — USDT for <Code>Fixed</Code>, percent for{" "}
-        <Code>Percent</Code>.
+        <Code>Percent</Code>. This is the margin you commit, not the position size: live entries
+        floor at <b>5 USDT</b>, which leverage multiplies up (5 USDT at 10× opens a 50 USDT
+        position). 5 USDT is Binance’s own minimum order size.
       </Field>
 
       <Field label="Per trade cap (Risk Limits → Per trade cap)">

@@ -23,8 +23,10 @@ import {
 } from "./AutoTradeUI";
 
 const RISK_LEVELS = ["low", "normal", "high"];
-// Align with backend MIN_LIVE_ENTRY_NOTIONAL_USDT (futures-realistic floor).
-const MIN_LIVE_ENTRY_USDT = 20;
+// Mirrors backend MIN_LIVE_ENTRY_NOTIONAL_USDT. Amount is margin, not position
+// size — leverage multiplies it — so 5 USDT of margin already clears Binance's
+// 5 USDT min notional at any leverage.
+const MIN_LIVE_ENTRY_USDT = 5;
 const LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: n, label: `TP${n}` }));
 const SL_LEVEL_OPTIONS = [1, 2].map((n) => ({ value: n, label: `SL${n}` }));
 
@@ -161,12 +163,14 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
     setDraft((current) => ({ ...current, ...changes }));
   };
 
+  // Percent sizing gets the bare floor: we can't resolve a percentage into USDT
+  // without the live balance, but the backend still rejects any live cap under
+  // the floor, so mirroring it here keeps Save from failing server-side.
   const effectiveFixedNotional =
     draft.sizing_method === "fixed"
       ? Math.max(MIN_LIVE_ENTRY_USDT, Number(draft.sizing_value) || 0)
-      : null;
+      : MIN_LIVE_ENTRY_USDT;
   const sizingLimitError =
-    effectiveFixedNotional !== null &&
     Number(draft.max_trade_notional_usdt) < effectiveFixedNotional
       ? `Per trade cap must be at least ${effectiveFixedNotional.toFixed(
           2
@@ -306,7 +310,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
             label="Amount"
             hint={
               draft.sizing_method === "fixed"
-                ? `USDT per trade. Live minimum: ${MIN_LIVE_ENTRY_USDT} USDT.`
+                ? `Margin per trade — leverage multiplies it into position size. Live minimum: ${MIN_LIVE_ENTRY_USDT} USDT.`
                 : "0–100% of available balance."
             }
           >
@@ -452,14 +456,14 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 draft.sizing_method === "fixed"
                   ? `Must cover the effective ${effectiveFixedNotional.toFixed(
                       2
-                    )} USDT entry (≥${MIN_LIVE_ENTRY_USDT} USDT live min). Caps below exchange min → all entries skipped as max_trade_notional.`
-                  : `Maximum entry notional (USDT). Live floor ${MIN_LIVE_ENTRY_USDT} USDT — keep cap ≥ floor or every signal skips.`
+                    )} USDT entry (≥${MIN_LIVE_ENTRY_USDT} USDT live min). Caps below the entry size → all entries skipped as max_trade_notional.`
+                  : `Maximum margin per entry (USDT). Live floor ${MIN_LIVE_ENTRY_USDT} USDT — keep cap ≥ floor or every signal skips.`
               }
             >
               <NumberInput
                 value={draft.max_trade_notional_usdt}
                 onChange={(value) => patch({ max_trade_notional_usdt: value })}
-                min={effectiveFixedNotional || 0.01}
+                min={effectiveFixedNotional}
                 max={1000000}
                 step={0.1}
                 suffix="USDT"
