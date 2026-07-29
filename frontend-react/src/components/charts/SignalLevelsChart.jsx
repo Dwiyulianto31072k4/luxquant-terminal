@@ -6,6 +6,7 @@ import {
   LineStyle,
   CrosshairMode,
 } from "lightweight-charts";
+import { useChartDrawings, TOOLS, measureStats } from "./useChartDrawings";
 
 /**
  * The signal's own chart, with entry / TP1-4 / SL1-2 drawn on it.
@@ -87,6 +88,8 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
   const signalRef = useRef(signal);
   signalRef.current = signal;
   const fittedRef = useRef("");
+  // Bumped after the chart is constructed so the drawing layer can bind to it.
+  const [chartEpoch, setChartEpoch] = useState(0);
 
   const [interval, setInterval_] = useState("4h");
   const [candles, setCandles] = useState(null);
@@ -153,6 +156,26 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     [theme]
   );
 
+  const dp = decimalsFor(signal?.entry);
+  const { tool, setTool, shapes, draft, clear, toPixel, fmt } = useChartDrawings({
+    chartRef,
+    seriesRef: candleRef,
+    hostRef,
+    decimals: dp,
+    epoch: chartEpoch,
+  });
+
+  // While a drawing tool is armed, dragging must draw — not pan the chart.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const idle = tool === TOOLS.CURSOR;
+    chart.applyOptions({
+      handleScroll: idle,
+      handleScale: idle,
+    });
+  }, [tool, candles]);
+
   // ── chart lifecycle. Rebuilt on theme change because lightweight-charts
   //    reads colours at construction for several of these options.
   useEffect(() => {
@@ -196,6 +219,7 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       priceLineVisible: false,
     });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+    setChartEpoch((n) => n + 1);
 
     return () => {
       chart.remove();
@@ -266,6 +290,38 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-1">
+          {[
+            { k: TOOLS.CURSOR, label: "✛", title: "Pan / zoom" },
+            { k: TOOLS.MEASURE, label: "⇔", title: "Measure a move — drag across the candles" },
+            { k: TOOLS.HLINE, label: "―", title: "Horizontal line — click a price" },
+            { k: TOOLS.TREND, label: "╱", title: "Trend line — drag between two points" },
+          ].map((b) => (
+            <button
+              key={b.k}
+              type="button"
+              title={b.title}
+              onClick={() => setTool(b.k)}
+              className={`h-6 w-6 rounded text-[12px] leading-none transition-colors ${
+                tool === b.k
+                  ? "bg-accent text-accent-fg"
+                  : "text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+          {shapes.length > 0 && (
+            <button
+              type="button"
+              onClick={clear}
+              title="Clear drawings"
+              className="ml-1 rounded px-1.5 py-0.5 text-[10px] text-text-muted transition-colors hover:bg-ink/[0.06] hover:text-loss"
+            >
+              clear
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2.5 font-mono text-[10px] text-text-muted">
           <span className="flex items-center gap-1">
             <span className="h-[2px] w-3" style={{ background: palette.accent }} /> Entry
@@ -281,6 +337,60 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
 
       <div className="relative min-h-0 flex-1" style={{ height }}>
         <div ref={hostRef} className="absolute inset-0" />
+        {/* Drawings live here, above the canvas. pointer-events stay off so the
+            chart keeps its own crosshair and wheel zoom; the host element below
+            is what listens for drawing gestures. */}
+        <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
+          {[...shapes, ...(draft ? [{ ...draft, id: "draft" }] : [])].map((s) => {
+            if (s.type === TOOLS.HLINE) {
+              const p = toPixel({ time: s.time ?? 0, price: s.price });
+              const y = p ? p.y : candleRef.current?.priceToCoordinate(s.price);
+              if (y == null) return null;
+              return (
+                <g key={s.id}>
+                  <line x1="0" y1={y} x2="100%" y2={y} stroke={palette.text} strokeWidth="1" strokeDasharray="4 3" />
+                  <text x="6" y={y - 4} fill={palette.text} fontSize="10" fontFamily="JetBrains Mono, monospace">
+                    {fmt(s.price)}
+                  </text>
+                </g>
+              );
+            }
+            const a = toPixel(s.a);
+            const b = toPixel(s.b);
+            if (!a || !b) return null;
+            if (s.type === TOOLS.TREND) {
+              return (
+                <line key={s.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={palette.accent} strokeWidth="1.5" />
+              );
+            }
+            const st = measureStats(s.a, s.b);
+            const color = st?.up ? palette.pos : palette.neg;
+            return (
+              <g key={s.id}>
+                <rect
+                  x={Math.min(a.x, b.x)}
+                  y={Math.min(a.y, b.y)}
+                  width={Math.abs(b.x - a.x)}
+                  height={Math.abs(b.y - a.y)}
+                  fill={color}
+                  fillOpacity="0.12"
+                  stroke={color}
+                  strokeWidth="1"
+                />
+                <text
+                  x={(a.x + b.x) / 2}
+                  y={Math.min(a.y, b.y) - 6}
+                  fill={color}
+                  fontSize="11"
+                  fontFamily="JetBrains Mono, monospace"
+                  textAnchor="middle"
+                >
+                  {st ? `${st.pct >= 0 ? "+" : ""}${st.pct.toFixed(2)}% · ${st.span}` : ""}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
         {!candles && !error && (
           <div className="absolute inset-0 flex items-center justify-center text-[12px] text-text-muted">
             Loading candles…
