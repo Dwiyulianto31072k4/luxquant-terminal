@@ -466,6 +466,31 @@ def get_derivatives(current_user: User = Depends(require_subscription)):
 PREVIEW_ROWS = 3
 
 
+@router.get("/preview/called-pairs")
+def preview_called_pairs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Just the set of pairs LuxQuant has called in the last 7 days.
+
+    The Pulse "Called" filter only needs to know *which* pairs were called. It
+    used to read that off the screener blob, which sits behind
+    require_subscription, so on a free account the filter matched nothing and
+    the page said "no events match your filters" — it looked broken rather than
+    like a reason to subscribe. A bare list of tickers carries no actionable
+    alpha: entry, targets and stops stay paid.
+    """
+    try:
+        rows = db.execute(text(
+            "SELECT DISTINCT UPPER(pair) FROM signals "
+            "WHERE created_at > NOW() - INTERVAL '7 days' AND pair IS NOT NULL"
+        )).fetchall()
+        pairs = sorted({r[0] for r in rows if r and r[0]})
+    except Exception:
+        pairs = []
+    return {"pairs": pairs, "count": len(pairs)}
+
+
 @router.get("/preview/volume-spikes")
 def preview_volume_spikes(current_user: User = Depends(get_current_user)):
     """Top-3 15m volume spikes across the market. Teaser for /terminal Anomaly."""

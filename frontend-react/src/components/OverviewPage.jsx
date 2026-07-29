@@ -298,7 +298,7 @@ const OverviewPage = () => {
           Gainers stays the first thing on a cold load. Hairline-divided,
           tabular-mono; theme-token colours keep it correct in every theme. */}
       {data && (
-                <div className="-mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-ink/[0.08] pb-3 text-[12px]">
+                <div className="-mx-4 -mt-5 mb-1 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-b border-ink/[0.07] bg-ink/[0.02] px-4 py-2.5 text-[12px] sm:-mx-6 sm:px-6">
           <RibbonItem k={t("overview.total_mcap")} v={formatLargeNumber(data.totalMarketCap)} chg={data.marketCapChange24h} />
           <RibbonItem k={t("overview.vol_24h")} v={formatLargeNumber(data.totalVolume24h)} />
           <RibbonItem

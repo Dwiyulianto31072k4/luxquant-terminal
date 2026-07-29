@@ -1210,6 +1210,11 @@ const ControlBar = ({
               { key: "uncalled", label: "Not called" },
             ]}
           />
+          {callFilter === "called" && (
+            <span className="text-[10px] text-text-muted">
+              Tap a coin for the call — subscribers only
+            </span>
+          )}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">

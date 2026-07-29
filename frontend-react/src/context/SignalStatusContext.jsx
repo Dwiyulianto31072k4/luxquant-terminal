@@ -67,7 +67,23 @@ export function SignalStatusProvider({ children }) {
         const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=7&scope=all`, {
           headers: authHeaders(),
         });
-        if (!r.ok) return;
+        if (!r.ok) {
+          // Non-subscribers get 403 here, which left `map` null forever — so
+          // anything keyed off "was this pair called?" (the Pulse filter, the
+          // CoinLogo dot) silently behaved as if nothing had ever been called.
+          // Fall back to the bare ticker list, which carries no paid alpha.
+          const pr = await fetch(`${API_BASE}/api/v1/terminal/preview/called-pairs`, {
+            headers: authHeaders(),
+          });
+          if (!pr.ok) return;
+          const pj = await pr.json();
+          const lite = {};
+          for (const pair of pj?.pairs || []) {
+            lite[String(pair).toUpperCase()] = { status: "called", created: "", n: 1, locked: true };
+          }
+          if (alive) setMap(lite);
+          return;
+        }
         const j = await r.json();
         const rows = j?.items || [];
         const m = {};
