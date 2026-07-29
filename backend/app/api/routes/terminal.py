@@ -466,6 +466,53 @@ def get_derivatives(current_user: User = Depends(require_subscription)):
 PREVIEW_ROWS = 3
 
 
+@router.get("/narrative/{category_id}/coins")
+async def narrative_coins(
+    category_id: str,
+    limit: int = Query(100, ge=1, le=250),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Coins in a CoinGecko narrative — open to any signed-in user.
+
+    The identical endpoint on the money-flow router is gated, but that router
+    declares require_subscription at router level so it cannot be relaxed for
+    one route. This is the free half: the coin list itself is public CoinGecko
+    data and there is no reason to charge for it.
+
+    The paid half is the overlay — which of these coins LuxQuant is calling.
+    `is_luxquant_signal` is only attached for subscribers; free callers get the
+    list with the flag absent, so the set of called coins never leaks.
+    """
+    from app.api.routes.money_flow_router import _latest_snapshot_at
+    from app.services.gecko_category_service import get_category_coins
+
+    data = await get_category_coins(category_id, limit=limit)
+    coins = data.get("coins", [])
+
+    # Same test require_subscription applies, inlined because that dependency
+    # raises instead of returning a boolean and this route must not raise.
+    entitled = bool(getattr(current_user, "is_admin_staff", False))
+    if not entitled and getattr(current_user, "role", None) in ("premium", "subscriber"):
+        exp = getattr(current_user, "subscription_expires_at", None)
+        entitled = exp is None or exp > datetime.now(timezone.utc)
+    if coins and entitled:
+        latest = _latest_snapshot_at(db, "mf_coin_snapshots")
+        lux_symbols = set()
+        if latest is not None:
+            rows = db.execute(text("""
+                SELECT UPPER(symbol) AS s
+                FROM mf_coin_snapshots
+                WHERE snapshot_at = :at AND is_luxquant_signal = TRUE
+            """), {"at": latest}).fetchall()
+            lux_symbols = {r.s for r in rows if r.s}
+        for c in coins:
+            c["is_luxquant_signal"] = (c.get("symbol") or "").upper() in lux_symbols
+
+    data["calls_visible"] = entitled
+    return data
+
+
 @router.get("/preview/called-summary")
 def preview_called_summary(
     current_user: User = Depends(get_current_user),

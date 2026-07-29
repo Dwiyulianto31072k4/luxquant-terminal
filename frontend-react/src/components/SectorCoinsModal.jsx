@@ -8,7 +8,7 @@
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
 import Modal from "./ui/Modal";
-import moneyFlowApi from "../services/moneyFlowApi";
+import api from "../services/api";
 
 const fmtUSD = (v) => {
   if (v === null || v === undefined) return "—";
@@ -81,10 +81,15 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
     setErr(null);
     setQ("");
     setSort({ key: "market_cap", dir: "desc" });
-    moneyFlowApi
-      .getSectorCoins(categoryId, { limit: 100 })
-      .then((d) => {
-        if (alive) setCoins(d?.coins || []);
+    // The open endpoint, not the money-flow one: the coin list is public
+    // CoinGecko data. `is_luxquant_signal` only comes back for subscribers, so
+    // a free session gets the narrative without learning which of these we call.
+    api
+      .get(`/api/v1/terminal/narrative/${encodeURIComponent(categoryId)}/coins`, {
+        params: { limit: 100 },
+      })
+      .then((r) => {
+        if (alive) setCoins(r?.data?.coins || []);
       })
       .catch((e) => {
         // The whole /money-flow router carries require_subscription, so a free
@@ -328,7 +333,12 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
 
       <p className="px-4 sm:px-5 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/40 border-t border-ink/[0.05]">
         Tap any coin to view its markets on CoinGecko ·{" "}
-        <span className="text-text-muted">Call</span> = has a LuxQuant signal · Data: CoinGecko
+        {luxCount > 0 ? (
+          <>
+            <span className="text-text-muted">Call</span> = has a LuxQuant signal ·{" "}
+          </>
+        ) : null}
+        Data: CoinGecko
       </p>
     </Modal>
   );
