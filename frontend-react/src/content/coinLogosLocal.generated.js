@@ -4,11 +4,14 @@
 // DexScreener (DEX-only memecoins), hand-drawn SVGs (indexes/commodities),
 // and the backend's own /opt/luxquant/coin-logos library.
 export const LOCAL_COIN_LOGOS = {
+  "86": "86.webp",
   "AIGENSYN": "aigensyn.png",
   "AIOT": "okzoo.png",
+  "BROCCOLI714": "broccoli714.png",
   "BRKB": "brkb.png",
   "BROCCOLIF3B": "broccolif3b.svg",
   "BTCDOM": "btcdom.svg",
+  "COMMON": "common.png",
   "CRWV": "crwv.png",
   "DODOX": "dodo.png",
   "EBAY": "ebay.png",
@@ -21,6 +24,7 @@ export const LOCAL_COIN_LOGOS = {
   "KSTR": "kstr.png",
   "LLY": "lly.png",
   "MAGMA": "magma-finance.png",
+  "MYRO": "myro.jpg",
   "NATGAS": "natgas.svg",
   "NVO": "nvo.png",
   "PHAROS": "pharos.png",

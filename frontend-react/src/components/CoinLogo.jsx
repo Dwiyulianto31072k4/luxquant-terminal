@@ -73,8 +73,18 @@ const _saveToStorage = () => {
  */
 const stripMultiplier = (symbol) => symbol.replace(/^(1000000|1000|1M)(?=[A-Z])/, "");
 
+/**
+ * Binance suffixes a chain onto perp tickers when the bare symbol is already
+ * taken, and no logo CDN knows the suffixed form. RAYSOL is Raydium — verified
+ * by price, not by guessing the name: a 2026-07-26 RAYSOL signal entered at
+ * 0.6368 against RAY's 0.6036 three days later. NEIROETH needs no entry, OKX
+ * happens to carry it verbatim.
+ */
+const TICKER_ALIASES = { RAYSOL: "RAY" };
+
 const getLogoSources = (symbol) => {
-  const base = stripMultiplier(symbol);
+  const stripped = stripMultiplier(symbol);
+  const base = TICKER_ALIASES[stripped] || stripped;
   const lower = base.toLowerCase();
   const upper = base.toUpperCase();
   // Audited gaps ship locally — raw symbol first (BTCDOM), stripped base second
