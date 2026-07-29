@@ -1,8 +1,12 @@
 import Seo from "./Seo";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import CoinLogo from "./CoinLogo";
+import GateMarketTable from "./market/GateMarketTable";
+// ECharts is ~180 KB gzip — far more than the rest of this route combined.
+// Lazy so it arrives as its own chunk after the page is already usable.
+const EtfFlowBars = lazy(() => import("./charts/EtfFlowBars"));
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 
@@ -342,6 +346,19 @@ const OverviewPage = () => {
           <TrackRecordCard stats={track} />
         </div>
       )}
+
+      {/* MARKET TABLE — the Gate /price anchor: quick filters, sortable columns,
+          a 24h sparkline per row and a dumbbell for where price sits in range.
+          Sits below Top Gainers, which stays the first thing on the page. */}
+      <div className="min-w-0">
+        <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-text-primary sm:text-xl">
+          Crypto Market Data
+        </h2>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">
+          Live prices, 24h movement, volume and market cap across the top 100 pairs.
+        </p>
+      </div>
+      <GateMarketTable limit={50} />
 
       {/* SECTION HEADER — Market Overview (consistent w/ Top Gainers) */}
       <div className="min-w-0">
@@ -1005,6 +1022,9 @@ const EtfNetFlowCard = ({ data }) => {
           last={eth?.netFlow}
         />
       </div>
+      <Suspense fallback={<div className="mt-3 h-[56px]" />}>
+        <EtfFlowBars records={data.btc?.records} />
+      </Suspense>
     </div>
   );
 };

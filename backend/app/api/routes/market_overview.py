@@ -22,6 +22,7 @@ import re
 import html as html_mod
 
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
+from app.api.routes.market import attach_spark24
 from app.config import settings
 
 router = APIRouter(tags=["market-overview"])
@@ -613,13 +614,13 @@ async def get_markets_page_data():
                         "order": "market_cap_desc",
                         "per_page": 100,
                         "page": 1,
-                        "sparkline": "false",
+                        "sparkline": "true",
                         "price_change_percentage": "1h,24h,7d"
                     },
                     headers=CG_HEADERS
                 )
                 if res.status_code == 200:
-                    sections["coins"] = res.json()
+                    sections["coins"] = attach_spark24(res.json())
                     cache_set("lq:market:coins:100:1:market_cap_desc", sections["coins"], ttl=120)
         except Exception as e:
             print(f"Fallback fetch for coins failed: {e}")

@@ -22,6 +22,26 @@ from app.core.http_client import get_binance_client, get_coingecko_client, get_g
 
 router = APIRouter(tags=["market"])
 
+# Row sparklines for the markets table. CoinGecko only offers a 7d series (168
+# hourly points); carrying all of it for 100 coins costs ~314 KB of payload for
+# a chart 90px wide. We keep the trailing 24 — the window the table actually
+# labels — and drop the rest, which brings it to ~33 KB.
+SPARK_POINTS = 24
+
+
+def attach_spark24(coins: Any) -> Any:
+    """Replace CoinGecko's 7d sparkline with a trimmed 24h one, in place."""
+    if not isinstance(coins, list):
+        return coins
+    for coin in coins:
+        if not isinstance(coin, dict):
+            continue
+        series = (coin.pop("sparkline_in_7d", None) or {}).get("price")
+        if isinstance(series, list) and series:
+            tail = series[-SPARK_POINTS:]
+            coin["spark24"] = [round(p, 8) for p in tail if isinstance(p, (int, float))]
+    return coins
+
 # API endpoints
 BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_API = "https://fapi.binance.com"
@@ -152,7 +172,7 @@ async def get_coins_market(
         client = get_coingecko_client()
         response = await client.get(f"{COINGECKO_API}/coins/markets", params={
             "vs_currency":"usd","order":order,"per_page":per_page,"page":page,
-            "sparkline":"false","price_change_percentage":"1h,24h,7d"
+            "sparkline":"true","price_change_percentage":"1h,24h,7d"
         }, headers=CG_HEADERS)
         if response.status_code == 429:
             stale, _ = cache_get_with_stale(cache_key)
@@ -160,7 +180,7 @@ async def get_coins_market(
                 return stale
             raise HTTPException(status_code=429, detail="CoinGecko rate limit exceeded")
         response.raise_for_status()
-        result = response.json()
+        result = attach_spark24(response.json())
         cache_set(cache_key, result, ttl=120)
         return result
     except HTTPException:

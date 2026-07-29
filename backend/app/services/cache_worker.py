@@ -24,6 +24,7 @@ from app.core.database import SessionLocal
 from app.core.redis import cache_set, cache_get, is_redis_available
 from app.core.http_client import get_binance_client, get_coingecko_client, get_general_client
 from app.core.leader import is_leader  # single-leader gate (avoid N× duplicate API calls)
+from app.api.routes.market import attach_spark24
 from app.config import settings
 from app.utils.chart_urls import chart_path_to_url # TAMBAHAN: Import converter URL
 from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
@@ -837,11 +838,14 @@ async def fetch_coins_market(per_page=100, page=1, order="market_cap_desc"):
         client = get_coingecko_client()  # CHANGED: shared client
         res = await client.get(f"{COINGECKO_API}/coins/markets", params={
             "vs_currency":"usd","order":order,"per_page":per_page,"page":page,
-            "sparkline":"false","price_change_percentage":"1h,24h,7d"
+            "sparkline":"true","price_change_percentage":"1h,24h,7d"
         })
         if res.status_code == 200:
             _tracker.record_success("coingecko_coins")
-            return res.json()
+            # This worker is what actually fills lq:market:coins:* — the markets
+            # table reads the cache, so the trim has to happen here too or the
+            # 7d series ships whole and the rows get no sparkline at all.
+            return attach_spark24(res.json())
         _tracker.record_failure("coingecko_coins", Exception(f"HTTP {res.status_code}"), base_interval=120)
         return None
     except Exception as e:
