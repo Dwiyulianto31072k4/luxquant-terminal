@@ -40,6 +40,21 @@ const cssRgba = (name, alpha, fallback) => {
   return v ? `rgba(${v.split(/\s+/).join(", ")}, ${alpha})` : fallback;
 };
 
+/**
+ * lightweight-charts defaults to 2 decimals, which rendered every level on a
+ * sub-cent coin as the same "0.02" — entry, all four targets and both stops
+ * collapsed into one number and the labels became worthless. Derive the
+ * precision from the price instead.
+ */
+const decimalsFor = (p) => {
+  const n = Math.abs(Number(p) || 0);
+  if (n >= 1000) return 2;
+  if (n >= 1) return 4;
+  if (n >= 0.01) return 5;
+  if (n >= 0.0001) return 6;
+  return 8;
+};
+
 /** Levels to draw, in the order they should win a collision. */
 const buildLevels = (signal, palette) => {
   const num = (v) => {
@@ -68,6 +83,10 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
   const candleRef = useRef(null);
   const volRef = useRef(null);
   const linesRef = useRef([]);
+  // Read by the chart-construction effect, which must not re-run per signal.
+  const signalRef = useRef(signal);
+  signalRef.current = signal;
+  const fittedRef = useRef("");
 
   const [interval, setInterval_] = useState("4h");
   const [candles, setCandles] = useState(null);
@@ -157,7 +176,9 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
     });
     chartRef.current = chart;
 
+    const dp = decimalsFor(signalRef.current?.entry);
     candleRef.current = chart.addSeries(CandlestickSeries, {
+      priceFormat: { type: "price", precision: dp, minMove: 1 / 10 ** dp },
       upColor: palette.pos,
       downColor: palette.neg,
       borderUpColor: palette.pos,
@@ -216,8 +237,15 @@ const SignalLevelsChart = ({ signal, theme, height = 420 }) => {
       })
     );
 
-    chartRef.current?.timeScale().fitContent();
-  }, [candles, signal, palette]);
+    // Only frame the chart the first time this pair/interval is drawn. The 20s
+    // poll used to re-fit on every tick, so a user who had zoomed in was thrown
+    // back to the full range every 20 seconds.
+    const fitKey = `${pair}:${interval}`;
+    if (fittedRef.current !== fitKey) {
+      chartRef.current?.timeScale().fitContent();
+      fittedRef.current = fitKey;
+    }
+  }, [candles, signal, palette, pair, interval]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">

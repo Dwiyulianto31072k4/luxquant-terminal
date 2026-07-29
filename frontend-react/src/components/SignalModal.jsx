@@ -72,7 +72,7 @@ const SignalModal = ({
   const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
   // Toggle "always show indicators" (MACD/RSI/BB) di chart — di-remember per user (DB).
   const [showIndicators, setShowIndicators] = useState(true);
-  // "tv" keeps the embed widget (drawing tools, symbol search); "levels" swaps in
+  // "tv" keeps the embed widget (drawing tools, symbol search); "plan" swaps in
   // our own chart, the only one that can draw entry/TP/SL, because the TV embed
   // is a cross-origin iframe nothing outside it can write to.
   const [chartMode, setChartMode] = useState("tv");
@@ -2074,15 +2074,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <div className="flex items-center rounded-md border border-ink/15 bg-surface/80 p-0.5 backdrop-blur-md">
                         {[
                           { k: "tv", label: "TradingView" },
-                          { k: "levels", label: "Levels" },
+                          { k: "plan", label: "Plan" },
                         ].map((m) => (
                           <button
                             key={m.k}
                             type="button"
                             onClick={() => setChartMode(m.k)}
                             title={
-                              m.k === "levels"
-                                ? "LuxQuant chart — entry, targets and stops drawn on the candles"
+                              m.k === "plan"
+                                ? "Trade plan — entry, targets and stops drawn on the candles"
                                 : "TradingView — drawing tools and symbol search"
                             }
                             className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
@@ -2128,9 +2128,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         React never touches DOM the widget owns. */}
                     <div
                       className="h-full w-full p-3 pt-12"
-                      style={{ display: chartMode === "levels" ? "block" : "none" }}
+                      style={{ display: chartMode === "plan" ? "block" : "none" }}
                     >
-                      {chartMode === "levels" && (
+                      {chartMode === "plan" && (
                         <SignalLevelsChart signal={signal} theme={appTheme} />
                       )}
                     </div>
@@ -2138,7 +2138,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       id="tv_chart_modal_main"
                       ref={chartContainerRef}
                       className="w-full h-full"
-                      style={{ display: chartMode === "levels" ? "none" : "block" }}
+                      style={{ display: chartMode === "plan" ? "none" : "block" }}
                     />
                   </div>
                   <div className={`${chartFull ? "hidden" : "hidden lg:block"} w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar`}>
