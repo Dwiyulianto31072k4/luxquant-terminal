@@ -965,8 +965,12 @@ const makeEndLabel = (sym, color, total) => {
     if (value == null || index !== total - 1 || !Number.isFinite(x) || !Number.isFinite(y))
       return null;
     const name = sym.replace(/USDT$/, "");
-    const icon = name.toLowerCase().replace(/^1000/, "");
-    const url = `https://assets.coincap.io/assets/icons/${icon}@2x.png`;
+    // SVG <image> gives us no error event to cascade on, so this is a single
+    // shot — use the widest source. The 2026-07-29 audit put LiveCoinWatch at
+    // 664/749 tracked symbols against CoinCap's 315. Multiplier prefix is
+    // stripped longest-first so 1000000BOB resolves as BOB, not 000BOB.
+    const icon = name.replace(/^(1000000|1000|1M)(?=[A-Z])/, "").toLowerCase();
+    const url = `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${icon}.png`;
     const cid = `lqclip-${icon}`;
     const cx = x + 12,
       r = 7;

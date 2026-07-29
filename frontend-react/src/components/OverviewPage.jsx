@@ -2,6 +2,7 @@ import Seo from "./Seo";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
+import CoinLogo from "./CoinLogo";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 
@@ -955,23 +956,16 @@ const Spark = ({ points, color, w = 96, h = 24 }) => {
 };
 
 /** One ticker row inside the ETF net-flow card. Real coin logo, not a glyph. */
-const EtfRow = ({ name, logo, fallback, series, last }) => {
+const EtfRow = ({ name, pair, series, last }) => {
   const up = (last ?? 0) >= 0;
   const pts = (series || []).slice(0, 10).map((r) => r.netFlow).reverse();
   return (
     <div className="flex items-center justify-between py-2.5">
       <div className="flex items-center gap-2.5">
-        <img
-          src={logo}
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = fallback;
-          }}
-          alt=""
-          className="h-6 w-6 rounded-full"
-          loading="lazy"
-          decoding="async"
-        />
+        {/* Was a hardcoded Binance URL with a cryptocurrency-icons fallback.
+            Binance hotlink-403s every request from a browser, so the primary
+            never once resolved. CoinLogo owns the audited source order. */}
+        <CoinLogo pair={pair} size={24} />
         <span className="text-[13px] text-text-secondary">{name}</span>
       </div>
       <div className="text-right">
@@ -1000,15 +994,13 @@ const EtfNetFlowCard = ({ data }) => {
       <div className="divide-y divide-ink/[0.06]">
         <EtfRow
           name="Bitcoin"
-          logo="https://bin.bnbstatic.com/static/assets/logos/BTC.png"
-          fallback="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png"
+          pair="BTCUSDT"
           series={data.btc?.records}
           last={btc?.netFlow}
         />
         <EtfRow
           name="Ethereum"
-          logo="https://bin.bnbstatic.com/static/assets/logos/ETH.png"
-          fallback="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png"
+          pair="ETHUSDT"
           series={data.eth?.records}
           last={eth?.netFlow}
         />

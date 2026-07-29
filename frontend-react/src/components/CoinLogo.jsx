@@ -4,19 +4,32 @@ import { LOCAL_COIN_LOGOS } from "../content/coinLogosLocal.generated";
 
 /**
  * CoinLogo — multi-source with fail-over.
- * v5: self-hosted manifest first — a 2026-07 audit of every Binance USDT-perp
- * base symbol found 30 the CDN cascade misses (new listings like ESPORTS,
- * tokenized stocks like LLY/SMCI, indexes like BTCDOM). Those ship in
- * /public/coin-logos with a generated manifest, so they cost zero probing.
- * Then Binance CDN / OKX / LCW / CoinCap / cryptocurrency-icons as before.
- * Cache bump clears the FAIL entries users cached under v4.
+ * v6: source order is now measured, not assumed. A 2026-07-29 audit probed all
+ * 749 tracked symbols against every source with a real Referer, the way a
+ * browser sends it:
+ *
+ *   LiveCoinWatch 664/749 (88.7%)   OKX 472 (63.0%)   CoinCap 315 (42.1%)
+ *   Binance CDN     0/749 ( 0.0%)   cryptocurrency-icons 110 (14.7%)
+ *
+ * Binance hotlink-blocks: the exact same URL is 200 with no Referer and 403
+ * with one (confirmed from two different IPs), so as source #1 it was costing
+ * every logo on the page a guaranteed-failed request before anything could
+ * render. It and cryptocurrency-icons (which resolved first for zero symbols)
+ * are gone. LCW leads, so 89% of logos now land on the first request.
+ *
+ * Failures expire. LCW rate-limits under the ~118 parallel image loads the
+ * landing page fires, and a v5 FAIL was written to localStorage forever — one
+ * throttled pageload permanently replaced a real logo with initials.
  */
 
 const CACHE_KEY = "lq:coin-logos";
-const CACHE_VERSION = 5;
+const CACHE_VERSION = 6;
+// Long enough to keep genuinely-missing coins cheap, short enough that a
+// throttled load repairs itself the same day.
+const FAIL_TTL_MS = 6 * 60 * 60 * 1000;
 
 const _logoCache = new Map();
-const _failedSymbols = new Set();
+const _failedSymbols = new Map(); // symbol -> epoch ms of the failure
 
 try {
   const stored = localStorage.getItem(CACHE_KEY);
@@ -24,9 +37,10 @@ try {
     const parsed = JSON.parse(stored);
     if (parsed.v === CACHE_VERSION && parsed.data) {
       Object.entries(parsed.data).forEach(([symbol, url]) => {
-        if (url === "FAIL") {
-          _failedSymbols.add(symbol);
-        } else {
+        if (typeof url === "string" && url.startsWith("FAIL:")) {
+          const at = Number(url.slice(5)) || 0;
+          if (Date.now() - at < FAIL_TTL_MS) _failedSymbols.set(symbol, at);
+        } else if (url) {
           _logoCache.set(symbol, url);
         }
       });
@@ -43,33 +57,36 @@ const _saveToStorage = () => {
       _logoCache.forEach((url, symbol) => {
         data[symbol] = url;
       });
-      _failedSymbols.forEach((symbol) => {
-        data[symbol] = "FAIL";
+      _failedSymbols.forEach((at, symbol) => {
+        data[symbol] = `FAIL:${at}`;
       });
       localStorage.setItem(CACHE_KEY, JSON.stringify({ v: CACHE_VERSION, data }));
     } catch {}
   }, 2000);
 };
 
+/**
+ * Binance perps prefix a multiplier onto the ticker: 1000PEPE, 1000000BOB,
+ * 1MBABYDOGE. Strip the longest first — a plain /^1000/ turned 1000000BOB into
+ * "000BOB", which no source has, so BOB and MOG fell through to initials.
+ * The lookahead keeps genuine tickers that merely start with a digit (1INCH).
+ */
+const stripMultiplier = (symbol) => symbol.replace(/^(1000000|1000|1M)(?=[A-Z])/, "");
+
 const getLogoSources = (symbol) => {
-  // Strip 1000× leverage prefixes used on Binance perps (1000PEPE → pepe)
-  const base = symbol.replace(/^1000/, "").replace(/^1M/, "");
+  const base = stripMultiplier(symbol);
   const lower = base.toLowerCase();
   const upper = base.toUpperCase();
   // Audited gaps ship locally — raw symbol first (BTCDOM), stripped base second
   const local = LOCAL_COIN_LOGOS[symbol.toUpperCase()] || LOCAL_COIN_LOGOS[upper];
   return [
     ...(local ? [`/coin-logos/${local}`] : []),
-    // Binance static logos — widest coverage for perp tickers (W, KAITO, etc.)
-    `https://bin.bnbstatic.com/static/assets/logos/${upper}.png`,
-    // OKX currency icons
-    `https://static.okx.com/cdn/oksupport/asset/currency/icon/${lower}.png`,
-    // LiveCoinWatch
+    // LiveCoinWatch — 664/749 audited symbols, the widest single source
     `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${lower}.png`,
-    // CoinCap
+    // OKX currency icons — 472/749, picks up most of what LCW misses
+    `https://static.okx.com/cdn/oksupport/asset/currency/icon/${lower}.png`,
+    // CoinCap — 315/749, but the only source for a last 3 (cheap to keep)
     `https://assets.coincap.io/assets/icons/${lower}@2x.png`,
-    // Open-source icon pack
-    `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${lower}.png`,
   ];
 };
 
@@ -317,7 +334,7 @@ const GRADIENTS = [
 ];
 
 const getGradientForSymbol = (symbol) => {
-  const displaySymbol = symbol.replace(/^1000/, "");
+  const displaySymbol = stripMultiplier(symbol);
   if (COIN_COLORS[symbol]) return COIN_COLORS[symbol];
   if (COIN_COLORS[displaySymbol]) return COIN_COLORS[displaySymbol];
   let hash = 0;
@@ -328,7 +345,7 @@ const getGradientForSymbol = (symbol) => {
 };
 
 const getInitials = (symbol) => {
-  const display = symbol.replace(/^1000/, "");
+  const display = stripMultiplier(symbol);
   return display ? display.substring(0, 2).toUpperCase() : "?";
 };
 
@@ -378,7 +395,7 @@ const CoinLogo = ({ pair, size = 40, className = "" }) => {
       sourceIndexRef.current = nextIndex;
       setResolvedUrl(sourcesRef.current[nextIndex]);
     } else {
-      _failedSymbols.add(symbol);
+      _failedSymbols.set(symbol, Date.now());
       _saveToStorage();
       setFailed(true);
     }
