@@ -70,6 +70,23 @@ deploy_luxquant() {
     echo ""
     echo "📦 [2/6] Membangun Frontend React..."
     cd "$FRONTEND_PATH"
+    # Install first when the lockfile moved. Without this a commit that adds a
+    # dependency pulls fine and then dies in rollup with "invalid resolved id",
+    # because node_modules on this box still predates it. Hashing the lockfile
+    # keeps the common no-dependency-change deploy as fast as it was.
+    LOCK_STAMP="$FRONTEND_PATH/node_modules/.deploy-lock-hash"
+    LOCK_NOW=$(sha1sum package-lock.json 2>/dev/null | awk '{print $1}')
+    if [ -n "$LOCK_NOW" ] && [ "$LOCK_NOW" != "$(cat "$LOCK_STAMP" 2>/dev/null)" ]; then
+        echo "   → package-lock.json berubah, menjalankan npm ci..."
+        if nice -n 19 ionice -c3 npm ci --no-audit --no-fund; then
+            echo "$LOCK_NOW" > "$LOCK_STAMP"
+        else
+            echo "   ❌ npm ci gagal — deployment dibatalkan sebelum menyentuh webroot"
+            exit 1
+        fi
+    else
+        echo "   → Dependencies tidak berubah, skip npm ci."
+    fi
     # Low CPU/IO priority so the build never starves the live gunicorn workers.
     # This box has few cores — a full-speed vite build was pegging every core for
     # ~20-40s and tripping WORKER TIMEOUT on the still-running workers during a
