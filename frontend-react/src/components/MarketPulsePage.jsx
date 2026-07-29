@@ -1192,12 +1192,13 @@ const ControlBar = ({
 
       {/* Row 2: Source + Timeframe — desk SegGroup (mobile-friendly wrap) */}
       <div className="flex flex-col gap-2 pt-3 border-t border-ink/[0.04] sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
             Source
           </span>
           <SegGroup
             size="sm"
+            fill
             aria-label="Source filter"
             wrap
             value={sourceFilter}
@@ -1209,12 +1210,13 @@ const ControlBar = ({
             ]}
           />
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
             Calls
           </span>
           <SegGroup
             size="sm"
+            fill
             aria-label="Called filter"
             wrap
             value={callFilter}
@@ -1231,12 +1233,13 @@ const ControlBar = ({
             </span>
           )}
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="w-[52px] shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
             TF
           </span>
           <SegGroup
             size="sm"
+            fill
             aria-label="Timeframe filter"
             wrap
             value={timeframeFilter}

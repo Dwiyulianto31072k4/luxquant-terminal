@@ -33,6 +33,8 @@ export function SegGroup({
   className = "",
   "aria-label": ariaLabel = "Options",
   wrap = false,
+  /** Stretch to the container and split the width evenly between options. */
+  fill = false,
 }) {
   const pad = size === "sm" ? "px-2.5 py-1 text-[10px]" : "px-3.5 py-1.5 text-[11px]";
 
@@ -40,8 +42,8 @@ export function SegGroup({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`inline-flex max-w-full items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5 ${
-        wrap ? "flex-wrap" : "overflow-x-auto no-scrollbar"
+      className={`${fill ? "flex w-full" : "inline-flex"} max-w-full items-center gap-0.5 rounded-md border border-ink/[0.1] bg-surface-secondary p-0.5 ${
+        wrap && !fill ? "flex-wrap" : fill ? "" : "overflow-x-auto no-scrollbar"
       } ${className}`}
     >
       {options.map((opt) => {
@@ -57,7 +59,7 @@ export function SegGroup({
             onClick={() => {
               if (!opt.disabled && onChange) onChange(opt.key);
             }}
-            className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm font-mono font-semibold uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${pad} ${
+            className={`inline-flex ${fill ? "min-w-0 flex-1 justify-center" : "shrink-0"} items-center gap-1.5 whitespace-nowrap rounded-sm font-mono font-semibold uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${pad} ${
               active
                 ? "bg-accent text-accent-fg shadow-sm"
                 : "text-text-muted hover:text-text-primary"
