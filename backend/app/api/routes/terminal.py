@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
-from app.api.deps import require_subscription
+from app.api.deps import require_subscription, get_current_user
 from app.models.user import User
 
 log = logging.getLogger(__name__)
@@ -453,6 +453,48 @@ def get_derivatives(current_user: User = Depends(require_subscription)):
         stale["stale"] = True
         return stale
     return {"warming": True, "pairs": {}, "generated_at": None}
+
+
+# ============================================================
+# HOME PREVIEW — deliberately thin slices of two paid surfaces.
+# Home showed these cards empty to free users, which reads as broken rather
+# than as gated. Three rows is enough to prove the signal exists and is moving;
+# the ranked list, the history and every other pair stay behind
+# require_subscription on the full tabs. Logged-in only — not public.
+# ============================================================
+
+PREVIEW_ROWS = 3
+
+
+@router.get("/preview/volume-spikes")
+def preview_volume_spikes(current_user: User = Depends(get_current_user)):
+    """Top-3 15m volume spikes across the market. Teaser for /terminal Anomaly."""
+    blob = cache_get(DERIV_BLOB_KEY)
+    if not blob:
+        blob, _ = cache_get_with_stale(DERIV_BLOB_KEY)
+    pairs = (blob or {}).get("pairs") or {}
+    rows = [
+        {"pair": pair, "spike": d.get("spike_15m")}
+        for pair, d in pairs.items()
+        if isinstance(d, dict) and (d.get("spike_15m") or 0) > 1.5
+    ]
+    rows.sort(key=lambda r: r["spike"], reverse=True)
+    return {"items": rows[:PREVIEW_ROWS], "locked": True}
+
+
+@router.get("/preview/token-flow")
+def preview_token_flow(current_user: User = Depends(get_current_user)):
+    """Top-3 tokens leaving exchanges (accumulation). Teaser for /terminal Token Flow."""
+    from app.services.dune_tokenflow_service import get_scoped
+
+    data = get_scoped(None) or {}
+    leaving = [
+        {"symbol": (r.get("symbol") or "").upper(), "usd": abs(r.get("net_inflow_usd", 0))}
+        for r in data.values()
+        if (r.get("net_inflow_usd") or 0) < 0
+    ]
+    leaving.sort(key=lambda r: r["usd"], reverse=True)
+    return {"items": leaving[:PREVIEW_ROWS], "locked": True}
 
 
 # ============================================================

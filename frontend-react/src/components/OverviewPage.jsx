@@ -298,8 +298,8 @@ const OverviewPage = () => {
           Gainers stays the first thing on a cold load. Hairline-divided,
           tabular-mono; theme-token colours keep it correct in every theme. */}
       {data && (
-        <div className="no-scrollbar -mt-1 flex items-center justify-between gap-x-4 overflow-x-auto whitespace-nowrap border-b border-ink/[0.08] pb-4 text-[12px] sm:gap-x-6">
-          <RibbonItem k={t("overview.total_mcap")} v={formatLargeNumber(data.totalMarketCap)} chg={data.marketCapChange24h} first />
+        <div className="-mt-1 grid grid-cols-3 gap-x-4 gap-y-3 border-b border-ink/[0.08] pb-4 sm:flex sm:items-center sm:gap-x-6 sm:divide-x sm:divide-ink/[0.08]">
+          <RibbonItem k={t("overview.total_mcap")} v={formatLargeNumber(data.totalMarketCap)} chg={data.marketCapChange24h} />
           <RibbonItem k={t("overview.vol_24h")} v={formatLargeNumber(data.totalVolume24h)} />
           <RibbonItem k="BTC.D" v={`${data.btcDominance.toFixed(1)}%`} />
           <RibbonItem k="ETH.D" v={`${(data.ethDominance || 0).toFixed(1)}%`} />
@@ -893,21 +893,26 @@ const FGStat = ({ label, value }) => (
  * Hairline left divider (except the first), muted label + primary value, with
  * an optional 24h change or a coloured tag (e.g. Fear & Greed label).
  */
-const RibbonItem = ({ k, v, chg, extra, extraColor, first }) => (
-  <div className={`flex shrink-0 items-baseline gap-1.5 ${first ? "" : "border-l border-ink/[0.08] pl-4 sm:pl-6"}`}>
-    <span className="text-text-muted">{k}</span>
-    <span className="font-mono font-medium tabular-nums text-text-primary">{v}</span>
-    {chg != null && (
-      <span className={`font-mono tabular-nums ${chg >= 0 ? "text-profit" : "text-loss"}`}>
-        {chg >= 0 ? "+" : ""}
-        {chg.toFixed(2)}%
-      </span>
-    )}
-    {extra != null && (
-      <span style={extraColor ? { color: extraColor } : undefined} className={extraColor ? "" : "text-text-muted"}>
-        {extra}
-      </span>
-    )}
+const RibbonItem = ({ k, v, chg, extra, extraColor }) => (
+  <div className="flex min-w-0 flex-col gap-0.5 sm:flex-1">
+    <span className="truncate text-[11px] text-text-muted">{k}</span>
+    <div className="flex items-baseline gap-1.5">
+      <span className="font-mono text-[14px] font-medium tabular-nums text-text-primary">{v}</span>
+      {chg != null && (
+        <span className={`font-mono text-[11.5px] tabular-nums ${chg >= 0 ? "text-profit" : "text-loss"}`}>
+          {chg >= 0 ? "+" : ""}
+          {chg.toFixed(2)}%
+        </span>
+      )}
+      {extra != null && (
+        <span
+          style={extraColor ? { color: extraColor } : undefined}
+          className={`text-[11.5px] ${extraColor ? "" : "text-text-muted"}`}
+        >
+          {extra}
+        </span>
+      )}
+    </div>
   </div>
 );
 

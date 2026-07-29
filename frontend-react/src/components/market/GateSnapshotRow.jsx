@@ -136,22 +136,20 @@ const GateSnapshotRow = ({ hot, gainers }) => {
 
     const loadSpikes = async () => {
       try {
-        // spike_15m is precomputed by the terminal worker and shipped in the
-        // derivatives blob keyed by pair — NOT on the screener's signal rows.
-        // The Anomaly tab narrows this to called pairs; Home wants the whole
-        // market, so we rank every pair in the blob.
-        const r = await fetch(`${API_BASE}/api/v1/terminal/derivatives`, {
+        // Preview endpoint, not the full derivatives blob: that one is behind
+        // require_subscription, so free accounts got a 403 and the card sat
+        // empty — which reads as broken rather than as gated. This returns the
+        // top 3 to any signed-in user; the ranked list stays on the paid tab.
+        const r = await fetch(`${API_BASE}/api/v1/terminal/preview/volume-spikes`, {
           headers: authHeaders(),
         });
         if (!r.ok) throw new Error(String(r.status));
         const j = await r.json();
-        const pairs = j?.pairs || {};
-        const rows = Object.entries(pairs)
-          .map(([pair, d]) => ({ pair: pair.toUpperCase(), v: d?.spike_15m }))
-          .filter((x) => x.v != null && x.v > 1.5)
-          .sort((a, b) => b.v - a.v)
-          .slice(0, 3);
-        if (alive) setSpikes(rows);
+        if (alive) {
+          setSpikes(
+            (j.items || []).map((x) => ({ pair: (x.pair || "").toUpperCase(), v: x.spike }))
+          );
+        }
       } catch {
         if (alive) setSpikes([]);
       }
@@ -159,7 +157,9 @@ const GateSnapshotRow = ({ hot, gainers }) => {
 
     const loadFlow = async () => {
       try {
-        const r = await fetch(`${API_BASE}/api/v1/terminal/token-flow`, { headers: authHeaders() });
+        const r = await fetch(`${API_BASE}/api/v1/terminal/preview/token-flow`, {
+          headers: authHeaders(),
+        });
         if (!r.ok) throw new Error(String(r.status));
         const j = await r.json();
         if (alive) setFlow(j.items || []);
@@ -180,15 +180,11 @@ const GateSnapshotRow = ({ hot, gainers }) => {
     };
   }, []);
 
-  // Negative net_inflow_usd = leaving exchanges = accumulation. Those are the
-  // rows worth surfacing; selling pressure lives in the full tab.
+  // The preview endpoint already filters to outflows, takes the absolute value
+  // and sorts, so there is nothing to redo here.
   const leaving = useMemo(() => {
     if (!flow) return null;
-    return flow
-      .filter((r) => (r.net_inflow_usd ?? 0) < 0)
-      .sort((a, b) => (a.net_inflow_usd ?? 0) - (b.net_inflow_usd ?? 0))
-      .slice(0, 3)
-      .map((r) => ({ symbol: (r.symbol || "").toUpperCase(), usd: Math.abs(r.net_inflow_usd) }));
+    return flow.map((r) => ({ symbol: (r.symbol || "").toUpperCase(), usd: r.usd }));
   }, [flow]);
 
   const maxSpike = spikes?.[0]?.v || 1;

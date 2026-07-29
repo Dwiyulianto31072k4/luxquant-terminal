@@ -47,7 +47,7 @@ const StatCard = ({ label, children }) => (
   <div
     className="rounded-xl p-4 sm:p-5"
     style={{
-      background: "rgba(15,8,10,0.6)",
+      background: "rgb(var(--surface-raised))",
       border: "1px solid rgb(var(--line) / 0.06)",
     }}
   >
@@ -282,7 +282,7 @@ const PaymentPage = () => {
           <div
             className="rounded-2xl overflow-hidden"
             style={{
-              background: "rgba(15,8,10,0.6)",
+              background: "rgb(var(--surface-raised))",
               border: "1px solid rgb(var(--line) / 0.08)",
             }}
           >
@@ -306,7 +306,7 @@ const PaymentPage = () => {
               <div
                 className="rounded-xl p-4 mb-3"
                 style={{
-                  background: "rgba(10,5,6,0.6)",
+                  background: "rgb(var(--surface-secondary))",
                   border: "1px solid rgb(var(--line) / 0.06)",
                 }}
               >
@@ -339,7 +339,7 @@ const PaymentPage = () => {
               <div
                 className="rounded-xl p-4 mb-3"
                 style={{
-                  background: "rgba(10,5,6,0.6)",
+                  background: "rgb(var(--surface-secondary))",
                   border: "1px solid rgb(var(--line) / 0.06)",
                 }}
               >
@@ -421,7 +421,7 @@ const PaymentPage = () => {
           <div
             className="rounded-2xl overflow-hidden"
             style={{
-              background: "rgba(15,8,10,0.6)",
+              background: "rgb(var(--surface-raised))",
               border: "1px solid rgb(var(--line) / 0.08)",
             }}
           >
@@ -464,7 +464,7 @@ const PaymentPage = () => {
                     placeholder="0x..."
                     className="w-full px-4 py-3.5 rounded-xl text-text-primary text-xs font-mono focus:outline-none transition-all"
                     style={{
-                      background: "rgba(10,5,6,0.6)",
+                      background: "rgb(var(--surface-secondary))",
                       border: "1px solid rgb(var(--line) / 0.08)",
                     }}
                     onFocus={(e) => (e.target.style.borderColor = "rgb(var(--accent) / 0.3)")}
