@@ -117,12 +117,46 @@ const SortHead = ({ id, label, sort, setSort, align = "right" }) => {
   );
 };
 
-const GateMarketTable = ({ limit = 50 }) => {
+const PageBtn = ({ onClick, disabled, label, children }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    aria-label={label}
+    className="flex h-7 w-7 items-center justify-center rounded-md text-[15px] leading-none text-text-secondary transition-colors hover:bg-ink/[0.06] hover:text-text-primary disabled:pointer-events-none disabled:opacity-25"
+  >
+    {children}
+  </button>
+);
+
+/**
+ * Page numbers to render, with `null` marking an elided run. Always shows the
+ * first and last page plus the current one's neighbours, so the control keeps a
+ * stable width instead of growing with the result count.
+ */
+const pageWindow = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+  const pages = new Set([0, total - 1, current]);
+  if (current - 1 > 0) pages.add(current - 1);
+  if (current + 1 < total - 1) pages.add(current + 1);
+  const sorted = [...pages].sort((a, b) => a - b);
+  const out = [];
+  let prev = null;
+  for (const p of sorted) {
+    if (prev !== null && p - prev > 1) out.push(null);
+    out.push(p);
+    prev = p;
+  }
+  return out;
+};
+
+const GateMarketTable = ({ pageSize = 10 }) => {
   const [coins, setCoins] = useState(null);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all");
   const [changeWindow, setChangeWindow] = useState("24h"); // never name this `window`
   const [sort, setSort] = useState({ key: "market_cap", dir: "desc" });
+  const [page, setPage] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -142,6 +176,10 @@ const GateMarketTable = ({ limit = 50 }) => {
     return () => clearInterval(iv);
   }, [load]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [filter, changeWindow, sort.key, sort.dir]);
+
   const rows = useMemo(() => {
     if (!coins) return null;
     const field = CHANGE_FIELDS[changeWindow];
@@ -159,8 +197,13 @@ const GateMarketTable = ({ limit = 50 }) => {
       const bv = b[sortField] ?? -Infinity;
       return dir === "asc" ? av - bv : bv - av;
     });
-    return out.slice(0, limit);
-  }, [coins, filter, sort, changeWindow, limit]);
+    return out;
+  }, [coins, filter, sort, changeWindow]);
+
+  const pageCount = rows ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+  // Changing a filter can leave you past the end of the new result set.
+  const safePage = Math.min(page, pageCount - 1);
+  const pageRows = rows ? rows.slice(safePage * pageSize, safePage * pageSize + pageSize) : null;
 
   if (error && !coins) {
     return (
@@ -221,15 +264,15 @@ const GateMarketTable = ({ limit = 50 }) => {
             </tr>
           </thead>
           <tbody>
-            {rows === null
-              ? Array.from({ length: 8 }).map((_, i) => (
+            {pageRows === null
+              ? Array.from({ length: pageSize }).map((_, i) => (
                   <tr key={i} className="border-b border-ink/[0.04]">
                     <td colSpan={7} className="px-4 py-3">
                       <div className="h-6 w-full animate-pulse rounded bg-ink/[0.05]" />
                     </td>
                   </tr>
                 ))
-              : rows.map((c) => {
+              : pageRows.map((c) => {
                   const chg = c[CHANGE_FIELDS[changeWindow]];
                   const up = (chg ?? 0) >= 0;
                   return (
@@ -270,6 +313,49 @@ const GateMarketTable = ({ limit = 50 }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination. Ten rows a page keeps the card a predictable height instead
+          of a 50-row wall that pushes everything below it off the screen. */}
+      {rows && rows.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.06] px-4 py-3">
+          <span className="font-mono text-[11px] tabular-nums text-text-muted">
+            {safePage * pageSize + 1}–{Math.min(rows.length, safePage * pageSize + pageSize)} of {rows.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <PageBtn onClick={() => setPage(safePage - 1)} disabled={safePage === 0} label="Previous page">
+              ‹
+            </PageBtn>
+            {pageWindow(safePage, pageCount).map((p, i) =>
+              p === null ? (
+                <span key={`gap-${i}`} className="px-1 text-[12px] text-text-muted">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPage(p)}
+                  aria-current={p === safePage ? "page" : undefined}
+                  className={`h-7 min-w-[28px] rounded-md px-2 font-mono text-[12px] tabular-nums transition-colors ${
+                    p === safePage
+                      ? "bg-accent text-accent-fg"
+                      : "text-text-secondary hover:bg-ink/[0.06] hover:text-text-primary"
+                  }`}
+                >
+                  {p + 1}
+                </button>
+              )
+            )}
+            <PageBtn
+              onClick={() => setPage(safePage + 1)}
+              disabled={safePage >= pageCount - 1}
+              label="Next page"
+            >
+              ›
+            </PageBtn>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

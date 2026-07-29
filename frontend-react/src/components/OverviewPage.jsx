@@ -325,7 +325,7 @@ const OverviewPage = () => {
           Live prices, 24h movement, volume and market cap across the top 100 pairs.
         </p>
       </div>
-      <GateMarketTable limit={50} />
+      <GateMarketTable pageSize={10} />
 
       {/* SECTION HEADER — Market Overview (consistent w/ Top Gainers) */}
       <div className="min-w-0">

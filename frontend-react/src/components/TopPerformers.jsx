@@ -382,23 +382,23 @@ const TopPerformers = () => {
             )}
 
             {/* Column headers — desk table */}
-            <div className="hidden border-b border-ink/[0.07] py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem] sm:items-center sm:gap-3">
-              <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+            <div className="hidden border-b border-ink/[0.07] py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.5fr)_6.5rem_minmax(4.5rem,1fr)_6rem_8.5rem_1.25rem] sm:items-center sm:gap-3">
+              <span className="text-center text-[11px] font-medium text-text-muted">
                 #
               </span>
-              <span className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+              <span className="text-[11px] font-medium text-text-muted">
                 Token
               </span>
-              <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+              <span className="text-right text-[11px] font-medium text-text-muted">
                 {t("top.first_entry") || "Entry"}
               </span>
-              <span className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+              <span className="text-center text-[11px] font-medium text-text-muted">
                 Path
               </span>
-              <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+              <span className="text-right text-[11px] font-medium text-text-muted">
                 {t("top.duration") || "Time"}
               </span>
-              <span className="text-right font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted/50">
+              <span className="text-right text-[11px] font-medium text-text-muted">
                 Gain
               </span>
               <span />
@@ -425,7 +425,7 @@ const TopPerformers = () => {
                     className="tp-row group -mx-3 cursor-pointer px-3 transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none sm:-mx-4 sm:px-4"
                   >
                     {/* Desktop row */}
-                    <div className="hidden items-center gap-3 py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem]">
+                    <div className="hidden items-center gap-3 py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.5fr)_6.5rem_minmax(4.5rem,1fr)_6rem_8.5rem_1.25rem]">
                       <div className="flex justify-center">{rankBadge(rank)}</div>
 
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -447,7 +447,7 @@ const TopPerformers = () => {
                         </div>
                       </div>
 
-                      <div className="text-right font-mono text-[12px] tabular-nums text-text-primary/50">
+                      <div className="whitespace-nowrap text-right font-mono text-[13px] tabular-nums text-text-primary">
                         ${formatPrice(item.entry)}
                       </div>
 
@@ -457,7 +457,7 @@ const TopPerformers = () => {
                         </div>
                       </div>
 
-                      <div className="text-right font-mono text-[11px] tabular-nums text-text-primary/40">
+                      <div className="whitespace-nowrap text-right font-mono text-[12px] tabular-nums text-text-secondary">
                         {item.duration_display}
                       </div>
 
@@ -471,7 +471,7 @@ const TopPerformers = () => {
                           {formatGainDisplay(item.gain_pct)}
                         </span>
                         {item.tp_price > 0 && (
-                          <span className="font-mono text-[9px] tabular-nums text-text-primary/28">
+                          <span className="whitespace-nowrap font-mono text-[10px] tabular-nums text-text-muted">
                             peak ${formatPrice(item.tp_price)}
                           </span>
                         )}
