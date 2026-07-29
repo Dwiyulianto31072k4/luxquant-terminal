@@ -482,8 +482,13 @@ def preview_called_pairs(
     """
     try:
         rows = db.execute(text(
+            # signals.created_at is TEXT, not a timestamp — comparing it to
+            # NOW() raises "operator does not exist: text > timestamp with time
+            # zone", which the except below would have swallowed into an empty
+            # list, reproducing the very bug this endpoint exists to fix.
             "SELECT DISTINCT UPPER(pair) FROM signals "
-            "WHERE created_at > NOW() - INTERVAL '7 days' AND pair IS NOT NULL"
+            "WHERE created_at::timestamptz > NOW() - INTERVAL '7 days' "
+            "AND pair IS NOT NULL"
         )).fetchall()
         pairs = sorted({r[0] for r in rows if r and r[0]})
     except Exception:
