@@ -11,7 +11,11 @@ import CoinLogo from "../CoinLogo";
  * 24-point polylines, and at 88x24 px nothing ECharts adds is visible.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api/v1";
+// VITE_API_URL is the ORIGIN ("https://luxquant.tw"), not an API root — writing
+// `VITE_API_URL || "/api/v1"` yields https://luxquant.tw/market/coins, which the
+// SPA fallback answers with index.html and the JSON parse dies on "<!DOCTYPE".
+// Same relative base OverviewPage uses.
+const API_BASE = "/api/v1";
 
 const fmtPrice = (n) => {
   if (n == null) return "—";

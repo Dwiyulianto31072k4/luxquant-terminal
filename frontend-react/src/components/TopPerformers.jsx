@@ -6,7 +6,7 @@ import SignalJourneyExtended from "./SignalJourneyExtended";
 import SignalModal from "./SignalModal";
 import { ShimmerStyles } from "./ui/Loaders";
 import { getActiveTheme, getTradingViewTheme, subscribeTheme } from "../utils/themeColors";
-import { SegGroup } from "./ui/SegGroup";
+import GateSelect from "./ui/GateSelect";
 
 const API_BASE = "/api/v1";
 
@@ -284,46 +284,26 @@ const TopPerformers = () => {
             {/* Tabs ride ON the table's top hairline (-mb-px), so the active
  underline replaces that line instead of stacking a second one under it.
  Range control shares the row — one bar, not a stack of toolbars. */}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ink/[0.09]">
-              <div
-                className="no-scrollbar -mb-px flex gap-5 overflow-x-auto sm:gap-7"
-                role="tablist"
-                aria-label="Leaderboard categories"
-              >
-                {CATEGORIES.map((c) => {
-                  const on = category === c.key;
-                  return (
-                    <button
-                      key={c.key}
-                      type="button"
-                      role="tab"
-                      aria-selected={on}
-                      onClick={() => setCategory(c.key)}
-                      className={`shrink-0 border-b-2 pb-2.5 text-[14px] transition-colors sm:text-[15px] ${
-                        on
-                          ? "border-accent font-semibold text-text-primary"
-                          : "border-transparent font-medium text-text-muted hover:text-text-primary"
-                      }`}
-                    >
-                      <span className="sm:hidden">{c.short}</span>
-                      <span className="hidden sm:inline">{c.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="shrink-0 pb-2">
-                <SegGroup
-                  size="sm"
-                  aria-label="Time range"
-                  value={activeFilter}
-                  onChange={handlePresetClick}
-                  options={presets.map(({ key, short }) => ({
-                    key,
-                    label: short,
-                  }))}
-                />
-              </div>
+            {/* Two dropdowns instead of a tab strip beside a pill group. Four
+                tabs plus five pills stopped fitting the row long before the
+                viewport got small, and the widths shifted with every label. */}
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-b border-ink/[0.09] pb-3">
+              <GateSelect
+                label="View"
+                value={category}
+                onChange={setCategory}
+                options={CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
+              />
+              <GateSelect
+                label="Range"
+                value={activeFilter}
+                onChange={handlePresetClick}
+                options={presets.map(({ key, label, short }) => ({
+                  value: key,
+                  label: short || label,
+                  hint: short && label !== short ? label : undefined,
+                }))}
+              />
             </div>
 
             {showCustom && (

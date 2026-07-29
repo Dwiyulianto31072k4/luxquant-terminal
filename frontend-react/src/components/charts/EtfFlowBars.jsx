@@ -40,7 +40,10 @@ const EtfFlowBars = ({ records }) => {
             value: r.netFlow,
             itemStyle: { color: r.netFlow >= 0 ? tokens.pos : tokens.neg },
           })),
-          barMaxWidth: 6,
+          // A fixed barMaxWidth left the series looking like scattered ticks in
+          // a wide card. A proportional gap keeps the bars reading as one
+          // 30-day series at any card width.
+          barCategoryGap: "35%",
           barMinHeight: 1,
         },
       ],

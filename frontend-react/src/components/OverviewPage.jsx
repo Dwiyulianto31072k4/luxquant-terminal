@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import TopPerformers from "./TopPerformers";
 import CoinLogo from "./CoinLogo";
 import GateMarketTable from "./market/GateMarketTable";
+import GateSnapshotRow from "./market/GateSnapshotRow";
 // ECharts is ~180 KB gzip — far more than the rest of this route combined.
 // Lazy so it arrives as its own chunk after the page is already usable.
 const EtfFlowBars = lazy(() => import("./charts/EtfFlowBars"));
@@ -337,6 +338,10 @@ const OverviewPage = () => {
       )}
 
       <TopPerformers />
+
+      {/* Gate's four-card strip. Fed entirely from state already fetched above,
+          so it adds no request of its own. */}
+      <GateSnapshotRow hot={data?.topCoins} gainers={data?.topGainers} etf={etf} />
 
       {/* GATE-STYLE FEATURE CARDS — institutional ETF flow + the verifiable
           track record (the edge no exchange shows). Each guards its own data. */}
