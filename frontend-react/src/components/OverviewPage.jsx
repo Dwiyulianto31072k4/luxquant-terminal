@@ -638,15 +638,14 @@ const SectorPerformance = ({ categories, trending, t }) => {
                 {t("overview.trending")}
               </span>
               {trending.categories.slice(0, 3).map((cat, i) => (
-                <a
+                <button
                   key={i}
-                  href={`https://www.coingecko.com/en/categories/${cat.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  type="button"
+                  onClick={() => setDrillSector(cat)}
                   className="font-mono text-[10px] px-2 py-0.5 bg-ink/[0.04] text-text-primary/70 border border-ink/[0.08] hover:bg-ink/[0.07] hover:border-ink/[0.14] hover:text-text-primary transition-all rounded-sm"
                 >
                   {cat.name}
-                </a>
+                </button>
               ))}
             </div>
           )
