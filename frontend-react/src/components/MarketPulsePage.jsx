@@ -263,6 +263,18 @@ const MarketPulsePageInner = () => {
   const { t } = useTranslation();
 
   const pageStatusCtx = useSignalStatus();
+  // Only a number — the endpoint deliberately does not return which pairs.
+  const [calledCount, setCalledCount] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api
+      .get(`/api/v1/terminal/preview/called-summary`)
+      .then((r) => alive && setCalledCount(r?.data?.called_7d ?? null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [feed, setFeed] = useState([]);
   const [stats, setStats] = useState(null);
   const [topMovers, setTopMovers] = useState(null);
@@ -680,6 +692,9 @@ const MarketPulsePageInner = () => {
       <div className={`mp-main-grid ${sidebarOpen ? "" : "mp-sidebar-collapsed"}`}>
         <div className="mp-feed-col">
           <ActivityFeedPanel
+            callFilter={callFilter}
+            entitled={pageStatusCtx?.entitled}
+            calledCount={calledCount}
             filteredFeed={filteredFeed}
             feed={feed}
             loading={loading}
@@ -1452,6 +1467,31 @@ const FeedList = ({
     );
   });
 
+const CalledLocked = ({ count }) => (
+  <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15">
+      <svg className="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+        <rect x="5" y="11" width="14" height="10" rx="2" />
+        <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+      </svg>
+    </span>
+    <div>
+      <p className="text-[14px] font-semibold text-text-primary">
+        {count ? `${count} coins called this week` : "Calls are for subscribers"}
+      </p>
+      <p className="mt-1 text-[12px] leading-snug text-text-muted">
+        Which coins we called — and the entry, targets and stop on each — comes with a plan.
+      </p>
+    </div>
+    <a
+      href="/pricing"
+      className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+    >
+      Unlock calls
+    </a>
+  </div>
+);
+
 const FeedEmpty = ({ label = "No events match your filters" }) => (
   <div className="p-12 flex flex-col items-center justify-center gap-3">
     <IconEmpty className="h-7 w-7 text-text-muted/30" />
@@ -1484,6 +1524,9 @@ const SplitColHeader = ({ dir, count }) => {
 };
 
 const ActivityFeedPanel = ({
+  callFilter,
+  entitled,
+  calledCount,
   _filteredFeed,
   feed,
   loading,
@@ -1616,7 +1659,10 @@ const ActivityFeedPanel = ({
       ) : (
         <div className="mp-feed-list pulse-feed-scroll relative z-10">
           {loading && feed.length === 0 && <FeedSkeleton />}
-          {!loading && groupedSide.length === 0 && (
+          {!loading && groupedSide.length === 0 && callFilter === "called" && !entitled ? (
+            <CalledLocked count={calledCount} />
+          ) : null}
+          {!loading && groupedSide.length === 0 && !(callFilter === "called" && !entitled) && (
             <FeedEmpty
               label={
                 feedSide === "pump"

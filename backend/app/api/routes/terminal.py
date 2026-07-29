@@ -466,34 +466,29 @@ def get_derivatives(current_user: User = Depends(require_subscription)):
 PREVIEW_ROWS = 3
 
 
-@router.get("/preview/called-pairs")
-def preview_called_pairs(
+@router.get("/preview/called-summary")
+def preview_called_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Just the set of pairs LuxQuant has called in the last 7 days.
+    """How many pairs we called this week — deliberately NOT which ones.
 
-    The Pulse "Called" filter only needs to know *which* pairs were called. It
-    used to read that off the screener blob, which sits behind
-    require_subscription, so on a free account the filter matched nothing and
-    the page said "no events match your filters" — it looked broken rather than
-    like a reason to subscribe. A bare list of tickers carries no actionable
-    alpha: entry, targets and stops stay paid.
+    An earlier version returned the ticker list so the Pulse "Called" filter
+    would work on a free account. That was the wrong trade: which coins
+    LuxQuant calls IS the product. A free user could read the set straight off
+    the feed and never need a plan. The count still proves there is something
+    behind the paywall without handing over the thing being sold.
     """
     try:
-        rows = db.execute(text(
-            # signals.created_at is TEXT, not a timestamp — comparing it to
-            # NOW() raises "operator does not exist: text > timestamp with time
-            # zone", which the except below would have swallowed into an empty
-            # list, reproducing the very bug this endpoint exists to fix.
-            "SELECT DISTINCT UPPER(pair) FROM signals "
+        # signals.created_at is TEXT, so it must be cast before comparing to NOW().
+        n = db.execute(text(
+            "SELECT COUNT(DISTINCT UPPER(pair)) FROM signals "
             "WHERE created_at::timestamptz > NOW() - INTERVAL '7 days' "
             "AND pair IS NOT NULL"
-        )).fetchall()
-        pairs = sorted({r[0] for r in rows if r and r[0]})
+        )).scalar()
     except Exception:
-        pairs = []
-    return {"pairs": pairs, "count": len(pairs)}
+        n = None
+    return {"called_7d": int(n) if n is not None else None}
 
 
 @router.get("/preview/volume-spikes")

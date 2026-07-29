@@ -293,23 +293,7 @@ const OverviewPage = () => {
         path="/home"
         keywords="crypto market overview, live crypto data, market analytics, luxquant"
       />
-      {/* LIVE MARKET RIBBON — replaces the dead "Home" title with functional,
-          always-live context. Renders only once market data is in, so Top
-          Gainers stays the first thing on a cold load. Hairline-divided,
-          tabular-mono; theme-token colours keep it correct in every theme. */}
-      {data && (
-                <div className="-mx-4 -mt-5 mb-1 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-b border-ink/[0.07] bg-ink/[0.02] px-4 py-2.5 text-[12px] sm:-mx-6 sm:px-6">
-          <RibbonItem k={t("overview.total_mcap")} v={formatLargeNumber(data.totalMarketCap)} chg={data.marketCapChange24h} />
-          <RibbonItem k={t("overview.vol_24h")} v={formatLargeNumber(data.totalVolume24h)} />
-          <RibbonItem
-            k="Dominance"
-            v={`BTC ${data.btcDominance.toFixed(1)}%`}
-            extra={`ETH ${(data.ethDominance || 0).toFixed(1)}%`}
-          />
-          <RibbonItem k="Active" v={(data.activeCryptos || 0).toLocaleString()} />
-          <RibbonItem k="Fear & Greed" v={data.fearGreed.value} extra={data.fearGreed.label} extraColor={fgStroke(data.fearGreed.value)} />
-        </div>
-      )}
+      
 
       <TopPerformers />
 
@@ -896,33 +880,6 @@ const FGStat = ({ label, value }) => (
  * Hairline left divider (except the first), muted label + primary value, with
  * an optional 24h change or a coloured tag (e.g. Fear & Greed label).
  */
-/**
- * Global stats strip, in the shape CoinGecko and CoinMarketCap both settled on:
- *   Coins: 17,876 · Market Cap: $2.28T 0.0% · 24h Vol: $60B · Dominance: BTC 56.2% ETH 10%
- * Label and value sit INLINE at one small size. The previous version stacked a
- * label over a 14px value with wide gaps — a stat-card treatment applied to what
- * is really page chrome, which is why it read as unbalanced. Dense and uniform
- * lets the eye skip it until it wants it, and it wraps on a phone instead of
- * needing a grid.
- */
-const RibbonItem = ({ k, v, chg, extra, extraColor }) => (
-  <div className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap">
-    <span className="text-text-muted">{k}</span>
-    <span className="font-mono font-medium tabular-nums text-text-primary">{v}</span>
-    {chg != null && (
-      <span className={`font-mono tabular-nums ${chg >= 0 ? "text-profit" : "text-loss"}`}>
-        {chg >= 0 ? "+" : ""}
-        {chg.toFixed(2)}%
-      </span>
-    )}
-    {extra != null && (
-      <span style={extraColor ? { color: extraColor } : undefined} className={extraColor ? "" : "text-text-muted"}>
-        {extra}
-      </span>
-    )}
-  </div>
-);
-
 /** Signed compact money for daily ETF net flow (e.g. -$49.8M, +$226.9M). */
 const fmtFlow = (v) => {
   if (v == null || Number.isNaN(v)) return "—";
