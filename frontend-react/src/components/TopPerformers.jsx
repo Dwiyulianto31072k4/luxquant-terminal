@@ -1301,8 +1301,13 @@ export const SignalDetailModal = ({
                 ))}
               </div>
 
-              {/* Charts ARE shown — the tease. The setup is visible; only the
-                  clean numeric levels above are withheld. */}
+              {/* Charts are blurred here, and this is a leak fix rather than a
+                  style choice: the generated chart prints every level it draws
+                  as a right-axis label — ENTRY, TP1..TP4, STOP LOSS — so the
+                  numbers the response carefully nulls out were legible in the
+                  image sitting right beneath them. The shape of the move still
+                  reads through the blur, which is the part that sells.
+                  The lightbox is disabled too; it opened the image full-size. */}
               {(entryImg || afterImg) && (
                 <div>
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
@@ -1310,19 +1315,28 @@ export const SignalDetailModal = ({
                   </p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {[entryImg, afterImg].filter(Boolean).map((img, i) => (
-                      <button
+                      <div
                         key={i}
-                        type="button"
-                        onClick={() => setLightboxImg(img)}
-                        className="relative block h-[190px] w-full overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-secondary cursor-zoom-in sm:h-[230px]"
+                        className="relative block h-[190px] w-full overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-secondary sm:h-[230px]"
                       >
                         <img
                           src={img}
                           alt=""
-                          className="absolute inset-0 h-full w-full object-contain"
+                          className="absolute inset-0 h-full w-full select-none object-contain blur-[7px]"
                           loading="lazy"
+                          draggable={false}
+                          aria-hidden="true"
                         />
-                      </button>
+                        <div className="absolute inset-0 flex items-center justify-center bg-surface/25">
+                          <span className="flex items-center gap-1.5 rounded-full border border-ink/[0.12] bg-surface-raised/85 px-3 py-1.5 text-[11px] font-medium text-text-secondary backdrop-blur-sm">
+                            <svg className="h-3 w-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+                              <rect x="5" y="11" width="14" height="10" rx="2" />
+                              <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+                            </svg>
+                            Chart locked
+                          </span>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

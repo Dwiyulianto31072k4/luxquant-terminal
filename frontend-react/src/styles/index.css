@@ -1024,3 +1024,30 @@ select:focus-visible,
 textarea:focus-visible {
   outline-offset: 0 !important;
 }
+
+/* ── Tap cue for the clickable performance chart ──────────────────────────
+   The WR × BTC chart opens a day's calls on click, but nothing on it said so.
+   A slow bob is enough to read as "interactive" without competing with the
+   data. Honours prefers-reduced-motion — the element is hidden outright in
+   that case (motion-reduce:hidden on the wrapper), so this is purely additive. */
+@keyframes lq-tap-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.92;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.lq-tap-cue {
+  animation: lq-tap-cue 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lq-tap-cue {
+    animation: none;
+  }
+}

@@ -736,6 +736,8 @@ export default function Performance({ data }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [anaTab, setAnaTab] = useState("wrbtc");
   const [showBtc, setShowBtc] = useState(true);
+  // Retires the tap cue once the user has actually opened a day.
+  const [clickHintSeen, setClickHintSeen] = useState(false);
   const [drillDate, setDrillDate] = useState(null);
   const [drillData, setDrillData] = useState(null);
   const [drillLoading, setDrillLoading] = useState(false);
@@ -1307,15 +1309,33 @@ export default function Performance({ data }) {
                 )}
               </div>
 
-              <div className="h-56 w-full lg:h-72">
+              <div className="relative h-56 w-full lg:h-72">
+                {/* The chart is clickable but nothing said so — the tip below it
+                    was doing all the work and got read after the fact, if at
+                    all. A cursor tapping a candle says it before you read.
+                    Pointer-events off so it never blocks the click it advertises,
+                    and it retires the moment a day is actually opened. */}
+                {trendData.length > 0 && !clickHintSeen && (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center motion-reduce:hidden">
+                    <span className="lq-tap-cue flex items-center gap-2 rounded-full border border-accent/30 bg-surface-raised/90 px-3 py-1.5 shadow-lg backdrop-blur-sm">
+                      <svg className="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M9 11.5V5a1.5 1.5 0 1 1 3 0v6" />
+                        <path d="M12 11V4.5a1.5 1.5 0 1 1 3 0V11" />
+                        <path d="M15 11.5V7a1.5 1.5 0 1 1 3 0v8a6 6 0 0 1-6 6h-1.5a5 5 0 0 1-4-2l-2.5-3.4a1.5 1.5 0 0 1 2.3-1.9L9 16" />
+                      </svg>
+                      <span className="text-[11px] font-medium text-text-primary">Tap a candle for proof</span>
+                    </span>
+                  </div>
+                )}
                 {trendData.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
                       data={trendData}
                       margin={{ top: 8, right: showBtc ? 2 : 4, left: -20, bottom: 0 }}
-                      onClick={(e) =>
-                        openDay(e?.activeLabel || e?.activePayload?.[0]?.payload?.date)
-                      }
+                      onClick={(e) => {
+                        setClickHintSeen(true);
+                        openDay(e?.activeLabel || e?.activePayload?.[0]?.payload?.date);
+                      }}
                       style={{ cursor: "pointer" }}
                     >
                       <defs>
