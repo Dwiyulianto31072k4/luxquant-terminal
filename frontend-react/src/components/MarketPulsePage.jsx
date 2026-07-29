@@ -262,6 +262,7 @@ const IconChevronsLeft = ({ className = "h-3.5 w-3.5" }) => (
 const MarketPulsePageInner = () => {
   const { t } = useTranslation();
 
+  const pageStatusCtx = useSignalStatus();
   const [feed, setFeed] = useState([]);
   const [stats, setStats] = useState(null);
   const [topMovers, setTopMovers] = useState(null);
@@ -270,6 +271,9 @@ const MarketPulsePageInner = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [sourceFilter, setSourceFilter] = useState("all");
+  // Called = a pair LuxQuant has signalled. Free accounts still see every row;
+  // the paywall lands on the click, not on the list.
+  const [callFilter, setCallFilter] = useState("all");
   const [timeframeFilter, setTimeframeFilter] = useState("all");
   const [searchPair, setSearchPair] = useState("");
   const [selectedCoin, setSelectedCoin] = useState(null);
@@ -380,11 +384,23 @@ const MarketPulsePageInner = () => {
 
   // ═════════ DERIVED (UNCHANGED) ═════════
 
+  const signalMap = pageStatusCtx?.map;
+
   const filteredFeed = useMemo(() => {
-    if (!searchPair) return feed;
-    const q = searchPair.toUpperCase();
-    return feed.filter((e) => e.pair?.includes(q));
-  }, [feed, searchPair]);
+    let out = feed;
+    if (searchPair) {
+      const q = searchPair.toUpperCase();
+      out = out.filter((e) => e.pair?.includes(q));
+    }
+    if (callFilter !== "all") {
+      const wantCalled = callFilter === "called";
+      out = out.filter((e) => {
+        const isCalled = !!(signalMap && signalMap[(e.pair || "").toUpperCase()]);
+        return isCalled === wantCalled;
+      });
+    }
+    return out;
+  }, [feed, searchPair, callFilter, signalMap]);
 
   // Pump = bullish / upside move; Dump = bearish / downside move.
   // Mirrors the heatmap direction logic so classification is consistent.
@@ -650,6 +666,8 @@ const MarketPulsePageInner = () => {
         selectedCoin={selectedCoin}
         selectCoin={selectCoin}
         sourceFilter={sourceFilter}
+        callFilter={callFilter}
+        setCallFilter={setCallFilter}
         setSourceFilter={setSourceFilter}
         timeframeFilter={timeframeFilter}
         setTimeframeFilter={setTimeframeFilter}
@@ -1101,6 +1119,8 @@ const ControlBar = ({
   selectedCoin,
   selectCoin,
   sourceFilter,
+  callFilter,
+  setCallFilter,
   setSourceFilter,
   timeframeFilter,
   setTimeframeFilter,
@@ -1171,6 +1191,23 @@ const ControlBar = ({
               { key: "all", label: "All" },
               { key: "pulse", label: "Pulse" },
               { key: "price_movement", label: "Price" },
+            ]}
+          />
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+            Calls
+          </span>
+          <SegGroup
+            size="sm"
+            aria-label="Called filter"
+            wrap
+            value={callFilter}
+            onChange={setCallFilter}
+            options={[
+              { key: "all", label: "All" },
+              { key: "called", label: "Called" },
+              { key: "uncalled", label: "Not called" },
             ]}
           />
         </div>
