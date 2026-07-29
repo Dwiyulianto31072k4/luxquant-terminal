@@ -5,6 +5,7 @@ import CoinLogo from "./CoinLogo";
 import SignalHistoryTab from "./SignalHistoryTab";
 import DeepAnalysis from "./DeepAnalysis";
 import SignalJourneyExtended from "./SignalJourneyExtended";
+import SignalLevelsChart from "./charts/SignalLevelsChart";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import { useCurrency } from "../context/CurrencyContext";
@@ -71,6 +72,10 @@ const SignalModal = ({
   const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
   // Toggle "always show indicators" (MACD/RSI/BB) di chart — di-remember per user (DB).
   const [showIndicators, setShowIndicators] = useState(true);
+  // "tv" keeps the embed widget (drawing tools, symbol search); "levels" swaps in
+  // our own chart, the only one that can draw entry/TP/SL, because the TV embed
+  // is a cross-origin iframe nothing outside it can write to.
+  const [chartMode, setChartMode] = useState("tv");
 
   useEffect(() => {
     const sid = signal?.signal_id;
@@ -598,7 +603,11 @@ const SignalModal = ({
   useEffect(() => subscribeTheme(setAppTheme), []);
 
   useEffect(() => {
-    if (!isOpen || !signal || !chartContainerRef.current || activeTab !== "chart") return;
+    // chartMode must be in the deps below: switching away unmounts this div, and
+    // without the dep the effect never re-runs on the way back, leaving an empty
+    // box where the widget used to be.
+    if (!isOpen || !signal || activeTab !== "chart" || chartMode !== "tv") return;
+    if (!chartContainerRef.current) return;
     const container = chartContainerRef.current;
     const tv = getTradingViewTheme(appTheme);
     container.style.background = tv.backgroundColor;
@@ -612,7 +621,7 @@ const SignalModal = ({
       withdateranges: true,
       studies: showIndicators ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"] : [],
     });
-  }, [isOpen, pairKey, activeTab, showIndicators, appTheme, signal?.pair]);
+  }, [isOpen, pairKey, activeTab, chartMode, showIndicators, appTheme, signal?.pair]);
 
   // 7. Handle Render TradingView Mini di Tab Trade
   // Definisikan variabel URL gambar lebih awal untuk digunakan di useEffect ini
@@ -2016,6 +2025,31 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <div className="relative flex-1 min-w-0 min-h-0 bg-surface-raised">
                     {/* Floating control: toggle indikator (MACD/RSI/BB), di-remember per user */}
                     <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                      <div className="flex items-center rounded-md border border-ink/15 bg-surface/80 p-0.5 backdrop-blur-md">
+                        {[
+                          { k: "tv", label: "TradingView" },
+                          { k: "levels", label: "Levels" },
+                        ].map((m) => (
+                          <button
+                            key={m.k}
+                            type="button"
+                            onClick={() => setChartMode(m.k)}
+                            title={
+                              m.k === "levels"
+                                ? "LuxQuant chart — entry, targets and stops drawn on the candles"
+                                : "TradingView — drawing tools and symbol search"
+                            }
+                            className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
+                              chartMode === m.k
+                                ? "bg-accent text-accent-fg"
+                                : "text-text-muted hover:text-text-primary"
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                      {chartMode === "tv" && (
                       <button
                         onClick={toggleIndicators}
                         title={
@@ -2038,12 +2072,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         </span>
                         Indicators
                       </button>
+                      )}
                     </div>
-                    <div
-                      id="tv_chart_modal_main"
-                      ref={chartContainerRef}
-                      className="w-full h-full"
-                    />
+                    {chartMode === "levels" ? (
+                      <div className="h-full w-full p-3 pt-12">
+                        <SignalLevelsChart signal={signal} theme={appTheme} />
+                      </div>
+                    ) : (
+                      <div
+                        id="tv_chart_modal_main"
+                        ref={chartContainerRef}
+                        className="w-full h-full"
+                      />
+                    )}
                   </div>
                   <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar">
                     {renderTargetsPanel("sidebar")}
