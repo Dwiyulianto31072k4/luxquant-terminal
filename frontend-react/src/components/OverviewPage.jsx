@@ -321,10 +321,12 @@ const OverviewPage = () => {
           Gainers stays the first thing on a cold load. Hairline-divided,
           tabular-mono; theme-token colours keep it correct in every theme. */}
       {data && (
-        <div className="no-scrollbar -mt-1 flex items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-ink/[0.08] pb-4 font-mono text-[12px] tabular-nums sm:gap-x-6">
+        <div className="no-scrollbar -mt-1 flex items-center justify-between gap-x-4 overflow-x-auto whitespace-nowrap border-b border-ink/[0.08] pb-4 text-[12px] sm:gap-x-6">
           <RibbonItem k={t("overview.total_mcap")} v={formatLargeNumber(data.totalMarketCap)} chg={data.marketCapChange24h} first />
           <RibbonItem k={t("overview.vol_24h")} v={formatLargeNumber(data.totalVolume24h)} />
           <RibbonItem k="BTC.D" v={`${data.btcDominance.toFixed(1)}%`} />
+          <RibbonItem k="ETH.D" v={`${(data.ethDominance || 0).toFixed(1)}%`} />
+          <RibbonItem k="Active" v={(data.activeCryptos || 0).toLocaleString()} />
           <RibbonItem k="Fear & Greed" v={data.fearGreed.value} extra={data.fearGreed.label} extraColor={fgStroke(data.fearGreed.value)} />
         </div>
       )}
@@ -909,9 +911,9 @@ const FGStat = ({ label, value }) => (
 const RibbonItem = ({ k, v, chg, extra, extraColor, first }) => (
   <div className={`flex shrink-0 items-baseline gap-1.5 ${first ? "" : "border-l border-ink/[0.08] pl-4 sm:pl-6"}`}>
     <span className="text-text-muted">{k}</span>
-    <span className="font-medium text-text-primary">{v}</span>
+    <span className="font-mono font-medium tabular-nums text-text-primary">{v}</span>
     {chg != null && (
-      <span className={chg >= 0 ? "text-profit" : "text-loss"}>
+      <span className={`font-mono tabular-nums ${chg >= 0 ? "text-profit" : "text-loss"}`}>
         {chg >= 0 ? "+" : ""}
         {chg.toFixed(2)}%
       </span>
@@ -952,19 +954,24 @@ const Spark = ({ points, color, w = 96, h = 24 }) => {
   );
 };
 
-/** One ticker row inside the ETF net-flow card. */
-const EtfRow = ({ sym, name, badge, badgeBg, series, last }) => {
+/** One ticker row inside the ETF net-flow card. Real coin logo, not a glyph. */
+const EtfRow = ({ name, logo, fallback, series, last }) => {
   const up = (last ?? 0) >= 0;
   const pts = (series || []).slice(0, 10).map((r) => r.netFlow).reverse();
   return (
     <div className="flex items-center justify-between py-2.5">
       <div className="flex items-center gap-2.5">
-        <span
-          className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold text-black"
-          style={{ background: badgeBg }}
-        >
-          {badge}
-        </span>
+        <img
+          src={logo}
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = fallback;
+          }}
+          alt=""
+          className="h-6 w-6 rounded-full"
+          loading="lazy"
+          decoding="async"
+        />
         <span className="text-[13px] text-text-secondary">{name}</span>
       </div>
       <div className="text-right">
@@ -991,8 +998,20 @@ const EtfNetFlowCard = ({ data }) => {
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60">daily</span>
       </div>
       <div className="divide-y divide-ink/[0.06]">
-        <EtfRow name="Bitcoin" badge="₿" badgeBg="#f7931a" series={data.btc?.records} last={btc?.netFlow} />
-        <EtfRow name="Ethereum" badge="◆" badgeBg="#6b8cef" series={data.eth?.records} last={eth?.netFlow} />
+        <EtfRow
+          name="Bitcoin"
+          logo="https://bin.bnbstatic.com/static/assets/logos/BTC.png"
+          fallback="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png"
+          series={data.btc?.records}
+          last={btc?.netFlow}
+        />
+        <EtfRow
+          name="Ethereum"
+          logo="https://bin.bnbstatic.com/static/assets/logos/ETH.png"
+          fallback="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png"
+          series={data.eth?.records}
+          last={eth?.netFlow}
+        />
       </div>
     </div>
   );

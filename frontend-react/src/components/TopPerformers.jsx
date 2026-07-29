@@ -446,7 +446,7 @@ const TopPerformers = () => {
                     className="tp-row group -mx-3 cursor-pointer px-3 transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none sm:-mx-4 sm:px-4"
                   >
                     {/* Desktop row */}
-                    <div className="hidden items-center gap-3 py-3.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem]">
+                    <div className="hidden items-center gap-3 py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.55fr)_5.5rem_minmax(4.5rem,1fr)_4.5rem_5.75rem_1.25rem]">
                       <div className="flex justify-center">{rankBadge(rank)}</div>
 
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -517,7 +517,7 @@ const TopPerformers = () => {
                     </div>
 
                     {/* Mobile row */}
-                    <div className="flex items-center gap-2.5 py-3 sm:hidden">
+                    <div className="flex items-center gap-2.5 py-2.5 sm:hidden">
                       {rankBadge(rank)}
                       <CoinLogo pair={cleanPair(item.pair)} size={32} />
                       <div className="min-w-0 flex-1">
