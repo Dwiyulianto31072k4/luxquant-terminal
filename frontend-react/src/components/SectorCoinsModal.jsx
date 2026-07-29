@@ -68,7 +68,11 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
   const [q, setQ] = useState("");
   const [sort, setSort] = useState({ key: "market_cap", dir: "desc" });
 
-  const categoryId = sector?.category_id;
+  // Money Flow's sector rows carry `category_id`; the Home page's categories
+  // (from /market/categories and /trending-categories) carry `id`. Reading only
+  // the first meant the effect below bailed on Home, leaving the modal on
+  // "Loading coins…" forever with no request ever sent.
+  const categoryId = sector?.category_id || sector?.id;
 
   useEffect(() => {
     if (!isOpen || !categoryId) return;

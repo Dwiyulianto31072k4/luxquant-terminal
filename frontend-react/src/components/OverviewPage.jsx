@@ -664,7 +664,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
           <div className="space-y-0.5">
             {gainers.length > 0 ? (
               gainers.map((cat, idx) => (
-                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} maxAbs={maxAbs} />
+                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} />
               ))
             ) : (
               <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">
@@ -685,7 +685,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
           <div className="space-y-0.5">
             {losers.length > 0 ? (
               losers.map((cat, idx) => (
-                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} maxAbs={maxAbs} isNeg />
+                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} />
               ))
             ) : (
               <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">
@@ -1004,19 +1004,14 @@ const CoinRow = ({ coin, rank, isLoser }) => (
   </div>
 );
 
-const SectorRow = ({ cat, rank, isNeg, maxAbs = 1, onOpen }) => {
+const SectorRow = ({ cat, rank, onOpen }) => {
   const change = cat.market_cap_change_24h || 0;
-  const fillPct = Math.max(4, Math.round((Math.abs(change) / maxAbs) * 100));
   return (
     <button
       type="button"
       onClick={() => onOpen?.(cat)}
       className="relative flex w-full items-center justify-between py-2 px-2 text-left hover:bg-ink/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
     >
-      <div
-        className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? "bg-negative/[0.05]" : "bg-profit/[0.05]"}`}
-        style={{ width: `${fillPct}%` }}
-      />
       <div className="relative flex items-center gap-3 min-w-0 flex-1">
         <span className="font-mono text-[10px] text-text-muted/60 w-4 text-right tabular-nums">
           {rank}
@@ -1043,11 +1038,25 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1, onOpen }) => {
           {formatLargeNumber(cat.market_cap)}
         </span>
         <span
-          className={`font-mono text-xs tabular-nums min-w-[56px] text-right ${isNeg ? "text-loss" : "text-profit"}`}
+          className={`font-mono text-xs tabular-nums min-w-[56px] text-right ${change < 0 ? "text-loss" : "text-profit"}`}
         >
           {change >= 0 ? "+" : ""}
           {change?.toFixed(2)}%
         </span>
+        {/* Nothing said these rows opened anything. A chevron that firms up on
+            hover is the standard "there is more behind this" cue. */}
+        <svg
+          className="h-3.5 w-3.5 shrink-0 text-text-muted/40 transition-colors group-hover:text-text-primary/70"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
       </div>
     </button>
   );
