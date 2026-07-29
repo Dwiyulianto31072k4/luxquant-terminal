@@ -82,8 +82,12 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
       .then((d) => {
         if (alive) setCoins(d?.coins || []);
       })
-      .catch(() => {
-        if (alive) setErr("Failed to load coins for this narrative");
+      .catch((e) => {
+        // The whole /money-flow router carries require_subscription, so a free
+        // account lands here on every open. Showing "failed to load" made a
+        // paywall look like an outage — name it instead.
+        const status = e?.response?.status;
+        if (alive) setErr(status === 403 || status === 401 ? "LOCKED" : "Failed to load coins for this narrative");
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -213,7 +217,30 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
           Loading coins…
         </div>
       ) : err ? (
-        <div className="py-16 text-center font-mono text-[12px] text-loss/70">{err}</div>
+        err === "LOCKED" ? (
+          <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15">
+              <svg className="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+            </span>
+            <div>
+              <p className="text-[14px] font-semibold text-text-primary">Narrative breakdown is a plan feature</p>
+              <p className="mt-1 text-[12px] leading-snug text-text-muted">
+                See every coin in this narrative, ranked, with the ones LuxQuant called.
+              </p>
+            </div>
+            <a
+              href="/pricing"
+              className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+            >
+              Unlock Money Flow
+            </a>
+          </div>
+        ) : (
+          <div className="py-16 text-center font-mono text-[12px] text-loss/70">{err}</div>
+        )
       ) : rows.length === 0 ? (
         <div className="py-16 text-center font-mono text-[12px] text-text-primary/40">
           {q ? `No coins match "${q}".` : "No coins in this narrative."}

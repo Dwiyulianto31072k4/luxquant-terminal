@@ -5,6 +5,7 @@ import TopPerformers from "./TopPerformers";
 import CoinLogo from "./CoinLogo";
 import GateMarketTable from "./market/GateMarketTable";
 import GateSnapshotRow from "./market/GateSnapshotRow";
+import SectorCoinsModal from "./SectorCoinsModal";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 
@@ -609,6 +610,9 @@ const OverviewPage = () => {
 // ================================================================
 
 const SectorPerformance = ({ categories, trending, t }) => {
+  // Same drill-down Money Flow uses — one component, so the two pages cannot
+  // drift apart.
+  const [drillSector, setDrillSector] = useState(null);
   const gainers = categories.filter((c) => c.market_cap_change_24h > 0).slice(0, 5);
   const losers = categories
     .filter((c) => c.market_cap_change_24h < 0)
@@ -622,6 +626,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
   );
 
   return (
+    <>
     <CardShell>
       <CardHead
         icon={<IconFlame className="w-3.5 h-3.5" />}
@@ -660,7 +665,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
           <div className="space-y-0.5">
             {gainers.length > 0 ? (
               gainers.map((cat, idx) => (
-                <SectorRow key={idx} cat={cat} rank={idx + 1} maxAbs={maxAbs} />
+                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} maxAbs={maxAbs} />
               ))
             ) : (
               <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">
@@ -681,7 +686,7 @@ const SectorPerformance = ({ categories, trending, t }) => {
           <div className="space-y-0.5">
             {losers.length > 0 ? (
               losers.map((cat, idx) => (
-                <SectorRow key={idx} cat={cat} rank={idx + 1} maxAbs={maxAbs} isNeg />
+                <SectorRow onOpen={setDrillSector} key={idx} cat={cat} rank={idx + 1} maxAbs={maxAbs} isNeg />
               ))
             ) : (
               <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">
@@ -692,6 +697,12 @@ const SectorPerformance = ({ categories, trending, t }) => {
         </div>
       </div>
     </CardShell>
+      <SectorCoinsModal
+        sector={drillSector}
+        isOpen={!!drillSector}
+        onClose={() => setDrillSector(null)}
+      />
+    </>
   );
 };
 
@@ -994,16 +1005,14 @@ const CoinRow = ({ coin, rank, isLoser }) => (
   </div>
 );
 
-const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
+const SectorRow = ({ cat, rank, isNeg, maxAbs = 1, onOpen }) => {
   const change = cat.market_cap_change_24h || 0;
-  const cgUrl = `https://www.coingecko.com/en/categories/${cat.id}`;
   const fillPct = Math.max(4, Math.round((Math.abs(change) / maxAbs) * 100));
   return (
-    <a
-      href={cgUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="relative flex items-center justify-between py-2 px-2 hover:bg-ink/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
+    <button
+      type="button"
+      onClick={() => onOpen?.(cat)}
+      className="relative flex w-full items-center justify-between py-2 px-2 text-left hover:bg-ink/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
     >
       <div
         className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? "bg-negative/[0.05]" : "bg-profit/[0.05]"}`}
@@ -1041,7 +1050,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
           {change?.toFixed(2)}%
         </span>
       </div>
-    </a>
+    </button>
   );
 };
 
