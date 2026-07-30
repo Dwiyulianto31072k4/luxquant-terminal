@@ -201,3 +201,6 @@ async def chat_followup_loop():
 
 def start_chat_followup_worker():
     asyncio.get_event_loop().create_task(chat_followup_loop())
+    # Every other worker in this service announces itself, and without a line
+    # here there is no way to tell a scheduled loop from one that never started.
+    print(f"💬 Chat follow-up worker started (interval: {INTERVAL}s)")
