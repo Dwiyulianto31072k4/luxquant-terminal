@@ -14,6 +14,7 @@
 // Already modal-styled (max-w-3xl, rounded-2xl, fade-in zoom-in-95).
 
 import { useState, useEffect, useCallback } from "react";
+import { AutoTradeTab } from "./users/AutoTradeTab";
 import { createPortal } from "react-dom";
 import { adminApi } from "../../services/adminApi";
 import { workspaceApi } from "../../services/workspaceApi";
@@ -1732,6 +1733,7 @@ const TABS = [
   { id: "payments", label: "Payments", Icon: StarIcon },
   { id: "referral", label: "Referral", Icon: SparklesIcon },
   { id: "outreach", label: "Outreach", Icon: SendIcon },
+  { id: "autotrade", label: "AutoTrade", Icon: BroadcastIcon },
 ];
 
 export const UserDetailDrawer = ({
@@ -1969,6 +1971,7 @@ export const UserDetailDrawer = ({
               {activeTab === "outreach" && (
                 <OutreachTab data={data} templates={templates} canWrite={canWrite} />
               )}
+              {activeTab === "autotrade" && <AutoTradeTab userId={userId} />}
             </>
           )}
         </div>

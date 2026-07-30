@@ -15,6 +15,7 @@ import { isAdminFull, isAdminStaff, isAdminViewOnly, isStaffRole } from "../util
 // Domain sub-components
 import { UsersStatGrid } from "./admin/users/UsersStatGrid";
 import { ContactReachPanel } from "./admin/users/ContactReachPanel";
+import { AutoTradeHealthPanel } from "./admin/users/AutoTradeHealthPanel";
 import { ExpiringSoonPanel } from "./admin/users/ExpiringSoonPanel";
 import { UsersSearchBar } from "./admin/users/UsersSearchBar";
 import { UsersTable } from "./admin/users/UsersTable";
@@ -541,6 +542,8 @@ const UserManagementPage = () => {
         onFilterReach={(reach) => setFilters({ ...filters, reach })}
         defaultOpen={false}
       />
+
+      <AutoTradeHealthPanel onInspectUser={(id) => id && setDrawerUserId(id)} />
 
       {/* ── Zone 3: Directory workspace ── */}
       <div className="space-y-3 pt-1">
