@@ -83,6 +83,10 @@ def _rows(sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]
         return [dict(row._mapping) for row in result]
 
 
+def _as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
 def _subject(user_id: int) -> str:
     """cryptobot mints its subjects as lq:{luxquant_user_id}."""
     return f"lq:{user_id}"
@@ -143,6 +147,8 @@ def _base_rows(subjects: list[str] | None = None) -> list[dict[str, Any]]:
             a.id IS NOT NULL    AS has_account,
             a.key_status        AS key_status,
             a.last_checked_at   AS key_checked_at,
+            a.created_at        AS linked_at,
+            c.created_at        AS config_created_at,
             (SELECT count(*) FROM positions p
                WHERE p.user_id = u.id AND p.status = 'open')                       AS open_positions,
             (SELECT count(*) FROM positions p
@@ -172,8 +178,68 @@ def _base_rows(subjects: list[str] | None = None) -> list[dict[str, Any]]:
     return _rows(sql, params)
 
 
-def _decorate(row: dict[str, Any]) -> dict[str, Any]:
+def _lifecycle(cb_user_ids: list[str]) -> dict[str, dict[str, Any]]:
+    """When each bot was first switched on, and how long it has run in total.
+
+    cryptobot writes a `strategy_config.active` audit row with `{"active": bool}`
+    on every toggle, so accumulated runtime can be reconstructed by walking the
+    pairs rather than guessing from "created 40 days ago". Time spent paused is
+    excluded, which is the whole point — a bot linked in June but switched on for
+    two days has run for two days.
+    """
+    if not cb_user_ids:
+        return {}
+    try:
+        events = _rows(
+            """
+            SELECT user_id, created_at, metadata_json
+            FROM audit_logs
+            WHERE action = 'strategy_config.active' AND user_id = ANY(:ids)
+            ORDER BY user_id, created_at ASC
+            """,
+            {"ids": cb_user_ids},
+        )
+    except Exception:
+        return {}
+
+    now = datetime.now(timezone.utc)
+    out: dict[str, dict[str, Any]] = {}
+    for event in events:
+        uid = event["user_id"]
+        state = out.setdefault(
+            uid,
+            {"first_active_at": None, "active_seconds": 0.0, "since": None, "toggles": 0},
+        )
+        turned_on = bool((event.get("metadata_json") or {}).get("active"))
+        at = event["created_at"]
+        state["toggles"] += 1
+        if turned_on:
+            if state["first_active_at"] is None:
+                state["first_active_at"] = at
+            # Repeated "on" without an intervening "off" is not a new interval.
+            if state["since"] is None:
+                state["since"] = at
+        elif state["since"] is not None:
+            state["active_seconds"] += (at - state["since"]).total_seconds()
+            state["since"] = None
+
+    for state in out.values():
+        if state["since"] is not None:
+            state["active_seconds"] += (now - state["since"]).total_seconds()
+    return out
+
+
+def _decorate(row: dict[str, Any], life: dict[str, Any] | None = None) -> dict[str, Any]:
     status, reasons = _health(row)
+    life = life or {}
+    # A bot that is on but predates the audit action has no interval to walk.
+    # Say so rather than printing a number we cannot stand behind.
+    estimated = bool(row.get("is_active")) and not life
+    active_seconds = life.get("active_seconds")
+    if estimated and row.get("config_created_at"):
+        active_seconds = (
+            datetime.now(timezone.utc) - _as_utc(row["config_created_at"])
+        ).total_seconds()
     markets = [m for m, on in (("spot", row.get("spot_enabled")), ("futures", row.get("futures_enabled"))) if on]
     return {
         "subject": row["subject"],
@@ -195,6 +261,15 @@ def _decorate(row: dict[str, Any]) -> dict[str, Any]:
         "recent_errors": int(row.get("recent_errors") or 0),
         "recent_blocks": int(row.get("recent_blocks") or 0),
         "last_error_at": row.get("last_error_at"),
+        "linked_at": row.get("linked_at"),
+        # Only fall back to the config date for a bot that is on but predates the
+        # audit action. A bot that was never switched on has no first-active date,
+        # and printing the day its config row appeared would imply otherwise.
+        "first_active_at": life.get("first_active_at") or (row.get("config_created_at") if estimated else None),
+        "active_since": life.get("since"),
+        "active_seconds": round(active_seconds) if active_seconds else 0,
+        "active_time_estimated": estimated,
+        "toggles": life.get("toggles", 0),
     }
 
 
@@ -205,7 +280,9 @@ def is_configured() -> bool:
 def overview() -> dict[str, Any]:
     """Fleet-wide AutoTrade health, plus a row per user who has ever linked."""
     try:
-        rows = [_decorate(row) for row in _base_rows()]
+        raw = _base_rows()
+        life = _lifecycle([r["cb_user_id"] for r in raw])
+        rows = [_decorate(row, life.get(row["cb_user_id"])) for row in raw]
     except Exception as exc:
         logger.warning("AutoTrade monitoring unavailable: %s", exc)
         return {"available": False, "error": str(exc)[:200], "totals": {}, "users": []}
@@ -288,7 +365,7 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
     if not base:
         return {"available": True, "linked": False, "subject": subject}
 
-    summary = _decorate(base[0])
+    summary = _decorate(base[0], _lifecycle([base[0]["cb_user_id"]]).get(base[0]["cb_user_id"]))
     cb_user_id = base[0]["cb_user_id"]
     since = datetime.now(timezone.utc) - timedelta(days=7)
 

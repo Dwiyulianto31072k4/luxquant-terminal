@@ -42,6 +42,17 @@ const ago = (v) => {
   return `${Math.round(mins / 1440)}d ago`;
 };
 const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
+const day = (v) => (v ? new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "—");
+// Accumulated running time, so "42d" means forty-two days switched on — not
+// forty-two days since the account was created.
+const dur = (secs) => {
+  const s = Number(secs) || 0;
+  if (s < 3600) return `${Math.round(s / 60)}m`;
+  const d = Math.floor(s / 86400);
+  const h = Math.round((s % 86400) / 3600);
+  return d ? `${d}d ${h}h` : `${h}h`;
+};
+const who = (u) => u.username || u.email || u.cb_email || `lq:${u.luxquant_user_id}`;
 
 function Pill({ status }) {
   const s = STATUS[status] || STATUS.unlinked;
@@ -102,8 +113,32 @@ function UserDetail({ userId }) {
   if (!d) return <p className="px-4 py-3 text-[12px] text-text-muted">Loading…</p>;
   if (!d.linked) return <p className="px-4 py-3 text-[12px] text-text-muted">Not linked.</p>;
 
+  const s = d.summary || {};
+  const facts = [
+    ["User", s.username || s.email || "—"],
+    ["Plan", s.role || "—"],
+    ["Linked", day(s.linked_at)],
+    ["First started", s.first_active_at ? day(s.first_active_at) : "never started"],
+    ["Active for", s.active_seconds ? dur(s.active_seconds) : "—"],
+    ["State", s.active_since ? "running now" : `${s.toggles || 0} on/off toggle(s)`],
+    ["Open positions", `${s.open_positions ?? 0}${s.stuck_positions ? ` (+${s.stuck_positions} stuck)` : ""}`],
+    ["Realised PnL", usd(s.realized_pnl_total)],
+  ];
+
   return (
-    <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
+    <div className="space-y-4 px-4 py-4">
+      <div className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">
+        {facts.map(([k, v]) => (
+          <div key={k} className="flex items-baseline justify-between gap-3 border-b border-ink/[0.05] py-1">
+            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+              {k}
+            </span>
+            <span className="text-[12px] text-text-secondary">{v}</span>
+          </div>
+        ))}
+      </div>
+
+    <div className="grid gap-4 lg:grid-cols-2">
       <div>
         <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
           Recent errors
@@ -169,6 +204,7 @@ function UserDetail({ userId }) {
           </div>
         ) : null}
       </div>
+    </div>
     </div>
   );
 }
@@ -303,6 +339,8 @@ export const AutoTradeOpsTab = () => {
                   <th className="pb-2 pr-3 font-medium">Status</th>
                   <th className="pb-2 pr-3 font-medium">User</th>
                   <th className="pb-2 pr-3 font-medium">Mode</th>
+                  <th className="pb-2 pr-3 font-medium">Started</th>
+                  <th className="pb-2 pr-3 font-medium">Active for</th>
                   <th className="pb-2 pr-3 font-medium">Key</th>
                   <th className="pb-2 pr-3 text-right font-medium">Open</th>
                   <th className="pb-2 pr-3 text-right font-medium">Entries 24h</th>
@@ -321,14 +359,45 @@ export const AutoTradeOpsTab = () => {
                       <td className="py-2.5 pr-3">
                         <Pill status={u.status} />
                       </td>
-                      <td className="py-2.5 pr-3 font-mono text-[11px] text-text-secondary">
-                        {u.cryptobot_email || `lq:${u.luxquant_user_id}`}
+                      <td className="py-2.5 pr-3">
+                        <span className="block font-medium text-text-primary">{who(u)}</span>
+                        <span className="block font-mono text-[10px] text-text-muted">
+                          lq:{u.luxquant_user_id}
+                          {u.role ? ` · ${u.role}` : ""}
+                        </span>
                       </td>
                       <td className="py-2.5 pr-3 text-text-secondary">
                         {u.is_active ? (u.dry_run ? "Dry run" : "Live") : "Paused"}
                         {u.markets?.length ? (
                           <span className="text-text-muted"> · {u.markets.join("+")}</span>
                         ) : null}
+                      </td>
+                      <td className="py-2.5 pr-3 text-[12px] text-text-secondary">
+                        {u.first_active_at ? (
+                          <>
+                            <span className="block">{day(u.first_active_at)}</span>
+                            <span className="block text-[10px] text-text-muted">
+                              linked {day(u.linked_at)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-text-muted">never started</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-3 text-[12px] text-text-secondary">
+                        {u.active_seconds ? (
+                          <>
+                            <span className="block tabular-nums">
+                              {dur(u.active_seconds)}
+                              {u.active_time_estimated ? "*" : ""}
+                            </span>
+                            <span className="block text-[10px] text-text-muted">
+                              {u.active_since ? "running now" : `${u.toggles} toggle${u.toggles === 1 ? "" : "s"}`}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-text-muted">—</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-3 text-text-secondary">
                         <span
@@ -362,7 +431,7 @@ export const AutoTradeOpsTab = () => {
                     </tr>
                     {expanded === u.subject ? (
                       <tr className="border-b border-ink/[0.05]">
-                        <td colSpan={9} className="bg-ink/[0.02] p-0">
+                        <td colSpan={11} className="bg-ink/[0.02] p-0">
                           <UserDetail userId={u.luxquant_user_id} />
                         </td>
                       </tr>
@@ -372,7 +441,9 @@ export const AutoTradeOpsTab = () => {
               </tbody>
             </table>
             <p className="mt-3 text-[11px] text-text-muted">
-              Click a row to read that bot&apos;s error text and block reasons.
+              Click a row to read that bot&apos;s error text and block reasons. &quot;Active
+              for&quot; accumulates only the time the bot was switched on; * marks a bot that
+              predates the toggle history, where the figure is time since setup.
             </p>
           </div>
         )}
@@ -429,8 +500,8 @@ export const AutoTradeOpsTab = () => {
                     <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
                       {p.notional === null ? "—" : usd(p.notional)}
                     </td>
-                    <td className="py-2.5 pr-3 font-mono text-[11px] text-text-muted">
-                      {p.cb_email || p.subject}
+                    <td className="py-2.5 pr-3 text-[12px] text-text-secondary">
+                      {p.username || p.cb_email || p.subject}
                     </td>
                     <td className="py-2.5 pr-3 text-[12px] text-text-muted">{ago(p.created_at)}</td>
                     <td className="py-2.5">
