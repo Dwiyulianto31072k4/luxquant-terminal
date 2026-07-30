@@ -17,6 +17,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { workspaceApi } from "../services/workspaceApi";
+import { adminChatApi } from "../services/adminChatApi";
 import { financeApi } from "../services/financeApi";
 import { isAdminStaff, isAdminViewOnly } from "../utils/roles";
 
@@ -30,6 +31,7 @@ import { TodoTab } from "./admin/workspace/TodoTab";
 import { ActivityTab } from "./admin/workspace/ActivityTab";
 import { ApiKeysTab } from "./admin/workspace/ApiKeysTab";
 import { AnnouncementsTab } from "./admin/workspace/AnnouncementsTab";
+import { ChatTab } from "./admin/workspace/ChatTab";
 import { SystemTab } from "./admin/workspace/SystemTab";
 import { ProfitSharingTab } from "./admin/workspace/ProfitSharingTab";
 import { AiCostTab } from "./admin/workspace/AiCostTab";
@@ -88,6 +90,24 @@ const LibraryIcon = ({ size = 14, style, ...props }) => (
   </svg>
 );
 
+// Inline speech-bubble icon for the Chat tab.
+const ChatBubbleIcon = ({ size = 14, style, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    {...props}
+  >
+    <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+  </svg>
+);
+
 // Decorative accent for tabs/icons is neutral — colour only for urgency badges.
 const TABS = [
   {
@@ -95,6 +115,13 @@ const TABS = [
     label: "Users",
     description: "Members, roles, and access",
     Icon: UsersRingIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "chat",
+    label: "Chat",
+    description: "Live conversations with users",
+    Icon: ChatBubbleIcon,
     accent: NEUTRAL,
   },
   {
@@ -492,6 +519,7 @@ const AdminWorkspacePage = () => {
   const [stats, setStats] = useState(null);
   const [financeStats, setFinanceStats] = useState(null);
   const [servicesSummary, setServicesSummary] = useState(null);
+  const [chatUnread, setChatUnread] = useState(0);
 
   const initialTab = (() => {
     const hash = window.location.hash.replace("#", "");
@@ -531,6 +559,14 @@ const AdminWorkspacePage = () => {
       console.error("Failed to load services summary:", e);
     }
   }, []);
+  const fetchChatUnread = useCallback(async () => {
+    try {
+      const r = await adminChatApi.getUnreadCount();
+      setChatUnread(r?.unread_conversations || 0);
+    } catch {
+      // Silent: polled every 15s, and a missing badge is not worth log noise.
+    }
+  }, []);
 
   useEffect(() => {
     fetchStats();
@@ -544,6 +580,15 @@ const AdminWorkspacePage = () => {
     return () => clearInterval(interval);
   }, [fetchStats, fetchFinanceStats, fetchServicesSummary]);
 
+  // Chat runs on its own, faster clock: at 60s the badge could sit a full
+  // minute behind an unanswered user, and response time is the metric that
+  // decides whether this feature converts anyone.
+  useEffect(() => {
+    fetchChatUnread();
+    const interval = setInterval(fetchChatUnread, 15000);
+    return () => clearInterval(interval);
+  }, [fetchChatUnread]);
+
   useEffect(() => {
     const handler = () => {
       const hash = window.location.hash.replace("#", "");
@@ -556,6 +601,7 @@ const AdminWorkspacePage = () => {
   const badges = useMemo(
     () => ({
       users: null,
+      chat: chatUnread || null,
       followups: stats?.followups_overdue || null,
       marketing: null,
       // Prefer stale payments; fall back to payment-gap backlog
@@ -567,7 +613,7 @@ const AdminWorkspacePage = () => {
       announcements: null,
       system: servicesSummary?.down || null,
     }),
-    [stats, financeStats, servicesSummary]
+    [stats, financeStats, servicesSummary, chatUnread]
   );
 
   if (!isAdminStaff(currentUser)) return <AccessGuard />;
@@ -621,6 +667,9 @@ const AdminWorkspacePage = () => {
           <div className="-mx-4 lg:-mx-8">
             <UserManagementPage />
           </div>
+        )}
+        {activeTab === "chat" && (
+          <ChatTab canWrite={!viewOnly} onRefreshUnread={fetchChatUnread} />
         )}
         {activeTab === "followups" && <FollowupTab onRefreshStats={fetchStats} />}
         {activeTab === "marketing" && <MarketingTab onRefreshStats={fetchStats} />}

@@ -21,6 +21,7 @@ import { moreFeaturesEn, moreFeaturesZh } from "./locales/moreFeatures";
 import { apiKeysEn, apiKeysZh } from "./locales/apiKeys";
 import { guideEn, guideZh } from "./locales/guide";
 import { terminalEn, terminalZh } from "./locales/terminal";
+import { chatEn, chatZh } from "./locales/chat";
 
 const resources = {
   en: {
@@ -479,6 +480,7 @@ const resources = {
       mfm: moreFeaturesEn,
       apiKeys: apiKeysEn,
       terminal: terminalEn,
+      chat: chatEn,
     },
   },
   zh: {
@@ -935,6 +937,7 @@ const resources = {
       mfm: moreFeaturesZh,
       apiKeys: apiKeysZh,
       terminal: terminalZh,
+      chat: chatZh,
     },
   },
 };

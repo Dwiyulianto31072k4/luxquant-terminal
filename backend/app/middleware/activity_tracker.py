@@ -51,6 +51,7 @@ FEATURE_MAP = {
     "coin-profile": "markets",
     "orderbook": "markets",
     "tips": "tips",
+    "chat": "chat",
     "whale": "whale_alert",
     "money-flow": "onchain",
     "onchain": "onchain",

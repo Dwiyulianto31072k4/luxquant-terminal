@@ -57,6 +57,8 @@ from app.api.routes.announcements import router as announcements_router
 from app.api.routes.admin_announcements import router as admin_announcements_router
 from app.api.routes.admin_social_posts import router as admin_social_posts_router
 from app.api.routes.admin_signal_cards import router as admin_signal_cards_router
+from app.api.routes.chat import router as chat_router
+from app.api.routes.admin_chat import router as admin_chat_router
 from app.api.routes.coin_watch import router as coin_watch_router
 from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
@@ -242,6 +244,8 @@ app.include_router(announcements_router, tags=["announcements"])
 app.include_router(admin_announcements_router, tags=["admin-announcements"])
 app.include_router(admin_social_posts_router, tags=["admin-social-posts"])
 app.include_router(admin_signal_cards_router, tags=["admin-signal-cards"])
+app.include_router(chat_router, tags=["chat"])
+app.include_router(admin_chat_router, tags=["admin-chat"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
 app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public-signals"])
 app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
@@ -307,6 +311,17 @@ if os.path.exists(SCREENSHOTS_DIR):
     print(f"📸 Charts directory mounted: {SCREENSHOTS_DIR}")
 else:
     print(f"⚠️ Charts directory not found: {SCREENSHOTS_DIR}")
+
+# ═══════════════════════════════════════════
+# Serve uploaded avatars as static files
+# ═══════════════════════════════════════════
+# In prod nginx intercepts /api/v1/avatars/ before it ever reaches us; this
+# mount is what makes uploaded avatars load on a dev box (and a safety net if
+# the nginx alias ever drifts from AVATAR_DIR).
+from app.core.avatar_storage import AVATAR_DIR  # noqa: E402
+
+app.mount("/api/v1/avatars", StaticFiles(directory=str(AVATAR_DIR)), name="avatars")
+print(f"🖼️  Avatars directory mounted: {AVATAR_DIR}")
 
 # ═══════════════════════════════════════════
 # Serve news images as static files

@@ -19,6 +19,7 @@ import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
 import AnnouncementModal from "./components/AnnouncementModal";
+import ChatLauncher from "./components/chat/ChatLauncher";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -1492,6 +1493,7 @@ function App() {
               <InAppBrowserBanner />
               <TelegramNudgeModal />
               <AnnouncementModal />
+              <ChatLauncher />
               <CurrencyProvider>
                 <Routes>
                   {/* Landing — V2 primary (desktop + mobile) */}
