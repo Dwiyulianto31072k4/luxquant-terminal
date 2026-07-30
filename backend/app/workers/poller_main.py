@@ -40,6 +40,7 @@ from app.services.whale_worker import start_whale_worker
 from app.services.subscription_worker import start_subscription_worker
 from app.services.coinalyze_service import start_coinalyze_workers
 from app.services.dune_tokenflow_service import start_token_flow_worker
+from app.services.chat_autoreply_worker import start_chat_followup_worker
 
 
 async def _amain() -> None:
@@ -79,6 +80,8 @@ async def _amain() -> None:
             start_coinalyze_workers()      # liquidation treemap (call-centric, free Coinalyze)
             await asyncio.sleep(4)
             start_token_flow_worker()      # CEX token net-flow (spot, free Dune, 6h)
+            await asyncio.sleep(4)
+            start_chat_followup_worker()   # support-chat nudges (light: 2 small queries)
         asyncio.create_task(_staggered_start())
         from app.services.cache_invalidator import cache_invalidator_loop
         asyncio.create_task(cache_invalidator_loop())

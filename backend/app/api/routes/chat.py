@@ -101,6 +101,9 @@ def get_conversation(
         conv = chat_service.get_or_create_conversation(db, user.id)
         messages = chat_service.list_messages(db, conv["id"], after_seq=0)
         settings = chat_service.get_settings(db)
+        # Same predicate the send handler uses, so the banner can never promise
+        # a live reply at a moment the auto-reply would say otherwise.
+        away = chat_service.is_away(settings)
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
 
@@ -111,8 +114,10 @@ def get_conversation(
         "unread": max(0, conv["last_seq"] - conv["user_last_read_seq"]),
         "messages": messages,
         "welcome_message": settings.get("welcome_message"),
-        "away_enabled": bool(settings.get("away_enabled")),
-        "away_message": settings.get("away_message"),
+        "away_enabled": away,
+        # Gated here rather than in the client: an API should not hand out copy
+        # that must not be shown, or every consumer has to remember the rule.
+        "away_message": (settings.get("away_message") or chat_service.DEFAULT_AWAY_MESSAGE) if away else None,
     }
 
 
@@ -165,12 +170,20 @@ def send_message(
         )
         # Sending is also reading everything before it.
         chat_service.mark_read(db, conv["id"], "user", msg["seq"])
+
+        # Set expectations immediately when nobody is at the desk. Inline
+        # rather than in the poller: it is pure Postgres, and an away notice
+        # that arrives a minute later has missed the moment it exists for.
+        # Skipped on a duplicate send so a retry can't re-trigger it.
+        away = None
+        if not msg.get("duplicate"):
+            away = chat_service.maybe_send_away_reply(db, conv["id"])
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    return {"message": msg, "conversation_id": conv["id"]}
+    return {"message": msg, "auto_reply": away, "conversation_id": conv["id"]}
 
 
 @router.post("/read")

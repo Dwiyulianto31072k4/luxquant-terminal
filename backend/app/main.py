@@ -124,6 +124,11 @@ async def lifespan(app: FastAPI):
         start_whale_worker()
         start_coinalyze_workers()   # liquidation treemap (call-centric, free Coinalyze)
 
+        # Support-chat follow-ups. Production API workers set LUXQUANT_RUN_POLLERS=0,
+        # so this only ever runs on a dev box; in prod it lives in the poller.
+        from app.services.chat_autoreply_worker import start_chat_followup_worker
+        start_chat_followup_worker()
+
         # ─── Cache invalidator: LISTEN new_signal/signal_update → flush lq:signals:* ───
         from app.services.cache_invalidator import cache_invalidator_loop
         asyncio.create_task(cache_invalidator_loop())

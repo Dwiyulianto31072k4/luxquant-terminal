@@ -39,6 +39,13 @@ NOTIF_REGISTRY = [
     {"type": "sub_expiry",       "label": "Subscription",    "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "admin_broadcast",  "label": "Announcements",   "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "autotrade",        "label": "AutoTrade",       "group": "autotrade", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
+    # Support chat. default_telegram=True on purpose: this is a 1:1 reply to a
+    # question the user asked, not a broadcast — the point is that it reaches
+    # them once they've closed the tab.
+    {"type": "chat_reply",       "label": "Support Chat",    "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": True},
+    # Admin-only: fired at staff when a user has been waiting. Never targeted
+    # at members, so it stays out of the preferences UI (see _is_staff_only).
+    {"type": "chat_admin_waiting", "label": "Chat Queue",    "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": True, "staff_only": True},
 ]
 _REGISTRY_BY_TYPE = {r["type"]: r for r in NOTIF_REGISTRY}
 
@@ -78,6 +85,10 @@ def get_preferences(
 
     items = []
     for r in NOTIF_REGISTRY:
+        # Staff-only types are never targeted at members — showing them a
+        # toggle for alerts they can't receive is just confusing.
+        if r.get("staff_only") and not current_user.is_admin_staff:
+            continue
         in_app, tg = saved.get(r["type"], (r["default_in_app"], r["default_telegram"]))
         # TG efektif hanya jika: user set ON, akun ter-link, dan tipe eligible.
         effective_tg = bool(tg and telegram_linked and r["telegram_eligible"])

@@ -33,6 +33,8 @@ const getTypeToken = (type, data) => {
     coin_called: { tone: "gold", label: "CALLED" },
     news: { tone: "neutral", label: "NEWS" },
     market_pulse: { tone: "gold", label: "PULSE" },
+    chat_reply: { tone: "gold", label: "REPLY" },
+    chat_admin_waiting: { tone: "danger", label: "WAITING" },
     autotrade_position_closed: { tone: "neutral", label: "AUTO" },
     autotrade_execution_failed: { tone: "danger", label: "AUTO" },
     autotrade_risk_limit: { tone: "gold", label: "AUTO" },

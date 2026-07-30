@@ -82,7 +82,8 @@ export function useChatThread({ active }) {
       setConversationId(data.conversation_id);
       setStatus(data.status || "open");
       setWelcome(data.welcome_message || null);
-      setAwayMessage(data.away_enabled ? data.away_message : null);
+      // Server already gates this on away being active, and on office hours.
+      setAwayMessage(data.away_message || null);
       setMessages(data.messages || []);
       cursorRef.current = data.last_seq || 0;
       setLoaded(true);

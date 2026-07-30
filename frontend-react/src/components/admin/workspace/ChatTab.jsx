@@ -10,6 +10,7 @@ import { adminChatApi } from "../../../services/adminChatApi";
 import { palette, NEUTRAL } from "../designSystem";
 import { Surface, Badge, EmptyState, LoadingState, SearchInput, Spinner } from "../primitives";
 import { SearchIcon, TelegramIcon } from "../Icons";
+import Modal from "../../ui/Modal";
 
 // Conversations refresh faster than the workspace shell's 60s: a stale support
 // list is a slow reply, which is the one metric this feature lives on.
@@ -130,6 +131,196 @@ const Meta = ({ label, value }) => (
   </div>
 );
 
+// ── Settings ────────────────────────────────────────────────────────
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const labelCls = "block text-[10px] uppercase tracking-wider text-text-primary/40 font-mono mb-1.5";
+
+const SettingsModal = ({ isOpen, onClose }) => {
+  const [form, setForm] = useState(null);
+  const [hoursOn, setHoursOn] = useState(false);
+  const [tz, setTz] = useState("Asia/Jakarta");
+  const [start, setStart] = useState("09:00");
+  const [end, setEnd] = useState("18:00");
+  const [days, setDays] = useState([0, 1, 2, 3, 4]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setErr("");
+    adminChatApi
+      .getSettings()
+      .then((s) => {
+        setForm(s);
+        const oh = s.office_hours;
+        if (oh?.days?.length) {
+          setHoursOn(true);
+          setTz(oh.tz || "Asia/Jakarta");
+          setStart(oh.days[0].start || "09:00");
+          setEnd(oh.days[0].end || "18:00");
+          setDays(oh.days.map((d) => Number(d.d)));
+        } else {
+          setHoursOn(false);
+        }
+      })
+      .catch((e) => setErr(e?.response?.data?.detail || "Couldn't load settings."));
+  }, [isOpen]);
+
+  const save = async () => {
+    setSaving(true);
+    setErr("");
+    try {
+      await adminChatApi.updateSettings({
+        away_enabled: !!form.away_enabled,
+        away_message: form.away_message || null,
+        welcome_message: form.welcome_message || null,
+        nudge_after_min: Number(form.nudge_after_min) || 0,
+        autoreply_cooldown_min: Number(form.autoreply_cooldown_min) || 0,
+        // null means "always away" — the honest default for a one-person desk.
+        office_hours: hoursOn && days.length ? { tz, days: days.map((d) => ({ d, start, end })) } : null,
+      });
+      onClose();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Couldn't save.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleDay = (i) =>
+    setDays((prev) => (prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i].sort()));
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Chat settings"
+      subtitle="Away replies, follow-up timing, and the greeting users see"
+      size="md"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          {err && <span className="mr-auto text-[11px] text-neg-text">{err}</span>}
+          <button onClick={onClose} className="px-3 py-2 text-xs text-text-muted hover:text-text-primary">
+            Cancel
+          </button>
+          <button onClick={save} disabled={saving || !form} className="lq-cta-md px-4 py-2 text-xs disabled:opacity-30">
+            {saving ? <Spinner size={13} /> : "Save"}
+          </button>
+        </div>
+      }
+    >
+      {!form ? (
+        <LoadingState label="Loading settings…" />
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className={labelCls}>Welcome message</label>
+            <textarea
+              rows={2}
+              value={form.welcome_message || ""}
+              onChange={(e) => setForm({ ...form, welcome_message: e.target.value })}
+              placeholder="Shown in an empty chat panel before anyone types."
+              className={`${inputCls} resize-none`}
+            />
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!form.away_enabled}
+              onChange={(e) => setForm({ ...form, away_enabled: e.target.checked })}
+            />
+            <span className="text-xs text-text-primary">Send an away reply when nobody is at the desk</span>
+          </label>
+
+          {form.away_enabled && (
+            <div className="space-y-3 border-l-2 border-ink/[0.08] pl-3">
+              <div>
+                <label className={labelCls}>Away message</label>
+                <textarea
+                  rows={3}
+                  value={form.away_message || ""}
+                  onChange={(e) => setForm({ ...form, away_message: e.target.value })}
+                  placeholder="Leave blank to use the default."
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-2">
+                <input type="checkbox" checked={hoursOn} onChange={(e) => setHoursOn(e.target.checked)} />
+                <span className="text-xs text-text-primary">Only outside office hours</span>
+              </label>
+              <p className="text-[10px] leading-relaxed text-text-muted">
+                Off means every message gets the away reply — the honest setting for a one-person
+                desk. Turn it on only if you reliably answer live during these hours.
+              </p>
+
+              {hoursOn && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className={labelCls}>Timezone</label>
+                      <input value={tz} onChange={(e) => setTz(e.target.value)} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>From</label>
+                      <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>To</label>
+                      <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={inputCls} />
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {WEEKDAYS.map((d, i) => (
+                      <button
+                        key={d}
+                        onClick={() => toggleDay(i)}
+                        className={`rounded-md px-2 py-1 font-mono text-[10px] transition-colors ${
+                          days.includes(i)
+                            ? "bg-ink/[0.12] text-text-primary"
+                            : "text-text-muted hover:text-text-primary"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className={labelCls}>Don't repeat the away reply for (minutes)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.autoreply_cooldown_min ?? 120}
+                  onChange={(e) => setForm({ ...form, autoreply_cooldown_min: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className={labelCls}>Alert me when someone has waited (minutes)</label>
+            <input
+              type="number"
+              min={0}
+              value={form.nudge_after_min ?? 30}
+              onChange={(e) => setForm({ ...form, nudge_after_min: e.target.value })}
+              className={inputCls}
+            />
+            <p className="mt-1 text-[10px] text-text-muted">
+              Sends you a Telegram DM and an in-app alert. 0 turns it off.
+            </p>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+};
+
 // ── Tab ─────────────────────────────────────────────────────────────
 export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   const [items, setItems] = useState([]);
@@ -143,6 +334,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const scrollRef = useRef(null);
   const cursorRef = useRef(0);
@@ -259,6 +451,8 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   };
 
   return (
+    <>
+    <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
       {/* ── Left: inbox ── */}
       <Surface className="flex h-[640px] flex-col overflow-hidden">
@@ -269,7 +463,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
             placeholder="Search username or email…"
             Icon={SearchIcon}
           />
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -283,6 +477,15 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                 {f.label}
               </button>
             ))}
+            {canWrite && (
+              <button
+                onClick={() => setSettingsOpen(true)}
+                title="Chat settings"
+                className="ml-auto rounded-md px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:text-text-primary"
+              >
+                Settings
+              </button>
+            )}
           </div>
         </div>
 
@@ -415,6 +618,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         )}
       </Surface>
     </div>
+    </>
   );
 };
 

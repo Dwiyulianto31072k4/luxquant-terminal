@@ -13,7 +13,9 @@ truth. Nothing here creates schema.
 """
 from __future__ import annotations
 
+import json
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
@@ -24,6 +26,16 @@ logger = logging.getLogger(__name__)
 
 MAX_BODY_CHARS = 4000
 DEFAULT_PAGE = 200
+
+# How long an admin reply sits unread before we assume the person walked away
+# and is worth pulling back. Short enough to still be a live conversation,
+# long enough that someone reading the panel right now is never pinged.
+REPLY_UNSEEN_AFTER_MIN = 2
+
+DEFAULT_AWAY_MESSAGE = (
+    "Thanks for the message — we're not at the desk right now, but we read "
+    "every one and will reply as soon as we're back."
+)
 
 SENDERS = frozenset(("user", "admin", "system", "ai"))
 SOURCES = frozenset(("web", "admin_panel", "telegram_topic", "telegram_dm", "system"))
@@ -417,6 +429,8 @@ _SETTINGS_WRITABLE = (
     "nudge_after_min", "nudge_message", "welcome_message", "tg_support_chat_id",
 )
 
+_SETTINGS_JSON_FIELDS = ("office_hours",)
+
 
 def get_settings(db: Session) -> Dict[str, Any]:
     try:
@@ -443,8 +457,17 @@ def update_settings(db: Session, patch: Dict[str, Any], updated_by: int) -> Dict
     if not fields:
         return get_settings(db)
 
-    assignments = ", ".join(f"{k} = :{k}" for k in fields)
+    # office_hours is JSONB: psycopg2 cannot adapt a bare dict, and it has to be
+    # CAST(... AS jsonb) rather than ::jsonb because the :: collides with
+    # SQLAlchemy's named-parameter syntax. Same reasoning as notifier.py.
+    assignments = ", ".join(
+        f"{k} = CAST(:{k} AS jsonb)" if k in _SETTINGS_JSON_FIELDS else f"{k} = :{k}"
+        for k in fields
+    )
     params = dict(fields)
+    for k in _SETTINGS_JSON_FIELDS:
+        if k in params and params[k] is not None:
+            params[k] = json.dumps(params[k])
     params["ub"] = updated_by
     db.execute(
         text(f"""
@@ -456,3 +479,166 @@ def update_settings(db: Session, patch: Dict[str, Any], updated_by: int) -> Dict
     )
     db.commit()
     return get_settings(db)
+
+
+# ════════════════════════════════════════════════════════════════════
+# Away / follow-up
+# ════════════════════════════════════════════════════════════════════
+
+def is_away(settings: Dict[str, Any], now: Optional[datetime] = None) -> bool:
+    """Should an incoming user message get the away auto-reply?
+
+    Semantics, in order:
+      • away_enabled = False        → never. The feature is off.
+      • office_hours = NULL         → always away. This is the honest default
+        for a one-person team: promise a delay rather than a fast reply you
+        can't keep.
+      • office_hours set            → away only outside those windows.
+
+    office_hours = {"tz": "Asia/Jakarta", "days": [{"d": 0-6, "start": "09:00",
+    "end": "18:00"}, ...]}, d = Monday 0. A malformed value falls back to
+    "away", because a broken schedule must never silently promise availability.
+    """
+    if not settings.get("away_enabled"):
+        return False
+
+    hours = settings.get("office_hours")
+    if not hours or not isinstance(hours, dict):
+        return True
+
+    days = hours.get("days")
+    if not days:
+        return True
+
+    now = now or datetime.now(timezone.utc)
+    tz_name = hours.get("tz") or "UTC"
+    try:
+        from zoneinfo import ZoneInfo
+
+        local = now.astimezone(ZoneInfo(tz_name))
+    except Exception:
+        logger.warning("chat office_hours: bad tz %r, treating as away", tz_name)
+        return True
+
+    try:
+        weekday = local.weekday()
+        minutes_now = local.hour * 60 + local.minute
+        for window in days:
+            if int(window["d"]) != weekday:
+                continue
+            sh, sm = (int(x) for x in str(window["start"]).split(":"))
+            eh, em = (int(x) for x in str(window["end"]).split(":"))
+            if sh * 60 + sm <= minutes_now < eh * 60 + em:
+                return False  # inside an office-hours window
+    except Exception:
+        logger.warning("chat office_hours: malformed window, treating as away")
+        return True
+
+    return True
+
+
+def away_reply_due(db: Session, conversation_id: int, cooldown_min: int) -> bool:
+    """True when this conversation has had no auto-reply inside the cooldown.
+
+    Deduped in SQL rather than Redis so it still holds when Redis is down —
+    without it, five messages in a row earn five identical "we're away" replies,
+    which reads as a broken bot rather than a considerate one.
+    """
+    row = db.execute(
+        text("""
+            SELECT 1 FROM chat_messages
+             WHERE conversation_id = :cid
+               AND sender = 'system'
+               AND kind = 'system'
+               AND created_at > now() - make_interval(mins => :mins)
+             LIMIT 1
+        """),
+        {"cid": conversation_id, "mins": max(0, cooldown_min)},
+    ).fetchone()
+    return row is None
+
+
+def maybe_send_away_reply(db: Session, conversation_id: int) -> Optional[Dict[str, Any]]:
+    """Append the away auto-reply if one is warranted. Returns it, or None.
+
+    Called inline from the send handler rather than from the poller: it is pure
+    Postgres with no external I/O, and a "we're away" that lands a minute later
+    has already missed the moment it exists for.
+    """
+    try:
+        settings = get_settings(db)
+        if not is_away(settings):
+            return None
+        if not away_reply_due(db, conversation_id, settings.get("autoreply_cooldown_min") or 120):
+            return None
+        return append_message(
+            db,
+            conversation_id=conversation_id,
+            sender="system",
+            body=(settings.get("away_message") or DEFAULT_AWAY_MESSAGE),
+            source="system",
+            kind="system",
+            # Generated by us — the admin does not need it mirrored back into
+            # their own Telegram topic when phase 2 lands.
+            relay_state="skipped",
+        )
+    except Exception as e:
+        # Never let the courtesy reply break the user's actual send.
+        logger.warning("away auto-reply skipped: %s", e)
+        return None
+
+
+def conversations_awaiting_admin(db: Session, older_than_min: int, limit: int = 50) -> List[Dict[str, Any]]:
+    """Open threads whose newest message is from the user and has gone
+    unanswered longer than `older_than_min`. Drives the admin alert.
+    """
+    rows = db.execute(
+        text("""
+            SELECT c.id, c.user_id, c.last_seq, c.last_user_message_at,
+                   u.username, u.role,
+                   EXTRACT(EPOCH FROM (now() - c.last_user_message_at)) / 60 AS waiting_min,
+                   (SELECT m.body FROM chat_messages m
+                     WHERE m.conversation_id = c.id AND m.sender = 'user'
+                     ORDER BY m.seq DESC LIMIT 1) AS last_body
+              FROM chat_conversations c
+              JOIN users u ON u.id = c.user_id
+             WHERE c.status = 'open'
+               AND c.last_user_message_at IS NOT NULL
+               AND c.last_user_message_at < now() - make_interval(mins => :mins)
+               AND (c.last_admin_message_at IS NULL
+                    OR c.last_admin_message_at < c.last_user_message_at)
+             ORDER BY c.last_user_message_at ASC
+             LIMIT :lim
+        """),
+        {"mins": max(0, older_than_min), "lim": limit},
+    ).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def replies_unseen_by_user(db: Session, older_than_min: int, limit: int = 50) -> List[Dict[str, Any]]:
+    """Admin replies the user still hasn't read after `older_than_min`.
+
+    This is the whole offline-reach mechanism, and it works for every account
+    regardless of auth provider — most users have no Telegram and the backend
+    has no email sender, so the in-app bell is the only channel that reaches
+    all of them.
+    """
+    rows = db.execute(
+        text("""
+            SELECT m.id AS message_id, m.conversation_id, m.seq, m.body,
+                   c.user_id, u.username, u.telegram_id,
+                   u.telegram_bot_started_at, u.telegram_in_group
+              FROM chat_messages m
+              JOIN chat_conversations c ON c.id = m.conversation_id
+              JOIN users u ON u.id = c.user_id
+             WHERE m.sender IN ('admin', 'ai')
+               AND m.visibility = 'all'
+               AND m.seq > c.user_last_read_seq
+               AND m.created_at < now() - make_interval(mins => :mins)
+               AND m.seq = c.last_seq
+             ORDER BY m.created_at ASC
+             LIMIT :lim
+        """),
+        {"mins": max(0, older_than_min), "lim": limit},
+    ).mappings().all()
+    return [dict(r) for r in rows]
