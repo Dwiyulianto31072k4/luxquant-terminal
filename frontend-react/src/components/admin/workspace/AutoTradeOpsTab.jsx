@@ -205,6 +205,148 @@ function UserDetail({ userId }) {
         ) : null}
       </div>
     </div>
+
+      <div>
+        <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
+          Trade history
+        </p>
+        <TradeHistory userId={userId} />
+      </div>
+    </div>
+  );
+}
+
+
+function TradeHistory({ userId }) {
+  const [t, setT] = useState(null);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let dead = false;
+    adminApi
+      .getAutoTradeTrades(userId)
+      .then((x) => !dead && setT(x))
+      .catch((e) => !dead && setErr(e?.message || "Could not load trades"));
+    return () => {
+      dead = true;
+    };
+  }, [userId]);
+
+  if (err) return <p className="text-[12px] text-[#F6465D]">{err}</p>;
+  if (!t) return <p className="text-[12px] text-text-muted">Loading trades…</p>;
+  if (!t.available) return <p className="text-[12px] text-text-muted">Trades unavailable.</p>;
+  if (!t.trades?.length)
+    return <p className="text-[12px] text-text-muted">No closed trades yet.</p>;
+
+  const s = t.summary;
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
+        <span className="text-text-muted">
+          Settled <span className="text-text-secondary">{s.settled}</span>
+        </span>
+        <span className="text-text-muted">
+          Win rate{" "}
+          <span style={{ color: (s.win_rate ?? 0) >= 50 ? "#0ECB81" : "#F6465D" }}>
+            {s.win_rate === null ? "—" : `${s.win_rate}%`}
+          </span>
+          <span className="text-text-muted"> ({s.wins}W / {s.losses}L)</span>
+        </span>
+        <span className="text-text-muted">
+          Won <span style={{ color: "#0ECB81" }}>{usd(s.gross_win)}</span>
+        </span>
+        <span className="text-text-muted">
+          Lost <span style={{ color: "#F6465D" }}>{usd(s.gross_loss)}</span>
+        </span>
+        <span className="text-text-muted">
+          Net{" "}
+          <span style={{ color: s.net >= 0 ? "#0ECB81" : "#F6465D" }}>{usd(s.net)}</span>
+        </span>
+        {s.unpriced ? (
+          <span className="text-text-muted">
+            {s.unpriced} closed without a recorded price
+          </span>
+        ) : null}
+      </div>
+
+      {t.by_symbol?.length ? (
+        <div>
+          <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
+            Where the money went
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {t.by_symbol.map((b) => (
+              <span
+                key={b.symbol}
+                className="rounded-md border border-ink/10 px-2 py-1 text-[11px]"
+                style={{ color: b.pnl >= 0 ? "#0ECB81" : "#F6465D" }}
+                title={`${b.trades} trade(s), ${b.wins} won`}
+              >
+                {b.symbol} {usd(b.pnl)}
+                <span className="text-text-muted"> ×{b.trades}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
+          Closed trades — with what BTC was doing that day
+        </p>
+        <table className="w-full min-w-[720px] text-left">
+          <thead>
+            <tr className="border-b border-ink/[0.08] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+              <th className="pb-1.5 pr-3 font-medium">Closed</th>
+              <th className="pb-1.5 pr-3 font-medium">Symbol</th>
+              <th className="pb-1.5 pr-3 text-right font-medium">PnL</th>
+              <th className="pb-1.5 pr-3 text-right font-medium">Move</th>
+              <th className="pb-1.5 pr-3 text-right font-medium">BTC that day</th>
+              <th className="pb-1.5 pr-3 font-medium">Signals</th>
+              <th className="pb-1.5 font-medium">Exit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.trades.slice(0, 30).map((r, i) => (
+              <tr key={`${r.symbol}-${i}`} className="border-b border-ink/[0.04] text-[12px]">
+                <td className="py-1.5 pr-3 text-text-muted">{r.day || "—"}</td>
+                <td className="py-1.5 pr-3 text-text-secondary">
+                  {r.symbol}
+                  <span className="text-text-muted"> · {r.market_type}</span>
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">
+                  {r.realized_pnl === null ? (
+                    <span className="text-text-muted">not recorded</span>
+                  ) : (
+                    <span style={{ color: r.realized_pnl >= 0 ? "#0ECB81" : "#F6465D" }}>
+                      {usd(r.realized_pnl)}
+                    </span>
+                  )}
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-text-muted">
+                  {r.move_pct === null ? "—" : `${r.move_pct}%`}
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">
+                  {r.btc_change_pct === null || r.btc_change_pct === undefined ? (
+                    <span className="text-text-muted">—</span>
+                  ) : (
+                    <span style={{ color: r.btc_change_pct >= 0 ? "#0ECB81" : "#F6465D" }}>
+                      {r.btc_change_pct > 0 ? "+" : ""}
+                      {r.btc_change_pct}%
+                    </span>
+                  )}
+                </td>
+                <td className="py-1.5 pr-3 text-text-muted">{r.signal_regime || "—"}</td>
+                <td className="py-1.5 text-text-muted">{r.exit_reason || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-2 text-[10px] text-text-muted">
+          Move is entry to exit. On older trades the entry was recorded before the order
+          filled, so treat those percentages as approximate.
+        </p>
+      </div>
     </div>
   );
 }
@@ -244,14 +386,17 @@ export const AutoTradeOpsTab = () => {
   const t = overview?.totals || {};
   const pt = positions?.totals || {};
   const users = overview?.users || [];
+  const linked = users.filter((u) => u.has_account);
   const shown =
     filter === "all"
-      ? users
-      : filter === "problems"
-        ? users.filter((u) => u.status === "error" || u.status === "warn")
-        : filter === "live"
-          ? users.filter((u) => u.is_active && u.dry_run === false)
-          : users.filter((u) => u.status === filter);
+      ? linked
+      : filter === "unlinked"
+        ? users.filter((u) => !u.has_account)
+        : filter === "problems"
+          ? linked.filter((u) => u.status === "error" || u.status === "warn")
+          : filter === "live"
+            ? linked.filter((u) => u.is_active && u.dry_run === false)
+            : linked.filter((u) => u.status === filter);
 
   return (
     <div className="space-y-4">
@@ -275,7 +420,11 @@ export const AutoTradeOpsTab = () => {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <Stat label="Linked" value={t.linked ?? 0} sub={`${t.active ?? 0} active`} />
+        <Stat
+          label="Connected"
+          value={t.linked ?? 0}
+          sub={`of ${t.signed_in ?? 0} who opened AutoTrade`}
+        />
         <Stat label="Live bots" value={t.live ?? 0} sub="placing real orders" />
         <Stat
           label="Errors"
@@ -311,7 +460,8 @@ export const AutoTradeOpsTab = () => {
               ["live", `Live ${t.live || 0}`],
               ["ok", "Healthy"],
               ["paused", "Paused"],
-              ["all", `All ${users.length}`],
+              ["all", `All bots ${t.linked ?? 0}`],
+              ["unlinked", `Never connected ${t.never_linked ?? 0}`],
             ].map(([key, label]) => (
               <button
                 key={key}

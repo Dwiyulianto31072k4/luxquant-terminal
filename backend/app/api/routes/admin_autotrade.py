@@ -61,6 +61,15 @@ def autotrade_overview(
     return data
 
 
+@router.get("/users/{user_id}/trades")
+def autotrade_user_trades(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+):
+    """Closed trades for one user, each with that day's BTC move and signal regime."""
+    return autotrade_monitor.user_trades(user_id)
+
+
 @router.get("/positions")
 def autotrade_positions(
     admin: User = Depends(get_admin_user),

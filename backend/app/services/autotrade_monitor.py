@@ -289,6 +289,12 @@ def overview() -> dict[str, Any]:
 
     linked = [r for r in rows if r["has_account"]]
     totals = {
+        # Everyone who ever opened AutoTrade, vs everyone who actually connected
+        # an exchange. The gap is a funnel fact, not a bot to monitor — showing
+        # 110 "bots" when 85 of them never connected anything was misleading.
+        "signed_in": len(rows),
+        "never_linked": len(rows) - len(linked),
+        "configured": len([r for r in rows if r["has_account"] and r["dry_run"] is not None]),
         "linked": len(linked),
         "active": len([r for r in linked if r["is_active"]]),
         "live": len([r for r in linked if r["is_active"] and r["dry_run"] is False]),
@@ -303,6 +309,166 @@ def overview() -> dict[str, Any]:
     rank = {"error": 0, "warn": 1, "unlinked": 3, "paused": 2, "ok": 2}
     rows.sort(key=lambda r: (rank.get(r["status"], 4), -r["recent_errors"], -r["stuck_positions"]))
     return {"available": True, "window_hours": RECENT_WINDOW_HOURS, "totals": totals, "users": rows}
+
+
+_btc_cache: dict[str, Any] = {"at": 0.0, "days": {}}
+_BTC_CACHE_TTL = 900.0
+
+
+def btc_daily() -> dict[str, dict[str, float]]:
+    """BTC close and daily change, keyed by ISO date.
+
+    A loss means little on its own — "-$81 on FILUSDT" reads very differently
+    when BTC fell 4% that day than when it was flat and the trade simply went
+    wrong. There is no BTC price history in either database
+    (`btc_market_context_snapshots` exists but is empty), so this pulls daily
+    candles from Binance's public endpoint. No key, no signing, and cached so a
+    page refresh does not re-fetch.
+    """
+    import time as _time
+
+    if _btc_cache["days"] and _time.monotonic() - _btc_cache["at"] < _BTC_CACHE_TTL:
+        return _btc_cache["days"]
+    try:
+        import httpx
+
+        response = httpx.get(
+            "https://api.binance.com/api/v3/klines",
+            params={"symbol": "BTCUSDT", "interval": "1d", "limit": 400},
+            timeout=8,
+        )
+        response.raise_for_status()
+        rows = response.json()
+    except Exception as exc:
+        logger.info("BTC context unavailable: %s", exc)
+        return _btc_cache["days"] or {}
+
+    days: dict[str, dict[str, float]] = {}
+    for row in rows:
+        try:
+            opened = datetime.fromtimestamp(row[0] / 1000, timezone.utc).date().isoformat()
+            open_px, close_px = float(row[1]), float(row[4])
+            days[opened] = {
+                "close": close_px,
+                "change_pct": round((close_px - open_px) / open_px * 100, 2) if open_px else 0.0,
+            }
+        except (TypeError, ValueError, IndexError):
+            continue
+    if days:
+        _btc_cache["days"] = days
+        _btc_cache["at"] = _time.monotonic()
+    return days
+
+
+def _signal_regimes(dates: list[str]) -> dict[str, str]:
+    """How LuxQuant's own signals were performing on each day.
+
+    Separate axis from BTC: the market can be up while the signal set has a bad
+    day, and conflating the two would hide exactly that case.
+    """
+    if not dates:
+        return {}
+    try:
+        from app.core.database import SessionLocal
+
+        with SessionLocal() as db:
+            rows = db.execute(
+                text(
+                    "SELECT date::text AS d, regime, win_rate "
+                    "FROM daily_market_regime WHERE date::text = ANY(:dates)"
+                ),
+                {"dates": dates},
+            ).all()
+        return {r.d: {"regime": r.regime, "win_rate": float(r.win_rate or 0)} for r in rows}
+    except Exception:
+        return {}
+
+
+def user_trades(luxquant_user_id: int, limit: int = 100) -> dict[str, Any]:
+    """Every closed trade for one user, with the market context of that day."""
+    subject = _subject(luxquant_user_id)
+    try:
+        rows = _rows(
+            """
+            SELECT p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
+                   p.exit_price, p.realized_pnl, p.fees, p.exit_reason,
+                   p.created_at, p.closed_at
+            FROM positions p
+            JOIN users u ON u.id = p.user_id
+            WHERE u.subject = :subject AND p.status = 'closed'
+            ORDER BY p.closed_at DESC NULLS LAST
+            LIMIT :limit
+            """,
+            {"subject": subject, "limit": limit},
+        )
+    except Exception as exc:
+        logger.warning("AutoTrade trades unavailable for %s: %s", subject, exc)
+        return {"available": False, "error": str(exc)[:200], "trades": []}
+
+    btc = btc_daily()
+    dates = sorted({r["closed_at"].date().isoformat() for r in rows if r.get("closed_at")})
+    regimes = _signal_regimes(dates)
+
+    wins = losses = 0
+    gross_win = gross_loss = 0.0
+    by_symbol: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        pnl = row.get("realized_pnl")
+        day = row["closed_at"].date().isoformat() if row.get("closed_at") else None
+        row["day"] = day
+        row["btc_change_pct"] = (btc.get(day) or {}).get("change_pct")
+        row["btc_close"] = (btc.get(day) or {}).get("close")
+        row["signal_regime"] = (regimes.get(day) or {}).get("regime")
+        if row.get("entry_price") and row.get("exit_price"):
+            direction = 1 if (row.get("side") or "BUY") == "BUY" else -1
+            row["move_pct"] = round(
+                (float(row["exit_price"]) - float(row["entry_price"]))
+                / float(row["entry_price"]) * 100 * direction,
+                2,
+            )
+        else:
+            row["move_pct"] = None
+
+        if pnl is None:
+            continue
+        pnl = float(pnl)
+        bucket = by_symbol.setdefault(row["symbol"], {"symbol": row["symbol"], "trades": 0, "pnl": 0.0, "wins": 0})
+        bucket["trades"] += 1
+        bucket["pnl"] += pnl
+        if pnl >= 0:
+            wins += 1
+            gross_win += pnl
+            bucket["wins"] += 1
+        else:
+            losses += 1
+            gross_loss += pnl
+
+    settled = wins + losses
+    worst = sorted(
+        (r for r in rows if r.get("realized_pnl") is not None),
+        key=lambda r: float(r["realized_pnl"]),
+    )[:5]
+    for bucket in by_symbol.values():
+        bucket["pnl"] = round(bucket["pnl"], 2)
+
+    return {
+        "available": True,
+        "trades": rows,
+        "worst": worst,
+        "by_symbol": sorted(by_symbol.values(), key=lambda b: b["pnl"])[:12],
+        "summary": {
+            "settled": settled,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(wins / settled * 100, 1) if settled else None,
+            "gross_win": round(gross_win, 2),
+            "gross_loss": round(gross_loss, 2),
+            "net": round(gross_win + gross_loss, 2),
+            # Positions closed before fill prices were recorded have no PnL at
+            # all; saying so beats implying the user made exactly zero on them.
+            "unpriced": len([r for r in rows if r.get("realized_pnl") is None]),
+        },
+    }
 
 
 def open_positions() -> dict[str, Any]:
