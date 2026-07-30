@@ -87,6 +87,30 @@ These caps are enforced before every live entry:
 - **Keep the per-trade cap above the amount.** A cap below the entry size skips every
   signal as `max_trade_notional`.
 
+## Behaviour that surprises people
+
+These are real and easy to miss — each one has produced a support question:
+
+- **Trailing stop is futures-only.** Select it on a spot trade and the engine silently
+  uses a fixed stop loss instead. No error is shown.
+- **Picking a TP/SL level the signal does not have makes the execution FAIL, not skip.**
+  Choose TP4 and every signal that publishes only three targets errors out. TP1–TP2 are
+  the safe choices.
+- **Dry run sizes percent trades off a fixed 1,000 USDT**, not the real balance. A 2%
+  setting always simulates 20 USDT, so simulated sizes are illustrative only.
+- **A signal with no risk level is never filtered out.** "Low only" does not guarantee
+  nothing else trades — the bot will not block on information the source did not send.
+- **Percent sizing counts free USDT only.** Money already in open positions does not
+  count toward it.
+- **The per-trade cap blocks, it does not shrink.** A cap below the entry size skips
+  every signal instead of trimming the trade.
+- **Spot entries can be auto-enlarged.** The engine raises the entry up to 2× to make
+  the protective stop leg clear Binance's minimum, and skips the signal if even 2× is
+  not enough rather than opening it unprotected.
+
+Every setting also carries this in the product: a **?** next to each field on the
+Configure tab, and the full list under Guide → "Every setting, explained".
+
 ## When entries are blocked
 
 Two different things look similar in the Activity tab:

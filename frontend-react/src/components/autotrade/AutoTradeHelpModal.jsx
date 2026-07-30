@@ -8,6 +8,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
+import { FIELD_GUIDE, ENGINE_RULES } from "./autotradeFieldGuide";
 
 const SECTIONS = [
   { id: "how-it-works", label: "How it works" },
@@ -20,6 +21,7 @@ const SECTIONS = [
   { id: "spot-vs-futures", label: "Spot vs Futures" },
   { id: "presets", label: "Preset profiles" },
   { id: "capital", label: "Capital guidance" },
+  { id: "settings-reference", label: "Every setting, explained" },
   { id: "case-studies", label: "When something looks stuck" },
   { id: "faq", label: "FAQ" },
 ];
@@ -623,6 +625,92 @@ function SectionFAQ() {
   );
 }
 
+// The same content the "?" buttons show on the Configure tab, laid out for
+// reading end to end. One source (autotradeFieldGuide.js) so they cannot drift.
+const REFERENCE_GROUPS = [
+  { heading: "Engine", keys: ["is_active"] },
+  { heading: "Markets", keys: ["spot_enabled", "futures_enabled", "dry_run"] },
+  {
+    heading: "Position sizing",
+    keys: ["sizing_method", "sizing_value", "leverage", "margin_mode"],
+  },
+  {
+    heading: "Take profit / Stop loss",
+    keys: ["tp_level", "sl_level", "exit_mode", "trailing_callback_rate"],
+  },
+  { heading: "Risk filter", keys: ["allowed_risk_levels"] },
+  {
+    heading: "Risk limits",
+    keys: [
+      "one_open_position_per_symbol",
+      "max_open_positions",
+      "max_trade_notional_usdt",
+      "max_daily_trades",
+      "daily_loss_limit_usdt",
+      "min_available_usdt",
+      "cooldown_after_loss_minutes",
+      "cooldown_after_error_minutes",
+    ],
+  },
+];
+
+function SectionSettingsReference() {
+  return (
+    <div className="space-y-6">
+      <Sub>Full reference</Sub>
+      <H>Every setting, explained</H>
+      <P>
+        Each entry says what the setting does, shows a worked example with real numbers, and
+        flags the behaviour that is real but not visible in the interface. The same text sits
+        behind the <b>?</b> next to every field on the Configure tab.
+      </P>
+
+      {REFERENCE_GROUPS.map((group) => (
+        <div key={group.heading} className="space-y-3">
+          <H>{group.heading}</H>
+          {group.keys.map((key) => {
+            const guide = FIELD_GUIDE[key];
+            if (!guide) return null;
+            return (
+              <div
+                key={key}
+                className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-4"
+              >
+                <p className="text-sm font-semibold text-text-primary">{guide.title}</p>
+                <p className="mt-1.5 text-[13px] leading-6 text-text-secondary">{guide.what}</p>
+                <p className="mt-2.5 text-[12px] leading-6 text-text-muted">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+                    Example
+                  </span>
+                  <br />
+                  {guide.example}
+                </p>
+                {guide.watch ? (
+                  <p className="mt-2 text-[12px] leading-6 text-text-muted">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-warn">
+                      Watch out
+                    </span>
+                    <br />
+                    {guide.watch}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <H>Rules you cannot configure</H>
+      <P>These are always on. They are the reasons an entry can be blocked even when every setting above is correct.</P>
+      {ENGINE_RULES.map((rule) => (
+        <Field key={rule.title} label={rule.title}>
+          {rule.body}
+        </Field>
+      ))}
+    </div>
+  );
+}
+
 function SectionCaseStudies() {
   return (
     <div className="space-y-5">
@@ -689,6 +777,7 @@ const RENDERERS = {
   "spot-vs-futures": SectionSpotVsFutures,
   presets: SectionPresets,
   capital: SectionCapital,
+  "settings-reference": SectionSettingsReference,
   "case-studies": SectionCaseStudies,
   faq: SectionFAQ,
 };

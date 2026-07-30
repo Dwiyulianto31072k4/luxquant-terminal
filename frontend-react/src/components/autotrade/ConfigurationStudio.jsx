@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { updateBinanceStrategyConfig } from "../../services/autotradeApi";
+import { FIELD_GUIDE, ENGINE_RULES, MIN_LIVE_ENTRY_USDT } from "./autotradeFieldGuide";
 import {
   Card,
   StatusDot,
@@ -23,10 +24,6 @@ import {
 } from "./AutoTradeUI";
 
 const RISK_LEVELS = ["low", "normal", "high"];
-// Mirrors backend MIN_LIVE_ENTRY_NOTIONAL_USDT. Amount is margin, not position
-// size — leverage multiplies it — so 5 USDT of margin already clears Binance's
-// 5 USDT min notional at any leverage.
-const MIN_LIVE_ENTRY_USDT = 5;
 const LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: n, label: `TP${n}` }));
 const SL_LEVEL_OPTIONS = [1, 2].map((n) => ({ value: n, label: `SL${n}` }));
 
@@ -49,15 +46,175 @@ function SectionTitle({ children, hint }) {
   );
 }
 
-function Row({ label, hint, children }) {
+// ── Per-field guidance ──────────────────────────────────────────
+// Every setting can explain itself: what it does, a worked example with
+// real numbers, and the behaviour that is real but invisible in the UI.
+// Collapsed by default so the page stays scannable.
+function ExplainPanel({ guide }) {
+  return (
+    <div className="mt-2 space-y-2 rounded-md border border-accent/20 bg-accent/[0.04] px-3 py-2.5">
+      <p className="text-[11px] leading-[1.5] text-text-secondary">{guide.what}</p>
+      <p className="text-[11px] leading-[1.5] text-text-muted">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-accent">
+          Example
+        </span>
+        <br />
+        {guide.example}
+      </p>
+      {guide.watch ? (
+        <p className="text-[11px] leading-[1.5] text-text-muted">
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-warn">
+            Watch out
+          </span>
+          <br />
+          {guide.watch}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ExplainToggle({ open, onClick, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={`${open ? "Hide" : "Show"} explanation for ${label}`}
+      className={`inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border text-[9px] font-bold leading-none transition-colors ${
+        open
+          ? "border-accent bg-accent text-surface-primary"
+          : "border-ink/25 text-text-muted hover:border-accent hover:text-accent"
+      }`}
+    >
+      ?
+    </button>
+  );
+}
+
+function Row({ label, hint, guide, children }) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="space-y-1.5">
-      <label className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">
-        {label}
-      </label>
+      <div className="flex items-center gap-1.5">
+        <label className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">
+          {label}
+        </label>
+        {guide ? (
+          <ExplainToggle open={open} onClick={() => setOpen((v) => !v)} label={label} />
+        ) : null}
+      </div>
       {children}
       {hint ? <p className="text-[11px] leading-4 text-text-muted">{hint}</p> : null}
+      {guide && open ? <ExplainPanel guide={guide} /> : null}
     </div>
+  );
+}
+
+// Toggle renders a <button>, so its explanation cannot nest inside it.
+function WithGuide({ guide, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      {children}
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <ExplainToggle open={open} onClick={() => setOpen((v) => !v)} label={guide.title} />
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted transition-colors hover:text-accent"
+        >
+          {open ? "Hide" : "Explain"}
+        </button>
+      </div>
+      {open ? <ExplainPanel guide={guide} /> : null}
+    </div>
+  );
+}
+
+// ── Live worked example ─────────────────────────────────────────
+// Settings are abstract until you see what they do to one trade. This
+// walks the user's own current values through the same order the engine
+// applies them in, so a misconfiguration is visible before it costs money.
+function WorkedExample({ draft, availableUsdt }) {
+  const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(n).toFixed(2)}`;
+  const isPercent = draft.sizing_method === "percent";
+  // The engine sizes percent trades off FREE USDT; dry run substitutes a
+  // fixed 1,000 rather than reading the account.
+  const balance = draft.dry_run ? 1000 : Number(availableUsdt) || 0;
+  const knownBalance = draft.dry_run || Number(availableUsdt) > 0;
+  const raw = isPercent ? balance * (Number(draft.sizing_value) || 0) / 100 : Number(draft.sizing_value) || 0;
+  const margin = Math.max(MIN_LIVE_ENTRY_USDT, raw);
+  const leverage = draft.futures_enabled ? Math.max(1, Number(draft.leverage) || 1) : 1;
+  const cap = Number(draft.max_trade_notional_usdt) || 0;
+  const reserve = Number(draft.min_available_usdt) || 0;
+
+  const steps = [];
+  if (isPercent && !knownBalance) {
+    steps.push(["Entry size", `${draft.sizing_value}% of your free USDT — connect an account to preview the amount`]);
+  } else {
+    steps.push([
+      "Entry size",
+      isPercent
+        ? `${draft.sizing_value}% of ${usd(balance)}${draft.dry_run ? " (dry-run stand-in)" : " free"} = ${usd(raw)}${raw < MIN_LIVE_ENTRY_USDT ? ` → raised to ${usd(margin)} minimum` : ""}`
+        : `${usd(margin)} of margin`,
+    ]);
+  }
+  if (draft.futures_enabled) {
+    steps.push([
+      "Position on futures",
+      `${usd(margin)} × ${leverage}× = ${usd(margin * leverage)} of exposure. A 10% coin move is ${usd(margin * leverage * 0.1)} — ${((leverage * 10)).toFixed(0)}% of your margin.`,
+    ]);
+  }
+  if (draft.spot_enabled) {
+    steps.push([
+      "On spot",
+      margin < 10
+        ? `${usd(margin)} buys ${usd(margin)} of coin — but the protective stop is a separate order with its own $5 minimum, so the engine may raise this entry (up to ${usd(margin * 2)}) or skip the signal.`
+        : `${usd(margin)} buys ${usd(margin)} of coin, with room for the protective stop order.`,
+    ]);
+  }
+  steps.push([
+    "Per trade cap",
+    cap < margin
+      ? `${usd(cap)} is BELOW the ${usd(margin)} entry — every signal will skip as max_trade_notional.`
+      : `${usd(cap)} — the ${usd(margin)} entry passes.`,
+  ]);
+  if (knownBalance && !isPercent) {
+    steps.push([
+      "Minimum reserve",
+      balance - margin < reserve
+        ? `${usd(balance)} − ${usd(margin)} = ${usd(balance - margin)}, below the ${usd(reserve)} reserve — this entry would be blocked.`
+        : `${usd(balance)} − ${usd(margin)} = ${usd(balance - margin)} left, clearing the ${usd(reserve)} reserve.`,
+    ]);
+  }
+  steps.push([
+    "Then",
+    `Up to ${draft.max_open_positions} open at once, ${draft.max_daily_trades} entries per day, pausing at ${usd(Number(draft.daily_loss_limit_usdt) || 0)} of realised loss.`,
+  ]);
+
+  const broken = steps.some(([, text]) => text.includes("BELOW") || text.includes("blocked"));
+
+  return (
+    <Card className={broken ? "border-danger/30" : undefined}>
+      <SectionTitle hint="Your current values">What one trade looks like</SectionTitle>
+      <ol className="space-y-2.5">
+        {steps.map(([label, text]) => (
+          <li key={label} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <span className="w-full flex-shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-accent sm:w-40">
+              {label}
+            </span>
+            <span className="text-[12px] leading-5 text-text-secondary">{text}</span>
+          </li>
+        ))}
+      </ol>
+      {draft.dry_run ? (
+        <p className="mt-4 text-[11px] leading-4 text-text-muted">
+          Dry run is on — nothing reaches Binance, and percent sizing is simulated against a
+          fixed $1,000 rather than your real balance.
+        </p>
+      ) : null}
+    </Card>
   );
 }
 
@@ -138,7 +295,7 @@ function toPayload(draft) {
   };
 }
 
-export default function ConfigurationStudio({ config, hasConnectedAccount, onSaved }) {
+export default function ConfigurationStudio({ config, hasConnectedAccount, onSaved, portfolio }) {
   const [draft, setDraft] = useState(() => toDraft(config));
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -279,30 +436,36 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       <Card>
         <SectionTitle>Markets</SectionTitle>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Toggle
-            label="Spot trading"
-            hint="Execute spot orders for supported signals."
-            checked={draft.spot_enabled}
-            onChange={(value) => patch({ spot_enabled: value })}
-          />
-          <Toggle
-            label="Futures trading"
-            hint="Execute leveraged futures orders."
-            checked={draft.futures_enabled}
-            onChange={(value) => patch({ futures_enabled: value })}
-          />
+          <WithGuide guide={FIELD_GUIDE.spot_enabled}>
+            <Toggle
+              label="Spot trading"
+              hint="Execute spot orders for supported signals."
+              checked={draft.spot_enabled}
+              onChange={(value) => patch({ spot_enabled: value })}
+            />
+          </WithGuide>
+          <WithGuide guide={FIELD_GUIDE.futures_enabled}>
+            <Toggle
+              label="Futures trading"
+              hint="Execute leveraged futures orders."
+              checked={draft.futures_enabled}
+              onChange={(value) => patch({ futures_enabled: value })}
+            />
+          </WithGuide>
         </div>
         <div className="mt-4 border-t border-ink/[0.06] pt-4">
-          <Toggle
-            label="Dry run (simulation)"
-            hint={
-              draft.dry_run
-                ? "ON — bot follows signals but places no real Binance orders."
-                : "OFF — LIVE mode. Matching signals may place real orders when the engine is started."
-            }
-            checked={Boolean(draft.dry_run)}
-            onChange={(value) => patch({ dry_run: value })}
-          />
+          <WithGuide guide={FIELD_GUIDE.dry_run}>
+            <Toggle
+              label="Dry run (simulation)"
+              hint={
+                draft.dry_run
+                  ? "ON — bot follows signals but places no real Binance orders."
+                  : "OFF — LIVE mode. Matching signals may place real orders when the engine is started."
+              }
+              checked={Boolean(draft.dry_run)}
+              onChange={(value) => patch({ dry_run: value })}
+            />
+          </WithGuide>
         </div>
       </Card>
 
@@ -310,7 +473,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       <Card>
         <SectionTitle hint="Per-entry capital">Position sizing</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Row label="Method">
+          <Row guide={FIELD_GUIDE.sizing_method} label="Method">
             <Select
               value={draft.sizing_method}
               onChange={(value) => patch({ sizing_method: value })}
@@ -320,7 +483,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
               ]}
             />
           </Row>
-          <Row
+          <Row guide={FIELD_GUIDE.sizing_value}
             label="Amount"
             hint={
               draft.sizing_method === "fixed"
@@ -343,7 +506,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           <div className="mt-5 border-t border-ink/[0.06] pt-5">
             <SectionTitle>Futures</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Row label="Leverage" hint="1×–125×">
+              <Row guide={FIELD_GUIDE.leverage} label="Leverage" hint="1×–125×">
                 <NumberInput
                   value={draft.leverage}
                   onChange={(value) => patch({ leverage: value })}
@@ -352,7 +515,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                   suffix="×"
                 />
               </Row>
-              <Row label="Margin mode">
+              <Row guide={FIELD_GUIDE.margin_mode} label="Margin mode">
                 <Select
                   value={draft.margin_mode}
                   onChange={(value) => patch({ margin_mode: value })}
@@ -371,14 +534,14 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       <Card>
         <SectionTitle>Take profit / Stop loss</SectionTitle>
         <div className="space-y-4">
-          <Row label="Take profit target" hint="Which TP level from the signal to exit on.">
+          <Row guide={FIELD_GUIDE.tp_level} label="Take profit target" hint="Which TP level from the signal to exit on.">
             <Segmented
               value={draft.tp_level}
               onChange={(value) => patch({ tp_level: value })}
               options={LEVEL_OPTIONS}
             />
           </Row>
-          <Row label="Stop loss level" hint="Which SL level from the signal to use.">
+          <Row guide={FIELD_GUIDE.sl_level} label="Stop loss level" hint="Which SL level from the signal to use.">
             <Segmented
               value={draft.sl_level}
               onChange={(value) => patch({ sl_level: value })}
@@ -386,7 +549,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
             />
           </Row>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Row label="Exit mode">
+            <Row guide={FIELD_GUIDE.exit_mode} label="Exit mode">
               <Select
                 value={draft.exit_mode}
                 onChange={(value) => patch({ exit_mode: value })}
@@ -396,7 +559,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 ]}
               />
             </Row>
-            <Row label="Trailing callback" hint="Used only for trailing stop.">
+            <Row guide={FIELD_GUIDE.trailing_callback_rate} label="Trailing callback" hint="Used only for trailing stop.">
               <NumberInput
                 value={draft.trailing_callback_rate}
                 onChange={(value) => patch({ trailing_callback_rate: value })}
@@ -430,6 +593,9 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
         <p className="mt-3 text-xs text-text-muted">
           Leave all unselected to trade every risk level.
         </p>
+        <WithGuide guide={FIELD_GUIDE.allowed_risk_levels}>
+          <span />
+        </WithGuide>
       </Card>
 
       {/* ── Risk limits ── */}
@@ -445,18 +611,20 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
             </p>
           </div>
           <div className="w-full sm:w-[360px]">
-            <Toggle
-              label="One position per symbol"
-              hint="Prevent duplicate exposure on the same asset."
-              checked={draft.one_open_position_per_symbol}
-              onChange={(value) => patch({ one_open_position_per_symbol: value })}
-            />
+            <WithGuide guide={FIELD_GUIDE.one_open_position_per_symbol}>
+              <Toggle
+                label="One position per symbol"
+                hint="Prevent duplicate exposure on the same asset."
+                checked={draft.one_open_position_per_symbol}
+                onChange={(value) => patch({ one_open_position_per_symbol: value })}
+              />
+            </WithGuide>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
           <GuardCard title="Exposure">
-            <Row label="Open positions" hint="Maximum concurrent positions.">
+            <Row guide={FIELD_GUIDE.max_open_positions} label="Open positions" hint="Maximum concurrent positions.">
               <NumberInput
                 value={draft.max_open_positions}
                 onChange={(value) => patch({ max_open_positions: value })}
@@ -464,7 +632,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 max={100}
               />
             </Row>
-            <Row
+            <Row guide={FIELD_GUIDE.max_trade_notional_usdt}
               label="Per trade cap"
               hint={
                 draft.sizing_method === "fixed"
@@ -486,7 +654,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           </GuardCard>
 
           <GuardCard title="Daily guard">
-            <Row label="Trades per day" hint="Resets at 00:00 UTC.">
+            <Row guide={FIELD_GUIDE.max_daily_trades} label="Trades per day" hint="Resets at 00:00 UTC.">
               <NumberInput
                 value={draft.max_daily_trades}
                 onChange={(value) => patch({ max_daily_trades: value })}
@@ -494,7 +662,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 max={1000}
               />
             </Row>
-            <Row label="Loss limit" hint="Pause after realized losses.">
+            <Row guide={FIELD_GUIDE.daily_loss_limit_usdt} label="Loss limit" hint="Pause after realized losses.">
               <NumberInput
                 value={draft.daily_loss_limit_usdt}
                 onChange={(value) => patch({ daily_loss_limit_usdt: value })}
@@ -507,7 +675,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           </GuardCard>
 
           <GuardCard title="Capital guard">
-            <Row label="Minimum reserve" hint="USDT that must remain free after a new entry.">
+            <Row guide={FIELD_GUIDE.min_available_usdt} label="Minimum reserve" hint="USDT that must remain free after a new entry.">
               <NumberInput
                 value={draft.min_available_usdt}
                 onChange={(value) => patch({ min_available_usdt: value })}
@@ -523,7 +691,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
           </GuardCard>
 
           <GuardCard title="Recovery">
-            <Row label="After loss" hint="Wait before the next entry.">
+            <Row guide={FIELD_GUIDE.cooldown_after_loss_minutes} label="After loss" hint="Wait before the next entry.">
               <NumberInput
                 value={draft.cooldown_after_loss_minutes}
                 onChange={(value) => patch({ cooldown_after_loss_minutes: value })}
@@ -532,7 +700,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                 suffix="min"
               />
             </Row>
-            <Row label="After error" hint="Wait after execution failure.">
+            <Row guide={FIELD_GUIDE.cooldown_after_error_minutes} label="After error" hint="Wait after execution failure.">
               <NumberInput
                 value={draft.cooldown_after_error_minutes}
                 onChange={(value) => patch({ cooldown_after_error_minutes: value })}
@@ -547,6 +715,27 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
         <p className="mt-4 text-xs text-text-muted">
           Skipped signals do not consume the daily trade quota.
         </p>
+      </Card>
+
+      <WorkedExample
+        draft={draft}
+        availableUsdt={portfolio?.spot?.available_usdt ?? portfolio?.futures?.available_usdt}
+      />
+
+      {/* ── Rules the engine enforces that are not settings ── */}
+      <Card>
+        <SectionTitle hint="Not settings — always on">How the engine decides</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ENGINE_RULES.map((rule) => (
+            <div
+              key={rule.title}
+              className="rounded-lg border border-ink/[0.07] bg-ink/[0.02] p-3.5"
+            >
+              <p className="text-[12px] font-semibold text-text-primary">{rule.title}</p>
+              <p className="mt-1.5 text-[11px] leading-[1.55] text-text-muted">{rule.body}</p>
+            </div>
+          ))}
+        </div>
       </Card>
 
       {/* ── Save bar ── */}

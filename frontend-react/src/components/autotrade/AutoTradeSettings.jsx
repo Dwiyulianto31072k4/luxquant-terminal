@@ -92,6 +92,7 @@ export default function AutoTradeSettings({
             config={config}
             hasConnectedAccount={hasConnectedAccount}
             onSaved={onSaved}
+            portfolio={portfolio}
           />
         ) : null}
         {activeSection === "connections" ? (
