@@ -74,11 +74,47 @@ These caps are enforced before every live entry:
 - **Min available (USDT)** — the minimum free balance required before opening a trade
   (default 5); below this the bot won't enter.
 
+## Minimum trade size
+
+- **Amount is margin, not position size.** On futures, leverage multiplies it: 5 USDT
+  at 10× opens a 50 USDT position.
+- **The live floor is 5 USDT of margin**, which is Binance's own `MIN_NOTIONAL`. There
+  is no 20 USDT minimum — that number was ours by mistake and has been removed.
+- **Spot needs more than the floor.** The binding constraint on spot is the protective
+  stop leg, not the entry: quantity × stop-limit price must also clear 5 USDT, and the
+  stop sits below the entry. An entry right at 5 USDT therefore fails as soon as the
+  stop is more than a few percent away. Budget 10–15 USDT per spot trade.
+- **Keep the per-trade cap above the amount.** A cap below the entry size skips every
+  signal as `max_trade_notional`.
+
+## When entries are blocked
+
+Two different things look similar in the Activity tab:
+
+- A **per-signal skip** held one entry back (max open positions, daily trades, cooldown,
+  trade notional). Others may still go through.
+- A **gate** pauses every new entry until it clears: `reconciliation_required`,
+  `daily_loss_limit`, `max_live_bots`.
+
+`reconciliation_required` is the one users hit most. It means a position could not be
+matched against Binance — almost always because the coin left the spot wallet outside
+the bot (manual sell, convert or transfer on Binance directly, each of which cancels
+the protective OCO first). The reconciler detects this automatically: once it confirms
+the balance is genuinely gone, it closes the position and the gate lifts.
+
+If **force-sell** fails with *No free balance is available after cancelling protection*,
+that is the same situation — there is nothing left to sell. Repeating it will not help,
+and a failed force-sell records no exit, so it cannot clear the position either. Wait
+for the reconciler.
+
+Clearing the gate does not by itself resume trading: spot entries also need free USDT
+in the wallet. Coins already held do not count.
+
 ## Common questions
 
 - **Why isn't it trading?** — Check: engine not paused, Binance key valid, the signal
-  passes your allowed risk levels, and you haven't hit max open positions / max daily
-  trades / min-balance limits.
+  passes your allowed risk levels, free USDT available, and you haven't hit max open
+  positions / max daily trades / min-balance limits or a blocking gate (see above).
 - **How do I test safely?** — Use **Dry Run** to simulate before going live.
 - **How do I limit risk?** — Lower **Max trade notional**, cap **Max open positions**
   and **Max daily trades**, keep leverage low (or use Spot), and restrict **Allowed

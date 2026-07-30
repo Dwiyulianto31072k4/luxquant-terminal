@@ -20,6 +20,7 @@ const SECTIONS = [
   { id: "spot-vs-futures", label: "Spot vs Futures" },
   { id: "presets", label: "Preset profiles" },
   { id: "capital", label: "Capital guidance" },
+  { id: "case-studies", label: "When something looks stuck" },
   { id: "faq", label: "FAQ" },
 ];
 
@@ -466,8 +467,8 @@ function SectionPresets() {
             ["Spot trading", "ON"],
             ["Futures trading", "OFF"],
             ["Method", "Fixed USDT"],
-            ["Amount", "5"],
-            ["Per trade cap", "5"],
+            ["Amount", "12"],
+            ["Per trade cap", "15"],
             ["Minimum reserve", "10"],
             ["Risk filter", "Low only"],
             ["Take Profit", "TP1"],
@@ -622,6 +623,61 @@ function SectionFAQ() {
   );
 }
 
+function SectionCaseStudies() {
+  return (
+    <div className="space-y-5">
+      <Sub>Real situations</Sub>
+      <H>When something looks stuck</H>
+      <P>
+        These are the cases support actually sees. Each one starts with what you’d notice on screen,
+        because the symptom rarely names the cause.
+      </P>
+
+      <Field label="Case 1 — “Every signal says reconciliation required”">
+        One of your positions could not be matched against Binance, and that pauses <i>all</i> new
+        entries until it clears — it is a gate, not a per-signal skip. The usual cause is that the
+        coin left your spot wallet outside the bot: you sold, converted or transferred it on Binance
+        directly. Any of those cancels the protective OCO first, which is exactly what leaves the
+        bot with a position it can no longer see or protect. The reconciler now detects this on its
+        own — once it confirms the balance is really gone, it closes the position and the gate
+        lifts. Nothing for you to do but wait a minute.
+      </Field>
+
+      <Field label="Case 1b — “Force sell keeps failing”">
+        If you press force-sell and get <i>No free balance available after cancelling protection</i>,
+        the coin is already gone from your spot wallet. Force-sell has nothing to sell, so it fails,
+        and — this is the part that used to trap people — a failed force-sell records no exit, so it
+        cannot clear the position either. Pressing it repeatedly will not help. Leave it; the
+        reconciler resolves this case automatically now.
+      </Field>
+
+      <Field label="Case 2 — “The block cleared but nothing trades”">
+        Clearing a stuck position only removes the gate. If your spot wallet holds no USDT, entries
+        still cannot be placed — the bot buys with USDT, and coins you already hold do not count.
+        Check free USDT before assuming something is still broken.
+      </Field>
+
+      <Field label="Case 3 — “Every signal skips with max trade notional”">
+        Your Per-trade cap sits below the size the signal needs. The live minimum is 5 USDT of{" "}
+        <i>margin</i>, and on futures leverage multiplies that into the actual position — Amount is
+        margin, not position size. A cap under your Amount skips every single signal, silently.
+      </Field>
+
+      <Field label="Case 4 — “Spot entries fail at the minimum size”">
+        On spot the binding constraint is not your entry, it’s the protective stop leg: quantity ×
+        stop-limit price must clear Binance’s 5 USDT notional. Because the stop sits below your
+        entry, a 5 USDT spot entry lands under that threshold as soon as the stop is more than a few
+        percent away. Give spot 10–15 USDT per trade so the stop leg fits comfortably.
+      </Field>
+
+      <Tip tone="info">
+        The Activity tab now spells out every risk-limit reason with the live numbers behind it, and
+        marks the ones that pause everything versus the ones that held back a single signal.
+      </Tip>
+    </div>
+  );
+}
+
 const RENDERERS = {
   "how-it-works": SectionHowItWorks,
   markets: SectionMarkets,
@@ -633,6 +689,7 @@ const RENDERERS = {
   "spot-vs-futures": SectionSpotVsFutures,
   presets: SectionPresets,
   capital: SectionCapital,
+  "case-studies": SectionCaseStudies,
   faq: SectionFAQ,
 };
 

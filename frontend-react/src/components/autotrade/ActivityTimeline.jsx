@@ -26,6 +26,102 @@ const FILTERS = [
 const PAGE_SIZE = 12;
 
 // ────────────────────────────────────────────────────────────────
+// Risk-limit reasons, in plain language.
+// The engine only sends a code (execution.skip_risk_limit.<code>), so
+// without this the timeline printed "reconciliation required" and left
+// the user with no idea what to do about it.
+// `blocking: true` marks the gates that stop *every* new entry until
+// something is resolved, as opposed to a limit that simply held this
+// one signal back.
+// Keep the codes in sync with app/domains/execution/risk.py in cryptobot.
+// ────────────────────────────────────────────────────────────────
+const RISK_LIMIT_HELP = {
+  reconciliation_required: {
+    label: "Position needs reconciliation",
+    blocking: true,
+    hint: "A position could not be matched against Binance, so every new entry is paused until it clears. This usually means the coin left your spot wallet outside the bot — a manual sell, convert or transfer, all of which cancel the protective OCO first. The reconciler now closes those automatically once it confirms the balance is gone; if it persists, contact support.",
+  },
+  max_open_positions: {
+    label: "Max open positions reached",
+    hint: "Raise the limit in Risk settings, or wait for an open position to close. Positions awaiting reconciliation count toward this limit too.",
+  },
+  symbol_position_exists: {
+    label: "Already holding this symbol",
+    hint: "One open position per symbol is enforced. Turn that off in Risk settings if you want to stack entries on the same coin.",
+  },
+  max_trade_notional: {
+    label: "Trade size above your per-trade cap",
+    hint: "Your Per-trade cap is below the size this signal needs. The live minimum is 5 USDT of margin, so a cap under that skips every signal. Raise the cap, or lower Amount.",
+  },
+  minimum_available_balance: {
+    label: "Minimum reserve would be breached",
+    hint: "The trade would leave less free USDT than your Minimum reserve. Top up USDT, lower Amount, or reduce the reserve.",
+  },
+  max_daily_trades: {
+    label: "Daily trade limit reached",
+    hint: "Resets at 00:00 UTC. Raise the limit in Risk settings if this is too tight.",
+  },
+  daily_loss_limit: {
+    label: "Daily loss limit reached",
+    blocking: true,
+    hint: "Realised losses today hit your limit, so trading is paused until 00:00 UTC. This is a guardrail working as intended — raise it only deliberately.",
+  },
+  loss_cooldown: {
+    label: "Cooling down after a loss",
+    hint: "A pause after a losing trade. Shorten or disable it under Cooldown after loss.",
+  },
+  error_cooldown: {
+    label: "Cooling down after a failed trade",
+    hint: "Only trade failures trigger this — exchange bans and key errors are excluded so one infrastructure hiccup does not freeze your bot.",
+  },
+  max_live_bots: {
+    label: "Server live-bot capacity reached",
+    blocking: true,
+    hint: "A platform-wide cap, not your setting. Wait for capacity, or run in dry-run meanwhile.",
+  },
+  user_order_throttle: {
+    label: "Too many live orders in a short window",
+    hint: "A per-account rate limit that protects the shared exchange IP. It clears on its own within a minute.",
+  },
+};
+
+const usd = (value) => {
+  const amount = Number(value);
+  return `${amount < 0 ? "-" : ""}$${Math.abs(amount).toFixed(2)}`;
+};
+
+// The audit row carries the engine's numbers but not its sentence, so the
+// live figures have to be rebuilt here. Keys match RiskDecision.metadata.
+function riskLimitDetail(limitKey, metadata = {}) {
+  const has = (key) => metadata[key] !== undefined && metadata[key] !== null;
+  switch (limitKey) {
+    case "max_open_positions":
+      return has("open_positions") ? `${metadata.open_positions}/${metadata.limit} open` : null;
+    case "max_daily_trades":
+      return has("daily_trades") ? `${metadata.daily_trades}/${metadata.limit} today` : null;
+    case "max_live_bots":
+      return has("live_bots") ? `${metadata.live_bots}/${metadata.limit} live bots` : null;
+    case "max_trade_notional":
+      return has("notional") ? `${usd(metadata.notional)} vs ${usd(metadata.limit)} cap` : null;
+    case "minimum_available_balance":
+      return has("remaining")
+        ? `would leave ${usd(metadata.remaining)}, reserve is ${usd(metadata.minimum_reserve)}`
+        : null;
+    case "daily_loss_limit":
+      return has("realized_pnl_today")
+        ? `${usd(metadata.realized_pnl_today)} today vs ${usd(metadata.limit)} limit`
+        : null;
+    case "loss_cooldown":
+    case "error_cooldown":
+      return has("cooldown_until") ? `until ${fmtTime(metadata.cooldown_until)}` : null;
+    case "user_order_throttle":
+      return has("retry_after_seconds") ? `retry in ~${metadata.retry_after_seconds}s` : null;
+    default:
+      return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
 // Audit-event presentation (carried over from the old Logs tab)
 // ────────────────────────────────────────────────────────────────
 function eventInfo(item) {
@@ -121,14 +217,17 @@ function eventInfo(item) {
   }
   if (action.startsWith("execution.skip_risk_limit.")) {
     const limitKey = action.split(".").at(-1);
-    const isNotional = limitKey === "max_trade_notional";
+    const help = RISK_LIMIT_HELP[limitKey];
     return {
       category: "risk",
-      tone: "warn",
-      title: `${symbol || "Entry"} blocked by risk limit`,
-      description: isNotional
-        ? "max trade notional — raise Per trade cap to ≥20–50 USDT (Binance futures min) in AutoTrade risk settings"
-        : limitKey.replaceAll("_", " "),
+      tone: help?.blocking ? "bad" : "warn",
+      title: help?.blocking
+        ? `All entries paused — ${help.label.toLowerCase()}`
+        : `${symbol || "Entry"} blocked — ${help?.label?.toLowerCase() || limitKey.replaceAll("_", " ")}`,
+      // Live figures first, then what to do about it.
+      description:
+        [riskLimitDetail(limitKey, metadata), help?.hint].filter(Boolean).join(" — ") ||
+        limitKey.replaceAll("_", " "),
       source: "Risk engine",
       collapseKey: `risk:${limitKey}`,
     };

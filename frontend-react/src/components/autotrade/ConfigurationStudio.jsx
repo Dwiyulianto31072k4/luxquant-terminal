@@ -179,6 +179,17 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
         )} USDT.`
       : "";
 
+  // Spot's real floor is not the entry — it's the protective stop leg. The OCO
+  // sells slightly less than filled (fee reserve) at a stop-limit price below
+  // entry, and that leg must still clear Binance's 5 USDT notional. So an entry
+  // sized right at the floor fails as soon as the stop is more than a few
+  // percent away, with a confusing exchange error. Warn rather than block:
+  // the exact threshold depends on the signal's stop distance.
+  const spotSizeWarning =
+    draft.spot_enabled && draft.sizing_method === "fixed" && Number(draft.sizing_value) < 10
+      ? "On spot, the protective stop leg — not your entry — sets the real minimum. Below about 10 USDT per trade, wider stops push that leg under Binance's minimum and the exchange rejects the protection. Consider 10–15 USDT for spot."
+      : "";
+
   const toggleRisk = (level) => {
     setDirty(true);
     setError("");
@@ -259,6 +270,9 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       {success ? <Notice tone="success">{success}</Notice> : null}
       {sizingLimitError && error !== sizingLimitError ? (
         <Notice tone="warn">{sizingLimitError}</Notice>
+      ) : null}
+      {spotSizeWarning && !sizingLimitError ? (
+        <Notice tone="warn">{spotSizeWarning}</Notice>
       ) : null}
 
       {/* ── Markets + execution mode ── */}

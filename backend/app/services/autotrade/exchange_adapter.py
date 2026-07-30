@@ -640,6 +640,27 @@ class ExchangeAdapter:
             return float(ticker.get("last", 0) or 0)
         return None
 
+    async def get_min_notional(self, symbol: str, market_type: str = "futures") -> float:
+        """Smallest order value (quote currency) this symbol accepts.
+
+        Sizing decisions were hardcoding a floor instead of asking the
+        exchange, which is how a 20 USDT minimum that Binance never required
+        ended up in the product. Falls back to 5.0 — Binance's usual value —
+        when the market cannot be read, so a lookup failure never blocks a
+        trade that would have been valid.
+        """
+        exchange = await self._get()
+        try:
+            if not exchange.markets:
+                await exchange.load_markets()
+            market = exchange.markets.get(self._to_ccxt_symbol(symbol, market_type)) or {}
+            limits = market.get("limits") or {}
+            minimum = (limits.get("cost") or {}).get("min")
+            return float(minimum) if minimum else 5.0
+        except Exception as e:
+            logger.warning(f"Min notional lookup failed for {symbol} ({market_type}): {e}")
+            return 5.0
+
     async def check_symbol_exists(self, symbol: str, market_type: str = "futures") -> bool:
         """Check if a symbol is listed on this exchange for given market type."""
         exchange = await self._get()
