@@ -607,3 +607,162 @@ def user_detail(luxquant_user_id: int) -> dict[str, Any]:
         "recent_closed": recent_closed,
         "alerts": alerts,
     }
+
+
+def _pnl_buckets(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    """Group settled trades by one dimension, keeping wins and losses separate.
+
+    A single net figure hides the shape: -$5 net from one big loss and many small
+    wins is a different problem from -$5 net across uniformly bad trades.
+    """
+    out: dict[Any, dict[str, Any]] = {}
+    for row in rows:
+        pnl = row.get("realized_pnl")
+        if pnl is None:
+            continue
+        bucket = out.setdefault(
+            row.get(key),
+            {"key": row.get(key), "trades": 0, "wins": 0, "net": 0.0, "won": 0.0, "lost": 0.0},
+        )
+        pnl = float(pnl)
+        bucket["trades"] += 1
+        bucket["net"] += pnl
+        if pnl >= 0:
+            bucket["wins"] += 1
+            bucket["won"] += pnl
+        else:
+            bucket["lost"] += pnl
+    for bucket in out.values():
+        bucket["net"] = round(bucket["net"], 2)
+        bucket["won"] = round(bucket["won"], 2)
+        bucket["lost"] = round(bucket["lost"], 2)
+        bucket["win_rate"] = round(bucket["wins"] / bucket["trades"] * 100, 1) if bucket["trades"] else None
+    return sorted(out.values(), key=lambda b: b["net"])
+
+
+def analytics() -> dict[str, Any]:
+    """Desk-wide profitability: who makes money, and what loses it.
+
+    Deliberately reports per-leverage and per-exit-reason splits rather than one
+    headline number, because in this data those splits are the finding — the
+    total is dominated by a couple of leverage tiers.
+    """
+    try:
+        rows = _rows(
+            """
+            SELECT p.symbol, p.market_type, p.side, p.realized_pnl, p.exit_reason,
+                   p.created_at, p.closed_at, u.subject,
+                   c.leverage AS leverage, c.dry_run AS dry_run,
+                   EXTRACT(EPOCH FROM (p.closed_at - p.created_at)) AS held_seconds
+            FROM positions p
+            JOIN users u ON u.id = p.user_id
+            LEFT JOIN strategy_configs c ON c.user_id = p.user_id AND c.exchange = 'binance'
+            WHERE p.status = 'closed'
+            """
+        )
+    except Exception as exc:
+        logger.warning("AutoTrade analytics unavailable: %s", exc)
+        return {"available": False, "error": str(exc)[:200]}
+
+    settled = [r for r in rows if r.get("realized_pnl") is not None]
+    for row in settled:
+        row["luxquant_user_id"] = (
+            int(row["subject"][3:]) if str(row.get("subject", "")).startswith("lq:") else None
+        )
+
+    # Per-user leaderboard
+    per_user: dict[str, dict[str, Any]] = {}
+    for row in settled:
+        u = per_user.setdefault(
+            row["subject"],
+            {
+                "subject": row["subject"],
+                "luxquant_user_id": row["luxquant_user_id"],
+                "leverage": row.get("leverage"),
+                "trades": 0,
+                "wins": 0,
+                "net": 0.0,
+                "won": 0.0,
+                "lost": 0.0,
+                "best": None,
+                "worst": None,
+                "held_total": 0.0,
+                "held_n": 0,
+            },
+        )
+        pnl = float(row["realized_pnl"])
+        u["trades"] += 1
+        u["net"] += pnl
+        if pnl >= 0:
+            u["wins"] += 1
+            u["won"] += pnl
+        else:
+            u["lost"] += pnl
+        u["best"] = pnl if u["best"] is None else max(u["best"], pnl)
+        u["worst"] = pnl if u["worst"] is None else min(u["worst"], pnl)
+        if row.get("held_seconds"):
+            u["held_total"] += float(row["held_seconds"])
+            u["held_n"] += 1
+    for u in per_user.values():
+        u["net"] = round(u["net"], 2)
+        u["won"] = round(u["won"], 2)
+        u["lost"] = round(u["lost"], 2)
+        u["win_rate"] = round(u["wins"] / u["trades"] * 100, 1) if u["trades"] else None
+        u["avg_hold_hours"] = round(u["held_total"] / u["held_n"] / 3600, 1) if u["held_n"] else None
+        u["best"] = round(u["best"], 2) if u["best"] is not None else None
+        u["worst"] = round(u["worst"], 2) if u["worst"] is not None else None
+        u.pop("held_total", None)
+        u.pop("held_n", None)
+
+    # Fleet equity curve by day
+    daily: dict[str, float] = {}
+    for row in settled:
+        if not row.get("closed_at"):
+            continue
+        day = row["closed_at"].date().isoformat()
+        daily[day] = daily.get(day, 0.0) + float(row["realized_pnl"])
+    btc = btc_daily()
+    curve = []
+    running = 0.0
+    for day in sorted(daily):
+        running += daily[day]
+        curve.append(
+            {
+                "day": day,
+                "pnl": round(daily[day], 2),
+                "cumulative": round(running, 2),
+                "btc_change_pct": (btc.get(day) or {}).get("change_pct"),
+            }
+        )
+
+    wins = [r for r in settled if float(r["realized_pnl"]) >= 0]
+    losses = [r for r in settled if float(r["realized_pnl"]) < 0]
+
+    def _avg_hold(items):
+        held = [float(r["held_seconds"]) for r in items if r.get("held_seconds")]
+        return round(sum(held) / len(held) / 3600, 1) if held else None
+
+    return {
+        "available": True,
+        "totals": {
+            "trades": len(settled),
+            "unpriced": len(rows) - len(settled),
+            "wins": len(wins),
+            "losses": len(losses),
+            "win_rate": round(len(wins) / len(settled) * 100, 1) if settled else None,
+            "won": round(sum(float(r["realized_pnl"]) for r in wins), 2),
+            "lost": round(sum(float(r["realized_pnl"]) for r in losses), 2),
+            "net": round(sum(float(r["realized_pnl"]) for r in settled), 2),
+            "avg_win": round(sum(float(r["realized_pnl"]) for r in wins) / len(wins), 2) if wins else None,
+            "avg_loss": round(sum(float(r["realized_pnl"]) for r in losses) / len(losses), 2) if losses else None,
+            "avg_hold_win_hours": _avg_hold(wins),
+            "avg_hold_loss_hours": _avg_hold(losses),
+            "profitable_users": len([u for u in per_user.values() if u["net"] > 0]),
+            "losing_users": len([u for u in per_user.values() if u["net"] <= 0]),
+        },
+        "leaderboard": sorted(per_user.values(), key=lambda u: -u["net"]),
+        "by_leverage": _pnl_buckets(settled, "leverage"),
+        "by_exit_reason": _pnl_buckets(settled, "exit_reason"),
+        "by_symbol": _pnl_buckets(settled, "symbol")[:15],
+        "curve": curve,
+    }

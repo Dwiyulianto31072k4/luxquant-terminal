@@ -70,6 +70,18 @@ def autotrade_user_trades(
     return autotrade_monitor.user_trades(user_id)
 
 
+@router.get("/analytics")
+def autotrade_analytics(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Desk-wide profitability: leaderboard, leverage/exit splits, equity curve."""
+    data = autotrade_monitor.analytics()
+    if data.get("available"):
+        _attach_identities(db, data.get("leaderboard", []))
+    return data
+
+
 @router.get("/positions")
 def autotrade_positions(
     admin: User = Depends(get_admin_user),

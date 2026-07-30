@@ -1,39 +1,48 @@
 // src/components/admin/workspace/AutoTradeOpsTab.jsx
 //
-// AutoTrade operations: fleet health, every bot, and every open position.
+// AutoTrade operations: desk profitability, every bot, and every open position.
 //
 // AutoTrade runs as a separate application against its own database, so this
 // used to be an SSH-and-SQL job. Read-only throughout — the database role
 // cannot write and cannot see the encrypted API key columns.
 //
+// Profit/loss is a DIVERGING encoding (two poles, neutral zero), not a set of
+// categorical series. Colours are the product's #0ECB81 / #F6465D; see the note
+// in AutoTradeUserModal.jsx for why that pair is kept and what was measured.
+//
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { adminApi } from "../../../services/adminApi";
+import { AutoTradeUserModal } from "./AutoTradeUserModal";
+
+const UP = "#0ECB81";
+const DOWN = "#F6465D";
+const GRID = "rgba(255,255,255,0.06)";
+const AXIS = "#8B92A5";
 
 const STATUS = {
-  error: { label: "Error", dot: "#F6465D", fg: "#F6465D", bg: "rgba(246,70,93,0.12)" },
+  error: { label: "Error", dot: DOWN, fg: DOWN, bg: "rgba(246,70,93,0.12)" },
   warn: { label: "Warning", dot: "#F0B90B", fg: "#E3A008", bg: "rgba(240,185,11,0.12)" },
-  ok: { label: "Healthy", dot: "#0ECB81", fg: "#0ECB81", bg: "rgba(14,203,129,0.12)" },
+  ok: { label: "Healthy", dot: UP, fg: UP, bg: "rgba(14,203,129,0.12)" },
   paused: { label: "Paused", dot: "#8B92A5", fg: "#98A2B3", bg: "rgba(139,146,165,0.12)" },
   unlinked: { label: "Not linked", dot: "#5A6070", fg: "#8B92A5", bg: "rgba(90,96,112,0.12)" },
 };
 
-const BLOCK_LABEL = {
-  reconciliation_required: "Position needs reconciliation (blocks everything)",
-  subscription_inactive: "Subscription not active (blocks everything)",
-  daily_loss_limit: "Daily loss limit reached (blocks everything)",
-  max_live_bots: "Server live-bot capacity reached",
-  max_open_positions: "Max open positions reached",
-  symbol_position_exists: "Already holding this symbol",
-  max_trade_notional: "Trade size above per-trade cap",
-  minimum_available_balance: "Minimum reserve would be breached",
-  max_daily_trades: "Daily trade limit reached",
-  loss_cooldown: "Cooling down after a loss",
-  error_cooldown: "Cooling down after a failed trade",
-  user_order_throttle: "Short-window order throttle",
-};
-
-const fmt = (v) => (v ? new Date(v).toLocaleString() : "—");
+const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
+const signed = (n) => `${n >= 0 ? "+" : "-"}$${Math.abs(Number(n) || 0).toFixed(2)}`;
+const day = (v) =>
+  v ? new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "—";
 const ago = (v) => {
   if (!v) return "—";
   const mins = Math.round((Date.now() - new Date(v).getTime()) / 60000);
@@ -41,12 +50,11 @@ const ago = (v) => {
   if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
   return `${Math.round(mins / 1440)}d ago`;
 };
-const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
-const day = (v) => (v ? new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "—");
 // Accumulated running time, so "42d" means forty-two days switched on — not
 // forty-two days since the account was created.
 const dur = (secs) => {
   const s = Number(secs) || 0;
+  if (!s) return "—";
   if (s < 3600) return `${Math.round(s / 60)}m`;
   const d = Math.floor(s / 86400);
   const h = Math.round((s % 86400) / 3600);
@@ -82,290 +90,72 @@ function Stat({ label, value, sub, tone }) {
   );
 }
 
-function Card({ title, right, children }) {
+function Card({ title, right, children, padded = true }) {
   return (
     <div className="rounded-xl border border-ink/[0.08] bg-surface-raised">
-      <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3">
         <p className="text-[13px] font-semibold text-text-primary">{title}</p>
         {right}
       </div>
-      <div className="p-4">{children}</div>
+      <div className={padded ? "p-4" : ""}>{children}</div>
     </div>
   );
 }
 
-function UserDetail({ userId }) {
-  const [d, setD] = useState(null);
-  const [err, setErr] = useState("");
-
-  useEffect(() => {
-    let dead = false;
-    adminApi
-      .getAutoTradeUser(userId)
-      .then((x) => !dead && setD(x))
-      .catch((e) => !dead && setErr(e?.message || "Could not load"));
-    return () => {
-      dead = true;
-    };
-  }, [userId]);
-
-  if (err) return <p className="px-4 py-3 text-[12px] text-[#F6465D]">{err}</p>;
-  if (!d) return <p className="px-4 py-3 text-[12px] text-text-muted">Loading…</p>;
-  if (!d.linked) return <p className="px-4 py-3 text-[12px] text-text-muted">Not linked.</p>;
-
-  const s = d.summary || {};
-  const facts = [
-    ["User", s.username || s.email || "—"],
-    ["Plan", s.role || "—"],
-    ["Linked", day(s.linked_at)],
-    ["First started", s.first_active_at ? day(s.first_active_at) : "never started"],
-    ["Active for", s.active_seconds ? dur(s.active_seconds) : "—"],
-    ["State", s.active_since ? "running now" : `${s.toggles || 0} on/off toggle(s)`],
-    ["Open positions", `${s.open_positions ?? 0}${s.stuck_positions ? ` (+${s.stuck_positions} stuck)` : ""}`],
-    ["Realised PnL", usd(s.realized_pnl_total)],
-  ];
-
+function TipBox({ rows }) {
   return (
-    <div className="space-y-4 px-4 py-4">
-      <div className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">
-        {facts.map(([k, v]) => (
-          <div key={k} className="flex items-baseline justify-between gap-3 border-b border-ink/[0.05] py-1">
-            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-              {k}
-            </span>
-            <span className="text-[12px] text-text-secondary">{v}</span>
-          </div>
-        ))}
-      </div>
-
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div>
-        <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-          Recent errors
+    <div className="rounded-lg border border-ink/15 bg-[#0B0E11] px-3 py-2 shadow-xl">
+      {rows.map(([k, v, color]) => (
+        <p key={k} className="text-[11px] leading-5">
+          <span className="text-text-muted">{k} </span>
+          <span style={color ? { color } : undefined} className="text-text-primary">
+            {v}
+          </span>
         </p>
-        {d.errors?.length ? (
-          <div className="space-y-2">
-            {d.errors.slice(0, 6).map((e, i) => (
-              <div
-                key={`${e.created_at}-${i}`}
-                className="rounded-lg border border-[#F6465D]/25 bg-[#F6465D]/[0.06] px-3 py-2"
-              >
-                <p className="text-[10px] text-text-muted">
-                  {fmt(e.created_at)}
-                  {e.symbol ? ` · ${e.symbol}` : ""}
-                </p>
-                <p className="mt-1 break-words font-mono text-[11px] leading-[1.5] text-text-secondary">
-                  {e.error || e.action}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[12px] text-text-muted">No execution errors recorded.</p>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-            Why entries were blocked (7d)
-          </p>
-          {d.blocks?.length ? (
-            <div className="space-y-1.5">
-              {d.blocks.map((b) => (
-                <div key={b.code} className="flex items-center justify-between gap-3">
-                  <span className="text-[12px] text-text-secondary">
-                    {BLOCK_LABEL[b.code] || b.code.replaceAll("_", " ")}
-                  </span>
-                  <span className="whitespace-nowrap font-mono text-[11px] text-text-muted">
-                    ×{b.hits}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[12px] text-text-muted">Nothing blocked.</p>
-          )}
-        </div>
-
-        {d.alerts?.length ? (
-          <div>
-            <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-              Open alerts
-            </p>
-            <div className="space-y-1.5">
-              {d.alerts.slice(0, 5).map((a) => (
-                <div key={a.alert_key}>
-                  <p className="text-[12px] font-medium text-text-secondary">{a.title}</p>
-                  <p className="text-[11px] leading-[1.5] text-text-muted">{a.message}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </div>
-
-      <div>
-        <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-          Trade history
-        </p>
-        <TradeHistory userId={userId} />
-      </div>
+      ))}
     </div>
   );
 }
 
-
-function TradeHistory({ userId }) {
-  const [t, setT] = useState(null);
-  const [err, setErr] = useState("");
-
-  useEffect(() => {
-    let dead = false;
-    adminApi
-      .getAutoTradeTrades(userId)
-      .then((x) => !dead && setT(x))
-      .catch((e) => !dead && setErr(e?.message || "Could not load trades"));
-    return () => {
-      dead = true;
-    };
-  }, [userId]);
-
-  if (err) return <p className="text-[12px] text-[#F6465D]">{err}</p>;
-  if (!t) return <p className="text-[12px] text-text-muted">Loading trades…</p>;
-  if (!t.available) return <p className="text-[12px] text-text-muted">Trades unavailable.</p>;
-  if (!t.trades?.length)
-    return <p className="text-[12px] text-text-muted">No closed trades yet.</p>;
-
-  const s = t.summary;
+// Sorting is the whole point of a leaderboard, so every numeric column sorts and
+// the active one says which way it is pointing.
+function Th({ label, sortKey, sort, onSort, align = "left" }) {
+  const active = sort.key === sortKey;
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
-        <span className="text-text-muted">
-          Settled <span className="text-text-secondary">{s.settled}</span>
-        </span>
-        <span className="text-text-muted">
-          Win rate{" "}
-          <span style={{ color: (s.win_rate ?? 0) >= 50 ? "#0ECB81" : "#F6465D" }}>
-            {s.win_rate === null ? "—" : `${s.win_rate}%`}
-          </span>
-          <span className="text-text-muted"> ({s.wins}W / {s.losses}L)</span>
-        </span>
-        <span className="text-text-muted">
-          Won <span style={{ color: "#0ECB81" }}>{usd(s.gross_win)}</span>
-        </span>
-        <span className="text-text-muted">
-          Lost <span style={{ color: "#F6465D" }}>{usd(s.gross_loss)}</span>
-        </span>
-        <span className="text-text-muted">
-          Net{" "}
-          <span style={{ color: s.net >= 0 ? "#0ECB81" : "#F6465D" }}>{usd(s.net)}</span>
-        </span>
-        {s.unpriced ? (
-          <span className="text-text-muted">
-            {s.unpriced} closed without a recorded price
-          </span>
-        ) : null}
-      </div>
-
-      {t.by_symbol?.length ? (
-        <div>
-          <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-            Where the money went
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {t.by_symbol.map((b) => (
-              <span
-                key={b.symbol}
-                className="rounded-md border border-ink/10 px-2 py-1 text-[11px]"
-                style={{ color: b.pnl >= 0 ? "#0ECB81" : "#F6465D" }}
-                title={`${b.trades} trade(s), ${b.wins} won`}
-              >
-                {b.symbol} {usd(b.pnl)}
-                <span className="text-text-muted"> ×{b.trades}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="overflow-x-auto">
-        <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-          Closed trades — with what BTC was doing that day
-        </p>
-        <table className="w-full min-w-[720px] text-left">
-          <thead>
-            <tr className="border-b border-ink/[0.08] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-              <th className="pb-1.5 pr-3 font-medium">Closed</th>
-              <th className="pb-1.5 pr-3 font-medium">Symbol</th>
-              <th className="pb-1.5 pr-3 text-right font-medium">PnL</th>
-              <th className="pb-1.5 pr-3 text-right font-medium">Move</th>
-              <th className="pb-1.5 pr-3 text-right font-medium">BTC that day</th>
-              <th className="pb-1.5 pr-3 font-medium">Signals</th>
-              <th className="pb-1.5 font-medium">Exit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {t.trades.slice(0, 30).map((r, i) => (
-              <tr key={`${r.symbol}-${i}`} className="border-b border-ink/[0.04] text-[12px]">
-                <td className="py-1.5 pr-3 text-text-muted">{r.day || "—"}</td>
-                <td className="py-1.5 pr-3 text-text-secondary">
-                  {r.symbol}
-                  <span className="text-text-muted"> · {r.market_type}</span>
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">
-                  {r.realized_pnl === null ? (
-                    <span className="text-text-muted">not recorded</span>
-                  ) : (
-                    <span style={{ color: r.realized_pnl >= 0 ? "#0ECB81" : "#F6465D" }}>
-                      {usd(r.realized_pnl)}
-                    </span>
-                  )}
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums text-text-muted">
-                  {r.move_pct === null ? "—" : `${r.move_pct}%`}
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">
-                  {r.btc_change_pct === null || r.btc_change_pct === undefined ? (
-                    <span className="text-text-muted">—</span>
-                  ) : (
-                    <span style={{ color: r.btc_change_pct >= 0 ? "#0ECB81" : "#F6465D" }}>
-                      {r.btc_change_pct > 0 ? "+" : ""}
-                      {r.btc_change_pct}%
-                    </span>
-                  )}
-                </td>
-                <td className="py-1.5 pr-3 text-text-muted">{r.signal_regime || "—"}</td>
-                <td className="py-1.5 text-text-muted">{r.exit_reason || "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-2 text-[10px] text-text-muted">
-          Move is entry to exit. On older trades the entry was recorded before the order
-          filled, so treat those percentages as approximate.
-        </p>
-      </div>
-    </div>
+    <th
+      className={`pb-2 pr-3 font-medium ${align === "right" ? "text-right" : ""} ${
+        sortKey ? "cursor-pointer select-none hover:text-text-secondary" : ""
+      }`}
+      onClick={sortKey ? () => onSort(sortKey) : undefined}
+    >
+      {label}
+      {active ? <span className="text-accent"> {sort.dir === "asc" ? "↑" : "↓"}</span> : null}
+    </th>
   );
 }
 
 export const AutoTradeOpsTab = () => {
   const [overview, setOverview] = useState(null);
   const [positions, setPositions] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("problems");
-  const [expanded, setExpanded] = useState(null);
+  const [sort, setSort] = useState({ key: "net", dir: "desc" });
+  const [modalUser, setModalUser] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
     setError("");
-    Promise.all([adminApi.getAutoTradeOverview(), adminApi.getAutoTradePositions()])
-      .then(([o, p]) => {
+    Promise.all([
+      adminApi.getAutoTradeOverview(),
+      adminApi.getAutoTradePositions(),
+      adminApi.getAutoTradeAnalytics(),
+    ])
+      .then(([o, p, a]) => {
         setOverview(o);
         setPositions(p);
+        setAnalytics(a);
       })
       .catch((e) => setError(e?.message || "Could not load AutoTrade data"))
       .finally(() => setLoading(false));
@@ -373,30 +163,62 @@ export const AutoTradeOpsTab = () => {
 
   useEffect(load, [load]);
 
+  const onSort = (key) =>
+    setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }));
+
+  // Trading performance lives in analytics, health lives in overview. Merge on
+  // subject so one row answers both "is it broken" and "is it making money".
+  const rows = useMemo(() => {
+    const perf = new Map((analytics?.leaderboard || []).map((u) => [u.subject, u]));
+    return (overview?.users || []).map((u) => ({ ...u, ...(perf.get(u.subject) || {}) }));
+  }, [overview, analytics]);
+
+  const t = overview?.totals || {};
+  const at = analytics?.totals || {};
+  const pt = positions?.totals || {};
+
+  const linked = rows.filter((u) => u.has_account);
+  const filtered =
+    filter === "all"
+      ? linked
+      : filter === "unlinked"
+        ? rows.filter((u) => !u.has_account)
+        : filter === "problems"
+          ? linked.filter((u) => u.status === "error" || u.status === "warn")
+          : filter === "live"
+            ? linked.filter((u) => u.is_active && u.dry_run === false)
+            : filter === "profitable"
+              ? linked.filter((u) => (u.net ?? 0) > 0)
+              : linked.filter((u) => u.status === filter);
+
+  const shown = useMemo(() => {
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return filtered.slice().sort((a, b) => {
+      const av = a[sort.key];
+      const bv = b[sort.key];
+      if (av === bv) return 0;
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      return typeof av === "string" ? dir * av.localeCompare(bv) : dir * (av - bv);
+    });
+  }, [filtered, sort]);
+
+  const leverageData = useMemo(
+    () =>
+      (analytics?.by_leverage || [])
+        .filter((b) => b.key !== null && b.trades >= 3)
+        .map((b) => ({ ...b, label: `${b.key}×` })),
+    [analytics]
+  );
+
   if (loading && !overview) return <p className="text-sm text-text-muted">Loading AutoTrade…</p>;
   if (error) return <p className="text-sm text-[#F6465D]">{error}</p>;
   if (overview?.available === false)
     return (
       <p className="text-sm text-text-muted">
-        The AutoTrade database is not reachable from here. Nothing else on this page is
-        affected.
+        The AutoTrade database is not reachable from here. Nothing else on this page is affected.
       </p>
     );
-
-  const t = overview?.totals || {};
-  const pt = positions?.totals || {};
-  const users = overview?.users || [];
-  const linked = users.filter((u) => u.has_account);
-  const shown =
-    filter === "all"
-      ? linked
-      : filter === "unlinked"
-        ? users.filter((u) => !u.has_account)
-        : filter === "problems"
-          ? linked.filter((u) => u.status === "error" || u.status === "warn")
-          : filter === "live"
-            ? linked.filter((u) => u.is_active && u.dry_run === false)
-            : linked.filter((u) => u.status === filter);
 
   return (
     <div className="space-y-4">
@@ -407,7 +229,7 @@ export const AutoTradeOpsTab = () => {
           </p>
           <h2 className="mt-1 text-[22px] font-semibold text-text-primary">AutoTrade Monitor</h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Every user&apos;s bot, its health, and everything it is holding right now.
+            Every user&apos;s bot, its health, what it earns, and everything it is holding.
           </p>
         </div>
         <button
@@ -419,6 +241,7 @@ export const AutoTradeOpsTab = () => {
         </button>
       </div>
 
+      {/* Health */}
       <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Stat
           label="Connected"
@@ -430,34 +253,133 @@ export const AutoTradeOpsTab = () => {
           label="Errors"
           value={t.errors ?? 0}
           sub="need attention"
-          tone={t.errors ? "#F6465D" : undefined}
+          tone={t.errors ? DOWN : undefined}
         />
-        <Stat
-          label="Warnings"
-          value={t.warnings ?? 0}
-          tone={t.warnings ? "#F0B90B" : undefined}
-        />
+        <Stat label="Warnings" value={t.warnings ?? 0} tone={t.warnings ? "#F0B90B" : undefined} />
         <Stat
           label="Invalid keys"
           value={t.invalid_keys ?? 0}
           sub="cannot trade"
-          tone={t.invalid_keys ? "#F6465D" : undefined}
+          tone={t.invalid_keys ? DOWN : undefined}
         />
         <Stat
           label="Stuck positions"
           value={t.stuck_positions ?? 0}
           sub="block all entries"
-          tone={t.stuck_positions ? "#F6465D" : undefined}
+          tone={t.stuck_positions ? DOWN : undefined}
         />
       </div>
 
+      {/* Money */}
+      {analytics?.available ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            <Stat
+              label="Net realised"
+              value={usd(at.net ?? 0)}
+              sub={`${at.trades ?? 0} settled trades`}
+              tone={(at.net ?? 0) >= 0 ? UP : DOWN}
+            />
+            <Stat
+              label="Win rate"
+              value={at.win_rate === null ? "—" : `${at.win_rate}%`}
+              sub={`${at.wins ?? 0}W / ${at.losses ?? 0}L`}
+            />
+            <Stat label="Won" value={usd(at.won ?? 0)} tone={UP} sub={`avg ${usd(at.avg_win ?? 0)}`} />
+            <Stat
+              label="Lost"
+              value={usd(at.lost ?? 0)}
+              tone={DOWN}
+              sub={`avg ${usd(at.avg_loss ?? 0)}`}
+            />
+            <Stat
+              label="Profitable users"
+              value={`${at.profitable_users ?? 0} / ${(at.profitable_users ?? 0) + (at.losing_users ?? 0)}`}
+              tone={at.profitable_users ? UP : DOWN}
+            />
+            <Stat
+              label="Avg hold"
+              value={`${at.avg_hold_loss_hours ?? "—"}h`}
+              sub={`losses · wins ${at.avg_hold_win_hours ?? "—"}h`}
+              tone={
+                at.avg_hold_loss_hours && at.avg_hold_win_hours
+                  ? at.avg_hold_loss_hours > at.avg_hold_win_hours
+                    ? DOWN
+                    : UP
+                  : undefined
+              }
+            />
+          </div>
+
+          {leverageData.length ? (
+            <Card
+              title="Net result by leverage"
+              right={
+                <span className="text-[11px] text-text-muted">
+                  settled trades, 3+ per tier · bars sit either side of zero
+                </span>
+              }
+            >
+              <div style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={leverageData} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: AXIS, fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: AXIS, fontSize: 10 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={58}
+                      tickFormatter={(v) => `$${v}`}
+                    />
+                    <ReferenceLine y={0} stroke="rgba(255,255,255,0.28)" />
+                    <Tooltip
+                      cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                      content={({ active, payload }) =>
+                        active && payload?.length ? (
+                          <TipBox
+                            rows={[
+                              ["Leverage", payload[0].payload.label],
+                              [
+                                "Net",
+                                signed(payload[0].payload.net),
+                                payload[0].payload.net >= 0 ? UP : DOWN,
+                              ],
+                              ["Trades", payload[0].payload.trades],
+                              ["Win rate", `${payload[0].payload.win_rate}%`],
+                            ]}
+                          />
+                        ) : null
+                      }
+                    />
+                    <Bar dataKey="net" radius={[4, 4, 0, 0]} barSize={46}>
+                      {leverageData.map((b) => (
+                        <Cell key={b.key} fill={b.net >= 0 ? UP : DOWN} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          ) : null}
+        </>
+      ) : null}
+
+      {/* Bots */}
       <Card
         title="Bots"
+        padded={false}
         right={
           <div className="flex flex-wrap gap-1.5">
             {[
               ["problems", `Needs attention ${(t.errors || 0) + (t.warnings || 0)}`],
               ["live", `Live ${t.live || 0}`],
+              ["profitable", `Profitable ${at.profitable_users ?? 0}`],
               ["ok", "Healthy"],
               ["paused", "Paused"],
               ["all", `All bots ${t.linked ?? 0}`],
@@ -480,127 +402,122 @@ export const AutoTradeOpsTab = () => {
         }
       >
         {shown.length === 0 ? (
-          <p className="text-[13px] text-text-muted">Nothing here — every bot is healthy.</p>
+          <p className="p-4 text-[13px] text-text-muted">Nothing in this view.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
+            <table className="w-full min-w-[1080px] text-left">
               <thead>
                 <tr className="border-b border-ink/[0.08] font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                  <th className="pb-2 pr-3 font-medium">Status</th>
-                  <th className="pb-2 pr-3 font-medium">User</th>
+                  <th className="py-2 pl-4 pr-3 font-medium">Status</th>
+                  <Th label="User" sortKey="username" sort={sort} onSort={onSort} />
                   <th className="pb-2 pr-3 font-medium">Mode</th>
-                  <th className="pb-2 pr-3 font-medium">Started</th>
-                  <th className="pb-2 pr-3 font-medium">Active for</th>
-                  <th className="pb-2 pr-3 font-medium">Key</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Open</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Entries 24h</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Errors 24h</th>
-                  <th className="pb-2 pr-3 text-right font-medium">PnL</th>
-                  <th className="pb-2 font-medium">Reason</th>
+                  <Th label="Started" sortKey="first_active_at" sort={sort} onSort={onSort} />
+                  <Th label="Active for" sortKey="active_seconds" sort={sort} onSort={onSort} />
+                  <Th label="Trades" sortKey="trades" sort={sort} onSort={onSort} align="right" />
+                  <Th label="Win %" sortKey="win_rate" sort={sort} onSort={onSort} align="right" />
+                  <Th label="Net PnL" sortKey="net" sort={sort} onSort={onSort} align="right" />
+                  <Th label="Best" sortKey="best" sort={sort} onSort={onSort} align="right" />
+                  <Th label="Worst" sortKey="worst" sort={sort} onSort={onSort} align="right" />
+                  <Th
+                    label="Open"
+                    sortKey="open_positions"
+                    sort={sort}
+                    onSort={onSort}
+                    align="right"
+                  />
+                  <Th
+                    label="Errors 24h"
+                    sortKey="recent_errors"
+                    sort={sort}
+                    onSort={onSort}
+                    align="right"
+                  />
+                  <th className="pb-2 pr-4 font-medium">Reason</th>
                 </tr>
               </thead>
               <tbody>
                 {shown.map((u) => (
-                  <Fragment key={u.subject}>
-                    <tr
-                      onClick={() => setExpanded(expanded === u.subject ? null : u.subject)}
-                      className="cursor-pointer border-b border-ink/[0.05] text-[13px] hover:bg-ink/[0.02]"
-                    >
-                      <td className="py-2.5 pr-3">
-                        <Pill status={u.status} />
-                      </td>
-                      <td className="py-2.5 pr-3">
-                        <span className="block font-medium text-text-primary">{who(u)}</span>
-                        <span className="block font-mono text-[10px] text-text-muted">
-                          lq:{u.luxquant_user_id}
-                          {u.role ? ` · ${u.role}` : ""}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-3 text-text-secondary">
-                        {u.is_active ? (u.dry_run ? "Dry run" : "Live") : "Paused"}
-                        {u.markets?.length ? (
-                          <span className="text-text-muted"> · {u.markets.join("+")}</span>
-                        ) : null}
-                      </td>
-                      <td className="py-2.5 pr-3 text-[12px] text-text-secondary">
-                        {u.first_active_at ? (
-                          <>
-                            <span className="block">{day(u.first_active_at)}</span>
-                            <span className="block text-[10px] text-text-muted">
-                              linked {day(u.linked_at)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-text-muted">never started</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-3 text-[12px] text-text-secondary">
-                        {u.active_seconds ? (
-                          <>
-                            <span className="block tabular-nums">
-                              {dur(u.active_seconds)}
-                              {u.active_time_estimated ? "*" : ""}
-                            </span>
-                            <span className="block text-[10px] text-text-muted">
-                              {u.active_since ? "running now" : `${u.toggles} toggle${u.toggles === 1 ? "" : "s"}`}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-text-muted">—</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-3 text-text-secondary">
-                        <span
-                          style={u.key_status === "invalid" ? { color: "#F6465D" } : undefined}
-                        >
-                          {u.key_status || "—"}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
-                        {u.open_positions}
-                        {u.stuck_positions ? (
-                          <span style={{ color: "#F6465D" }}> +{u.stuck_positions}</span>
-                        ) : null}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
-                        {u.recent_entries}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums">
-                        <span style={u.recent_errors ? { color: "#F6465D" } : undefined}>
-                          {u.recent_errors}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums">
-                        <span
-                          style={{ color: u.realized_pnl_total >= 0 ? "#0ECB81" : "#F6465D" }}
-                        >
-                          {usd(u.realized_pnl_total)}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-[12px] text-text-muted">{u.reasons?.[0]}</td>
-                    </tr>
-                    {expanded === u.subject ? (
-                      <tr className="border-b border-ink/[0.05]">
-                        <td colSpan={11} className="bg-ink/[0.02] p-0">
-                          <UserDetail userId={u.luxquant_user_id} />
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
+                  <tr
+                    key={u.subject}
+                    onClick={() => setModalUser(u)}
+                    className="cursor-pointer border-b border-ink/[0.05] text-[13px] hover:bg-ink/[0.03]"
+                  >
+                    <td className="py-2.5 pl-4 pr-3">
+                      <Pill status={u.status} />
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <span className="block font-medium text-text-primary">{who(u)}</span>
+                      <span className="block font-mono text-[10px] text-text-muted">
+                        lq:{u.luxquant_user_id}
+                        {u.role ? ` · ${u.role}` : ""}
+                      </span>
+                    </td>
+                    <td className="py-2.5 pr-3 text-text-secondary">
+                      {u.is_active ? (u.dry_run ? "Dry run" : "Live") : "Paused"}
+                      {u.markets?.length ? (
+                        <span className="text-text-muted"> · {u.markets.join("+")}</span>
+                      ) : null}
+                      {u.leverage ? <span className="text-text-muted"> · {u.leverage}×</span> : null}
+                    </td>
+                    <td className="py-2.5 pr-3 text-[12px] text-text-secondary">
+                      {u.first_active_at ? (
+                        day(u.first_active_at)
+                      ) : (
+                        <span className="text-text-muted">never</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3 text-[12px] tabular-nums text-text-secondary">
+                      {dur(u.active_seconds)}
+                      {u.active_time_estimated ? "*" : ""}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
+                      {u.trades ?? 0}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
+                      {u.win_rate === null || u.win_rate === undefined ? "—" : `${u.win_rate}%`}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      {u.net === null || u.net === undefined ? (
+                        <span className="text-text-muted">—</span>
+                      ) : (
+                        <span style={{ color: u.net >= 0 ? UP : DOWN }}>{signed(u.net)}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums" style={{ color: UP }}>
+                      {u.best === null || u.best === undefined ? "—" : signed(u.best)}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums" style={{ color: DOWN }}>
+                      {u.worst === null || u.worst === undefined ? "—" : signed(u.worst)}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
+                      {u.open_positions}
+                      {u.stuck_positions ? (
+                        <span style={{ color: DOWN }}> +{u.stuck_positions}</span>
+                      ) : null}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      <span style={u.recent_errors ? { color: DOWN } : undefined}>
+                        {u.recent_errors}
+                      </span>
+                    </td>
+                    <td className="py-2.5 pr-4 text-[12px] text-text-muted">{u.reasons?.[0]}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
-            <p className="mt-3 text-[11px] text-text-muted">
-              Click a row to read that bot&apos;s error text and block reasons. &quot;Active
-              for&quot; accumulates only the time the bot was switched on; * marks a bot that
-              predates the toggle history, where the figure is time since setup.
+            <p className="px-4 py-3 text-[11px] text-text-muted">
+              Click any row for the full breakdown. Column headers sort. &quot;Active for&quot;
+              accumulates only the time a bot was switched on; * marks one that predates the
+              toggle history.
             </p>
           </div>
         )}
       </Card>
 
+      {/* Positions */}
       <Card
         title="Open positions"
+        padded={false}
         right={
           <span className="font-mono text-[11px] text-text-muted">
             {pt.open ?? 0} open · {pt.stuck ?? 0} stuck · {pt.users_holding ?? 0} users
@@ -608,15 +525,15 @@ export const AutoTradeOpsTab = () => {
         }
       >
         {positions?.available === false ? (
-          <p className="text-[13px] text-text-muted">Positions unavailable.</p>
+          <p className="p-4 text-[13px] text-text-muted">Positions unavailable.</p>
         ) : !positions?.positions?.length ? (
-          <p className="text-[13px] text-text-muted">Nobody is holding anything right now.</p>
+          <p className="p-4 text-[13px] text-text-muted">Nobody is holding anything right now.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left">
+            <table className="w-full min-w-[860px] text-left">
               <thead>
                 <tr className="border-b border-ink/[0.08] font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                  <th className="pb-2 pr-3 font-medium">Symbol</th>
+                  <th className="py-2 pl-4 pr-3 font-medium">Symbol</th>
                   <th className="pb-2 pr-3 font-medium">Market</th>
                   <th className="pb-2 pr-3 font-medium">Side</th>
                   <th className="pb-2 pr-3 text-right font-medium">Qty</th>
@@ -624,7 +541,7 @@ export const AutoTradeOpsTab = () => {
                   <th className="pb-2 pr-3 text-right font-medium">Notional</th>
                   <th className="pb-2 pr-3 font-medium">User</th>
                   <th className="pb-2 pr-3 font-medium">Opened</th>
-                  <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 pr-4 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -633,12 +550,10 @@ export const AutoTradeOpsTab = () => {
                     key={`${p.subject}-${p.symbol}-${i}`}
                     className="border-b border-ink/[0.05] text-[13px]"
                   >
-                    <td className="py-2.5 pr-3 font-medium text-text-primary">{p.symbol}</td>
+                    <td className="py-2.5 pl-4 pr-3 font-medium text-text-primary">{p.symbol}</td>
                     <td className="py-2.5 pr-3 text-text-muted">
                       {p.market_type}
-                      {p.market_type === "futures" && p.leverage ? (
-                        <span className="text-text-muted"> {p.leverage}×</span>
-                      ) : null}
+                      {p.market_type === "futures" && p.leverage ? ` ${p.leverage}×` : ""}
                     </td>
                     <td className="py-2.5 pr-3 text-text-secondary">{p.side}</td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-text-secondary">
@@ -654,9 +569,9 @@ export const AutoTradeOpsTab = () => {
                       {p.username || p.cb_email || p.subject}
                     </td>
                     <td className="py-2.5 pr-3 text-[12px] text-text-muted">{ago(p.created_at)}</td>
-                    <td className="py-2.5">
+                    <td className="py-2.5 pr-4">
                       {p.status === "reconciliation_required" ? (
-                        <span className="text-[12px] font-semibold" style={{ color: "#F6465D" }}>
+                        <span className="text-[12px] font-semibold" style={{ color: DOWN }}>
                           needs reconciliation
                         </span>
                       ) : (
@@ -672,6 +587,10 @@ export const AutoTradeOpsTab = () => {
           </div>
         )}
       </Card>
+
+      {modalUser ? (
+        <AutoTradeUserModal user={modalUser} onClose={() => setModalUser(null)} />
+      ) : null}
     </div>
   );
 };
