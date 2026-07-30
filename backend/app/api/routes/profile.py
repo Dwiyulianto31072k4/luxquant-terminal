@@ -32,6 +32,11 @@ from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
 from app.core.database import get_db
+from app.core.avatar_storage import (
+    AVATAR_DIR,
+    AVATAR_URL_PREFIX,
+    uploaded_avatar_path,
+)
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.subscription import Payment
@@ -56,9 +61,8 @@ DISCORD_PREMIUM_ROLE_ID = os.getenv("DISCORD_PREMIUM_ROLE_ID", "")
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "https://luxquant.tw/api/v1/auth/discord/callback")
 DISCORD_API = "https://discord.com/api/v10"
 
-# Avatar upload config
-AVATAR_DIR = Path(os.getenv("AVATAR_DIR", "./avatars"))
-AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+# Avatar upload config (storage location lives in core.avatar_storage — nginx
+# serves the same directory, so both sides must agree on it)
 MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
@@ -195,18 +199,16 @@ async def upload_avatar(
     filepath = AVATAR_DIR / filename
 
     # Delete old avatar file if exists (only local uploads, not Google/Telegram URLs)
-    if current_user.avatar_url and '/avatars/' in current_user.avatar_url:
-        old_filename = current_user.avatar_url.split('/avatars/')[-1]
-        old_path = AVATAR_DIR / old_filename
-        if old_path.exists():
-            old_path.unlink(missing_ok=True)
+    old_path = uploaded_avatar_path(current_user.avatar_url)
+    if old_path is not None:
+        old_path.unlink(missing_ok=True)
 
     # Save file
     with open(filepath, 'wb') as f:
         f.write(content)
 
     # Update user avatar URL
-    current_user.avatar_url = f"/api/v1/avatars/{filename}"
+    current_user.avatar_url = f"{AVATAR_URL_PREFIX}{filename}"
     db.commit()
     db.refresh(current_user)
 
@@ -225,11 +227,9 @@ async def remove_avatar(
     """Remove custom avatar"""
 
     # Delete file if local upload
-    if current_user.avatar_url and '/avatars/' in current_user.avatar_url:
-        old_filename = current_user.avatar_url.split('/avatars/')[-1]
-        old_path = AVATAR_DIR / old_filename
-        if old_path.exists():
-            old_path.unlink(missing_ok=True)
+    old_path = uploaded_avatar_path(current_user.avatar_url)
+    if old_path is not None:
+        old_path.unlink(missing_ok=True)
 
     current_user.avatar_url = None
     db.commit()

@@ -451,6 +451,17 @@ def normalize_entities(raw: Any) -> list[dict]:
     return out[:8]
 
 
+def named_in_headline(name: str, headline: str) -> bool:
+    """Does the headline actually say this brand's name?"""
+    name_l = str(name or "").strip().lower()
+    hl = re.sub(r"\s+", " ", (headline or "").lower())
+    if not name_l or not hl:
+        return False
+    if name_l in hl:
+        return True
+    return any(w in hl for w in re.findall(r"[a-z0-9]{4,}", name_l))
+
+
 def _score_org(org: dict, headline: str = "", index: int = 0) -> int:
     name = str(org.get("name") or "").strip()
     name_l = name.lower()
@@ -466,6 +477,26 @@ def _score_org(org: dict, headline: str = "", index: int = 0) -> int:
     if any(k in role for k in ("primary", "subject", "protocol", "exchange", "company", "bank")):
         score += 15
     return score
+
+
+def split_brands_by_headline(brands: list[dict], headline: str) -> tuple[list[dict], list[dict]]:
+    """Which marks get BUILT into the frame, and which are only story context.
+
+    The poster carries the headline, so the picture has to be about the same
+    thing the headline is about. A brand the body mentions but the headline
+    never names — Bitmine under "Ethereum MVRV Golden Cross Signals Bullish
+    Shift" — is context, not the subject: it stays on the allow-list so the
+    model is never punished for it, but it is not attached and not built, or it
+    ends up the biggest object in a poster that never mentions it.
+
+    If the headline names no brand at all ("Spot ETF Inflows Triple"), the
+    top-ranked org leads so the frame still has a subject.
+    """
+    hero = [b for b in brands if named_in_headline(b.get("name") or "", headline)]
+    if not hero and brands:
+        hero = [brands[0]]
+    hero_keys = {id(b) for b in hero}
+    return hero, [b for b in brands if id(b) not in hero_keys]
 
 
 def pick_primary_org(entities: list[dict], headline: str = "") -> Optional[dict]:
@@ -726,6 +757,9 @@ def resolve_entity_assets(
         for lg in logos
         if lg.get("path") and lg.get("name")
     ]
+    # Only the headline's brand is built into the picture; the rest stay allowed
+    # (so nothing reads as invented) but unattached.
+    hero_brands, support_brands = split_brands_by_headline(verified_brands, headline or "")
 
     return {
         "logos": logos[:MAX_VISUAL_ORGS],
@@ -736,6 +770,9 @@ def resolve_entity_assets(
         "story_orgs": story_orgs,
         "verified_brands": verified_brands,
         "verified_brand_names": [b["name"] for b in verified_brands],
+        "hero_brands": hero_brands,
+        "hero_brand_names": [b["name"] for b in hero_brands],
+        "support_brand_names": [b["name"] for b in support_brands],
         "inventory": inventory,
         "needs_materials": len(critical) > 0,
         "missing_count": len(critical),

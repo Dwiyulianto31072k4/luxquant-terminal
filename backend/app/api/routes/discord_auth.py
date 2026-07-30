@@ -31,6 +31,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.avatar_storage import is_uploaded_avatar
 from app.core.security import create_cryptobot_exchange_token, create_tokens
 from app.models.user import User
 from app.schemas.user import UserResponse
@@ -209,7 +210,8 @@ async def discord_callback(
     if user:
         # User existing — update info
         user.discord_username = discord_username
-        if discord_avatar:
+        # Refresh avatar Discord, tapi jangan timpa avatar upload-an user sendiri
+        if discord_avatar and not is_uploaded_avatar(user.avatar_url):
             user.avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{discord_avatar}.png?size=256"
 
         new_role, new_source = resolve_role_for_discord(user, has_premium_role)

@@ -14,7 +14,7 @@
 // Toast
 //
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   palette,
   surface,
@@ -730,19 +730,30 @@ export const Avatar = ({
   };
   const s = sizeMap[size];
   const initial = (name || "?").charAt(0).toUpperCase();
+  // Provider photo URLs expire and uploads can go missing — fall back to the
+  // initial instead of showing a broken-image glyph.
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [src]);
+  const showImg = src && !broken;
 
   return (
     <div className={`relative shrink-0 ${className}`}>
       <div
         className={`${s.px} ${s.text} rounded-full flex items-center justify-center font-bold overflow-hidden`}
         style={{
-          background: src ? "transparent" : tint(tone, 0.15),
+          background: showImg ? "transparent" : tint(tone, 0.15),
           color: tone,
           border: `1px solid ${tint(tone, 0.2)}`,
         }}
       >
-        {src ? (
-          <img src={src} alt={name} className={`${s.px} rounded-full object-cover`} />
+        {showImg ? (
+          <img
+            src={src}
+            alt={name}
+            className={`${s.px} rounded-full object-cover`}
+            referrerPolicy="no-referrer"
+            onError={() => setBroken(true)}
+          />
         ) : (
           initial
         )}

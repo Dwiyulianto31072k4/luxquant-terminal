@@ -39,12 +39,12 @@ PACK_KEYS = ("headline", "image_prompt", "caption", "hashtags", "source_note")
 # owns those — which is exactly what "Natural directional lighting, subtle
 # cinematic contrast" used to do. The ratio was wrong too: the poster is 4:5.
 IMAGE_STYLE_SUFFIX = (
-    "Photoreal premium financial-news poster, vertical 4:5. "
-    "SIMPLE: one subject and one brand mark against dark, near-empty space. A person, or a single "
-    "object — not a room full of things. No crowds, no banks of monitors, no busy trading floors. "
-    "Hero subject large in the upper two thirds, built solid and three-dimensional, cleanly "
-    "separated from the background. Lower 35-40% kept clear for the headline. "
-    "Prefer plausible reality over surreal symbolism."
+    "Photojournalistic financial-news poster, vertical 4:5 — a real photograph of a real place, "
+    "not a 3D render. Natural light from sources the room actually has, correct white balance, "
+    "true colours, NO colour grade and no amber or red wash over the frame. "
+    "One clear subject in the upper two thirds — the person or the object the story is about — "
+    "with the room around it as detailed as that room really is. "
+    "Lower 35-40% kept quiet for the headline. Plausible reality over symbolism."
 )
 # Always-on negatives — ban cheesy AI tropes + invented marks + on-image text.
 IMAGE_NEGATIVE_BASE = (
@@ -57,6 +57,9 @@ IMAGE_NEGATIVE_BASE = (
     "no cheesy crypto clichés: no chains wrapping books, no padlocks on ledgers, "
     "no floating holographic coins, no glowing blockchain cubes, no cyberpunk vault fantasy, "
     "no money raining, no robot hands holding cash, no over-literal metaphors. "
+    "NOT a 3D product render, not a game cinematic, not an animation still, not CGI. "
+    "No amber/gold colour wash, no red atmospheric glow, no coloured gel on the walls, "
+    "no teal-and-orange grade — the frame carries no colour grade at all. "
     "Marks supplied as attached references SHOULD appear, large and physical; never invent one you were not given."
 )
 # Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
@@ -315,10 +318,11 @@ def build_editorial_pack(
         "(1) primary_subject large and clear in upper/middle frame (~40-60%); "
         "(2) ONE SUBJECT, IN A REAL PLACE. Pick a single subject — a named person, or one object that "
         "stands for the story — and put it somewhere specific and believable: a particular office, lobby, "
-        "workshop or room, with the ordinary things such a place contains. Never crowds, rows of desks or "
-        "walls of monitors, and never a bare symbolic staging either (a lone figure on empty steps, an "
-        "object floating in nothing); it should read as a moment someone photographed. Interiors beat "
-        "monument exteriors; "
+        "workshop, dealing room or trading floor, with everything such a place actually contains. If the "
+        "real room is busy — colleagues, rows of screens, clutter on the desks — keep it busy; that is "
+        "what makes it look photographed rather than staged. Separate the subject with framing and focus, "
+        "not by emptying the room. What to avoid is the opposite: bare symbolic staging (a lone figure on "
+        "empty steps, an object floating in nothing). Interiors beat monument exteriors; "
         "lawsuit → courthouse/steps or formal legal desk without readable text; token rally with tokens array "
         "non-empty → physical coins OK; pure institutional news → NO crypto coin props; "
         "(3) encode sentiment lightly via light/mood, not cheesy symbols (no padlocks, raining money, robot hands); "

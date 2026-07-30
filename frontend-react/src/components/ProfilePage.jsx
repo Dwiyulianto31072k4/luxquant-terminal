@@ -55,6 +55,7 @@ const ProfilePage = () => {
   const [linkingTelegram, setLinkingTelegram] = useState(false);
   const [linkingDiscord, setLinkingDiscord] = useState(false);
   const [toast, setToast] = useState(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   // ─── BTC live ticker for preview ───
   const [btcTicker, setBtcTicker] = useState(null);
@@ -62,6 +63,10 @@ const ProfilePage = () => {
   useEffect(() => {
     if (user) setUsername(user.username || "");
   }, [user, setUser]);
+  // New URL = new chance to load (upload replaces the filename every time).
+  useEffect(() => {
+    setAvatarBroken(false);
+  }, [user?.avatar_url]);
   useEffect(() => {
     fetchConnections();
   }, []);
@@ -111,7 +116,11 @@ const ProfilePage = () => {
   const isTelegramLinked = connections?.telegram?.linked || false;
   const isDiscordLinked = connections?.discord?.linked || false;
   const initial = user?.username?.charAt(0).toUpperCase() || "U";
-  const avatarUrl = user?.avatar_url;
+  // A dead avatar URL (expired Google photo, deleted upload) must degrade to the
+  // initial, not to the browser's broken-image glyph. Remove still shows so the
+  // user can clear a broken one.
+  const storedAvatarUrl = user?.avatar_url;
+  const avatarUrl = avatarBroken ? null : storedAvatarUrl;
   const usernameChanged = username !== (user?.username || "");
 
   // ════════════════════════════════════════
@@ -503,6 +512,7 @@ const ProfilePage = () => {
                         alt=""
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
+                        onError={() => setAvatarBroken(true)}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-surface-secondary">
@@ -555,7 +565,7 @@ const ProfilePage = () => {
                   >
                     {t("profile.upload", "Upload")}
                   </button>
-                  {avatarUrl && (
+                  {storedAvatarUrl && (
                     <>
                       <span className="text-text-muted/20">|</span>
                       <button

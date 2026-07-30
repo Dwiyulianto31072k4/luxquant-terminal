@@ -32,6 +32,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.avatar_storage import is_uploaded_avatar
 from app.core.security import create_cryptobot_exchange_token, create_tokens
 from app.models.user import User
 from app.models.legacy_member import LegacyMember
@@ -103,7 +104,8 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     if user:
         # User existing -- update info & resolve role
         user.telegram_username = data.username
-        if data.photo_url:
+        # Refresh foto Telegram, tapi jangan timpa avatar upload-an user sendiri
+        if data.photo_url and not is_uploaded_avatar(user.avatar_url):
             user.avatar_url = data.photo_url
 
         new_role, new_source = resolve_role_for_telegram(user, is_vip_member, is_legacy)
@@ -125,7 +127,8 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             # Link Telegram ke existing user (BUKAN user baru, no referral apply)
             existing_email.telegram_id = data.id
             existing_email.telegram_username = data.username
-            existing_email.avatar_url = data.photo_url or existing_email.avatar_url
+            if data.photo_url and not is_uploaded_avatar(existing_email.avatar_url):
+                existing_email.avatar_url = data.photo_url
 
             new_role, new_source = resolve_role_for_telegram(existing_email, is_vip_member, is_legacy)
             existing_email.role = new_role

@@ -42,18 +42,40 @@ const CHANNEL_CONFIG = {
  * Props:
  * channel: 'telegram' | 'discord' | 'email'
  * value, deepLink, source: 'admin' | 'oauth' | null
+ * appLink?: native-app URL (tg://user?id=…) used when there's no web link —
+ *           the only way to open a Telegram user who has no @username
  * compact?: boolean — table cell mode (icon-only chip)
  */
-export const ContactBadge = ({ channel, value, deepLink, source, botReady, compact = false }) => {
+export const ContactBadge = ({
+  channel,
+  value,
+  deepLink,
+  appLink,
+  source,
+  botReady,
+  compact = false,
+}) => {
   const [copied, setCopied] = useState(false);
   const cfg = CHANNEL_CONFIG[channel];
   if (!cfg || !value) return null;
   const { Icon } = cfg;
 
+  // Web link wins; a tg:// link still opens the profile, just via the app.
+  const openLink = deepLink || appLink || null;
+  const isAppOnly = !deepLink && !!appLink;
+
   const handleOpen = (e) => {
     e.stopPropagation();
-    if (deepLink) window.open(deepLink, "_blank", "noopener,noreferrer");
-    else handleCopy(e);
+    if (!openLink) {
+      handleCopy(e);
+      return;
+    }
+    if (isAppOnly) {
+      // tg:// must be handed to the OS, not opened as a tab.
+      window.location.href = openLink;
+      return;
+    }
+    window.open(openLink, "_blank", "noopener,noreferrer");
   };
 
   const handleCopy = async (e) => {
@@ -161,10 +183,14 @@ export const ContactBadge = ({ channel, value, deepLink, source, botReady, compa
         <p className="text-xs text-text-primary truncate font-mono tabular-nums">{value}</p>
       </div>
       <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-        {deepLink && (
+        {openLink && (
           <button
             onClick={handleOpen}
-            title="Open in new tab"
+            title={
+              isAppOnly
+                ? "Open this profile in the Telegram app (no public @username, so there's no web link)"
+                : "Open in new tab"
+            }
             className="flex items-center justify-center w-7 h-7 rounded transition-colors"
             style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}
           >
@@ -217,6 +243,7 @@ export const ContactBadgeRow = ({ user, reach }) => {
           channel="telegram"
           value={channels.telegram.value}
           deepLink={channels.telegram.deep_link}
+          appLink={channels.telegram.app_link}
           source={channels.telegram.source}
           botReady={channels.telegram.bot_ready}
           compact
@@ -250,16 +277,37 @@ function _buildReachFromUser(u) {
   let tg = { available: false, value: null, deep_link: null, source: null };
   // Real OAuth username (refreshed on each login) is the source of truth.
   // Admin-entered handle is only a fallback when there's no real username.
+  const tgAppLink = u.telegram_id ? `tg://user?id=${u.telegram_id}` : null;
   if (u.telegram_username) {
     const v = u.telegram_username.replace(/^@/, "").trim();
-    if (v) tg = { available: true, value: v, deep_link: `https://t.me/${v}`, source: "oauth" };
+    if (v)
+      tg = {
+        available: true,
+        value: v,
+        deep_link: `https://t.me/${v}`,
+        app_link: `https://t.me/${v}`,
+        source: "oauth",
+      };
   } else if (u.admin_telegram_username) {
     const v = u.admin_telegram_username.replace(/^@/, "").trim();
-    if (v) tg = { available: true, value: v, deep_link: `https://t.me/${v}`, source: "admin" };
+    if (v)
+      tg = {
+        available: true,
+        value: v,
+        deep_link: `https://t.me/${v}`,
+        app_link: `https://t.me/${v}`,
+        source: "admin",
+      };
   } else if (u.telegram_id) {
-    // Linked via Telegram login but no public @username → still reachable
-    // through the bot (DM by chat id). No t.me deep link without a username.
-    tg = { available: true, value: `id:${u.telegram_id}`, deep_link: null, source: "oauth" };
+    // Linked via Telegram login but no public @username. Telegram publishes no
+    // web profile for those, so the app-scheme link is the only way in.
+    tg = {
+      available: true,
+      value: `id:${u.telegram_id}`,
+      deep_link: null,
+      app_link: tgAppLink,
+      source: "oauth",
+    };
   }
   // Bot DM readiness: confirmed if they've been DM'd before or are in the VIP
   // group. If not, a bot DM may bounce — use in-app Announcements instead.

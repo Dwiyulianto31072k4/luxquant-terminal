@@ -132,38 +132,37 @@ def download_reference_image(url: Optional[str], *, news_id: int) -> Optional[st
 # window" and whatever is said first wins.
 BRAND_VISUAL_SIGNATURE = "\n".join([
     "LUXQUANT HOUSE STYLE — identical in every poster. This is what makes the feed one family.",
-    "- Look: cinematic 3D product-render realism. Physically-based materials, true reflections, "
-    "contact shadows, fine grain. No illustration, no flat vector.",
-    "- COMPOSITION — the hardest rule: TWO focal elements, no more. One subject (a person, or a "
-    "single object) and one brand mark. Nothing else competes for attention: no crowds, no rows of "
-    "monitors, no banks of screens, no busy trading floor.",
-    "- BUT NOT EMPTY. It must look like a real place someone photographed, not a symbolic staging. "
-    "Give the room the ordinary things it would actually contain — a desk, a chair, books, a plant, "
-    "a city window — and keep them quiet: out of focus, low-lit, behind the subject. A lone figure "
-    "on a bare plaza, or an object floating in a void, reads as fake and is exactly wrong.",
-    "- World: a specific, believable interior, lit from inside. Near-black #0A0506 falling into dark "
-    "maroon #241014, with a faint red atmospheric wash in the depth. The red is the ROOM, not the "
-    "lighting. Never daylight, never a flat backdrop. Prefer an interior over a monument exterior — "
-    "a room gives the light something to fall on.",
-    "- THE BRAND MARK IS THE SECOND SUBJECT: when a mark is supplied as a reference it MUST appear, "
-    "large, clean and unmistakable — a backlit sign on the wall behind the subject, a moulded 3D "
-    "emblem, or a big circular badge beside them. Give it room; it should read at thumbnail size. "
-    "If no mark is supplied, leave that space empty rather than inventing something to fill it.",
-    "- PERSON, when the story has one: centred or slightly off-centre, half to full body, medium "
-    "distance, calm and still, cleanly separated from the background. Not a floating head, not a "
-    "silhouette that disappears, and never one of a crowd.",
-    "- Light is PHOTOGRAPHIC first: light the place the way that place is really lit, with correct "
-    "white balance and believable sources, as a camera would record it. Real colours stay true — a "
-    "green logo stays green, a teal server aisle stays teal, skin stays natural.",
-    "- Gold is a MINOR accent, never the grade. One warm lamp, a lit edge, a single reflection on "
-    "glass or metal — a touch the eye finds after the subject, not before it. Do NOT wash the frame "
-    "in amber or make the room itself gold: if it reads as 'a gold room', it is wrong.",
-    "- Crimson #BE001C is the same size of gesture: a little atmosphere far back, a distant LED "
-    "strip, haze at the end of a corridor. Never the key light, never the rim, never a colour wash.",
-    "- Overall it should look like a photograph taken in a dark room, not a graded poster. Keep the "
-    "two brand colours quiet enough that a viewer would call the picture realistic first.",
-    "- Frame: vertical 4:5, hero in the upper two thirds, lower 35-40% dark and free of detail — the "
-    "headline is composited there.",
+    "- IT IS A PHOTOGRAPH, NOT A RENDER. Shot on a full-frame camera with a fast prime lens: real "
+    "optics, natural depth of field, true skin texture, imperfect surfaces, sensor grain. If it "
+    "could pass for a frame from a Reuters or Bloomberg story, it is right. If it looks like a 3D "
+    "product render, a game cinematic or an animation still, it is WRONG — that is the single most "
+    "common failure.",
+    "- LIGHT IS WHATEVER THAT ROOM REALLY HAS: window daylight, office ceiling lights, a backlit "
+    "sign, a desk lamp, a city at dusk through glass. Correct white balance, believable sources, "
+    "recorded as a camera would record them. Do not invent a mood; photograph the place.",
+    "- NO COLOUR GRADE. This is the rule broken most often. Do NOT wash the frame in amber or gold. "
+    "Do NOT put a red glow in the air, on the walls or behind the subject. LuxQuant's gold and "
+    "crimson live in the headline typography that is composited afterwards, NEVER in the "
+    "photograph. A picture a viewer would describe as 'a gold room' or 'a red room' is a failure, "
+    "however handsome it looks.",
+    "- COLOURS ARE TRUE: a green logo is green, a blue screen is blue, daylight is neutral, skin is "
+    "skin. Screens may glow their own colours. Nothing is tinted to match a brand.",
+    "- THE PLACE IS REAL, AND AS BUSY AS THAT PLACE REALLY IS. An office has a desk, papers, a "
+    "chair, a window, a city behind it. A trading floor has people, rows of monitors and clutter — "
+    "that mess is exactly what makes it believable. Do not empty the room to isolate the subject; "
+    "separate it with focus, distance and framing instead. An object floating in a void, or a lone "
+    "figure on a bare plaza, reads as fake.",
+    "- SUBJECT: one clear subject — the person the story is about, photographed like an editorial "
+    "portrait (half to full body, medium distance, calm, at their desk or at their work), or the "
+    "single object the story is about. The eye must find it in under a second.",
+    "- THE BRAND MARK IS PART OF THE ROOM: when a mark is supplied it appears the way it really "
+    "would — lettering lit on the office wall behind the subject, a sign on the building, a logo on "
+    "the glass. Large enough to read at thumbnail size, but physically built into the place, never "
+    "a floating badge pasted over it.",
+    "- TIME OF DAY FOLLOWS THE STORY: bright office daylight, late afternoon, blue hour through a "
+    "window. Not every poster is dark, and darkness is never the point.",
+    "- FRAME: vertical 4:5, subject in the upper two thirds. The lower 35-40% should fall naturally "
+    "quiet — a desk surface, a floor, a plain wall — because the headline is composited there.",
 ])
 
 
@@ -240,7 +239,7 @@ def build_visual_prompt(
     reference_line = (
         "Use the provided reference image only for broad visual context and mood; create a new original image."
         if reference_image_url else
-        "Infer a cinematic crypto-media poster from the story."
+        "Infer a documentary news photograph from the story."
     )
 
     # Same order as the manual brief: house style first, story second. Whatever
@@ -386,18 +385,38 @@ def _generate_openai_image(prompt: str, out_path: Path) -> dict:
     return _extract_usage(body)
 
 
-def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> dict:
-    """Identity/brand edit via OpenAI images/edits. Returns usage dict."""
-    ref = Path(reference_path)
-    mime = "image/png"
-    file_name = ref.name
-    suf = ref.suffix.lower()
+def _mime_for(path: Path) -> str:
+    suf = path.suffix.lower()
     if suf in (".jpg", ".jpeg"):
-        mime = "image/jpeg"
-    elif suf == ".webp":
-        mime = "image/webp"
-    with open(reference_path, "rb") as image_file:
-        files = {"image": (file_name, image_file, mime)}
+        return "image/jpeg"
+    if suf == ".webp":
+        return "image/webp"
+    return "image/png"
+
+
+def _edit_openai_image(prompt: str, reference_path, out_path: Path) -> dict:
+    """Identity/brand edit via OpenAI images/edits. Returns usage dict.
+
+    Accepts one path or several. Several matters: a story with a face AND a
+    brand used to send the face alone, because this took a single file — so the
+    model had the logo described in words only and drew its own Cross River
+    swoosh. The endpoint takes repeated `image[]` parts; send the face and the
+    logo sheet together and the mark comes back from the real file.
+    """
+    refs = [Path(p) for p in ([reference_path] if isinstance(reference_path, (str, Path)) else reference_path)]
+    refs = [p for p in refs if p and p.exists()]
+    if not refs:
+        raise RuntimeError("no readable reference image for images/edits")
+
+    handles = [open(p, "rb") for p in refs]
+    try:
+        if len(refs) == 1:
+            files = [("image", (refs[0].name, handles[0], _mime_for(refs[0])))]
+        else:
+            files = [
+                ("image[]", (p.name, h, _mime_for(p)))
+                for p, h in zip(refs, handles)
+            ]
         data = {
             "model": _image_model(),
             "prompt": prompt,
@@ -412,16 +431,22 @@ def _edit_openai_image(prompt: str, reference_path: str, out_path: Path) -> dict
             files=files,
             timeout=IMAGE_TIMEOUT,
         )
+    finally:
+        for h in handles:
+            h.close()
     _raise_openai(response, "openai images/edits")
     body = response.json()
     out_path.write_bytes(_decode_openai_image(body))
     return _extract_usage(body)
 
 
-def _edit_image(prompt: str, reference_path: str, out_path: Path, *, provider: str) -> dict:
+def _edit_image(prompt: str, reference_path, out_path: Path, *, provider: str) -> dict:
     if provider == "openai":
         return _edit_openai_image(prompt, reference_path, out_path)
-    return _edit_xai_image(prompt, reference_path, out_path, aspect_ratio="3:4") or {}
+    # xAI's edit endpoint takes a single image; give it the first (the face,
+    # which is the one that cannot be approximated).
+    first = reference_path if isinstance(reference_path, (str, Path)) else reference_path[0]
+    return _edit_xai_image(prompt, str(first), out_path, aspect_ratio="3:4") or {}
 
 
 def _generate_image(prompt: str, out_path: Path, *, provider: str) -> dict:
@@ -739,23 +764,64 @@ def _prepare_face_reference(face_path: str, *, news_id: int) -> str:
     return str(out)
 
 
-def _brand_allowlist_clause(verified_names: list[str]) -> str:
-    """Hard rule: only admin-verified brand marks may appear."""
+# A stored image_prompt is `{scene}{org} {STYLE_SUFFIX} {coins} {NEGATIVES}` from
+# the day it was written. The style half is boilerplate that gets re-appended on
+# every run, so an old draft re-rendered today would carry BOTH the old house
+# style and the new one — and the old one is exactly what we are trying to undo
+# ("dark, near-empty space", "photoreal poster" → the rendered-CGI look). Cut the
+# scene free of it and keep only the part that is about THIS story.
+_STORED_STYLE_MARKERS = (
+    "Photojournalistic financial-news poster",
+    "Photoreal premium financial-news poster",
+    "Photorealistic premium financial-news",
+    " Story institutions:",
+)
+
+
+def _strip_stored_style_tail(scene: str) -> str:
+    for marker in _STORED_STYLE_MARKERS:
+        cut = scene.find(marker)
+        if cut > 40:
+            scene = scene[:cut]
+    return scene.strip()
+
+
+def _brand_allowlist_clause(
+    verified_names: list[str], hero_names: Optional[list[str]] = None
+) -> str:
+    """Hard rule: only admin-verified marks may appear — and only the headline's
+    mark gets built.
+
+    Allowed and required are different things. Listing every story brand as
+    allowed made the model build all of them, so a poster headlined "Ethereum
+    MVRV Golden Cross" came back with a Bitmine sign as its largest object.
+    """
     if not verified_names:
         return (
             "BRAND MARK RULE (critical): Do NOT draw any corporate logos, exchange marks, "
             "protocol emblems, bank wordmarks, or tickers (no Hyperliquid, no HYPE, no Coinbase C, "
             "no Circle, no JPMorgan wordmark, no invented symbols). Use only abstract environment."
         )
-    allowed = ", ".join(verified_names)
-    return (
-        f"BRAND MARK RULE (critical): The ONLY brand logos/wordmarks/emblems allowed in the image are: "
-        f"{allowed}. "
+    heroes = [n for n in (hero_names or verified_names) if n]
+    others = [n for n in verified_names if n not in heroes]
+    clause = (
+        f"BRAND MARK RULE (critical): The ONE brand this poster is about is {', '.join(heroes)} — "
+        "that mark is the hero prop and the only one built large and physical in the frame. "
+    )
+    if others:
+        clause += (
+            f"These are part of the story but NOT part of the picture: {', '.join(others)}. "
+            "Do not render their logos, wordmarks or emblems anywhere — not on a wall, a screen, "
+            "a badge or a coin. The headline never names them, so the reader would only be confused "
+            "by seeing them. "
+        )
+    clause += (
         "Do NOT invent, approximate, or hallucinate any other brand mark — especially not Hyperliquid, "
-        "HYPE token, Circle, rival exchanges, or banks that are not in that allow-list. "
-        "If a company is part of the story but its mark is not allowed, show it only via abstract "
+        "HYPE token, Circle, rival exchanges, or banks. "
+        "If a company is part of the story but its mark is not the hero, show it only via abstract "
         "architecture/lighting with zero readable logo."
     )
+    return clause
 
 
 def _identity_face_prompt(
@@ -763,11 +829,13 @@ def _identity_face_prompt(
     *,
     brand: Optional[str] = None,
     verified_brand_names: Optional[list] = None,
+    hero_brand_names: Optional[list] = None,
 ) -> str:
     """Build face-only edit prompt: identity first, rational scene second."""
     names = list(verified_brand_names or [])
     if brand and brand not in names:
         names = [brand] + names
+    heroes = list(hero_brand_names or names)
     parts = [
         IDENTITY_LOCK_PREFIX,
         "Task: Transform the reference photograph into a premium financial-news vertical Instagram poster "
@@ -775,12 +843,13 @@ def _identity_face_prompt(
         "The hero subject is a large chest-up or three-quarter portrait of THIS exact person "
         "in the upper/middle frame, in a plausible professional setting for the story.",
         f"Scene direction (do not change identity for these): {scene_prompt}",
-        _brand_allowlist_clause(names),
+        _brand_allowlist_clause(names, heroes),
         "Avoid surreal crypto clichés (chains on books, floating holograms, raining money).",
     ]
-    if names:
+    if heroes:
         parts.append(
-            f"Verified brands for environment only (no invented marks): {', '.join(names)}."
+            f"Brand(s) in this frame: {', '.join(heroes)} — from the supplied artwork only, "
+            "never drawn from memory."
         )
     parts.append(
         "Lower third darker for later headline typography. "
@@ -802,7 +871,7 @@ def _brand_pass_prompt(
         "Place marks as wall signage, product emblems, desk objects, or architectural elements — "
         "accurate geometry, not tiny corner stickers. "
         f"{_brand_allowlist_clause(verified_brand_names)} "
-        f"Keep composition cinematic vertical poster. Context: {scene_prompt[:400]} "
+        f"Keep it a photograph of a real place, vertical 4:5. Context: {scene_prompt[:400]} "
         "No readable body text, no caption bars."
     )
 
@@ -1560,6 +1629,8 @@ def _materials_dict(assets: dict) -> dict:
         "story_orgs": assets.get("story_orgs") or [],
         "verified_brands": assets.get("verified_brands") or [],
         "verified_brand_names": assets.get("verified_brand_names") or [],
+        "hero_brand_names": assets.get("hero_brand_names") or [],
+        "support_brand_names": assets.get("support_brand_names") or [],
     }
 
 
@@ -1612,6 +1683,12 @@ def generate_ai_social_image(
             "Natural directional lighting, subtle cinematic contrast, "
             "shallow depth of field. ", ""
         )
+        # A stored prompt already has a brand rule glued to its tail from the
+        # run that created it. A fresh one is appended below, so leaving the old
+        # one in place would hand the model two contradictory allow-lists — the
+        # stale one still saying every story brand may be built.
+        scene = re.split(r"BRAND MARK RULE \(critical\)", scene)[0].strip()
+        scene = _strip_stored_style_tail(scene)
         prompt = f"{BRAND_VISUAL_SIGNATURE}\n\n{scene}"
     else:
         prompt = build_visual_prompt(
@@ -1630,6 +1707,10 @@ def generate_ai_social_image(
     primary_logo_path = None
     primary_org_name = None
     visual_materials: Optional[dict] = None
+    verified_brands: list = []
+    verified_brand_names: list = []
+    hero_brands: list = []
+    hero_brand_names: list = []
     try:
         from app.services.social_entity_assets import resolve_entity_assets
 
@@ -1649,8 +1730,12 @@ def generate_ai_social_image(
         )
         verified_brands = list(assets.get("verified_brands") or [])
         verified_brand_names = list(assets.get("verified_brand_names") or [])
+        hero_brands = list(assets.get("hero_brands") or [])
+        hero_brand_names = list(assets.get("hero_brand_names") or [])
         if not verified_brand_names and primary_org_name:
             verified_brand_names = [primary_org_name]
+        if not hero_brand_names and primary_org_name:
+            hero_brand_names = [primary_org_name]
         visual_materials = _materials_dict(assets)
     except Exception as exc:
         # Do NOT rebind `logger` here. Assigning it anywhere in this function
@@ -1702,8 +1787,11 @@ def generate_ai_social_image(
         )
 
     try:
+        # Attach the headline's mark only. An attached reference is an
+        # instruction to build it, so attaching a body-copy brand puts it in a
+        # poster that never mentions it.
         logo_paths = [
-            b.get("path") for b in verified_brands
+            b.get("path") for b in (hero_brands or verified_brands)
             if isinstance(b, dict) and b.get("path") and Path(str(b["path"])).exists()
         ]
         if not logo_paths and primary_logo_path and Path(str(primary_logo_path)).exists():
@@ -1711,8 +1799,9 @@ def generate_ai_social_image(
         logo_ok = bool(logo_paths)
         face_ok = bool(face_path and Path(str(face_path)).exists())
         allow = verified_brand_names or ([primary_org_name] if primary_org_name else [])
+        heroes = hero_brand_names or allow
 
-        scene_prompt = f"{prompt} {_brand_allowlist_clause(allow)}"
+        scene_prompt = f"{prompt} {_brand_allowlist_clause(allow, heroes)}"
         image_api_calls = 0
         image_usage_acc: dict = {}
         image_is_edit = False
@@ -1726,15 +1815,34 @@ def generate_ai_social_image(
                 scene_prompt,
                 brand=primary_org_name,
                 verified_brand_names=allow,
+                hero_brand_names=heroes,
             )
-            if allow and logo_ok:
-                identity_prompt += (
-                    f" If possible, subtly include verified brand presence for "
-                    f"{', '.join(allow)} via environment/architecture only — "
-                    "never invent unlisted brand logos."
+            # Send the marks WITH the face. Describing a logo in words is how a
+            # bank's real blue ribbon came back as an invented gold plaque: the
+            # model was told the brand's name and then had to draw it from
+            # memory. The second attachment is the actual artwork.
+            edit_refs = [face_ref]
+            if heroes and logo_ok:
+                logo_ref = _prepare_logos_sheet(
+                    [str(p) for p in logo_paths], news_id=news_id
                 )
+                if logo_ref:
+                    edit_refs.append(logo_ref)
+                    identity_prompt += (
+                        f" REFERENCE IMAGES: the first is the person's face — keep it 1:1. "
+                        f"The second is the official artwork for {', '.join(heroes)}: reproduce "
+                        "that mark EXACTLY as supplied — same shape, same proportions, same "
+                        "colours — built into the room as real signage or lettering. Do not "
+                        "restyle it, do not recolour it to match the scene, and never draw a "
+                        "mark from memory."
+                    )
+                else:
+                    identity_prompt += (
+                        f" No usable artwork for {', '.join(heroes)} was supplied, so show the "
+                        "company through architecture and setting only — draw NO logo at all."
+                    )
             gen_prompt = identity_prompt
-            u = _edit_image(identity_prompt, face_ref, raw_path, provider=provider)
+            u = _edit_image(identity_prompt, edit_refs, raw_path, provider=provider)
             image_usage_acc = _merge_usage(image_usage_acc, u)
             image_api_calls = 1
             image_is_edit = True
@@ -1749,9 +1857,18 @@ def generate_ai_social_image(
             ):
                 try:
                     brand_prompt = _brand_pass_prompt(
-                        scene_prompt, verified_brand_names=allow
+                        scene_prompt, verified_brand_names=heroes
                     )
-                    u2 = _edit_image(brand_prompt, str(raw_path), raw_path, provider=provider)
+                    # The pass that exists to fix the mark must be able to SEE
+                    # the mark: send the rendered frame and the artwork sheet,
+                    # not the frame alone.
+                    second_refs = [str(raw_path)]
+                    sheet = _prepare_logos_sheet(
+                        [str(p) for p in logo_paths], news_id=news_id
+                    )
+                    if sheet:
+                        second_refs.append(sheet)
+                    u2 = _edit_image(brand_prompt, second_refs, raw_path, provider=provider)
                     image_usage_acc = _merge_usage(image_usage_acc, u2)
                     image_api_calls += 1
                     mode = f"ai_{provider}_face_1to1_brands"
@@ -1769,11 +1886,11 @@ def generate_ai_social_image(
                 [str(p) for p in logo_paths], news_id=news_id
             )
             edit_prompt = (
-                "Cinematic vertical Instagram poster. "
-                f"Use ONLY the official brand mark(s) from the reference for: {', '.join(allow)}. "
-                "Integrate them as large physical 3D elements in the scene "
-                "(signage, product emblem, desk object). Match reference geometry exactly. "
-                f"{_brand_allowlist_clause(allow)} "
+                "Documentary photograph, vertical 4:5 — a real place, not a render. "
+                f"Use ONLY the official brand mark(s) from the reference for: {', '.join(heroes)}. "
+                "Build them into the room as things that are really there — lettering lit on the "
+                "wall, a sign on the building, a logo on the glass. Match reference geometry exactly. "
+                f"{_brand_allowlist_clause(allow, heroes)} "
                 "Never corner stickers. Full scene: " + scene_prompt
             )
             if logo_ref:

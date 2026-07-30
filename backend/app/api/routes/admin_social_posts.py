@@ -862,7 +862,10 @@ def manual_image_brief(
     assets = resolve_entity_assets(
         entities, featured_person=featured, headline=headline or "", visual_only=True
     )
-    brands = [b for b in (assets.get("verified_brand_names") or []) if b]
+    # Only the brand the headline names goes into the frame; the rest are story
+    # context and get an explicit "do not draw", or Gemini builds them too.
+    brands = [b for b in (assets.get("hero_brand_names") or []) if b]
+    context_brands = [b for b in (assets.get("support_brand_names") or []) if b]
     if not brands and assets.get("primary_org"):
         po = assets.get("primary_org") or {}
         if po.get("name"):
@@ -933,6 +936,17 @@ def manual_image_brief(
         "\n".join(f"{i}. {a}" for i, a in enumerate(attach, 1)),
         "If you cannot attach a face or a mark, show that subject through architecture and "
         "atmosphere instead — never guess a face and never invent a logo.",
+        *(
+            [
+                "",
+                "IN THE STORY BUT NOT IN THE PICTURE: "
+                + ", ".join(context_brands)
+                + ". The headline never names them, so do not draw their logo or wordmark "
+                "anywhere — the poster must be about the headline and nothing else.",
+            ]
+            if context_brands
+            else []
+        ),
         "",
         "OUTPUT: vertical 4:5, 1024x1536.",
         "AVOID: readable text, captions or wordmarks drawn as typography anywhere in the frame; "
@@ -950,6 +964,7 @@ def manual_image_brief(
         "aspect": "4:5 portrait (1024x1536)",
         "face": featured,
         "brands": brands,
+        "context_brands": context_brands,
         "inventory": assets.get("inventory") or [],
     }
 

@@ -74,6 +74,27 @@ async def is_in_group(telegram_id: int) -> Optional[bool]:
     return status in _PRESENT_STATUSES
 
 
+async def get_user_profile(telegram_id: int) -> Optional[dict]:
+    """
+    Ambil profil publik user dari Bot API (getChat).
+
+    Cuma jalan kalau bot "kenal" user-nya (pernah /start atau satu group).
+    Return dict {username, first_name, last_name} atau None kalau gagal.
+
+    Dipakai admin buat nemuin profil Telegram user yang login-nya cuma bawa
+    numeric id — username Telegram bisa berubah/baru dibuat setelah signup,
+    jadi ini sumber paling update.
+    """
+    result = await _post("getChat", {"chat_id": telegram_id})
+    if result is None:
+        return None
+    return {
+        "username": result.get("username"),
+        "first_name": result.get("first_name"),
+        "last_name": result.get("last_name"),
+    }
+
+
 async def create_one_time_invite_link(
     expire_seconds: int = 3600,
     name: Optional[str] = None,

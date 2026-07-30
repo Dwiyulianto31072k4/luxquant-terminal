@@ -252,6 +252,24 @@ def _telegram_deep_link(user: User) -> Optional[str]:
     return f"https://t.me/{username}"
 
 
+def _telegram_app_link(user: User) -> Optional[str]:
+    """
+    Link buat buka profil user di aplikasi Telegram.
+
+    Kalau user punya @username → https://t.me/{username} (jalan di mana aja).
+    Kalau cuma punya numeric id (banyak user Telegram ga set username) →
+    tg://user?id={id}. Telegram ga punya URL web buat user tanpa username, jadi
+    ini satu-satunya cara buka profilnya — dan cuma jalan di device yang udah
+    login Telegram + kenal user-nya (mis. satu group VIP).
+    """
+    web = _telegram_deep_link(user)
+    if web:
+        return web
+    if user.telegram_id:
+        return f"tg://user?id={user.telegram_id}"
+    return None
+
+
 def _discord_deep_link(user: User) -> Optional[str]:
     """Build https://discord.com/users/{id} if reachable."""
     # admin override can be either numeric id or handle
@@ -431,6 +449,10 @@ def get_reach_summary(user: User) -> Dict[str, Any]:
             "source": tg_source,
             "value": tg_value,
             "deep_link": _telegram_deep_link(user),
+            # app_link selalu ada kalau user punya telegram_id — buat user tanpa
+            # @username isinya tg://user?id=… (buka di app Telegram, bukan web).
+            "app_link": _telegram_app_link(user),
+            "telegram_id": user.telegram_id,
             # bot_ready = we've confirmed the bot can DM this user (they've
             # started it, or they're inside the VIP group). If false, a bot
             # DM may bounce — reach them via in-app Announcements instead.

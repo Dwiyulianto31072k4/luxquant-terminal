@@ -1045,8 +1045,126 @@ const OverviewTab = ({
  Tab 2: Contact (channels + edit + admin notes)
  ════════════════════════════════════════ */
 
+/**
+ * Explains what a Telegram numeric id can and can't get you, and hands over
+ * the one link that does work. Telegram publishes no web profile for accounts
+ * without a @username, so tg://user?id= (Telegram app) is the only door.
+ */
+const TelegramIdentityNote = ({ identity, resolving, onResolve, telegramId }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyId = async () => {
+    try {
+      await navigator.clipboard.writeText(String(telegramId));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+
+  const name = identity?.display_name;
+  const hasUsername = !!identity?.username;
+  const appLink = identity?.app_link || `tg://user?id=${telegramId}`;
+
+  return (
+    <div
+      className="rounded-lg px-3 py-2 text-[11px] space-y-2"
+      style={{
+        background: "rgb(34,158,217,0.05)",
+        border: "1px solid rgba(34,158,217,0.16)",
+        color: "rgb(var(--fg-muted))",
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 min-w-0">
+          <TelegramIcon size={11} colored />
+          {resolving ? (
+            <span>Asking the bot who this is…</span>
+          ) : name ? (
+            <span className="truncate">
+              Telegram name: <strong style={{ color: "rgb(var(--fg))" }}>{name}</strong>
+              {hasUsername && <> · @{identity.username}</>}
+            </span>
+          ) : (
+            <span>{identity?.message || "Telegram profile not resolved yet."}</span>
+          )}
+        </span>
+        <button
+          onClick={onResolve}
+          disabled={resolving}
+          className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider disabled:opacity-40"
+          style={{
+            color: "rgb(var(--accent-text))",
+            background: "rgb(var(--accent) / 0.08)",
+            border: "1px solid rgb(var(--line) / 0.22)",
+          }}
+        >
+          {resolving ? "…" : "Re-check"}
+        </button>
+      </div>
+
+      {!resolving && identity && !hasUsername && identity.message && name && (
+        <p style={{ color: "rgb(var(--fg-muted))" }}>{identity.message}</p>
+      )}
+
+      <div className="flex items-center gap-2">
+        <a
+          href={appLink}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded font-semibold"
+          style={{
+            color: "#229ED9",
+            background: "rgba(34,158,217,0.08)",
+            border: "1px solid rgba(34,158,217,0.2)",
+          }}
+        >
+          <ExternalLinkIcon size={10} />
+          Open in Telegram app
+        </a>
+        <button
+          onClick={copyId}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded font-mono"
+          style={{
+            background: "rgb(var(--ink) / 0.03)",
+            border: "1px solid rgb(var(--ink) / 0.08)",
+            color: copied ? "rgb(var(--pos-text))" : "rgb(var(--fg-muted))",
+          }}
+        >
+          {copied ? "Copied" : `Copy id ${telegramId}`}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
   const { user, reach, enriched_by_user } = data;
+
+  // Telegram identity: the login widget only kept whatever the user had at
+  // signup, which for many is nothing but a numeric id. Ask the bot who they
+  // are now, so admins see a human name (and get a t.me link if they've since
+  // set a @username).
+  const [tgIdentity, setTgIdentity] = useState(null);
+  const [tgResolving, setTgResolving] = useState(false);
+
+  const resolveTelegram = useCallback(async () => {
+    if (!user.telegram_id) return;
+    setTgResolving(true);
+    try {
+      setTgIdentity(await adminApi.getUserTelegramIdentity(user.id));
+    } catch (err) {
+      setTgIdentity({
+        resolvable: false,
+        message: err.response?.data?.detail || "Couldn't reach the Telegram bot.",
+      });
+    } finally {
+      setTgResolving(false);
+    }
+  }, [user.id, user.telegram_id]);
+
+  useEffect(() => {
+    setTgIdentity(null);
+    // Auto-resolve only when there's nothing better to show than an id.
+    if (user.telegram_id && !reach.telegram.deep_link) resolveTelegram();
+  }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [editing, setEditing] = useState(false);
   const [adminTg, setAdminTg] = useState(user.admin_telegram_username || "");
@@ -1122,13 +1240,28 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
         {!editing ? (
           <div className="space-y-2">
             {reach.telegram.available && (
-              <ContactBadge
-                channel="telegram"
-                value={reach.telegram.value}
-                deepLink={reach.telegram.deep_link}
-                source={reach.telegram.source}
-                botReady={reach.telegram.bot_ready}
-              />
+              <>
+                <ContactBadge
+                  channel="telegram"
+                  value={tgIdentity?.username || reach.telegram.value}
+                  deepLink={
+                    tgIdentity?.profile_link || reach.telegram.deep_link
+                  }
+                  appLink={tgIdentity?.app_link || reach.telegram.app_link}
+                  source={reach.telegram.source}
+                  botReady={reach.telegram.bot_ready}
+                />
+                {/* Only for the id-only case — a working @username link needs
+                    no explanation. */}
+                {user.telegram_id && (!reach.telegram.deep_link || tgIdentity) && (
+                  <TelegramIdentityNote
+                    identity={tgIdentity}
+                    resolving={tgResolving}
+                    onResolve={resolveTelegram}
+                    telegramId={user.telegram_id}
+                  />
+                )}
+              </>
             )}
             {reach.discord.available && (
               <ContactBadge

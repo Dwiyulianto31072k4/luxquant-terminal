@@ -156,6 +156,14 @@ export const adminApi = {
     return response.data;
   },
 
+  // Resolve a user's real Telegram identity via the bot (name + @username).
+  // Persists a newly-found username server-side, so the t.me link starts
+  // working everywhere afterwards.
+  getUserTelegramIdentity: async (userId) => {
+    const response = await api.get(`/api/v1/admin/users/${userId}/telegram-identity`);
+    return response.data;
+  },
+
   // List message templates
   getOutreachTemplates: async () => {
     const response = await api.get("/api/v1/admin/outreach/templates");

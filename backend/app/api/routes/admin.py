@@ -49,7 +49,12 @@ from app.services.outreach_service import (
 )
 
 # VIP group invite (Telegram) — used by /users/{id}/vip-invite
-from app.services.telegram_group import create_one_time_invite_link, is_in_group, send_dm
+from app.services.telegram_group import (
+    create_one_time_invite_link,
+    get_user_profile,
+    is_in_group,
+    send_dm,
+)
 
 # Optional models for /users/{id}/full detail (referral activity)
 # Wrapped in try/except so admin.py still loads even if these don't exist.
@@ -1380,6 +1385,79 @@ def update_user_contact(
         "success": True,
         "message": "Contact info updated" if changed else "No changes",
         "user": user_dict,
+    }
+
+
+@router.get("/users/{user_id}/telegram-identity")
+async def get_user_telegram_identity(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Resolve who a Telegram-linked user actually is, straight from the Bot API.
+
+    The login widget only stores whatever the user had at signup, so admins are
+    often left staring at a bare numeric id. getChat gives us their current
+    display name (so they're findable by eye) and their @username if they've
+    set one since — which we persist, because that's what makes a real
+    https://t.me/... profile link possible.
+
+    Returns display_name/username/profile_link plus `resolvable` so the UI can
+    say why there's no link instead of just showing a dead button.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.telegram_id:
+        return {
+            "telegram_id": None,
+            "resolvable": False,
+            "reason": "not_linked",
+            "message": "User hasn't linked Telegram.",
+        }
+
+    profile = await get_user_profile(user.telegram_id)
+    if profile is None:
+        # Bot doesn't share a chat with them (never /started, not in the group).
+        return {
+            "telegram_id": user.telegram_id,
+            "resolvable": False,
+            "reason": "unknown_to_bot",
+            "username": user.effective_telegram_username,
+            "profile_link": (
+                f"https://t.me/{user.effective_telegram_username}"
+                if user.effective_telegram_username else None
+            ),
+            "app_link": f"tg://user?id={user.telegram_id}",
+            "message": "The bot doesn't know this user — they've never messaged it.",
+        }
+
+    username = (profile.get("username") or "").lstrip("@") or None
+    display_name = " ".join(
+        p for p in (profile.get("first_name"), profile.get("last_name")) if p
+    ).strip() or None
+
+    # Username baru / berubah → simpan, biar deep link t.me-nya kepake di
+    # seluruh admin UI dan outreach, bukan cuma di popup ini.
+    if username and username != (user.telegram_username or ""):
+        user.telegram_username = username
+        db.commit()
+        db.refresh(user)
+
+    return {
+        "telegram_id": user.telegram_id,
+        "resolvable": True,
+        "username": username,
+        "display_name": display_name,
+        "profile_link": f"https://t.me/{username}" if username else None,
+        "app_link": f"tg://user?id={user.telegram_id}",
+        "message": (
+            None if username
+            else "This account has no public @username — Telegram has no web profile "
+                 "link for it. Open it in the Telegram app, or DM through the bot."
+        ),
     }
 
 

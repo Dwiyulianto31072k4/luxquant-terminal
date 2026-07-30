@@ -28,6 +28,7 @@ from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
 from app.core.database import get_db
+from app.core.avatar_storage import is_uploaded_avatar
 from app.core.security import create_cryptobot_exchange_token, create_tokens, decode_token
 from app.models.user import User
 from app.schemas.user import (
@@ -138,8 +139,10 @@ def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
             db.refresh(user)
             is_new_user = True
     else:
-        # User udah ada via google_id — update avatar kalo berubah
-        if picture and user.avatar_url != picture:
+        # User udah ada via google_id — refresh avatar Google kalo berubah.
+        # TAPI jangan timpa avatar yang di-upload sendiri di Profile Settings,
+        # kalau ga tiap login Google avatarnya balik lagi ke foto Google.
+        if picture and user.avatar_url != picture and not is_uploaded_avatar(user.avatar_url):
             user.avatar_url = picture
             db.commit()
             db.refresh(user)
@@ -402,7 +405,8 @@ async def google_callback(
             db.refresh(user)
             is_new_user = True
     else:
-        if picture and user.avatar_url != picture:
+        # Jangan timpa avatar upload-an user (lihat catatan di google_login)
+        if picture and user.avatar_url != picture and not is_uploaded_avatar(user.avatar_url):
             user.avatar_url = picture
             db.commit()
             db.refresh(user)
