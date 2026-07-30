@@ -347,6 +347,14 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       ? "On spot, the protective stop leg — not your entry — sets the real minimum. Below about 10 USDT per trade, wider stops push that leg under Binance's minimum and the exchange rejects the protection. Consider 10–15 USDT for spot."
       : "";
 
+  // resolve_exit_plan downgrades trailing_stop to fixed_sl for spot without
+  // raising, so a spot-only user picking it gets a plain stop loss and no
+  // indication anywhere that their choice was ignored.
+  const trailingOnSpotWarning =
+    draft.exit_mode === "trailing_stop" && draft.spot_enabled && !draft.futures_enabled
+      ? "Trailing stop is futures-only. With just spot enabled, the engine will use a fixed stop loss instead — this setting will have no effect."
+      : "";
+
   const toggleRisk = (level) => {
     setDirty(true);
     setError("");
@@ -428,6 +436,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
       {sizingLimitError && error !== sizingLimitError ? (
         <Notice tone="warn">{sizingLimitError}</Notice>
       ) : null}
+      {trailingOnSpotWarning ? <Notice tone="warn">{trailingOnSpotWarning}</Notice> : null}
       {spotSizeWarning && !sizingLimitError ? (
         <Notice tone="warn">{spotSizeWarning}</Notice>
       ) : null}
