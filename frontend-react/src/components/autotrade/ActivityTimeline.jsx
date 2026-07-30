@@ -41,6 +41,11 @@ const RISK_LIMIT_HELP = {
     blocking: true,
     hint: "A position could not be matched against Binance, so every new entry is paused until it clears. This usually means the coin left your spot wallet outside the bot — a manual sell, convert or transfer, all of which cancel the protective OCO first. The reconciler now closes those automatically once it confirms the balance is gone; if it persists, contact support.",
   },
+  subscription_inactive: {
+    label: "LuxQuant subscription is not active",
+    blocking: true,
+    hint: "Live entries are paused until the subscription is renewed. Open positions are untouched — their take-profit and stop-loss keep running.",
+  },
   max_open_positions: {
     label: "Max open positions reached",
     hint: "Raise the limit in Risk settings, or wait for an open position to close. Positions awaiting reconciliation count toward this limit too.",
