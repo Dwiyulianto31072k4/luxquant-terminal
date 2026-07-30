@@ -28,6 +28,12 @@ def autotrade_overview(admin: User = Depends(get_admin_user)):
     return autotrade_monitor.overview()
 
 
+@router.get("/positions")
+def autotrade_positions(admin: User = Depends(get_admin_user)):
+    """Every position held right now, across all users, stuck ones first."""
+    return autotrade_monitor.open_positions()
+
+
 @router.get("/users/{user_id}")
 def autotrade_user_detail(user_id: int, admin: User = Depends(get_admin_user)):
     """One user's bot in full: config, open positions, blocks, and error text."""

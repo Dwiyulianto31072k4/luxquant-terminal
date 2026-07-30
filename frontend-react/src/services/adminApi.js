@@ -10,6 +10,11 @@ export const adminApi = {
     return response.data;
   },
 
+  getAutoTradePositions: async () => {
+    const response = await api.get("/api/v1/admin/autotrade/positions");
+    return response.data;
+  },
+
   getAutoTradeUser: async (userId) => {
     const response = await api.get(`/api/v1/admin/autotrade/users/${userId}`);
     return response.data;

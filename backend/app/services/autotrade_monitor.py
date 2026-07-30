@@ -228,6 +228,51 @@ def overview() -> dict[str, Any]:
     return {"available": True, "window_hours": RECENT_WINDOW_HOURS, "totals": totals, "users": rows}
 
 
+def open_positions() -> dict[str, Any]:
+    """Every position currently held across all users.
+
+    Kept separate from the per-user view because the question "what is the desk
+    holding right now" is asked far more often than "what is this one person
+    holding", and answering it by expanding 25 rows one at a time is useless.
+    """
+    try:
+        rows = _rows(
+            """
+            SELECT p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
+                   p.status, p.exit_reason, p.created_at, p.last_synced_at,
+                   u.subject, u.email AS cb_email,
+                   c.leverage AS leverage, c.dry_run AS dry_run
+            FROM positions p
+            JOIN users u ON u.id = p.user_id
+            LEFT JOIN strategy_configs c
+                   ON c.user_id = p.user_id AND c.exchange = 'binance'
+            WHERE p.status <> 'closed'
+            ORDER BY (p.status = 'reconciliation_required') DESC, p.created_at DESC
+            """
+        )
+    except Exception as exc:
+        logger.warning("AutoTrade positions unavailable: %s", exc)
+        return {"available": False, "error": str(exc)[:200], "positions": [], "totals": {}}
+
+    for row in rows:
+        subject = str(row.get("subject") or "")
+        row["luxquant_user_id"] = int(subject[3:]) if subject.startswith("lq:") else None
+        # Notional is only meaningful when we know what was paid; entry_price was
+        # an estimate on older rows, so it can legitimately be missing.
+        qty = float(row.get("quantity") or 0)
+        entry = row.get("entry_price")
+        row["notional"] = round(qty * float(entry), 2) if entry else None
+
+    totals = {
+        "open": len([r for r in rows if r["status"] == "open"]),
+        "stuck": len([r for r in rows if r["status"] == "reconciliation_required"]),
+        "spot": len([r for r in rows if r["market_type"] == "spot"]),
+        "futures": len([r for r in rows if r["market_type"] == "futures"]),
+        "users_holding": len({r["subject"] for r in rows}),
+    }
+    return {"available": True, "totals": totals, "positions": rows}
+
+
 def user_detail(luxquant_user_id: int) -> dict[str, Any]:
     """Everything about one user's bot, including the actual error text.
 

@@ -29,6 +29,7 @@ import { FinanceTab } from "./admin/workspace/FinanceTab";
 import { GrowthTab } from "./admin/workspace/GrowthTab";
 import { TodoTab } from "./admin/workspace/TodoTab";
 import { ActivityTab } from "./admin/workspace/ActivityTab";
+import { AutoTradeOpsTab } from "./admin/workspace/AutoTradeOpsTab";
 import { ApiKeysTab } from "./admin/workspace/ApiKeysTab";
 import { AnnouncementsTab } from "./admin/workspace/AnnouncementsTab";
 import { ChatTab } from "./admin/workspace/ChatTab";
@@ -143,6 +144,13 @@ const TABS = [
     label: "Finance",
     description: "Revenue & payment ops",
     Icon: BarsChartIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "autotrade",
+    label: "AutoTrade",
+    description: "Bot health, errors & open positions",
+    Icon: TrendingUpIcon,
     accent: NEUTRAL,
   },
   {
@@ -677,6 +685,7 @@ const AdminWorkspacePage = () => {
         {activeTab === "growth" && <GrowthTab />}
         {activeTab === "todos" && <TodoTab onRefreshStats={fetchStats} />}
         {activeTab === "activity" && <ActivityTab />}
+        {activeTab === "autotrade" && <AutoTradeOpsTab />}
         {activeTab === "apikeys" && <ApiKeysTab />}
         {activeTab === "announcements" && <AnnouncementsTab />}
         {activeTab === "socialposts" && <SocialPostsAdminPage />}
