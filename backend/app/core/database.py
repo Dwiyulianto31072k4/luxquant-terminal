@@ -51,15 +51,48 @@ def get_db():
 # is momentarily unavailable at import just logs and moves on. Keep these in
 # sync with the corresponding database/migration-*.sql files.
 _RUNTIME_COLUMN_GUARDS = [
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_bot_started_at TIMESTAMPTZ NULL",
+    (
+        "users",
+        "telegram_bot_started_at",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_bot_started_at TIMESTAMPTZ NULL",
+    ),
 ]
 
 
 def ensure_runtime_columns():
+    """Add any column a fresh deploy might be missing, without freezing the table.
+
+    `ADD COLUMN IF NOT EXISTS` still takes an ACCESS EXCLUSIVE lock even when
+    the column is already there, and this runs at import — so every gunicorn
+    worker recycle, background worker and CLI invocation locked `users` against
+    all readers. Postgres lock queues are FIFO, so whenever that ALTER landed
+    behind a slow transaction, every plain `SELECT ... WHERE id = %s` queued
+    behind the ALTER and burned the 20s statement timeout above. That is the
+    source of the 3,087 timeouts recorded over 14 days.
+
+    Checking `information_schema` first costs one lock-free SELECT and skips the
+    DDL entirely in the normal case, which is every case except an un-migrated
+    database.
+    """
     try:
         with engine.begin() as conn:
-            for stmt in _RUNTIME_COLUMN_GUARDS:
-                conn.exec_driver_sql(stmt)
+            for table, column, ddl in _RUNTIME_COLUMN_GUARDS:
+                already_present = conn.execute(
+                    text(
+                        "SELECT 1 FROM information_schema.columns "
+                        "WHERE table_schema = current_schema() "
+                        "AND table_name = :table AND column_name = :column"
+                    ),
+                    {"table": table, "column": column},
+                ).first()
+                if already_present:
+                    continue
+                # Only reached on a genuinely un-migrated database. Give up fast
+                # rather than wait: an ALTER sitting in the lock queue blocks
+                # every reader behind it, which is far worse than the column
+                # being absent for one more process start.
+                conn.exec_driver_sql("SET lock_timeout = '3s'")
+                conn.exec_driver_sql(ddl)
     except Exception as e:  # pragma: no cover - best-effort, never fatal
         import logging
         logging.getLogger(__name__).warning("ensure_runtime_columns skipped: %s", e)
