@@ -57,11 +57,24 @@ class PublishApprovedIn(BaseModel):
     dry_run: bool = False
 
 
+_GEN_META_READY = False
+
+
 def _ensure_gen_meta(db) -> None:
-    """Make sure the cost column exists before we SELECT it (self-heal on fresh DBs)."""
+    """Make sure the cost column exists before we SELECT it (self-heal on fresh DBs).
+
+    Once per process, not once per request: `ADD COLUMN IF NOT EXISTS` takes an
+    ACCESS EXCLUSIVE lock even when the column already exists, and anything
+    reading `social_posts` queues behind it. See app/core/database.py for what
+    this cost on the `users` table.
+    """
+    global _GEN_META_READY
+    if _GEN_META_READY:
+        return
     try:
         db.execute(text("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS gen_meta JSONB"))
         db.commit()
+        _GEN_META_READY = True
     except Exception:
         db.rollback()
 

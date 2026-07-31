@@ -51,13 +51,27 @@ def _table_exists(db: Session) -> bool:
     return row is not None
 
 
+_USER_COLUMNS_READY = False
+
+
 def _ensure_user_columns(db: Session) -> None:
     """The usage table may predate user attribution — add the columns if missing
-    so the summary/recent queries never fail on an old table."""
+    so the summary/recent queries never fail on an old table.
+
+    Runs once per process, not once per request. `ADD COLUMN IF NOT EXISTS`
+    still takes an ACCESS EXCLUSIVE lock when the column is already there, and
+    Postgres lock queues are FIFO, so a no-op ALTER on a request path can park
+    every reader of the table behind it. The same pattern on `users` produced
+    3,087 statement timeouts before it was found — see app/core/database.py.
+    """
+    global _USER_COLUMNS_READY
+    if _USER_COLUMNS_READY:
+        return
     try:
         db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"))
         db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"))
         db.commit()
+        _USER_COLUMNS_READY = True
     except Exception:
         try:
             db.rollback()
