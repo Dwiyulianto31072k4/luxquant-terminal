@@ -18,11 +18,25 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Multiple BSC RPC endpoints (non-Binance to avoid SSL issues on some systems)
+# Ordered by whether they can actually serve eth_getTransactionReceipt, which
+# is the only call that matters here. Measured 2026-08-01 against a real user
+# payment that had been rejected:
+#   bsc-dataseed1.binance.org   receipt ok
+#   bsc-dataseed.bnbchain.org   receipt ok
+#   bsc-dataseed1.defibit.io    receipt ok
+#   bsc-dataseed1.ninicoin.io   receipt ok
+#   bsc.blockrazor.xyz          receipt ok
+#   bsc-rpc.publicnode.com      online, but refuses archive reads without a token
+#   bsc.drpc.org                dead
+#   rpc.ankr.com/bsc            dead
+# publicnode used to sit first in this list while answering eth_blockNumber
+# happily, so it won every health check and then failed every real lookup.
 BSC_RPC_URLS = [
-    "https://bsc-rpc.publicnode.com",
-    "https://bsc.drpc.org",
-    "https://rpc.ankr.com/bsc",
     "https://bsc-dataseed1.binance.org",
+    "https://bsc-dataseed.bnbchain.org",
+    "https://bsc-dataseed1.defibit.io",
+    "https://bsc-dataseed1.ninicoin.io",
+    "https://bsc.blockrazor.xyz",
 ]
 
 # USDT BEP-20 contract address on BSC
@@ -40,10 +54,16 @@ MIN_CONFIRMATIONS = 12
 
 
 class TxVerificationResult:
-    def __init__(self, valid: bool, error: str = None, data: dict = None):
+    def __init__(self, valid: bool, error: str = None, data: dict = None, retryable: bool = False):
         self.valid = valid
         self.error = error
         self.data = data or {}
+        # True when we could not *check*, as opposed to having checked and found
+        # a problem. The difference matters enormously to the person who paid:
+        # "we cannot reach the blockchain right now" is our fault and will pass
+        # on retry, "this transaction does not exist" is an accusation. The
+        # caller must keep the user's tx hash when this is set.
+        self.retryable = retryable
 
 
 async def _rpc_call(client: httpx.AsyncClient, rpc_url: str, method: str, params: list) -> Optional[dict]:
@@ -66,16 +86,69 @@ async def _rpc_call(client: httpx.AsyncClient, rpc_url: str, method: str, params
 
 
 async def _get_working_rpc(client: httpx.AsyncClient) -> Optional[str]:
-    """Find a working BSC RPC endpoint"""
+    """Deprecated: probed with eth_blockNumber and returned the first responder.
+
+    That is exactly how every payment came to be rejected. publicnode answers
+    eth_blockNumber happily but refuses eth_getTransactionReceipt without an
+    archive token, so this always handed back an endpoint that could not do the
+    one job it was picked for. Use _fetch_receipt instead, which tries the real
+    call against each endpoint in turn.
+    """
     for url in BSC_RPC_URLS:
         try:
             result = await _rpc_call(client, url, "eth_blockNumber", [])
             if result:
-                logger.info(f"   ✅ Using RPC: {url}")
                 return url
         except Exception:
             continue
     return None
+
+
+async def _rpc_call_ex(
+    client: httpx.AsyncClient, rpc_url: str, method: str, params: list
+) -> tuple[Optional[dict], bool]:
+    """Like _rpc_call, but says whether the node actually answered.
+
+    Returns (result, answered). `_rpc_call` collapses "the node replied null"
+    and "the node refused or was unreachable" into the same None, and that lost
+    distinction is what turned an RPC outage into "your transaction does not
+    exist" for paying users.
+    """
+    try:
+        resp = await client.post(
+            rpc_url, json={"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
+        )
+        data = resp.json()
+        if "error" in data:
+            logger.warning(f"   RPC refused ({rpc_url}): {data['error']}")
+            return None, False
+        return data.get("result"), True
+    except Exception as e:
+        logger.warning(f"   RPC unreachable ({rpc_url}): {type(e).__name__}: {e}")
+        return None, False
+
+
+async def _fetch_receipt(client: httpx.AsyncClient, tx_hash: str) -> tuple[Optional[dict], str, bool]:
+    """Get a transaction receipt, trying every endpoint with the *real* call.
+
+    Returns (receipt, url_that_answered, anyone_answered_the_receipt_query).
+
+    The third value is the one that matters. A node returning null is not proof
+    the transaction is absent — it may be pruned, lagging, or refusing archive
+    queries, which is precisely what publicnode started doing. "Not found" is
+    only safe to tell a user once some node has genuinely answered the receipt
+    query itself, not merely proved it is online.
+    """
+    answered_by_anyone = False
+    for url in BSC_RPC_URLS:
+        receipt, answered = await _rpc_call_ex(client, url, "eth_getTransactionReceipt", [tx_hash])
+        if answered:
+            answered_by_anyone = True
+            if receipt and isinstance(receipt, dict):
+                logger.info(f"   ✅ Receipt from {url}")
+                return receipt, url, True
+            logger.info(f"   … {url} answered but has no such transaction")
+    return None, "", answered_by_anyone
 
 
 async def verify_bep20_tx(
@@ -96,22 +169,55 @@ async def verify_bep20_tx(
     if not wallet_to:
         return TxVerificationResult(False, "Receiving wallet not configured")
 
+    # An exchange settles a withdrawal internally when it recognises the
+    # destination as one of its own addresses: no chain transaction, zero fee,
+    # and an id like INTERNAL84846461... instead of a 0x hash. Searching the
+    # chain for it will always fail, so say what actually happened rather than
+    # reporting the transfer as missing. A real user hit this on MEXC.
+    cleaned = (tx_hash or "").strip()
+    if not cleaned.lower().startswith("0x") or len(cleaned) != 66:
+        looks_internal = cleaned.upper().startswith("INTERNAL")
+        return TxVerificationResult(
+            False,
+            (
+                "This looks like an exchange-internal transfer, not a blockchain "
+                "transaction. Your exchange settled it inside its own books, so it "
+                "never reached BNB Smart Chain and cannot be verified here. Contact "
+                "support with this transfer id and we will confirm it manually."
+                if looks_internal
+                else "That does not look like a BSC transaction hash. A BEP20 hash "
+                "starts with 0x and is 66 characters long — please paste the full hash."
+            ),
+            {"submitted": cleaned[:80], "internal_transfer": looks_internal},
+        )
+
     try:
         # Use ssl context that doesn't verify (workaround for macOS SSL issues)
         async with httpx.AsyncClient(timeout=20.0, verify=False) as client:
-            # Find a working RPC
-            rpc_url = await _get_working_rpc(client)
-            if not rpc_url:
-                logger.error("❌ No working BSC RPC endpoint found")
-                return TxVerificationResult(False, "Tidak dapat terhubung ke BSC network. Coba lagi nanti.")
+            # ─── Step 1: Get TX receipt, trying every endpoint ───
+            logger.info("📡 Step 1: Getting TX receipt...")
+            receipt, rpc_url, anyone_answered = await _fetch_receipt(client, tx_hash)
 
-            # ─── Step 1: Get TX receipt ───
-            logger.info(f"📡 Step 1: Getting TX receipt from {rpc_url}...")
-            receipt = await _rpc_call(client, rpc_url, "eth_getTransactionReceipt", [tx_hash])
-
-            if not receipt or not isinstance(receipt, dict):
-                logger.warning(f"⚠️ TX receipt not found")
-                return TxVerificationResult(False, "Transaksi tidak ditemukan di BSC")
+            if not receipt:
+                if not anyone_answered:
+                    # Nothing could answer the question, so we have not earned
+                    # the right to tell a paying user their transaction is
+                    # missing. Retryable: the caller keeps their hash.
+                    logger.error("❌ No BSC endpoint could serve a receipt lookup")
+                    return TxVerificationResult(
+                        False,
+                        "We could not reach the BSC network to check this transaction. "
+                        "Your payment details have been kept and we will retry — "
+                        "you do not need to send anything again.",
+                        retryable=True,
+                    )
+                logger.warning("⚠️ TX receipt genuinely not found")
+                return TxVerificationResult(
+                    False,
+                    "This transaction hash was not found on BSC. Please check that you "
+                    "copied the full hash, and that the transfer was sent on BNB Smart "
+                    "Chain (BEP20) rather than another network.",
+                )
 
             # Check TX status
             tx_status = receipt.get("status", "0x0")
@@ -180,8 +286,18 @@ async def verify_bep20_tx(
 
             # ─── Step 4: Check confirmations ───
             logger.info(f"🔍 Step 4: Checking confirmations...")
-            block_result = await _rpc_call(client, rpc_url, "eth_blockNumber", [])
-            current_block = int(block_result, 16) if block_result else 0
+            block_result, block_answered = await _rpc_call_ex(client, rpc_url, "eth_blockNumber", [])
+            if not block_answered or not block_result:
+                # Falling back to current_block = 0 here made confirmations
+                # negative, which read as "not enough confirmations" and blamed
+                # the user for our own failed lookup.
+                return TxVerificationResult(
+                    False,
+                    "We could not read the current block height to count confirmations. "
+                    "Your payment details have been kept and we will retry.",
+                    retryable=True,
+                )
+            current_block = int(block_result, 16)
             tx_block = int(receipt.get("blockNumber", "0x0"), 16)
             confirmations = current_block - tx_block
 
@@ -190,8 +306,11 @@ async def verify_bep20_tx(
             if confirmations < MIN_CONFIRMATIONS:
                 return TxVerificationResult(
                     False,
-                    f"Konfirmasi belum cukup: {confirmations}/{MIN_CONFIRMATIONS}. Coba lagi nanti.",
-                    {"confirmations": confirmations, "required": MIN_CONFIRMATIONS}
+                    f"Only {confirmations} of {MIN_CONFIRMATIONS} confirmations so far. "
+                    "The transfer is on-chain — this just needs another minute.",
+                    {"confirmations": confirmations, "required": MIN_CONFIRMATIONS},
+                    # Purely a matter of waiting, so never discard the hash.
+                    retryable=True,
                 )
 
             # ─── All checks passed! ───
@@ -211,8 +330,15 @@ async def verify_bep20_tx(
             )
 
     except Exception as e:
+        # Our crash, not their transaction. Keep the hash and let them retry.
         logger.error(f"❌ Verification error: {e}", exc_info=True)
-        return TxVerificationResult(False, f"Verification error: {str(e)}")
+        return TxVerificationResult(
+            False,
+            "Something went wrong on our side while checking this transaction. "
+            "Your payment details have been kept and we will retry.",
+            {"exception": str(e)[:200]},
+            retryable=True,
+        )
 
 
 async def get_tx_status(tx_hash: str) -> Optional[Dict[str, Any]]:

@@ -292,18 +292,32 @@ async def verify_payment(
         return response
     else:
         payment.status = "pending"
-        payment.tx_hash = None
+        # Only forget the hash when the chain actually answered and the hash was
+        # genuinely wrong. When the failure is ours — no reachable RPC, a crash,
+        # or simply not enough confirmations yet — throwing it away forced people
+        # who had already paid to hunt down and resubmit their hash, and erased
+        # the evidence that they ever submitted one. 201 payments were left with
+        # no hash this way.
+        if not getattr(result, "retryable", False):
+            payment.tx_hash = None
         payment.bscscan_data = result.data if result.data else None
         payment.notes = result.error
         payment.updated_at = datetime.now(timezone.utc)
         db.commit()
 
-        logger.warning(f"❌ Payment #{payment.id} failed: {result.error}")
+        logger.warning(
+            f"{'⏳' if getattr(result, 'retryable', False) else '❌'} "
+            f"Payment #{payment.id} not confirmed "
+            f"({'retryable' if getattr(result, 'retryable', False) else 'rejected'}): {result.error}"
+        )
 
         return {
-            "status": "failed",
+            "status": "pending" if getattr(result, "retryable", False) else "failed",
             "message": result.error,
-            "can_retry": True
+            "can_retry": True,
+            # Lets the client tell "we could not check yet, hold on" apart from
+            # "this hash is wrong, fix it" instead of showing one blunt failure.
+            "retryable": bool(getattr(result, "retryable", False)),
         }
 
 
