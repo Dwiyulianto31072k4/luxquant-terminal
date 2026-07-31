@@ -153,8 +153,19 @@ def _base_rows(subjects: list[str] | None = None) -> list[dict[str, Any]]:
                WHERE p.user_id = u.id AND p.status = 'open')                       AS open_positions,
             (SELECT count(*) FROM positions p
                WHERE p.user_id = u.id AND p.status = 'reconciliation_required')    AS stuck_positions,
+            -- Split by origin: a position with no execution job is one the
+            -- reconciler adopted from the exchange, i.e. the user's own hand
+            -- trade. Rolling both into one figure credited (and blamed) the bot
+            -- for trades it never placed.
             (SELECT coalesce(sum(p.realized_pnl), 0) FROM positions p
-               WHERE p.user_id = u.id AND p.realized_pnl IS NOT NULL)              AS realized_pnl_total,
+               WHERE p.user_id = u.id AND p.realized_pnl IS NOT NULL
+                 AND p.execution_job_id IS NOT NULL)                               AS realized_pnl_total,
+            (SELECT coalesce(sum(p.realized_pnl), 0) FROM positions p
+               WHERE p.user_id = u.id AND p.realized_pnl IS NOT NULL
+                 AND p.execution_job_id IS NULL)                                   AS realized_pnl_manual,
+            (SELECT count(*) FROM positions p
+               WHERE p.user_id = u.id AND p.realized_pnl IS NOT NULL
+                 AND p.execution_job_id IS NULL)                                   AS manual_trades,
             (SELECT count(*) FROM execution_jobs j
                WHERE j.user_id = u.id AND j.dry_run IS false
                  AND j.status = 'completed' AND j.created_at >= :since)            AS recent_entries,
@@ -462,7 +473,10 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
             """
             SELECT p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
                    p.exit_price, p.realized_pnl, p.fees, p.exit_reason,
-                   p.created_at, p.closed_at
+                   p.created_at, p.closed_at,
+                   -- No execution job means the bot never placed this: the
+                   -- reconciler adopted a trade the user made by hand.
+                   (p.execution_job_id IS NOT NULL) AS is_bot
             FROM positions p
             JOIN users u ON u.id = p.user_id
             WHERE u.subject = :subject AND p.status = 'closed'
@@ -731,6 +745,12 @@ def analytics(since: str | None = None) -> dict[str, Any]:
             SELECT p.symbol, p.market_type, p.side, p.realized_pnl, p.exit_reason,
                    p.created_at, p.closed_at, u.subject,
                    c.leverage AS leverage, c.dry_run AS dry_run,
+                   -- A position with no execution job was not opened by the bot.
+                   -- The reconciler adopts whatever it finds on the exchange, so
+                   -- on a shared account the user's own hand trades land in this
+                   -- same table. 105 of them carrying -$286.74 were being
+                   -- reported as AutoTrade's results.
+                   (p.execution_job_id IS NOT NULL) AS is_bot,
                    EXTRACT(EPOCH FROM (p.closed_at - p.created_at)) AS held_seconds
             FROM positions p
             JOIN users u ON u.id = p.user_id
@@ -744,11 +764,18 @@ def analytics(since: str | None = None) -> dict[str, Any]:
         logger.warning("AutoTrade analytics unavailable: %s", exc)
         return {"available": False, "error": str(exc)[:200]}
 
-    settled = [r for r in rows if r.get("realized_pnl") is not None]
-    for row in settled:
+    all_settled = [r for r in rows if r.get("realized_pnl") is not None]
+    for row in all_settled:
         row["luxquant_user_id"] = (
             int(row["subject"][3:]) if str(row.get("subject", "")).startswith("lq:") else None
         )
+        row["origin"] = "bot" if row.get("is_bot") else "manual"
+
+    # Everything below answers "how is AutoTrade performing", so it counts only
+    # what AutoTrade did. Hand trades are reported separately rather than
+    # dropped — they are still the desk's exposure, just not the bot's results.
+    settled = [r for r in all_settled if r["origin"] == "bot"]
+    manual = [r for r in all_settled if r["origin"] == "manual"]
 
     # Per-user leaderboard
     per_user: dict[str, dict[str, Any]] = {}
@@ -845,5 +872,15 @@ def analytics(since: str | None = None) -> dict[str, Any]:
         "by_exit_reason": _pnl_buckets(settled, "exit_reason"),
         "by_symbol": _pnl_buckets(settled, "symbol")[:15],
         "curve": curve,
+        # Trades on these accounts that the bot did not place. Shown so the
+        # desk's real exposure is still visible, and kept out of every figure
+        # above so "AutoTrade lost $X" means AutoTrade actually lost $X.
+        "manual": {
+            "trades": len(manual),
+            "net": round(sum(float(r["realized_pnl"]) for r in manual), 2),
+            "wins": len([r for r in manual if float(r["realized_pnl"]) > 0]),
+            "losses": len([r for r in manual if float(r["realized_pnl"]) < 0]),
+            "traders": len({r["subject"] for r in manual}),
+        },
         "since": since,
     }

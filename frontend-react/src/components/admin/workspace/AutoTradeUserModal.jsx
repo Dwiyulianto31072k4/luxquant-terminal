@@ -636,10 +636,19 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                             </td>
                             <td className="px-2 py-2 text-text-muted">{r.signal_regime || "—"}</td>
                             <td className="px-4 py-2 text-text-muted">
-                              {r.exit_reason
-                                ? EXIT_REASONS[r.exit_reason]?.label ||
-                                  r.exit_reason.replaceAll("_", " ")
-                                : "—"}
+                              {r.is_bot === false ? (
+                                <span
+                                  className="rounded-sm bg-ink/[0.06] px-1.5 py-0.5 text-[10px]"
+                                  title="Opened by hand on this exchange account, not by AutoTrade. It never carried our stop-loss, so it has no exit reason to report."
+                                >
+                                  traded by hand
+                                </span>
+                              ) : r.exit_reason ? (
+                                EXIT_REASONS[r.exit_reason]?.label ||
+                                r.exit_reason.replaceAll("_", " ")
+                              ) : (
+                                "—"
+                              )}
                             </td>
                           </tr>
                         ))}

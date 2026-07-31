@@ -347,9 +347,9 @@ export const AutoTradeOpsTab = () => {
         <>
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
             <Stat
-              label="Net realised"
+              label="Net realised — bot"
               value={usd(at.net ?? 0)}
-              sub={`${at.trades ?? 0} settled trades`}
+              sub={`${at.trades ?? 0} trades AutoTrade placed`}
               tone={(at.net ?? 0) >= 0 ? UP : DOWN}
             />
             <Stat
@@ -382,6 +382,50 @@ export const AutoTradeOpsTab = () => {
               }
             />
           </div>
+
+          {analytics?.manual?.trades ? (
+            <Card
+              title="Traded by hand, not by the bot"
+              right={
+                <span className="text-[11px] text-text-muted">
+                  excluded from every figure above
+                </span>
+              }
+            >
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Stat
+                  label="Net realised — manual"
+                  value={usd(analytics.manual.net ?? 0)}
+                  sub={`${analytics.manual.trades} trades · ${analytics.manual.traders} account(s)`}
+                  tone={(analytics.manual.net ?? 0) >= 0 ? UP : DOWN}
+                />
+                <Stat
+                  label="Wins / losses"
+                  value={`${analytics.manual.wins ?? 0}W / ${analytics.manual.losses ?? 0}L`}
+                />
+                <Stat
+                  label="Share of total loss"
+                  value={
+                    (at.net ?? 0) + (analytics.manual.net ?? 0) < 0
+                      ? `${Math.round(
+                          (Math.abs(analytics.manual.net ?? 0) /
+                            Math.abs((at.net ?? 0) + (analytics.manual.net ?? 0))) *
+                            100
+                        )}%`
+                      : "—"
+                  }
+                  sub="of the desk's combined result"
+                />
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-text-muted">
+                These positions were opened on the same exchange accounts but not by
+                AutoTrade — the reconciler adopts whatever it finds, so a user's own
+                trades land here too. They keep no stop-loss from us and cannot be
+                attributed to a take-profit or stop, which is why they never appear in
+                the exit-reason breakdown.
+              </p>
+            </Card>
+          ) : null}
 
           {leverageData.length ? (
             <Card
