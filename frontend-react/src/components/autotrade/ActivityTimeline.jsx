@@ -126,6 +126,61 @@ function riskLimitDetail(limitKey, metadata = {}) {
   }
 }
 
+// Non-risk-limit skips. These carry their own metadata rather than a code, and
+// the raw action name is actively misleading in the most common case: a user
+// with no USDT was told "spot min notional", which reads as "raise your trade
+// size" when the actual fix is to deposit.
+function skipInfo(action, metadata = {}) {
+  const num = (v) => (v === undefined || v === null ? null : Number(v));
+  switch (action) {
+    case "execution.skip_spot_min_notional": {
+      const balance = num(metadata.balance);
+      const required = num(metadata.required_quote);
+      const configured = num(metadata.configured_quote);
+      if (balance !== null && required !== null && required > balance) {
+        return {
+          label: "Not enough USDT",
+          detail: `This entry needed ${usd(required)} and the spot wallet held ${usd(balance)}. Top up USDT — changing the trade size will not help.`,
+        };
+      }
+      return {
+        label: "Spot size too small for its stop order",
+        detail: `${usd(configured)} was configured but the protective stop leg needs ${usd(required)}. Raise Amount to about ${usd(Math.ceil((required || 0) * 2))} for spot.`,
+      };
+    }
+    case "execution.skip_risk_level_filtered":
+      return {
+        label: "Risk level filtered out",
+        detail: `Signal was ${metadata.signal_risk_level || "an excluded level"}; your filter allows ${(metadata.allowed_risk_levels || []).join(", ") || "nothing"}.`,
+      };
+    case "execution.skip_market_not_selected":
+      return {
+        label: "Market not enabled",
+        detail: `This signal routes to ${metadata.market_type || "a market"}, which is switched off in your settings.`,
+      };
+    case "execution.skip_no_supported_market":
+      return {
+        label: "Coin not available on your markets",
+        detail: `${metadata.symbol || "This coin"} is not listed on the market you have enabled.`,
+      };
+    case "execution.skip_price_outside_entry_window":
+      return {
+        label: "Price already past the entry",
+        detail:
+          metadata.reason === "price_at_stop_loss"
+            ? "By the time the order could be placed the price had already reached the stop loss, so entering would have been an instant loss."
+            : "The price had already passed the take-profit, so there was no move left to trade.",
+      };
+    case "execution.skip_leverage_cap":
+      return {
+        label: "Coin caps leverage below your setting",
+        detail: `${metadata.symbol || "This coin"} allows at most ${metadata.symbol_max_leverage}×, you run ${metadata.requested_leverage}×, and your setting is to skip these.`,
+      };
+    default:
+      return null;
+  }
+}
+
 // ────────────────────────────────────────────────────────────────
 // Audit-event presentation (carried over from the old Logs tab)
 // ────────────────────────────────────────────────────────────────
@@ -238,11 +293,12 @@ function eventInfo(item) {
     };
   }
   if (action.startsWith("execution.skip_")) {
+    const info = skipInfo(action, metadata);
     return {
       category: "execution",
       tone: "warn",
-      title: `${symbol || "Signal"} skipped`,
-      description: action.replace("execution.skip_", "").replaceAll("_", " "),
+      title: `${symbol || "Signal"} skipped — ${info?.label?.toLowerCase() || action.replace("execution.skip_", "").replaceAll("_", " ")}`,
+      description: info?.detail || action.replace("execution.skip_", "").replaceAll("_", " "),
       source: "Execution engine",
       collapseKey: `skip:${action}`,
     };
