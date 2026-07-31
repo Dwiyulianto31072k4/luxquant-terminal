@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card, EmptyState, StatusBadge, StatusDot, fmtDateTime, fmtTime } from "./AutoTradeUI";
+import EventExplainerModal from "./EventExplainerModal";
 
 const FILTERS = [
   ["all", "All"],
@@ -36,6 +37,11 @@ const PAGE_SIZE = 12;
 // Keep the codes in sync with app/domains/execution/risk.py in cryptobot.
 // ────────────────────────────────────────────────────────────────
 const RISK_LIMIT_HELP = {
+  telegram_not_connected: {
+    label: "Telegram is not connected",
+    blocking: true,
+    hint: "Live trading needs a Telegram connection, because every warning about a missing stop-loss, a dead exchange key or a closing trade arrives there. Connect it from the alerts card and entries resume on the next signal. Dry-run is unaffected and positions you already hold are still managed.",
+  },
   reconciliation_required: {
     label: "Position needs reconciliation",
     blocking: true,
@@ -69,11 +75,11 @@ const RISK_LIMIT_HELP = {
   daily_loss_limit: {
     label: "Daily loss limit reached",
     blocking: true,
-    hint: "Realised losses today hit your limit, so trading is paused until 00:00 UTC. This is a guardrail working as intended — raise it only deliberately.",
+    hint: "Losses on trades AutoTrade placed hit your limit, so trading is paused until 00:00 UTC. Trades you opened by hand are not counted. This is a guardrail working as intended — raise it only deliberately.",
   },
   loss_cooldown: {
     label: "Cooling down after a loss",
-    hint: "A pause after a losing trade. Shorten or disable it under Cooldown after loss.",
+    hint: "A pause after a losing trade AutoTrade placed — your own hand-trading does not trigger it. Shorten or disable it under Cooldown after loss.",
   },
   error_cooldown: {
     label: "Cooling down after a failed trade",
@@ -148,6 +154,12 @@ function skipInfo(action, metadata = {}) {
         detail: `${usd(configured)} was configured but the protective stop leg needs ${usd(required)}. Raise Amount to about ${usd(Math.ceil((required || 0) * 2))} for spot.`,
       };
     }
+    case "execution.skip_missing_exchange_account":
+      return {
+        label: "No usable exchange key",
+        detail:
+          "This account has no working Binance key, so nothing can be placed. Either none was ever connected, or the key was revoked, lost its trading permission, or fell off the IP allow-list. Reconnect it — positions you already hold cannot be managed until you do.",
+      };
     case "execution.skip_risk_level_filtered":
       return {
         label: "Risk level filtered out",
@@ -290,6 +302,7 @@ function eventInfo(item) {
         limitKey.replaceAll("_", " "),
       source: "Risk engine",
       collapseKey: `risk:${limitKey}`,
+      explainCode: limitKey,
     };
   }
   if (action.startsWith("execution.skip_")) {
@@ -301,6 +314,7 @@ function eventInfo(item) {
       description: info?.detail || action.replace("execution.skip_", "").replaceAll("_", " "),
       source: "Execution engine",
       collapseKey: `skip:${action}`,
+      explainCode: action,
     };
   }
   if (action.startsWith("position.")) {
@@ -452,13 +466,24 @@ function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
   );
 }
 
-function EventRow({ item, selected, onSelect }) {
+function EventRow({ item, selected, onSelect, onExplain }) {
   const open = selected === item.id;
+  const toggle = () => onSelect(open ? null : item.id);
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(open ? null : item.id)}
-      className="grid w-full gap-1 px-4 py-3 text-left transition-colors hover:bg-ink/[0.02] md:grid-cols-[130px_1fr_140px] md:gap-3"
+    // A div rather than a button: the expanded panel holds its own "Why did
+    // this happen?" button, and a button inside a button is invalid.
+    <div
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
+      onClick={toggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      }}
+      className="grid w-full cursor-pointer gap-1 px-4 py-3 text-left transition-colors hover:bg-ink/[0.02] md:grid-cols-[130px_1fr_140px] md:gap-3"
     >
       <span className="font-mono text-[11px] text-text-muted">{fmtDateTime(item.created_at)}</span>
       <span>
@@ -471,23 +496,37 @@ function EventRow({ item, selected, onSelect }) {
           {item.presentation.description}
         </span>
         {open ? (
-          <span className="mt-2 block rounded border border-ink/[0.06] bg-scrim/20 p-3 font-mono text-[10px] leading-5 text-text-muted">
-            Event: {item.action}
-            <br />
-            Source: {item.presentation.source}
-            <br />
-            Reference: {item.subject_id || "—"}
-          </span>
+          <>
+            <span className="mt-2 block rounded border border-ink/[0.06] bg-scrim/20 p-3 font-mono text-[10px] leading-5 text-text-muted">
+              Event: {item.action}
+              <br />
+              Source: {item.presentation.source}
+              <br />
+              Reference: {item.subject_id || "—"}
+            </span>
+            {item.presentation.explainCode ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExplain?.(item.presentation.explainCode);
+                }}
+                className="mt-2 rounded-md border border-ink/[0.1] px-2.5 py-1 text-[11px] font-medium text-text hover:bg-ink/[0.04]"
+              >
+                Why did this happen?
+              </button>
+            ) : null}
+          </>
         ) : null}
       </span>
       <span className="hidden font-mono text-[10px] uppercase tracking-wider text-text-muted md:block md:text-right">
         {item.presentation.source}
       </span>
-    </button>
+    </div>
   );
 }
 
-function GroupRow({ group, expanded, onToggle, selected, onSelect }) {
+function GroupRow({ group, expanded, onToggle, selected, onSelect, onExplain }) {
   const items = group.items;
   const first = items[0];
   const last = items[items.length - 1];
@@ -525,7 +564,7 @@ function GroupRow({ group, expanded, onToggle, selected, onSelect }) {
       {expanded ? (
         <div className="divide-y divide-ink/[0.04] border-t border-ink/[0.05] bg-ink/[0.01]">
           {items.map((item) => (
-            <EventRow key={item.id} item={item} selected={selected} onSelect={onSelect} />
+            <EventRow key={item.id} item={item} selected={selected} onSelect={onSelect} onExplain={onExplain} />
           ))}
         </div>
       ) : null}
@@ -540,6 +579,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [explaining, setExplaining] = useState(null);
   const [page, setPage] = useState(1);
 
   const stats = useMemo(() => {
@@ -664,6 +704,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
                     }
                     selected={selected}
                     onSelect={setSelected}
+                    onExplain={setExplaining}
                   />
                 ) : (
                   <EventRow
@@ -671,6 +712,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
                     item={row.item}
                     selected={selected}
                     onSelect={setSelected}
+                    onExplain={setExplaining}
                   />
                 )
               )}
@@ -686,6 +728,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
           />
         </>
       )}
+      <EventExplainerModal code={explaining} onClose={() => setExplaining(null)} />
     </div>
   );
 }
