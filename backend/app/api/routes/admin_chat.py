@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_admin_user
@@ -35,6 +36,12 @@ _STATUSES = ("open", "snoozed", "closed")
 
 
 class AdminSendIn(BaseModel):
+    body: str = Field(min_length=1, max_length=chat_service.MAX_BODY_CHARS)
+    client_msg_id: Optional[str] = Field(default=None, max_length=64)
+
+
+class StartChatIn(BaseModel):
+    user_id: int
     body: str = Field(min_length=1, max_length=chat_service.MAX_BODY_CHARS)
     client_msg_id: Optional[str] = Field(default=None, max_length=64)
 
@@ -93,6 +100,102 @@ def list_conversations(
         )
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
+
+
+@router.post("/conversations/start")
+def start_conversation(
+    payload: StartChatIn,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Open a thread with a user who has never written in, and say the first thing.
+
+    This is what makes chat a follow-up tool rather than a complaints box: it
+    reaches every account, including the majority who have no Telegram, no
+    Discord and no real email and are therefore "unreachable" everywhere else
+    in the admin UI.
+
+    Idempotent on the conversation — a user has exactly one thread, so starting
+    a second time simply appends to the existing one.
+    """
+    # Targeted SELECT rather than db.query(User): this needs three fields, not a
+    # hydrated 40-column ORM object, and it matches how the rest of chat reads.
+    target = db.execute(
+        text("SELECT id, username, is_active FROM users WHERE id = :uid"),
+        {"uid": payload.user_id},
+    ).mappings().first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not target["is_active"]:
+        raise HTTPException(status_code=400, detail="That account is deactivated.")
+    if target["id"] == admin.id:
+        raise HTTPException(status_code=400, detail="You can't start a chat with yourself.")
+
+    try:
+        conv = chat_service.get_or_create_conversation(db, target["id"])
+        if conv["status"] == "closed":
+            # Reaching out again is an implicit reopen — otherwise the message
+            # would land in a thread the user is blocked from answering.
+            chat_service.set_status(db, conv["id"], "open")
+        msg = chat_service.append_message(
+            db,
+            conversation_id=conv["id"],
+            sender="admin",
+            sender_user_id=admin.id,
+            body=payload.body,
+            source="admin_panel",
+            client_msg_id=payload.client_msg_id,
+        )
+        chat_service.mark_read(db, conv["id"], "admin", msg["seq"])
+    except ChatSchemaMissing as e:
+        raise _schema_guard(e)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # No push from here: the follow-up worker notices the unread reply a couple
+    # of minutes later and delivers the bell notification plus a Telegram DM if
+    # the bot can reach them. Same path as any other admin reply.
+    return {
+        "conversation_id": conv["id"],
+        "message": msg,
+        "username": target["username"],
+    }
+
+
+@router.get("/user/{user_id}")
+def conversation_for_user(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Thread summary for one user, for surfaces that start from a user rather
+    than from the inbox (the user drawer). Returns exists=false rather than 404
+    so the caller can render "no thread yet" without treating it as an error.
+    """
+    try:
+        row = db.execute(
+            text("""
+                SELECT id, status, last_seq, admin_last_read_seq, last_message_at
+                  FROM chat_conversations WHERE user_id = :uid
+            """),
+            {"uid": user_id},
+        ).mappings().first()
+    except Exception as e:
+        if isinstance(e, ChatSchemaMissing):
+            raise _schema_guard(e)
+        raise
+
+    if not row or row["last_seq"] == 0:
+        return {"exists": False, "conversation_id": row["id"] if row else None,
+                "message_count": 0, "unread": 0}
+    return {
+        "exists": True,
+        "conversation_id": row["id"],
+        "status": row["status"],
+        "message_count": row["last_seq"],
+        "unread": max(0, row["last_seq"] - row["admin_last_read_seq"]),
+        "last_message_at": row["last_message_at"].isoformat() if row["last_message_at"] else None,
+    }
 
 
 @router.get("/conversations/{conversation_id}/messages")

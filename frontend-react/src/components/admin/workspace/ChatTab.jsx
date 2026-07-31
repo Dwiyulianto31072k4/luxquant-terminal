@@ -6,6 +6,7 @@
 // Backend: /api/v1/admin/chat
 // ════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useRef, useState } from "react";
+import { adminApi } from "../../../services/adminApi";
 import { adminChatApi } from "../../../services/adminChatApi";
 import { palette, NEUTRAL } from "../designSystem";
 import { Surface, Badge, EmptyState, LoadingState, SearchInput, Spinner } from "../primitives";
@@ -130,6 +131,168 @@ const Meta = ({ label, value }) => (
     <span className="text-[11px] text-text-primary/80">{value}</span>
   </div>
 );
+
+// ── Start a chat with someone who has never written in ──────────────
+const NewChatModal = ({ isOpen, onClose, onStarted }) => {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [picked, setPicked] = useState(null);
+  const [thread, setThread] = useState(null);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setQuery("");
+    setResults([]);
+    setPicked(null);
+    setThread(null);
+    setBody("");
+    setErr("");
+  }, [isOpen]);
+
+  // Debounced so typing a username doesn't fire a request per keystroke.
+  useEffect(() => {
+    if (!isOpen || picked) return undefined;
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      return undefined;
+    }
+    setSearching(true);
+    const t = setTimeout(() => {
+      adminApi
+        .getUsers({ search: q, pageSize: 8 })
+        .then((d) => setResults(d.users || []))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query, isOpen, picked]);
+
+  const pick = async (u) => {
+    setPicked(u);
+    setErr("");
+    try {
+      setThread(await adminChatApi.getUserThread(u.id));
+    } catch {
+      setThread(null);
+    }
+  };
+
+  const send = async () => {
+    const text = body.trim();
+    if (!text || sending || !picked) return;
+    setSending(true);
+    setErr("");
+    try {
+      const r = await adminChatApi.startConversation(picked.id, text, newClientMsgId());
+      onStarted(r.conversation_id);
+      onClose();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Couldn't start the chat.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Start a chat"
+      subtitle="Reaches any account — no Telegram, Discord or email needed"
+      size="md"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          {err && <span className="mr-auto text-[11px] text-neg-text">{err}</span>}
+          <button onClick={onClose} className="px-3 py-2 text-xs text-text-muted hover:text-text-primary">
+            Cancel
+          </button>
+          <button
+            onClick={send}
+            disabled={sending || !picked || !body.trim()}
+            className="lq-cta-md px-4 py-2 text-xs disabled:opacity-30"
+          >
+            {sending ? <Spinner size={13} /> : "Send"}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        {!picked ? (
+          <>
+            <SearchInput
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search username or email…"
+              Icon={SearchIcon}
+              autoFocus
+            />
+            {searching && <LoadingState label="Searching…" />}
+            {!searching && query.trim().length >= 2 && results.length === 0 && (
+              <p className="py-4 text-center text-xs text-text-muted">No users match that.</p>
+            )}
+            <div className="max-h-64 overflow-y-auto custom-scrollbar">
+              {results.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => pick(u)}
+                  className="flex w-full items-center gap-2 border-b border-ink/[0.06] px-2 py-2 text-left hover:bg-ink/[0.03]"
+                >
+                  <span className="truncate text-xs font-semibold text-text-primary">{u.username}</span>
+                  <Badge variant="role" value={u.role} size="xs">
+                    {u.role}
+                  </Badge>
+                  <span className="ml-auto truncate font-mono text-[10px] text-text-muted">
+                    {u.email}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 rounded-md bg-ink/[0.04] px-3 py-2">
+              <span className="text-xs font-semibold text-text-primary">{picked.username}</span>
+              <Badge variant="role" value={picked.role} size="xs">
+                {picked.role}
+              </Badge>
+              {thread?.exists && (
+                <span className="font-mono text-[10px] text-text-muted">
+                  {thread.message_count} message{thread.message_count === 1 ? "" : "s"} already
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setPicked(null);
+                  setThread(null);
+                }}
+                className="ml-auto font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+              >
+                Change
+              </button>
+            </div>
+            <textarea
+              rows={5}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={`Hi ${picked.username} — …`}
+              autoFocus
+              className={`${inputCls} resize-none`}
+            />
+            <p className="text-[10px] leading-relaxed text-text-muted">
+              They'll see it in the chat panel. If they don't open it within a couple of minutes
+              they get a notification, plus a Telegram DM when the bot can reach them.
+            </p>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+};
 
 // ── Settings ────────────────────────────────────────────────────────
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -335,6 +498,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [newChatOpen, setNewChatOpen] = useState(false);
 
   const scrollRef = useRef(null);
   const cursorRef = useRef(0);
@@ -453,10 +617,34 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   return (
     <>
     <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <NewChatModal
+      isOpen={newChatOpen}
+      onClose={() => setNewChatOpen(false)}
+      onStarted={async (conversationId) => {
+        // Refresh the inbox, then open the thread we just created so the admin
+        // lands inside the conversation instead of hunting for it in the list.
+        const data = await adminChatApi
+          .listConversations({ limit: 100 })
+          .catch(() => null);
+        if (data?.items) {
+          setItems(data.items);
+          const row = data.items.find((c) => c.id === conversationId);
+          if (row) openConversation(row);
+        }
+      }}
+    />
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
       {/* ── Left: inbox ── */}
       <Surface className="flex h-[640px] flex-col overflow-hidden">
         <div className="space-y-2 border-b border-ink/[0.08] p-3">
+          {canWrite && (
+            <button
+              onClick={() => setNewChatOpen(true)}
+              className="lq-cta-md w-full py-2 text-[11px] uppercase tracking-wider"
+            >
+              + Start a chat
+            </button>
+          )}
           <SearchInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}

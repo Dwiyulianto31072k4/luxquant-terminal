@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback } from "react";
 import { AutoTradeTab } from "./users/AutoTradeTab";
 import { createPortal } from "react-dom";
 import { adminApi } from "../../services/adminApi";
+import { adminChatApi } from "../../services/adminChatApi";
 import { workspaceApi } from "../../services/workspaceApi";
 import { growthApi } from "../../services/growthApi";
 import { ContactBadge } from "./ContactBadge";
@@ -1686,6 +1687,101 @@ const ReferralTab = ({ data }) => {
  Tab 5: Outreach
  ════════════════════════════════════════ */
 
+/**
+ * In-app chat composer. Deliberately the first thing in this tab and never
+ * gated on contact channels: it is the only channel that reaches every
+ * account. Most users here have no Telegram, no Discord and a placeholder
+ * email, and used to show up as simply "unreachable".
+ */
+const InAppChatCard = ({ user }) => {
+  const [thread, setThread] = useState(null);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    adminChatApi
+      .getUserThread(user.id)
+      .then((t) => alive && setThread(t))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [user.id]);
+
+  const send = async () => {
+    const text = body.trim();
+    if (!text || sending) return;
+    setSending(true);
+    setErr("");
+    try {
+      await adminChatApi.startConversation(user.id, text);
+      setBody("");
+      setSent(true);
+      setThread(await adminChatApi.getUserThread(user.id).catch(() => thread));
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Couldn't send.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div
+      className="mb-4 rounded-lg p-3"
+      style={{
+        background: "rgb(var(--accent) / 0.05)",
+        border: "1px solid rgb(var(--accent) / 0.18)",
+      }}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className="text-[10px] font-semibold uppercase tracking-wider"
+          style={{ color: "rgb(var(--accent-text))" }}
+        >
+          In-app chat
+        </span>
+        <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+          reaches every account
+        </span>
+        {thread?.exists && (
+          <span className="ml-auto font-mono text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+            {thread.message_count} message{thread.message_count === 1 ? "" : "s"}
+            {thread.unread > 0 && ` · ${thread.unread} unread`}
+          </span>
+        )}
+      </div>
+      <textarea
+        rows={3}
+        value={body}
+        onChange={(e) => {
+          setBody(e.target.value);
+          setSent(false);
+        }}
+        placeholder={`Message @${user.username} in the app…`}
+        className="w-full resize-none rounded-md border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 text-xs text-text-primary placeholder:text-text-primary/30 focus:border-ink/20 focus:outline-none"
+      />
+      <div className="mt-2 flex items-center gap-2">
+        {err && <span className="text-[11px] text-neg-text">{err}</span>}
+        {sent && !err && (
+          <span className="text-[11px]" style={{ color: "rgb(var(--pos-text))" }}>
+            Sent — they'll get a notification if they don't open it.
+          </span>
+        )}
+        <button
+          onClick={send}
+          disabled={sending || !body.trim()}
+          className="lq-cta-md ml-auto px-3 py-1.5 text-[11px] disabled:opacity-30"
+        >
+          {sending ? "Sending…" : "Send"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const OutreachTab = ({ data, templates, canWrite = true }) => {
   const { user, reach } = data;
   const hasAnyChannel =
@@ -1701,24 +1797,25 @@ const OutreachTab = ({ data, templates, canWrite = true }) => {
     );
   }
 
-  if (!hasAnyChannel) {
-    return (
-      <EmptyState
-        Icon={BroadcastIcon}
-        title="No contact channels"
-        hint="Add a Telegram or Discord handle on the Contact tab first."
-      />
-    );
-  }
-
   return (
     <div>
-      <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
-        Pick a template to DM <strong className="text-text-primary">@{user.username}</strong>. Click{" "}
-        <strong style={{ color: "rgb(var(--accent-text))" }}>Send</strong> to copy the message and
-        open the channel.
-      </p>
-      <QuickSendPopover user={user} templates={templates} reach={reach} inline />
+      <InAppChatCard user={user} />
+      {hasAnyChannel ? (
+        <>
+          <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
+            Or pick a template to DM{" "}
+            <strong className="text-text-primary">@{user.username}</strong>. Click{" "}
+            <strong style={{ color: "rgb(var(--accent-text))" }}>Send</strong> to copy the message
+            and open the channel.
+          </p>
+          <QuickSendPopover user={user} templates={templates} reach={reach} inline />
+        </>
+      ) : (
+        <p className="text-[11px]" style={{ color: "rgb(var(--fg-muted))" }}>
+          No Telegram, Discord or real email on file — in-app chat above is the way to reach this
+          one. Add a handle on the Contact tab to unlock DM templates.
+        </p>
+      )}
     </div>
   );
 };

@@ -21,6 +21,24 @@ export const adminChatApi = {
     return response.data;
   },
 
+  // Open a thread with someone who has never written in. Idempotent on the
+  // conversation — a user has exactly one thread.
+  startConversation: async (userId, body, clientMsgId) => {
+    const response = await api.post("/api/v1/admin/chat/conversations/start", {
+      user_id: userId,
+      body,
+      client_msg_id: clientMsgId,
+    });
+    return response.data;
+  },
+
+  // Thread summary for one user, for surfaces that start from a user rather
+  // than from the inbox. Returns { exists: false } instead of 404.
+  getUserThread: async (userId) => {
+    const response = await api.get(`/api/v1/admin/chat/user/${userId}`);
+    return response.data;
+  },
+
   getMessages: async (conversationId, after = 0, limit = 200) => {
     const response = await api.get(
       `/api/v1/admin/chat/conversations/${conversationId}/messages`,
