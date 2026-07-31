@@ -248,6 +248,7 @@ function toDraft(config) {
 
     leverage: config?.futures?.leverage ?? 1,
     margin_mode: config?.futures?.margin_mode || "isolated",
+    leverage_fallback: config?.futures?.leverage_fallback || "clamp",
 
     allowed_risk_levels: config?.allowed_risk_levels || [],
     one_open_position_per_symbol: config?.risk_limits?.one_open_position_per_symbol ?? true,
@@ -283,6 +284,7 @@ function toPayload(draft) {
       draft.exit_mode === "trailing_stop" ? normalizeNumber(draft.trailing_callback_rate) : null,
     leverage: draft.futures_enabled ? Number(draft.leverage) : null,
     margin_mode: draft.futures_enabled ? draft.margin_mode : null,
+    leverage_fallback: draft.futures_enabled ? draft.leverage_fallback : null,
     allowed_risk_levels: draft.allowed_risk_levels.length > 0 ? draft.allowed_risk_levels : null,
     one_open_position_per_symbol: draft.one_open_position_per_symbol,
     max_open_positions: Number(draft.max_open_positions),
@@ -522,6 +524,21 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
                   min={1}
                   max={125}
                   suffix="×"
+                />
+              </Row>
+              <Row
+                guide={FIELD_GUIDE.leverage_fallback}
+                label="If a coin caps leverage"
+                hint="Binance limits leverage per coin, and the limit is often below your setting."
+              >
+                <Select
+                  value={draft.leverage_fallback}
+                  onChange={(value) => patch({ leverage_fallback: value })}
+                  options={[
+                    { value: "clamp", label: "Trade at the coin's maximum" },
+                    { value: "keep_size", label: "Keep position size (uses more margin)" },
+                    { value: "skip", label: "Skip that coin" },
+                  ]}
                 />
               </Row>
               <Row guide={FIELD_GUIDE.margin_mode} label="Margin mode">

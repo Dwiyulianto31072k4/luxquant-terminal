@@ -66,6 +66,14 @@ export const FIELD_GUIDE = {
     watch:
       "Rough rule: at N× leverage, a 100/N percent move against you liquidates the position. At 20× that is about 5% — closer than most stop losses.",
   },
+  leverage_fallback: {
+    title: "If a coin caps leverage",
+    what: "Binance sets a maximum leverage per coin, often well below what you configured. This decides what the bot does when your setting does not fit.",
+    example:
+      "You run 25x and a signal arrives on a coin capped at 10x. Trade at the coin's maximum: 12 USDT still, but the position is 120 instead of 300. Keep position size: margin rises to 30 USDT to reach the same 300. Skip: no trade.",
+    watch:
+      "Measured across the coins traded here: at 10x nothing is capped, at 25x about 1 coin in 6, at 50x nearly a third. Keeping position size is safer per trade — the same exposure at lower leverage sits further from liquidation — but it commits more of your balance, so your per-trade cap and minimum reserve still apply and can block it.",
+  },
   margin_mode: {
     title: "Margin mode",
     what: "Isolated risks only the margin assigned to that one position. Cross lets a losing position draw on your whole futures balance to stay alive.",
