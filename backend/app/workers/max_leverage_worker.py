@@ -197,12 +197,18 @@ async def run_single(signal_id):
         await conn.close()
 
 
-async def run_loop():
-    """LISTEN new_signal — compute leverage as signals arrive."""
-    conn = await asyncpg.connect(DATABASE_URL)
-    client = httpx.AsyncClient(headers=HTTP_HEADERS)
+# A LISTEN connection dies with its socket, and asyncpg gives no callback for
+# that. Measured 2026-07-31: the worker processed its 20 startup rows on
+# 2026-07-28 06:34:58 and nothing for the following three days while systemd
+# still reported it active — 597 signals left pending. So the loop no longer
+# trusts NOTIFY alone: it re-checks pending work on a timer and rebuilds the
+# connection when the listener has gone quiet.
+SWEEP_SECONDS = 120
+SWEEP_BATCH = 50
 
-    queue: asyncio.Queue = asyncio.Queue()
+
+async def _connect_with_listener(queue: asyncio.Queue):
+    conn = await asyncpg.connect(DATABASE_URL)
 
     def on_notify(connection, pid, channel, payload):
         # payload is JSON: {"signal_id":..., "pair":..., ...}
@@ -211,19 +217,49 @@ async def run_loop():
             queue.put_nowait(parsed)  # (signal_id, pair)
 
     await conn.add_listener("new_signal", on_notify)
-    logger.info("🔄 Max Leverage Worker started — LISTEN new_signal")
+    return conn
 
-    # Process any pending leftovers on startup (e.g. signals missed while down)
-    pending = await conn.fetch(
+
+async def _sweep_pending(conn, client) -> int:
+    """Process anything still pending, whatever the reason it was missed."""
+    rows = await conn.fetch(
         "SELECT signal_id, pair FROM signals WHERE max_leverage_status = 'pending' "
-        "ORDER BY created_at DESC LIMIT 20"
+        "ORDER BY created_at DESC LIMIT $1",
+        SWEEP_BATCH,
     )
-    for r in pending:
+    for r in rows:
         await process_one(conn, client, r["signal_id"], r["pair"])
+    return len(rows)
+
+
+async def run_loop():
+    """LISTEN new_signal, with a periodic sweep so a dead listener cannot stall."""
+    queue: asyncio.Queue = asyncio.Queue()
+    conn = await _connect_with_listener(queue)
+    client = httpx.AsyncClient(headers=HTTP_HEADERS)
+    logger.info("🔄 Max Leverage Worker started — LISTEN new_signal + %ss sweep", SWEEP_SECONDS)
 
     try:
         while True:
-            signal_id, pair = await queue.get()
+            try:
+                signal_id, pair = await asyncio.wait_for(queue.get(), timeout=SWEEP_SECONDS)
+            except asyncio.TimeoutError:
+                # Quiet period: verify the connection is alive and catch anything
+                # NOTIFY did not deliver.
+                try:
+                    await conn.execute("SELECT 1")
+                except Exception as e:
+                    logger.warning(f"LISTEN connection lost ({type(e).__name__}); reconnecting")
+                    try:
+                        await conn.close()
+                    except Exception:
+                        pass
+                    conn = await _connect_with_listener(queue)
+                done = await _sweep_pending(conn, client)
+                if done:
+                    logger.info(f"sweep processed {done} pending signal(s)")
+                continue
+
             try:
                 # pair comes straight from the trigger payload — no extra query needed.
                 # Fall back to a lookup only if payload lacked it.
