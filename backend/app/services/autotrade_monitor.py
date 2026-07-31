@@ -527,6 +527,11 @@ def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = Non
         "trades": rows,
         "worst": worst,
         "by_symbol": sorted(by_symbol.values(), key=lambda b: b["pnl"])[:12],
+        # Which protective leg actually fired. Futures closes carried a single
+        # "exchange_close" label until the reconciler learned to read the
+        # closing order, so this split answers whether the stops are doing
+        # their job or the leverage is wiping positions out first.
+        "by_exit_reason": _pnl_buckets(rows, "exit_reason"),
         "btc_benchmark": btc_benchmark(rows),
         "since": since,
         "summary": {

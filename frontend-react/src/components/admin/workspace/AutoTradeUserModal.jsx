@@ -43,6 +43,21 @@ const PERIODS = [
   ["All time", ""],
 ];
 
+// How a position ended. Futures closes were all recorded as "exchange_close"
+// until the reconciler learned to read the closing order off the exchange —
+// see AutoTradeOpsTab.jsx. The unattributed bucket is kept visible rather than
+// hidden, because a missing answer and a stop-loss mean different things.
+const EXIT_REASONS = {
+  take_profit: { label: "Take-profit hit", tone: UP },
+  trailing_stop: { label: "Trailing stop", tone: UP },
+  stop_loss: { label: "Stop-loss hit", tone: DOWN },
+  liquidated: { label: "Liquidated", tone: DOWN },
+  auto_deleveraged: { label: "Auto-deleveraged", tone: DOWN },
+  forced_sell: { label: "Force-closed", tone: AXIS },
+  manual_exit: { label: "Closed manually", tone: AXIS },
+  exchange_close: { label: "Not attributed", tone: AXIS },
+};
+
 const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const signed = (n) => `${n >= 0 ? "+" : "-"}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const day = (v) =>
@@ -159,6 +174,25 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
     () => (trades?.by_symbol || []).slice().sort((a, b) => a.pnl - b.pnl),
     [trades]
   );
+
+  // Unattributed exits sort last: an absence of information, not an outcome.
+  const byExit = useMemo(() => {
+    const rows = (trades?.by_exit_reason || []).filter((b) => b.trades > 0);
+    const most = Math.max(1, ...rows.map((b) => b.trades));
+    return rows
+      .map((b) => ({
+        ...b,
+        meta: EXIT_REASONS[b.key] || {
+          label: (b.key || "unknown").replaceAll("_", " "),
+          tone: AXIS,
+        },
+        share: b.trades / most,
+        unattributed: !b.key || b.key === "exchange_close",
+      }))
+      .sort((a, b) =>
+        a.unattributed !== b.unattributed ? a.unattributed - b.unattributed : b.trades - a.trades
+      );
+  }, [trades]);
 
   const s = detail?.summary || {};
   const ts = trades?.summary || {};
@@ -463,6 +497,48 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                 ) : null}
 
                 <div className="space-y-3">
+                  {byExit.length ? (
+                    <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-4">
+                      <p className="text-[12px] font-semibold text-text-primary">
+                        How positions ended
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">
+                        Read from the closing order on the exchange.
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {byExit.map((b) => (
+                          <div key={b.key || "unknown"} className="flex items-center gap-2.5">
+                            <span
+                              className="w-32 shrink-0 text-[12px]"
+                              style={{ color: b.unattributed ? AXIS : undefined }}
+                            >
+                              {b.meta.label}
+                            </span>
+                            <div className="h-1.5 flex-1 rounded-full bg-ink/5">
+                              <div
+                                className="h-1.5 rounded-full"
+                                style={{
+                                  width: `${Math.max(2, b.share * 100)}%`,
+                                  backgroundColor: b.meta.tone,
+                                  opacity: b.unattributed ? 0.35 : 0.85,
+                                }}
+                              />
+                            </div>
+                            <span className="w-8 shrink-0 text-right font-mono text-[11px] text-text-muted">
+                              {b.trades}
+                            </span>
+                            <span
+                              className="w-20 shrink-0 text-right font-mono text-[11px]"
+                              style={{ color: b.net >= 0 ? UP : DOWN }}
+                            >
+                              {signed(b.net)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   {detail.blocks?.length ? (
                     <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-4">
                       <p className="text-[12px] font-semibold text-text-primary">
@@ -559,7 +635,12 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                               )}
                             </td>
                             <td className="px-2 py-2 text-text-muted">{r.signal_regime || "—"}</td>
-                            <td className="px-4 py-2 text-text-muted">{r.exit_reason || "—"}</td>
+                            <td className="px-4 py-2 text-text-muted">
+                              {r.exit_reason
+                                ? EXIT_REASONS[r.exit_reason]?.label ||
+                                  r.exit_reason.replaceAll("_", " ")
+                                : "—"}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

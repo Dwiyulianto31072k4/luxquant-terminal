@@ -49,6 +49,23 @@ const STATUS = {
   unlinked: { label: "Not linked", dot: "#5A6070", fg: "#8B92A5", bg: "rgba(90,96,112,0.12)" },
 };
 
+// How a position ended. Futures closes used to be recorded as one undifferentiated
+// "exchange_close" — the exchange only told us the position was gone. The
+// reconciler now reads the closing order, which matters because a stop that was
+// hit and a liquidation call for opposite fixes: a wrong signal versus leverage
+// too high for the stop distance. `exchange_close` is kept as an honest "we
+// could not tell", never folded into stop-loss to make the split look complete.
+const EXIT_REASONS = {
+  take_profit: { label: "Take-profit hit", note: "target reached", tone: UP },
+  trailing_stop: { label: "Trailing stop", note: "locked in a move", tone: UP },
+  stop_loss: { label: "Stop-loss hit", note: "price went the wrong way", tone: DOWN },
+  liquidated: { label: "Liquidated", note: "leverage too high for the stop distance", tone: DOWN },
+  auto_deleveraged: { label: "Auto-deleveraged", note: "closed by Binance, not by us", tone: DOWN },
+  forced_sell: { label: "Force-closed", note: "closed by an operator", tone: AXIS },
+  manual_exit: { label: "Closed manually", note: "closed outside the bot", tone: AXIS },
+  exchange_close: { label: "Not attributed", note: "closing order could not be identified", tone: AXIS },
+};
+
 const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const signed = (n) => `${n >= 0 ? "+" : "-"}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const day = (v) =>
@@ -221,6 +238,27 @@ export const AutoTradeOpsTab = () => {
         .map((b) => ({ ...b, label: `${b.key}×` })),
     [analytics]
   );
+
+  // Ordered by trade count, but "Not attributed" is pinned last: it is an
+  // absence of information, not an outcome to compare against the others.
+  const exitData = useMemo(() => {
+    const rows = (analytics?.by_exit_reason || []).filter((b) => b.trades > 0);
+    const most = Math.max(1, ...rows.map((b) => b.trades));
+    return rows
+      .map((b) => ({
+        ...b,
+        meta: EXIT_REASONS[b.key] || {
+          label: (b.key || "unknown").replaceAll("_", " "),
+          note: "",
+          tone: AXIS,
+        },
+        share: b.trades / most,
+        unattributed: !b.key || b.key === "exchange_close",
+      }))
+      .sort((a, b) =>
+        a.unattributed !== b.unattributed ? a.unattributed - b.unattributed : b.trades - a.trades
+      );
+  }, [analytics]);
 
   if (loading && !overview) return <p className="text-sm text-text-muted">Loading AutoTrade…</p>;
   if (error) return <p className="text-sm text-[#F6465D]">{error}</p>;
@@ -399,6 +437,59 @@ export const AutoTradeOpsTab = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </Card>
+          ) : null}
+
+          {exitData.length ? (
+            <Card
+              title="How positions ended"
+              right={
+                <span className="text-[11px] text-text-muted">
+                  read from the closing order on the exchange
+                </span>
+              }
+            >
+              <div className="space-y-2.5">
+                {exitData.map((b) => (
+                  <div key={b.key || "unknown"} className="flex items-center gap-3">
+                    <div className="w-44 shrink-0">
+                      <p
+                        className="text-[13px] text-text-primary"
+                        style={b.unattributed ? { color: AXIS } : undefined}
+                      >
+                        {b.meta.label}
+                      </p>
+                      {b.meta.note ? (
+                        <p className="text-[11px] leading-tight text-text-muted">{b.meta.note}</p>
+                      ) : null}
+                    </div>
+                    <div className="h-2 flex-1 rounded-full bg-ink/5">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${Math.max(2, b.share * 100)}%`,
+                          backgroundColor: b.meta.tone,
+                          opacity: b.unattributed ? 0.35 : 0.85,
+                        }}
+                      />
+                    </div>
+                    <span className="w-16 shrink-0 text-right font-mono text-[12px] text-text-secondary">
+                      {b.trades}
+                    </span>
+                    <span
+                      className="w-24 shrink-0 text-right font-mono text-[12px]"
+                      style={{ color: b.net >= 0 ? UP : DOWN }}
+                    >
+                      {signed(b.net)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-text-muted">
+                Trades and net result per outcome. &quot;Not attributed&quot; means the exchange
+                gave no closing order we could match — mostly positions adopted after an entry
+                timed out, which never had our stops attached. It is not counted as a stop-loss.
+              </p>
             </Card>
           ) : null}
         </>
