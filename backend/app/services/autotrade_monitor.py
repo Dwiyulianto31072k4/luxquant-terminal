@@ -384,7 +384,77 @@ def _signal_regimes(dates: list[str]) -> dict[str, str]:
         return {}
 
 
-def user_trades(luxquant_user_id: int, limit: int = 100) -> dict[str, Any]:
+# Daily BTC move buckets. Trading results mean little without knowing what the
+# market was doing: a bot that only loses when BTC dumps has a different problem
+# from one that loses on flat days.
+BTC_BANDS = (
+    ("btc_down_hard", "BTC down hard", None, -2.0),
+    ("btc_down", "BTC down", -2.0, -0.5),
+    ("btc_flat", "BTC flat", -0.5, 0.5),
+    ("btc_up", "BTC up", 0.5, 2.0),
+    ("btc_up_hard", "BTC up hard", 2.0, None),
+)
+
+
+def _btc_band(change: float | None) -> tuple[str, str] | None:
+    if change is None:
+        return None
+    for key, label, low, high in BTC_BANDS:
+        if (low is None or change >= low) and (high is None or change < high):
+            return key, label
+    return None
+
+
+def btc_benchmark(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """How the bot performed in each BTC condition, next to BTC's own move.
+
+    The benchmark column is BTC's average daily change for the days that bucket
+    covers — the market's result over the same sessions the bot traded, so the
+    two are comparable without inventing a return percentage for the bot (we
+    have no account equity history to compute one from).
+    """
+    buckets = {
+        key: {"key": key, "label": label, "trades": 0, "wins": 0, "net": 0.0, "btc_sum": 0.0, "days": set()}
+        for key, label, _, _ in BTC_BANDS
+    }
+    for row in rows:
+        pnl = row.get("realized_pnl")
+        change = row.get("btc_change_pct")
+        band = _btc_band(change)
+        if pnl is None or band is None:
+            continue
+        bucket = buckets[band[0]]
+        bucket["trades"] += 1
+        bucket["net"] += float(pnl)
+        if float(pnl) >= 0:
+            bucket["wins"] += 1
+        if row.get("day") not in bucket["days"]:
+            bucket["days"].add(row.get("day"))
+            bucket["btc_sum"] += float(change)
+
+    out = []
+    for key, label, _, _ in BTC_BANDS:
+        b = buckets[key]
+        if not b["trades"]:
+            continue
+        n_days = len(b["days"]) or 1
+        out.append(
+            {
+                "key": key,
+                "label": label,
+                "trades": b["trades"],
+                "wins": b["wins"],
+                "win_rate": round(b["wins"] / b["trades"] * 100, 1),
+                "net": round(b["net"], 2),
+                "avg": round(b["net"] / b["trades"], 2),
+                "btc_avg": round(b["btc_sum"] / n_days, 2),
+                "days": n_days,
+            }
+        )
+    return out
+
+
+def user_trades(luxquant_user_id: int, limit: int = 200, since: str | None = None) -> dict[str, Any]:
     """Every closed trade for one user, with the market context of that day."""
     subject = _subject(luxquant_user_id)
     try:
@@ -396,10 +466,11 @@ def user_trades(luxquant_user_id: int, limit: int = 100) -> dict[str, Any]:
             FROM positions p
             JOIN users u ON u.id = p.user_id
             WHERE u.subject = :subject AND p.status = 'closed'
+              AND (:since IS NULL OR p.closed_at >= CAST(:since AS timestamptz))
             ORDER BY p.closed_at DESC NULLS LAST
             LIMIT :limit
             """,
-            {"subject": subject, "limit": limit},
+            {"subject": subject, "limit": limit, "since": since},
         )
     except Exception as exc:
         logger.warning("AutoTrade trades unavailable for %s: %s", subject, exc)
@@ -456,6 +527,8 @@ def user_trades(luxquant_user_id: int, limit: int = 100) -> dict[str, Any]:
         "trades": rows,
         "worst": worst,
         "by_symbol": sorted(by_symbol.values(), key=lambda b: b["pnl"])[:12],
+        "btc_benchmark": btc_benchmark(rows),
+        "since": since,
         "summary": {
             "settled": settled,
             "wins": wins,
@@ -640,7 +713,7 @@ def _pnl_buckets(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
     return sorted(out.values(), key=lambda b: b["net"])
 
 
-def analytics() -> dict[str, Any]:
+def analytics(since: str | None = None) -> dict[str, Any]:
     """Desk-wide profitability: who makes money, and what loses it.
 
     Deliberately reports per-leverage and per-exit-reason splits rather than one
@@ -658,7 +731,9 @@ def analytics() -> dict[str, Any]:
             JOIN users u ON u.id = p.user_id
             LEFT JOIN strategy_configs c ON c.user_id = p.user_id AND c.exchange = 'binance'
             WHERE p.status = 'closed'
-            """
+              AND (:since IS NULL OR p.closed_at >= CAST(:since AS timestamptz))
+            """,
+            {"since": since},
         )
     except Exception as exc:
         logger.warning("AutoTrade analytics unavailable: %s", exc)
@@ -765,4 +840,5 @@ def analytics() -> dict[str, Any]:
         "by_exit_reason": _pnl_buckets(settled, "exit_reason"),
         "by_symbol": _pnl_buckets(settled, "symbol")[:15],
         "curve": curve,
+        "since": since,
     }

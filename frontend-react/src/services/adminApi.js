@@ -10,8 +10,10 @@ export const adminApi = {
     return response.data;
   },
 
-  getAutoTradeAnalytics: async () => {
-    const response = await api.get("/api/v1/admin/autotrade/analytics");
+  getAutoTradeAnalytics: async (since) => {
+    const response = await api.get("/api/v1/admin/autotrade/analytics", {
+      params: since === undefined ? {} : { since },
+    });
     return response.data;
   },
 
@@ -20,8 +22,10 @@ export const adminApi = {
     return response.data;
   },
 
-  getAutoTradeTrades: async (userId) => {
-    const response = await api.get(`/api/v1/admin/autotrade/users/${userId}/trades`);
+  getAutoTradeTrades: async (userId, since) => {
+    const response = await api.get(`/api/v1/admin/autotrade/users/${userId}/trades`, {
+      params: since === undefined ? {} : { since },
+    });
     return response.data;
   },
 

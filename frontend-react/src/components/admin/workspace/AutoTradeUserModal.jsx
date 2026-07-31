@@ -35,6 +35,14 @@ const DOWN = "#F6465D";
 const GRID = "rgba(255,255,255,0.06)";
 const AXIS = "#8B92A5";
 
+// The reconciler, entitlement gate and fill recording were fixed on 2026-07-30.
+const FIXES_LANDED = "2026-07-31";
+const PERIODS = [
+  ["Since fixes", FIXES_LANDED],
+  ["30 days", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)],
+  ["All time", ""],
+];
+
 const usd = (n) => `${n < 0 ? "-" : ""}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const signed = (n) => `${n >= 0 ? "+" : "-"}$${Math.abs(Number(n) || 0).toFixed(2)}`;
 const day = (v) =>
@@ -86,6 +94,9 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
   const [detail, setDetail] = useState(null);
   const [trades, setTrades] = useState(null);
   const [error, setError] = useState("");
+  // Everything before 2026-07-31 came from a system whose reconciler had not
+  // completed a cycle in weeks, so the default window starts after the fixes.
+  const [since, setSince] = useState(FIXES_LANDED);
 
   const userId = user?.luxquant_user_id;
 
@@ -98,7 +109,10 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
   useEffect(() => {
     if (!userId) return;
     let dead = false;
-    Promise.all([adminApi.getAutoTradeUser(userId), adminApi.getAutoTradeTrades(userId)])
+    Promise.all([
+      adminApi.getAutoTradeUser(userId),
+      adminApi.getAutoTradeTrades(userId, since),
+    ])
       .then(([d, t]) => {
         if (dead) return;
         setDetail(d);
@@ -108,7 +122,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
     return () => {
       dead = true;
     };
-  }, [userId]);
+  }, [userId, since]);
 
   // Oldest → newest so the curve reads left to right.
   const curve = useMemo(() => {
@@ -151,11 +165,15 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto p-4 sm:p-8"
+      style={{ background: "rgba(0,0,0,0.78)" }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-6xl rounded-2xl border border-ink/12 bg-surface-primary shadow-2xl"
+        className="isolate w-full max-w-6xl rounded-2xl border border-ink/12 shadow-2xl"
+        // Explicit and opaque: the utility class resolved translucent here, which
+        // let the table underneath bleed through the numbers.
+        style={{ backgroundColor: "rgb(var(--surface))" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -175,13 +193,31 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
               {s.leverage ? ` · ${s.leverage}× leverage` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-ink/12 px-3 py-1.5 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {PERIODS.map(([label, value]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setSince(value)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] transition-colors ${
+                    since === value
+                      ? "bg-accent text-surface-primary"
+                      : "border border-ink/10 text-text-muted hover:text-text-secondary"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-ink/12 px-3 py-1.5 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4 px-6 py-5">
@@ -227,6 +263,60 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                   sub={s.active_since ? "running now" : `${s.toggles || 0} toggles`}
                 />
               </div>
+
+              {/* Benchmark against BTC */}
+              {trades?.btc_benchmark?.length ? (
+                <div className="rounded-xl border border-ink/[0.08] bg-surface-raised">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/[0.06] px-4 py-3">
+                    <p className="text-[12px] font-semibold text-text-primary">
+                      Benchmark — how this bot does in each BTC condition
+                    </p>
+                    <span className="text-[11px] text-text-muted">
+                      BTC column is the market&apos;s own average move over the same sessions
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[620px] text-left">
+                      <thead>
+                        <tr className="border-b border-ink/[0.06] font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                          <th className="px-4 py-2 font-medium">Market</th>
+                          <th className="px-2 py-2 text-right font-medium">BTC avg/day</th>
+                          <th className="px-2 py-2 text-right font-medium">Trades</th>
+                          <th className="px-2 py-2 text-right font-medium">Win rate</th>
+                          <th className="px-2 py-2 text-right font-medium">Avg / trade</th>
+                          <th className="px-4 py-2 text-right font-medium">Net</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {trades.btc_benchmark.map((b) => (
+                          <tr key={b.key} className="border-b border-ink/[0.04] text-[12px]">
+                            <td className="px-4 py-2 text-text-secondary">{b.label}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              <span style={{ color: b.btc_avg >= 0 ? UP : DOWN }}>
+                                {b.btc_avg > 0 ? "+" : ""}
+                                {b.btc_avg}%
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums text-text-muted">
+                              {b.trades}
+                              <span className="text-text-muted"> · {b.days}d</span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              <span style={{ color: b.win_rate >= 50 ? UP : DOWN }}>{b.win_rate}%</span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              <span style={{ color: b.avg >= 0 ? UP : DOWN }}>{signed(b.avg)}</span>
+                            </td>
+                            <td className="px-4 py-2 text-right tabular-nums">
+                              <span style={{ color: b.net >= 0 ? UP : DOWN }}>{signed(b.net)}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
 
               {/* Charts */}
               {curve.length > 1 ? (

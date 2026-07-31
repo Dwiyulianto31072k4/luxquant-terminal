@@ -31,6 +31,16 @@ const DOWN = "#F6465D";
 const GRID = "rgba(255,255,255,0.06)";
 const AXIS = "#8B92A5";
 
+// Reconciler, entitlement gate and fill recording were fixed on 2026-07-30, so
+// results before then came from a system that was demonstrably broken. Default
+// to the window after; nothing is deleted, "All time" still shows everything.
+const FIXES_LANDED = "2026-07-31";
+const PERIODS = [
+  ["Since fixes", FIXES_LANDED],
+  ["30 days", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)],
+  ["All time", ""],
+];
+
 const STATUS = {
   error: { label: "Error", dot: DOWN, fg: DOWN, bg: "rgba(246,70,93,0.12)" },
   warn: { label: "Warning", dot: "#F0B90B", fg: "#E3A008", bg: "rgba(240,185,11,0.12)" },
@@ -143,6 +153,7 @@ export const AutoTradeOpsTab = () => {
   const [filter, setFilter] = useState("problems");
   const [sort, setSort] = useState({ key: "net", dir: "desc" });
   const [modalUser, setModalUser] = useState(null);
+  const [since, setSince] = useState(FIXES_LANDED);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -150,7 +161,7 @@ export const AutoTradeOpsTab = () => {
     Promise.all([
       adminApi.getAutoTradeOverview(),
       adminApi.getAutoTradePositions(),
-      adminApi.getAutoTradeAnalytics(),
+      adminApi.getAutoTradeAnalytics(since),
     ])
       .then(([o, p, a]) => {
         setOverview(o);
@@ -159,7 +170,7 @@ export const AutoTradeOpsTab = () => {
       })
       .catch((e) => setError(e?.message || "Could not load AutoTrade data"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [since]);
 
   useEffect(load, [load]);
 
@@ -230,15 +241,38 @@ export const AutoTradeOpsTab = () => {
           <h2 className="mt-1 text-[22px] font-semibold text-text-primary">AutoTrade Monitor</h2>
           <p className="mt-1 text-sm text-text-secondary">
             Every user&apos;s bot, its health, what it earns, and everything it is holding.
+            {since ? (
+              <span className="text-text-muted"> Trading figures cover {since} onward.</span>
+            ) : (
+              <span className="text-text-muted"> Trading figures cover all time.</span>
+            )}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={load}
-          className="rounded-lg border border-ink/12 px-3 py-1.5 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {PERIODS.map(([label, value]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setSince(value)}
+                className={`rounded-full px-2.5 py-1 text-[11px] transition-colors ${
+                  since === value
+                    ? "bg-accent text-surface-primary"
+                    : "border border-ink/10 text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={load}
+            className="rounded-lg border border-ink/12 px-3 py-1.5 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+          >
+            {loading ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {/* Health */}

@@ -10,7 +10,7 @@ access to the encrypted API key columns.
 """
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_admin_user
@@ -19,6 +19,13 @@ from app.models.user import User
 from app.services import autotrade_monitor
 
 router = APIRouter(prefix="/admin/autotrade", tags=["Admin AutoTrade"])
+
+# The reconciler, entitlement gate, fill recording and auth fixes all landed on
+# 2026-07-30. Results before that came from a system that was demonstrably
+# broken — the reconciler had not completed a cycle in weeks — so the default
+# view starts the day after. History is not deleted; `since=` selects the
+# window and an empty value returns everything.
+FIXES_LANDED = "2026-07-31"
 
 
 def _attach_identities(db: Session, rows: list[dict[str, Any]]) -> None:
@@ -65,18 +72,20 @@ def autotrade_overview(
 def autotrade_user_trades(
     user_id: int,
     admin: User = Depends(get_admin_user),
+    since: str = Query(FIXES_LANDED, description="ISO date; empty string for all time"),
 ):
     """Closed trades for one user, each with that day's BTC move and signal regime."""
-    return autotrade_monitor.user_trades(user_id)
+    return autotrade_monitor.user_trades(user_id, since=since or None)
 
 
 @router.get("/analytics")
 def autotrade_analytics(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
+    since: str = Query(FIXES_LANDED, description="ISO date; empty string for all time"),
 ):
     """Desk-wide profitability: leaderboard, leverage/exit splits, equity curve."""
-    data = autotrade_monitor.analytics()
+    data = autotrade_monitor.analytics(since=since or None)
     if data.get("available"):
         _attach_identities(db, data.get("leaderboard", []))
     return data
