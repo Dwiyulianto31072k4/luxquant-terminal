@@ -28,7 +28,19 @@ from datetime import datetime, timezone
 import asyncpg
 import httpx
 
-from app.core.http_client import binance_weight_hook
+
+def _weight_hooks():
+    """Weight accounting when the backend package is importable, silence otherwise.
+
+    This worker is launched as a standalone script, so `app` is not on the path
+    at import time — a module-level import here crash-loops the unit. Metering is
+    a nice-to-have; it must never be the reason a worker cannot start.
+    """
+    try:
+        from app.core.http_client import binance_weight_hook
+        return [binance_weight_hook("max_leverage_worker")]
+    except Exception:
+        return []
 
 # ============================================================
 # CONFIG
@@ -155,7 +167,7 @@ async def run_backfill(days=None):
     conn = await asyncpg.connect(DATABASE_URL)
     client = httpx.AsyncClient(
         headers=HTTP_HEADERS,
-        event_hooks={"response": [binance_weight_hook("max_leverage_worker")]},
+        event_hooks={"response": _weight_hooks()},
     )
     try:
         # created_at is stored as TEXT — cast to timestamptz for date filtering.
@@ -192,7 +204,7 @@ async def run_single(signal_id):
     conn = await asyncpg.connect(DATABASE_URL)
     client = httpx.AsyncClient(
         headers=HTTP_HEADERS,
-        event_hooks={"response": [binance_weight_hook("max_leverage_worker")]},
+        event_hooks={"response": _weight_hooks()},
     )
     try:
         row = await get_signal_pair(conn, signal_id)
@@ -246,7 +258,7 @@ async def run_loop():
     conn = await _connect_with_listener(queue)
     client = httpx.AsyncClient(
         headers=HTTP_HEADERS,
-        event_hooks={"response": [binance_weight_hook("max_leverage_worker")]},
+        event_hooks={"response": _weight_hooks()},
     )
     logger.info("🔄 Max Leverage Worker started — LISTEN new_signal + %ss sweep", SWEEP_SECONDS)
 
