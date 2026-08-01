@@ -353,17 +353,48 @@ def run_refresh_mode(
 
     session = SessionLocal()
     try:
+        # Selection used to key on last_event_at — when the last TP/SL happened.
+        # For a signal that has not hit anything that is a fixed historical fact
+        # which never moves, so "has it been 6 hours since the last event?" was
+        # permanently true and the same signals were re-fetched every run for
+        # ever. Measured 2026-08-01: 1,015 selected, 1,007 of them already
+        # recomputed within the previous seven hours.
+        #
+        # What the question meant was "has it been 6 hours since WE computed
+        # this?" — computed_at. A new event still forces a recompute regardless
+        # of age, which is what last_event_at was there to catch.
+        #
+        # Staleness is then graded by signal age, because that is what predicts
+        # whether a fresh look will find anything. Measured over 52,023 journeys,
+        # 28.5% of peaks land inside day one and the rate decays 34-fold by the
+        # second week — but never to zero, so nothing is ever dropped, only
+        # slowed. Nothing is lost by looking later either: each recompute reads
+        # the whole kline history, so a delayed refresh still finds a peak that
+        # already happened. Frequency governs how fresh the number is, not
+        # whether it is correct. TP/SL detection is unaffected — that is written
+        # by the Telegram scraper, not by this worker.
         rows = session.execute(text("""
             SELECT j.signal_id
             FROM signal_journey j
             INNER JOIN signals s ON s.signal_id = j.signal_id
             WHERE j.coverage_status = 'live'
-              AND j.last_event_at < :cutoff_event
               AND s.created_at >= :cutoff_age_str
-            ORDER BY j.last_event_at ASC
+              AND (
+                    j.computed_at IS NULL
+                 OR j.last_event_at > j.computed_at
+                 OR j.computed_at < now() - (
+                        CASE
+                          WHEN now() - s.created_at::timestamptz < interval '1 day'
+                               THEN interval '2 hours'
+                          WHEN now() - s.created_at::timestamptz < interval '7 days'
+                               THEN :refresh_window
+                          ELSE interval '24 hours'
+                        END)
+              )
+            ORDER BY j.computed_at ASC NULLS FIRST
         """), {
-            "cutoff_event": cutoff_event,
             "cutoff_age_str": cutoff_age.isoformat(),
+            "refresh_window": timedelta(hours=older_than_hours),
         }).mappings().all()
     finally:
         session.close()

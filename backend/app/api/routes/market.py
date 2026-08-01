@@ -624,7 +624,13 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
             # Nothing visible is lost: the signals table polls live prices in the
             # browser on its own interval, and 24h volume/high/low do not move
             # meaningfully inside twenty seconds.
-            cache_set(cache_key, all_tickers, ttl=20)
+            #
+            # 2026-08-01: 60s. Per-caller weight attribution put this endpoint at
+            # 74 weight/minute, 15% of the whole futures baseline, second only to
+            # the algo-order call. The reasoning above does not weaken over a
+            # minute — and _tickers_from_ws() already serves the fresh path from
+            # the WebSocket blob, so this is a fallback, not the hot path.
+            cache_set(cache_key, all_tickers, ttl=60)
         else:
             # All providers failed — try stale cache
             stale, _ = cache_get_with_stale(cache_key)
@@ -659,7 +665,17 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
                             "volume": float(item["quoteVolume"]),
                             "change": float(item.get("priceChangePercent", 0) or 0),
                         }
-                    cache_set(spot_cache_key, spot_tickers, ttl=5)
+                    # 60s, not 5s. The futures batch above was moved off a
+                    # 5-second cache for exactly this reason and this fallback
+                    # was left behind: /api/v3/ticker/24hr with no symbol costs
+                    # weight 80, the heaviest single request this product makes.
+                    # Measured 2026-08-01 it was 87 weight/minute on its own.
+                    #
+                    # The same argument that justified 20s justifies 60s: live
+                    # prices reach the browser from the WebSocket blob and the
+                    # signals table's own polling, and 24h volume/change do not
+                    # move meaningfully inside a minute.
+                    cache_set(spot_cache_key, spot_tickers, ttl=60)
             except Exception:
                 pass
 
