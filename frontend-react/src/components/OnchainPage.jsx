@@ -9,11 +9,17 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
+import CoinLogo from "./CoinLogo";
 import { ShimmerStyles } from "./ui/Loaders";
 import { PageHeader } from "./ui/PageHeader";
 
 const API = "/api/v1/onchain";
-const PER_PAGE = 30;
+// 15, not 30. A row measures 73px and 79px with its gap, so thirty of them ran
+// 2,363px down the page while the sidebar beside it stops at roughly 1,170px —
+// the list carried on for another screen and a half against nothing at all.
+// Fifteen lands the last row level with the bottom of the sidebar, which is
+// where the page stops having anything to say and where the pagination belongs.
+const PER_PAGE = 15;
 const REFRESH_INTERVAL = 60000;
 
 // ── Alert type config (no emoji, just text) ──
@@ -540,7 +546,10 @@ const OnchainPage = () => {
           )}
         </div>
 
-        <div className="lg:col-span-3 space-y-4">
+        {/* Sticky so the two columns stay level once the list is the shorter of
+            the two — otherwise trimming the page to 15 rows just moves the
+            empty space from the right column to the left one. */}
+        <div className="lg:col-span-3 space-y-4 lg:sticky lg:top-4 lg:self-start">
           <SidebarTrendingTokens
             stats={stats}
             onTokenClick={handleToken}
@@ -618,6 +627,41 @@ const StatCard = ({ label, value, sublabel, isLive, isGold }) => (
 // ════════════════════════════════════════════════════════════════
 // ALERT ROW
 // ════════════════════════════════════════════════════════════════
+/** The square at the head of an alert row.
+ *
+ * It used to render the Telegram photo whenever the alert carried one, with an
+ * onError that only hid the <img>. Those URLs are t.me/i/userpic/... and they
+ * 404 constantly — the console on /onchain was full of them — so the slot was
+ * left showing nothing but its own background: the empty pale squares down the
+ * left of the page.
+ *
+ * Order is now the useful one. A coin logo when we know the token, because that
+ * is what the row is actually about; the source photo only when there is no
+ * token to draw; the chain dot when neither works, including when the photo
+ * fails, which is the case the old code had no answer for.
+ */
+const AlertAvatar = ({ alert }) => {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const usePhoto = !alert.token && alert.has_photo && alert.image_url && !photoFailed;
+
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1] bg-surface-secondary">
+      {alert.token ? (
+        <CoinLogo pair={alert.token} size={40} className="h-full w-full" />
+      ) : usePhoto ? (
+        <img
+          src={alert.image_url}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setPhotoFailed(true)}
+        />
+      ) : (
+        <span className={`h-2 w-2 rounded-full ${chainDot(alert.blockchain)}`} />
+      )}
+    </div>
+  );
+};
+
 const AlertRow = ({ alert, isHighlight, onClick }) => {
   return (
     <div
@@ -638,20 +682,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
       )}
 
       <div className="flex items-center gap-3 p-3 sm:p-3.5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1] bg-surface-secondary">
-          {alert.has_photo && alert.image_url ? (
-            <img
-              src={alert.image_url}
-              alt=""
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
-            />
-          ) : (
-            <span className={`h-2 w-2 rounded-full ${chainDot(alert.blockchain)}`} />
-          )}
-        </div>
+        <AlertAvatar alert={alert} />
 
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -739,6 +770,7 @@ const SidebarTrendingTokens = ({ stats, onTokenClick, activeToken }) => {
                 <span className="w-4 font-mono text-[10px] tabular-nums text-text-muted">
                   {String(i + 1).padStart(2, "0")}
                 </span>
+                <CoinLogo pair={t.token} size={18} className="shrink-0" />
                 <span
                   className={`truncate text-xs font-medium ${active ? "text-accent" : "text-text-primary"}`}
                 >
@@ -820,6 +852,7 @@ const SidebarLargestMoves = ({ stats }) => {
               <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
                 {String(i + 1).padStart(2, "0")}
               </span>
+              {m.token ? <CoinLogo pair={m.token} size={18} className="shrink-0" /> : null}
               <div className="flex flex-col min-w-0">
                 <span className="text-xs text-text-primary truncate">
                   {m.token ? `$${m.token}` : "—"}
@@ -886,6 +919,11 @@ const SidebarSources = ({ stats, onSourceClick, activeSource }) => {
 // MODAL
 // ════════════════════════════════════════════════════════════════
 const AlertModal = ({ alert, onClose }) => {
+  // Same t.me/i/userpic URLs as the rows, so the same 404s. Hiding the block in
+  // onError worked but only after a 160px slab of empty surface had already
+  // been laid out and painted; deciding in state means it is never drawn.
+  const [imageFailed, setImageFailed] = useState(false);
+
   useEffect(() => {
     const h = (e) => {
       if (e.key === "Escape") onClose();
@@ -932,18 +970,16 @@ const AlertModal = ({ alert, onClose }) => {
         </button>
 
         <div className="overflow-y-auto">
-          {alert.image_url && (
+          {alert.image_url && !imageFailed && (
             <div
               className="flex items-center justify-center border-b border-ink/[0.07] bg-surface"
-              style={{ minHeight: "160px", maxHeight: "400px" }}
+              style={{ maxHeight: "400px" }}
             >
               <img
                 src={alert.image_url}
                 alt=""
                 className="max-h-[400px] w-full object-contain"
-                onError={(e) => {
-                  e.target.parentElement.style.display = "none";
-                }}
+                onError={() => setImageFailed(true)}
               />
             </div>
           )}
