@@ -111,6 +111,40 @@ const prettyType = (t) => {
 // ── Chain marker — monochrome desk (name carries identity) ──
 const chainDot = (_c) => "bg-ink/40";
 
+/**
+ * Chains drawn as their native asset, because that is the mark people recognise
+ * — Tron is TRX, BSC is BNB, Hyperliquid is HYPE. Every one of these resolves
+ * on LiveCoinWatch (probed 2026-08-02, including `base`, which OKX 404s), so
+ * they go through the same CoinLogo path as the tokens rather than needing
+ * their own asset pipeline.
+ *
+ * Anything not listed keeps the plain dot. A wrong chain mark is worse than a
+ * neutral one, and guessing at a ticker for a chain we have not checked is how
+ * you end up shipping the wrong logo.
+ */
+const CHAIN_TOKEN = {
+  bitcoin: "BTC",
+  ethereum: "ETH",
+  solana: "SOL",
+  tron: "TRX",
+  bsc: "BNB",
+  base: "BASE",
+  hyperliquid: "HYPE",
+  arbitrum: "ARB",
+  optimism: "OP",
+  avalanche: "AVAX",
+  polygon: "POL",
+  sui: "SUI",
+};
+
+const ChainMark = ({ chain, size = 14 }) => {
+  const token = CHAIN_TOKEN[String(chain || "").toLowerCase()];
+  if (!token) {
+    return <span className={`h-1.5 w-1.5 rounded-full ${chainDot(chain)}`} />;
+  }
+  return <CoinLogo pair={token} size={size} className="shrink-0" />;
+};
+
 // ════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════════
@@ -698,7 +732,7 @@ const AlertRow = ({ alert, isHighlight, onClick }) => {
             )}
             {alert.blockchain && (
               <span className="hidden items-center gap-1 font-mono text-[10px] text-text-muted sm:inline-flex">
-                <span className={`h-1 w-1 rounded-full ${chainDot(alert.blockchain)}`} />
+                <ChainMark chain={alert.blockchain} size={12} />
                 {alert.blockchain}
               </span>
             )}
@@ -822,7 +856,7 @@ const SidebarBlockchains = ({ stats, onChainClick, activeChain }) => {
                 <span
                   className={`flex items-center gap-2 text-xs ${active ? "text-accent" : "text-text-primary"}`}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${chainDot(c.blockchain)}`} />
+                  <ChainMark chain={c.blockchain} size={14} />
                   {c.blockchain}
                 </span>
                 <span className="text-[10px] font-mono text-text-muted/70 tabular-nums">
@@ -995,7 +1029,7 @@ const AlertModal = ({ alert, onClose }) => {
               </span>
               {alert.blockchain && (
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-ink/[0.1] bg-surface-secondary px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-                  <span className={`h-1.5 w-1.5 rounded-full ${chainDot(alert.blockchain)}`} />
+                  <ChainMark chain={alert.blockchain} size={14} />
                   {alert.blockchain}
                 </span>
               )}

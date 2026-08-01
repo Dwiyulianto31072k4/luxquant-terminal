@@ -23,7 +23,11 @@ import { LOCAL_COIN_LOGOS } from "../content/coinLogosLocal.generated";
  */
 
 const CACHE_KEY = "lq:coin-logos";
-const CACHE_VERSION = 6;
+// 7: USDT/USDC used to derive an empty symbol and were cached as failures, and
+// HYPE was cached against the wrong project's image. Both are fixed below, but
+// a returning browser would keep serving its stored answer — the fix only
+// reaches anyone if the version moves with it.
+const CACHE_VERSION = 7;
 // Long enough to keep genuinely-missing coins cheap, short enough that a
 // throttled load repairs itself the same day.
 const FAIL_TTL_MS = 6 * 60 * 60 * 1000;
@@ -82,6 +86,20 @@ const stripMultiplier = (symbol) => symbol.replace(/^(1000000|1000|1M)(?=[A-Z])/
  */
 const TICKER_ALIASES = { RAYSOL: "RAY" };
 
+/**
+ * Symbols where the widest source carries the wrong project.
+ *
+ * Coverage was audited; agreement was not. A ticker is not unique — several
+ * projects ship as HYPE, and LiveCoinWatch resolves it to a yellow angular mark
+ * that is not Hyperliquid, while OKX carries the mint-green one that is
+ * (compared side by side, 2026-08-02: 64x64 vs 96x96, different images). Being
+ * source #1 meant the wrong logo always won.
+ *
+ * Only list a symbol here after looking at both images. A guess swaps one wrong
+ * logo for another.
+ */
+const SOURCE_PREFERENCE = { HYPE: "okx" };
+
 const getLogoSources = (symbol) => {
   const stripped = stripMultiplier(symbol);
   const base = TICKER_ALIASES[stripped] || stripped;
@@ -89,15 +107,15 @@ const getLogoSources = (symbol) => {
   const upper = base.toUpperCase();
   // Audited gaps ship locally — raw symbol first (BTCDOM), stripped base second
   const local = LOCAL_COIN_LOGOS[symbol.toUpperCase()] || LOCAL_COIN_LOGOS[upper];
-  return [
-    ...(local ? [`/coin-logos/${local}`] : []),
-    // LiveCoinWatch — 664/749 audited symbols, the widest single source
-    `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${lower}.png`,
-    // OKX currency icons — 472/749, picks up most of what LCW misses
-    `https://static.okx.com/cdn/oksupport/asset/currency/icon/${lower}.png`,
-    // CoinCap — 315/749, but the only source for a last 3 (cheap to keep)
-    `https://assets.coincap.io/assets/icons/${lower}@2x.png`,
-  ];
+  // LiveCoinWatch — 664/749 audited symbols, the widest single source
+  const lcw = `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${lower}.png`;
+  // OKX currency icons — 472/749, picks up most of what LCW misses
+  const okx = `https://static.okx.com/cdn/oksupport/asset/currency/icon/${lower}.png`;
+  // CoinCap — 315/749, but the only source for a last 3 (cheap to keep)
+  const coincap = `https://assets.coincap.io/assets/icons/${lower}@2x.png`;
+
+  const remote = SOURCE_PREFERENCE[upper] === "okx" ? [okx, lcw, coincap] : [lcw, okx, coincap];
+  return [...(local ? [`/coin-logos/${local}`] : []), ...remote];
 };
 
 const COIN_COLORS = {
@@ -367,14 +385,17 @@ const CoinLogo = ({ pair, size = 40, className = "" }) => {
   const statusCtx = useContext(SignalStatusContext); // null outside the terminal
   const statusMap = statusCtx?.map;
 
-  const symbol = pair
-    ? pair
-        .replace(/USDT$/i, "")
-        .replace(/BUSD$/i, "")
-        .replace(/USDC$/i, "")
-        .replace(/USD$/i, "")
-        .toUpperCase()
-    : "";
+  // Strip the quote currency off a pair — BTCUSDT to BTC — but never strip a
+  // symbol down to nothing. Passed "USDT" or "USDC" this used to return "",
+  // which the effect below reads as failure, so the two most-traded assets on
+  // the On-Chain page rendered as question marks while every URL for them
+  // answered 200. Anywhere a bare ticker is passed rather than a pair, the
+  // stablecoins were the exact set that broke.
+  const symbol = (() => {
+    if (!pair) return "";
+    const stripped = pair.replace(/(USDT|BUSD|USDC|USD)$/i, "");
+    return (stripped || pair).toUpperCase();
+  })();
 
   useEffect(() => {
     if (!symbol) {
