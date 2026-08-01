@@ -205,9 +205,18 @@ def unread_count(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Drives the launcher dot when the panel is closed."""
+    """Drives the launcher when the panel is closed.
+
+    Carries the newest unread line as well as the count, so the launcher can
+    show what was said rather than only that something was. Same round trip it
+    already polls; the preview is skipped entirely when there is nothing unread.
+    """
     try:
-        return {"unread": chat_service.user_unread_count(db, user.id)}
+        n = chat_service.user_unread_count(db, user.id)
+        return {
+            "unread": n,
+            "preview": chat_service.user_unread_preview(db, user.id) if n else None,
+        }
     except ChatSchemaMissing:
         # The launcher polls this; a missing table shouldn't spam 503s into the
         # console of every logged-in user. Report "nothing unread" instead.

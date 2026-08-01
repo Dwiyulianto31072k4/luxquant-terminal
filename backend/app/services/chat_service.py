@@ -414,6 +414,44 @@ def user_unread_count(db: Session, user_id: int) -> int:
     return int(row["n"]) if row else 0
 
 
+def user_unread_preview(db: Session, user_id: int) -> dict | None:
+    """The latest thing we said to this user, for the launcher to show.
+
+    A bare count tells someone a message exists and nothing about whether it is
+    worth opening. The launcher can put the actual line on screen instead, which
+    is the difference between a notification and an answer.
+
+    Only the newest visible admin message, and only the head of it — this is a
+    peek, not the thread.
+    """
+    try:
+        row = db.execute(
+            text("""
+                SELECT m.body, m.created_at
+                  FROM chat_messages m
+                  JOIN chat_conversations c ON c.id = m.conversation_id
+                 WHERE c.user_id = :uid
+                   AND m.sender = 'admin'
+                   AND m.visibility <> 'admin_only'
+                   AND m.seq > c.user_last_read_seq
+                 ORDER BY m.seq DESC
+                 LIMIT 1
+            """),
+            {"uid": user_id},
+        ).mappings().first()
+    except Exception as e:
+        _guard_schema(e)
+        raise
+    if not row or not row["body"]:
+        return None
+    body = row["body"].strip()
+    return {
+        "body": body[:160],
+        "truncated": len(body) > 160,
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+    }
+
+
 # ════════════════════════════════════════════════════════════════════
 # Settings (singleton row, id = 1)
 # ════════════════════════════════════════════════════════════════════
