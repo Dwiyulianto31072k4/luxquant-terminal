@@ -102,13 +102,40 @@ def _parse_iso(ts: str) -> Optional[datetime]:
         return None
 
 
+def _hourly_candles_needed(start_ms: int, cap: int = 1500) -> int:
+    """Candles between start_ms and now at 1h, capped.
+
+    Binance charges kline weight on the LIMIT PARAMETER, not on the rows it
+    returns: 1 up to 100 candles, 2 to 500, 5 to 1000, and 10 above that. This
+    worker asked for 1500 every time, so every signal cost the maximum — a
+    two-day signal paid weight 10 for 48 candles.
+
+    journey_fetcher fixed exactly this and the fix never reached here, which is
+    what made this script the largest single consumer of the futures budget:
+    cron runs it over 500 signals every ten minutes and 2,000 more four times an
+    hour, and it was invisible to the weight meter besides.
+    """
+    span_hours = max(0, (int(time.time() * 1000) - int(start_ms)) // 3_600_000)
+    return max(1, min(cap, span_hours + 2))
+
+
 def _fetch_binance(url: str, symbol: str, start_ms: int) -> Optional[List]:
     try:
         r = requests.get(
             url,
-            params={"symbol": symbol, "interval": "1h", "startTime": start_ms, "limit": 1500},
+            params={
+                "symbol": symbol,
+                "interval": "1h",
+                "startTime": start_ms,
+                "limit": _hourly_candles_needed(start_ms),
+            },
             timeout=REQUEST_TIMEOUT,
         )
+        try:
+            from app.core.http_client import note_binance_response
+            note_binance_response(r, "peak_price_worker")
+        except Exception:
+            pass   # runs from cron; the meter is a nice-to-have, never a blocker
         if r.status_code == 200:
             data = r.json()
             if isinstance(data, list) and len(data) > 0:
