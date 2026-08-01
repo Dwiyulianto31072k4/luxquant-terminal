@@ -30,6 +30,7 @@ import { GrowthTab } from "./admin/workspace/GrowthTab";
 import { TodoTab } from "./admin/workspace/TodoTab";
 import { ActivityTab } from "./admin/workspace/ActivityTab";
 import { AutoTradeOpsTab } from "./admin/workspace/AutoTradeOpsTab";
+import { AwaitingReplyNudge } from "./admin/AwaitingReplyNudge";
 import { ApiKeysTab } from "./admin/workspace/ApiKeysTab";
 import { AnnouncementsTab } from "./admin/workspace/AnnouncementsTab";
 import { ChatTab } from "./admin/workspace/ChatTab";
@@ -696,6 +697,15 @@ const AdminWorkspacePage = () => {
         {activeTab === "profitshare" && <ProfitSharingTab />}
         {activeTab === "aicost" && <AiCostTab />}
       </RouteErrorBoundary>
+
+      {/* Outside the tab switch on purpose: someone waiting for an answer is
+          worth surfacing wherever the operator happens to be looking. */}
+      <AwaitingReplyNudge
+        onOpenChat={() => {
+          changeTab("chat");
+          fetchChatUnread();
+        }}
+      />
     </div>
   );
 };

@@ -15,6 +15,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AutoTradeTab } from "./users/AutoTradeTab";
+import { ChatTab } from "./users/ChatTab";
+import { ActivityTab } from "./users/ActivityTab";
 import { createPortal } from "react-dom";
 import { adminApi } from "../../services/adminApi";
 import { adminChatApi } from "../../services/adminChatApi";
@@ -1830,6 +1832,10 @@ const TABS = [
   { id: "payments", label: "Payments", Icon: StarIcon },
   { id: "referral", label: "Referral", Icon: SparklesIcon },
   { id: "outreach", label: "Outreach", Icon: SendIcon },
+  // Answering someone starts from their record, not from a second list — so the
+  // thread lives here too, next to what they paid and whether their bot runs.
+  { id: "chat", label: "Chat", Icon: SendIcon },
+  { id: "activity", label: "Activity", Icon: UserIcon },
   { id: "autotrade", label: "Agent", Icon: BroadcastIcon },
 ];
 
@@ -2068,6 +2074,8 @@ export const UserDetailDrawer = ({
               {activeTab === "outreach" && (
                 <OutreachTab data={data} templates={templates} canWrite={canWrite} />
               )}
+              {activeTab === "chat" && <ChatTab userId={userId} canWrite={canWrite} />}
+              {activeTab === "activity" && <ActivityTab userId={userId} />}
               {activeTab === "autotrade" && <AutoTradeTab userId={userId} />}
             </>
           )}

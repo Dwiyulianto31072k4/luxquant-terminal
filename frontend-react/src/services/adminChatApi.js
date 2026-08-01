@@ -75,6 +75,16 @@ export const adminChatApi = {
     return response.data;
   },
 
+  // Threads where the user spoke last and nobody answered. Not the same as
+  // unread: glancing at a conversation clears the badge but does not reply, and
+  // the person waiting only experiences the reply.
+  getAwaitingReply: async (limit = 5) => {
+    const response = await api.get("/api/v1/admin/chat/awaiting-reply", {
+      params: { limit },
+    });
+    return response.data;
+  },
+
   // ════════════════════════════════════════════
   // Settings
   // ════════════════════════════════════════════

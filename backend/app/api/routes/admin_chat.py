@@ -277,6 +277,63 @@ def patch_conversation(
     return {"ok": True, "status": conv["status"]}
 
 
+@router.get("/awaiting-reply")
+def awaiting_reply(
+    limit: int = Query(5, ge=1, le=25),
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Threads where the user spoke last and nobody has answered.
+
+    Different question from the unread badge. A thread can be marked read by
+    whoever glanced at it and still have nobody reply — which is the failure the
+    person waiting actually experiences. This compares the two sides' last
+    message times instead of a read cursor, so opening a conversation does not
+    make it disappear from here.
+
+    Oldest wait first: the longest-ignored person is the one to answer next.
+    """
+    try:
+        rows = db.execute(
+            text("""
+                SELECT c.id, c.user_id, c.last_user_message_at,
+                       u.username, u.email,
+                       EXTRACT(EPOCH FROM (now() - c.last_user_message_at)) AS waiting_seconds
+                  FROM chat_conversations c
+                  JOIN users u ON u.id = c.user_id
+                 WHERE c.last_user_message_at IS NOT NULL
+                   AND (c.last_admin_message_at IS NULL
+                        OR c.last_user_message_at > c.last_admin_message_at)
+                   AND c.status <> 'closed'
+                 ORDER BY c.last_user_message_at ASC
+                 LIMIT :lim
+            """),
+            {"lim": limit},
+        ).mappings().all()
+    except Exception as e:
+        if isinstance(e, ChatSchemaMissing):
+            raise _schema_guard(e)
+        raise
+
+    return {
+        "count": len(rows),
+        "conversations": [
+            {
+                "conversation_id": r["id"],
+                "user_id": r["user_id"],
+                "username": r["username"],
+                "email": r["email"],
+                "last_user_message_at": (
+                    r["last_user_message_at"].isoformat()
+                    if r["last_user_message_at"] else None
+                ),
+                "waiting_seconds": int(r["waiting_seconds"] or 0),
+            }
+            for r in rows
+        ],
+    }
+
+
 @router.get("/unread-count")
 def unread_count(
     admin: User = Depends(get_admin_user),

@@ -22,7 +22,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, and_, case, desc
+from sqlalchemy import func, or_, and_, case, desc, text
 
 from app.core.database import get_db
 from app.models.user import User
@@ -1227,6 +1227,75 @@ def get_contact_stats(
         "admin_enriched": enriched,
         "unreachable": unreachable,
     }
+
+
+@router.get("/users/{user_id}/activity")
+def get_user_activity(
+    user_id: int,
+    limit: int = Query(300, ge=1, le=1000),
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Every recorded action by one user, newest first, with real timestamps.
+
+    The drawer previously showed a session count and a "last seen" day, which
+    answers "are they alive" and nothing else. Support needs the shape of a
+    visit: what they opened, in what order, how long the gaps were — that is
+    what tells you whether someone is stuck on a page or just browsing.
+
+    Raw rows rather than a daily rollup on purpose. A rollup cannot answer "what
+    were they doing right before they messaged us", which is the question that
+    actually gets asked.
+    """
+    db.query(User.id).filter(User.id == user_id).first() or _not_found()
+
+    rows = db.execute(
+        text("""
+            SELECT feature, occurred_at
+              FROM user_activity_events
+             WHERE user_id = :uid
+             ORDER BY occurred_at DESC
+             LIMIT :lim
+        """),
+        {"uid": user_id, "lim": limit},
+    ).mappings().all()
+
+    events = [
+        {"feature": r["feature"], "occurred_at": r["occurred_at"].isoformat()}
+        for r in rows
+    ]
+
+    # Per-feature totals over the whole history, not just the page above, so the
+    # summary does not change meaning when someone raises the limit.
+    totals = db.execute(
+        text("""
+            SELECT feature, count(*) AS n, max(occurred_at) AS last_at
+              FROM user_activity_events
+             WHERE user_id = :uid
+             GROUP BY feature
+             ORDER BY n DESC
+        """),
+        {"uid": user_id},
+    ).mappings().all()
+
+    return {
+        "events": events,
+        "returned": len(events),
+        "truncated": len(events) >= limit,
+        "by_feature": [
+            {
+                "feature": t["feature"],
+                "count": t["n"],
+                "last_at": t["last_at"].isoformat() if t["last_at"] else None,
+            }
+            for t in totals
+        ],
+        "total_events": sum(t["n"] for t in totals),
+    }
+
+
+def _not_found():
+    raise HTTPException(status_code=404, detail="User not found")
 
 
 @router.get("/users/{user_id}/full")

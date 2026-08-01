@@ -29,6 +29,15 @@ export const adminApi = {
     return response.data;
   },
 
+  // Raw activity rows with real timestamps, newest first. A session count and a
+  // "last seen" day answer whether someone is alive and nothing else.
+  getUserActivity: async (userId, limit = 300) => {
+    const response = await api.get(`/api/v1/admin/users/${userId}/activity`, {
+      params: { limit },
+    });
+    return response.data;
+  },
+
   getAutoTradeUser: async (userId) => {
     const response = await api.get(`/api/v1/admin/autotrade/users/${userId}`);
     return response.data;
