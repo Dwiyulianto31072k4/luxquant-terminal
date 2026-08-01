@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { adminApi } from "../../../services/adminApi";
 import { AutoTradeUserModal } from "./AutoTradeUserModal";
+import ForceCloseModal from "./ForceCloseModal";
 
 const UP = "#0ECB81";
 const DOWN = "#F6465D";
@@ -170,6 +171,7 @@ export const AutoTradeOpsTab = () => {
   const [filter, setFilter] = useState("problems");
   const [sort, setSort] = useState({ key: "net", dir: "desc" });
   const [modalUser, setModalUser] = useState(null);
+  const [closing, setClosing] = useState(null);
   const [since, setSince] = useState(FIXES_LANDED);
 
   const load = useCallback(() => {
@@ -711,6 +713,7 @@ export const AutoTradeOpsTab = () => {
                   <th className="pb-2 pr-3 font-medium">User</th>
                   <th className="pb-2 pr-3 font-medium">Opened</th>
                   <th className="pb-2 pr-4 font-medium">Status</th>
+                  <th className="pb-2 pr-4 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -748,6 +751,23 @@ export const AutoTradeOpsTab = () => {
                           {p.dry_run ? "open (dry run)" : "open"}
                         </span>
                       )}
+                      {p.unprotected ? (
+                        <span className="mt-0.5 block text-[11px] font-semibold" style={{ color: DOWN }}>
+                          no stop-loss
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-2.5 pr-4 text-right">
+                      {p.position_id && !p.dry_run ? (
+                        <button
+                          type="button"
+                          onClick={() => setClosing(p)}
+                          className="rounded-md border border-ink/[0.12] px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-ink/[0.05]"
+                          title="Close this position at market on the account holder's behalf"
+                        >
+                          Force close
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -756,6 +776,12 @@ export const AutoTradeOpsTab = () => {
           </div>
         )}
       </Card>
+
+      <ForceCloseModal
+        position={closing}
+        onClose={() => setClosing(null)}
+        onDone={load}
+      />
 
       {modalUser ? (
         <AutoTradeUserModal user={modalUser} onClose={() => setModalUser(null)} />

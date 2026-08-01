@@ -264,3 +264,12 @@ export const sendTestAlert = () =>
   request("/me/alerts/test", {
     method: "POST",
   });
+
+// Operator action: close a position on someone else's account. Admin-gated on
+// the server, which also re-checks the typed symbol and the required reason —
+// the UI copy of those rules is a courtesy, not the enforcement.
+export const forceCloseUserPosition = (positionId, payload) =>
+  request(`/me/portfolio/admin/position/${encodeURIComponent(positionId)}/force-close`, {
+    method: "POST",
+    body: payload,
+  });

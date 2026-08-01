@@ -573,10 +573,24 @@ def open_positions() -> dict[str, Any]:
     try:
         rows = _rows(
             """
-            SELECT p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
+            SELECT p.id AS position_id,
+                   p.symbol, p.market_type, p.side, p.quantity, p.entry_price,
                    p.status, p.exit_reason, p.created_at, p.last_synced_at,
                    u.subject, u.email AS cb_email,
-                   c.leverage AS leverage, c.dry_run AS dry_run
+                   c.leverage AS leverage, c.dry_run AS dry_run,
+                   -- No execution job means the desk did not open this; the
+                   -- reconciler adopted a trade the user placed by hand.
+                   (p.execution_job_id IS NOT NULL) AS is_bot,
+                   -- Whether the stop-loss watchdog currently has an open alert
+                   -- against this exact position. Surfacing it here is the point:
+                   -- an uncapped position is the one an operator may need to act
+                   -- on, and it should not take three clicks to find.
+                   EXISTS (
+                       SELECT 1 FROM monitoring_alerts a
+                       WHERE a.subject_id = p.id
+                         AND a.category = 'position_unprotected'
+                         AND a.status = 'open'
+                   ) AS unprotected
             FROM positions p
             JOIN users u ON u.id = p.user_id
             LEFT JOIN strategy_configs c
