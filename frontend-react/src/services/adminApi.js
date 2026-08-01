@@ -34,6 +34,20 @@ export const adminApi = {
     return response.data;
   },
 
+  // Switches this user's bot off (or back on). Touches nothing else: the
+  // subscription, the signal feed and any open position are left alone, and
+  // open positions keep their take-profit and stop-loss.
+  //
+  // The reason is mandatory because the user is shown it. A bot that stops with
+  // no explanation is indistinguishable from a bot that is broken.
+  setAutoTradeBotAccess: async (userId, blocked, reason) => {
+    const response = await api.post(
+      `/api/v1/admin/autotrade/users/${userId}/bot-access`,
+      { blocked, reason },
+    );
+    return response.data;
+  },
+
   // ════════════════════════════════════════
   // Dashboard stats
   // ════════════════════════════════════════

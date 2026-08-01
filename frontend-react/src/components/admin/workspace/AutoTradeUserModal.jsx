@@ -105,6 +105,121 @@ function Kpi({ label, value, sub, tone }) {
   );
 }
 
+/** Switch one user's bot off, or back on.
+ *
+ * Narrow on purpose: the subscription, the signal feed and every open position
+ * are untouched, and open positions keep their take-profit and stop-loss. Only
+ * new live entries stop.
+ *
+ * The reason is required because the user is shown it — a bot that stops with
+ * no explanation is indistinguishable from a bot that is broken, and the person
+ * with money in the position is the one who has to tell them apart.
+ */
+const BotAccessControl = ({ userId, blocked, reason, blockedBy, onChanged }) => {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (nextBlocked) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 3) {
+      setErr("A reason is required — the user is shown it.");
+      return;
+    }
+    setBusy(true);
+    setErr("");
+    try {
+      await adminApi.setAutoTradeBotAccess(userId, nextBlocked, trimmed);
+      setOpen(false);
+      setText("");
+      onChanged?.();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || e?.message || "Could not apply");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className={`rounded-xl border px-4 py-3 ${
+        blocked ? "border-[#F6465D]/40 bg-[#F6465D]/[0.06]" : "border-ink/[0.08] bg-surface-raised"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
+            BOT ACCESS
+          </p>
+          <p className="mt-1 text-[13px] font-semibold text-text-primary">
+            {blocked ? "Switched off by an operator" : "Active"}
+          </p>
+          {blocked ? (
+            <p className="mt-0.5 break-words text-[11px] text-text-muted">
+              {reason || "No reason recorded."}
+              {blockedBy ? ` · by ${blockedBy}` : ""}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-[11px] text-text-muted">
+              Stops new live entries only. Subscription, signals and open positions
+              are untouched — open positions keep their take-profit and stop-loss.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setErr("");
+            setOpen((v) => !v);
+          }}
+          className={`shrink-0 rounded-lg border px-3 py-1.5 text-[12px] transition-colors ${
+            blocked
+              ? "border-ink/12 text-text-secondary hover:border-accent hover:text-accent"
+              : "border-[#F6465D]/40 text-[#F6465D] hover:bg-[#F6465D]/10"
+          }`}
+        >
+          {open ? "Cancel" : blocked ? "Switch back on" : "Switch bot off"}
+        </button>
+      </div>
+
+      {open ? (
+        <div className="mt-3 border-t border-ink/[0.08] pt-3">
+          <label className="text-[11px] text-text-muted">
+            Reason — shown to the user
+          </label>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder={
+              blocked
+                ? "e.g. Review complete, no issue found."
+                : "e.g. Suspected API key sharing, pending review."
+            }
+            className="mt-1 w-full rounded-lg border border-ink/12 bg-surface-primary px-3 py-2 text-[12px] text-text-primary outline-none focus:border-accent"
+          />
+          {err ? <p className="mt-1 text-[11px] text-[#F6465D]">{err}</p> : null}
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => submit(!blocked)}
+              className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-surface-primary disabled:opacity-50"
+            >
+              {busy ? "Applying…" : blocked ? "Switch back on" : "Switch bot off"}
+            </button>
+            <span className="text-[11px] text-text-muted">
+              Takes effect within about 2 minutes.
+            </span>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const AutoTradeUserModal = ({ user, onClose }) => {
   const [detail, setDetail] = useState(null);
   const [trades, setTrades] = useState(null);
@@ -112,6 +227,10 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
   // Everything before 2026-07-31 came from a system whose reconciler had not
   // completed a cycle in weeks, so the default window starts after the fixes.
   const [since, setSince] = useState(FIXES_LANDED);
+  // Bumped after a bot is switched off or on, so the panel re-reads rather than
+  // showing the state the operator just changed.
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((n) => n + 1);
 
   const userId = user?.luxquant_user_id;
 
@@ -137,7 +256,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
     return () => {
       dead = true;
     };
-  }, [userId, since]);
+  }, [userId, since, reloadKey]);
 
   // Oldest → newest so the curve reads left to right.
   const curve = useMemo(() => {
@@ -256,6 +375,15 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
 
         <div className="space-y-4 px-6 py-5">
           {error ? <p className="text-sm text-[#F6465D]">{error}</p> : null}
+
+          <BotAccessControl
+            userId={userId}
+            blocked={Boolean(s.bot_access_blocked)}
+            reason={s.bot_access_blocked_reason}
+            blockedBy={s.bot_access_blocked_by}
+            onChanged={reload}
+          />
+
           {!detail && !error ? <p className="text-sm text-text-muted">Loading…</p> : null}
 
           {detail ? (

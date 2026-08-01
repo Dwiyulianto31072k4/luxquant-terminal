@@ -52,6 +52,13 @@ def _attach_identities(db: Session, rows: list[dict[str, Any]]) -> None:
         row["email"] = getattr(user, "email", None)
         row["role"] = getattr(user, "role", None)
         row["subscription_expires_at"] = getattr(user, "subscription_expires_at", None)
+        # Whether an operator has switched this bot off. It lives on the LuxQuant
+        # side, so the monitoring view — which reads the cryptobot database —
+        # cannot see it without this. Without it the console would show a bot
+        # sitting idle and give no hint that we are the reason.
+        row["bot_access_blocked"] = bool(getattr(user, "autotrade_blocked", False))
+        row["bot_access_blocked_reason"] = getattr(user, "autotrade_blocked_reason", None)
+        row["bot_access_blocked_by"] = getattr(user, "autotrade_blocked_by", None)
 
 
 @router.get("/overview")
