@@ -315,7 +315,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
         }}
       />
 
-      <div className="relative z-10 flex h-[min(94dvh,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(88vh,820px)] sm:rounded-xl">
+      <div className="lq-sheet relative z-10 flex h-[min(94dvh,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(88vh,820px)] sm:rounded-xl">
         {/* ── Header ── */}
         <header className="shrink-0 border-b border-ink/[0.07] px-4 py-3 sm:px-5 sm:py-3.5">
           <div className="flex items-start justify-between gap-3">

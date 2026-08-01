@@ -177,7 +177,7 @@ export const GuideModal = ({ onClose }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-ink/12 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl overflow-hidden flex flex-col"
+        className="lq-sheet relative w-full max-w-3xl max-h-[min(92dvh,720px)] h-[min(92dvh,720px)] sm:h-[78vh] sm:max-h-[640px] bg-surface-raised border-t border-ink/12 sm:border rounded-t-3xl sm:rounded-xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />

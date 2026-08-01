@@ -185,7 +185,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
       <div className="absolute inset-0 bg-scrim/70 backdrop-blur-[2px]" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative z-10 flex max-h-[min(92dvh,100%)] w-full max-w-[840px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:rounded-2xl"
+        className="lq-sheet relative z-10 flex max-h-[min(92dvh,100%)] w-full max-w-[840px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:rounded-2xl"
       >
         <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/20" />

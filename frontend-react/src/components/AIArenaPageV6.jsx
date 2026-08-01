@@ -809,7 +809,7 @@ function ReportPdfModal({ modal, onClose }) {
         className="absolute inset-0 bg-scrim/70 backdrop-blur-sm"
       />
 
-      <div className="relative z-10 flex h-[min(94dvh,100%)] max-h-[min(94dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-2xl">
+      <div className="lq-sheet relative z-10 flex h-[min(94dvh,100%)] max-h-[min(94dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-2xl">
         <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/20" />
         </div>

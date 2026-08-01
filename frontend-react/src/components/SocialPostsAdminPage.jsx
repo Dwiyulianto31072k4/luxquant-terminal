@@ -1608,7 +1608,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
       </button>
 
       <div
-        className="relative flex flex-col md:flex-row w-full max-w-[min(1180px,95vw)] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
+        className="lq-sheet relative flex flex-col md:flex-row w-full max-w-[min(1180px,95vw)] max-h-[min(92dvh,100%)] rounded-t-3xl sm:rounded-xl overflow-hidden bg-surface-raised border-t border-ink/10 sm:border shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div

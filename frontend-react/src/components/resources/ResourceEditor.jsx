@@ -299,7 +299,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
       onClick={onClose}
     >
       <div
-        className="bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
+        className="lq-sheet bg-bg-secondary rounded-t-3xl sm:rounded-2xl border-t border-ink/10 sm:border max-w-2xl w-full max-h-[min(92dvh,100%)] overflow-y-auto shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">

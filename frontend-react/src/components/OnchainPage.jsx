@@ -915,7 +915,7 @@ const AlertModal = ({ alert, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-label="Alert detail"
-        className="relative flex max-h-[min(92dvh,100%)] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.1] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:rounded-2xl sm:border"
+        className="lq-sheet relative flex max-h-[min(92dvh,100%)] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.1] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:rounded-2xl sm:border"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
