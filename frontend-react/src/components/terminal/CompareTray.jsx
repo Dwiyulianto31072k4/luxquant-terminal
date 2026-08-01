@@ -197,7 +197,7 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="flex max-h-[92dvh] w-full max-w-[1120px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl shadow-black/60 sm:rounded-2xl"
+        className="lq-sheet flex max-h-[92dvh] w-full max-w-[1120px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl shadow-black/60 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Consistency with every other sheet: on a phone this comes up from

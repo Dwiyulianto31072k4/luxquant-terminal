@@ -85,7 +85,11 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
     // CoinGecko data. `is_luxquant_signal` only comes back for subscribers, so
     // a free session gets the narrative without learning which of these we call.
     api
-      .get(`/api/v1/terminal/narrative/${encodeURIComponent(categoryId)}/coins`, {
+      // No /api/v1 prefix: services/api already carries it as its baseURL, and
+      // writing it again produced /api/v1/api/v1/... which 404s. Every other
+      // caller in the app imports services/authApi, whose base is the origin and
+      // where the prefix IS required — which is why this read as correct.
+      .get(`/terminal/narrative/${encodeURIComponent(categoryId)}/coins`, {
         params: { limit: 100 },
       })
       .then((r) => {

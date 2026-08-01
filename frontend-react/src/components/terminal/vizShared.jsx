@@ -709,7 +709,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex h-[min(92dvh,100%)] w-full max-w-[1480px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface shadow-[0_-20px_60px_rgb(var(--scrim)/0.5)] sm:h-[min(94vh,960px)] sm:rounded-2xl sm:shadow-2xl sm:shadow-black/70"
+            className="lq-sheet relative flex h-[min(92dvh,100%)] w-full max-w-[1480px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface shadow-[0_-20px_60px_rgb(var(--scrim)/0.5)] sm:h-[min(94vh,960px)] sm:rounded-2xl sm:shadow-2xl sm:shadow-black/70"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Phone-only grab handle: this arrives from the bottom edge here,

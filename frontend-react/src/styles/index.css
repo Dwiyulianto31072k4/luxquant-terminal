@@ -1051,3 +1051,51 @@ textarea:focus-visible {
     animation: none;
   }
 }
+
+/* ── Sheet motion ─────────────────────────────────────────────────────────────
+   One definition of "comes up from the bottom", lifted from SignalModal so the
+   overlays that were converted later move exactly like the one everybody
+   already knows. Position and radius were the easy half; without this an
+   overlay simply appears, which reads as a different component even when the
+   pixels match.
+
+   Phone only. From sm up these are centred dialogs, and sliding a centred card
+   in from the bottom of the screen looks like a mistake. Reduced motion turns
+   it off entirely — the sheet still works, it just stops travelling. */
+.lq-sheet {
+  animation: lqSheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lq-sheet-closing .lq-sheet,
+.lq-sheet.is-closing {
+  animation: lqSheetDown 0.2s ease-in forwards;
+}
+@keyframes lqSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes lqSheetDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+@media (min-width: 640px) {
+  .lq-sheet {
+    animation: lqSheetPanelIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lq-sheet-closing .lq-sheet,
+  .lq-sheet.is-closing {
+    animation: lqSheetPanelOut 0.18s ease-in forwards;
+  }
+}
+@keyframes lqSheetPanelIn {
+  from { opacity: 0; transform: scale(0.98) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes lqSheetPanelOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lq-sheet,
+  .lq-sheet-closing .lq-sheet,
+  .lq-sheet.is-closing { animation: none; }
+}
