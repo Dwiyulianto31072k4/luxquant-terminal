@@ -276,7 +276,7 @@ export const AutoTradeOpsTab = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-            AUTOTRADE · BOT OPERATIONS
+            AGENT · BOT OPERATIONS
           </p>
           <h2 className="mt-1 text-[22px] font-semibold text-text-primary">Agent Monitor</h2>
           <p className="mt-1 text-sm text-text-secondary">

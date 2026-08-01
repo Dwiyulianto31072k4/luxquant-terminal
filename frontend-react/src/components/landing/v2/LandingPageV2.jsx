@@ -59,7 +59,7 @@ export default function LandingPageV2() {
         title="LuxQuant Terminal — Quantitative Crypto Intelligence"
         description="LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you."
         path="/"
-        keywords="luxquant, crypto terminal, quantitative crypto, trading signals, on-chain intelligence, autotrade"
+        keywords="luxquant, crypto terminal, quantitative crypto, trading signals, on-chain intelligence, agent"
         jsonLd={[
           {
             "@context": "https://schema.org",

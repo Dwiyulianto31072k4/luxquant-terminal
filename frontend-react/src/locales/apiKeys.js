@@ -5,7 +5,7 @@ export const apiKeysEn = {
   eyebrow: "Developer",
   title: "API Keys",
   subtitle:
-    "Generate keys to pull LuxQuant data into your own bots, agents, or autotrade systems. Each key is long-lived and works only while your subscription is active.",
+    "Generate keys to pull LuxQuant data into your own bots, agents, or automated trading systems. Each key is long-lived and works only while your subscription is active.",
 
   // Locked / upsell
   locked_title: "API access requires an active subscription",
@@ -16,7 +16,7 @@ export const apiKeysEn = {
   // Create
   create_title: "Create a new key",
   active: "active",
-  name_placeholder: "Key name (e.g. autotrade bot)",
+  name_placeholder: "Key name (e.g. my agent)",
   create_btn: "Generate Key",
   creating: "Generating…",
   limit_warn: "You have reached the maximum of 2 active keys. Revoke one to create another.",
@@ -65,7 +65,7 @@ export const apiKeysZh = {
   eyebrow: "开发者",
   title: "API 密钥",
   subtitle:
-    "生成密钥，将 LuxQuant 数据接入您自己的机器人、智能体或自动交易系统。每个密钥长期有效，仅在订阅有效期内可用。",
+    "生成密钥，将 LuxQuant 数据接入您自己的机器人、智能体或自动化交易系统。每个密钥长期有效，仅在订阅有效期内可用。",
 
   locked_title: "API 访问需要有效订阅",
   locked_desc: "您可以创建密钥，但只有在订阅有效期内才能返回数据。升级后即可使用数据 API。",
@@ -73,7 +73,7 @@ export const apiKeysZh = {
 
   create_title: "创建新密钥",
   active: "个有效",
-  name_placeholder: "密钥名称（例如：自动交易机器人）",
+  name_placeholder: "密钥名称（例如：我的 Agent）",
   create_btn: "生成密钥",
   creating: "生成中…",
   limit_warn: "已达到 2 个有效密钥上限。请先撤销一个再创建。",

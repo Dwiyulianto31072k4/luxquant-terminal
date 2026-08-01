@@ -755,7 +755,7 @@ function AppShell({ children }) {
     {
       // Slot 4 goes to Pulse on the numbers, not on intuition: over 30 days of
       // user_activity_events, market_pulse drew 136 distinct users against 39
-      // for news, while autotrade — which held this slot — has not logged a
+      // for news, while the agent — which held this slot — has not logged a
       // single event since 2026-06-10.
       path: "/market-pulse",
       label: "Pulse",

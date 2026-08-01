@@ -214,7 +214,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
         <div className="flex items-start justify-between gap-4 border-b border-ink/[0.08] px-6 py-5">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-              AUTOTRADE · BOT BREAKDOWN
+              AGENT · BOT BREAKDOWN
             </p>
             <h2 className="mt-1 text-[22px] font-semibold text-text-primary">
               {user?.username || user?.email || `lq:${userId}`}
