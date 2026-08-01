@@ -634,8 +634,16 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       }}
     />
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-      {/* ── Left: inbox ── */}
-      <Surface className="flex h-[640px] flex-col overflow-hidden">
+      {/* ── Left: inbox ──
+          Below lg the two panes are one column, so stacking them meant picking
+          someone appended the thread underneath the whole inbox and you had to
+          scroll past every conversation to reach the reply box. On a phone this
+          switches instead: list, or thread — never both. */}
+      <Surface
+        className={`h-[640px] flex-col overflow-hidden lg:flex ${
+          selected ? "hidden lg:flex" : "flex"
+        }`}
+      >
         <div className="space-y-2 border-b border-ink/[0.08] p-3">
           {canWrite && (
             <button
@@ -702,7 +710,11 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       </Surface>
 
       {/* ── Right: thread ── */}
-      <Surface className="flex h-[640px] flex-col overflow-hidden">
+      <Surface
+        className={`h-[min(78dvh,640px)] flex-col overflow-hidden lg:flex lg:h-[640px] ${
+          selected ? "flex" : "hidden lg:flex"
+        }`}
+      >
         {!selected ? (
           <EmptyState
             title="Pick a conversation"
@@ -712,6 +724,25 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
           />
         ) : (
           <>
+            {/* Phone-only way back to the list. Without it, switching panes is a
+                trap: the inbox is gone and nothing on screen returns to it. */}
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="flex shrink-0 items-center gap-1.5 border-b border-ink/[0.06] px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:text-text-primary lg:hidden"
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+                <path
+                  d="M12 15l-5-5 5-5"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              All conversations
+            </button>
+
             <UserContextStrip row={selected} />
 
             <div className="flex items-center gap-2 border-b border-ink/[0.06] px-4 py-1.5">
