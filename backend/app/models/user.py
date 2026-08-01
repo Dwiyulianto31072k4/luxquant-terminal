@@ -48,6 +48,15 @@ class User(Base):
     # Values: lifetime | admin | payment | telegram_vip | discord_premium | legacy | NULL
     subscription_source = Column(String(30), nullable=True)
 
+    # Operator kill-switch for this user's bot, independent of their subscription.
+    # A blocked user keeps their account, their data and their open positions —
+    # only new live entries stop. The reason is written by the admin and is shown
+    # to the user, because "my bot stopped and nobody said why" is the worst
+    # possible way to find out.
+    autotrade_blocked_at = Column(DateTime(timezone=True), nullable=True)
+    autotrade_blocked_reason = Column(Text, nullable=True)
+    autotrade_blocked_by = Column(String(64), nullable=True)
+
     # ─── Bot DM readiness ───
     # Set the first time the bot successfully DMs the user (which is only
     # possible after they've /started the bot). Lets admin tell apart
@@ -123,6 +132,17 @@ class User(Base):
             from datetime import datetime, timezone
             return self.subscription_expires_at > datetime.now(timezone.utc)
         return False
+
+    @property
+    def autotrade_blocked(self) -> bool:
+        """Has an operator switched this user's bot off?
+
+        Deliberately NOT folded into has_active_access: that property gates the
+        signal feed, the journey view and the public API as well, so blocking a
+        bot through it would silently cut the user off from everything they pay
+        for. The bot is one capability; this turns off exactly that one.
+        """
+        return self.autotrade_blocked_at is not None
 
     @property
     def is_admin(self) -> bool:

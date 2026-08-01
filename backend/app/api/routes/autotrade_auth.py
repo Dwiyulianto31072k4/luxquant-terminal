@@ -64,6 +64,16 @@ def _entitlement_payload(user: User) -> dict:
         # has_active_access = admin | lifetime | premium/subscriber belum expired.
         # Ini SATU-SATUNYA field yang AutoTrade pakai buat gate akses.
         "has_active_access": user.has_active_access,
+        # Operator kill-switch, kept SEPARATE from has_active_access on purpose:
+        # that field also gates the signal feed and the journey view, so folding
+        # a bot block into it would cut the user off from everything they pay
+        # for. AutoTrade must treat this as its own gate.
+        "bot_access_blocked": user.autotrade_blocked,
+        "bot_access_blocked_reason": user.autotrade_blocked_reason,
+        "bot_access_blocked_at": (
+            user.autotrade_blocked_at.isoformat()
+            if user.autotrade_blocked_at else None
+        ),
         "google_linked": google_linked,
         "subscription_expires_at": (
             user.subscription_expires_at.isoformat()

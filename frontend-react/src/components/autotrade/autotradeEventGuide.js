@@ -37,6 +37,13 @@ export const RISK_EVENTS = {
     why: "Usually the coin left your spot wallet outside the bot — a manual sell, a convert, or a transfer. All of those cancel the protective OCO first, which leaves the position unguarded and its real state unknown.",
     fix: "The reconciler closes these on its own once it confirms the balance is gone. If it persists for more than a few cycles, contact support.",
   },
+  bot_access_blocked: {
+    title: "Bot access switched off by the LuxQuant team",
+    blocking: true,
+    what: "New live entries are paused. Your subscription, your signals and any open position are untouched — open positions keep their take-profit and stop-loss.",
+    why: "An operator switched this account's bot off and recorded a reason, which is shown with the alert. This is separate from your subscription: nothing has expired and nothing is wrong with your balance or your API key.",
+    fix: "Contact LuxQuant support. Only the team that switched it off can switch it back on, and doing so takes effect within about two minutes.",
+  },
   subscription_inactive: {
     title: "LuxQuant subscription is not active",
     blocking: true,

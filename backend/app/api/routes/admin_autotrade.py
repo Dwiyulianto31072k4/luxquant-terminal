@@ -10,7 +10,10 @@ access to the encrypted API key columns.
 """
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_admin_user
@@ -101,6 +104,63 @@ def autotrade_positions(
     if data.get("available"):
         _attach_identities(db, data.get("positions", []))
     return data
+
+
+class BotAccessRequest(BaseModel):
+    blocked: bool
+    reason: str = Field(min_length=3, max_length=500)
+
+
+@router.post("/users/{user_id}/bot-access")
+def set_bot_access(
+    user_id: int,
+    body: BotAccessRequest,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Switch one user's bot off (or back on), with a reason they will see.
+
+    Deliberately narrow. This does not touch the subscription, the account, the
+    signal feed or any open position — those keep their take-profit and stop-loss
+    and go on being reconciled. Only new live entries stop.
+
+    The gate is the entitlement endpoint AutoTrade already calls before every
+    live trade, so nothing has to be restarted and the block cannot be raced by
+    a trade already in flight.
+
+    The reason is mandatory and is shown to the user, because a bot that stops
+    with no explanation is indistinguishable from a bot that is broken — and the
+    user is the one whose money is sitting in the position.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    reason = body.reason.strip()
+    if not reason:
+        raise HTTPException(status_code=422, detail="A reason is required")
+
+    if body.blocked:
+        user.autotrade_blocked_at = datetime.now(timezone.utc)
+        user.autotrade_blocked_reason = reason
+        user.autotrade_blocked_by = (admin.username or admin.email or str(admin.id))[:64]
+    else:
+        user.autotrade_blocked_at = None
+        user.autotrade_blocked_reason = None
+        user.autotrade_blocked_by = None
+    db.commit()
+
+    return {
+        "user_id": user.id,
+        "bot_access_blocked": user.autotrade_blocked,
+        "reason": user.autotrade_blocked_reason,
+        "blocked_by": user.autotrade_blocked_by,
+        "blocked_at": (
+            user.autotrade_blocked_at.isoformat() if user.autotrade_blocked_at else None
+        ),
+        # AutoTrade caches an "allowed" answer, so a block is not instant.
+        "takes_effect_within_seconds": 120,
+    }
 
 
 @router.get("/users/{user_id}")
