@@ -1099,3 +1099,16 @@ textarea:focus-visible {
   .lq-sheet-closing .lq-sheet,
   .lq-sheet.is-closing { animation: none; }
 }
+
+/* The chat panel's desktop scrim. The sheet itself now animates; a backdrop
+   that snaps in behind a sheet that slides is the part that reads as broken. */
+.lq-chat-scrim {
+  animation: lqChatScrimIn 0.22s ease-out;
+}
+@keyframes lqChatScrimIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lq-chat-scrim { animation: none; }
+}

@@ -70,7 +70,7 @@ export default function ChatPanel({ onClose }) {
   return (
     <>
       <div
-        className="hidden sm:block fixed inset-0 z-[9998] bg-scrim/30 backdrop-blur-[2px]"
+        className="lq-chat-scrim hidden sm:block fixed inset-0 z-[9998] bg-scrim/30 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
@@ -80,8 +80,15 @@ export default function ChatPanel({ onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label={t("chat.title") || "Chat with us"}
-        className="fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/12 bg-surface-raised shadow-[0_-8px_40px_rgb(var(--scrim)_/_0.35)] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[560px] sm:w-[400px] sm:max-w-[92vw] sm:rounded-2xl sm:shadow-[0_25px_60px_rgb(var(--scrim)_/_0.35)]"
+        className="lq-sheet fixed inset-x-0 bottom-0 z-[9999] flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/12 bg-surface-raised shadow-[0_-8px_40px_rgb(var(--scrim)_/_0.35)] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[560px] sm:w-[400px] sm:max-w-[92vw] sm:rounded-2xl sm:shadow-[0_25px_60px_rgb(var(--scrim)_/_0.35)]"
       >
+        {/* Phone-only grab handle. The panel was already pinned to the bottom
+            edge but arrived without motion or affordance, so it read as a screen
+            that had always been there rather than a sheet that just opened. */}
+        <div className="flex shrink-0 justify-center pt-2 pb-0.5 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink/10 bg-surface-raised px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
