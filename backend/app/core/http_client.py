@@ -112,8 +112,82 @@ _WEIGHT_KEY_FMT = "lq:binance:weight:%s"
 # Path alone cannot answer "which worker is eating the budget?", and that is the
 # question that decides whether to cache, tune a loop, or buy a second machine.
 _CALLER_KEY_FMT = "lq:binance:caller:%s"
+# Weight, not calls. A call count cannot be compared against the budget: one
+# klines request is worth 1 or 10 depending on `limit`, and one symbol-less
+# ticker/24hr is worth 40. Counting calls is what made a 162-call minute look
+# like it should cost 162.
+#
+# Fields are "<pool> <caller>", plus "_observed <pool>" carrying the highest
+# figure Binance itself reported. Computed against observed is the check on this
+# whole exercise: if our sum lands near the header, the attribution is complete;
+# if it does not, something is spending that we still cannot see.
+_WSUM_KEY_FMT = "lq:binance:wsum:%s"
 _WEIGHT_CEILING = 2400          # futures IP limit per minute
 _last_weight_warn = 0.0
+
+# Documented per-request weights for the endpoints this product actually calls.
+# Spot and futures are separate budgets (6000 and 2400), so they are never summed
+# together — mixing them is what made an earlier reading of "1947" meaningless.
+_SPOT_LIMITS = {"spot": 6000.0, "futures": 2400.0}
+
+
+def _pool_of(host: str) -> str:
+    return "futures" if "fapi" in (host or "") else "spot"
+
+
+def _call_weight(pool: str, path: str, params) -> float:
+    """Binance's published cost for one request. Params decide it, not the path."""
+    def _p(name):
+        try:
+            if params is None:
+                return None
+            if hasattr(params, "get"):
+                return params.get(name)
+        except Exception:
+            pass
+        return None
+
+    p = (path or "").lower()
+    limit = _p("limit")
+    try:
+        limit = int(limit) if limit is not None else None
+    except (TypeError, ValueError):
+        limit = None
+    has_symbol = bool(_p("symbol"))
+
+    if "klines" in p or "continuousklines" in p:
+        if pool == "spot":
+            return 2.0
+        if limit is None or limit <= 100:
+            return 1.0
+        if limit <= 500:
+            return 2.0
+        if limit <= 1000:
+            return 5.0
+        return 10.0
+    if "ticker/24hr" in p:
+        if pool == "spot":
+            return 2.0 if has_symbol else 80.0
+        return 1.0 if has_symbol else 40.0
+    if "ticker/price" in p:
+        if pool == "spot":
+            return 2.0 if has_symbol else 4.0
+        return 1.0 if has_symbol else 2.0
+    if "premiumindex" in p:
+        return 1.0 if has_symbol else 10.0
+    if "exchangeinfo" in p:
+        return 20.0 if pool == "spot" else 1.0
+    if "depth" in p:
+        if limit is None or limit <= 100:
+            return 2.0
+        if limit <= 500:
+            return 5.0
+        if limit <= 1000:
+            return 10.0
+        return 20.0
+    if "openinterest" in p or "fundingrate" in p:
+        return 1.0
+    return 1.0
 
 
 def binance_weight_hook(caller: str):
@@ -142,11 +216,15 @@ def note_binance_response(resp, caller: str) -> None:
         if used is None:
             return
         import time as _t
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, parse_qs
         from app.core.redis import get_redis
         minute = int(_t.time() // 60)
         r = get_redis()
-        path = urlparse(str(resp.url)).path or "?"
+        parsed = urlparse(str(resp.url))
+        path = parsed.path or "?"
+        pool = _pool_of(parsed.netloc)
+        params = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+        weight = _call_weight(pool, path, params)
         pipe = r.pipeline()
         pipe.hincrby(_WEIGHT_KEY_FMT % minute, path, 1)
         pipe.hset(_WEIGHT_KEY_FMT % minute, "_peak", int(used))
@@ -154,6 +232,10 @@ def note_binance_response(resp, caller: str) -> None:
         pipe.hincrby(_CALLER_KEY_FMT % minute, caller, 1)
         pipe.hincrby(_CALLER_KEY_FMT % minute, f"{caller} {path}", 1)
         pipe.expire(_CALLER_KEY_FMT % minute, 900)
+        pipe.hincrbyfloat(_WSUM_KEY_FMT % minute, f"{pool} {caller}", weight)
+        pipe.hincrbyfloat(_WSUM_KEY_FMT % minute, f"{pool} {caller} {path}", weight)
+        pipe.hset(_WSUM_KEY_FMT % minute, f"_observed {pool}", int(used))
+        pipe.expire(_WSUM_KEY_FMT % minute, 900)
         pipe.execute()
     except Exception:
         pass   # accounting must never break a request
@@ -166,13 +248,17 @@ async def _record_binance_weight(response, caller: str = "shared_client"):
         if used is None:
             return
         used = int(used)
-        path = response.request.url.path or "?"
+        url = response.request.url
+        path = url.path or "?"
+        pool = _pool_of(url.host)
+        weight = _call_weight(pool, path, url.params)
         import time as _t
         from app.core.redis import get_redis
         minute = int(_t.time() // 60)
         r = get_redis()
         key = _WEIGHT_KEY_FMT % minute
         caller_key = _CALLER_KEY_FMT % minute
+        wsum_key = _WSUM_KEY_FMT % minute
         pipe = r.pipeline()
         pipe.hincrby(key, path, 1)          # call count per endpoint
         pipe.hset(key, "_peak", used)       # highest reading seen this minute
@@ -180,6 +266,11 @@ async def _record_binance_weight(response, caller: str = "shared_client"):
         pipe.hincrby(caller_key, caller, 1)
         pipe.hincrby(caller_key, f"{caller} {path}", 1)
         pipe.expire(caller_key, 900)
+        pipe.hincrbyfloat(wsum_key, f"{pool} {caller}", weight)
+        pipe.hincrbyfloat(wsum_key, f"{pool} {caller} {path}", weight)
+        # Binance's own figure, kept per pool so the two budgets never blend.
+        pipe.hset(wsum_key, f"_observed {pool}", used)
+        pipe.expire(wsum_key, 900)
         pipe.execute()
         if used > _WEIGHT_CEILING * 0.75 and _t.time() - _last_weight_warn > 60:
             _last_weight_warn = _t.time()
