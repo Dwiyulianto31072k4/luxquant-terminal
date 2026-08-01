@@ -701,7 +701,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
   const overlay = big
     ? createPortal(
         <div
-          className="fixed inset-0 flex items-center justify-center bg-scrim/80 p-3 backdrop-blur-md sm:p-6 md:p-8"
+          className="fixed inset-0 flex items-end justify-center bg-scrim/80 p-0 backdrop-blur-md sm:items-center sm:p-6 md:p-8"
           style={{ zIndex: 200000 }}
           role="dialog"
           aria-modal="true"
@@ -709,10 +709,15 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
           onClick={() => setBig(false)}
         >
           <div
-            className="relative flex h-[min(94vh,960px)] w-full max-w-[1480px] flex-col overflow-hidden rounded-2xl border border-ink/[0.1] bg-surface shadow-2xl shadow-black/70"
+            className="relative flex h-[min(92dvh,100%)] w-full max-w-[1480px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface shadow-[0_-20px_60px_rgb(var(--scrim)/0.5)] sm:h-[min(94vh,960px)] sm:rounded-2xl sm:shadow-2xl sm:shadow-black/70"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-5 py-4">
+            {/* Phone-only grab handle: this arrives from the bottom edge here,
+                so it needs the same affordance every other sheet has. */}
+            <div className="flex shrink-0 justify-center pt-2.5 pb-0.5 sm:hidden" aria-hidden="true">
+              <div className="h-1 w-10 rounded-full bg-ink/25" />
+            </div>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-4 py-3.5 sm:px-5 sm:py-4">
               <div className="min-w-0">
                 <div className="text-[17px] font-medium tracking-tight text-text-primary">
                   {title}

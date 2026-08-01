@@ -200,6 +200,11 @@ export function CompareTray({ items, onRemove, onClear, onOpen, open, setOpen })
         className="flex max-h-[92dvh] w-full max-w-[1120px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl shadow-black/60 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Consistency with every other sheet: on a phone this comes up from
+            the bottom, and the handle is what says it can be pushed back down. */}
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0.5 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
+        </div>
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-ink/[0.07] px-4 py-3">
           <div className="min-w-0">
             <div className="text-[15px] font-medium text-text-primary">Compare setups</div>

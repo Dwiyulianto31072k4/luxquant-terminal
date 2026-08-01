@@ -552,6 +552,9 @@ function DetailModal({ selectedId, topo, onClose, onAction }) {
         role="dialog"
         aria-modal="true"
       >
+        <div className="lqm-handle" aria-hidden="true">
+          <span />
+        </div>
         <button className="lqm-close" onClick={onClose} aria-label="Close">
           ✕
         </button>
@@ -718,10 +721,21 @@ const CSS = `
 .lqf-legend span{display:inline-flex;align-items:center;gap:6px}
 .lqf-lz{width:18px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
 
-/* node detail — centered modal (SignalModal-style) */
-.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:lqfade .18s ease}
+/* node detail — bottom sheet on a phone, centred dialog from sm up.
+   Matches SignalModal and every other overlay in the product: on a phone this
+   arrives from the bottom edge and fills the width, because a centred card with
+   a 20px gutter wastes the only screen where space is scarce. */
+.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:lqfade .18s ease}
 @keyframes lqfade{from{opacity:0}to{opacity:1}}
-.lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,rgb(var(--surface-raised)),rgb(var(--surface)));border:1px solid rgb(var(--line) / .22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+.lqm-card{position:relative;width:100%;max-height:min(92dvh,100%);display:flex;flex-direction:column;background:linear-gradient(180deg,rgb(var(--surface-raised)),rgb(var(--surface)));border:1px solid rgb(var(--line) / .22);border-radius:18px 18px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.65);overflow:hidden;animation:lqup .32s cubic-bezier(.16,1,.3,1)}
+.lqm-handle{flex:0 0 auto;display:flex;justify-content:center;padding:10px 0 2px}
+.lqm-handle span{display:block;width:40px;height:4px;border-radius:999px;background:rgb(var(--ink) / .25)}
+@media (min-width:640px){
+  .lqm-overlay{align-items:center;padding:20px}
+  .lqm-card{width:min(680px,94vw);max-height:86vh;border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+  .lqm-handle{display:none}
+}
+@keyframes lqup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes lqpop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
 .lqm-card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgb(var(--accent) / .5),transparent);z-index:2}
 .lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}

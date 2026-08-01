@@ -318,19 +318,26 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto p-4 sm:p-8"
+      className="fixed inset-0 z-[200] flex items-end justify-center p-0 sm:items-center sm:p-8"
       style={{ background: "rgba(0,0,0,0.78)" }}
       onClick={onClose}
     >
       <div
-        className="isolate w-full max-w-6xl rounded-2xl border border-ink/12 shadow-2xl"
+        className="lq-sheet isolate flex max-h-[min(92dvh,100%)] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl border border-ink/12 shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
         // Explicit and opaque: the utility class resolved translucent here, which
         // let the table underneath bleed through the numbers.
         style={{ backgroundColor: "rgb(var(--surface))" }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Grab handle. Phone-only, like every other sheet in the product — on a
+            phone this arrives from the bottom edge and the handle is what says
+            it can be pushed back down. */}
+        <div className="flex shrink-0 justify-center pt-2.5 pb-0.5 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-ink/25" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-ink/[0.08] px-6 py-5">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-ink/[0.08] px-4 py-4 sm:px-6 sm:py-5">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
               AGENT · BOT BREAKDOWN
@@ -373,7 +380,10 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
           </div>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
+        {/* The card is a bounded flex column now, so the body owns the scroll —
+            without this the sheet grows past the viewport and the header leaves
+            with it. */}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-5">
           {error ? <p className="text-sm text-[#F6465D]">{error}</p> : null}
 
           <BotAccessControl
