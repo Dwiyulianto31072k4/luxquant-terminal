@@ -338,7 +338,7 @@ const PricingPage = () => {
     <div className="relative min-h-screen">
       <Seo
         title="Pricing & Plans — LuxQuant Terminal"
-        description="LuxQuant Terminal plans. Free to start; paid access unlocks signals, AutoTrade, on-chain intelligence, and research."
+        description="LuxQuant Terminal plans. Free to start; paid access unlocks signals, Agent, on-chain intelligence, and research."
         path="/pricing"
         keywords="luxquant pricing, crypto signals subscription, quant terminal plans"
         jsonLd={[

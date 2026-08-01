@@ -1,6 +1,6 @@
 // src/components/autotrade/PnLSummary.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade balance / execution summary (top strip)
+// LuxQuant — Agent balance / execution summary (top strip)
 // ════════════════════════════════════════════════════════════════
 
 import { StatCard, fmtUsd } from "./AutoTradeUI";
@@ -30,7 +30,7 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
       <StatCard
         label="Spot Value"
         value={fmtUsd(spotValue)}
-        sub={`${openSpot} AutoTrade position${openSpot === 1 ? "" : "s"}`}
+        sub={`${openSpot} Agent position${openSpot === 1 ? "" : "s"}`}
         valueColor={openSpot > 0 ? "text-accent" : "text-text-primary"}
         accent={openSpot > 0}
       />

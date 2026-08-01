@@ -1,6 +1,6 @@
 // src/components/autotrade/AccountCard.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade Account Card v2 (Flowscan reskin)
+// LuxQuant — Agent Account Card v2 (Flowscan reskin)
 // Flat hairline, semantic colors, mono typography
 // ════════════════════════════════════════════════════════════════
 
@@ -258,7 +258,7 @@ export default function AccountCard({ account, onDelete, onConfigure, onUpdate }
             worked — but both are READ operations, so a key with no trading
             permission passed and the first real order then died on a 401. In
             production that was 25 of 44 execution failures across 6 users, and
-            AutoTrade was switched off everywhere within two days. A key that
+            Agent was switched off everywhere within two days. A key that
             cannot trade now says so here, while it can still be fixed. */}
         {testResult && (
           <div

@@ -639,7 +639,7 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
                               {r.is_bot === false ? (
                                 <span
                                   className="rounded-sm bg-ink/[0.06] px-1.5 py-0.5 text-[10px]"
-                                  title="Opened by hand on this exchange account, not by AutoTrade. It never carried our stop-loss, so it has no exit reason to report."
+                                  title="Opened by hand on this exchange account, not by Agent. It never carried our stop-loss, so it has no exit reason to report."
                                 >
                                   traded by hand
                                 </span>

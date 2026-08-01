@@ -112,6 +112,7 @@ const LOGIN_REQUIRED = [
   "/journal",
   "/onchain",
   "/autotrade",
+  "/agent",
   "/portfolio",
   "/api-keys",
 ];
@@ -133,6 +134,7 @@ const PREMIUM_REQUIRED = [
   "/delistings",
   "/onchain",
   "/autotrade",
+  "/agent",
   "/portfolio",
   "/api-keys",
 ];
@@ -306,7 +308,7 @@ const NAV_ICON_PATHS = {
   "/signals": (
     <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
   ),
-  "/autotrade": (
+  "/agent": (
     <>
       <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
       <path d="M9.25 7 V4.5" />
@@ -608,7 +610,7 @@ function AppShell({ children }) {
     { path: "/home", label: t("nav.home") },
     { path: "/signals", label: t("nav.signals") },
     { path: "/terminal/scan", label: "Terminal", matchPrefix: "/terminal" },
-    { path: "/autotrade", label: "AutoTrade" },
+    { path: "/agent", label: "Agent" },
     { path: "/ai-arena", label: "AI Research", matchPrefix: "/ai-arena" },
     { path: "/market-pulse", label: "Pulse" },
     { path: "/crypto-news", label: "News" },
@@ -1036,10 +1038,10 @@ function AppShell({ children }) {
               }
             />
             <SidebarItem
-              active={isActive("/autotrade")}
-              path="/autotrade"
-              onClick={() => handleNav("/autotrade")}
-              label="AutoTrade"
+              active={isActive("/agent")}
+              path="/agent"
+              onClick={() => handleNav("/agent")}
+              label="Agent"
               isPremium={!isPremiumUser()}
               icon={
                 <path
@@ -1766,6 +1768,10 @@ function App() {
                   </Route>
                   <Route
                     path="/autotrade"
+                    element={<Navigate to="/agent" replace />}
+                  />
+                  <Route
+                    path="/agent"
                     element={
                       <RequireAuth>
                         <AppShell>

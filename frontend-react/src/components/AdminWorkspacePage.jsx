@@ -148,7 +148,7 @@ const TABS = [
   },
   {
     id: "autotrade",
-    label: "AutoTrade",
+    label: "Agent",
     description: "Bot health, errors & open positions",
     Icon: TrendingUpIcon,
     accent: NEUTRAL,

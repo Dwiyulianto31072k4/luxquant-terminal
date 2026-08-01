@@ -1,6 +1,6 @@
 // src/components/autotrade/AutoTradeUI.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade shared UI primitives
+// LuxQuant — Agent shared UI primitives
 // Binance monochrome desk (works luxquant / dark / bright):
 // • solid cards, no washed gold hairlines
 // • mono labels, medium-weight tabular numbers

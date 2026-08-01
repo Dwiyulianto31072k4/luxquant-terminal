@@ -1,6 +1,6 @@
 // src/components/admin/users/AutoTradeTab.jsx
 //
-// One user's AutoTrade bot, inside the user drawer.
+// One user's Agent bot, inside the user drawer.
 //
 // The reason this exists is the error list: "execution failed" told support
 // nothing, and the real message lived in a database only reachable over SSH.
@@ -77,25 +77,25 @@ export const AutoTradeTab = ({ userId }) => {
     adminApi
       .getAutoTradeUser(userId)
       .then((d) => !cancelled && setData(d))
-      .catch((e) => !cancelled && setError(e?.message || "Could not load AutoTrade data"))
+      .catch((e) => !cancelled && setError(e?.message || "Could not load Agent data"))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
   }, [userId]);
 
-  if (loading) return <p className="text-sm text-neutral-500">Loading AutoTrade data…</p>;
+  if (loading) return <p className="text-sm text-neutral-500">Loading Agent data…</p>;
   if (error) return <p className="text-sm text-[#F6465D]">{error}</p>;
   if (data?.available === false)
     return (
       <p className="text-sm text-neutral-500">
-        The AutoTrade database is not reachable from here.
+        The Agent database is not reachable from here.
       </p>
     );
   if (!data?.linked)
     return (
       <p className="text-sm text-neutral-500">
-        This user has never connected an exchange account to AutoTrade.
+        This user has never connected an exchange account to Agent.
       </p>
     );
 

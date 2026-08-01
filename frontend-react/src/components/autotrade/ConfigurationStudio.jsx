@@ -1,6 +1,6 @@
 // src/components/autotrade/ConfigurationStudio.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · Configure tab
+// LuxQuant — Agent · Configure tab
 // Execution rules for the Binance strategy. Redesigned into clean
 // full-width section cards (internal responsive grids keep them wide
 // and short, not narrow and tall), with brighter section titles and
@@ -423,7 +423,7 @@ export default function ConfigurationStudio({ config, hasConnectedAccount, onSav
         </h2>
         <p className="mt-1 text-sm text-text-secondary">{statusText}</p>
         <p className="mt-3 border-t border-ink/[0.06] pt-3 text-xs text-text-muted">
-          Start and pause AutoTrade from the engine control at the top of the page.
+          Start and pause Agent from the engine control at the top of the page.
         </p>
       </Card>
 

@@ -228,7 +228,7 @@ export default function PnLShareModal({ order, isOpen, onClose }) {
                   <p className="font-display text-sm font-bold leading-none text-text-primary">
                     LuxQuant
                   </p>
-                  <p className="mt-0.5 text-[9px] text-accent">AutoTrade</p>
+                  <p className="mt-0.5 text-[9px] text-accent">Agent</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">

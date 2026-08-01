@@ -1,6 +1,6 @@
 // src/components/autotrade/autotradeEventGuide.js
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · one explanation per *event*, in one place.
+// LuxQuant — Agent · one explanation per *event*, in one place.
 //
 // The sibling of autotradeFieldGuide.js, which explains settings. This
 // explains things that happen to you: why an entry was skipped, why the
@@ -27,7 +27,7 @@ export const RISK_EVENTS = {
     title: "Telegram is not connected",
     blocking: true,
     what: "Live entries are stopped because this account has no Telegram connected.",
-    why: "Every warning AutoTrade can give you arrives by Telegram — a position that lost its stop-loss, an exchange key that stopped working, a trade closing. Without it there is no way to reach you when something goes wrong with real money, so live trading is not allowed.",
+    why: "Every warning Agent can give you arrives by Telegram — a position that lost its stop-loss, an exchange key that stopped working, a trade closing. Without it there is no way to reach you when something goes wrong with real money, so live trading is not allowed.",
     fix: "Connect Telegram from the alerts card, then live entries resume on the next signal. Dry-run keeps working meanwhile, and any position you already hold is still being managed and watched.",
   },
   reconciliation_required: {
@@ -71,20 +71,20 @@ export const RISK_EVENTS = {
   max_daily_trades: {
     title: "Daily trade limit reached",
     what: "You have taken as many entries today as your settings allow.",
-    why: "Counts only entries AutoTrade placed, not trades you made by hand. Resets at 00:00 UTC.",
+    why: "Counts only entries Agent placed, not trades you made by hand. Resets at 00:00 UTC.",
     fix: "Raise the limit in Risk settings if this is tighter than you intended.",
   },
   daily_loss_limit: {
     title: "Daily loss limit reached",
     blocking: true,
-    what: "Losses on trades AutoTrade placed hit your limit, so trading is paused until 00:00 UTC.",
+    what: "Losses on trades Agent placed hit your limit, so trading is paused until 00:00 UTC.",
     why: "This counts only what the bot itself lost. Trades you opened by hand on the same account are excluded — they used to count, which meant a bad day of manual trading could switch off a bot that was making money.",
     fix: "Nothing, if the limit is set where you want it. This is the guardrail working. Raise it only deliberately.",
   },
   loss_cooldown: {
     title: "Cooling down after a loss",
     what: "A pause after a losing trade, before the next entry is allowed.",
-    why: "Counts only losses on trades AutoTrade placed, so your own hand-trading cannot hold the bot in a permanent cooldown.",
+    why: "Counts only losses on trades Agent placed, so your own hand-trading cannot hold the bot in a permanent cooldown.",
     fix: "Shorten or disable it under 'Cooldown after loss'.",
   },
   error_cooldown: {
@@ -163,13 +163,13 @@ export const ALERT_EVENTS = {
     title: "This position has no stop-loss",
     severity: "critical",
     what: "A position is open on the exchange with no stop order resting under it, so its downside is uncapped.",
-    why: "Most often this is a position AutoTrade did not open — the reconciler adopts whatever it finds on your account, including trades you place by hand, and those never carried a stop from us. A take-profit alone does not count: it caps the gain while leaving the loss open.",
-    fix: "Set a stop on Binance, or close the position. AutoTrade will not place one for you, because it has no recorded signal for a trade it did not make and would have to invent the level.",
+    why: "Most often this is a position Agent did not open — the reconciler adopts whatever it finds on your account, including trades you place by hand, and those never carried a stop from us. A take-profit alone does not count: it caps the gain while leaving the loss open.",
+    fix: "Set a stop on Binance, or close the position. Agent will not place one for you, because it has no recorded signal for a trade it did not make and would have to invent the level.",
   },
   exchange_key_invalid: {
     title: "Exchange key stopped working",
     severity: "error",
-    what: "AutoTrade can no longer use this Binance key.",
+    what: "Agent can no longer use this Binance key.",
     why: "Usually a revoked key, a missing trading permission, or an IP allow-list that no longer includes our server.",
     fix: "Reconnect the key. Until then no new entries are placed and existing positions cannot be managed.",
   },
@@ -242,7 +242,7 @@ export const EXIT_EVENTS = {
     fix: "Nothing to do.",
   },
   manual_exit: {
-    title: "Closed outside AutoTrade",
+    title: "Closed outside Agent",
     what: "The position was closed somewhere other than the bot.",
     why: "Usually closed by hand in the Binance app.",
     fix: "Nothing to do.",

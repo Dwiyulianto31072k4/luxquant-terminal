@@ -1,6 +1,6 @@
 // src/components/autotrade/SignalQueue.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · Signals tab
+// LuxQuant — Agent · Signals tab
 // Latest open signals the engine is evaluating. Live, auto-refresh.
 // ════════════════════════════════════════════════════════════════
 
@@ -120,7 +120,7 @@ export default function SignalQueue() {
                 Signal risk mix
               </p>
               <p className="mt-2 text-xs leading-5 text-text-muted">
-                Current open-signal queue grouped by the risk label consumed by AutoTrade filters.
+                Current open-signal queue grouped by the risk label consumed by Agent filters.
               </p>
               <p className="mt-4 font-mono text-3xl text-text-primary">{signals.length}</p>
               <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">

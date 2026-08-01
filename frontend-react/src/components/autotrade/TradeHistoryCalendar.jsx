@@ -147,7 +147,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
                   </StatusBadge>
                 </div>
                 <p className="mt-1 text-xs text-text-muted">
-                  AutoTrade live · {trade.market_type} · closed {fmtDateTime(trade.closed_at)}
+                  Agent live · {trade.market_type} · closed {fmtDateTime(trade.closed_at)}
                 </p>
               </div>
             </div>

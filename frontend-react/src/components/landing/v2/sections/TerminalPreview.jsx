@@ -4,7 +4,7 @@
 // • Realistic iMac mockup (silver chin + Apple logo + stand).
 // • Top 5 flagship features, named + iconed to MATCH the More menu
 // (icons copied 1:1 from MoreMenuDropdown for consistency).
-// • "signal" → "algo call"; AutoTrade → "Agent".
+// • "signal" → "algo call"; Agent → "Agent".
 // • Last slide = "...and much more" panel rendered INSIDE the iMac,
 // containing the Access-LuxQuant sign-up pill.
 // ════════════════════════════════════════════════════════════════

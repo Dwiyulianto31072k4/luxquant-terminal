@@ -1,6 +1,6 @@
 // src/components/autotrade/TradeHistoryTable.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade Trade History Table v2 (Flowscan reskin)
+// LuxQuant — Agent Trade History Table v2 (Flowscan reskin)
 // Closed orders with PnL, dense table + mobile card
 // ════════════════════════════════════════════════════════════════
 

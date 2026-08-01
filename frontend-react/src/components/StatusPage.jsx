@@ -84,7 +84,7 @@ const FALLBACK_COMPONENTS = [
     name: "Notifications & Alerts",
     description: "Alerts and notifications you receive.",
   },
-  { key: "autotrade", name: "AutoTrade", description: "Automated trade execution." },
+  { key: "autotrade", name: "Agent", description: "Automated trade execution." },
   { key: "ai_research", name: "AI Research", description: "AI market analysis and insights." },
   { key: "community", name: "News & Updates", description: "Crypto news and community updates." },
   {

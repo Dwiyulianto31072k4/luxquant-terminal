@@ -17,7 +17,7 @@ const PAGE_ROUTES = [
   ["Order Book", "/orderbook"],
   ["AI Research", "/ai-arena"],
   ["On-Chain", "/onchain"],
-  ["AutoTrade", "/autotrade"],
+  ["Agent", "/autotrade"],
   ["Delistings", "/delistings"],
   ["Watchlist", "/watchlist"],
   ["Portfolio", "/portfolio"],

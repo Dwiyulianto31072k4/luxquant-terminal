@@ -1,6 +1,6 @@
 // src/components/autotrade/EventExplainerModal.jsx
 // ════════════════════════════════════════════════════════════════
-// One modal for every AutoTrade event: why an entry was skipped, why
+// One modal for every Agent event: why an entry was skipped, why
 // the bot is locked, how a position ended.
 //
 // Content lives in autotradeEventGuide.js so the inline hint in the

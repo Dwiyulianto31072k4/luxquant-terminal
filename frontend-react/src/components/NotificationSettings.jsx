@@ -9,7 +9,7 @@ import { notificationApi } from "../services/notificationApi";
 
 const GROUP_ORDER = ["autotrade", "signals", "market", "account"];
 const GROUP_LABEL = {
-  autotrade: "AutoTrade",
+  autotrade: "Agent",
   signals: "Signals",
   market: "Market",
   account: "Account",

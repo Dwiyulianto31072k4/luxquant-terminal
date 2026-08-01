@@ -129,7 +129,7 @@ export default function TelegramAlertsCard({ status, loadError = "", onUpdated }
       ) : !telegram.bot_configured ? (
         <div className="mt-4">
           <Notice tone="warn">
-            Telegram bot delivery is not configured on the AutoTrade server yet.
+            Telegram bot delivery is not configured on the Agent server yet.
           </Notice>
         </div>
       ) : null}

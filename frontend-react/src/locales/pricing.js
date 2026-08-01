@@ -16,7 +16,7 @@ export const pricingEn = {
   hero_title_line1: "Choose how you work",
   hero_title_line2: "with the market.",
   hero_subtitle:
-    "Start free. Upgrade for live signals, AutoTrade, on-chain context, and research — one terminal, transparent pricing.",
+    "Start free. Upgrade for live signals, Agent, on-chain context, and research — one terminal, transparent pricing.",
 
   // Plan labels
   monthly: "Monthly",
@@ -43,7 +43,7 @@ export const pricingEn = {
   feat_support: "Priority support",
   feat_basic_support: "Standard support",
   feat_lifetime: "Lifetime product updates",
-  feat_autotrade: "AutoTrade execution",
+  feat_autotrade: "Agent execution",
   feat_onchain: "On-chain intelligence",
   feat_ai: "AI research",
 
@@ -76,7 +76,7 @@ export const pricingEn = {
     "Monthly, Annual, and Lifetime unlock the same product. Support and update terms differ.",
   compare_feature: "Capability",
   compare_signals: "Algorithmic signals",
-  compare_autotrade: "AutoTrade",
+  compare_autotrade: "Agent",
   compare_analytics: "Analytics and charts",
   compare_onchain: "On-chain intelligence",
   compare_ai: "AI research",
@@ -102,7 +102,7 @@ export const pricingEn = {
   faq_subtitle: "",
   faq_q1: "Is there a free plan?",
   faq_a1:
-    "Yes. Free includes core market views and public performance. Paid plans unlock live signals, AutoTrade, on-chain intelligence, and AI research.",
+    "Yes. Free includes core market views and public performance. Paid plans unlock live signals, Agent, on-chain intelligence, and AI research.",
   faq_q2: "What do paid plans include?",
   faq_a2:
     "All paid plans include the full product. The difference is billing: monthly, annual, or lifetime.",
@@ -146,7 +146,7 @@ export const pricingZh = {
   hero_title_line1: "选择你与市场",
   hero_title_line2: "协作的方式。",
   hero_subtitle:
-    "免费开始。需要实时信号、AutoTrade、链上上下文与研究时再升级 — 一个终端，定价清晰。",
+    "免费开始。需要实时信号、Agent、链上上下文与研究时再升级 — 一个终端，定价清晰。",
 
   monthly: "月度",
   yearly: "年度",
@@ -172,7 +172,7 @@ export const pricingZh = {
   feat_support: "优先支持",
   feat_basic_support: "标准支持",
   feat_lifetime: "终身产品更新",
-  feat_autotrade: "AutoTrade 执行",
+  feat_autotrade: "Agent 执行",
   feat_onchain: "链上情报",
   feat_ai: "AI 研究",
 
@@ -204,7 +204,7 @@ export const pricingZh = {
   compare_note: "月付、年付与终身解锁相同产品。支持与更新条款不同。",
   compare_feature: "能力",
   compare_signals: "算法信号",
-  compare_autotrade: "AutoTrade",
+  compare_autotrade: "Agent",
   compare_analytics: "分析与图表",
   compare_onchain: "链上情报",
   compare_ai: "AI 研究",
@@ -230,7 +230,7 @@ export const pricingZh = {
   faq_subtitle: "",
   faq_q1: "有免费方案吗？",
   faq_a1:
-    "有。免费版包含核心市场视图与公开绩效。付费方案解锁实时信号、AutoTrade、链上情报与 AI 研究。",
+    "有。免费版包含核心市场视图与公开绩效。付费方案解锁实时信号、Agent、链上情报与 AI 研究。",
   faq_q2: "付费方案包含什么？",
   faq_a2: "所有付费方案均含完整产品。区别仅在计费：月付、年付或终身。",
   faq_q3: "如何支付？",

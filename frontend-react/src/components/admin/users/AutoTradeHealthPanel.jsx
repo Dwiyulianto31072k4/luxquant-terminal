@@ -1,8 +1,8 @@
 // src/components/admin/users/AutoTradeHealthPanel.jsx
 //
-// AutoTrade fleet health, collapsed by default like the other Users panels.
+// Agent fleet health, collapsed by default like the other Users panels.
 //
-// AutoTrade runs as a separate application against its own database, so until
+// Agent runs as a separate application against its own database, so until
 // now "is this user's bot working?" could only be answered over SSH. This shows
 // every linked bot, worst first, and opens the per-user detail (including the
 // actual error text) in the user drawer.
@@ -60,7 +60,7 @@ export const AutoTradeHealthPanel = ({ defaultOpen = false, onInspectUser }) => 
     adminApi
       .getAutoTradeOverview()
       .then(setData)
-      .catch((e) => setError(e?.message || "Could not load AutoTrade health"))
+      .catch((e) => setError(e?.message || "Could not load Agent health"))
       .finally(() => setLoading(false));
   }, [open, data, loading]);
 
@@ -79,7 +79,7 @@ export const AutoTradeHealthPanel = ({ defaultOpen = false, onInspectUser }) => 
             size={16}
             style={{ color: totals.errors ? "#F6465D" : "#8B92A5" }}
           />
-          <span className="text-[15px] font-semibold text-neutral-800">AutoTrade health</span>
+          <span className="text-[15px] font-semibold text-neutral-800">Agent health</span>
           {data?.available === false ? (
             <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-500">
               unavailable
@@ -108,7 +108,7 @@ export const AutoTradeHealthPanel = ({ defaultOpen = false, onInspectUser }) => 
             <p className="text-sm text-[#F6465D]">{error}</p>
           ) : data?.available === false ? (
             <p className="text-sm text-neutral-500">
-              The AutoTrade database is not reachable from here, so bot health cannot be shown.
+              The Agent database is not reachable from here, so bot health cannot be shown.
               Everything else on this page is unaffected.
             </p>
           ) : data ? (

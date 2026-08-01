@@ -1,6 +1,6 @@
 // src/components/autotrade/PositionCard.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade Position Card v2 (Flowscan reskin)
+// LuxQuant — Agent Position Card v2 (Flowscan reskin)
 // Open position display with TP progress, trailing status, close action
 // ════════════════════════════════════════════════════════════════
 

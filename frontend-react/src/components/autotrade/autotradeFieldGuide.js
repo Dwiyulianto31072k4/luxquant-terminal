@@ -1,6 +1,6 @@
 // src/components/autotrade/autotradeFieldGuide.js
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · one explanation per setting, in one place.
+// LuxQuant — Agent · one explanation per setting, in one place.
 //
 // Rendered twice: inline on the Configure tab (the "?" next to each
 // field) and as the long-form reference in the help modal. Keeping a

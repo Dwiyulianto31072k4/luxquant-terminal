@@ -1,6 +1,6 @@
 // src/components/autotrade/AutoTradeHelpModal.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · Help & User Guide modal
+// LuxQuant — Agent · Help & User Guide modal
 // Two-pane layout mirroring ExchangeConnectModal: left = navigation,
 // right = content for the selected section. Mobile collapses to one
 // column with horizontal section chips. Self-contained, no extra
@@ -105,9 +105,9 @@ function SectionHowItWorks() {
     <div className="space-y-5">
       <div>
         <Sub>Mental model</Sub>
-        <H>How AutoTrade decides</H>
+        <H>How Agent decides</H>
         <P>
-          AutoTrade is an executor for LuxQuant signals. It never invents a trade — it only acts on
+          Agent is an executor for LuxQuant signals. It never invents a trade — it only acts on
           signals you already see in the platform. Every signal flows through the same gates before
           any order is placed.
         </P>
@@ -130,7 +130,7 @@ function SectionHowItWorks() {
 
       <Tip tone="info">
         Every block-decision is logged in the <b>Activity</b> tab so you can see why a signal was
-        skipped. AutoTrade only enters when every gate passes.
+        skipped. Agent only enters when every gate passes.
       </Tip>
     </div>
   );
@@ -140,7 +140,7 @@ function SectionMarkets() {
   return (
     <div className="space-y-5">
       <Sub>Settings panel · Markets</Sub>
-      <H>Choose where AutoTrade trades</H>
+      <H>Choose where Agent trades</H>
 
       <Field label="Spot trading">
         Trades the actual coin on Binance Spot — you receive the asset, no leverage, no liquidation
@@ -154,7 +154,7 @@ function SectionMarkets() {
       </Field>
 
       <Tip tone="warn">
-        You can enable both — AutoTrade routes each signal to the market it belongs to. If a
+        You can enable both — Agent routes each signal to the market it belongs to. If a
         signal’s market is disabled here, it is skipped.
       </Tip>
     </div>
@@ -293,7 +293,7 @@ function SectionFutures() {
 
       <Field label="Margin mode: Isolated">
         Each position has its own margin pool. If liquidated, only that position’s margin is lost.{" "}
-        <b>Recommended for AutoTrade.</b>
+        <b>Recommended for Agent.</b>
       </Field>
 
       <Field label="Margin mode: Cross">
@@ -316,10 +316,10 @@ function SectionRiskFilter() {
   return (
     <div className="space-y-5">
       <Sub>Settings panel · Risk Filter</Sub>
-      <H>Which signals AutoTrade accepts</H>
+      <H>Which signals Agent accepts</H>
 
       <P>
-        Every LuxQuant signal carries a risk tier. The Risk Filter chooses which tiers AutoTrade is
+        Every LuxQuant signal carries a risk tier. The Risk Filter chooses which tiers Agent is
         allowed to execute.
       </P>
 
@@ -393,7 +393,7 @@ function SectionRiskLimits() {
 
       <Tip tone="info">
         If you see many signals skipped with reasons like <Code>max_daily_trades</Code> or{" "}
-        <Code>loss_cooldown</Code>, that is AutoTrade protecting you correctly. Raise limits
+        <Code>loss_cooldown</Code>, that is Agent protecting you correctly. Raise limits
         gradually — never jump from 5 to 20.
       </Tip>
     </div>
@@ -437,7 +437,7 @@ function SectionSpotVsFutures() {
 
       <H>When to pick Spot</H>
       <P>
-        You’re new to AutoTrade. You want to learn without liquidation risk. You prefer holding the
+        You’re new to Agent. You want to learn without liquidation risk. You prefer holding the
         asset and riding momentum.
       </P>
 
@@ -463,7 +463,7 @@ function SectionPresets() {
       <div className="grid gap-3 lg:grid-cols-3">
         <PresetCard
           name="Conservative"
-          audience="New to AutoTrade · $50–200"
+          audience="New to Agent · $50–200"
           accent="good"
           items={[
             ["Spot trading", "ON"],
@@ -578,8 +578,8 @@ function SectionFAQ() {
       a: "Check the Activity tab — each skip has a reason (max_daily_trades, loss_cooldown, max_open_positions). These are protections you configured. If you want more trades, raise the relevant limit slowly.",
     },
     {
-      q: "AutoTrade paused itself. What happened?",
-      a: "Three possibilities: (1) you toggled it off; (2) after the first live entry, AutoTrade auto-pauses as a safety canary — resume manually; (3) an emergency action like sell-all triggered a pause. The Activity log shows the exact event.",
+      q: "Agent paused itself. What happened?",
+      a: "Three possibilities: (1) you toggled it off; (2) after the first live entry, Agent auto-pauses as a safety canary — resume manually; (3) an emergency action like sell-all triggered a pause. The Activity log shows the exact event.",
     },
     {
       q: "My winning trade was recorded as a loss?",
@@ -590,7 +590,7 @@ function SectionFAQ() {
       a: "That’s leverage, not a bug. A $10 margin at 10× opens a $100 notional position; quantity = $100 / coin price. Your wallet only holds $10 — Binance is sizing the position by notional.",
     },
     {
-      q: "AutoTrade can’t turn on Futures — canTrade: false?",
+      q: "Agent can’t turn on Futures — canTrade: false?",
       a: "Your Binance API key doesn’t have Futures permission enabled. Go to your Binance API management, edit the key, enable Futures, and save with 2FA. Some keys also need IP whitelisting before Futures can be enabled.",
     },
     {
@@ -602,7 +602,7 @@ function SectionFAQ() {
       a: "(1) Trade History — yesterday’s PnL. (2) Activity — anything blocked for unexpected reasons? (3) Positions — any reconciliation_required? That needs attention. (4) Daily loss — within your comfort zone?",
     },
     {
-      q: "Can I run AutoTrade unattended for weeks?",
+      q: "Can I run Agent unattended for weeks?",
       a: "Yes, if your API key is valid, the IP whitelist (if any) hasn’t changed, USDT balance stays above your minimum reserve, and there are no unresolved positions. Still review weekly — markets shift and signal quality drifts.",
     },
   ];
@@ -859,11 +859,11 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
                     </svg>
                   </span>
                   <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
-                    AutoTrade Guide
+                    Agent Guide
                   </h2>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-text-muted">
-                  Everything you need to configure, run, and review AutoTrade safely — written in
+                  Everything you need to configure, run, and review Agent safely — written in
                   the same language you see in the UI.
                 </p>
 

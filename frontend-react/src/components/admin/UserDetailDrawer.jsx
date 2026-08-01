@@ -293,7 +293,7 @@ const UserHero = ({ user }) => (
 
 const FEATURE_LABEL = {
   signals: "Signals",
-  autotrade: "AutoTrade",
+  autotrade: "Agent",
   markets: "Markets",
   market_pulse: "Market Pulse",
   ai_arena: "AI Arena",
@@ -1830,7 +1830,7 @@ const TABS = [
   { id: "payments", label: "Payments", Icon: StarIcon },
   { id: "referral", label: "Referral", Icon: SparklesIcon },
   { id: "outreach", label: "Outreach", Icon: SendIcon },
-  { id: "autotrade", label: "AutoTrade", Icon: BroadcastIcon },
+  { id: "autotrade", label: "Agent", Icon: BroadcastIcon },
 ];
 
 export const UserDetailDrawer = ({

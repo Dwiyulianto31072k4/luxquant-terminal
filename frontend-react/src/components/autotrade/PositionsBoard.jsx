@@ -1,5 +1,5 @@
 // src/components/autotrade/PositionsBoard.jsx
-// AutoTrade-managed spot positions are intentionally separated from unrelated
+// Agent-managed spot positions are intentionally separated from unrelated
 // Binance wallet balances so users can see what the strategy actually owns.
 
 import { useState, useRef } from "react";
@@ -89,7 +89,7 @@ function PortfolioCharts({ trackedSpot, manualSpot, futures }) {
     ...trackedSpot.map((position) => ({
       name: position.symbol.replace(/USDT$/, ""),
       value: Number(position.current_value_usdt || 0),
-      source: "AutoTrade",
+      source: "Agent",
     })),
     ...manualSpot.map((balance) => ({
       name: balance.asset,
@@ -172,11 +172,11 @@ function PortfolioCharts({ trackedSpot, manualSpot, futures }) {
           Open-position PnL
         </p>
         <p className="mt-1 text-xs text-text-muted">
-          Unrealized PnL by tracked AutoTrade position.
+          Unrealized PnL by tracked Agent position.
         </p>
         {exposure.length === 0 ? (
           <div className="flex h-56 items-center justify-center text-sm text-text-muted">
-            No open AutoTrade exposure
+            No open Agent exposure
           </div>
         ) : (
           <div className="mt-4 h-56">
@@ -256,7 +256,7 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
             />
           </span>
           <span className="mt-0.5 block font-mono text-[10px] text-text-secondary">
-            {fmtUsd(position.current_value_usdt)} · AutoTrade
+            {fmtUsd(position.current_value_usdt)} · Agent
           </span>
         </span>
         <span className="text-right">
@@ -286,7 +286,7 @@ function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
       {open ? (
         <div className="border-t border-ink/[0.06] px-4 pb-4 pt-3">
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            <StatusBadge tone="info">AutoTrade</StatusBadge>
+            <StatusBadge tone="info">Agent</StatusBadge>
             <StatusBadge tone={protectionTone(position)}>{protectionLabel(position)}</StatusBadge>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -380,7 +380,7 @@ function SpotPositionsTable({ positions, onOpen, onForceSell, busy }) {
                     <CoinLogo pair={position.symbol} size={27} />
                     <div>
                       <p className="font-mono font-medium text-text-primary">{position.symbol}</p>
-                      <p className="font-mono text-[9px] text-text-muted">AutoTrade spot</p>
+                      <p className="font-mono text-[9px] text-text-muted">Agent spot</p>
                     </div>
                   </div>
                 </td>
@@ -631,7 +631,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
                 value={config.spot_exit_mode || config.exit_mode || position.exit_mode || "—"}
               />
               <DetailRow label="Protection" value={protectionLabel(position)} />
-              <DetailRow label="Monitoring" value="Auto-refreshes with the AutoTrade dashboard" />
+              <DetailRow label="Monitoring" value="Auto-refreshes with the Agent dashboard" />
             </DetailPanel>
           </div>
         </div>
@@ -646,7 +646,7 @@ function FuturesPositions({ positions }) {
       <EmptyState
         icon="F"
         title="No open futures positions"
-        hint="Futures positions opened by AutoTrade will appear here."
+        hint="Futures positions opened by Agent will appear here."
       />
     );
   }
@@ -712,7 +712,7 @@ function ManualBalances({ balances, selectedAssets, onToggleAsset, busy }) {
       <EmptyState
         icon="$"
         title="No other spot balances"
-        hint="Balances managed by AutoTrade are listed above."
+        hint="Balances managed by Agent are listed above."
       />
     );
   }
@@ -807,7 +807,7 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
         <h3 className="mt-2 text-xl font-semibold text-text-primary">{action.title}</h3>
         <p className="mt-2 text-sm leading-6 text-text-muted">{action.description}</p>
         <div className="mt-4 rounded-lg border border-[#F6465D]/20 bg-[#F6465D]/5 p-3 text-xs leading-5 text-negative">
-          AutoTrade will be paused before this operation. Market execution can have slippage, and
+          Agent will be paused before this operation. Market execution can have slippage, and
           failed items may require manual reconciliation.
         </div>
         <label className="mt-4 block text-xs text-text-muted">
@@ -871,7 +871,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
       if (dangerAction.kind === "position") {
         result = await forceSellSpotPosition(dangerAction.position.id, {
           confirmation,
-          reason: "Emergency force sell requested from AutoTrade Positions",
+          reason: "Emergency force sell requested from Agent Positions",
         });
         setOperationMessage(
           `${result.symbol} sold for approximately ${fmtUsd(result.received_usdt)}.`
@@ -879,7 +879,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
       } else if (dangerAction.kind === "all-positions") {
         result = await forceSellAllSpotPositions({
           confirmation,
-          reason: "Emergency sell all requested from AutoTrade Positions",
+          reason: "Emergency sell all requested from Agent Positions",
         });
         const completed = (result.items || []).filter((item) => item.ok).length;
         const failed = (result.items || []).length - completed;
@@ -936,7 +936,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionHeader label="AutoTrade Spot Positions" hint={`${trackedSpot.length} open`} />
+          <SectionHeader label="Agent Spot Positions" hint={`${trackedSpot.length} open`} />
           {trackedSpot.length > 0 ? (
             <EmergencyButton
               disabled={operationBusy}
@@ -944,7 +944,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
                 setDangerAction({
                   kind: "all-positions",
                   phrase: "SELL ALL",
-                  title: "Emergency sell every AutoTrade spot position?",
+                  title: "Emergency sell every Agent spot position?",
                   description: `This cancels protection and submits market sells for ${trackedSpot.length} tracked position${trackedSpot.length === 1 ? "" : "s"}.`,
                   confirmLabel: "Sell all now",
                 })
@@ -958,7 +958,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
           <EmptyState
             icon="AT"
             title="No tracked spot positions"
-            hint="Live spot entries created by AutoTrade will appear here with their OCO protection."
+            hint="Live spot entries created by Agent will appear here with their OCO protection."
           />
         ) : (
           <>

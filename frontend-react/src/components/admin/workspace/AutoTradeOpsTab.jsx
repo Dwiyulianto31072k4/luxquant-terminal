@@ -1,8 +1,8 @@
 // src/components/admin/workspace/AutoTradeOpsTab.jsx
 //
-// AutoTrade operations: desk profitability, every bot, and every open position.
+// Agent operations: desk profitability, every bot, and every open position.
 //
-// AutoTrade runs as a separate application against its own database, so this
+// Agent runs as a separate application against its own database, so this
 // used to be an SSH-and-SQL job. Read-only throughout — the database role
 // cannot write and cannot see the encrypted API key columns.
 //
@@ -187,7 +187,7 @@ export const AutoTradeOpsTab = () => {
         setPositions(p);
         setAnalytics(a);
       })
-      .catch((e) => setError(e?.message || "Could not load AutoTrade data"))
+      .catch((e) => setError(e?.message || "Could not load Agent data"))
       .finally(() => setLoading(false));
   }, [since]);
 
@@ -262,12 +262,12 @@ export const AutoTradeOpsTab = () => {
       );
   }, [analytics]);
 
-  if (loading && !overview) return <p className="text-sm text-text-muted">Loading AutoTrade…</p>;
+  if (loading && !overview) return <p className="text-sm text-text-muted">Loading Agent…</p>;
   if (error) return <p className="text-sm text-[#F6465D]">{error}</p>;
   if (overview?.available === false)
     return (
       <p className="text-sm text-text-muted">
-        The AutoTrade database is not reachable from here. Nothing else on this page is affected.
+        The Agent database is not reachable from here. Nothing else on this page is affected.
       </p>
     );
 
@@ -278,7 +278,7 @@ export const AutoTradeOpsTab = () => {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
             AUTOTRADE · BOT OPERATIONS
           </p>
-          <h2 className="mt-1 text-[22px] font-semibold text-text-primary">AutoTrade Monitor</h2>
+          <h2 className="mt-1 text-[22px] font-semibold text-text-primary">Agent Monitor</h2>
           <p className="mt-1 text-sm text-text-secondary">
             Every user&apos;s bot, its health, what it earns, and everything it is holding.
             {since ? (
@@ -320,7 +320,7 @@ export const AutoTradeOpsTab = () => {
         <Stat
           label="Connected"
           value={t.linked ?? 0}
-          sub={`of ${t.signed_in ?? 0} who opened AutoTrade`}
+          sub={`of ${t.signed_in ?? 0} who opened Agent`}
         />
         <Stat label="Live bots" value={t.live ?? 0} sub="placing real orders" />
         <Stat
@@ -351,7 +351,7 @@ export const AutoTradeOpsTab = () => {
             <Stat
               label="Net realised — bot"
               value={usd(at.net ?? 0)}
-              sub={`${at.trades ?? 0} trades AutoTrade placed`}
+              sub={`${at.trades ?? 0} trades Agent placed`}
               tone={(at.net ?? 0) >= 0 ? UP : DOWN}
             />
             <Stat
@@ -421,7 +421,7 @@ export const AutoTradeOpsTab = () => {
               </div>
               <p className="mt-3 text-[11px] leading-relaxed text-text-muted">
                 These positions were opened on the same exchange accounts but not by
-                AutoTrade — the reconciler adopts whatever it finds, so a user's own
+                Agent — the reconciler adopts whatever it finds, so a user's own
                 trades land here too. They keep no stop-loss from us and cannot be
                 attributed to a take-profit or stop, which is why they never appear in
                 the exit-reason breakdown.

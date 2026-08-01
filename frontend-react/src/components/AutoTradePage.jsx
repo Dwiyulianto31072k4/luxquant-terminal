@@ -1,6 +1,6 @@
 // src/components/AutoTradePage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade page shell
+// LuxQuant — Agent page shell
 // Auth/load logic preserved verbatim; header, engine strip, tabs
 // and setup states restyled to match the terminal design language.
 // Activity + Logs are merged into a single compact Activity tab.
@@ -169,7 +169,7 @@ function MobileSectionPicker({ tabs, value, onChange }) {
 // ════════════════════════════════════════════════════════════════
 function SideNav({ tabs, value, onChange }) {
   return (
-    <nav className="sticky top-20 space-y-0.5" aria-label="AutoTrade sections">
+    <nav className="sticky top-20 space-y-0.5" aria-label="Agent sections">
       <p className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/60">
         Sections
       </p>
@@ -237,7 +237,7 @@ function AutoTradeControlCenter({
 
   let state = {
     eyebrow: "BOT PAUSED",
-    title: "AutoTrade is not processing new entries",
+    title: "Agent is not processing new entries",
     description:
       "Your configuration is saved. Start the bot when you want it to process incoming signals.",
     tone: "warn",
@@ -255,7 +255,7 @@ function AutoTradeControlCenter({
   } else if (active && globalLive && !isDryRun) {
     state = {
       eyebrow: "LIVE TRADING",
-      title: "AutoTrade can place real Binance orders",
+      title: "Agent can place real Binance orders",
       description: "Risk limits and your saved strategy are enforced before every live entry.",
       tone: "good",
       panel: "border-[#0ECB81]/30 bg-[#0ECB81]/[0.06]",
@@ -263,7 +263,7 @@ function AutoTradeControlCenter({
   } else if (active && !globalLive && !isDryRun) {
     state = {
       eyebrow: "LIVE ENGINE LOCKED",
-      title: "AutoTrade cannot start live trading yet",
+      title: "Agent cannot start live trading yet",
       description:
         "The server-wide live order switch is disabled. Your strategy remains saved and no new orders can be placed.",
       tone: "warn",
@@ -275,8 +275,8 @@ function AutoTradeControlCenter({
     if (!active) {
       const confirmed = window.confirm(
         isDryRun
-          ? "Start DRY-RUN AutoTrade? The bot will process signals but place no real Binance orders."
-          : "Start LIVE AutoTrade? New matching signals may place real Binance orders."
+          ? "Start DRY-RUN Agent? The bot will process signals but place no real Binance orders."
+          : "Start LIVE Agent? New matching signals may place real Binance orders."
       );
       if (!confirmed) return;
     }
@@ -287,7 +287,7 @@ function AutoTradeControlCenter({
       await setBinanceStrategyActive(!active);
       await onChanged?.();
     } catch (err) {
-      setActionError(err.message || "Failed to change AutoTrade status");
+      setActionError(err.message || "Failed to change Agent status");
     } finally {
       setWorking(false);
     }
@@ -312,7 +312,7 @@ function AutoTradeControlCenter({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-                AutoTrade engine
+                Agent engine
               </span>
               <StatusBadge tone={state.tone}>{state.eyebrow}</StatusBadge>
             </div>
@@ -330,7 +330,7 @@ function AutoTradeControlCenter({
             </span>
           </GhostButton>
           <GoldButton onClick={toggle} disabled={working || !accountValid}>
-            {working ? "Updating…" : active ? "Pause AutoTrade" : "Start AutoTrade"}
+            {working ? "Updating…" : active ? "Pause Agent" : "Start Agent"}
           </GoldButton>
         </div>
       </div>
@@ -483,7 +483,7 @@ function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
     <Card className="border-ink/10 bg-accent/12">
       <div className="max-w-2xl space-y-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-          AutoTrade Setup
+          Agent Setup
         </p>
         <h2 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h2>
         <p className="text-sm leading-6 text-text-muted">{body}</p>
@@ -577,7 +577,7 @@ export default function AutoTradePage() {
           resetAutotradeData();
           setError(
             /404|not found/i.test(message)
-              ? "AutoTrade access is not ready yet. Try logging out and back in to refresh your Cryptobot access token."
+              ? "Agent access is not ready yet. Try logging out and back in to refresh your Cryptobot access token."
               : message || "Unable to connect this LuxQuant account to Cryptobot right now."
           );
           return;
@@ -587,7 +587,7 @@ export default function AutoTradePage() {
         try {
           await ensureAutotradeAccess({ refreshIdentity: true });
         } catch (identityError) {
-          console.warn("AutoTrade identity refresh failed:", identityError);
+          console.warn("Agent identity refresh failed:", identityError);
         }
       }
 
@@ -658,10 +658,10 @@ export default function AutoTradePage() {
           const wait = err.retryAfterSeconds || 120;
           binanceBackOffUntilRef.current = Date.now() + wait * 1000;
           setError(
-            err.message || `Binance rate-limited this server. Pausing AutoTrade refresh ~${wait}s.`
+            err.message || `Binance rate-limited this server. Pausing Agent refresh ~${wait}s.`
           );
         } else {
-          setError(err.message || "Failed to load AutoTrade data");
+          setError(err.message || "Failed to load Agent data");
         }
       }
     } finally {
@@ -699,7 +699,7 @@ export default function AutoTradePage() {
 
   const summaryText = useMemo(() => {
     if (!hasAutotradeToken) return "Cryptobot access required";
-    if (!hasExchangeAccount) return "Connect your Binance account to unlock AutoTrade";
+    if (!hasExchangeAccount) return "Connect your Binance account to unlock Agent";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = liveExecutions.length;
     return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected · ${totalExecutions} execution job${totalExecutions === 1 ? "" : "s"}`;
@@ -726,12 +726,12 @@ export default function AutoTradePage() {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-8">
-      <SectionHeader label="AutoTrade" />
+      <SectionHeader label="Agent" />
 
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <PageHeader title="AutoTrade" />
+          <PageHeader title="Agent" />
           <p className="mt-2 text-sm text-text-secondary">{summaryText}</p>
         </div>
         <div className="flex items-center gap-3">
@@ -748,7 +748,7 @@ export default function AutoTradePage() {
           <button
             type="button"
             onClick={() => setShowHelp(true)}
-            aria-label="Open AutoTrade guide"
+            aria-label="Open Agent guide"
             className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/[0.08] text-text-muted transition-colors hover:border-ink/12 hover:bg-accent/12 hover:text-accent"
           >
             <svg
@@ -772,9 +772,9 @@ export default function AutoTradePage() {
 
       {!hasAutotradeToken ? (
         <SetupCard
-          title="Connect AutoTrade access"
-          body="AutoTrade links your LuxQuant account to the execution engine using a secure one-time token exchange. No password or exchange keys are shared in this step."
-          actionLabel={authActionLoading ? "Connecting…" : "Connect AutoTrade"}
+          title="Connect Agent access"
+          body="Agent links your LuxQuant account to the execution engine using a secure one-time token exchange. No password or exchange keys are shared in this step."
+          actionLabel={authActionLoading ? "Connecting…" : "Connect Agent"}
           onAction={handleAuthorizeAutotrade}
           disabled={authActionLoading}
         />
@@ -782,8 +782,8 @@ export default function AutoTradePage() {
         <LoadingState />
       ) : !hasExchangeAccount ? (
         <SetupCard
-          title="Connect Binance before using AutoTrade"
-          body="Your AutoTrade access is ready, but exchange credentials are required first. After your Binance keys are saved and validated, portfolio, configuration, positions and execution history unlock."
+          title="Connect Binance before using Agent"
+          body="Your Agent access is ready, but exchange credentials are required first. After your Binance keys are saved and validated, portfolio, configuration, positions and execution history unlock."
           actionLabel="Connect Binance"
           onAction={() => setShowConnect(true)}
         />

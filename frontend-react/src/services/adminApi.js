@@ -3,7 +3,7 @@ import api from "./authApi";
 
 export const adminApi = {
   // ════════════════════════════════════════
-  // AutoTrade monitoring (read-only view of the cryptobot database)
+  // Agent monitoring (read-only view of the cryptobot database)
   // ════════════════════════════════════════
   getAutoTradeOverview: async () => {
     const response = await api.get("/api/v1/admin/autotrade/overview");

@@ -160,7 +160,7 @@ const FEATURES = [
   },
   {
     id: "autotrade",
-    title: "AutoTrade",
+    title: "Agent",
     desc: "Coming Soon — Automated execution with smart risk management. Connect your exchange and let the system trade for you 24/7.",
     macImg: "/mockups/mac-autotrade.png",
     phoneImg: "/mockups/phone-autotrade.png",

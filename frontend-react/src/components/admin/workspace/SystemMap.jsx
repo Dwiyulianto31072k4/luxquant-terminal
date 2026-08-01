@@ -45,7 +45,7 @@ const EDGE = {
 const CATCOLOR = {
   "Core API": C.gold,
   "AI Compass": C.purple,
-  "AutoTrade / Cryptobot": C.teal,
+  "Agent / Cryptobot": C.teal,
   Signals: C.blue,
   "Market Data": C.blue,
   Distribution: C.purple,
@@ -57,7 +57,7 @@ const CATCOLOR = {
 const CATFN = {
   "AI Compass":
     "BTC Compass engine — event-driven reads, evaluation, resolver and daily reflection.",
-  "AutoTrade / Cryptobot":
+  "Agent / Cryptobot":
     "The trading engine: ingestion, execution, price watch, reconciliation and alerts.",
   Signals: "Turns raw signals into tracked journeys, facts, tags and correlations.",
   "Market Data":
@@ -69,7 +69,7 @@ const CATFN = {
 };
 const CLUSTER_ORDER = [
   "AI Compass",
-  "AutoTrade / Cryptobot",
+  "Agent / Cryptobot",
   "Signals",
   "Market Data",
   "Distribution",

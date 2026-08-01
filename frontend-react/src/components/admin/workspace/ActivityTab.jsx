@@ -35,7 +35,7 @@ import {
 // ── Feature display labels (bucketed names -> human) ──
 const FEATURE_LABELS = {
   signals: "Signals",
-  autotrade: "AutoTrade",
+  autotrade: "Agent",
   markets: "Markets",
   market_pulse: "Market Pulse",
   bitcoin: "Bitcoin",
@@ -494,7 +494,7 @@ const FEED_FILTERS = [
   { value: "fx", label: "FX" },
   { value: "watchlist", label: "Watchlist" },
   { value: "markets", label: "Markets" },
-  { value: "autotrade", label: "AutoTrade" },
+  { value: "autotrade", label: "Agent" },
 ];
 
 const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (

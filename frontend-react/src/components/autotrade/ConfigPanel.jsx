@@ -1,6 +1,6 @@
 // src/components/autotrade/ConfigPanel.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade Config Panel v2 (Flowscan reskin)
+// LuxQuant — Agent Config Panel v2 (Flowscan reskin)
 // Sections: Position · TP Strategy · Filters · Trailing · Max Loss · Anti-Liq
 // ════════════════════════════════════════════════════════════════
 
@@ -227,7 +227,7 @@ export default function ConfigPanel({ account, onClose }) {
         {/* ── Master toggle ── */}
         <div className="relative overflow-hidden bg-surface-secondary border border-ink/10 rounded-md p-4">
           <Toggle
-            label="AutoTrade Enabled"
+            label="Agent Enabled"
             hint="Master switch · turn off to pause execution without deleting config"
             checked={config.enabled}
             onChange={(v) => update({ enabled: v })}

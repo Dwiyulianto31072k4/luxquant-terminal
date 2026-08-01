@@ -19,7 +19,7 @@ export default function FooterV2({ onNav }) {
       title: "Product",
       links: [
         { label: "Signals", type: "feature", to: "/signals" },
-        { label: "AutoTrade", type: "feature", to: "/autotrade" },
+        { label: "Agent", type: "feature", to: "/autotrade" },
         { label: "AI Research", type: "feature", to: "/ai-arena" },
         { label: "Market Pulse", type: "feature", to: "/market-pulse" },
         { label: "On-Chain", type: "feature", to: "/onchain" },

@@ -5,7 +5,7 @@
 //
 // 50–100 App chrome (side nav mobile, landing CTA bar)
 // 9_000–10k Page-level light overlays (tips, resources)
-// 100_000 Standard page modals (Modal default, AutoTrade, Pulse)
+// 100_000 Standard page modals (Modal default, Agent, Pulse)
 // 150_000 Large drawers that can host SignalModal (EdgeLab drill)
 // 200_000 SignalModal / Called status sheet (full-screen shells)
 // 210_000 Nested on top of SignalModal (Deep Analysis, Coin Utility…)

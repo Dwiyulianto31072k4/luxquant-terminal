@@ -4,7 +4,7 @@
 export const LANDING_FAQ = [
   {
     q: "What is LuxQuant Terminal?",
-    a: "LuxQuant Terminal is a quantitative crypto market-intelligence platform: algorithmic trade calls with a public, timestamped track record, money-flow and sector context, on-chain whale signals, risk scoring, and AI research — so decisions start from data, not noise. Explore the free tier, then unlock full signals and AutoTrade when you are ready.",
+    a: "LuxQuant Terminal is a quantitative crypto market-intelligence platform: algorithmic trade calls with a public, timestamped track record, money-flow and sector context, on-chain whale signals, risk scoring, and AI research — so decisions start from data, not noise. Explore the free tier, then unlock full signals and Agent when you are ready.",
   },
   {
     q: "How does the LuxQuant algorithm reason about a trade?",
@@ -40,10 +40,10 @@ export const LANDING_FAQ = [
   },
   {
     q: "Can LuxQuant auto-execute trades for me?",
-    a: "Yes. AutoTrade can connect your exchange API keys and follow signal plans under your risk limits (size, max positions, cooldowns). You stay in control of keys, sizing, and on/off — LuxQuant supplies the plan and the automation layer. Start in dry-run if you want to observe first.",
+    a: "Yes. Agent can connect your exchange API keys and follow signal plans under your risk limits (size, max positions, cooldowns). You stay in control of keys, sizing, and on/off — LuxQuant supplies the plan and the automation layer. Start in dry-run if you want to observe first.",
   },
   {
-    q: "Is AutoTrade safe for my funds?",
+    q: "Is Agent safe for my funds?",
     a: "You trade on your own exchange account with keys you control. Use withdraw-disabled keys where the exchange allows it, set conservative notional and position caps, and validate IP/permissions carefully. Automation removes clicks — it does not remove market risk. Always size for survival first.",
   },
   {
@@ -52,7 +52,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "Is there a free tier?",
-    a: "Yes. Explore the product free, then upgrade when you want full algorithmic signals, AutoTrade, deeper on-chain intelligence, and AI research. Pricing is transparent — start light, scale only when the process is earning your trust.",
+    a: "Yes. Explore the product free, then upgrade when you want full algorithmic signals, Agent, deeper on-chain intelligence, and AI research. Pricing is transparent — start light, scale only when the process is earning your trust.",
   },
   {
     q: "Who is LuxQuant built for?",
@@ -60,7 +60,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "How do I get started in under five minutes?",
-    a: "Open the app (or Sign Up with Google), scan the latest calls and Performance proof, optionally link Telegram alerts, then paper-trade or size a small live position with the published entry/TP/SL. When you want hands-off execution, connect exchange keys and enable AutoTrade with tight limits.",
+    a: "Open the app (or Sign Up with Google), scan the latest calls and Performance proof, optionally link Telegram alerts, then paper-trade or size a small live position with the published entry/TP/SL. When you want hands-off execution, connect exchange keys and enable Agent with tight limits.",
   },
 ];
 

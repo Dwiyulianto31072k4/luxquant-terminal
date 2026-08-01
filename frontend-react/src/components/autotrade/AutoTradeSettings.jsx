@@ -52,7 +52,7 @@ export default function AutoTradeSettings({
       <aside className="h-fit rounded-md border border-ink/[0.06] bg-surface-raised p-2 lg:sticky lg:top-24">
         <div className="px-3 pb-2 pt-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
-            AutoTrade Settings
+            Agent Settings
           </p>
           <p className="mt-1 text-xs leading-5 text-text-muted">
             Configuration changes apply to future execution jobs.

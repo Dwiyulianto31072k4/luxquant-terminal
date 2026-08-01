@@ -411,7 +411,7 @@ const UserMenu = () => {
                 />
               }
               label={t("userMenu.api_keys", { defaultValue: "API Keys" })}
-              sublabel={t("userMenu.api_keys_desc", { defaultValue: "For bots & autotrade" })}
+              sublabel={t("userMenu.api_keys_desc", { defaultValue: "For bots & agents" })}
               onClick={() => handleNavClick("/api-keys")}
             />
           </div>

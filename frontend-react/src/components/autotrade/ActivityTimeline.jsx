@@ -1,6 +1,6 @@
 // src/components/autotrade/ActivityTimeline.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · Activity tab (merged Activity + Logs)
+// LuxQuant — Agent · Activity tab (merged Activity + Logs)
 // One compact view:
 // • inline stat strip from execution jobs (completed / skipped /
 // failed / reconciliation / running) — no big cards, no charts
@@ -75,11 +75,11 @@ const RISK_LIMIT_HELP = {
   daily_loss_limit: {
     label: "Daily loss limit reached",
     blocking: true,
-    hint: "Losses on trades AutoTrade placed hit your limit, so trading is paused until 00:00 UTC. Trades you opened by hand are not counted. This is a guardrail working as intended — raise it only deliberately.",
+    hint: "Losses on trades Agent placed hit your limit, so trading is paused until 00:00 UTC. Trades you opened by hand are not counted. This is a guardrail working as intended — raise it only deliberately.",
   },
   loss_cooldown: {
     label: "Cooling down after a loss",
-    hint: "A pause after a losing trade AutoTrade placed — your own hand-trading does not trigger it. Shorten or disable it under Cooldown after loss.",
+    hint: "A pause after a losing trade Agent placed — your own hand-trading does not trigger it. Shorten or disable it under Cooldown after loss.",
   },
   error_cooldown: {
     label: "Cooling down after a failed trade",
@@ -215,7 +215,7 @@ function eventInfo(item) {
     return {
       category: "strategy",
       tone: "good",
-      title: "AutoTrade resumed after convert",
+      title: "Agent resumed after convert",
       description: `${metadata.submitted || 0} submitted · ${metadata.failed || 0} failed · ${metadata.skipped || 0} skipped`,
       source: "System safety",
     };
@@ -224,7 +224,7 @@ function eventInfo(item) {
     return {
       category: "strategy",
       tone: "warn",
-      title: "AutoTrade paused for an emergency action",
+      title: "Agent paused for an emergency action",
       description:
         metadata.reason || "New entries were stopped before an emergency portfolio operation.",
       source: "Emergency controls",
@@ -235,7 +235,7 @@ function eventInfo(item) {
     return {
       category: "strategy",
       tone: active ? "good" : "warn",
-      title: active ? "AutoTrade started" : "AutoTrade paused",
+      title: active ? "Agent started" : "Agent paused",
       description: active
         ? "The user enabled processing for new matching signals."
         : "The user paused processing for new matching signals.",
@@ -394,8 +394,8 @@ function eventInfo(item) {
     category: "execution",
     tone: "neutral",
     title: action.replaceAll(".", " ").replaceAll("_", " "),
-    description: symbol ? `Related to ${symbol}.` : "AutoTrade operational event.",
-    source: "AutoTrade",
+    description: symbol ? `Related to ${symbol}.` : "Agent operational event.",
+    source: "Agent",
   };
 }
 
@@ -621,7 +621,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
     return (
       <EmptyState
         icon="A"
-        title="No AutoTrade activity yet"
+        title="No Agent activity yet"
         hint="Strategy changes, executions, risk blocks, and position incidents will appear here."
       />
     );

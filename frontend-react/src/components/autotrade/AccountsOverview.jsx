@@ -1,6 +1,6 @@
 // src/components/autotrade/AccountsOverview.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · Accounts tab
+// LuxQuant — Agent · Accounts tab
 // Account identity + engine/health status + linked exchange keys.
 // Balance figures live in the top PnLSummary strip; this panel is
 // about WHO is connected and WHETHER the keys are healthy.
@@ -83,7 +83,7 @@ export default function AccountsOverview({
         {showWalletHint ? (
           <div className="mt-4 rounded-md border-l-2 border-ink/15 bg-surface-secondary py-2.5 pl-3 pr-4">
             <p className="text-sm text-accent/85">
-              Keys are valid but this wallet reads $0. AutoTrade trades the{" "}
+              Keys are valid but this wallet reads $0. Agent trades the{" "}
               <span className="font-medium text-accent">Futures</span> wallet — if your funds sit in
               Spot or Funding, transfer them to USD-M Futures in Binance to use them here.
             </p>

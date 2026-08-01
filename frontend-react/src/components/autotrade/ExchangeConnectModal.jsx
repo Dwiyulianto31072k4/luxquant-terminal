@@ -1,6 +1,6 @@
 // src/components/autotrade/ExchangeConnectModal.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade · Connect Binance modal
+// LuxQuant — Agent · Connect Binance modal
 // Two-pane premium layout: left = guidance (permissions + IP + safety),
 // right = key form. Stacks to one column on mobile, scroll-safe with
 // navbar/tab-bar clearance. Logic/props unchanged.
@@ -23,7 +23,7 @@ import { BinanceIcon } from "./BrandIcons";
 
 const INITIAL_FORM = { label: "", api_key: "", api_secret: "" };
 
-// AutoTrade execution server. Whitelist this on the Binance API key when the
+// Agent execution server. Whitelist this on the Binance API key when the
 // key is IP-restricted, otherwise Binance rejects every spot/futures order.
 const AUTOTRADE_SERVER_IP = "187.127.135.84";
 
@@ -66,7 +66,7 @@ function ServerIpBlock() {
     <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-accent/25 bg-accent/[0.08] px-3.5 py-3">
       <div className="min-w-0">
         <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-accent">
-          AutoTrade server IP
+          Agent server IP
         </p>
         <p className="mt-0.5 select-all font-mono text-sm font-semibold tracking-wide text-text-primary">
           {AUTOTRADE_SERVER_IP}
@@ -259,13 +259,13 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                     IP access restriction
                   </p>
                   <p className="mt-2 text-xs leading-5 text-text-secondary">
-                    To enable spot &amp; futures trading on an IP-restricted key, add the AutoTrade
+                    To enable spot &amp; futures trading on an IP-restricted key, add the Agent
                     server IP below to your Binance API key. Without it, Binance rejects every
                     order.
                   </p>
                   <ServerIpBlock />
                   <p className="mt-3 text-xs leading-5 text-text-muted">
-                    Keys are encrypted at rest and never leave the AutoTrade backend.
+                    Keys are encrypted at rest and never leave the Agent backend.
                   </p>
                 </div>
               </div>
