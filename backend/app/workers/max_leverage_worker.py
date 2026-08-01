@@ -28,6 +28,8 @@ from datetime import datetime, timezone
 import asyncpg
 import httpx
 
+from app.core.http_client import binance_weight_hook
+
 # ============================================================
 # CONFIG
 # ============================================================
@@ -151,7 +153,10 @@ async def process_one(conn, client, signal_id, pair):
 # ============================================================
 async def run_backfill(days=None):
     conn = await asyncpg.connect(DATABASE_URL)
-    client = httpx.AsyncClient(headers=HTTP_HEADERS)
+    client = httpx.AsyncClient(
+        headers=HTTP_HEADERS,
+        event_hooks={"response": [binance_weight_hook("max_leverage_worker")]},
+    )
     try:
         # created_at is stored as TEXT — cast to timestamptz for date filtering.
         day_filter = ""
@@ -185,7 +190,10 @@ async def run_backfill(days=None):
 
 async def run_single(signal_id):
     conn = await asyncpg.connect(DATABASE_URL)
-    client = httpx.AsyncClient(headers=HTTP_HEADERS)
+    client = httpx.AsyncClient(
+        headers=HTTP_HEADERS,
+        event_hooks={"response": [binance_weight_hook("max_leverage_worker")]},
+    )
     try:
         row = await get_signal_pair(conn, signal_id)
         if not row:
@@ -236,7 +244,10 @@ async def run_loop():
     """LISTEN new_signal, with a periodic sweep so a dead listener cannot stall."""
     queue: asyncio.Queue = asyncio.Queue()
     conn = await _connect_with_listener(queue)
-    client = httpx.AsyncClient(headers=HTTP_HEADERS)
+    client = httpx.AsyncClient(
+        headers=HTTP_HEADERS,
+        event_hooks={"response": [binance_weight_hook("max_leverage_worker")]},
+    )
     logger.info("🔄 Max Leverage Worker started — LISTEN new_signal + %ss sweep", SWEEP_SECONDS)
 
     try:

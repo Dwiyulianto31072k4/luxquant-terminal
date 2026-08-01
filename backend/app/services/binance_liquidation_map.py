@@ -20,6 +20,7 @@ from typing import Any, Literal
 
 import httpx
 
+from app.core.http_client import binance_weight_hook
 from app.core.redis import get_redis
 
 logger = logging.getLogger(__name__)
@@ -537,6 +538,7 @@ async def fetch_binance_estimated_heatmap(
             async with httpx.AsyncClient(
                 timeout=timeout_s,
                 headers={"User-Agent": "LuxQuant/2.0", "Accept": "application/json"},
+                event_hooks={"response": [binance_weight_hook("liquidation_map")]},
             ) as client:
                 results = await asyncio.gather(
                     *(_get_json(client, url, params) for url, params in requests),

@@ -211,6 +211,11 @@ def fetch_coinbase_premium() -> Optional[Dict]:
 
     try:
         bn_r = requests.get(BINANCE_TICKER, timeout=TIMEOUT)
+        try:
+            from app.core.http_client import note_binance_response
+            note_binance_response(bn_r, "etf_flows")
+        except Exception:
+            pass
         bn_data = bn_r.json()
         bn_price = float(bn_data.get("price", 0) or 0)
     except Exception as e:

@@ -13,6 +13,7 @@ import traceback
 import os
 import httpx
 from datetime import datetime
+from app.core.http_client import binance_weight_hook
 from app.core.redis import cache_set, cache_get, is_redis_available
 
 # Import shared failure tracker from cache_worker
@@ -41,7 +42,10 @@ async def fetch_categories():
     if _tracker.should_skip("coingecko_categories"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        async with httpx.AsyncClient(
+            timeout=TIMEOUT,
+            event_hooks={"response": [binance_weight_hook("overview_worker")]},
+        ) as client:
             res = await client.get(
                 f"{COINGECKO_API}/coins/categories",
                 params={"order": "market_cap_change_24h_desc"},
@@ -80,7 +84,10 @@ async def fetch_trending():
     if _tracker.should_skip("coingecko_trending"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        async with httpx.AsyncClient(
+            timeout=TIMEOUT,
+            event_hooks={"response": [binance_weight_hook("overview_worker")]},
+        ) as client:
             res = await client.get(f"{COINGECKO_API}/search/trending", headers=CG_HEADERS)
             if res.status_code != 200:
                 _tracker.record_failure("coingecko_trending", Exception(f"HTTP {res.status_code}"), base_interval=300)
@@ -136,7 +143,10 @@ async def fetch_derivatives_pulse():
         return None  # global Binance fapi cooldown active — do NOT poke a live ban
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        async with httpx.AsyncClient(
+            timeout=TIMEOUT,
+            event_hooks={"response": [binance_weight_hook("overview_worker")]},
+        ) as client:
             # 1. Funding + mark — Bybit → WS → REST premiumIndex
             if by_fresh:
                 premium_data = [

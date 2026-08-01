@@ -92,19 +92,13 @@ def _record_binance_weight(resp) -> None:
             _note_ban(resp, 600 if resp.status_code == 418 else 120)
     except Exception:
         pass
+    # The path used to be hardcoded to /fapi/v1/klines, so the spot fetch below
+    # was filed under futures — which made the endpoint breakdown wrong in the
+    # one place it was supposed to be authoritative. Deriving it from the
+    # response also attributes the call to this module by name.
     try:
-        used = resp.headers.get("x-mbx-used-weight-1m")
-        if used is None:
-            return
-        import time as _t
-        from app.core.redis import get_redis
-        r = get_redis()
-        key = "lq:binance:weight:%s" % int(_t.time() // 60)
-        pipe = r.pipeline()
-        pipe.hincrby(key, "/fapi/v1/klines", 1)
-        pipe.hset(key, "_peak", int(used))
-        pipe.expire(key, 900)
-        pipe.execute()
+        from app.core.http_client import note_binance_response
+        note_binance_response(resp, "journey_fetcher")
     except Exception:
         pass
 

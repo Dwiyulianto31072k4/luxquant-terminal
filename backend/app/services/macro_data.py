@@ -124,6 +124,11 @@ def fetch_binance_daily(symbol: str, days: int = 60) -> Optional[List[Dict]]:
             params={"symbol": symbol, "interval": "1d", "limit": days},
             timeout=TIMEOUT,
         )
+        try:
+            from app.core.http_client import note_binance_response
+            note_binance_response(r, "macro_data")
+        except Exception:
+            pass
         if r.status_code != 200:
             _log(f"Binance {symbol} HTTP {r.status_code}")
             return None

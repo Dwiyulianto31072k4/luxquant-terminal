@@ -196,6 +196,11 @@ def fetch_binance_klines(symbol, interval="1h", limit=200):
     for url in urls:
         try:
             resp = http_requests.get(url, params=params, timeout=10)
+            try:
+                from app.core.http_client import note_binance_response
+                note_binance_response(resp, "chart_worker")
+            except Exception:
+                pass   # this worker runs outside the backend package on the VPS
             resp.raise_for_status()
             data = resp.json()
             return [

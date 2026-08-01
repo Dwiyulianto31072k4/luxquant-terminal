@@ -108,11 +108,58 @@ _coingecko_client: Optional[httpx.AsyncClient] = None
 # Cheap by construction: one header read per response, one Redis HINCRBY, and
 # the key expires on its own.
 _WEIGHT_KEY_FMT = "lq:binance:weight:%s"
+# Same minute bucket, but keyed by who made the call rather than what was hit.
+# Path alone cannot answer "which worker is eating the budget?", and that is the
+# question that decides whether to cache, tune a loop, or buy a second machine.
+_CALLER_KEY_FMT = "lq:binance:caller:%s"
 _WEIGHT_CEILING = 2400          # futures IP limit per minute
 _last_weight_warn = 0.0
 
 
-async def _record_binance_weight(response):
+def binance_weight_hook(caller: str):
+    """Response hook that attributes a client's Binance calls to `caller`.
+
+    Ad-hoc clients scattered across the workers were invisible here: the meter
+    only ever saw the shared client, so on 2026-08-01 it reported 52 calls/min
+    while the IP was actually running at ~1700 weight/min. Every conclusion drawn
+    from that gap was a guess. Observation only — hooks cannot alter the request.
+    """
+    async def _hook(response):
+        await _record_binance_weight(response, caller=caller)
+    return _hook
+
+
+def note_binance_response(resp, caller: str) -> None:
+    """Record weight from a plain `requests` response. Observation only.
+
+    Deliberately not `binance_get_sync`: that one refuses to spend a request
+    during a ban and returns None, which is the right behaviour but a control-flow
+    change. This pass is only meant to find out who is spending the budget, so it
+    adds nothing a caller has to handle. Repair comes once the numbers are in.
+    """
+    try:
+        used = resp.headers.get("x-mbx-used-weight-1m")
+        if used is None:
+            return
+        import time as _t
+        from urllib.parse import urlparse
+        from app.core.redis import get_redis
+        minute = int(_t.time() // 60)
+        r = get_redis()
+        path = urlparse(str(resp.url)).path or "?"
+        pipe = r.pipeline()
+        pipe.hincrby(_WEIGHT_KEY_FMT % minute, path, 1)
+        pipe.hset(_WEIGHT_KEY_FMT % minute, "_peak", int(used))
+        pipe.expire(_WEIGHT_KEY_FMT % minute, 900)
+        pipe.hincrby(_CALLER_KEY_FMT % minute, caller, 1)
+        pipe.hincrby(_CALLER_KEY_FMT % minute, f"{caller} {path}", 1)
+        pipe.expire(_CALLER_KEY_FMT % minute, 900)
+        pipe.execute()
+    except Exception:
+        pass   # accounting must never break a request
+
+
+async def _record_binance_weight(response, caller: str = "shared_client"):
     global _last_weight_warn
     try:
         used = response.headers.get("x-mbx-used-weight-1m")
@@ -125,10 +172,14 @@ async def _record_binance_weight(response):
         minute = int(_t.time() // 60)
         r = get_redis()
         key = _WEIGHT_KEY_FMT % minute
+        caller_key = _CALLER_KEY_FMT % minute
         pipe = r.pipeline()
         pipe.hincrby(key, path, 1)          # call count per endpoint
         pipe.hset(key, "_peak", used)       # highest reading seen this minute
         pipe.expire(key, 900)               # 15 min of history is plenty
+        pipe.hincrby(caller_key, caller, 1)
+        pipe.hincrby(caller_key, f"{caller} {path}", 1)
+        pipe.expire(caller_key, 900)
         pipe.execute()
         if used > _WEIGHT_CEILING * 0.75 and _t.time() - _last_weight_warn > 60:
             _last_weight_warn = _t.time()
@@ -187,10 +238,15 @@ def binance_get_sync(url: str, params: dict | None = None, timeout: float = 15.0
             from app.core.redis import get_redis
             r = get_redis()
             key = _WEIGHT_KEY_FMT % int(_t.time() // 60)
+            caller_key = _CALLER_KEY_FMT % int(_t.time() // 60)
+            path = urlparse(url).path or "?"
             pipe = r.pipeline()
-            pipe.hincrby(key, urlparse(url).path or "?", 1)
+            pipe.hincrby(key, path, 1)
             pipe.hset(key, "_peak", int(used))
             pipe.expire(key, 900)
+            pipe.hincrby(caller_key, "binance_get_sync", 1)
+            pipe.hincrby(caller_key, f"binance_get_sync {path}", 1)
+            pipe.expire(caller_key, 900)
             pipe.execute()
     except Exception:
         pass
@@ -214,7 +270,7 @@ def init_clients():
         headers=BASE_HEADERS,
         http2=False,
         follow_redirects=False,
-        event_hooks={"response": [_record_binance_weight]},
+        event_hooks={"response": [binance_weight_hook("shared_client")]},
     )
 
     # ─── CoinGecko: Main (key utama — market data) ───
