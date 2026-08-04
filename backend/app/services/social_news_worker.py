@@ -93,6 +93,10 @@ class NewsItem:
     domain: Optional[str]
     image_url: Optional[str]
     created_at: Optional[datetime]
+    # When the OUTLET published it, not when we ingested it. Only ~27% of rows
+    # carry one (RSS does, scraped Telegram does not), and where both exist they
+    # sit minutes apart — so created_at is the fallback, never the first choice.
+    published_at: Optional[str] = None
     extracted_text: Optional[str] = None
     extracted_title: Optional[str] = None
     extracted_image_url: Optional[str] = None
@@ -420,7 +424,15 @@ def build_draft(
             need_search = (not item.url) or len((article_text or "").strip()) < min_chars
             if need_search:
                 _progress(progress_cb, "search", "Enriching sources via web search…")
-                tavily = tavily_enrich(item.extracted_title or item.title, url=item.url)
+                tavily = tavily_enrich(
+                    item.extracted_title or item.title,
+                    url=item.url,
+                    # Bound the search to the story's own window. Unbounded, a
+                    # search for "Bank of Korea buys gold" happily returns the
+                    # last time that happened, and those figures then get
+                    # written into a caption about today's event.
+                    story_date=item.published_at or item.created_at,
+                )
                 search_count = 1 if tavily else 0
         except Exception:
             tavily = None
@@ -431,6 +443,13 @@ def build_draft(
                 "description": item.description,
                 "url": item.url,
                 "domain": item.domain,
+                # The writer had no idea WHEN any of this happened. It was told
+                # to "prefer the most up-to-date figures" over a set of search
+                # results carrying no dates — an instruction it cannot follow,
+                # so it guessed, and figures from a different event landed in
+                # captions about this one.
+                "published_at": item.published_at,
+                "ingested_at": item.created_at.isoformat() if item.created_at else None,
             },
             article_text,
             tavily=tavily,
@@ -649,6 +668,7 @@ def _row_to_news(row) -> NewsItem:
         domain=row["domain"],
         image_url=row["image_url"],
         created_at=row["created_at"],
+        published_at=row.get("published_at"),
         extracted_text=row.get("extracted_text"),
         extracted_title=row.get("extracted_title"),
         extracted_image_url=row.get("extracted_image_url"),
@@ -661,7 +681,7 @@ def pick_candidate_news(db, *, limit: int = 20, news_id: Optional[int] = None, p
     ensure_extracts_table(db)
     if news_id is not None:
         rows = db.execute(text("""
-            SELECT cn.id, cn.content_type, cn.title, cn.description, cn.raw_text, cn.url, cn.domain, cn.image_url, cn.created_at,
+            SELECT cn.id, cn.content_type, cn.title, cn.description, cn.raw_text, cn.url, cn.domain, cn.image_url, cn.created_at, cn.published_at,
                    nae.extracted_text, nae.title AS extracted_title, nae.image_url AS extracted_image_url,
                    nae.provider AS extract_provider, nae.status AS extract_status
             FROM crypto_news cn
@@ -671,7 +691,7 @@ def pick_candidate_news(db, *, limit: int = 20, news_id: Optional[int] = None, p
         return [_row_to_news(r) for r in rows]
 
     rows = db.execute(text("""
-        SELECT cn.id, cn.content_type, cn.title, cn.description, cn.raw_text, cn.url, cn.domain, cn.image_url, cn.created_at,
+        SELECT cn.id, cn.content_type, cn.title, cn.description, cn.raw_text, cn.url, cn.domain, cn.image_url, cn.created_at, cn.published_at,
                nae.extracted_text, nae.title AS extracted_title, nae.image_url AS extracted_image_url,
                nae.provider AS extract_provider, nae.status AS extract_status
         FROM crypto_news cn

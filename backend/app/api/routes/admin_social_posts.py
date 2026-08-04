@@ -192,6 +192,24 @@ def social_post_cost_summary(
     """Aggregate generation costs (actual when tracked from API usage / billing schedule)."""
     _ensure_gen_meta(db)
 
+    # Rows only live for the retention window now, so the spend of everything
+    # older was rolled into social_post_spend_archive before deletion. Without
+    # adding it back, "all time" would silently mean "the last two days".
+    _has_archive = db.execute(
+        text("SELECT to_regclass('public.social_post_spend_archive') IS NOT NULL")).scalar()
+
+    _ARCHIVE_COLS = ("posts", "posts_actual", "posts_estimated", "total_usd", "chat_usd",
+                     "image_usd", "search_usd", "prompt_tokens", "completion_tokens",
+                     "images", "searches")
+
+    def _archived(where: str) -> dict:
+        if not _has_archive:
+            return {k: 0 for k in _ARCHIVE_COLS}
+        cols = ", ".join(f"coalesce(sum({c}), 0) AS {c}" for c in _ARCHIVE_COLS)
+        row = db.execute(text(
+            f"SELECT {cols} FROM social_post_spend_archive {where}")).mappings().first()
+        return {k: float(v) if k.endswith("usd") else int(v) for k, v in dict(row).items()}
+
     def _agg(where: str) -> dict:
         row = db.execute(text(f"""
             SELECT
@@ -217,6 +235,12 @@ def social_post_cost_summary(
             {where}
         """)).mappings().first()
         d = {k: float(v) if k.endswith("usd") else int(v) for k, v in dict(row).items()}
+        return d
+
+    def _window(live_where: str, archive_where: str) -> dict:
+        d = _agg(live_where)
+        for k, v in _archived(archive_where).items():
+            d[k] = d.get(k, 0) + v
         d["avg_usd"] = round(d["total_usd"] / d["posts"], 6) if d["posts"] else 0.0
         d["tracking"] = "actual" if d.get("posts_actual") and not d.get("posts_estimated") else (
             "mixed" if d.get("posts_actual") else "estimated"
@@ -224,9 +248,17 @@ def social_post_cost_summary(
         return d
 
     return {
-        "all_time": _agg("WHERE gen_meta IS NOT NULL"),
-        "last_7d": _agg("WHERE gen_meta IS NOT NULL AND created_at > now() - interval '7 days'"),
-        "today": _agg("WHERE gen_meta IS NOT NULL AND created_at::date = now()::date"),
+        "all_time": _window("WHERE gen_meta IS NOT NULL", ""),
+        # Counted in whole days on BOTH sides. The archive can only be per-day,
+        # so an hour-based live boundary would split the edge day and make the
+        # total drift either way depending on what time it is. Same boundary on
+        # both = the last 7 calendar days, consistently.
+        "last_7d": _window(
+            "WHERE gen_meta IS NOT NULL AND created_at::date > (now() - interval '7 days')::date",
+            "WHERE day > (now() - interval '7 days')::date"),
+        "today": _window(
+            "WHERE gen_meta IS NOT NULL AND created_at::date = now()::date",
+            "WHERE day = now()::date"),
         "note": (
             "Chat: actual API tokens. OpenAI image: API usage when present, else official "
             "size×quality token schedule × published rates. xAI image / Tavily: published unit rates."
@@ -507,6 +539,10 @@ def re_render_post_image(
     model: Optional[str] = None,
     quality: Optional[str] = None,
     provider: Optional[str] = None,
+    # One-shot direction for THIS click only. The reusable one lives on the
+    # draft (PUT /direction); this is for "same again but wider", which you do
+    # not want stored and silently re-applied to every later render.
+    note: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -541,6 +577,12 @@ def re_render_post_image(
             meta = {}
     entities = meta.get("entities") or []
     featured = meta.get("featured_person")
+    # Saved direction + this click's note, in that order: the standing
+    # instruction first, the ad-hoc correction last so it wins.
+    extra_prompt = "\n".join(
+        p for p in [str(meta.get("custom_prompt") or "").strip(), (note or "").strip()] if p
+    ) or None
+    extra_refs = [r for r in (meta.get("extra_refs") or []) if isinstance(r, dict)]
     headline = row.get("headline") or "News"
     news_id = int(row["news_id"] or post_id)
     angle = row.get("angle")
@@ -590,6 +632,12 @@ def re_render_post_image(
         raw_path
         and Path(raw_path).exists()
         and (not primary_logo or brand_already_in_scene)
+        # Recompose only repaints the headline over the SAME background, so it
+        # would silently ignore a new note or a newly attached reference and
+        # hand back a picture that looks unchanged. If the editor is directing,
+        # the render has to be real.
+        and not (note or "").strip()
+        and not extra_refs
     )
     if can_free:
         try:
@@ -654,6 +702,8 @@ def re_render_post_image(
             image_model=model,
             image_quality=quality,
             force_provider=provider if provider in ("openai", "xai") else None,
+            extra_prompt=extra_prompt,
+            extra_refs=extra_refs,
         )
         if not result.image_path:
             _record_failure(result.error_message or "image generation returned nothing")
@@ -1070,3 +1120,223 @@ async def seed_logos(
     from app.services.social_entity_assets import seed_high_value_logos
     saved = seed_high_value_logos()
     return {"ok": True, "saved": saved, "count": len(saved)}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Editor's own art direction: a saved prompt, one-shot notes, and extra
+# reference images. Everything the pipeline could be told about a picture used
+# to come from the editorial AI; the admin's only lever was to pick a model.
+#
+# Stored in gen_meta rather than new columns: the rows are pruned after two days
+# anyway, so a migration would buy nothing that a jsonb key does not.
+# ════════════════════════════════════════════════════════════════════════════
+
+REF_DIR = Path(SOCIAL_POST_ASSETS_DIR) / "refs"
+REF_ROLES_ALLOWED = ("subject", "scene", "style")
+MAX_REFS_PER_POST = int(os.environ.get("SOCIAL_MAX_EXTRA_REFS", "6"))
+_REF_EXT = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
+
+
+class CustomPromptIn(BaseModel):
+    custom_prompt: str = ""
+
+
+def _meta_of(row) -> dict:
+    meta = row.get("gen_meta") or {}
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            meta = {}
+    return meta if isinstance(meta, dict) else {}
+
+
+def _save_meta(db: Session, post_id: int, patch: dict) -> None:
+    db.execute(
+        text("""UPDATE social_posts
+                   SET gen_meta = COALESCE(gen_meta, '{}'::jsonb) || CAST(:patch AS jsonb),
+                       updated_at = now()
+                 WHERE id = :id"""),
+        {"id": post_id, "patch": json.dumps(patch)},
+    )
+    db.commit()
+
+
+def _refs_of(row) -> list[dict]:
+    refs = _meta_of(row).get("extra_refs") or []
+    return [r for r in refs if isinstance(r, dict)]
+
+
+@router.get("/image-models")
+def list_image_models(admin: User = Depends(get_admin_user)):
+    """Every selectable model with its computed price, for the picker.
+
+    Computed, not typed: the four price strings the UI carried were right the
+    day they were written and nothing kept them tied to the rate tables that do
+    the billing.
+    """
+    from app.services.social_cost import estimate_image_usd, image_model_catalog
+
+    size = os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")
+    catalog = image_model_catalog(size)
+    default_model = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
+    default_quality = os.environ.get("OPENAI_IMAGE_QUALITY", "medium")
+    max_calls = int(os.environ.get("SOCIAL_IMAGE_MAX_CALLS", "2"))
+    for row in catalog:
+        # What a story with BOTH a face and a brand really costs: the identity
+        # pass plus the brand pass. That is the number that surprised us at
+        # $0.40, and it is invisible if the picker only quotes one image.
+        row["usd_two_pass"] = estimate_image_usd(
+            model=row["model"], quality=row["quality"] or "medium", size=size, calls=max_calls
+        )
+        row["is_default"] = (
+            row["model"] == default_model
+            and (row["quality"] or default_quality) == default_quality
+        )
+    return {
+        "models": catalog,
+        "size": size,
+        "max_calls": max_calls,
+        "default": {"model": default_model, "quality": default_quality},
+        "note": (
+            "Prices are the OpenAI size×quality token schedule × published rates "
+            "(xAI is flat per image). Measured against real drafts the schedule reads "
+            "slightly high — $0.1872 where OpenAI billed $0.1736 — so treat it as a ceiling."
+        ),
+    }
+
+
+@router.get("/{post_id}/direction")
+def get_post_direction(
+    post_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """The saved prompt + attached references for this draft."""
+    row = _get_post_row(db, post_id)
+    meta = _meta_of(row)
+    return {
+        "custom_prompt": meta.get("custom_prompt") or "",
+        "refs": [
+            {k: r.get(k) for k in ("id", "role", "label", "filename", "added_at")}
+            for r in _refs_of(row)
+        ],
+        "roles": list(REF_ROLES_ALLOWED),
+        "max_refs": MAX_REFS_PER_POST,
+    }
+
+
+@router.put("/{post_id}/direction")
+def set_post_direction(
+    post_id: int,
+    payload: CustomPromptIn,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Save the reusable prompt. Survives re-renders; one-shot notes do not."""
+    _get_post_row(db, post_id)
+    prompt = (payload.custom_prompt or "").strip()[:2000]
+    _save_meta(db, post_id, {"custom_prompt": prompt})
+    return {"ok": True, "custom_prompt": prompt}
+
+
+@router.post("/{post_id}/refs")
+async def add_post_ref(
+    post_id: int,
+    role: str = Form("style"),
+    label: str = Form(""),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Attach an extra reference image beyond the auto-resolved logos and faces.
+
+    The materials endpoint only accepts a logo or a face, keyed to an entity the
+    editorial AI already named — so a style board, a composition reference or a
+    product shot had nowhere to go.
+    """
+    row = _get_post_row(db, post_id)
+    role = (role or "style").lower().strip()
+    if role not in REF_ROLES_ALLOWED:
+        raise HTTPException(400, f"role must be one of {', '.join(REF_ROLES_ALLOWED)}")
+
+    existing = _refs_of(row)
+    if len(existing) >= MAX_REFS_PER_POST:
+        raise HTTPException(400, f"at most {MAX_REFS_PER_POST} reference images per draft")
+
+    data = await file.read()
+    if not data or len(data) < 500:
+        raise HTTPException(400, "file too small")
+    if len(data) > 8_000_000:
+        raise HTTPException(400, "file too large (max 8MB)")
+    ctype = (file.content_type or "").split(";")[0].strip()
+    if ctype not in _REF_EXT:
+        raise HTTPException(400, "file must be a PNG, JPEG or WebP image")
+
+    import uuid as _uuid
+
+    ref_id = _uuid.uuid4().hex[:12]
+    dest_dir = REF_DIR / str(post_id)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{ref_id}{_REF_EXT[ctype]}"
+    dest.write_bytes(data)
+
+    entry = {
+        "id": ref_id,
+        "role": role,
+        "label": (label or "").strip()[:80],
+        "path": str(dest),
+        "filename": file.filename or dest.name,
+        "added_at": datetime.utcnow().isoformat() + "Z",
+    }
+    _save_meta(db, post_id, {"extra_refs": existing + [entry]})
+    return {"ok": True, "ref": {k: entry[k] for k in ("id", "role", "label", "filename", "added_at")}}
+
+
+@router.get("/{post_id}/refs/{ref_id}/image")
+def get_post_ref_image(
+    post_id: int,
+    ref_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    from fastapi.responses import FileResponse
+
+    row = _get_post_row(db, post_id)
+    for r in _refs_of(row):
+        if r.get("id") == ref_id:
+            p = Path(str(r.get("path") or ""))
+            # Confine to the refs tree: the id comes from the URL, and a stored
+            # path is only trustworthy because we wrote it.
+            try:
+                p.resolve().relative_to(REF_DIR.resolve())
+            except (ValueError, OSError):
+                raise HTTPException(404, "reference not found")
+            if not p.exists():
+                raise HTTPException(404, "reference file missing")
+            return FileResponse(str(p))
+    raise HTTPException(404, "reference not found")
+
+
+@router.delete("/{post_id}/refs/{ref_id}")
+def delete_post_ref(
+    post_id: int,
+    ref_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    row = _get_post_row(db, post_id)
+    refs = _refs_of(row)
+    keep = [r for r in refs if r.get("id") != ref_id]
+    if len(keep) == len(refs):
+        raise HTTPException(404, "reference not found")
+    for r in refs:
+        if r.get("id") == ref_id:
+            try:
+                p = Path(str(r.get("path") or ""))
+                if p.exists() and p.resolve().is_relative_to(REF_DIR.resolve()):
+                    p.unlink()
+            except Exception:
+                pass
+    _save_meta(db, post_id, {"extra_refs": keep})
+    return {"ok": True, "remaining": len(keep)}

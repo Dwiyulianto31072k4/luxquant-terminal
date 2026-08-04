@@ -362,3 +362,81 @@ def estimate_cost(
         image_is_edit=bool(kwargs.get("image_is_edit", False)),
         image_usage=kwargs.get("image_usage"),
     )
+
+
+# ── Price catalog for the admin's model picker ───────────────────────────────
+# The UI used to carry four hand-typed price strings ("$0.19", "$0.015", …).
+# They happened to be right when they were typed, and nothing kept them right:
+# a rate change, a new size, or a new model would leave the picker quoting a
+# number this file no longer charges. Derive the catalog from the same tables
+# that do the billing, so the number the admin clicks is the number they pay.
+#
+# OpenAI image cost here is output-tokens only. That is not a simplification —
+# the Images API has not returned input-token usage on any of our calls (every
+# stored gen_meta has image_text_tokens = 0), so output tokens × the per-model
+# output rate IS the whole billable estimate. Measured against 9 real drafts the
+# schedule reads $0.1872 where OpenAI actually billed ~$0.1736, so treat these
+# as a ceiling, not a promise.
+
+# Quality is meaningless for xAI (flat per image) and the arena rank is what the
+# extra money buys, so both are stated where the admin is choosing.
+_MODEL_NOTES = {
+    "gpt-image-2": "Top of the text-to-image arena. The default for a poster that has to carry a face or a real brand mark.",
+    "gpt-image-1.5": "Previous flagship. Rarely worth it over gpt-image-2 at the same quality.",
+    "gpt-image-1-mini": "Cheapest usable tier — roughly a quarter of the token rate. Good for a plain scene with no face and no mark.",
+    "gpt-image-1": "Legacy. Billed at the gpt-image-2 rate; no reason to pick it.",
+    "grok-imagine-image": "Flat price, no quality tier. Fast and cheap; weaker at reproducing a supplied mark exactly.",
+    "grok-imagine-image-quality": "Flat price, xAI's better image model. Still below gpt-image-2 on the arena board.",
+}
+
+
+def estimate_image_usd(
+    *,
+    model: str,
+    quality: str = "medium",
+    size: str = "1024x1536",
+    calls: int = 1,
+) -> float:
+    """Estimated USD for `calls` images on this model/quality, from the billing tables."""
+    model = (model or "").strip()
+    if model in PRICE_IMAGE_XAI_BY_MODEL:
+        return round(PRICE_IMAGE_XAI_BY_MODEL[model] * max(1, int(calls)), 6)
+    out_tokens = openai_image_output_tokens(size, quality)
+    _, out_rate = PRICE_OAI_IMAGE_BY_MODEL.get(
+        model, (PRICE_OAI_IMG_IN_PER_M, PRICE_OAI_IMG_OUT_PER_M)
+    )
+    return round(_usd_from_tokens(out_tokens, out_rate) * max(1, int(calls)), 6)
+
+
+def image_model_catalog(size: str = "1024x1536") -> list[dict]:
+    """Every selectable model/quality with its computed per-image price."""
+    from app.services.social_image_generator import (
+        IMAGE_MODELS_ALLOWED,
+        IMAGE_QUALITIES_ALLOWED,
+        XAI_MODELS_ALLOWED,
+    )
+
+    out: list[dict] = []
+    for model in IMAGE_MODELS_ALLOWED:
+        for quality in IMAGE_QUALITIES_ALLOWED:
+            out.append({
+                "provider": "openai",
+                "model": model,
+                "quality": quality,
+                "size": size,
+                "usd": estimate_image_usd(model=model, quality=quality, size=size),
+                "output_tokens": openai_image_output_tokens(size, quality),
+                "note": _MODEL_NOTES.get(model, ""),
+            })
+    for model in XAI_MODELS_ALLOWED:
+        out.append({
+            "provider": "xai",
+            "model": model,
+            # xAI bills flat per image; a quality tier here would be a lie.
+            "quality": None,
+            "size": size,
+            "usd": estimate_image_usd(model=model),
+            "output_tokens": None,
+            "note": _MODEL_NOTES.get(model, ""),
+        })
+    return sorted(out, key=lambda r: r["usd"])

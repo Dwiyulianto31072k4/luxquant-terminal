@@ -186,19 +186,69 @@ const awaitingImage = (post) =>
 // board (1338), ahead of Reve 2.1 and both Nano Banana 2 models. The cheaper
 // rungs stay as alternates — grok-imagine-image-quality is #12 (1203) and
 // gpt-image-1-mini is #78 (1090), which is the difference you are paying for.
-const AI_IMAGE_BEST = {
-  key: "best",
-  label: "GPT Image 2 · high",
-  price: "$0.19",
-  provider: "openai",
-  model: "gpt-image-2",
-  quality: "high",
+// The four hand-typed price strings that used to live here are gone. The
+// catalog is COMPUTED on the server from the same rate tables that do the
+// billing, so the number on the button is the number that gets charged.
+
+const usd = (n) =>
+  typeof n === "number" ? (n < 0.1 ? `$${n.toFixed(4)}` : `$${n.toFixed(3)}`) : "—";
+
+const modelKey = (m) => `${m.provider}:${m.model}:${m.quality || "-"}`;
+
+const SHORT_LABEL = {
+  "gpt-image-2": "GPT Image 2",
+  "gpt-image-1.5": "GPT Image 1.5",
+  "gpt-image-1-mini": "GPT Mini",
+  "gpt-image-1": "GPT Image 1",
+  "grok-imagine-image": "Grok",
+  "grok-imagine-image-quality": "Grok Quality",
 };
-const AI_IMAGE_TIERS = [
-  { key: "cheap", label: "Mini", price: "$0.015", provider: "openai", model: "gpt-image-1-mini", quality: "medium" },
-  { key: "grok", label: "Grok", price: "$0.02", provider: "xai", model: "grok-imagine-image" },
-  { key: "std", label: "Standar", price: "$0.05", provider: "openai", model: "gpt-image-2", quality: "medium" },
-];
+
+// One fetch shared by every panel that needs prices.
+const useImageModels = () => {
+  const [cat, setCat] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api
+      .get("/api/v1/admin/social-posts/image-models")
+      .then((r) => alive && setCat(r.data))
+      .catch(() => alive && setCat(null));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return cat;
+};
+
+// Reference thumbnails come from an admin-only endpoint, so a bare <img src>
+// would 401 — the axios client is what carries the auth header.
+const AuthedImage = ({ src, alt, className }) => {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    let objectUrl = null;
+    api
+      .get(src, { responseType: "blob" })
+      .then((r) => {
+        if (!alive) return;
+        objectUrl = URL.createObjectURL(r.data);
+        setUrl(objectUrl);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+  if (!url) return <div className={`${className} bg-ink/[0.06] animate-pulse`} />;
+  return <img src={url} alt={alt} className={className} />;
+};
+
+const REF_ROLE_HELP = {
+  subject: "Reproduce exactly — a mark, a product, a building",
+  scene: "Copy the framing and camera distance, not the subject",
+  style: "Copy light and materials only; nothing in it appears",
+};
 
 // ── News picker modal: browse the crypto-news feed and click a story ──
 const _timeAgo = (iso) => {
@@ -984,7 +1034,199 @@ const ImageCard = ({ post, onOpen }) => {
 };
 
 // ── Materials panel: safe mode — admin upload before AI image ──
+// ── Editor's own art direction: a standing prompt, extra references ─────────
+// Until now the only thing an admin could change about a picture was which
+// model drew it. Everything else came from the editorial AI.
+const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
+  const [prompt, setPrompt] = useState("");
+  const [savedPrompt, setSavedPrompt] = useState("");
+  const [refs, setRefs] = useState([]);
+  const [role, setRole] = useState("style");
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const fileRef = useRef(null);
+
+  const load = async () => {
+    try {
+      const r = await api.get(`/api/v1/admin/social-posts/${postId}/direction`);
+      setPrompt(r.data?.custom_prompt || "");
+      setSavedPrompt(r.data?.custom_prompt || "");
+      setRefs(r.data?.refs || []);
+      if (onRefsChanged) onRefsChanged(r.data?.refs || []);
+    } catch {
+      /* panel is additive — a failure here must not block rendering */
+    }
+  };
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  const savePrompt = async () => {
+    setBusy("save");
+    setErr(null);
+    try {
+      await api.put(`/api/v1/admin/social-posts/${postId}/direction`, {
+        custom_prompt: prompt,
+      });
+      setSavedPrompt(prompt);
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Could not save");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const upload = async (file) => {
+    if (!file) return;
+    setBusy("upload");
+    setErr(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("role", role);
+    fd.append("label", file.name.replace(/\.[^.]+$/, "").slice(0, 60));
+    try {
+      await api.post(`/api/v1/admin/social-posts/${postId}/refs`, fd);
+      await load();
+    } catch (e) {
+      const d = e?.response?.data?.detail;
+      setErr(typeof d === "string" ? d : "Upload failed");
+    } finally {
+      setBusy(null);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const removeRef = async (id) => {
+    setBusy(`del:${id}`);
+    try {
+      await api.delete(`/api/v1/admin/social-posts/${postId}/refs/${id}`);
+      await load();
+    } catch {
+      setErr("Could not remove");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const dirty = prompt !== savedPrompt;
+
+  return (
+    <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-2.5 space-y-2.5">
+      <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
+        your art direction
+      </p>
+
+      <div className="space-y-1.5">
+        <textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          rows={3}
+          maxLength={2000}
+          placeholder="Standing instruction for this draft — e.g. late-afternoon newsroom, no suits, keep the desk clutter."
+          className="w-full rounded-md border border-ink/[0.12] bg-surface px-2.5 py-2 text-[11.5px] leading-relaxed text-text-primary placeholder:text-text-muted/60 focus:border-accent/45 focus:outline-none resize-y"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={!dirty || busy === "save"}
+            onClick={savePrompt}
+            className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-ink/15 text-text-muted hover:text-text-primary hover:border-ink/25 disabled:opacity-35"
+          >
+            {busy === "save" ? "Saving…" : dirty ? "Save direction" : "Saved"}
+          </button>
+          <span className="text-[9px] font-mono text-text-muted/70">
+            kept for every render of this draft
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5">
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="rounded-md border border-ink/[0.12] bg-surface px-2 py-1 text-[10.5px] text-text-primary focus:border-accent/45 focus:outline-none"
+          >
+            <option value="style">Style ref</option>
+            <option value="scene">Scene ref</option>
+            <option value="subject">Subject ref</option>
+          </select>
+          <button
+            type="button"
+            disabled={busy === "upload" || refs.length >= 6}
+            onClick={() => fileRef.current?.click()}
+            className="px-2.5 py-1 rounded-md text-[10px] font-medium border border-ink/15 text-text-muted hover:text-text-primary hover:border-ink/25 disabled:opacity-35"
+          >
+            {busy === "upload" ? "Uploading…" : "+ Add image"}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => upload(e.target.files?.[0])}
+          />
+        </div>
+        <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+          {REF_ROLE_HELP[role]}
+        </p>
+
+        {refs.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {refs.map((r) => (
+              <div
+                key={r.id}
+                className="group relative w-14 h-14 rounded-md overflow-hidden border border-ink/[0.12] bg-surface-secondary"
+                title={`${r.role} — ${r.label || r.filename}`}
+              >
+                <AuthedImage
+                  src={`/api/v1/admin/social-posts/${postId}/refs/${r.id}/image`}
+                  alt={r.label || r.role}
+                  className="w-full h-full object-cover"
+                />
+                <span className="absolute bottom-0 inset-x-0 bg-scrim/75 text-[8px] font-mono uppercase tracking-wide text-white text-center leading-[12px]">
+                  {r.role}
+                </span>
+                <button
+                  type="button"
+                  disabled={busy === `del:${r.id}`}
+                  onClick={() => removeRef(r.id)}
+                  aria-label="Remove reference"
+                  className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center bg-scrim/75 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        maxLength={400}
+        placeholder="One-shot note for the next render only (not saved)…"
+        className="w-full rounded-md border border-dashed border-ink/[0.14] bg-surface px-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted/60 focus:border-accent/45 focus:outline-none"
+      />
+
+      {err && <p className="text-[10px] text-negative">{String(err)}</p>}
+    </div>
+  );
+};
+
 const MaterialsPanel = ({ postId, onUpdated }) => {
+  // Model choice, the editor's one-shot note, and how many references are
+  // attached — the last one only so the button can say what it is about to use.
+  const models = useImageModels();
+  const [pickedRaw, setPicked] = useState(null);
+  const [note, setNote] = useState("");
+  const [refCount, setRefCountRaw] = useState(0);
+  const setRefCount = (list) => setRefCountRaw(Array.isArray(list) ? list.length : 0);
+  const defaultKey = (models?.models || []).find((m) => m.is_default);
+  const picked = pickedRaw || (defaultKey ? modelKey(defaultKey) : null);
+  const chosen = (models?.models || []).find((m) => modelKey(m) === picked) || null;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
@@ -1456,51 +1698,112 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         )}
       </div>
 
+      <ArtDirectionPanel
+        postId={postId}
+        note={note}
+        setNote={setNote}
+        onRefsChanged={setRefCount}
+      />
+
       {/* Gemini first — it costs nothing. This is the fallback for when it argues
           with you, priced per click so the expensive tier is never the default. */}
       <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-2.5 space-y-2">
         <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
           or let our AI draw it — you pay per click
         </p>
+
+        {/* Every price here is computed server-side from the billing tables. */}
+        <div className="space-y-1">
+          {(models?.models || []).map((m) => {
+            const k = modelKey(m);
+            const on = k === picked;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setPicked(k)}
+                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-left transition-colors ${
+                  on
+                    ? "border-accent/50 bg-accent/[0.08]"
+                    : "border-ink/[0.08] bg-ink/[0.02] hover:border-ink/20"
+                }`}
+              >
+                <span className="text-[11px] font-semibold text-text-primary leading-tight">
+                  {SHORT_LABEL[m.model] || m.model}
+                </span>
+                {m.quality && (
+                  <span className="text-[9.5px] font-mono uppercase tracking-wide text-text-muted">
+                    {m.quality}
+                  </span>
+                )}
+                {m.is_default && (
+                  <span className="text-[8.5px] font-mono uppercase tracking-wide text-accent/90">
+                    default
+                  </span>
+                )}
+                <span className="ml-auto text-[11px] font-mono tabular-nums text-text-primary">
+                  {usd(m.usd)}
+                </span>
+              </button>
+            );
+          })}
+          {!models && (
+            <p className="text-[10px] font-mono text-text-muted/70 py-1">Loading prices…</p>
+          )}
+        </div>
+
+        {chosen && (
+          <div className="rounded-md border border-ink/[0.08] bg-surface px-2.5 py-2 space-y-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
+                this render
+              </span>
+              <span className="ml-auto text-[14px] font-mono tabular-nums font-semibold text-text-primary">
+                {usd(chosen.usd)}
+              </span>
+            </div>
+            {/* A face story runs the identity pass AND the brand pass. Quoting
+                one image is what made $0.40 a surprise. */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-[9.5px] font-mono text-text-muted/80">
+                if it needs 2 passes (face + brand)
+              </span>
+              <span className="ml-auto text-[10.5px] font-mono tabular-nums text-text-muted">
+                {usd(chosen.usd_two_pass)}
+              </span>
+            </div>
+            {chosen.note && (
+              <p className="text-[9.5px] text-text-muted/80 leading-relaxed pt-0.5">
+                {chosen.note}
+              </p>
+            )}
+          </div>
+        )}
+
         <button
           type="button"
-          disabled={!!busy}
+          disabled={!!busy || !chosen}
           onClick={() =>
             reRender({
-              provider: AI_IMAGE_BEST.provider,
-              model: AI_IMAGE_BEST.model,
-              quality: AI_IMAGE_BEST.quality,
+              provider: chosen.provider,
+              model: chosen.model,
+              quality: chosen.quality || undefined,
+              note: note.trim() || undefined,
             })
           }
           className="w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border border-ink/15 bg-accent/15 text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-40 transition-colors shadow-[0_0_18px_-6px_rgb(var(--accent) / 0.6)]"
-          title={`${AI_IMAGE_BEST.model} · ${AI_IMAGE_BEST.quality}`}
+          title={chosen ? `${chosen.model}${chosen.quality ? " · " + chosen.quality : ""}` : ""}
         >
           {busy === "__render__"
             ? "Generating…"
-            : `Generate · ${AI_IMAGE_BEST.label} · ${AI_IMAGE_BEST.price}`}
+            : `Generate · ${chosen ? usd(chosen.usd) : "—"}`}
         </button>
-        <p className="text-[9px] font-mono text-text-muted/70 text-center">
-          #1 di arena blind-vote Artificial Analysis (Elo 1338)
-        </p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {AI_IMAGE_TIERS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              disabled={!!busy}
-              onClick={() =>
-                reRender({ provider: t.provider, model: t.model, quality: t.quality })
-              }
-              className="px-2 py-2 rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-text-primary hover:border-accent/45 hover:bg-accent/[0.06] disabled:opacity-40 transition-colors text-left"
-              title={[t.model, t.quality].filter(Boolean).join(" · ")}
-            >
-              <span className="block text-[11px] font-semibold leading-tight">{t.label}</span>
-              <span className="block text-[10px] font-mono text-text-muted tabular-nums mt-0.5">
-                {t.price}
-              </span>
-            </button>
-          ))}
-        </div>
+        {(note.trim() || refCount > 0) && (
+          <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+            using your direction{refCount > 0 ? ` + ${refCount} reference${refCount > 1 ? "s" : ""}` : ""}
+            {" — "}full render, not a free recompose
+          </p>
+        )}
         {busy === "__render__" ? (
           <div className="rounded-md border border-accent/25 bg-accent/[0.05] px-2.5 py-2 space-y-1">
             <div className="flex items-center gap-2">

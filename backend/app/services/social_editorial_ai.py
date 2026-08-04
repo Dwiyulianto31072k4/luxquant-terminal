@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import requests
@@ -190,7 +191,34 @@ def _xai_chat(api_key: str, messages: list[dict[str, str]], temperature: float =
     return pack, usage
 
 
-def tavily_enrich(query: str, *, url: Optional[str] = None, api_key: Optional[str] = None) -> Optional[dict]:
+def _story_age_days(story_date: Any) -> Optional[int]:
+    """Whole days between the story and now, or None if undatable."""
+    if not story_date:
+        return None
+    try:
+        if isinstance(story_date, str):
+            from email.utils import parsedate_to_datetime
+            raw = story_date.strip()
+            try:  # RFC-2822, what the RSS rows carry
+                dt = parsedate_to_datetime(raw)
+            except Exception:
+                dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        else:
+            dt = story_date
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return max(0, (datetime.now(timezone.utc) - dt).days)
+    except Exception:
+        return None
+
+
+def tavily_enrich(
+    query: str,
+    *,
+    url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    story_date: Any = None,
+) -> Optional[dict]:
     """
     Best-effort external news search (Tavily) to enrich thin / link-less items.
     Returns the raw Tavily response (answer + results) or None if no key / failure.
@@ -208,6 +236,14 @@ def tavily_enrich(query: str, *, url: Optional[str] = None, api_key: Optional[st
         "include_answer": True,
         "include_raw_content": True,
     }
+    # Keep the search inside the story's own window. `days` was never sent, so
+    # a search about a recurring event (a rate decision, a gold purchase, an ETF
+    # flow day) could return the previous occurrence and hand the writer figures
+    # from the wrong month. Pad by SOCIAL_TAVILY_DAY_PAD so follow-up coverage
+    # published after the story still qualifies.
+    age = _story_age_days(story_date)
+    pad = int(os.environ.get("SOCIAL_TAVILY_DAY_PAD", "2"))
+    payload["days"] = max(1, (age if age is not None else 3) + pad)
     try:
         resp = requests.post(
             f"{TAVILY_API_BASE.rstrip('/')}/search",
@@ -228,13 +264,24 @@ def _build_context(news: dict, article_text: str, tavily: Optional[dict]) -> dic
     art_cap = int(os.environ.get("SOCIAL_ARTICLE_CONTEXT_CHARS", "4500" if cheap else "7000"))
     tavily_cap = 900 if cheap else 1300
     tavily_n = 3 if cheap else 4
+    # Everything in here used to be dateless. The writer could not tell when the
+    # story happened, could not tell whether a search result described the same
+    # day or a repeat of the same event a year earlier, and was still ordered to
+    # "prefer the most up-to-date figures" — so it picked whichever number read
+    # best. Dates are cheap; carry them.
+    published = news.get("published_at") or news.get("ingested_at")
+    story_age = _story_age_days(published)
     context = {
+        "today_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "db_news": {
             "title": news.get("title"),
             "description": news.get("description"),
             "url": news.get("url"),
             "domain": news.get("domain"),
             "category": news.get("category"),
+            "published_at": news.get("published_at"),
+            "ingested_at": news.get("ingested_at"),
+            "story_age_days": story_age,
         },
         "article_text": (article_text or "")[:art_cap],
     }
@@ -244,6 +291,10 @@ def _build_context(news: dict, article_text: str, tavily: Optional[dict]) -> dic
             {
                 "title": item.get("title"),
                 "url": item.get("url"),
+                # The date was already in the Tavily payload and was read only
+                # to decorate the reference list — the model reasoning over the
+                # text never saw it.
+                "published_date": str(item.get("published_date") or "")[:10],
                 "content": (item.get("raw_content") or item.get("content") or "")[:tavily_cap],
             }
             for item in (tavily.get("results") or [])[:tavily_n]
@@ -278,6 +329,15 @@ def build_editorial_pack(
         "attribute a quote to anyone unless it appears verbatim in a source. Do not allege wrongdoing, crime or failure "
         "about a named person or company unless a source explicitly states it. Before finalizing, silently re-check "
         "every number, name, date and quote against the sources and remove anything you cannot ground in them.\n"
+        "TIME RULES (critical): the context carries `today_utc`, the story's own `published_at` / `ingested_at` and "
+        "`story_age_days`, and a `published_date` on every search result. The story being written about is the one in "
+        "`db_news` — the search results exist only to corroborate THAT event. Before using any figure from a search "
+        "result, check its `published_date` against the story's date: if it describes an earlier occurrence of a "
+        "recurring event (a previous rate decision, an earlier purchase, a different flow day, last year's filing), "
+        "IGNORE it completely — do not average it in, do not mention it as background, do not let it change a number. "
+        "Prefer the most recent figure only among results that describe THIS event. Never write 'today', 'this week' or "
+        "any relative time expression unless it is true relative to `today_utc`; when the story is more than a day old, "
+        "write no relative time at all rather than implying it just happened.\n"
         "SAFETY & COMPLIANCE RULES: Never promise, guarantee or imply profit, returns or price targets. Never advise the "
         "audience to buy, sell or hold any asset. Do not use hype or FOMO language (e.g. 'to the moon', 'last chance', "
         "'don't miss out'). Do not downplay risk. For stories involving death, war, disaster or personal tragedy, write "
@@ -340,7 +400,8 @@ def build_editorial_pack(
         "AI-sounding intro (banned openers include 'In today's fast-paced world', 'In a groundbreaking move', 'In an "
         "unprecedented', 'The world of crypto'). Then explain why it matters for markets or the wider picture, then a "
         "brief, honest caveat. Weave the key names/assets in naturally as keywords. If external search results are "
-        "provided, use them for accurate context and PREFER the most up-to-date figures found there. Keep it human, "
+        "provided, use only those whose published_date fits THIS event (see TIME RULES) and prefer the most recent "
+        "figure among them; a result about an earlier occurrence is not context, it is a wrong number. Keep it human, "
         "specific and free of filler. Do NOT include hashtags, a disclaimer, a call-to-action, an AI label, or a source "
         "line in the caption body — those are appended separately. Plain paragraphs only.\n\n"
         "topic: classify the story as exactly one of 'crypto' (specific tokens/protocols/exchanges), 'markets' "

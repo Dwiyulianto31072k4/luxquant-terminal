@@ -166,6 +166,78 @@ BRAND_VISUAL_SIGNATURE = "\n".join([
 ])
 
 
+# ── Admin's own direction ────────────────────────────────────────────────────
+# Roles exist because an attached image is ambiguous on its own: the model has
+# no way to know whether a picture is there to be COPIED (a mark, a product) or
+# merely to be LEARNED FROM (light, palette, materials). Attaching a style
+# reference without saying so is how a style board ends up rendered as the
+# subject of the poster.
+REF_ROLES = {
+    "style": (
+        "STYLE REFERENCE — copy its light, palette, materials, depth and mood ONLY. "
+        "Ignore its subject, its text and any mark on it completely; nothing in it "
+        "may appear as an object in the poster."
+    ),
+    "scene": (
+        "SCENE REFERENCE — follow its composition, camera distance and framing. "
+        "The subject is still this story's subject, not the one pictured."
+    ),
+    "subject": (
+        "SUBJECT REFERENCE — reproduce this exactly: same shape, same proportions, "
+        "same colours, built physically into the room. Do not restyle or recolour it."
+    ),
+}
+# Ordered by how badly the model needs the actual pixels. This is not cosmetic:
+# xAI's edit endpoint takes ONE image and _edit_image hands it the first of the
+# list, so whatever sorts first is the only reference that survives on that
+# provider. A subject that must be reproduced exactly cannot be approximated;
+# a style can.
+REF_ROLE_ORDER = ("subject", "scene", "style")
+
+
+def _custom_direction_block(
+    extra_prompt: Optional[str], extra_refs: Optional[list]
+) -> str:
+    """The admin's own instruction + a labelled inventory of what they attached.
+
+    Placed after the house style and before the story so it outranks the scene
+    without ever outranking the look — the style is the one thing that must not
+    move from poster to poster.
+    """
+    note = (extra_prompt or "").strip()
+    refs = [r for r in (extra_refs or []) if isinstance(r, dict) and r.get("path")]
+    if not note and not refs:
+        return ""
+    lines = ["ART DIRECTION FROM THE EDITOR — follow this over the scene description below,"
+             " but never over the house style above."]
+    if note:
+        lines.append(note)
+    if refs:
+        # Numbered in the order they are attached to the API call, so "the third
+        # image" in the prompt and the third attachment are the same file.
+        lines.append("ATTACHED REFERENCE IMAGES, in order:")
+        n = 0
+        for role in REF_ROLE_ORDER:
+            for r in refs:
+                if (r.get("role") or "style") != role:
+                    continue
+                n += 1
+                label = str(r.get("label") or "").strip()
+                lines.append(f"  {n}. {REF_ROLES[role]}" + (f" ({label})" if label else ""))
+    return "\n".join(lines)
+
+
+def _ordered_ref_paths(extra_refs: Optional[list]) -> list[str]:
+    """Attachment order must match the numbering in the prompt block."""
+    refs = [r for r in (extra_refs or []) if isinstance(r, dict) and r.get("path")]
+    out: list[str] = []
+    for role in REF_ROLE_ORDER:
+        for r in refs:
+            if (r.get("role") or "style") == role and Path(str(r["path"])).exists():
+                out.append(str(r["path"]))
+    return out
+
+
 # The attach list is the other half of consistency. Same style references every
 # time -> same look every time; that is what the reference kit is for.
 STYLE_KIT_NOTE = (
@@ -232,6 +304,8 @@ def build_visual_prompt(
     source_domain: Optional[str],
     angle: Optional[str],
     reference_image_url: Optional[str] = None,
+    extra_prompt: Optional[str] = None,
+    extra_refs: Optional[list] = None,
 ) -> str:
     source = source_domain or "crypto news source"
     angle_label = (angle or "news_brief").replace("_", " ")
@@ -246,6 +320,8 @@ def build_visual_prompt(
     # opens the prompt wins, and what must never vary is the style.
     return "\n".join([
         BRAND_VISUAL_SIGNATURE,
+        "",
+        _custom_direction_block(extra_prompt, extra_refs),
         "",
         "THIS STORY — the only part that changes between posters:",
         f"DEPICT THE SPECIFIC EVENT — the actual who / what / where, not a generic crypto backdrop. "
@@ -1650,6 +1726,8 @@ def generate_ai_social_image(
     force_provider: Optional[str] = None,
     image_model: Optional[str] = None,
     image_quality: Optional[str] = None,
+    extra_prompt: Optional[str] = None,
+    extra_refs: Optional[list] = None,
 ) -> GeneratedSocialImage:
     """Generate cinematic poster image.
 
@@ -1689,7 +1767,12 @@ def generate_ai_social_image(
         # stale one still saying every story brand may be built.
         scene = re.split(r"BRAND MARK RULE \(critical\)", scene)[0].strip()
         scene = _strip_stored_style_tail(scene)
-        prompt = f"{BRAND_VISUAL_SIGNATURE}\n\n{scene}"
+        _direction = _custom_direction_block(extra_prompt, extra_refs)
+        prompt = (
+            f"{BRAND_VISUAL_SIGNATURE}\n\n{_direction}\n\n{scene}"
+            if _direction
+            else f"{BRAND_VISUAL_SIGNATURE}\n\n{scene}"
+        )
     else:
         prompt = build_visual_prompt(
             headline=headline,
@@ -1697,6 +1780,8 @@ def generate_ai_social_image(
             source_domain=source_domain,
             angle=angle,
             reference_image_url=reference_image_url,
+            extra_prompt=extra_prompt,
+            extra_refs=extra_refs,
         )
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     slug = _safe_slug(headline, f"news-{news_id}")
@@ -1802,6 +1887,9 @@ def generate_ai_social_image(
         heroes = hero_brand_names or allow
 
         scene_prompt = f"{prompt} {_brand_allowlist_clause(allow, heroes)}"
+        # The editor's own attachments ride along on every branch. Their order
+        # here is the order the prompt block numbered them in.
+        admin_refs = _ordered_ref_paths(extra_refs)
         image_api_calls = 0
         image_usage_acc: dict = {}
         image_is_edit = False
@@ -1822,6 +1910,7 @@ def generate_ai_social_image(
             # model was told the brand's name and then had to draw it from
             # memory. The second attachment is the actual artwork.
             edit_refs = [face_ref]
+            edit_refs.extend(admin_refs)
             if heroes and logo_ok:
                 logo_ref = _prepare_logos_sheet(
                     [str(p) for p in logo_paths], news_id=news_id
@@ -1894,7 +1983,8 @@ def generate_ai_social_image(
                 "Never corner stickers. Full scene: " + scene_prompt
             )
             if logo_ref:
-                u = _edit_image(edit_prompt, logo_ref, raw_path, provider=provider)
+                refs_in = [logo_ref, *admin_refs] if admin_refs else logo_ref
+                u = _edit_image(edit_prompt, refs_in, raw_path, provider=provider)
                 image_usage_acc = _merge_usage(image_usage_acc, u)
                 image_api_calls = 1
                 image_is_edit = True
@@ -1905,10 +1995,15 @@ def generate_ai_social_image(
                 logger.warning(
                     "no readable logo asset for %s — generating without the mark", allow)
                 gen_prompt = f"{scene_prompt} {_brand_allowlist_clause([])}"
-                u = _generate_image(gen_prompt, raw_path, provider=provider)
+                if admin_refs:
+                    u = _edit_image(gen_prompt, admin_refs, raw_path, provider=provider)
+                    image_is_edit = True
+                    mode = f"ai_{provider}_poster_ref"
+                else:
+                    u = _generate_image(gen_prompt, raw_path, provider=provider)
+                    mode = f"ai_{provider}_poster"
                 image_usage_acc = _merge_usage(image_usage_acc, u)
                 image_api_calls = 1
-                mode = f"ai_{provider}_poster"
         else:
             if featured_person:
                 # No usable photo of them, so leave them out entirely. Asking for
@@ -1924,11 +2019,21 @@ def generate_ai_social_image(
             else:
                 gen_prompt = scene_prompt
             gen_prompt = f"{gen_prompt} {_brand_allowlist_clause([])}"
-            u = _generate_image(gen_prompt, raw_path, provider=provider)
+            # With no face and no mark this used to be a text-only generate,
+            # which silently discards attachments. If the editor attached
+            # anything, the call has to become an edit or their reference never
+            # reaches the model at all.
+            if admin_refs:
+                u = _edit_image(gen_prompt, admin_refs, raw_path, provider=provider)
+                image_is_edit = True
+                ref_used = admin_refs[0]
+                mode = f"ai_{provider}_gen_ref"
+            else:
+                u = _generate_image(gen_prompt, raw_path, provider=provider)
+                image_is_edit = False
+                mode = f"ai_{provider}_gen"
             image_usage_acc = _merge_usage(image_usage_acc, u)
             image_api_calls = 1
-            image_is_edit = False
-            mode = f"ai_{provider}_gen"
 
         _compose_editorial_card(
             str(raw_path),
