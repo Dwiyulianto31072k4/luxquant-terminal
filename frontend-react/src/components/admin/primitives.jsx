@@ -75,13 +75,10 @@ export const Surface = React.forwardRef(
           topGlow: surface[variant].topGlow,
         };
 
-    const showHairline =
-      hairline !== undefined
-        ? hairline
-        : variant === "raised" || variant === "glass" || isPremium || !!tone;
-
-    const doHover = hover !== undefined ? hover : isPremium;
-    const cornerRadius = radius[radiusToken || (isPremium ? "xl" : "lg")];
+    // Gate shells: no gold hairline chrome by default
+    const showHairline = hairline === true;
+    const doHover = hover === true;
+    const cornerRadius = radius[radiusToken || "xl"];
 
     return (
       <div
@@ -91,15 +88,13 @@ export const Surface = React.forwardRef(
           background: preset.bg,
           border: `1px solid ${preset.border}`,
           borderRadius: cornerRadius,
-          transition: doHover ? motion.slow : undefined,
-          boxShadow: variant === "base" ? "inset 0 1px 0 0 rgb(var(--ink) / 0.04)" : undefined,
+          transition: doHover ? motion.base : undefined,
           ...style,
         }}
         onMouseEnter={
           doHover
             ? (e) => {
                 e.currentTarget.style.borderColor = surface.premium.borderHover;
-                e.currentTarget.style.boxShadow = surface.premium.shadowHover;
                 onMouseEnter?.(e);
               }
             : onMouseEnter
@@ -108,8 +103,6 @@ export const Surface = React.forwardRef(
           doHover
             ? (e) => {
                 e.currentTarget.style.borderColor = preset.border;
-                e.currentTarget.style.boxShadow =
-                  variant === "base" ? "inset 0 1px 0 0 rgb(var(--ink) / 0.04)" : "none";
                 onMouseLeave?.(e);
               }
             : onMouseLeave
@@ -263,24 +256,28 @@ export const StatTile = ({
     <Wrapper
       onClick={onClick}
       disabled={!onClick}
-      className={`group relative w-full overflow-hidden rounded-xl border bg-surface-raised p-3.5 text-left transition-colors ${
-        onClick ? "cursor-pointer hover:border-ink/[0.12]" : ""
-      } ${active ? "border-ink/20" : "border-ink/[0.07]"} ${className}`}
+      className={`group relative w-full overflow-hidden rounded-xl border bg-surface-raised p-3.5 sm:p-4 text-left transition-colors ${
+        onClick ? "cursor-pointer hover:border-ink/[0.12] hover:bg-ink/[0.02]" : ""
+      } ${active ? "border-ink/18 bg-ink/[0.03]" : "border-ink/[0.07]"} ${className}`}
     >
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted">
           {label}
         </span>
-        {Icon && <IconBadge Icon={Icon} color={accentColor} size={26} iconSize={13} soft />}
+        {Icon && (
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-ink/[0.08] bg-ink/[0.04] text-text-muted">
+            <Icon size={13} style={{ color: "rgb(var(--fg-muted))" }} />
+          </span>
+        )}
       </div>
-      <p className="font-mono text-2xl font-semibold tabular-nums leading-none tracking-tight text-text-primary">
+      <p className="font-mono text-[22px] sm:text-2xl font-semibold tabular-nums leading-none tracking-tight text-text-primary">
         {loading ? (
           <span className="lqsk inline-block h-6 w-12 rounded bg-ink/[0.08]" />
         ) : (
           (value ?? "—")
         )}
       </p>
-      {sub && <p className="mt-1.5 text-[10px] text-text-muted/80">{sub}</p>}
+      {sub && <p className="mt-1.5 text-[11px] text-text-muted/75">{sub}</p>}
     </Wrapper>
   );
 };
@@ -475,7 +472,7 @@ export const Badge = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 ${sizeClasses[size]} font-semibold tracking-wider uppercase whitespace-nowrap ${className}`}
+      className={`inline-flex items-center gap-1 ${sizeClasses[size]} font-medium tracking-wide whitespace-nowrap ${className}`}
       style={{
         background: palette_.bg,
         color: palette_.color,
@@ -504,20 +501,21 @@ export const StatusBadge = ({ status, label, ...rest }) => (
   </Badge>
 );
 
-// Pill — fully rounded filter chip (neutral active = white desk language)
+// Pill — Gate-style segment chip
 export const Pill = ({ children, active, tone, onClick, className = "" }) => {
   const t = tone || NEUTRAL;
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium tracking-wide transition-colors ${className} ${
+      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium tracking-tight transition-colors ${className} ${
         active
-          ? "border border-ink/20 bg-ink/[0.1] text-text-primary"
-          : "border border-ink/[0.08] bg-ink/[0.02] text-text-muted hover:border-ink/14 hover:text-text-primary"
+          ? "border border-ink/15 bg-ink/[0.08] text-text-primary"
+          : "border border-ink/[0.07] bg-surface-raised text-text-muted hover:border-ink/12 hover:text-text-primary"
       }`}
       style={
         tone && active
-          ? { color: t, borderColor: tint(t, 0.4), background: tint(t, 0.12) }
+          ? { color: t, borderColor: tint(t, 0.35), background: tint(t, 0.1) }
           : undefined
       }
     >
@@ -627,7 +625,7 @@ export const Button = React.forwardRef(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold uppercase tracking-wider transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-90 active:scale-[0.99] ${s.px} ${s.py} ${s.text} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold tracking-tight transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-90 active:scale-[0.99] ${s.px} ${s.py} ${s.text} ${className}`}
         style={{
           ...variants[variant],
           ...style,
@@ -813,21 +811,21 @@ export const EmptyState = ({
 // Loading states
 // ════════════════════════════════════════════════════════════════════
 
-export const Spinner = ({ size = 14, tone = NEUTRAL, className = "" }) => (
+export const Spinner = ({ size = 14, tone, className = "" }) => (
   <span
     className={`inline-block animate-spin rounded-full ${className}`}
     style={{
       width: size,
       height: size,
-      border: `2px solid ${tint(tone, 0.2)}`,
-      borderTopColor: tone,
+      border: "1.5px solid rgb(var(--ink) / 0.12)",
+      borderTopColor: tone || "rgb(var(--fg-muted))",
     }}
   />
 );
 
-export const LoadingState = ({ label = "Loading...", tone = NEUTRAL, className = "" }) => (
+export const LoadingState = ({ label = "Loading…", className = "" }) => (
   <div className={`inline-flex items-center gap-2 text-xs text-text-muted ${className}`}>
-    <Spinner size={13} tone={tone} />
+    <Spinner size={13} />
     {label}
   </div>
 );
@@ -842,30 +840,25 @@ export const Skeleton = ({ className = "", tone = "rgb(var(--ink) / 0.05)", styl
 
 export const Toast = ({ message, type = "success", onClose }) => {
   const config = {
-    success: { tone: palette.green[400], Icon: CheckCircleIcon },
-    error: { tone: palette.red[400], Icon: AlertCircleIcon },
-    warning: { tone: palette.amber[400], Icon: AlertTriangleIcon },
-    info: { tone: palette.blue[400], Icon: AlertCircleIcon },
+    success: { tone: "rgb(var(--pos-text))", Icon: CheckCircleIcon },
+    error: { tone: "rgb(var(--neg-text))", Icon: AlertCircleIcon },
+    warning: { tone: "rgb(var(--accent-text))", Icon: AlertTriangleIcon },
+    info: { tone: "rgb(var(--fg-muted))", Icon: AlertCircleIcon },
   };
   const { tone, Icon } = config[type] || config.success;
 
   return (
     <div
-      className="fixed top-4 right-4 z-[100000] flex items-start gap-2.5 px-4 py-3 rounded-xl text-xs font-medium shadow-2xl max-w-sm"
-      style={{
-        background: palette.maroon[800],
-        color: tone,
-        border: `1px solid ${tint(tone, 0.3)}`,
-        boxShadow: elevation.modal,
-      }}
+      className="lq-toast-safe fixed right-4 z-[100000] flex max-w-sm items-start gap-2.5 rounded-xl border border-ink/[0.1] bg-surface-raised px-4 py-3 text-xs font-medium text-text-primary shadow-xl"
+      style={{ boxShadow: elevation.modal }}
     >
-      <Icon size={15} className="shrink-0 mt-px" />
-      <span className="flex-1">{message}</span>
+      <Icon size={15} className="mt-px shrink-0" style={{ color: tone }} />
+      <span className="flex-1 leading-relaxed">{message}</span>
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
-          className="shrink-0 opacity-60 hover:opacity-100"
-          style={{ color: tone }}
+          className="shrink-0 text-text-muted opacity-70 hover:opacity-100"
         >
           <CloseIcon size={12} />
         </button>
@@ -900,14 +893,7 @@ export const SearchInput = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={`w-full ${Icon ? "pl-9" : "pl-3"} ${rightSlot ? "pr-20" : "pr-3"} py-2 text-xs text-text-primary focus:outline-none transition-colors`}
-      style={{
-        background: surface.base.bg,
-        border: `1px solid ${surface.base.border}`,
-        borderRadius: radius.md,
-      }}
-      onFocus={(e) => (e.currentTarget.style.borderColor = tint(palette.gold[300], 0.35))}
-      onBlur={(e) => (e.currentTarget.style.borderColor = surface.base.border)}
+      className={`w-full ${Icon ? "pl-9" : "pl-3"} ${rightSlot ? "pr-20" : "pr-3"} rounded-xl border border-ink/[0.08] bg-surface-raised py-2.5 text-xs text-text-primary transition-colors focus:border-ink/15 focus:outline-none`}
       {...rest}
     />
     {rightSlot && <div className="absolute right-3 top-1/2 -translate-y-1/2">{rightSlot}</div>}

@@ -59,7 +59,7 @@ const ResourceReader = ({ resource: initial, onClose, _onNavigate }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-scrim/85 backdrop-blur-sm p-0 sm:p-6 lg:p-10"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[10000] flex items-end justify-center sm:items-center p-0 sm:p-6 lg:p-10"
       onClick={onClose}
     >
       <div

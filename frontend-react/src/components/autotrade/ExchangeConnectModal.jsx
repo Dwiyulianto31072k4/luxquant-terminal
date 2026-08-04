@@ -181,8 +181,8 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
   };
 
   const modal = (
-    <div className="fixed inset-0 z-[100000] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-scrim/70 backdrop-blur-[2px]" onClick={onClose} />
+    <div className="lq-modal-safe fixed inset-0 z-[100000] flex items-end justify-center p-0 sm:items-center sm:p-4">
+      <div className="lq-scrim" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
         className="lq-sheet relative z-10 flex max-h-[min(92dvh,100%)] w-full max-w-[840px] flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:rounded-2xl"

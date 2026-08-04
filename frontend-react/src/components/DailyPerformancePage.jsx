@@ -2401,7 +2401,7 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
       role="dialog"
       aria-modal="true"
       aria-label="All signals"
-      className="fixed inset-0 z-[9999] bg-scrim/70 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div

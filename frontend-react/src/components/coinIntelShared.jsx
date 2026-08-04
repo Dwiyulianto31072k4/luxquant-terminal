@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
+import EChart, { useChartTokens, inkAlpha } from "./charts/EChart";
 
 // ═══════════════════════════════════════════
 // SHARED COIN INTELLIGENCE LOGIC + DETAIL MODAL
@@ -44,17 +45,18 @@ export const OC = {
   sl: { bg: "rgba(239,68,68,0.15)", tx: "#ef4444", l: "SL" },
 };
 
+// Solid fills for donut / legend (no alpha — must read bold on light surfaces)
 export const JC = {
-  sl: "rgba(239,68,68,0.5)",
-  tp1: "rgba(96,165,250,0.5)",
-  tp2: "rgba(234,179,8,0.45)",
-  tp3: "rgba(132,204,22,0.45)",
-  tp4: "rgba(34,197,94,0.5)",
+  tp4: "#16a34a",
+  tp3: "#65a30d",
+  tp2: "#ca8a04",
+  tp1: "#2563eb",
+  sl: "#dc2626",
 };
 
-export const wrc = (w) => (w >= 70 ? "#22c55e" : w >= 50 ? "#eab308" : "#ef4444");
+export const wrc = (w) => (w >= 70 ? "#16a34a" : w >= 50 ? "#ca8a04" : "#dc2626");
 export const scoreColor = (s) =>
-  s >= 80 ? "#22c55e" : s >= 65 ? "#84cc16" : s >= 45 ? "#eab308" : s >= 25 ? "#f97316" : "#ef4444";
+  s >= 80 ? "#16a34a" : s >= 65 ? "#65a30d" : s >= 45 ? "#ca8a04" : s >= 25 ? "#ea580c" : "#dc2626";
 export const scoreGrade = (s) =>
   s >= 80 ? "Excellent" : s >= 65 ? "Good" : s >= 45 ? "Average" : s >= 25 ? "Poor" : "Very Poor";
 export const primarySev = (f) => {
@@ -144,122 +146,276 @@ export const RiskGauge = ({ score, size = "sm" }) => {
   );
 };
 
+/** Monthly WR trend — ECharts area line (theme-aware). */
 export const MonthlyLineChart = ({ data }) => {
-  if (!data || data.length < 2) return null;
-  const W = 280,
-    H = 60,
-    padX = 8,
-    padY = 8;
-  const minWr = Math.max(0, Math.min(...data.map((d) => d.wr)) - 10);
-  const maxWr = Math.min(100, Math.max(...data.map((d) => d.wr)) + 10);
-  const range = maxWr - minWr || 1;
-  const points = data.map((d, i) => ({
-    x: padX + (i / (data.length - 1)) * (W - padX * 2),
-    y: padY + (1 - (d.wr - minWr) / range) * (H - padY * 2),
-    wr: d.wr,
-    month: d.month,
-    closed: d.closed,
-  }));
-  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const areaD = `${pathD} L${points[points.length - 1].x},${H} L${points[0].x},${H} Z`;
+  const tokens = useChartTokens();
+  const option = useMemo(() => {
+    if (!data || data.length < 2) return null;
+    const labels = data.map((d) => d.month?.slice(5) || d.month || "");
+    const values = data.map((d) => d.wr);
+    // Bold solid gold line (not washed accent); points use WR green/amber/red
+    const lineColor = "#d97706";
+    const muted = tokens["fg-muted"] || tokens.fgMuted || "#888";
+    const surface = tokens["surface-raised"] || tokens.surfaceRaised || "#141414";
+    return {
+      grid: { left: 28, right: 10, top: 28, bottom: 22 },
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: surface,
+        borderColor: inkAlpha(tokens, 0.12),
+        textStyle: { color: tokens.fg || "#eee", fontSize: 11, fontFamily: "JetBrains Mono, monospace" },
+        formatter: (p) => {
+          const i = p?.[0]?.dataIndex;
+          const row = data[i];
+          if (!row) return "";
+          return `${row.month}<br/>WR <b>${row.wr}%</b>${row.closed != null ? ` · ${row.closed} tr` : ""}`;
+        },
+      },
+      xAxis: {
+        type: "category",
+        data: labels,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: muted, fontSize: 10, fontFamily: "JetBrains Mono, monospace" },
+      },
+      yAxis: {
+        type: "value",
+        min: (v) => Math.max(0, Math.floor(v.min - 8)),
+        max: (v) => Math.min(100, Math.ceil(v.max + 5)),
+        splitLine: { lineStyle: { color: inkAlpha(tokens, 0.08), type: "dashed" } },
+        axisLabel: {
+          color: muted,
+          fontSize: 9,
+          fontFamily: "JetBrains Mono, monospace",
+          formatter: (v) => `${v}%`,
+        },
+      },
+      series: [
+        {
+          type: "line",
+          data: values.map((v) => ({
+            value: v,
+            itemStyle: {
+              color: wrc(v),
+              borderColor: surface,
+              borderWidth: 2,
+              shadowBlur: 0,
+            },
+            label: { color: wrc(v) },
+          })),
+          smooth: 0.28,
+          symbol: "circle",
+          symbolSize: 9,
+          lineStyle: {
+            width: 3.5,
+            color: lineColor,
+            shadowColor: "rgba(217, 119, 6, 0.35)",
+            shadowBlur: 6,
+          },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(217, 119, 6, 0.42)" },
+                { offset: 0.55, color: "rgba(217, 119, 6, 0.12)" },
+                { offset: 1, color: "rgba(217, 119, 6, 0)" },
+              ],
+            },
+          },
+          label: {
+            show: true,
+            position: "top",
+            fontSize: 10,
+            fontFamily: "JetBrains Mono, monospace",
+            fontWeight: 800,
+            formatter: (p) => `${p.value}%`,
+          },
+        },
+      ],
+    };
+  }, [data, tokens]);
+  if (!option) return null;
+  return <EChart option={option} height={148} className="w-full" />;
+};
+
+/** Outcome donut — ECharts pie ring. */
+const OutcomeDonut = ({ dist, closed }) => {
+  const tokens = useChartTokens();
+  const order = ["tp4", "tp3", "tp2", "tp1", "sl"];
+  const closedN = closed || 0;
+  const reachTp = ["tp1", "tp2", "tp3", "tp4"].reduce((a, k) => a + (dist?.[k] || 0), 0);
+  const reachPct = closedN ? Math.round((reachTp / closedN) * 100) : 0;
+
+  const surface = tokens["surface-raised"] || "#f8f8f8";
+  const option = useMemo(() => {
+    const data = order
+      .map((k) => ({
+        name: OC[k]?.l || k.toUpperCase(),
+        value: dist?.[k] || 0,
+        itemStyle: {
+          color: JC[k],
+          borderColor: surface,
+          borderWidth: 2,
+        },
+      }))
+      .filter((d) => d.value > 0);
+    return {
+      tooltip: {
+        trigger: "item",
+        backgroundColor: tokens["surface-raised"] || "#1a1a1a",
+        borderColor: inkAlpha(tokens, 0.12),
+        textStyle: { color: tokens.fg || "#eee", fontSize: 11 },
+        formatter: (p) => `${p.name}: <b>${p.value}</b> (${p.percent}%)`,
+      },
+      series: [
+        {
+          type: "pie",
+          radius: ["52%", "86%"],
+          center: ["50%", "50%"],
+          avoidLabelOverlap: true,
+          label: { show: false },
+          emphasis: {
+            scale: true,
+            scaleSize: 5,
+            itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,0,0,0.18)" },
+          },
+          data,
+        },
+      ],
+    };
+  }, [dist, closedN, tokens, surface]);
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H + 18}`} className="w-full" style={{ height: "90px" }}>
-        <defs>
-          <linearGradient id="wrGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0.32" />
-            <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0, 0.5, 1].map((f, i) => (
-          <line
-            key={i}
-            x1={padX}
-            x2={W - padX}
-            y1={padY + f * (H - padY * 2)}
-            y2={padY + f * (H - padY * 2)}
-            stroke="rgb(var(--accent) / 0.06)"
-            strokeWidth="0.5"
-          />
-        ))}
-        <path d={areaD} fill="url(#wrGrad)" />
-        <path
-          d={pathD}
-          fill="none"
-          stroke="rgb(var(--accent))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {points.map((p, i) => (
-          <g key={i}>
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r="2.5"
-              fill="rgb(var(--surface-raised))"
-              stroke={wrc(p.wr)}
-              strokeWidth="1.5"
-            />
-            <text
-              x={p.x}
-              y={p.y - 6}
-              fill={wrc(p.wr)}
-              fontSize="7"
-              fontWeight="700"
-              fontFamily="'JetBrains Mono', monospace"
-              textAnchor="middle"
-            >
-              {p.wr}%
-            </text>
-            <text x={p.x} y={H + 12} fill="rgb(var(--fg-muted))" fontSize="6" textAnchor="middle">
-              {p.month?.slice(5)}
-            </text>
-          </g>
-        ))}
-        <text
-          x={2}
-          y={padY + 3}
-          fill="rgb(var(--fg-muted))"
-          fontSize="5"
-          fontFamily="'JetBrains Mono', monospace"
-        >
-          {Math.round(maxWr)}%
-        </text>
-        <text
-          x={2}
-          y={H - padY + 3}
-          fill="rgb(var(--fg-muted))"
-          fontSize="5"
-          fontFamily="'JetBrains Mono', monospace"
-        >
-          {Math.round(minWr)}%
-        </text>
-      </svg>
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
+      <div className="relative w-[148px] shrink-0 sm:w-[160px]">
+        <EChart option={option} height={160} />
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-mono text-[20px] font-extrabold tabular-nums" style={{ color: wrc(reachPct) }}>
+            {reachPct}%
+          </span>
+          <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-text-muted">
+            Reach TP
+          </span>
+        </div>
+      </div>
+      <div className="w-full flex-1 grid grid-cols-1 gap-1.5 font-mono text-[11px]">
+        {order.map((k) => {
+          const v = dist?.[k] || 0;
+          const pct = closedN ? Math.round((v / closedN) * 100) : 0;
+          return (
+            <div key={k} className="flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-sm ring-1 ring-ink/5"
+                style={{ background: JC[k] }}
+              />
+              <span className="font-semibold text-text-primary/85">{OC[k]?.l || k.toUpperCase()}</span>
+              <span className="ml-auto tabular-nums font-semibold text-text-secondary">
+                {pct}% · {v}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
 
-const Section = ({ title, children, className = "" }) => (
+/** Day-of-week WR bars — ECharts. */
+const DowBarChart = ({ breakdown, bestDay, worstDay }) => {
+  const tokens = useChartTokens();
+  const entries = Object.entries(breakdown || {});
+  const option = useMemo(() => {
+    if (!entries.length) return null;
+    const labels = entries.map(([d]) => d);
+    const values = entries.map(([, s]) => Math.round(s.wr));
+    const colors = values.map((wr, i) => {
+      const day = labels[i];
+      if (day === bestDay) return "#16a34a";
+      if (day === worstDay) return "#dc2626";
+      return wrc(wr);
+    });
+    return {
+      grid: { left: 8, right: 8, top: 28, bottom: 28 },
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: tokens["surface-raised"] || "#1a1a1a",
+        borderColor: inkAlpha(tokens, 0.12),
+        textStyle: { color: tokens.fg || "#eee", fontSize: 11 },
+        formatter: (p) => {
+          const i = p?.[0]?.dataIndex;
+          const [day, s] = entries[i] || [];
+          if (!day) return "";
+          return `${day}<br/>WR <b>${Math.round(s.wr)}%</b> · ${s.closed} tr`;
+        },
+      },
+      xAxis: {
+        type: "category",
+        data: labels,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: tokens["fg-muted"] || "#888",
+          fontSize: 10,
+          fontWeight: 700,
+        },
+      },
+      yAxis: {
+        type: "value",
+        max: 100,
+        show: false,
+      },
+      series: [
+        {
+          type: "bar",
+          data: values.map((v, i) => ({
+            value: v,
+            // Solid fill — no translucent fade
+            itemStyle: {
+              color: colors[i],
+              borderRadius: [6, 6, 2, 2],
+              shadowBlur: 0,
+            },
+            label: { color: colors[i] },
+          })),
+          barMaxWidth: 30,
+          label: {
+            show: true,
+            position: "top",
+            fontSize: 10,
+            fontFamily: "JetBrains Mono, monospace",
+            fontWeight: 800,
+            formatter: (p) => `${p.value}%`,
+          },
+        },
+      ],
+    };
+  }, [entries, bestDay, worstDay, tokens]);
+  if (!option) return null;
+  return <EChart option={option} height={160} className="w-full" />;
+};
+
+const Section = ({ title, right = null, children, className = "" }) => (
   <div
-    className={`relative rounded-xl p-4 bg-ink/[0.02] border border-ink/[0.06] overflow-hidden ${className}`}
+    className={`rounded-2xl border border-ink/[0.06] bg-ink/[0.025] p-3.5 sm:p-4 ${className}`}
   >
-    <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/25 to-transparent" />
-    <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted mb-3">{title}</p>
+    <div className="mb-3 flex items-center justify-between gap-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">{title}</p>
+      {right}
+    </div>
     {children}
   </div>
 );
 
-const StatBox = ({ label, value, color, icon = null }) => (
-  <div className="flex flex-col justify-center">
-    <p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">{label}</p>
-    <div className="flex items-center gap-1.5">
-      <p className="font-mono font-bold text-[14px] drop-shadow-sm" style={{ color }}>
-        {value}
-      </p>
-      {icon}
-    </div>
+const StatBox = ({ label, value, color }) => (
+  <div className="min-w-0">
+    <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">{label}</p>
+    <p className="mt-1 font-mono text-[14px] font-bold tabular-nums sm:text-[15px]" style={{ color }}>
+      {value}
+    </p>
   </div>
 );
 
@@ -351,94 +507,72 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
     },
   ];
 
+  const iconBtn =
+    "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink/[0.08] bg-ink/[0.03] text-text-muted transition hover:bg-ink/[0.07] hover:text-text-primary";
+
   const content = (
     <>
       <div className={`cdm-overlay ${isClosing ? "cdm-closing" : ""}`}>
         <div className="cdm-backdrop" onClick={handleClose} aria-hidden="true" />
         <div className="cdm-container">
           <div className="cdm-content" style={{ "--vc": vc }}>
-            {/* Drag handle (mobile) */}
-            <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
-              <div className="w-10 h-1 rounded-full bg-ink/20" />
+            <div className="flex shrink-0 justify-center pt-2.5 sm:hidden">
+              <div className="h-1 w-10 rounded-full bg-ink/20" />
             </div>
 
-            {/* ── HEADER (sticky) — same solid surface as body (no hybrid white/dark) ── */}
-            <div
-              className="flex-shrink-0 relative z-10 border-b border-ink/[0.1] px-4 py-3.5"
-              style={{ background: "rgb(var(--surface-raised))" }}
-            >
-              {/* verdict-colored accent line (semantic) */}
-              <div
-                className="absolute top-0 inset-x-0 h-0.5"
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${vc}, transparent)`,
-                  opacity: 0.7,
-                }}
-              />
-              <div className="flex items-center gap-3 pr-10">
-                <CoinLogo pair={coin.pair} size={40} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-xl text-text-primary tracking-tight">
-                      {coin.pair.replace("USDT", "")}
-                    </span>
-                    <span className="text-text-muted font-mono text-xs">USDT</span>
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest"
-                      style={{ background: `${vc}15`, color: vc, border: `1px solid ${vc}30` }}
-                    >
-                      {verdict === "avoid" ? "⛔ Avoid" : "✅ Worth It"}
-                    </span>
-                  </div>
-                  <p className="text-text-muted text-[11px] mt-1">
-                    {coin.total_calls} Calls · {coin.closed_trades} Closed · {coin.open_trades} Open
-                  </p>
-                </div>
-                {/* Score gauge (compact, in header) */}
-                <div className="flex-col items-center flex-shrink-0 hidden sm:flex pr-2">
-                  <RiskGauge score={rs} size="sm" />
+            {/* Header — Signal / Pulse grammar */}
+            {/* No verdict-tinted hairline across the top. The verdict already
+                shows as a labelled pill next to the pair, where it can be read;
+                as a 1px wash on the lip it only made the panel look like it had
+                a coloured rim, which is the one thing every other modal in the
+                app does not have. */}
+            <div className="relative flex shrink-0 items-center gap-2.5 border-b border-ink/[0.06] px-3.5 py-3 sm:gap-3 sm:px-5 sm:py-3.5">
+              <CoinLogo pair={coin.pair} size={40} />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <h2 className="truncate text-[16px] font-semibold tracking-tight text-text-primary sm:text-[18px]">
+                    {coin.pair.replace("USDT", "")}
+                    <span className="ml-1 text-[12px] font-medium text-text-muted">USDT</span>
+                  </h2>
                   <span
-                    className="text-[8px] font-bold uppercase tracking-widest mt-1"
-                    style={{ color: scoreColor(rs) }}
+                    className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    style={{ background: `${vc}18`, color: vc }}
                   >
-                    {scoreGrade(rs)}
+                    {verdict === "avoid" ? "Avoid" : "Worth it"}
                   </span>
                 </div>
+                <p className="mt-0.5 font-mono text-[11px] tabular-nums text-text-muted">
+                  {coin.total_calls} calls · {coin.closed_trades} closed · {coin.open_trades} open
+                </p>
               </div>
-              <button
-                onClick={handleClose}
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary border border-ink/[0.12] hover:border-negative/50 hover:bg-negative/10 rounded-lg transition-all"
-                style={{ background: "rgb(var(--surface-raised))" }}
-                aria-label="Close"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+              <div className="hidden shrink-0 flex-col items-center sm:flex">
+                <RiskGauge score={rs} size="sm" />
+                <span
+                  className="mt-0.5 text-[9px] font-bold uppercase tracking-wider"
+                  style={{ color: scoreColor(rs) }}
+                >
+                  {scoreGrade(rs)}
+                </span>
+              </div>
+              <button type="button" onClick={handleClose} className={iconBtn} aria-label="Close">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* ── BODY (scroll) ── */}
-            <div
-              className="flex-1 min-h-0 overflow-y-auto cdm-scroll px-4 py-4 sm:px-5 sm:py-5"
-              style={{ background: "rgb(var(--surface-raised))" }}
-            >
-              <div className="max-w-5xl mx-auto space-y-5">
-                {/* Anomaly flag chips (severity = semantic) */}
+            <div className="cdm-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5 sm:py-5">
+              <div className="mx-auto max-w-5xl space-y-4 sm:space-y-5">
                 {coin.anomaly_flags?.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {coin.anomaly_flags.map((f, i) => (
                       <span
                         key={i}
-                        className="text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                        className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide"
                         style={{
                           background: SEV[f.severity]?.bg,
                           color: SEV[f.severity]?.text,
-                          border: `1px solid ${SEV[f.severity]?.border}30`,
+                          border: `1px solid ${SEV[f.severity]?.border}33`,
                         }}
                       >
                         {f.tag}
@@ -447,18 +581,18 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   </div>
                 )}
 
-                {/* Stat cards (values = semantic) */}
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                {/* KPI strip */}
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                   {statCards.map((s, i) => (
                     <div
                       key={i}
-                      className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-ink/[0.02] border border-ink/[0.06] hover:border-ink/12 transition-colors"
+                      className="rounded-2xl border border-ink/[0.05] bg-ink/[0.025] px-2 py-3 text-center sm:px-2.5"
                     >
-                      <p className="text-[8px] uppercase tracking-widest text-text-muted mb-1.5 text-center">
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-text-muted">
                         {s.l}
                       </p>
-                      <div className="flex items-center gap-1">
-                        <p className="font-mono font-extrabold text-[15px]" style={{ color: s.c }}>
+                      <div className="mt-1 flex items-center justify-center gap-1">
+                        <p className="font-mono text-[15px] font-bold tabular-nums sm:text-[16px]" style={{ color: s.c }}>
                           {s.v}
                         </p>
                         {s.i}
@@ -467,141 +601,37 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   ))}
                 </div>
 
-                {/* Outcome distribution — donut multi-warna (data pct + count dipertahankan) */}
-                <div className="relative rounded-xl border border-ink/[0.06] p-4 bg-ink/[0.02] overflow-hidden">
-                  <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/25 to-transparent" />
-                  <div className="flex justify-between items-end mb-1">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
-                      Outcome Distribution
-                    </p>
-                    <p className="text-[9px] text-text-muted font-mono">
-                      {coin.closed_trades} Total Closed
-                    </p>
-                  </div>
-                  {(() => {
-                    const order = ["tp4", "tp3", "tp2", "tp1", "sl"];
-                    const closed = coin.closed_trades || 0;
-                    const reachTp = ["tp1", "tp2", "tp3", "tp4"].reduce(
-                      (a, k) => a + (coin.outcome_dist?.[k] || 0),
-                      0
-                    );
-                    const reachPct = closed ? Math.round((reachTp / closed) * 100) : 0;
-                    let acc = 0;
-                    const segs = order
-                      .map((k) => {
-                        const v = coin.outcome_dist?.[k] || 0;
-                        const pct = closed ? (v / closed) * 100 : 0;
-                        const s = { k, v, pct, offset: acc };
-                        acc += pct;
-                        return s;
-                      })
-                      .filter((s) => s.v > 0);
-                    return (
-                      <div className="flex items-center gap-5 mt-2">
-                        <svg width="118" height="118" viewBox="0 0 42 42" className="flex-shrink-0">
-                          <circle
-                            cx="21"
-                            cy="21"
-                            r="15.915"
-                            fill="none"
-                            stroke="rgb(var(--ink) / 0.05)"
-                            strokeWidth="5"
-                          />
-                          {segs.map((s) => (
-                            <circle
-                              key={s.k}
-                              cx="21"
-                              cy="21"
-                              r="15.915"
-                              fill="none"
-                              stroke={JC[s.k]}
-                              strokeWidth="5"
-                              strokeDasharray={`${s.pct} ${100 - s.pct}`}
-                              strokeDashoffset={25 - s.offset}
-                              strokeLinecap="butt"
-                            />
-                          ))}
-                          <text
-                            x="21"
-                            y="20.3"
-                            textAnchor="middle"
-                            fontFamily="'JetBrains Mono', monospace"
-                            fontSize="6"
-                            fontWeight="700"
-                            fill={wrc(reachPct)}
-                          >
-                            {reachPct}%
-                          </text>
-                          <text
-                            x="21"
-                            y="25.5"
-                            textAnchor="middle"
-                            fontFamily="'JetBrains Mono', monospace"
-                            fontSize="2.6"
-                            letterSpacing="0.4"
-                            fill="rgb(var(--fg-muted))"
-                          >
-                            REACH TP
-                          </text>
-                        </svg>
-                        <div className="flex-1 grid grid-cols-1 gap-y-1.5 font-mono text-[11px]">
-                          {order.map((k) => {
-                            const v = coin.outcome_dist?.[k] || 0;
-                            const pct = closed ? Math.round((v / closed) * 100) : 0;
-                            return (
-                              <div key={k} className="flex items-center gap-2">
-                                <span
-                                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                                  style={{ background: JC[k] }}
-                                />
-                                <span className="text-text-primary/80">
-                                  {OC[k]?.l || k.toUpperCase()}
-                                </span>
-                                <span className="ml-auto tabular-nums text-text-primary/45">
-                                  {pct}% · {v} tr
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
+                <Section
+                  title="Outcome distribution"
+                  right={
+                    <span className="font-mono text-[10px] tabular-nums text-text-muted">
+                      {coin.closed_trades} closed
+                    </span>
+                  }
+                >
+                  <OutcomeDonut dist={coin.outcome_dist} closed={coin.closed_trades} />
+                </Section>
 
-                {/* AI insight (left accent = severity, semantic) */}
                 {coin.insight && (
-                  <div className="relative p-4 pl-5 rounded-xl text-[13px] text-text-secondary leading-relaxed bg-ink/[0.02] border border-ink/[0.06] overflow-hidden">
-                    <div
-                      className="absolute left-0 top-0 bottom-0 w-1"
-                      style={{ background: st.text }}
-                    />
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke={st.text}
-                        strokeWidth="2"
-                      >
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                      <p
-                        className="text-[10px] font-bold uppercase tracking-widest"
+                  <div className="relative overflow-hidden rounded-2xl border border-ink/[0.06] bg-ink/[0.025] p-3.5 pl-4 sm:p-4 sm:pl-5">
+                    <div className="absolute bottom-0 left-0 top-0 w-1 rounded-l-2xl" style={{ background: st.text }} />
+                    <div className="mb-2 flex items-center gap-2">
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-[0.14em]"
                         style={{ color: st.text }}
                       >
-                        AI Deep Analysis
-                      </p>
+                        AI deep analysis
+                      </span>
                     </div>
-                    <p>{parseBold(coin.insight)}</p>
+                    <p className="text-[13px] leading-relaxed text-text-secondary">
+                      {parseBold(coin.insight)}
+                    </p>
                   </div>
                 )}
 
-                {/* 2-col analysis grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Section title="LuxQuant Winrate by Market Condition" className="h-full">
-                    <div className="grid grid-cols-3 gap-2 h-full">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Section title="Winrate by market condition">
+                    <div className="grid grid-cols-3 gap-2">
                       {["high", "mid", "low"].map((apiFlow) => {
                         const d = coin.flow_perf?.[apiFlow] || {
                           calls: 0,
@@ -615,26 +645,26 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                         return (
                           <div
                             key={apiFlow}
-                            className={`p-3 rounded-lg text-center flex flex-col justify-center ${isNow ? "shadow-inner" : ""}`}
+                            className="rounded-xl px-2 py-3 text-center"
                             style={{
-                              background: isNow ? fc.bg : "rgb(var(--ink) / 0.01)",
-                              border: `1px solid ${isNow ? fc.border + "40" : "rgb(var(--ink) / 0.08)"}`,
+                              background: isNow ? fc.bg : "rgb(var(--ink) / 0.02)",
+                              border: `1px solid ${isNow ? fc.border + "40" : "rgb(var(--ink) / 0.06)"}`,
                             }}
                           >
                             <p
-                              className="text-[8px] uppercase tracking-widest font-bold mb-1.5"
+                              className="text-[9px] font-bold uppercase tracking-wide"
                               style={{ color: isNow ? fc.text : "rgb(var(--fg-muted))" }}
                             >
-                              {fc.label.toUpperCase()} MARKET{" "}
-                              {isNow && <span className="animate-pulse">●</span>}
+                              {fc.label}
+                              {isNow ? " · now" : ""}
                             </p>
                             <p
-                              className="font-mono font-extrabold text-xl"
+                              className="mt-1 font-mono text-lg font-bold tabular-nums sm:text-xl"
                               style={{ color: d.calls > 0 ? wrc(d.wr) : "rgb(var(--fg-muted))" }}
                             >
                               {d.calls > 0 ? `${d.wr}%` : "—"}
                             </p>
-                            <p className="text-text-muted text-[9px] mt-1">
+                            <p className="mt-0.5 font-mono text-[10px] text-text-muted">
                               {d.wins}W / {d.losses}L
                             </p>
                           </div>
@@ -643,39 +673,30 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     </div>
                   </Section>
 
-                  <Section
-                    title="Trend & Target Hit Rate"
-                    className="h-full flex flex-col justify-between"
-                  >
-                    {coin.monthly_trend?.length >= 2 && (
-                      <div className="mb-3 flex-1">
-                        <MonthlyLineChart data={coin.monthly_trend} />
-                      </div>
+                  <Section title="Trend & target hit rate">
+                    {coin.monthly_trend?.length >= 2 ? (
+                      <MonthlyLineChart data={coin.monthly_trend} />
+                    ) : (
+                      <p className="py-6 text-center text-[12px] text-text-muted">Not enough months</p>
                     )}
                     {coin.tp4_streaks?.total_tp4 > 0 && (
-                      <div className="grid grid-cols-3 gap-3 text-center border-t border-ink/08 pt-3">
+                      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-ink/[0.06] pt-3 text-center">
                         <div>
-                          <p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">
-                            Total TP4
-                          </p>
-                          <p className="font-mono font-bold text-lg text-profit">
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-text-muted">TP4</p>
+                          <p className="mt-0.5 font-mono text-lg font-bold text-profit">
                             {coin.tp4_streaks.total_tp4}
                           </p>
                         </div>
-                        <div className="border-l border-ink/08">
-                          <p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">
-                            Best Streak
-                          </p>
-                          <p className="font-mono font-bold text-lg text-text-primary">
+                        <div>
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-text-muted">Best streak</p>
+                          <p className="mt-0.5 font-mono text-lg font-bold text-text-primary">
                             {coin.tp4_streaks.longest_streak}
                           </p>
                         </div>
-                        <div className="border-l border-ink/08">
-                          <p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">
-                            Current
-                          </p>
+                        <div>
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-text-muted">Current</p>
                           <p
-                            className="font-mono font-bold text-lg"
+                            className="mt-0.5 font-mono text-lg font-bold"
                             style={{
                               color:
                                 coin.tp4_streaks.current_tp4_streak > 0
@@ -821,94 +842,39 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   )}
                 </div>
 
-                {/* Day of week (best/worst markers = semantic) */}
                 {coin.dow_analysis?.breakdown &&
                   Object.keys(coin.dow_analysis.breakdown).length > 0 && (
-                    <Section title="Win Rate by Day of Week">
-                      <div className="flex items-end justify-between gap-1.5 sm:gap-2">
-                        {Object.entries(coin.dow_analysis.breakdown).map(([day, s]) => {
-                          const isBest = coin.dow_analysis.best_day === day,
-                            isWorst = coin.dow_analysis.worst_day === day;
-                          const wr = Math.round(s.wr);
-                          const col = wrc(s.wr);
-                          return (
-                            <div
-                              key={day}
-                              className="flex-1 min-w-0 flex flex-col items-center gap-1.5"
-                            >
-                              <span
-                                className="font-mono text-[10px] font-bold tabular-nums"
-                                style={{ color: col }}
-                              >
-                                {wr}%
-                              </span>
-                              {/* bar track */}
-                              <div className="w-full h-20 flex items-end rounded-md bg-ink/[0.02] overflow-hidden">
-                                <div
-                                  className="w-full rounded-t-md transition-all"
-                                  style={{
-                                    height: `${Math.max(4, wr)}%`,
-                                    background: `linear-gradient(180deg, ${col}, ${col}44)`,
-                                    boxShadow: isBest
-                                      ? `0 0 10px ${col}66`
-                                      : isWorst
-                                        ? "0 0 10px rgba(239,68,68,0.4)"
-                                        : "none",
-                                  }}
-                                />
-                              </div>
-                              <div className="flex flex-col items-center">
-                                <span className="text-[8px] text-text-secondary font-bold uppercase tracking-wide flex items-center gap-0.5">
-                                  {day}
-                                  {isBest && <span className="text-positive text-[7px]">▲</span>}
-                                  {isWorst && <span className="text-loss text-[7px]">▼</span>}
-                                </span>
-                                <span className="text-[7px] text-text-muted">{s.closed} tr</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    <Section title="Win rate by day of week">
+                      <DowBarChart
+                        breakdown={coin.dow_analysis.breakdown}
+                        bestDay={coin.dow_analysis.best_day}
+                        worstDay={coin.dow_analysis.worst_day}
+                      />
                     </Section>
                   )}
 
-                {/* Correlated SL risk (red = semantic, kept intact) */}
                 {coin.correlated_pairs?.length > 0 && (
-                  <div className="p-4 rounded-xl bg-negative/[0.04] border border-negative/10 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="#ef4444"
-                          strokeWidth="2.5"
-                        >
-                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                          <line x1="12" y1="9" x2="12" y2="13" />
-                          <line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                        <p className="text-[10px] font-bold text-loss uppercase tracking-widest">
-                          Correlated SL Risk
-                        </p>
-                      </div>
-                      <p className="text-[11px] text-text-muted">
-                        These coins tend to hit SL on the same days. Avoid simultaneous positions.
+                  <div className="flex flex-col gap-3 rounded-2xl border border-negative/15 bg-negative/[0.04] p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-loss">
+                        Correlated SL risk
+                      </p>
+                      <p className="mt-1 text-[12px] leading-snug text-text-muted">
+                        These coins tend to hit SL on the same days — avoid stacking them.
                       </p>
                     </div>
-                    <div className="flex gap-2.5 flex-wrap">
+                    <div className="flex flex-wrap gap-2">
                       {coin.correlated_pairs.map((cp, i) => (
                         <div
                           key={i}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-negative/[0.08] border border-negative/20"
+                          className="flex items-center gap-2 rounded-xl border border-negative/20 bg-negative/[0.06] px-2.5 py-1.5"
                         >
                           <CoinLogo pair={cp.pair} size={18} />
-                          <span className="text-[12px] font-mono font-bold text-text-primary tracking-wide">
+                          <span className="font-mono text-[12px] font-semibold text-text-primary">
                             {cp.pair.replace("USDT", "")}
                           </span>
-                          <span className="text-[9px] text-loss font-semibold bg-negative/10 px-1.5 py-0.5 rounded">
-                            {cp.co_sl_count}× together
+                          <span className="rounded-md bg-negative/10 px-1.5 py-0.5 text-[10px] font-semibold text-loss">
+                            {cp.co_sl_count}×
                           </span>
                         </div>
                       ))}
@@ -916,7 +882,6 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   </div>
                 )}
 
-                {/* Signal history — paginated (biar tidak kepanjangan) */}
                 {coin.signal_history?.length > 0 &&
                   (() => {
                     const total = coin.signal_history.length;
@@ -925,41 +890,37 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     const start = (page - 1) * HIST_PER_PAGE;
                     const rows = coin.signal_history.slice(start, start + HIST_PER_PAGE);
                     return (
-                      <div>
-                        <div className="flex justify-between items-end mb-3">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
-                            Signal History
-                          </p>
-                          <p className="text-[10px] text-text-muted font-mono">
-                            {total} signals total
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-ink/[0.06] bg-ink/[0.02] overflow-hidden">
-                          <div className="overflow-x-auto cdm-scroll">
-                            <table className="w-full text-left border-collapse min-w-[500px]">
-                              <thead className="bg-surface-raised border-b border-ink/10">
-                                <tr>
-                                  {["Date", "LuxQuant WR", "Entry", "Result", "P/L"].map((h) => (
+                      <Section
+                        title="Signal history"
+                        right={
+                          <span className="font-mono text-[10px] tabular-nums text-text-muted">
+                            {total} total
+                          </span>
+                        }
+                      >
+                        <div className="overflow-hidden rounded-xl border border-ink/[0.06]">
+                          <div className="cdm-scroll overflow-x-auto">
+                            <table className="w-full min-w-[480px] border-collapse text-left">
+                              <thead>
+                                <tr className="border-b border-ink/[0.06] bg-ink/[0.02]">
+                                  {["Date", "WR", "Entry", "Result", "P/L"].map((h) => (
                                     <th
                                       key={h}
-                                      className="px-4 py-3 text-[8px] uppercase tracking-widest text-accent font-semibold"
+                                      className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted sm:px-4"
                                     >
                                       {h}
                                     </th>
                                   ))}
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-accent/5">
+                              <tbody className="divide-y divide-ink/[0.04]">
                                 {rows.map((s, i) => (
-                                  <tr
-                                    key={start + i}
-                                    className="hover:bg-surface-secondary transition-colors"
-                                  >
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-text-secondary whitespace-nowrap">
+                                  <tr key={start + i} className="hover:bg-ink/[0.02]">
+                                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] text-text-secondary sm:px-4">
                                       {fmtDate(s.date)}
                                     </td>
                                     <td
-                                      className="px-4 py-2.5 font-mono text-[12px] font-bold"
+                                      className="px-3 py-2.5 font-mono text-[12px] font-semibold sm:px-4"
                                       style={{
                                         color: s.platform_wr
                                           ? wrc(s.platform_wr)
@@ -968,13 +929,13 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                                     >
                                       {s.platform_wr != null ? `${s.platform_wr}%` : "—"}
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-text-muted">
+                                    <td className="px-3 py-2.5 font-mono text-[11px] text-text-muted sm:px-4">
                                       {s.entry}
                                     </td>
-                                    <td className="px-4 py-2.5">
+                                    <td className="px-3 py-2.5 sm:px-4">
                                       {OC[s.outcome] && (
                                         <span
-                                          className="font-mono font-bold text-[10px] px-2.5 py-1 rounded"
+                                          className="rounded-md px-2 py-0.5 font-mono text-[10px] font-bold"
                                           style={{
                                             background: OC[s.outcome].bg,
                                             color: OC[s.outcome].tx,
@@ -985,7 +946,9 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                                       )}
                                     </td>
                                     <td
-                                      className={`px-4 py-2.5 font-mono text-[12px] font-bold ${s.outcome !== "sl" ? "text-positive" : "text-loss"}`}
+                                      className={`px-3 py-2.5 font-mono text-[12px] font-bold sm:px-4 ${
+                                        s.outcome !== "sl" ? "text-profit" : "text-loss"
+                                      }`}
                                     >
                                       {s.pl_pct}
                                     </td>
@@ -994,27 +957,28 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                               </tbody>
                             </table>
                           </div>
-                          {/* Pagination controls */}
                           {pages > 1 && (
-                            <div className="flex items-center justify-between px-4 py-2.5 border-t border-ink/08 bg-surface-raised">
+                            <div className="flex items-center justify-between border-t border-ink/[0.06] px-3 py-2.5 sm:px-4">
                               <span className="font-mono text-[10px] text-text-muted">
                                 {start + 1}–{Math.min(start + HIST_PER_PAGE, total)} of {total}
                               </span>
                               <div className="flex items-center gap-1.5">
                                 <button
+                                  type="button"
                                   onClick={() => setHistPage((p) => Math.max(1, p - 1))}
                                   disabled={page <= 1}
-                                  className="px-2.5 py-1 rounded-md border border-ink/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-ink/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                  className="rounded-lg border border-ink/10 px-2.5 py-1 text-[11px] font-medium text-text-secondary disabled:opacity-30"
                                 >
                                   Prev
                                 </button>
-                                <span className="font-mono text-[10px] tabular-nums text-text-primary/60 px-1">
+                                <span className="px-1 font-mono text-[10px] tabular-nums text-text-muted">
                                   {page}/{pages}
                                 </span>
                                 <button
+                                  type="button"
                                   onClick={() => setHistPage((p) => Math.min(pages, p + 1))}
                                   disabled={page >= pages}
-                                  className="px-2.5 py-1 rounded-md border border-ink/10 font-mono text-[10px] uppercase tracking-wider text-text-primary/70 hover:text-text-primary hover:border-ink/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                  className="rounded-lg border border-ink/10 px-2.5 py-1 text-[11px] font-medium text-text-secondary disabled:opacity-30"
                                 >
                                   Next
                                 </button>
@@ -1022,11 +986,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             </div>
                           )}
                         </div>
-                      </div>
+                      </Section>
                     );
                   })()}
 
-                <div className="h-2"></div>
+                <div className="h-1 sm:h-2" />
               </div>
             </div>
           </div>
@@ -1034,40 +998,40 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
       </div>
 
       <style>{`
+ /* Full-bleed overlay, clearance on the container. The app header paints above
+    every overlay, so the panel has to stop below it — but insetting the whole
+    overlay took the backdrop down with it and left the strip under the header
+    sharp and undimmed. Padding moves only the panel. */
  .cdm-overlay { position: fixed; inset: 0; z-index: 100050; display: flex; align-items: flex-end; justify-content: center; isolation: isolate; }
  @supports(height:100dvh) { .cdm-overlay { height: 100dvh; } }
- .cdm-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / 0.72); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: cdmBI .25s ease-out; }
- .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0; pointer-events: none; }
+ .cdm-backdrop { position: absolute; inset: 0; background: rgb(var(--scrim) / var(--lq-scrim-alpha)); -webkit-backdrop-filter: blur(var(--lq-scrim-blur)); backdrop-filter: blur(var(--lq-scrim-blur)); animation: cdmBI .25s ease-out; }
+ .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: var(--lq-modal-top) 0 0 0; pointer-events: none; }
  .cdm-container > * { pointer-events: auto; }
- /* FULL theme shell — never hardcode dark; header+body share surface-raised */
  .cdm-content {
- position: relative; width: 100%; max-width: 1000px;
- height: min(92dvh, 100%); max-height: min(92dvh, 100%); min-height: min(70dvh, 92dvh);
+ position: relative; width: 100%; max-width: 1080px;
+ height: min(94dvh, 100%); max-height: min(94dvh, 100%);
  background: rgb(var(--surface-raised));
  color: rgb(var(--fg));
- border-top: 1px solid rgb(var(--ink) / 0.12);
- border-radius: 16px 16px 0 0;
+ border-top: 1px solid rgb(var(--ink) / 0.08);
+ border-radius: 1.35rem 1.35rem 0 0;
  display: flex; flex-direction: column; overflow: hidden;
  animation: cdmUp .32s cubic-bezier(.16,1,.3,1);
- box-shadow: 0 -16px 48px rgb(var(--scrim) / 0.35);
+ box-shadow: 0 -20px 60px rgb(var(--scrim) / 0.4);
  }
-
  @media(min-width:640px) {
  .cdm-overlay { align-items: center; }
- .cdm-container { align-items: center; padding: 16px; }
+ .cdm-container { align-items: center; padding: var(--lq-modal-top) 16px 16px; }
  .cdm-content {
- height: auto; min-height: 0; max-height: calc(100vh - 32px);
- border-radius: 14px;
- border: 1px solid rgb(var(--ink) / 0.12);
- box-shadow: 0 28px 72px rgb(var(--scrim) / 0.4);
- animation: cdmCI .3s cubic-bezier(.16,1,.3,1);
+ height: auto; max-height: min(92dvh, 900px, var(--lq-modal-maxh));
+ border-radius: 1.25rem;
+ border: 1px solid rgb(var(--ink) / 0.08);
+ box-shadow: 0 24px 80px -18px rgb(var(--scrim) / 0.5);
+ animation: cdmCI .28s cubic-bezier(.16,1,.3,1);
  }
  }
  @media(min-width:1024px) {
- .cdm-container { padding: 24px; }
- .cdm-content { max-height: 880px; }
+ .cdm-container { padding: var(--lq-modal-top) 24px 24px; }
  }
-
  .cdm-closing .cdm-backdrop { animation: cdmBO .2s ease-in forwards; }
  .cdm-closing .cdm-content { animation: cdmDn .2s ease-in forwards; }
  @media(min-width:640px) {
@@ -1075,15 +1039,13 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
  }
  @keyframes cdmBI { from{opacity:0} to{opacity:1} }
  @keyframes cdmBO { from{opacity:1} to{opacity:0} }
- @keyframes cdmCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
- @keyframes cdmCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
+ @keyframes cdmCI { from{opacity:0;transform:scale(.98) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+ @keyframes cdmCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.98)} }
  @keyframes cdmUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
  @keyframes cdmDn { from{transform:translateY(0)} to{transform:translateY(100%)} }
-
- .cdm-scroll::-webkit-scrollbar { width: 5px; height: 6px; }
+ .cdm-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
  .cdm-scroll::-webkit-scrollbar-track { background: transparent; }
- .cdm-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.15); border-radius: 4px; }
- .cdm-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink) / 0.28); }
+ .cdm-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.14); border-radius: 999px; }
  `}</style>
     </>
   );

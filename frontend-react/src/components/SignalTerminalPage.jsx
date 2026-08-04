@@ -482,7 +482,7 @@ function FilterBar({ filters, setF }) {
   const sel =
     "appearance-none bg-ink/[0.03] border border-ink/[0.08] rounded-md font-mono text-[11px] text-text-primary/80 px-2.5 py-1.5 pr-7 focus:outline-none focus:border-ink/20 cursor-pointer";
   return (
-    <div className="sticky top-0 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.06] bg-surface-raised/95 p-2.5 backdrop-blur-md">
+    <div className="lq-below-header sticky z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/[0.06] bg-surface-raised/95 p-2.5 backdrop-blur-md">
       <div className="relative">
         <svg
           className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-primary/30"

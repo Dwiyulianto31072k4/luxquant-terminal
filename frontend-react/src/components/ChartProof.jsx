@@ -286,7 +286,7 @@ const Lightbox = ({ src, pair, onClose }) => {
       role="dialog"
       aria-modal="true"
       aria-label="Chart preview"
-      className="fixed inset-0 z-[100] bg-scrim/90 flex items-center justify-center p-4"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100] flex items-center justify-center p-4"
       onClick={onClose}
     >
       {/* Close button */}

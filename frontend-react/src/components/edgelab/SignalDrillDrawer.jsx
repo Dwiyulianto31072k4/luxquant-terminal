@@ -808,9 +808,9 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[150000] flex items-end justify-center sm:items-center p-0 sm:p-6">
+    <div className="lq-modal-safe fixed inset-0 z-[150000] flex items-end justify-center sm:items-center p-0 sm:p-6">
       <div
-        className="absolute inset-0 bg-scrim/65 backdrop-blur-[3px] animate-[dfadeIn_120ms_ease-out]"
+        className="lq-scrim animate-[dfadeIn_120ms_ease-out]"
         onClick={onClose}
       />
 

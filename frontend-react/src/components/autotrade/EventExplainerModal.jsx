@@ -44,7 +44,7 @@ export default function EventExplainerModal({ code, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >

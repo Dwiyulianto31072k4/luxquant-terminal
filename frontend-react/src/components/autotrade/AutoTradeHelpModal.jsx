@@ -807,8 +807,8 @@ export default function AutoTradeHelpModal({ isOpen, onClose }) {
   const Renderer = RENDERERS[active] || SectionHowItWorks;
 
   return (
-    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-sm" onClick={onClose} />
+    <div className="lq-modal-safe fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4">
+      <div className="lq-scrim" onClick={onClose} />
       <div
         onClick={(event) => event.stopPropagation()}
         className="relative z-10 flex w-full max-w-[940px] max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:shadow-[0_30px_80px_rgb(var(--scrim) / 0.35)]"

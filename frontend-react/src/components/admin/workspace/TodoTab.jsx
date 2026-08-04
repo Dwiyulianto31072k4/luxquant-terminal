@@ -44,26 +44,30 @@ const PRIORITY_CONFIG = {
     bg: "rgb(var(--accent) / 0.1)",
     border: "rgb(var(--accent) / 0.3)",
   },
-  normal: { color: "#8a8a93", bg: "rgba(138,138,147,0.08)", border: "rgba(138,138,147,0.22)" },
+  normal: {
+    color: "rgb(var(--fg-muted))",
+    bg: "rgb(var(--ink) / 0.06)",
+    border: "rgb(var(--ink) / 0.14)",
+  },
   low: {
     color: "rgb(var(--fg-muted))",
-    bg: "rgba(138,122,110,0.08)",
-    border: "rgba(138,122,110,0.22)",
+    bg: "rgb(var(--ink) / 0.04)",
+    border: "rgb(var(--ink) / 0.1)",
   },
 };
 
 const CATEGORY_CONFIG = {
-  product: { label: "Product", emoji: "⚙️", color: "#8a8a93" },
+  product: { label: "Product", emoji: "⚙️", color: "rgb(var(--fg-muted))" },
   marketing: { label: "Marketing", emoji: "📣", color: "rgb(var(--accent-text))" },
   ops: { label: "Ops", emoji: "🔧", color: "rgb(var(--pos-text))" },
   bug: { label: "Bug", emoji: "🐛", color: "rgb(var(--neg-text))" },
-  idea: { label: "Idea", emoji: "💡", color: "rgb(var(--warn))" },
+  idea: { label: "Idea", emoji: "💡", color: "rgb(var(--accent-text))" },
   other: { label: "Other", emoji: "📌", color: "rgb(var(--fg-muted))" },
 };
 
 const STATUS_COLUMNS = [
   { id: "backlog", label: "Backlog", color: "rgb(var(--fg-muted))", Icon: ClockIcon },
-  { id: "in_progress", label: "In Progress", color: "#8a8a93", Icon: SparklesIcon },
+  { id: "in_progress", label: "In Progress", color: "rgb(var(--fg-secondary))", Icon: SparklesIcon },
   { id: "done", label: "Done", color: "rgb(var(--pos-text))", Icon: CheckCircleIcon },
 ];
 
@@ -77,12 +81,9 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
 
   return (
     <div
-      className={`rounded-lg p-3 transition-colors ${dragMode ? "cursor-grab active:cursor-grabbing" : ""}`}
-      style={{
-        background: "rgb(var(--surface-raised))",
-        border: "1px solid rgb(var(--ink) / 0.07)",
-        opacity: isDone ? 0.7 : 1,
-      }}
+      className={`rounded-xl border border-ink/[0.07] bg-surface-raised p-3 transition-colors ${
+        dragMode ? "cursor-grab active:cursor-grabbing" : ""
+      } ${isDone ? "opacity-70" : ""}`}
       draggable={dragMode}
       onDragStart={(e) => {
         if (dragMode) {
@@ -91,74 +92,50 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         }
       }}
     >
-      <div className="flex items-start gap-2 mb-2">
+      <div className="mb-2 flex items-start gap-2.5">
         <span
-          className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
           style={{ background: pri.color }}
           title={`Priority: ${todo.priority}`}
         />
         <h4
-          className="text-xs font-semibold tracking-tight flex-1 leading-tight"
-          style={{
-            color: isDone ? "rgb(var(--fg-muted))" : "rgb(var(--fg))",
-            textDecoration: todo.status === "cancelled" ? "line-through" : "none",
-          }}
+          className={`flex-1 text-xs font-semibold leading-tight tracking-tight ${
+            isDone ? "text-text-muted" : "text-text-primary"
+          } ${todo.status === "cancelled" ? "line-through" : ""}`}
         >
           {todo.title}
         </h4>
       </div>
 
       {todo.description && (
-        <p
-          className="text-[11px] mb-2 line-clamp-2"
-          style={{ color: "rgb(var(--fg-secondary))", lineHeight: "1.5" }}
-        >
+        <p className="mb-2 line-clamp-2 text-[11px] leading-relaxed text-text-secondary">
           {todo.description}
         </p>
       )}
 
-      <div className="flex items-center gap-1.5 flex-wrap mb-2 text-[10px]">
-        <span
-          className="px-1.5 py-0.5 rounded font-semibold"
-          style={{
-            background: `${cat.color}10`,
-            color: cat.color,
-            border: `1px solid ${cat.color}25`,
-          }}
-        >
+      <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+        <span className="rounded-md border border-ink/[0.08] bg-surface-secondary/50 px-1.5 py-0.5 font-semibold text-text-muted">
           {cat.emoji} {cat.label}
         </span>
         <span
-          className="px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
+          className="rounded-md px-1.5 py-0.5 font-bold uppercase tracking-wider"
           style={{ background: pri.bg, color: pri.color, border: `1px solid ${pri.border}` }}
         >
           {todo.priority}
         </span>
         {due && (
-          <span
-            className="px-1.5 py-0.5 rounded tabular-nums flex items-center gap-1"
-            style={{
-              background: "rgb(var(--ink) / 0.02)",
-              color: "rgb(var(--fg-muted))",
-              border: "1px solid rgb(var(--ink) / 0.04)",
-            }}
-          >
+          <span className="flex items-center gap-1 rounded-md border border-ink/[0.07] bg-surface-raised px-1.5 py-0.5 tabular-nums text-text-muted">
             <ClockIcon size={9} /> {due}
           </span>
         )}
       </div>
 
       {todo.tags && todo.tags.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap mb-2">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
           {todo.tags.map((tag, i) => (
             <span
               key={i}
-              className="text-[9px] px-1.5 py-0.5 rounded font-mono"
-              style={{
-                background: "rgb(var(--accent) / 0.05)",
-                color: "rgb(var(--accent-text))",
-                border: "1px solid rgb(var(--line) / 0.15)",
-              }}
+              className="rounded-md border border-ink/[0.08] bg-surface-secondary/40 px-1.5 py-0.5 font-mono text-[9px] text-text-muted"
             >
               #{tag}
             </span>
@@ -166,21 +143,14 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
-          {todo.creator && <>@{todo.creator.username}</>}
-        </p>
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-2.5">
+        <p className="text-[10px] text-text-muted">{todo.creator && <>@{todo.creator.username}</>}</p>
+        <div className="flex items-center gap-1.5">
           {todo.status === "backlog" && (
             <button
               onClick={() => onStatusChange(todo.id, "in_progress")}
               title="Start"
-              className="p-1 rounded transition-colors"
-              style={{
-                color: "#8a8a93",
-                background: "rgba(138,138,147,0.08)",
-                border: "1px solid rgba(138,138,147,0.2)",
-              }}
+              className="rounded-xl border border-ink/[0.08] bg-surface-raised p-1.5 text-text-muted transition-colors hover:border-ink/14 hover:text-text-primary"
             >
               <SparklesIcon size={10} />
             </button>
@@ -189,12 +159,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
             <button
               onClick={() => onStatusChange(todo.id, "done")}
               title="Mark done"
-              className="p-1 rounded transition-colors"
-              style={{
-                color: "rgb(var(--pos-text))",
-                background: "rgb(var(--pos) / 0.08)",
-                border: "1px solid rgb(var(--pos) / 0.2)",
-              }}
+              className="rounded-xl border border-profit/20 bg-profit/10 p-1.5 text-profit transition-colors"
             >
               <CheckCircleIcon size={10} />
             </button>
@@ -203,12 +168,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
             <button
               onClick={() => onStatusChange(todo.id, "backlog")}
               title="Reopen"
-              className="p-1 rounded transition-colors"
-              style={{
-                color: "rgb(var(--warn))",
-                background: "rgb(var(--accent) / 0.08)",
-                border: "1px solid rgb(var(--accent) / 0.2)",
-              }}
+              className="rounded-xl border border-accent/20 bg-accent/10 p-1.5 text-accent transition-colors"
             >
               <ClockIcon size={10} />
             </button>
@@ -216,24 +176,14 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
           <button
             onClick={() => onEdit(todo)}
             title="Edit"
-            className="p-1 rounded transition-colors"
-            style={{
-              color: "rgb(var(--accent-text))",
-              background: "rgb(var(--accent) / 0.08)",
-              border: "1px solid rgb(var(--line) / 0.2)",
-            }}
+            className="rounded-xl border border-ink/[0.08] bg-surface-raised p-1.5 text-text-muted transition-colors hover:border-ink/14 hover:text-text-primary"
           >
             <EditIcon size={10} />
           </button>
           <button
             onClick={() => onDelete(todo)}
             title="Delete"
-            className="p-1 rounded transition-colors"
-            style={{
-              color: "rgb(var(--neg-text))",
-              background: "rgb(var(--neg) / 0.08)",
-              border: "1px solid rgb(var(--neg) / 0.2)",
-            }}
+            className="rounded-xl border border-loss/20 bg-loss/10 p-1.5 text-loss transition-colors"
           >
             <TrashIcon size={10} />
           </button>
@@ -251,12 +201,9 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
 
   return (
     <div
-      className="flex flex-col rounded-xl"
-      style={{
-        background: isDragOver ? `${column.color}10` : "rgb(var(--ink) / 0.015)",
-        border: `1px solid ${isDragOver ? `${column.color}45` : "rgb(var(--ink) / 0.05)"}`,
-        minHeight: 200,
-      }}
+      className={`flex min-h-[200px] flex-col rounded-xl border bg-surface-raised transition-colors ${
+        isDragOver ? "border-ink/14 bg-surface-secondary/40" : "border-ink/[0.07]"
+      }`}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
@@ -270,32 +217,25 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
         if (todoId) onDrop(todoId, column.id);
       }}
     >
-      <div
-        className="flex items-center justify-between px-3 py-2.5"
-        style={{ borderBottom: "1px solid rgb(var(--ink) / 0.04)" }}
-      >
+      <div className="flex items-center justify-between border-b border-ink/[0.07] px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <Icon size={12} style={{ color: column.color }} />
+          <Icon size={12} className="text-text-muted" style={{ color: column.color }} />
           <span
-            className="text-[10px] uppercase tracking-wider font-bold"
+            className="text-[10px] font-bold uppercase tracking-wider text-text-muted"
             style={{ color: column.color }}
           >
             {column.label}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span
-            className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full"
-            style={{ background: `${column.color}12`, color: column.color }}
-          >
+          <span className="rounded-full border border-ink/[0.08] bg-surface-secondary px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-text-muted">
             {todos.length}
           </span>
           {column.id === "backlog" && (
             <button
               onClick={() => onAdd("backlog")}
               title="Add to backlog"
-              className="p-0.5 rounded transition-colors"
-              style={{ color: column.color, background: `${column.color}10` }}
+              className="rounded-xl p-0.5 text-text-muted transition-colors hover:bg-ink/[0.05] hover:text-text-primary"
             >
               <PlusIcon size={11} />
             </button>
@@ -303,12 +243,9 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
         </div>
       </div>
 
-      <div className="flex-1 p-2 space-y-2 overflow-y-auto">
+      <div className="flex-1 space-y-2.5 overflow-y-auto p-2.5">
         {todos.length === 0 ? (
-          <div
-            className="text-center py-6 text-[10px] rounded-lg"
-            style={{ border: "1px dashed rgb(var(--ink) / 0.06)", color: "rgb(var(--fg-muted))" }}
-          >
+          <div className="rounded-xl border border-dashed border-ink/[0.08] py-6 text-center text-[10px] text-text-muted">
             Drop a card here
           </div>
         ) : (
@@ -333,16 +270,13 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop,
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   return (
     <div
-      className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
-      style={{
-        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
-        color,
-        border: `1px solid ${color}40`,
-        backdropFilter: "blur(12px)",
-      }}
+      className={`lq-toast-safe fixed right-4 z-[100000] rounded-xl border px-4 py-2.5 text-[12px] font-medium shadow-2xl backdrop-blur ${
+        isError
+          ? "border-loss/30 bg-loss/15 text-loss"
+          : "border-profit/30 bg-profit/15 text-profit"
+      }`}
     >
       {toast.msg}
     </div>
@@ -461,40 +395,31 @@ export const TodoTab = ({ onRefreshStats }) => {
 
   const hasFilters = search || categoryFilter || priorityFilter;
 
-  const fieldStyle = (active) => ({
-    background: "rgb(var(--scrim) / 0.28)",
-    border: `1px solid ${active ? "rgb(var(--accent) / 0.35)" : "rgb(var(--ink) / 0.06)"}`,
-  });
+  const fieldCls = (active) =>
+    `rounded-xl border bg-surface-raised px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-ink/15 transition-colors ${
+      active ? "border-ink/14" : "border-ink/[0.08]"
+    }`;
 
   return (
     <div className="space-y-5">
       <Toast toast={toast} />
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-start gap-3 min-w-0">
-          <IconBadge Icon={SparklesIcon} color="rgb(var(--accent-text))" size={38} iconSize={18} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge Icon={SparklesIcon} color="rgb(var(--fg-muted))" size={38} iconSize={18} />
           <div className="min-w-0">
-            <p
-              className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-              style={{ color: "rgb(var(--accent) / 0.7)" }}
-            >
+            <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
               Internal Work
             </p>
-            <h2 className="text-lg font-semibold text-text-primary tracking-tight">Brand TODOs</h2>
-            <p className="text-[11px] mt-0.5 max-w-md" style={{ color: "rgb(var(--fg-muted))" }}>
+            <h2 className="text-lg font-semibold tracking-tight text-text-primary">Brand TODOs</h2>
+            <p className="mt-0.5 max-w-md text-[11px] text-text-muted">
               Internal task list — product, marketing, ops, bugs, and ideas.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="flex rounded-lg p-0.5"
-            style={{
-              background: "rgb(var(--scrim) / 0.3)",
-              border: "1px solid rgb(var(--ink) / 0.06)",
-            }}
-          >
+          <div className="flex rounded-xl border border-ink/[0.08] bg-surface-raised p-0.5">
             {[
               { id: "list", label: "List" },
               { id: "kanban", label: "Kanban" },
@@ -502,13 +427,11 @@ export const TodoTab = ({ onRefreshStats }) => {
               <button
                 key={v.id}
                 onClick={() => setView(v.id)}
-                className="px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-all"
-                style={{
-                  background: view === v.id ? "rgb(var(--accent) / 0.18)" : "transparent",
-                  color: view === v.id ? "rgb(var(--accent))" : "rgb(var(--fg-muted))",
-                  border:
-                    view === v.id ? "1px solid rgb(var(--accent) / 0.3)" : "1px solid transparent",
-                }}
+                className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  view === v.id
+                    ? "bg-surface-secondary text-text-primary"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
               >
                 {v.label}
               </button>
@@ -517,11 +440,7 @@ export const TodoTab = ({ onRefreshStats }) => {
 
           <button
             onClick={() => handleCreate()}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)))",
-              color: "rgb(var(--accent-fg))",
-            }}
+            className="flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-accent-fg transition-colors hover:opacity-90"
           >
             <PlusIcon size={13} />
             New TODO
@@ -530,28 +449,25 @@ export const TodoTab = ({ onRefreshStats }) => {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[200px] flex-1">
           <SearchIcon
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "rgb(var(--fg-muted))" }}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title or description…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none"
-            style={fieldStyle(!!search)}
+            className={`w-full pl-9 pr-3 ${fieldCls(!!search)}`}
           />
         </div>
 
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(!!categoryFilter)}
+          className={`cursor-pointer ${fieldCls(!!categoryFilter)}`}
         >
           <option value="">All Categories</option>
           <option value="product">⚙️ Product</option>
@@ -565,8 +481,7 @@ export const TodoTab = ({ onRefreshStats }) => {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(!!priorityFilter)}
+          className={`cursor-pointer ${fieldCls(!!priorityFilter)}`}
         >
           <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -582,12 +497,7 @@ export const TodoTab = ({ onRefreshStats }) => {
               setCategoryFilter("");
               setPriorityFilter("");
             }}
-            className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
-            style={{
-              color: "rgb(var(--neg-text))",
-              background: "rgb(var(--neg) / 0.06)",
-              border: "1px solid rgb(var(--neg) / 0.2)",
-            }}
+            className="flex items-center gap-1.5 rounded-xl border border-loss/20 bg-loss/10 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-loss transition-colors"
           >
             <CloseIcon size={11} />
             Clear all
@@ -598,84 +508,51 @@ export const TodoTab = ({ onRefreshStats }) => {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div
-            className="inline-flex items-center gap-2 text-xs"
-            style={{ color: "rgb(var(--fg-muted))" }}
-          >
-            <div
-              className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: "rgb(var(--accent) / 0.3)",
-                borderTopColor: "rgb(var(--accent))",
-              }}
-            />
+          <div className="inline-flex items-center gap-2.5 text-xs text-text-muted">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink/15 border-t-accent" />
             Loading…
           </div>
         </div>
       ) : todos.length === 0 ? (
-        <div
-          className="relative text-center py-16 rounded-2xl overflow-hidden"
-          style={{
-            background: "rgb(var(--ink) / 0.015)",
-            border: "1px dashed rgb(var(--ink) / 0.08)",
-          }}
-        >
-          <div
-            className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: "rgb(var(--accent) / 0.08)", filter: "blur(40px)" }}
-          />
-          <div className="relative">
-            <div
-              className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
-              style={{
-                background: "rgb(var(--accent) / 0.10)",
-                border: "1px solid rgb(var(--accent) / 0.22)",
-                color: "rgb(var(--accent-text))",
-              }}
-            >
-              <SparklesIcon size={20} />
-            </div>
-            <p className="text-sm font-semibold text-text-primary mb-1">
-              {hasFilters ? "No todos match these filters" : "No todos yet"}
-            </p>
-            <p className="text-[11.5px] mb-4" style={{ color: "rgb(var(--fg-muted))" }}>
-              {hasFilters
-                ? "Try adjusting the filters or search."
-                : "Capture the first task for the LuxQuant team."}
-            </p>
-            <button
-              onClick={
-                hasFilters
-                  ? () => {
-                      setSearch("");
-                      setCategoryFilter("");
-                      setPriorityFilter("");
-                    }
-                  : () => handleCreate()
-              }
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{
-                background: "rgb(var(--accent) / 0.10)",
-                color: "rgb(var(--accent-text))",
-                border: "1px solid rgb(var(--line) / 0.28)",
-              }}
-            >
-              {hasFilters ? (
-                "Reset filters"
-              ) : (
-                <>
-                  <PlusIcon size={11} /> Add first task
-                </>
-              )}
-            </button>
+        <div className="rounded-xl border border-dashed border-ink/[0.08] bg-surface-raised py-16 text-center">
+          <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-surface-secondary text-text-muted">
+            <SparklesIcon size={20} />
           </div>
+          <p className="mb-1 text-sm font-semibold text-text-primary">
+            {hasFilters ? "No todos match these filters" : "No todos yet"}
+          </p>
+          <p className="mb-4 text-[11.5px] text-text-muted">
+            {hasFilters
+              ? "Try adjusting the filters or search."
+              : "Capture the first task for the LuxQuant team."}
+          </p>
+          <button
+            onClick={
+              hasFilters
+                ? () => {
+                    setSearch("");
+                    setCategoryFilter("");
+                    setPriorityFilter("");
+                  }
+                : () => handleCreate()
+            }
+            className="inline-flex items-center gap-1.5 rounded-xl border border-ink/[0.08] bg-surface-raised px-4 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-text-primary transition-colors hover:border-ink/14"
+          >
+            {hasFilters ? (
+              "Reset filters"
+            ) : (
+              <>
+                <PlusIcon size={11} /> Add first task
+              </>
+            )}
+          </button>
         </div>
       ) : view === "kanban" ? (
         <>
-          <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+          <p className="text-[10px] text-text-muted">
             💡 Drag a card between columns to change its status.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {STATUS_COLUMNS.map((col) => (
               <KanbanColumn
                 key={col.id}
@@ -691,7 +568,7 @@ export const TodoTab = ({ onRefreshStats }) => {
           </div>
         </>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {todos.map((t) => (
             <TodoCard
               key={t.id}

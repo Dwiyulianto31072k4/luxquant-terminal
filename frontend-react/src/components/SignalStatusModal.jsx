@@ -71,15 +71,18 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
       {/* Backdrop */}
       <button
         type="button"
-        className="absolute inset-0 bg-scrim/80 backdrop-blur-sm animate-[ssFade_.2s_ease-out]"
+        className="lq-scrim animate-[ssFade_.2s_ease-out]"
         onClick={onClose}
         aria-label="Close overlay"
       />
 
-      {/* Sheet: pinned to bottom on mobile so CTAs never sit under tab bar */}
+      {/* Sheet: pinned to bottom on mobile so CTAs never sit under tab bar.
+          It is absolutely positioned, so clearance padding on the root cannot
+          reach it — `ss-sheet` centres it below the header instead (see the
+          style block) and the height is capped to the space that exists. */}
       <div
-        className="absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(85vh,620px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/12 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
-        style={{ maxHeight: "min(90dvh, 640px)" }}
+        className="ss-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-[440px] flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] animate-[ssSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/12 sm:bg-surface-raised sm:shadow-2xl sm:animate-[ssPanelIn_.28s_cubic-bezier(.16,1,.3,1)]"
+        style={{ maxHeight: "min(90dvh, 640px, var(--lq-modal-maxh))" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
@@ -110,6 +113,11 @@ function SheetShell({ onClose, children, footer, ariaLabel }) {
  @keyframes ssPanelIn {
  from { opacity: 0; transform: translateY(calc(-50% + 16px)) scale(.98); }
  to { opacity: 1; transform: translateY(-50%) scale(1); }
+ }
+ @media (min-width: 640px) {
+ /* Centre in the region below the header, not in the whole viewport, or a
+    tall panel on a short screen puts its own top edge behind the bar. */
+ .ss-sheet { top: calc(50% + (var(--lq-modal-top) / 2)); }
  }
  `}</style>
     </div>

@@ -291,7 +291,7 @@ export function SignalCompare({ items, onRemove, onClear, onOpen, open, setOpen 
 
   const panel = (
     <div
-      className="fixed inset-0 z-[200000] flex items-end justify-center bg-scrim/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[200000] flex items-end justify-center p-0 sm:items-center sm:p-6"
       onClick={() => setOpen(false)}
     >
       <div

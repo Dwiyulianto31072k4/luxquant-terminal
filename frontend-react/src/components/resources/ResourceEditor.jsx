@@ -295,7 +295,7 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
       role="dialog"
       aria-modal="true"
       aria-label="Edit resource"
-      className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center bg-scrim/75 backdrop-blur-sm p-0 sm:p-4"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[10000] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div

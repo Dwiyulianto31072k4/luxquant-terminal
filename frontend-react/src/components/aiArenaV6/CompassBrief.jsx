@@ -686,7 +686,7 @@ function Modal({ title, children, onClose }) {
   if (!title) return null;
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-scrim/75 p-0 sm:p-4 backdrop-blur-sm"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div

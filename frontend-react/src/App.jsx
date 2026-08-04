@@ -74,11 +74,12 @@ import NotificationBell from "./components/NotificationBell";
 import MoreMenuDropdown from "./components/MoreMenuDropdown";
 import { LoadingScreen, PageSkeleton } from "./components/ui/Loaders";
 import ErrorBoundary, { RouteErrorBoundary } from "./components/ErrorBoundary";
+import useHeaderMetrics from "./hooks/useHeaderMetrics";
 
 // ════════════════════════════════════════
 // PAGE LOADING FALLBACKS
 // ════════════════════════════════════════
-// Full-page routes (landing, login, callbacks) → branded LoadingScreen.
+// Full-page routes → quiet spinner (no brand stamp).
 const PageLoader = () => <LoadingScreen />;
 // In-shell content routes → skeleton (feels faster, no layout shift).
 const ContentLoader = () => <PageSkeleton />;
@@ -534,6 +535,31 @@ function AppShell({ children }) {
   // Bright always solid chrome; dark themes solidify after slight scroll.
   const headerSolid = theme === "bright" || scrolled;
 
+  // Overlays keep their cards clear of this bar using --lq-modal-top. Measure
+  // the bar rather than hard-coding its height, so the clearance is right on
+  // every breakpoint, orientation and font scale instead of just the two the
+  // stylesheet fallback was written against.
+  const headerRef = useRef(null);
+  useHeaderMetrics(headerRef);
+
+  // The header now paints above modals, so it also has to stop being see-through
+  // while one is open. Rather than touch the twenty components that open sheets,
+  // watch the one thing they all already do — lock body scroll — and mark the
+  // root so index.css can make the bar opaque for exactly that long.
+  useEffect(() => {
+    const sync = () => {
+      const locked = document.body.style.overflow === "hidden";
+      document.documentElement.classList.toggle("lq-overlay-open", locked);
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+    return () => {
+      observer.disconnect();
+      document.documentElement.classList.remove("lq-overlay-open");
+    };
+  }, []);
+
   const isPremiumUser = () =>
     user &&
     (user.role === "admin" ||
@@ -808,9 +834,12 @@ function AppShell({ children }) {
  Bright: always solid white bar + edge shadow
  Dark themes: transparent at top → solid on scroll
  Active nav: gold underline (theme-safe, never pure white)
+ No z-index here on purpose — it lives in index.css beside the note on why
+ the header has to outrank the modal portals mounted on document.body.
  ══════════════════════════════════════════════ */}
       <header
-        className={`lq-app-header sticky top-0 z-50 border-b transition-colors duration-200 ${
+        ref={headerRef}
+        className={`lq-app-header sticky top-0 border-b transition-colors duration-200 ${
           headerSolid
             ? "border-ink/[0.1] bg-surface-raised/98 backdrop-blur-md"
             : "border-ink/[0.06] bg-transparent"

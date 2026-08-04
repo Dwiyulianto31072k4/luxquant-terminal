@@ -120,7 +120,7 @@ function TradeDetailModal({ trade, onClose, basis }) {
       role="dialog"
       aria-modal="true"
       aria-label="Trade detail"
-      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-scrim/80 p-0 sm:p-4 backdrop-blur-sm"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div

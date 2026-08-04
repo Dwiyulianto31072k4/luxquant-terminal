@@ -42,10 +42,10 @@ const formatDate = (dateStr) => {
 
 const STATUS_CONFIG = {
   planning: {
-    color: "#8a8a93",
+    color: "rgb(var(--fg-muted))",
     label: "Planning",
-    bg: "rgba(138,138,147,0.1)",
-    border: "rgba(138,138,147,0.3)",
+    bg: "rgb(var(--ink) / 0.06)",
+    border: "rgb(var(--ink) / 0.14)",
   },
   active: {
     color: "rgb(var(--pos-text))",
@@ -54,22 +54,22 @@ const STATUS_CONFIG = {
     border: "rgb(var(--pos) / 0.3)",
   },
   paused: {
-    color: "rgb(var(--warn))",
+    color: "rgb(var(--accent-text))",
     label: "Paused",
     bg: "rgb(var(--accent) / 0.1)",
     border: "rgb(var(--accent) / 0.3)",
   },
   completed: {
-    color: "#8a8a93",
+    color: "rgb(var(--fg-secondary))",
     label: "Completed",
-    bg: "rgba(138,138,147,0.1)",
-    border: "rgba(138,138,147,0.3)",
+    bg: "rgb(var(--ink) / 0.06)",
+    border: "rgb(var(--ink) / 0.14)",
   },
   cancelled: {
     color: "rgb(var(--fg-muted))",
     label: "Cancelled",
-    bg: "rgba(107,92,82,0.1)",
-    border: "rgba(107,92,82,0.3)",
+    bg: "rgb(var(--ink) / 0.04)",
+    border: "rgb(var(--ink) / 0.1)",
   },
 };
 
@@ -80,9 +80,9 @@ const TwitterIcon = ({ size = 14, ...props }) => (
 );
 
 const PLATFORM_CONFIG = {
-  twitter: { Icon: TwitterIcon, label: "Twitter/X", color: "rgb(var(--fg))" },
-  telegram: { Icon: TelegramIcon, label: "Telegram", color: "#229ED9" },
-  discord: { Icon: DiscordIcon, label: "Discord", color: "#5865F2" },
+  twitter: { Icon: TwitterIcon, label: "Twitter/X", color: "rgb(var(--fg-muted))" },
+  telegram: { Icon: TelegramIcon, label: "Telegram", color: "rgb(var(--fg-muted))" },
+  discord: { Icon: DiscordIcon, label: "Discord", color: "rgb(var(--fg-muted))" },
   influencer: { Icon: SparklesIcon, label: "Influencer", color: "rgb(var(--accent-text))" },
   other: { Icon: TrendingUpIcon, label: "Other", color: "rgb(var(--fg-muted))" },
 };
@@ -90,29 +90,22 @@ const PLATFORM_CONFIG = {
 /* ── Header ───────────────────────────────────────────────────────── */
 
 const MarketingHeader = ({ onCreate }) => (
-  <div className="flex items-start justify-between gap-3 flex-wrap">
-    <div className="flex items-start gap-3 min-w-0">
-      <IconBadge Icon={SparklesIcon} color="#8a8a93" size={38} iconSize={18} />
+  <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex min-w-0 items-start gap-3">
+      <IconBadge Icon={SparklesIcon} color="rgb(var(--fg-muted))" size={38} iconSize={18} />
       <div className="min-w-0">
-        <p
-          className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-          style={{ color: "rgba(138,138,147,0.7)" }}
-        >
+        <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
           Growth & Spend
         </p>
-        <h2 className="text-lg font-semibold text-text-primary tracking-tight">Marketing Budget</h2>
-        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: "rgb(var(--fg-muted))" }}>
+        <h2 className="text-lg font-semibold tracking-tight text-text-primary">Marketing Budget</h2>
+        <p className="mt-0.5 max-w-md text-[11px] text-text-muted">
           Track campaign budgets, line items, and custom KPIs per platform.
         </p>
       </div>
     </div>
     <button
       onClick={onCreate}
-      className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-      style={{
-        background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)))",
-        color: "rgb(var(--accent-fg))",
-      }}
+      className="flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-accent-fg transition-colors hover:opacity-90"
     >
       <PlusIcon size={13} />
       New Campaign
@@ -122,37 +115,19 @@ const MarketingHeader = ({ onCreate }) => (
 
 /* ── Stat card ────────────────────────────────────────────────────── */
 
-const StatCard = ({ label, value, accent, Icon }) => (
-  <div
-    className="relative overflow-hidden rounded-xl px-4 py-3"
-    style={{ background: "rgb(var(--surface-raised))", border: "1px solid rgb(var(--ink) / 0.07)" }}
-  >
-    <div
-      className="absolute inset-x-0 top-0 h-px pointer-events-none"
-      style={{
-        background: "linear-gradient(to right, transparent, rgb(var(--accent) / 0.2), transparent)",
-      }}
-    />
-    <div className="flex items-center justify-between mb-1.5">
-      <span
-        className="text-[10px] uppercase tracking-wider font-semibold"
-        style={{ color: "rgb(var(--ink) / 0.4)" }}
-      >
+const StatCard = ({ label, value, Icon }) => (
+  <div className="rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-3">
+    <div className="mb-1.5 flex items-center justify-between">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
         {label}
       </span>
       {Icon && (
-        <span
-          className="flex items-center justify-center rounded-md"
-          style={{ width: 22, height: 22, background: `${accent}14`, color: accent }}
-        >
+        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-ink/[0.05] text-text-muted">
           <Icon size={12} />
         </span>
       )}
     </div>
-    <p
-      className="text-2xl font-bold tracking-tight tabular-nums leading-none"
-      style={{ color: "rgb(var(--fg))" }}
-    >
+    <p className="text-2xl font-bold leading-none tracking-tight tabular-nums text-text-primary">
       {value ?? "—"}
     </p>
   </div>
@@ -175,52 +150,21 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
   const metadataKeys = Object.keys(campaign.metadata || {}).length;
 
   return (
-    <div
-      className="relative overflow-hidden rounded-xl p-4 transition-colors"
-      style={{
-        background: "rgb(var(--surface-raised))",
-        border: "1px solid rgb(var(--ink) / 0.07)",
-      }}
-    >
-      <div
-        className="absolute inset-x-0 top-0 h-px pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(to right, transparent, rgb(var(--accent) / 0.2), transparent)",
-        }}
-      />
-
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            style={{
-              background: "rgb(var(--scrim) / 0.3)",
-              color: platCfg.color,
-              border: "1px solid rgb(var(--ink) / 0.06)",
-            }}
-          >
-            <PlatIcon
-              size={15}
-              {...(campaign.platform === "telegram" || campaign.platform === "discord"
-                ? { colored: true }
-                : {})}
-            />
+    <div className="rounded-xl border border-ink/[0.07] bg-surface-raised p-4 transition-colors">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-surface-secondary text-text-muted">
+            <PlatIcon size={15} />
           </div>
           <div className="min-w-0">
-            <h4 className="text-sm font-semibold text-text-primary tracking-tight truncate">
+            <h4 className="truncate text-sm font-semibold tracking-tight text-text-primary">
               {campaign.name}
             </h4>
-            <p
-              className="text-[10px] uppercase tracking-wider"
-              style={{ color: "rgb(var(--fg-muted))" }}
-            >
-              {platCfg.label}
-            </p>
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">{platCfg.label}</p>
           </div>
         </div>
         <span
-          className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
+          className="shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
           style={{ background: stat.bg, color: stat.color, border: `1px solid ${stat.border}` }}
         >
           {stat.label}
@@ -228,137 +172,91 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
       </div>
 
       {campaign.description && (
-        <p
-          className="text-xs mb-3 line-clamp-2"
-          style={{ color: "rgb(var(--fg-secondary))", lineHeight: "1.5" }}
-        >
+        <p className="mb-3 line-clamp-2 text-xs leading-relaxed text-text-secondary">
           {campaign.description}
         </p>
       )}
 
       <div className="mb-3">
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="mb-1.5 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span
-              className="text-lg font-light tabular-nums tracking-tight"
-              style={{ color: overBudget ? "rgb(var(--neg-text))" : "rgb(var(--fg))" }}
+              className={`text-lg font-light tracking-tight tabular-nums ${
+                overBudget ? "text-loss" : "text-text-primary"
+              }`}
             >
               {formatCurrency(spent)}
             </span>
-            <span className="text-[11px] tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+            <span className="text-[11px] tabular-nums text-text-muted">
               / {formatCurrency(budget)}
             </span>
           </div>
           <span
-            className="text-[10px] uppercase tracking-wider font-semibold tabular-nums"
-            style={{
-              color: overBudget
-                ? "rgb(var(--neg-text))"
-                : pct > 80
-                  ? "rgb(var(--accent-text))"
-                  : "rgb(var(--pos-text))",
-            }}
+            className={`text-[10px] font-semibold uppercase tracking-wider tabular-nums ${
+              overBudget ? "text-loss" : pct > 80 ? "text-accent" : "text-profit"
+            }`}
           >
             {pct.toFixed(0)}%
           </span>
         </div>
 
-        <div
-          className="w-full h-1.5 rounded-full overflow-hidden"
-          style={{ background: "rgb(var(--ink) / 0.04)" }}
-        >
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]">
           <div
-            className="h-full transition-all"
-            style={{
-              width: `${Math.min(100, pct)}%`,
-              background: overBudget
-                ? "linear-gradient(90deg, rgb(var(--neg-text)), rgb(var(--accent-text)))"
-                : pct > 80
-                  ? "linear-gradient(90deg, rgb(var(--accent)), rgb(var(--accent-text)))"
-                  : "linear-gradient(90deg, rgb(var(--pos-text)), rgb(var(--accent)))",
-            }}
+            className={`h-full rounded-full transition-all ${
+              overBudget ? "bg-loss" : pct > 80 ? "bg-accent" : "bg-profit"
+            }`}
+            style={{ width: `${Math.min(100, pct)}%` }}
           />
         </div>
 
         {!overBudget && budget > 0 && (
-          <p className="text-[10px] mt-1 tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+          <p className="mt-1 text-[10px] tabular-nums text-text-muted">
             {formatCurrency(remaining)} remaining
           </p>
         )}
         {overBudget && (
-          <p className="text-[10px] mt-1 tabular-nums" style={{ color: "rgb(var(--neg-text))" }}>
+          <p className="mt-1 text-[10px] tabular-nums text-loss">
             Over budget by {formatCurrency(spent - budget)}
           </p>
         )}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap mb-3 text-[10px]">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px]">
         {(campaign.start_date || campaign.end_date) && (
-          <span
-            className="flex items-center gap-1 px-2 py-0.5 rounded"
-            style={{
-              background: "rgb(var(--ink) / 0.02)",
-              color: "rgb(var(--fg-muted))",
-              border: "1px solid rgb(var(--ink) / 0.04)",
-            }}
-          >
+          <span className="flex items-center gap-1 rounded-md border border-ink/[0.07] bg-surface-secondary/50 px-2 py-0.5 text-text-muted">
             <ClockIcon size={10} />
             {formatDate(campaign.start_date)} → {formatDate(campaign.end_date)}
           </span>
         )}
         {lineItemCount > 0 && (
-          <span
-            className="px-2 py-0.5 rounded font-medium"
-            style={{
-              background: "rgba(138,138,147,0.06)",
-              color: "#8a8a93",
-              border: "1px solid rgba(138,138,147,0.18)",
-            }}
-          >
+          <span className="rounded-md border border-ink/[0.08] bg-surface-raised px-2 py-0.5 font-medium text-text-muted">
             {lineItemCount} line item{lineItemCount > 1 ? "s" : ""}
           </span>
         )}
         {metadataKeys > 0 && (
-          <span
-            className="px-2 py-0.5 rounded font-medium"
-            style={{
-              background: "rgb(var(--accent) / 0.06)",
-              color: "rgb(var(--accent-text))",
-              border: "1px solid rgb(var(--line) / 0.22)",
-            }}
-          >
+          <span className="rounded-md border border-ink/[0.08] bg-surface-secondary/50 px-2 py-0.5 font-medium text-text-secondary">
             {metadataKeys} custom field{metadataKeys > 1 ? "s" : ""}
           </span>
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+      <div className="flex items-center justify-between gap-2.5">
+        <p className="text-[10px] text-text-muted">
           {campaign.creator && <>by @{campaign.creator.username} · </>}
           {formatDate(campaign.created_at)}
         </p>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => onEdit(campaign)}
             title="Edit"
-            className="p-1.5 rounded-md transition-colors"
-            style={{
-              color: "rgb(var(--accent-text))",
-              background: "rgb(var(--accent) / 0.08)",
-              border: "1px solid rgb(var(--line) / 0.2)",
-            }}
+            className="rounded-xl border border-ink/[0.08] bg-surface-raised p-1.5 text-text-muted transition-colors hover:border-ink/14 hover:text-text-primary"
           >
             <EditIcon size={11} />
           </button>
           <button
             onClick={() => onDelete(campaign)}
             title="Delete"
-            className="p-1.5 rounded-md transition-colors"
-            style={{
-              color: "rgb(var(--neg-text))",
-              background: "rgb(var(--neg) / 0.08)",
-              border: "1px solid rgb(var(--neg) / 0.2)",
-            }}
+            className="rounded-xl border border-loss/20 bg-loss/10 p-1.5 text-loss transition-colors"
           >
             <TrashIcon size={11} />
           </button>
@@ -373,16 +271,13 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   return (
     <div
-      className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
-      style={{
-        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
-        color,
-        border: `1px solid ${color}40`,
-        backdropFilter: "blur(12px)",
-      }}
+      className={`lq-toast-safe fixed right-4 z-[100000] rounded-xl border px-4 py-2.5 text-[12px] font-medium shadow-2xl backdrop-blur ${
+        isError
+          ? "border-loss/30 bg-loss/15 text-loss"
+          : "border-profit/30 bg-profit/15 text-profit"
+      }`}
     >
       {toast.msg}
     </div>
@@ -485,10 +380,10 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
   const hasFilters = search || statusFilter || platformFilter;
 
-  const fieldStyle = (active) => ({
-    background: "rgb(var(--scrim) / 0.28)",
-    border: `1px solid ${active ? "rgb(var(--accent) / 0.35)" : "rgb(var(--ink) / 0.06)"}`,
-  });
+  const fieldCls = (active) =>
+    `rounded-xl border bg-surface-raised px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-ink/15 transition-colors ${
+      active ? "border-ink/14" : "border-ink/[0.08]"
+    }`;
 
   return (
     <div className="space-y-5">
@@ -496,63 +391,36 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
       <XApiSpendPanel />
 
-      <div
-        className="h-px w-full"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, rgb(var(--ink) / 0.12), transparent)",
-        }}
-      />
+      <div className="h-px w-full bg-ink/[0.07]" />
 
       <MarketingHeader onCreate={handleCreate} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <StatCard
-          label="Total Campaigns"
-          value={campaigns.length}
-          accent="#8a8a93"
-          Icon={SparklesIcon}
-        />
-        <StatCard
-          label="Active"
-          value={activeCount}
-          accent="rgb(var(--pos-text))"
-          Icon={TrendingUpIcon}
-        />
-        <StatCard
-          label="Total Budget"
-          value={formatCurrency(totalBudget)}
-          accent="rgb(var(--accent))"
-        />
-        <StatCard
-          label="Total Spent"
-          value={formatCurrency(totalSpent)}
-          accent={totalSpent > totalBudget ? "rgb(var(--neg-text))" : "rgb(var(--accent-text))"}
-        />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <StatCard label="Total Campaigns" value={campaigns.length} Icon={SparklesIcon} />
+        <StatCard label="Active" value={activeCount} Icon={TrendingUpIcon} />
+        <StatCard label="Total Budget" value={formatCurrency(totalBudget)} />
+        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} />
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[200px] flex-1">
           <SearchIcon
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "rgb(var(--fg-muted))" }}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search campaign name or description…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none"
-            style={fieldStyle(!!search)}
+            className={`w-full pl-9 pr-3 ${fieldCls(!!search)}`}
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(!!statusFilter)}
+          className={`cursor-pointer ${fieldCls(!!statusFilter)}`}
         >
           <option value="">All Statuses</option>
           <option value="planning">Planning</option>
@@ -565,8 +433,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
         <select
           value={platformFilter}
           onChange={(e) => setPlatformFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(!!platformFilter)}
+          className={`cursor-pointer ${fieldCls(!!platformFilter)}`}
         >
           <option value="">All Platforms</option>
           <option value="twitter">Twitter/X</option>
@@ -583,12 +450,7 @@ export const MarketingTab = ({ onRefreshStats }) => {
               setStatusFilter("");
               setPlatformFilter("");
             }}
-            className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
-            style={{
-              color: "rgb(var(--neg-text))",
-              background: "rgb(var(--neg) / 0.06)",
-              border: "1px solid rgb(var(--neg) / 0.2)",
-            }}
+            className="flex items-center gap-1.5 rounded-xl border border-loss/20 bg-loss/10 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-loss transition-colors"
           >
             <CloseIcon size={11} />
             Clear all
@@ -598,80 +460,47 @@ export const MarketingTab = ({ onRefreshStats }) => {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div
-            className="inline-flex items-center gap-2 text-xs"
-            style={{ color: "rgb(var(--fg-muted))" }}
-          >
-            <div
-              className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: "rgb(var(--accent) / 0.3)",
-                borderTopColor: "rgb(var(--accent))",
-              }}
-            />
+          <div className="inline-flex items-center gap-2.5 text-xs text-text-muted">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink/15 border-t-accent" />
             Loading…
           </div>
         </div>
       ) : campaigns.length === 0 ? (
-        <div
-          className="relative text-center py-16 rounded-2xl overflow-hidden"
-          style={{
-            background: "rgb(var(--ink) / 0.015)",
-            border: "1px dashed rgb(var(--ink) / 0.08)",
-          }}
-        >
-          <div
-            className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: "rgba(138,138,147,0.08)", filter: "blur(40px)" }}
-          />
-          <div className="relative">
-            <div
-              className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
-              style={{
-                background: "rgba(138,138,147,0.10)",
-                border: "1px solid rgba(138,138,147,0.22)",
-                color: "#8a8a93",
-              }}
-            >
-              <SparklesIcon size={20} />
-            </div>
-            <p className="text-sm font-semibold text-text-primary mb-1">
-              {hasFilters ? "No campaigns match these filters" : "No campaigns yet"}
-            </p>
-            <p className="text-[11.5px] mb-4" style={{ color: "rgb(var(--fg-muted))" }}>
-              {hasFilters
-                ? "Try adjusting the filters or search."
-                : "Start tracking your first marketing campaign."}
-            </p>
-            <button
-              onClick={
-                hasFilters
-                  ? () => {
-                      setSearch("");
-                      setStatusFilter("");
-                      setPlatformFilter("");
-                    }
-                  : handleCreate
-              }
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{
-                background: "rgb(var(--accent) / 0.10)",
-                color: "rgb(var(--accent-text))",
-                border: "1px solid rgb(var(--line) / 0.28)",
-              }}
-            >
-              {hasFilters ? (
-                "Reset filters"
-              ) : (
-                <>
-                  <PlusIcon size={11} /> Create first campaign
-                </>
-              )}
-            </button>
+        <div className="rounded-xl border border-dashed border-ink/[0.08] bg-surface-raised py-16 text-center">
+          <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-surface-secondary text-text-muted">
+            <SparklesIcon size={20} />
           </div>
+          <p className="mb-1 text-sm font-semibold text-text-primary">
+            {hasFilters ? "No campaigns match these filters" : "No campaigns yet"}
+          </p>
+          <p className="mb-4 text-[11.5px] text-text-muted">
+            {hasFilters
+              ? "Try adjusting the filters or search."
+              : "Start tracking your first marketing campaign."}
+          </p>
+          <button
+            onClick={
+              hasFilters
+                ? () => {
+                    setSearch("");
+                    setStatusFilter("");
+                    setPlatformFilter("");
+                  }
+                : handleCreate
+            }
+            className="inline-flex items-center gap-1.5 rounded-xl border border-ink/[0.08] bg-surface-raised px-4 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-text-primary transition-colors hover:border-ink/14"
+          >
+            {hasFilters ? (
+              "Reset filters"
+            ) : (
+              <>
+                <PlusIcon size={11} /> Create first campaign
+              </>
+            )}
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {campaigns.map((c) => (
             <CampaignCard key={c.id} campaign={c} onEdit={handleEdit} onDelete={handleDelete} />
           ))}

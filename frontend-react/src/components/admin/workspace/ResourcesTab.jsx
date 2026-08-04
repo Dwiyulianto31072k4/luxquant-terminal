@@ -8,13 +8,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { resourcesApi, coverUrl, youtubeThumb } from "../../../services/resourcesApi";
 import ResourceEditor from "../../resources/ResourceEditor";
-import { palette, tint, surface, motion } from "../designSystem";
+import { palette, tint, motion } from "../designSystem";
 import { useDialog } from "../../../hooks/useDialog";
 
 const TYPE_META = {
-  article: { label: "Research", color: palette.blue[400] },
+  article: { label: "Research", color: "rgb(var(--fg-muted))" },
   pdf: { label: "Guide", color: palette.red[400] },
-  video: { label: "Video", color: palette.orange[400] },
+  video: { label: "Video", color: palette.amber[400] },
   link: { label: "Link", color: palette.green[400] },
 };
 
@@ -34,17 +34,14 @@ const fmtDate = (d) =>
 const cardCover = (r) => coverUrl(r) || (r.type === "video" ? youtubeThumb(r.source_url) : null);
 
 const Stat = ({ label, value, color }) => (
-  <div
-    className="rounded-xl px-4 py-3"
-    style={{ background: tint(color, 0.05), border: `1px solid ${tint(color, 0.18)}` }}
-  >
+  <div className="rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-3">
     <div
-      className="text-[10px] uppercase tracking-wider font-semibold"
+      className="text-[10px] font-semibold uppercase tracking-wider"
       style={{ color: tint(color, 0.75) }}
     >
       {label}
     </div>
-    <div className="text-xl font-bold tabular-nums" style={{ color }}>
+    <div className="text-xl font-bold tabular-nums text-text-primary" style={{ color }}>
       {value}
     </div>
   </div>
@@ -174,10 +171,10 @@ export const ResourcesTab = () => {
   return (
     <div className="space-y-5">
       {/* Stat row */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-        <Stat label="Total" value={stats.total} color={palette.gold[300]} />
-        <Stat label="Research" value={stats.article} color={palette.blue[400]} />
-        <Stat label="Videos" value={stats.video} color={palette.orange[400]} />
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
+        <Stat label="Total" value={stats.total} color="rgb(var(--fg-muted))" />
+        <Stat label="Research" value={stats.article} color="rgb(var(--fg-muted))" />
+        <Stat label="Videos" value={stats.video} color={palette.amber[400]} />
         <Stat label="Guides" value={stats.pdf} color={palette.red[400]} />
         <Stat label="Links" value={stats.link} color={palette.green[400]} />
         <Stat label="Drafts" value={stats.draft} color={palette.amber[400]} />
@@ -200,8 +197,7 @@ export const ResourcesTab = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search resources…"
-            className="w-full rounded-lg pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder-ink/30 focus:outline-none"
-            style={{ background: surface.sunken.bg, border: `1px solid ${surface.sunken.border}` }}
+            className="w-full rounded-xl border border-ink/[0.08] bg-surface-raised py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder-ink/30 focus:border-ink/15 focus:outline-none"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -209,20 +205,11 @@ export const ResourcesTab = () => {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-              style={
+              className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 filter === f.id
-                  ? {
-                      background: tint(palette.gold[300], 0.18),
-                      color: palette.gold[300],
-                      border: `1px solid ${tint(palette.gold[300], 0.3)}`,
-                    }
-                  : {
-                      background: surface.sunken.bg,
-                      color: "rgb(var(--ink) / 0.55)",
-                      border: `1px solid ${surface.sunken.border}`,
-                    }
-              }
+                  ? "border-accent/30 bg-accent/15 text-accent"
+                  : "border-ink/[0.07] bg-surface-raised text-text-muted hover:text-text-secondary"
+              }`}
             >
               {f.label}
             </button>
@@ -230,11 +217,7 @@ export const ResourcesTab = () => {
         </div>
         <button
           onClick={() => setEditing({})}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-accent-fg"
-          style={{
-            background:
-              "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)) 50%, rgb(var(--accent)))",
-          }}
+          className="ml-auto flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-accent-fg hover:opacity-90"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -249,18 +232,15 @@ export const ResourcesTab = () => {
       </div>
 
       {/* Table */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ background: surface.base.bg, border: `1px solid ${surface.base.border}` }}
-      >
+      <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left" style={{ background: surface.raised.bg }}>
+              <tr className="border-b border-ink/[0.07] bg-ink/[0.02] text-left">
                 {["Resource", "Type", "Category", "Status", "Featured", "Date", ""].map((h, i) => (
                   <th
                     key={i}
-                    className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-text-primary/40 whitespace-nowrap"
+                    className="whitespace-nowrap px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-text-muted"
                   >
                     {h}
                   </th>
@@ -270,15 +250,15 @@ export const ResourcesTab = () => {
             <tbody>
               {loading ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i} className="border-t" style={{ borderColor: surface.base.border }}>
+                  <tr key={i} className="border-t border-ink/[0.06]">
                     <td colSpan={7} className="px-4 py-4">
-                      <div className="h-8 lqsk" style={{ background: "rgb(var(--ink) / 0.04)" }} />
+                      <div className="lqsk h-8 bg-ink/[0.04]" />
                     </td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-text-primary/40 text-sm">
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-text-muted">
                     No resources match this view.
                   </td>
                 </tr>
@@ -289,8 +269,8 @@ export const ResourcesTab = () => {
                   return (
                     <tr
                       key={r.id}
-                      className="border-t hover:bg-ink/[0.02]"
-                      style={{ borderColor: surface.base.border, transition: motion.base }}
+                      className="border-t border-ink/[0.06] transition-colors hover:bg-ink/[0.02]"
+                      style={{ transition: motion.base }}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-0 max-w-[360px]">
@@ -416,15 +396,11 @@ export const ResourcesTab = () => {
           role="dialog"
           aria-modal="true"
           aria-label="Confirm delete"
-          className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-scrim/70 backdrop-blur-sm p-0 sm:p-4"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
           onClick={() => setDeleteConfirm(null)}
         >
           <div
-            className="rounded-t-3xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-sm w-full"
-            style={{
-              background: surface.glass.bg,
-              border: `1px solid ${tint(palette.red[400], 0.3)}`,
-            }}
+            className="w-full max-w-sm rounded-t-3xl border border-negative/30 bg-surface-raised p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-center -mt-2 mb-3 sm:hidden" aria-hidden="true">

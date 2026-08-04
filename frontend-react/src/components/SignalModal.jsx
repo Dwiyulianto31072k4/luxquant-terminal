@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalHistoryTab from "./SignalHistoryTab";
@@ -33,6 +34,7 @@ const SignalModal = ({
   onTabChange,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { currency, rates, shouldShowLocal } = useCurrency();
 
   const chartContainerRef = useRef(null);
@@ -78,8 +80,10 @@ const SignalModal = ({
   const [chartMode, setChartMode] = useState("tv");
   // Fullscreen is a CSS position change on the existing column, never a move or
   // remount — the TradingView widget owns DOM inside it and re-parenting would
-  // reopen the removeChild fight.
+  // reopen the removeChild fight. Full mode also unlocks richer TV chrome.
   const [chartFull, setChartFull] = useState(false);
+  // In full mode, plan summary floats on the right (toggle via panel header only)
+  const [fullShowPlan, setFullShowPlan] = useState(true);
 
   useEffect(() => {
     const sid = signal?.signal_id;
@@ -617,6 +621,23 @@ const SignalModal = ({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [chartFull]);
 
+  const openFullTradingView = useCallback(() => {
+    const sym = `BINANCE:${signal?.pair || ""}.P`;
+    window.open(
+      `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }, [signal?.pair]);
+
+  const toggleChartFull = useCallback(() => {
+    setChartFull((v) => {
+      const next = !v;
+      if (next) setFullShowPlan(true);
+      return next;
+    });
+  }, []);
+
   const [appTheme, setAppTheme] = useState(getActiveTheme);
   useEffect(() => subscribeTheme(setAppTheme), []);
 
@@ -629,17 +650,21 @@ const SignalModal = ({
     const container = chartContainerRef.current;
     const tv = getTradingViewTheme(appTheme);
     container.style.background = tv.backgroundColor;
+    // Full mode = richer TV chrome (one Full button covers "TV desk")
     return mountTradingViewEmbed(container, {
       theme: appTheme,
       symbol: `BINANCE:${signal.pair || ""}.P`,
       interval: "240",
       timezone: getUserTimezone(),
       hide_side_toolbar: false,
+      hide_top_toolbar: false,
       save_image: true,
       withdateranges: true,
+      details: !!chartFull,
+      allow_symbol_change: !!chartFull,
       studies: showIndicators ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"] : [],
     });
-  }, [isOpen, pairKey, activeTab, chartMode, showIndicators, appTheme, signal?.pair]);
+  }, [isOpen, pairKey, activeTab, chartMode, showIndicators, appTheme, signal?.pair, chartFull]);
 
   // 7. Handle Render TradingView Mini di Tab Trade
   // Definisikan variabel URL gambar lebih awal untuk digunakan di useEffect ini
@@ -1324,9 +1349,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </p>
             <button
               type="button"
-              onClick={() => {
-                window.location.href = "/pricing";
-              }}
+              onClick={() => navigate("/pricing")}
               className="lq-btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold"
             >
               {Ic.lock("w-3.5 h-3.5")} Subscribe
@@ -2043,17 +2066,30 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <div
                     className={
                       chartFull
-                        ? "fixed inset-0 z-[70] bg-surface-raised"
+                        ? // lq-below-header, not lq-modal-safe: everything in
+                          // here (the TV iframe, the control cluster, the side
+                          // panel) is absolutely positioned, so the box itself
+                          // has to stop below the header or the chart's top and
+                          // its controls end up behind the bar.
+                          "lq-below-header fixed inset-0 z-[70] bg-surface-raised"
                         : "relative flex-1 min-w-0 min-h-0 bg-surface-raised"
                     }
                   >
-                    {/* Floating control: toggle indikator (MACD/RSI/BB), di-remember per user */}
-                    <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                    {/* Compact controls: Full | TV↗ | TV/Plan | Indicators */}
+                    <div className="absolute top-2 right-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap items-center justify-end gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setChartFull((v) => !v)}
-                        title={chartFull ? "Back to the signal (Esc)" : "Focus the chart"}
-                        className="flex items-center gap-1.5 rounded-md border border-ink/15 bg-surface/80 px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
+                        onClick={toggleChartFull}
+                        title={
+                          chartFull
+                            ? "Back to the signal (Esc)"
+                            : "Fullscreen chart + full TV tools"
+                        }
+                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
+                          chartFull
+                            ? "border-accent/35 bg-accent/12 text-accent"
+                            : "border-ink/15 bg-surface/80 text-text-muted hover:text-text-primary"
+                        }`}
                       >
                         {chartFull ? (
                           <>
@@ -2071,9 +2107,22 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </>
                         )}
                       </button>
+                      <button
+                        type="button"
+                        onClick={openFullTradingView}
+                        title="Open on TradingView.com"
+                        aria-label="Open on TradingView.com"
+                        className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-ink/15 bg-surface/80 text-text-muted backdrop-blur-md transition-colors hover:border-accent/35 hover:text-accent"
+                      >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </button>
                       <div className="flex items-center rounded-md border border-ink/15 bg-surface/80 p-0.5 backdrop-blur-md">
                         {[
-                          { k: "tv", label: "TradingView" },
+                          { k: "tv", label: "TV" },
                           { k: "plan", label: "Plan" },
                         ].map((m) => (
                           <button
@@ -2082,8 +2131,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             onClick={() => setChartMode(m.k)}
                             title={
                               m.k === "plan"
-                                ? "Trade plan — entry, targets and stops drawn on the candles"
-                                : "TradingView — drawing tools and symbol search"
+                                ? "Trade plan — entry, targets and stops on candles"
+                                : "TradingView chart"
                             }
                             className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
                               chartMode === m.k
@@ -2103,7 +2152,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             ? "Hide indicators (MACD · RSI · BB)"
                             : "Show indicators (MACD · RSI · BB)"
                         }
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
+                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border text-[10px] font-medium uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
                           showIndicators
                             ? "bg-surface/80 border-ink/15 text-text-primary"
                             : "bg-surface/60 border-ink/10 text-text-muted hover:text-text-primary"
@@ -2116,7 +2165,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`}
                           />
                         </span>
-                        Indicators
+                        Ind
                       </button>
                       )}
                     </div>
@@ -2140,6 +2189,28 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       className="w-full h-full"
                       style={{ display: chartMode === "plan" ? "none" : "block" }}
                     />
+                    {/* Full mode: keep plan summary floating on the right (not lost) */}
+                    {chartFull && fullShowPlan && (
+                      <div className="absolute bottom-2 right-2 top-12 z-20 hidden w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-ink/12 bg-surface-raised/95 shadow-2xl backdrop-blur-md sm:block">
+                        <div className="flex h-full flex-col">
+                          <div className="flex items-center justify-between border-b border-ink/[0.07] px-3 py-2">
+                            <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                              Plan summary
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setFullShowPlan(false)}
+                              className="rounded-md px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-text-primary"
+                            >
+                              Hide
+                            </button>
+                          </div>
+                          <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+                            {renderTargetsPanel("sidebar")}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className={`${chartFull ? "hidden" : "hidden lg:block"} w-72 xl:w-80 flex-shrink-0 bg-surface-raised border-l border-ink/10 overflow-y-auto custom-scrollbar`}>
                     {renderTargetsPanel("sidebar")}
@@ -2940,6 +3011,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  }
  .lq-btn-primary:active, .lq-btn-gold:active { transform: scale(0.98); }
 
+ /* The overlay is full-bleed and the CONTAINER carries the header clearance.
+    It used to be the other way round — the whole overlay started at
+    --lq-modal-top — which moved the backdrop down with it and left a band of
+    sharp, undimmed page between the header and the top of the blur. The card
+    still has to clear the bar; the blur must not. */
  .signal-modal-overlay {
  position: fixed; inset: 0; z-index: 200000;
  display: flex; align-items: flex-end; justify-content: center;
@@ -2947,20 +3023,20 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
  }
  .signal-modal-backdrop {
  position: absolute; inset: 0;
- background: rgb(var(--scrim) / 0.72);
- backdrop-filter: blur(8px);
- -webkit-backdrop-filter: blur(8px);
+ background: rgb(var(--scrim) / var(--lq-scrim-alpha));
+ backdrop-filter: blur(var(--lq-scrim-blur));
+ -webkit-backdrop-filter: blur(var(--lq-scrim-blur));
  }
  .signal-modal-container {
  position: relative; z-index: 1; width: 100%; height: 100%;
  display: flex; align-items: flex-end; justify-content: center;
- padding: 0; pointer-events: none;
+ padding: var(--lq-modal-top) 0 0 0; pointer-events: none;
  }
  .signal-modal-container > * { pointer-events: auto; }
  .signal-modal-content {
  position: relative; width: 100%;
  max-width: min(1280px, 100%);
- height: min(94dvh, 100%); max-height: 94dvh;
+ height: min(94dvh, 100%); max-height: min(94dvh, 100%);
  background: rgb(var(--surface-raised));
  border: none; border-top: 1px solid rgb(var(--ink) / 0.12);
  border-radius: 16px 16px 0 0;
@@ -2971,23 +3047,29 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
  @media (min-width: 640px) {
  .signal-modal-overlay { align-items: center; }
- .signal-modal-container { align-items: center; padding: 16px; }
+ .signal-modal-container { align-items: center; padding: var(--lq-modal-top) 16px 16px; }
  .signal-modal-content {
- height: min(90dvh, 900px);
- max-height: min(90dvh, 900px);
+ height: min(90dvh, 900px, 100%);
+ max-height: min(90dvh, 900px, 100%);
  border-radius: 14px;
  border: 1px solid rgb(var(--ink) / 0.12);
  box-shadow: 0 24px 64px rgb(var(--scrim) / 0.45);
  }
  }
  @media (min-width: 1024px) {
- .signal-modal-container { padding: 20px; }
- .signal-modal-content { max-width: 1280px; height: min(88dvh, 860px); }
+ .signal-modal-container { padding: var(--lq-modal-top) 20px 20px; }
+ .signal-modal-content { max-width: 1280px; height: min(88dvh, 860px, 100%); }
  }
  @media (min-width: 1440px) {
  .signal-modal-content { max-width: 1360px; }
  }
- @supports (height: 100dvh) { .signal-modal-overlay { height: 100dvh; } }
+ /* Full viewport now that the clearance moved into the container's padding.
+    The old height (100dvh minus the clearance) was compensating for a top
+    offset that no longer exists; keeping it would leave the sheet's footer
+    hanging that far below the bottom of the screen. */
+ @supports (height: 100dvh) {
+ .signal-modal-overlay { height: 100dvh; }
+ }
 
  .mobile-targets-panel {
  max-height: min(42vh, 360px);

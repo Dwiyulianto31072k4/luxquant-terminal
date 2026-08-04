@@ -115,21 +115,26 @@ const LoginPage = () => {
 
   return (
     <div className="lux-warm-auth min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
-      {/* Desktop left panel (hidden on mobile) — now part of one continuous page */}
+      {/* Desktop left panel — brand hero */}
       <LeftBrandPanel />
 
-      {/* RIGHT — Login Form (full width on mobile) */}
-      <div className="w-full lg:w-[45%] flex items-start justify-center lg:items-center relative flex-1 px-5 sm:px-8 py-0 lg:px-10 lg:py-8">
+      {/* RIGHT — seamless form column (no nested card) */}
+      <div className="w-full lg:w-[45%] flex items-start justify-center lg:items-center relative flex-1 px-5 sm:px-8 py-0 lg:px-12 xl:px-16 lg:py-10">
+        {/* Soft gold hairline between brand + form (desktop) */}
+        <div
+          className="hidden lg:block absolute left-0 top-[8%] bottom-[8%] w-px pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent, rgb(var(--accent) / 0.22) 40%, rgb(var(--accent) / 0.22) 60%, transparent)",
+          }}
+        />
+
         <style>{`
  @keyframes lq-blink { 50% { opacity: 0; } }
- @keyframes lq-card-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+ @keyframes lq-card-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
  @keyframes lq-item-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
- .lq-card-enter { animation: lq-card-in 0.5s cubic-bezier(0.16,1,0.3,1) both; }
- .lq-stagger > * { animation: lq-item-in 0.45s cubic-bezier(0.16,1,0.3,1) both; }
- .lq-stagger > *:nth-child(1) { animation-delay: 0.08s; }
- .lq-stagger > *:nth-child(2) { animation-delay: 0.16s; }
- .lq-stagger > *:nth-child(3) { animation-delay: 0.24s; }
- .lq-login-btn:focus-visible { outline: 2px solid rgb(var(--accent) / 0.6); outline-offset: 2px; }
+ .lq-card-enter { animation: lq-card-in 0.48s cubic-bezier(0.16,1,0.3,1) both; }
+ .lq-login-btn:focus-visible { outline: 2px solid rgb(var(--accent) / 0.55); outline-offset: 2px; }
  @keyframes lq-modal-fade { from { opacity: 0; } to { opacity: 1; } }
  @keyframes lq-modal-pop { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
  @keyframes lq-sheet-up { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
@@ -137,7 +142,7 @@ const LoginPage = () => {
  .lq-terms-scroll::-webkit-scrollbar-track { background: transparent; }
  .lq-terms-scroll::-webkit-scrollbar-thumb { background: rgb(var(--accent) / 0.25); border-radius: 999px; }
  @media (prefers-reduced-motion: reduce) {
- .lq-card-enter, .lq-stagger > * { animation: none !important; }
+ .lq-card-enter { animation: none !important; }
  }
  `}</style>
 
@@ -156,30 +161,33 @@ const LoginPage = () => {
           </span>
         </div>
 
-        {/* CONTENT — mobile: no card (MEXC style); desktop: glass card */}
-        <div className="lq-card-enter relative z-10 w-full max-w-[420px] lg:max-w-[448px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:block lg:min-h-0 px-2 lg:px-10 lg:py-14 lg:rounded-[1.9rem] lg:border lg:border-text-primary lg:bg-surface-raised lg:shadow-[0_30px_70px_-18px_rgb(var(--scrim) / 0.35)]">
-          {/* ── Desktop heading ──
-              --ink, not a surface token: this heading was written for the old
-              white card ("dark on white") with a SURFACE color as its text —
-              which turned invisible the day the card went dark, on every theme.
-              The text was still there, selectable, unreadable. --ink is the
-              token that flips with the theme (white on dark, black on bright),
-              which is the actual job here. */}
-          <div className="mb-9 hidden lg:block text-left">
+        {/* CONTENT — flat column, same surface as the page (no double card) */}
+        <div className="lq-card-enter relative z-10 w-full max-w-[400px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:min-h-0 lg:pt-0 lg:pb-0">
+          {/* ── Desktop heading ── */}
+          <div className="mb-8 hidden lg:block text-left">
+            <p
+              className="mb-3 font-mono uppercase tracking-[0.2em]"
+              style={{ color: "rgb(var(--accent-text))", fontSize: 11 }}
+            >
+              Sign in
+            </p>
             <h1
               className="font-bold"
               style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                color: "rgb(var(--ink))",
-                lineHeight: 1.22,
-                fontSize: "clamp(20px, 2.1vw, 26px)",
+                color: "rgb(var(--fg))",
+                lineHeight: 1.2,
+                fontSize: "clamp(22px, 2.2vw, 28px)",
               }}
             >
               {a("login_subtitle")}
             </h1>
+            <p className="mt-2.5 text-sm leading-relaxed" style={{ color: "rgb(var(--fg-muted))" }}>
+              Continue with Telegram, Google, or Discord — same edge, every device.
+            </p>
           </div>
 
-          {/* ── Mobile hero (centered) — mirrors the desktop brand panel ── */}
+          {/* ── Mobile hero — mirrors left brand panel ── */}
           <div className="lg:hidden text-center">
             <h1
               className="mx-auto font-bold"
@@ -194,7 +202,6 @@ const LoginPage = () => {
               Detect <span style={{ color: "rgb(var(--accent-text))" }}>Crypto</span> &amp;
               Tokenized <span style={{ color: "rgb(var(--accent-text))" }}>TradFi</span> Moves
             </h1>
-            {/* coins right under the headline */}
             <AssetCoins size={38} className="mt-8" />
           </div>
 
@@ -226,9 +233,9 @@ const LoginPage = () => {
 
           <ReferralBanner className="mb-4" />
 
-          {/* ════════ DESKTOP — MEXC-style card content ════════ */}
+          {/* ════════ DESKTOP — flat provider list ════════ */}
           <div className="hidden lg:block">
-            <div className="space-y-3.5 mt-8" onMouseLeave={() => setHoverIdx(null)}>
+            <div className="space-y-3" onMouseLeave={() => setHoverIdx(null)}>
               <LoginButton
                 active={(hoverIdx ?? 0) === 0}
                 onHover={() => setHoverIdx(0)}
@@ -248,25 +255,31 @@ const LoginPage = () => {
                 loadingText={a("connecting")}
               />
 
-              {/* More Options — pill + connected dropdown (MEXC effect) */}
+              {/* More Options — ghost + expand Discord */}
               <div className="relative">
                 <button
                   type="button"
                   onMouseEnter={() => setHoverIdx(2)}
                   onClick={() => setShowMore((v) => !v)}
-                  className="lq-login-btn relative w-full rounded-full font-semibold flex items-center justify-center transition-all duration-300"
+                  className="lq-login-btn relative w-full rounded-2xl font-semibold flex items-center justify-center transition-all duration-250"
                   style={{
-                    padding: "15px 22px",
-                    background: "rgb(var(--fg))",
-                    border: "1px solid #e7e7ea",
-                    color: "rgb(var(--surface-hover))",
-                    fontSize: "clamp(13.5px,1.7vw,15px)",
+                    padding: "14px 22px",
+                    background:
+                      (hoverIdx ?? 0) === 2
+                        ? "rgb(var(--ink) / 0.07)"
+                        : "transparent",
+                    border: "1px solid rgb(var(--ink) / 0.12)",
+                    color: "rgb(var(--fg-secondary))",
+                    fontSize: "clamp(13.5px, 1.7vw, 15px)",
                   }}
                 >
-                  <span>More Options</span>
+                  <span>More options</span>
                   <svg
-                    className="absolute right-6 h-4 w-4 transition-transform duration-300"
-                    style={{ transform: showMore ? "rotate(180deg)" : "none" }}
+                    className="absolute right-5 h-4 w-4 transition-transform duration-300"
+                    style={{
+                      transform: showMore ? "rotate(180deg)" : "none",
+                      color: "rgb(var(--fg-muted))",
+                    }}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -277,10 +290,10 @@ const LoginPage = () => {
                 </button>
                 {showMore && (
                   <div
-                    className="mt-2 overflow-hidden rounded-[1.4rem]"
+                    className="mt-2 overflow-hidden rounded-2xl"
                     style={{
-                      background: "rgb(var(--fg))",
-                      boxShadow: "0 16px 38px rgb(var(--ink) / 0.16)",
+                      background: "rgb(var(--ink) / 0.04)",
+                      border: "1px solid rgb(var(--ink) / 0.1)",
                       animation: "lq-item-in 0.26s cubic-bezier(0.16,1,0.3,1) both",
                     }}
                   >
@@ -288,14 +301,15 @@ const LoginPage = () => {
                       type="button"
                       onClick={handleDiscordLogin}
                       disabled={discordLoading}
-                      className="relative w-full flex items-center justify-center font-semibold transition-colors disabled:opacity-50"
+                      className="lq-login-btn relative w-full flex items-center justify-center font-semibold transition-colors disabled:opacity-50"
                       style={{
-                        padding: "16px 22px",
-                        color: "rgb(var(--surface-hover))",
-                        fontSize: "clamp(13.5px,1.7vw,15px)",
+                        padding: "15px 22px",
+                        color: "rgb(var(--fg))",
+                        fontSize: "clamp(13.5px, 1.7vw, 15px)",
+                        background: "transparent",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#f3f4f6";
+                        e.currentTarget.style.background = "rgb(var(--ink) / 0.06)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "transparent";
@@ -314,14 +328,14 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Referral Code (Optional) — collapsible */}
-            <div className="mt-7">
+            {/* Referral Code (Optional) */}
+            <div className="mt-8">
               <button
                 type="button"
                 onClick={() => setRefOpen((v) => !v)}
                 className="flex items-center gap-1.5 transition-colors"
                 style={{
-                  color: "#6b7280",
+                  color: "rgb(var(--fg-muted))",
                   fontSize: 13,
                   background: "none",
                   border: "none",
@@ -329,7 +343,7 @@ const LoginPage = () => {
                   padding: 0,
                 }}
               >
-                Referral Code (Optional)
+                Referral code (optional)
                 <svg
                   className="h-3.5 w-3.5 transition-transform duration-300"
                   style={{ transform: refOpen ? "rotate(180deg)" : "none" }}
@@ -346,53 +360,41 @@ const LoginPage = () => {
                   value={refCode}
                   onChange={(e) => setRefCode(e.target.value)}
                   placeholder="Enter invitation code (case-sensitive)"
-                  className="mt-2.5 w-full rounded-2xl px-4 py-3.5 outline-none transition-colors"
+                  className="mt-2.5 w-full rounded-xl px-4 py-3 outline-none transition-colors"
                   style={{
-                    background: "rgb(var(--fg))",
-                    border: "1px solid #e4e4e7",
-                    color: "rgb(var(--surface-hover))",
+                    background: "rgb(var(--ink) / 0.04)",
+                    border: "1px solid rgb(var(--ink) / 0.12)",
+                    color: "rgb(var(--fg))",
                     fontSize: 14,
                     animation: "lq-item-in 0.25s ease both",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "rgb(var(--accent) / 0.45)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "rgb(var(--ink) / 0.12)";
                   }}
                 />
               )}
             </div>
 
-            {/* Footer */}
-            <p className="mt-7 text-center" style={{ color: "#6b7280", fontSize: 13 }}>
-              Already have an account?{" "}
-              <button
-                type="button"
-                onClick={handleTelegramLogin}
-                className="font-semibold transition-opacity hover:opacity-80"
-                style={{
-                  color: "#c8941f",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                  fontSize: 13,
-                }}
-              >
-                Log in now!
-              </button>
-            </p>
+            {/* Terms only — no bogus "already have account" on login */}
             <p
-              className="mt-3 text-center leading-relaxed"
-              style={{ color: "rgb(var(--fg-secondary))", fontSize: 11.5 }}
+              className="mt-8 text-center leading-relaxed"
+              style={{ color: "rgb(var(--fg-muted))", fontSize: 12 }}
             >
               By continuing, you agree to our{" "}
               <button
                 type="button"
                 onClick={() => setShowTerms(true)}
-                className="underline underline-offset-2"
+                className="underline underline-offset-2 font-medium"
                 style={{
-                  color: "#6b7280",
+                  color: "rgb(var(--fg-secondary))",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   padding: 0,
-                  fontSize: 11.5,
+                  fontSize: 12,
                 }}
               >
                 User Agreement
@@ -401,14 +403,14 @@ const LoginPage = () => {
               <button
                 type="button"
                 onClick={() => setShowTerms(true)}
-                className="underline underline-offset-2"
+                className="underline underline-offset-2 font-medium"
                 style={{
-                  color: "#6b7280",
+                  color: "rgb(var(--fg-secondary))",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   padding: 0,
-                  fontSize: 11.5,
+                  fontSize: 12,
                 }}
               >
                 Privacy Policy
@@ -416,9 +418,8 @@ const LoginPage = () => {
             </p>
           </div>
 
-          {/* ════════ MOBILE — MEXC pattern (pills + "or" + More Options) ════════ */}
+          {/* ════════ MOBILE ════════ */}
           <div className="lg:hidden flex flex-1 flex-col mt-11">
-            {/* small thin login descriptor — sits right above the form */}
             <p
               className="mx-auto mb-6 text-center"
               style={{
@@ -431,9 +432,9 @@ const LoginPage = () => {
             >
               {a("login_subtitle")}
             </p>
-            {/* Primary — Telegram (white pill) */}
+
             <PillButton
-              variant="white"
+              variant="primary"
               icon={<TelegramIcon />}
               text={a("continue_telegram")}
               onClick={handleTelegramLogin}
@@ -441,16 +442,14 @@ const LoginPage = () => {
               loadingText={!telegramReady ? a("preparing") : a("connecting")}
             />
 
-            {/* or */}
             <div className="my-4 flex items-center gap-4">
               <div className="h-px flex-1" style={{ background: "rgb(var(--ink) / 0.12)" }} />
-              <span style={{ color: "#6f6f74", fontSize: 14 }}>or</span>
+              <span style={{ color: "rgb(var(--fg-muted))", fontSize: 13 }}>or</span>
               <div className="h-px flex-1" style={{ background: "rgb(var(--ink) / 0.12)" }} />
             </div>
 
-            {/* Secondary — Google (dark pill) */}
             <PillButton
-              variant="dark"
+              variant="secondary"
               icon={<GoogleIcon />}
               text={a("continue_google")}
               onClick={handleGoogleLogin}
@@ -458,7 +457,6 @@ const LoginPage = () => {
               loadingText={a("connecting")}
             />
 
-            {/* More Options → bottom sheet (Discord) */}
             <button
               type="button"
               onClick={() => setShowMore(true)}
@@ -471,19 +469,18 @@ const LoginPage = () => {
                 cursor: "pointer",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#fff";
+                e.currentTarget.style.color = "rgb(var(--fg))";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#9a9aa0";
+                e.currentTarget.style.color = "rgb(var(--fg-muted))";
               }}
             >
-              More Options
+              More options
             </button>
 
-            {/* Footer — pinned to the bottom of the viewport */}
             <p
               className="mt-auto pt-12 text-center leading-relaxed"
-              style={{ color: "#7a6b60", fontSize: 12 }}
+              style={{ color: "rgb(var(--fg-muted))", fontSize: 12 }}
             >
               {a("login_terms")}{" "}
               <button
@@ -508,13 +505,13 @@ const LoginPage = () => {
 
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
 
-        {/* MOBILE — "More Options" bottom sheet (Discord), slides up */}
+        {/* MOBILE — More options sheet */}
         {showMore && (
           <div className="fixed inset-0 z-[9998] lg:hidden" onClick={() => setShowMore(false)}>
             <div
               className="absolute inset-0"
               style={{
-                background: "rgb(var(--scrim) / 0.35)",
+                background: "rgb(var(--scrim) / 0.45)",
                 animation: "lq-modal-fade 0.2s ease-out",
               }}
             />
@@ -522,9 +519,9 @@ const LoginPage = () => {
               className="absolute inset-x-0 bottom-0 rounded-t-[1.75rem] px-5 pb-9 pt-3"
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "rgb(var(--surface-hover))",
+                background: "rgb(var(--surface-secondary))",
                 borderTop: "1px solid rgb(var(--ink) / 0.08)",
-                boxShadow: "0 -20px 60px rgb(var(--scrim) / 0.35)",
+                boxShadow: "0 -20px 60px rgb(var(--scrim) / 0.4)",
                 animation: "lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)",
               }}
             >
@@ -536,10 +533,10 @@ const LoginPage = () => {
                 className="mb-4 font-bold text-text-primary"
                 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}
               >
-                More Options
+                More options
               </h3>
               <PillButton
-                variant="dark"
+                variant="secondary"
                 icon={<DiscordIcon />}
                 text={a("continue_discord")}
                 onClick={handleDiscordLogin}
@@ -554,29 +551,32 @@ const LoginPage = () => {
   );
 };
 
-/* ── Pill Button (mobile, MEXC-style) — white = primary, dark = secondary ── */
+/* ── Pill Button (mobile) — primary = solid ink, secondary = soft surface ── */
 const PillButton = ({
   icon,
   text,
   onClick,
   loading = false,
   loadingText = "Connecting...",
-  variant = "dark",
+  variant = "secondary",
 }) => {
-  const white = variant === "white";
+  // Keep legacy aliases (white/dark) working if anything still passes them.
+  const primary = variant === "primary" || variant === "white";
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="relative w-full rounded-full font-semibold flex items-center justify-center transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      className="relative w-full rounded-2xl font-semibold flex items-center justify-center transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       style={{
         padding: "16px 22px",
         fontSize: "clamp(14px, 4.2vw, 16px)",
-        background: white ? "#ffffff" : "rgb(var(--ink) / 0.06)",
-        color: white ? "#0a0a0a" : "#ffffff",
-        border: white ? "1px solid #ffffff" : "1px solid rgb(var(--ink) / 0.1)",
-        boxShadow: white ? "0 10px 26px rgb(var(--scrim) / 0.35)" : "none",
+        background: primary ? "rgb(var(--fg))" : "rgb(var(--ink) / 0.06)",
+        color: primary ? "rgb(var(--surface))" : "rgb(var(--fg))",
+        border: primary
+          ? "1px solid transparent"
+          : "1px solid rgb(var(--ink) / 0.12)",
+        boxShadow: primary ? "0 12px 28px rgb(var(--scrim) / 0.28)" : "none",
       }}
     >
       {loading ? (
@@ -686,13 +686,8 @@ const TermsModal = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-6"
-      style={{
-        background: "rgba(6,3,3,0.84)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
-        animation: "lq-modal-fade 0.2s ease-out",
-      }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-6"
+      style={{ animation: "lq-modal-fade 0.2s ease-out" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -747,11 +742,11 @@ const TermsModal = ({ onClose }) => {
               border: "1px solid rgb(var(--ink) / 0.08)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#fff";
+              e.currentTarget.style.color = "rgb(var(--fg))";
               e.currentTarget.style.borderColor = "rgb(var(--ink) / 0.22)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#9a8a7e";
+              e.currentTarget.style.color = "rgb(var(--fg-muted))";
               e.currentTarget.style.borderColor = "rgb(var(--ink) / 0.08)";
             }}
           >
@@ -808,14 +803,8 @@ const TermsModal = ({ onClose }) => {
             style={{
               padding: "12px 30px",
               background: "rgb(var(--fg))",
-              color: "rgb(var(--surface-raised))",
+              color: "rgb(var(--surface))",
               boxShadow: "0 10px 24px rgb(var(--scrim) / 0.35)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#ececef";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#ffffff";
             }}
           >
             I understand
@@ -826,7 +815,9 @@ const TermsModal = ({ onClose }) => {
   );
 };
 
-/* ── Login Button ── (active = black; inactive = light grey) */
+/* ── Login Button (desktop) ──
+   Token-based: active = solid fg pill; idle = soft glass on the warm auth surface.
+   No hardcoded MEXC light greys that clash with the dark brand panel. */
 const LoginButton = ({
   icon,
   text,
@@ -841,13 +832,15 @@ const LoginButton = ({
     onClick={onClick}
     onMouseEnter={onHover}
     disabled={loading}
-    className="lq-login-btn relative w-full rounded-full font-semibold transition-all duration-300 flex items-center justify-center active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+    className="lq-login-btn relative w-full rounded-2xl font-semibold transition-all duration-250 flex items-center justify-center active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
     style={{
       padding: "15px 22px",
-      background: active ? "#0a0a0a" : "#f5f5f6",
-      border: active ? "1px solid #0a0a0a" : "1px solid #e7e7ea",
-      color: active ? "#ffffff" : "#18181b",
-      boxShadow: active ? "0 10px 24px rgb(var(--scrim) / 0.22)" : "none",
+      background: active ? "rgb(var(--fg))" : "rgb(var(--ink) / 0.05)",
+      border: active
+        ? "1px solid transparent"
+        : "1px solid rgb(var(--ink) / 0.12)",
+      color: active ? "rgb(var(--surface))" : "rgb(var(--fg))",
+      boxShadow: active ? "0 12px 28px rgb(var(--scrim) / 0.28)" : "none",
       fontSize: "clamp(13.5px, 1.7vw, 15px)",
     }}
   >

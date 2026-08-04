@@ -299,7 +299,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
   const shell = (
     <div
-      className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4 md:p-6"
+      className="lq-modal-safe fixed inset-0 flex items-end justify-center sm:items-center sm:p-4 md:p-6"
       // Drop below SignalDetailModal (z-100000) while a signal is open so it
       // stacks on top; back to 190000 (above the sticky nav) otherwise.
       style={{ zIndex: modalItem ? 90000 : 190000 }}
@@ -309,7 +309,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
     >
       {/* Dim behind — click closes list (not when SignalModal open) */}
       <div
-        className="absolute inset-0 bg-scrim/80 backdrop-blur-md"
+        className="lq-scrim"
         onClick={() => {
           onClose();
         }}

@@ -701,7 +701,7 @@ export function XCard({ title, desc, render, zoom, hint, guide, height = 360 }) 
   const overlay = big
     ? createPortal(
         <div
-          className="fixed inset-0 flex items-end justify-center bg-scrim/80 p-0 backdrop-blur-md sm:items-center sm:p-6 md:p-8"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 flex items-end justify-center p-0 sm:items-center sm:p-6 md:p-8"
           style={{ zIndex: 200000 }}
           role="dialog"
           aria-modal="true"

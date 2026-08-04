@@ -14,11 +14,17 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
-import { SignalStatusProvider, useSignalStatus } from "../context/SignalStatusContext";
+import {
+  SignalStatusProvider,
+  useSignalStatus,
+  STATUS_META,
+  timeAgo as signalTimeAgo,
+} from "../context/SignalStatusContext";
 import GlobalSignalModalHost from "./SignalStatusModal";
+import { SignalDetailModal } from "./TopPerformers";
 import { ResponsiveContainer, Treemap, Tooltip as RTooltip } from "recharts";
 import api from "../services/authApi";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
 import { ShimmerStyles } from "./ui/Loaders";
 import { heatPct } from "./terminal/vizShared";
@@ -44,19 +50,49 @@ const isPumpEvent = (e) => {
   return e?.direction === "bullish" || (e?.direction !== "bearish" && pc >= 0);
 };
 
-// Group consecutive events that share the same pair (feed comes newest-first).
-const groupConsecutive = (list) => {
-  const groups = [];
-  let current = null;
+// Group ALL events for the same pair (not only consecutive).
+// Feed is newest-first → first time we see a pair is its latest activity.
+// This surfaces "BOME pumped 4× in the window" even when events are spaced out.
+const groupByPair = (list, { sortBy = "latest" } = {}) => {
+  const order = [];
+  const map = new Map();
   (list || []).forEach((e) => {
-    if (current && current.pair === e.pair) {
-      current.events.push(e);
-    } else {
-      current = { pair: e.pair, events: [e] };
-      groups.push(current);
+    const pair = e?.pair;
+    if (!pair) return;
+    if (!map.has(pair)) {
+      map.set(pair, {
+        pair,
+        events: [],
+        pumpCount: 0,
+        dumpCount: 0,
+      });
+      order.push(pair);
     }
+    const g = map.get(pair);
+    g.events.push(e);
+    if (isPumpEvent(e)) g.pumpCount += 1;
+    else g.dumpCount += 1;
   });
+
+  let groups = order.map((p) => map.get(p));
+  if (sortBy === "repeat") {
+    groups = [...groups].sort((a, b) => {
+      const dc = b.events.length - a.events.length;
+      if (dc !== 0) return dc;
+      const aT = a.events[0]?.created_at || "";
+      const bT = b.events[0]?.created_at || "";
+      return bT > aT ? 1 : bT < aT ? -1 : 0;
+    });
+  }
   return groups;
+};
+
+/** How "hot" a coin is in the current window (for badge emphasis). */
+const repeatTier = (n) => {
+  if (n >= 5) return "hot";
+  if (n >= 3) return "warm";
+  if (n >= 2) return "repeat";
+  return null;
 };
 
 const titleCase = (s) => {
@@ -79,6 +115,21 @@ const formatVolume = (v) => {
   if (v >= 1e6) return (v / 1e6).toFixed(2) + "M";
   if (v >= 1e3) return (v / 1e3).toFixed(2) + "K";
   return v.toFixed(2);
+};
+
+/** Compact trade-count label (Binance kline field "number of trades"). */
+const fmtTicks = (n) => {
+  if (n == null || Number.isNaN(Number(n))) return "—";
+  const v = Number(n);
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(v >= 10e3 ? 0 : 1) + "K";
+  return String(Math.round(v));
+};
+
+const fmtChg = (n, digits = 2) => {
+  if (n == null || Number.isNaN(Number(n))) return "—";
+  const v = Number(n);
+  return `${v >= 0 ? "+" : ""}${v.toFixed(digits)}%`;
 };
 
 // ════════════════════════════════════════════════════════
@@ -239,6 +290,239 @@ const IconChevronsRight = ({ className = "h-3.5 w-3.5" }) => (
   </svg>
 );
 
+/** Signal switch — swap arrows into a pulse/target mark */
+const IconSwitchSignal = ({ className = "h-3.5 w-3.5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M16 3h5v5" />
+    <path d="M8 21H3v-5" />
+    <path d="M21 3l-7.5 7.5" />
+    <path d="M3 21l7.5-7.5" />
+    <circle cx="12" cy="12" r="2.5" />
+  </svg>
+);
+
+const IconExpand = ({ className = "h-3.5 w-3.5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="15 3 21 3 21 9" />
+    <polyline points="9 21 3 21 3 15" />
+    <line x1="21" y1="3" x2="14" y2="10" />
+    <line x1="3" y1="21" x2="10" y2="14" />
+  </svg>
+);
+
+const IconCollapse = ({ className = "h-3.5 w-3.5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="4 14 10 14 10 20" />
+    <polyline points="20 10 14 10 14 4" />
+    <line x1="10" y1="14" x2="3" y2="21" />
+    <line x1="21" y1="3" x2="14" y2="10" />
+  </svg>
+);
+
+/**
+ * Accent CTA: open LuxQuant call / signal sheet for a pair.
+ * size: "sm" (table row) | "md" (chart header)
+ */
+const SwitchToSignalButton = ({ onClick, size = "md", label, className = "" }) => {
+  const sm = size === "sm";
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      className={`inline-flex items-center gap-1.5 rounded-lg border border-accent/35 bg-accent/12 font-semibold text-accent shadow-[0_0_0_1px_rgb(var(--accent)/0.06)] transition-all hover:border-accent/55 hover:bg-accent/20 hover:shadow-[0_4px_14px_rgb(var(--accent)/0.18)] active:scale-[0.98] ${
+        sm
+          ? "h-7 px-2 text-[9px] uppercase tracking-[0.1em]"
+          : "h-8 px-3 text-[10px] uppercase tracking-[0.12em]"
+      } ${className}`}
+      title="Open LuxQuant signal for this pair"
+    >
+      <IconSwitchSignal className={sm ? "h-3 w-3" : "h-3.5 w-3.5"} />
+      <span>{label || (sm ? "Signal" : "Switch to signal")}</span>
+      <svg
+        className={sm ? "h-2.5 w-2.5 opacity-70" : "h-3 w-3 opacity-70"}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        aria-hidden="true"
+      >
+        <path d="M5 12h14" strokeLinecap="round" />
+        <path d="m13 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+};
+
+/** Free-safe win badge — only TP3 / TP4 (matured outcomes). */
+const OutcomeBadge = ({ outcome, onClick, className = "" }) => {
+  if (!outcome) return null;
+  const isTp4 = (outcome.outcome || "").toLowerCase() === "tp4";
+  const label = outcome.label || (isTp4 ? "TP4" : "TP3");
+  const peak =
+    outcome.peak_pct != null && !Number.isNaN(Number(outcome.peak_pct))
+      ? `${Number(outcome.peak_pct) >= 0 ? "+" : ""}${Number(outcome.peak_pct).toFixed(0)}%`
+      : null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] transition-opacity hover:opacity-90 ${
+        isTp4
+          ? "border-accent/35 bg-accent/15 text-accent"
+          : "border-profit/30 bg-profit/12 text-profit"
+      } ${className}`}
+      title={
+        isTp4
+          ? "LuxQuant plan reached TP4 — unlock full path"
+          : "LuxQuant plan reached TP3 — unlock full path"
+      }
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${isTp4 ? "bg-accent" : "bg-profit"}`}
+        aria-hidden
+      />
+      {label}
+      {peak ? <span className="opacity-90">{peak}</span> : null}
+    </button>
+  );
+};
+
+/**
+ * Compact win strip — coins + peak only.
+ * Everyone (free + entitled) opens the same Call Proof modal as Top Gainers
+ * so peak % is never a teaser without evidence. Free users get redacted
+ * levels inside SignalDetailModal (charts/journey still build trust).
+ */
+const OutcomeTeaserStrip = ({ data, onOpenProof }) => {
+  const base = (data?.items || []).slice(0, 14);
+  if (!base.length) return null;
+
+  // Prefer highest peak for the explicit Proof tab (most impressive, still real).
+  const topRow = base.reduce((best, row) => {
+    const p = Number(row?.peak_pct);
+    const b = Number(best?.peak_pct);
+    if (!Number.isFinite(p)) return best;
+    if (!best || !Number.isFinite(b) || p > b) return row;
+    return best;
+  }, base[0]);
+
+  // Enough chips that the loop always feels continuous (short lists still scroll).
+  let unit = base;
+  while (unit.length < 8) unit = unit.concat(base);
+  const track = [...unit, ...unit];
+
+  const handleOpen = (row) => {
+    if (!row?.signal_id) return;
+    onOpenProof?.(row, base);
+  };
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
+      <div className="flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+        <div className="min-w-0 flex-shrink-0 pr-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Recent wins
+          </p>
+          <p className="mt-0.5 hidden max-w-[11rem] text-[11px] leading-snug text-text-muted sm:block">
+            Tap a win to open call proof
+          </p>
+        </div>
+
+        {/* Same layout grammar as PulseTape — overflow + edge fades + scrolling track */}
+        <div className="group/wins relative min-h-[34px] min-w-0 flex-1 overflow-hidden">
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-8 bg-gradient-to-r from-surface-raised to-transparent sm:w-10"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-8 bg-gradient-to-l from-surface-raised to-transparent sm:w-10"
+            aria-hidden
+          />
+          <div className="wins-marquee-track animate-wins-marquee relative z-0 flex w-max gap-1.5 py-0.5 will-change-transform">
+            {track.map((row, i) => {
+              const peak =
+                row.peak_pct != null && !Number.isNaN(Number(row.peak_pct))
+                  ? `${Number(row.peak_pct) >= 0 ? "+" : ""}${Number(row.peak_pct).toFixed(0)}%`
+                  : "—";
+              return (
+                <button
+                  key={`${row.signal_id || row.pair}-${row.outcome}-${i}`}
+                  type="button"
+                  onClick={() => handleOpen(row)}
+                  className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-ink/[0.07] bg-ink/[0.02] px-2 py-1.5 text-left transition-colors hover:border-accent/30 hover:bg-accent/[0.05]"
+                  title={`${stripQuote(row.pair)} · peak ${peak}`}
+                >
+                  <CoinLogo pair={row.pair} size={18} />
+                  <span className="text-[11px] font-semibold tracking-tight text-text-primary">
+                    {stripQuote(row.pair)}
+                  </span>
+                  <span className="font-mono text-[10px] font-semibold tabular-nums text-profit">
+                    {peak}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => handleOpen(topRow)}
+          className="inline-flex h-7 flex-shrink-0 items-center gap-1 rounded-md border border-ink/[0.12] bg-ink/[0.03] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-text-primary/80 transition-colors hover:border-accent/40 hover:bg-accent/[0.08] hover:text-accent sm:px-3"
+          title="Open call proof"
+        >
+          <svg
+            className="h-3 w-3 opacity-80"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          Proof
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* WinsVipModal removed — strip opens SignalDetailModal for everyone (trust-first). */
+
 const IconChevronsLeft = ({ className = "h-3.5 w-3.5" }) => (
   <svg
     className={className}
@@ -265,19 +549,99 @@ const MarketPulsePageInner = () => {
   const pageStatusCtx = useSignalStatus();
   // Only a number — the endpoint deliberately does not return which pairs.
   const [calledCount, setCalledCount] = useState(null);
+  // Freemium teaser: TP3/TP4 outcomes (pair + peak; open proof modal). Safe for free.
+  const [outcomes, setOutcomes] = useState(null);
+  const [proofOpen, setProofOpen] = useState(false);
+  const [proofItem, setProofItem] = useState(null);
+  const [proofIds, setProofIds] = useState([]);
+  const [proofRows, setProofRows] = useState([]);
+  const [proofIndex, setProofIndex] = useState(0);
+  const [proofDetail, setProofDetail] = useState(null);
+  const [proofLoading, setProofLoading] = useState(false);
   useEffect(() => {
     let alive = true;
     api
       .get(`/api/v1/terminal/preview/called-summary`)
       .then((r) => alive && setCalledCount(r?.data?.called_7d ?? null))
       .catch(() => {});
+    api
+      .get(`/api/v1/terminal/preview/outcomes`, { params: { days: 14, limit: 24 } })
+      .then((r) => alive && setOutcomes(r?.data || null))
+      .catch(() => {});
     return () => {
       alive = false;
     };
   }, []);
+
+  const fetchProofDetail = useCallback(async (sid) => {
+    if (!sid) return;
+    setProofLoading(true);
+    setProofDetail(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/v1/signals/detail/${sid}`, { headers });
+      if (r.ok) setProofDetail(await r.json());
+    } catch {
+      /* ignore */
+    } finally {
+      setProofLoading(false);
+    }
+  }, []);
+
+  const toProofItem = (r) => ({
+    signal_id: r.signal_id,
+    pair: r.pair,
+    peak_pct: r.peak_pct,
+    // Leaderboard-style fallback for hero gain inside SignalDetailModal
+    gain_pct: r.peak_pct != null ? Number(r.peak_pct) : undefined,
+    signal_time: r.signal_time || r.called_at,
+    status: r.label || r.outcome,
+  });
+
+  const openProof = useCallback(
+    (row, list) => {
+      if (!row?.signal_id) return;
+      // Full strip list → prev/next in the proof modal (verify several wins, not one orphan %).
+      const rows = Array.isArray(list) && list.length
+        ? list.filter((r) => r?.signal_id)
+        : [row];
+      const ids = rows.map((r) => r.signal_id);
+      const idx = Math.max(0, ids.indexOf(row.signal_id));
+      const active = rows[idx] || row;
+      setProofIds(ids);
+      setProofRows(rows);
+      setProofIndex(idx);
+      setProofItem(toProofItem(active));
+      setProofOpen(true);
+      fetchProofDetail(active.signal_id);
+    },
+    [fetchProofDetail]
+  );
+
+  const closeProof = useCallback(() => {
+    setProofOpen(false);
+    setProofItem(null);
+    setProofIds([]);
+    setProofRows([]);
+    setProofIndex(0);
+    setProofDetail(null);
+  }, []);
+
+  const goProof = useCallback(
+    (i) => {
+      if (i < 0 || i >= proofIds.length) return;
+      setProofIndex(i);
+      const row = proofRows[i];
+      if (row) setProofItem(toProofItem(row));
+      fetchProofDetail(proofIds[i]);
+    },
+    [proofIds, proofRows, fetchProofDetail]
+  );
   const [feed, setFeed] = useState([]);
   const [stats, setStats] = useState(null);
   const [topMovers, setTopMovers] = useState(null);
+  const [flowData, setFlowData] = useState(null); // ticks 5m screener from proxy
   const [coinDetail, setCoinDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -306,6 +670,15 @@ const MarketPulsePageInner = () => {
     }
   });
   const [feedSide, setFeedSide] = useState("all");
+  // latest = chronological coin groups · repeat = most-recurring coins first
+  const [feedSort, setFeedSort] = useState(() => {
+    try {
+      const v = localStorage.getItem("mp_feed_sort");
+      return v === "repeat" || v === "latest" ? v : "latest";
+    } catch {
+      return "latest";
+    }
+  });
 
   const changeLayout = useCallback((mode) => {
     setFeedLayout(mode);
@@ -314,6 +687,13 @@ const MarketPulsePageInner = () => {
     } catch {}
     // Focus mode has no "all" — default to pumps when entering it.
     setFeedSide((prev) => (mode === "focus" && prev === "all" ? "pump" : prev));
+  }, []);
+
+  const changeFeedSort = useCallback((mode) => {
+    setFeedSort(mode);
+    try {
+      localStorage.setItem("mp_feed_sort", mode);
+    } catch {}
   }, []);
 
   // Side panel (heatmap/stats) collapse — default OPEN, choice persisted.
@@ -334,6 +714,11 @@ const MarketPulsePageInner = () => {
     });
   }, []);
 
+  // Hot Flow screener — opens as modal (never expands the main layout)
+  const [flowOpen, setFlowOpen] = useState(false);
+  const openFlow = useCallback(() => setFlowOpen(true), []);
+  const closeFlow = useCallback(() => setFlowOpen(false), []);
+
   // === Heatmap sort mode + Chart Modal (URL-driven: ?pair=BTCUSDT) ===
   const [heatmapSortMode, setHeatmapSortMode] = useState("events");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -351,10 +736,11 @@ const MarketPulsePageInner = () => {
         if (timeframeFilter !== "all") params.timeframe = timeframeFilter;
         if (selectedCoin) params.pair = selectedCoin;
 
-        const [feedRes, statsRes, moversRes] = await Promise.allSettled([
+        const [feedRes, statsRes, moversRes, flowRes] = await Promise.allSettled([
           api.get(`/api/v1/market-pulse/feed`, { params }),
           api.get(`/api/v1/market-pulse/stats`),
           api.get(`/api/v1/market-pulse/top-movers`, { params: { period: moverPeriod } }),
+          api.get(`/api/v1/market-pulse/flow`, { params: { limit: 300 } }),
         ]);
 
         if (feedRes.status === "fulfilled") {
@@ -365,6 +751,9 @@ const MarketPulsePageInner = () => {
         }
         if (moversRes.status === "fulfilled") {
           setTopMovers(moversRes.value.data);
+        }
+        if (flowRes.status === "fulfilled") {
+          setFlowData(flowRes.value.data || null);
         }
 
         setLastUpdated(new Date());
@@ -394,7 +783,27 @@ const MarketPulsePageInner = () => {
       .catch(() => setCoinDetail(null));
   }, [selectedCoin]);
 
-  // ═════════ DERIVED (UNCHANGED) ═════════
+  // ═════════ DERIVED ═════════
+
+  const flowByPair = useMemo(() => {
+    const map = {};
+    (flowData?.items || []).forEach((row) => {
+      if (row?.pair) map[String(row.pair).toUpperCase()] = row;
+    });
+    return map;
+  }, [flowData]);
+
+  // TP3/TP4 teaser map — free + paid both can see (wins that matured)
+  const outcomeByPair = useMemo(() => {
+    const map = {};
+    (outcomes?.items || []).forEach((row) => {
+      if (!row?.pair) return;
+      const k = String(row.pair).toUpperCase();
+      // Prefer TP4 over TP3 if both exist in list
+      if (!map[k] || row.outcome === "tp4") map[k] = row;
+    });
+    return map;
+  }, [outcomes]);
 
   const signalMap = pageStatusCtx?.map;
 
@@ -404,7 +813,10 @@ const MarketPulsePageInner = () => {
       const q = searchPair.toUpperCase();
       out = out.filter((e) => e.pair?.includes(q));
     }
-    if (callFilter !== "all") {
+    // When a coin is focused (chip / detail), always show that coin's full pulse
+    // tape. CALLS filter is for scanning the board, not for hiding a coin drill-down
+    // (was: click AKE while CALLED → empty feed even with 200+ events).
+    if (callFilter !== "all" && !selectedCoin) {
       const wantCalled = callFilter === "called";
       out = out.filter((e) => {
         const isCalled = !!(signalMap && signalMap[(e.pair || "").toUpperCase()]);
@@ -412,7 +824,7 @@ const MarketPulsePageInner = () => {
       });
     }
     return out;
-  }, [feed, searchPair, callFilter, signalMap]);
+  }, [feed, searchPair, callFilter, signalMap, selectedCoin]);
 
   // Pump = bullish / upside move; Dump = bearish / downside move.
   // Mirrors the heatmap direction logic so classification is consistent.
@@ -421,9 +833,34 @@ const MarketPulsePageInner = () => {
 
   const sideFeed = feedSide === "pump" ? pumpFeed : feedSide === "dump" ? dumpFeed : filteredFeed;
 
-  const groupedSide = useMemo(() => groupConsecutive(sideFeed), [sideFeed]);
-  const groupedPump = useMemo(() => groupConsecutive(pumpFeed), [pumpFeed]);
-  const groupedDump = useMemo(() => groupConsecutive(dumpFeed), [dumpFeed]);
+  // Group by coin across the whole window (not only back-to-back events).
+  const groupedSide = useMemo(
+    () => groupByPair(sideFeed, { sortBy: feedSort }),
+    [sideFeed, feedSort]
+  );
+  const groupedPump = useMemo(
+    () => groupByPair(pumpFeed, { sortBy: feedSort }),
+    [pumpFeed, feedSort]
+  );
+  const groupedDump = useMemo(
+    () => groupByPair(dumpFeed, { sortBy: feedSort }),
+    [dumpFeed, feedSort]
+  );
+
+  // Full-window stats per pair (from unfiltered feed stream) — used for badges
+  // so a coin still shows ×N even when a side filter is active.
+  const pairPulseStats = useMemo(() => {
+    const map = {};
+    feed.forEach((e) => {
+      const p = e?.pair;
+      if (!p) return;
+      if (!map[p]) map[p] = { total: 0, pumps: 0, dumps: 0 };
+      map[p].total += 1;
+      if (isPumpEvent(e)) map[p].pumps += 1;
+      else map[p].dumps += 1;
+    });
+    return map;
+  }, [feed]);
 
   const activeCoins = useMemo(() => {
     const map = {};
@@ -564,6 +1001,8 @@ const MarketPulsePageInner = () => {
     } else {
       setSelectedCoin(pair);
       setSearchPair("");
+      // Coin drill-down = show that coin's full activity (not "called only" scan)
+      setCallFilter("all");
     }
   };
 
@@ -646,28 +1085,41 @@ const MarketPulsePageInner = () => {
       {/* ═══ PULSE TAPE (Flowscan card pattern + scrolling ticker) ═══ */}
       {tapeItems.length > 0 && <PulseTape items={tapeItems} onSelect={openChartModal} />}
 
-      {/* ═══ MARKET BIAS — at-a-glance breadth verdict (short/long bias) ═══ */}
-      <MarketBiasBanner
-        ratio={bullBearRatio}
-        pumpCount={pumpFeed.length}
-        dumpCount={dumpFeed.length}
-      />
+      {/* ═══ WINS STRIP — coin + peak; everyone opens call proof (redacted if free) ═══ */}
+      <OutcomeTeaserStrip data={outcomes} onOpenProof={openProof} />
 
-      {/* ═══ KPI CARDS — Flowscan stat card pattern ═══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiEvents
-          total={stats?.hourly?.total_events || 0}
-          uniqueCoins={stats?.hourly?.unique_coins || 0}
-          histogram={eventsHistogram}
+      {/* ═══ COMPACT STATS — bias + KPIs, denser ═══ */}
+      <div className="space-y-2">
+        <MarketBiasBanner
+          ratio={bullBearRatio}
+          pumpCount={pumpFeed.length}
+          dumpCount={dumpFeed.length}
         />
-        <KpiBullBear ratio={bullBearRatio} />
-        <KpiFlash
-          count={stats?.hourly?.flash_moves || 0}
-          previews={flashMovesPreview}
-          onSelect={openChartModal}
-        />
-        <KpiBiggestMove biggest={stats?.hourly?.biggest_move} onSelect={openChartModal} />
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <KpiEvents
+            total={stats?.hourly?.total_events || 0}
+            uniqueCoins={stats?.hourly?.unique_coins || 0}
+            histogram={eventsHistogram}
+          />
+          <KpiBullBear ratio={bullBearRatio} />
+          <KpiFlash
+            count={stats?.hourly?.flash_moves || 0}
+            previews={flashMovesPreview}
+            onSelect={openChartModal}
+          />
+          <KpiBiggestMove biggest={stats?.hourly?.biggest_move} onSelect={openChartModal} />
+        </div>
       </div>
+
+      {/* ═══ HOT FLOW — compact launcher; full screener opens as modal ═══ */}
+      <FlowScreener
+        data={flowData}
+        onSelect={openChartModal}
+        open={flowOpen}
+        onOpen={openFlow}
+        onClose={closeFlow}
+        outcomeByPair={outcomeByPair}
+      />
 
       {/* ═══ CONTROL BAR (Flowscan card + filter pills) ═══ */}
       <ControlBar
@@ -702,13 +1154,17 @@ const MarketPulsePageInner = () => {
             changeLayout={changeLayout}
             feedSide={feedSide}
             setFeedSide={setFeedSide}
+            feedSort={feedSort}
+            changeFeedSort={changeFeedSort}
             groupedSide={groupedSide}
             groupedPump={groupedPump}
             groupedDump={groupedDump}
             pumpCount={pumpFeed.length}
             dumpCount={dumpFeed.length}
             sideCount={sideFeed.length}
+            coinCount={groupedSide.length}
             coinHistograms={coinHistograms}
+            pairPulseStats={pairPulseStats}
             selectedCoin={selectedCoin}
             openChartModal={openChartModal}
             eventTagClass={eventTagClass}
@@ -718,6 +1174,8 @@ const MarketPulsePageInner = () => {
             toggleGroup={toggleGroup}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={toggleSidebar}
+            flowByPair={flowByPair}
+            outcomeByPair={outcomeByPair}
           />
         </div>
 
@@ -763,7 +1221,28 @@ const MarketPulsePageInner = () => {
         </div>
       </div>
 
-      {chartModalPair && <CoinChartModal pair={chartModalPair} onClose={closeChartModal} />}
+      {chartModalPair && (
+        <CoinChartModal
+          pair={chartModalPair}
+          onClose={closeChartModal}
+          outcome={outcomeByPair[(chartModalPair || "").toUpperCase()] || null}
+        />
+      )}
+
+      {proofOpen && proofItem && (
+        <SignalDetailModal
+          item={proofItem}
+          detail={proofDetail}
+          loading={proofLoading}
+          signalIds={proofIds}
+          currentIndex={proofIndex}
+          onNavigate={goProof}
+          onClose={closeProof}
+          cleanPair={(p) => (p ? String(p).replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???")}
+          t={t}
+          onOpenHistory={null}
+        />
+      )}
 
       {/* Context-aware help assistant */}
       <AssistantWidget pageId="market-pulse" />
@@ -833,22 +1312,19 @@ const MarketBiasBanner = ({ ratio, _pumpCount, _dumpCount }) => {
   const cfg = {
     bull: {
       label: "Bullish",
-      bias: "Long bias",
-      color: "rgb(var(--pos-text))",
+      bias: "Long",
       text: "text-profit",
       chip: "border-profit/30 bg-profit/10 text-profit",
     },
     bear: {
       label: "Bearish",
-      bias: "Short bias",
-      color: "rgb(var(--neg-text))",
+      bias: "Short",
       text: "text-loss",
       chip: "border-loss/30 bg-loss/10 text-loss",
     },
     neutral: {
       label: "Neutral",
-      bias: "No clear bias",
-      color: "rgb(var(--accent-light))",
+      bias: "Flat",
       text: "text-accent",
       chip: "border-ink/15 bg-ink/[0.05] text-text-secondary",
     },
@@ -857,50 +1333,29 @@ const MarketBiasBanner = ({ ratio, _pumpCount, _dumpCount }) => {
   const adDisplay = adRatio == null ? "—" : adRatio === Infinity ? "∞" : adRatio.toFixed(2);
 
   return (
-    <div className="rounded-lg border border-ink/[0.08] bg-surface-raised px-4 py-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-        <div className="flex flex-shrink-0 items-center gap-3">
-          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted sm:inline">
-            Market Bias · 1h
+    <div className="rounded-lg border border-ink/[0.07] bg-surface-raised px-3 py-2 sm:px-3.5">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <span className={`text-[13px] font-semibold leading-none tracking-tight ${cfg.text}`}>
+            {cfg.label}
           </span>
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg font-semibold leading-none tracking-tight sm:text-xl ${cfg.text}`}
-            >
-              {cfg.label}
-            </span>
-            <span
-              className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] tabular-nums ${cfg.chip}`}
-            >
-              {cfg.bias}
-            </span>
-          </div>
+          <span
+            className={`rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] ${cfg.chip}`}
+          >
+            {cfg.bias}
+          </span>
         </div>
-
         <div className="min-w-0 flex-1">
-          <div className="flex h-2 overflow-hidden rounded-full bg-ink/[0.08]">
-            <div
-              className="bg-profit transition-all duration-500"
-              style={{ width: `${bullPct}%` }}
-            />
+          <div className="flex h-1.5 overflow-hidden rounded-full bg-ink/[0.08]">
+            <div className="bg-profit transition-all duration-500" style={{ width: `${bullPct}%` }} />
             <div className="bg-loss transition-all duration-500" style={{ width: `${bearPct}%` }} />
           </div>
-          <div className="mt-1.5 flex justify-between font-mono text-[10px] font-semibold tabular-nums">
-            <span className="flex items-center gap-1 text-profit">
-              <IconArrowUpTri className="h-2 w-2" /> {bull} pumps · {Math.round(bullPct)}%
-            </span>
-            <span className="flex items-center gap-1 text-loss">
-              {Math.round(bearPct)}% · {bear} dumps <IconArrowDownTri className="h-2 w-2" />
-            </span>
-          </div>
         </div>
-
-        <div className="flex flex-shrink-0 items-center gap-1.5 border-t border-ink/[0.08] pt-2 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-          <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            A/D
-          </span>
-          <span className="font-mono text-sm font-semibold tabular-nums leading-none text-text-primary">
-            {adDisplay}
+        <div className="hidden flex-shrink-0 items-center gap-3 font-mono text-[10px] tabular-nums sm:flex">
+          <span className="text-profit">{bull}↑</span>
+          <span className="text-loss">{bear}↓</span>
+          <span className="text-text-muted">
+            A/D <span className="font-semibold text-text-primary">{adDisplay}</span>
           </span>
         </div>
       </div>
@@ -909,11 +1364,869 @@ const MarketBiasBanner = ({ ratio, _pumpCount, _dumpCount }) => {
 };
 
 // ════════════════════════════════════════════════════════
+// FLOW SCREENER — ticks 5m + multi-TF Δ (proxy-ingested)
+// ════════════════════════════════════════════════════════
+//
+// "Ticks" = number of trades on the latest closed 5m kline (Binance field).
+// High ticks + dump chg = potential liquidation / cascade hunt.
+
+const FLOW_SORTS = [
+  { id: "ticks", label: "Ticks 5m" },
+  { id: "dump5", label: "Dump 5m" },
+  { id: "pump5", label: "Pump 5m" },
+  { id: "chg1h", label: "Δ 1h" },
+  { id: "chg24h", label: "Δ 24h" },
+];
+
+const FLOW_PAGE_SIZE = 20;
+
+const FLOW_GUIDE_CARDS = [
+  {
+    title: "What is this?",
+    body: "Ranks coins already on Market Pulse by how busy they are trading right now — plus short-term price change. Intensity first, then you dig in.",
+  },
+  {
+    title: "Ticks",
+    body: "Number of trades in the last closed 5-minute candle (not $ volume). High ticks = lots of people hitting the book — often liquidations or cascades.",
+  },
+  {
+    title: "Δ 5m / 1h / 24h",
+    body: "How far price moved in each window. High ticks + dump 5m can flag a flush; high ticks + pump 5m flags momentum. Use 1h/24h so you don’t chase a lone 5m blip.",
+  },
+  {
+    title: "How to use",
+    body: "Sort Dump 5m or Ticks → check HOT → glance 1h/24h → open the chart. Called coins show Switch to signal. List is Pulse-only.",
+  },
+];
+
+const FLOW_SORT_HELP = [
+  { id: "ticks", tip: "Most trades in the last 5m candle first" },
+  { id: "dump5", tip: "Biggest 5m losers first — flush hunt" },
+  { id: "pump5", tip: "Biggest 5m winners first — momentum" },
+  { id: "chg1h", tip: "Largest move over ~1 hour" },
+  { id: "chg24h", tip: "Largest move over 24 hours" },
+];
+
+const FlowScreener = ({
+  data,
+  onSelect,
+  open = false,
+  onOpen,
+  onClose,
+  outcomeByPair = {},
+}) => {
+  const statusCtx = useSignalStatus();
+  const [sort, setSort] = useState("ticks");
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  // Guide lives in its own overlay modal — never expands Hot Flow body
+  const [guideOpen, setGuideOpen] = useState(false);
+  const openGuide = useCallback(() => setGuideOpen(true), []);
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
+
+  // The sheet has to finish travelling before the parent unmounts it, so every
+  // dismissal routes through here instead of calling onClose directly. 200ms is
+  // the length of lqSheetDown / lqSheetPanelOut in index.css — keep them equal
+  // or the panel is cut off mid-slide.
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef(null);
+  const requestClose = useCallback(() => {
+    if (closeTimer.current) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      setClosing(false);
+      onClose?.();
+    }, 200);
+  }, [onClose]);
+  useEffect(
+    () => () => {
+      if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    },
+    []
+  );
+  // Reopening while a close was still in flight would otherwise show the panel
+  // stuck in its exit state.
+  useEffect(() => {
+    if (open && closeTimer.current) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+      setClosing(false);
+    }
+  }, [open]);
+  const rawItems = data?.items || [];
+  // Pulse-only: never list Binance volume-fill coins that aren't on Market Pulse
+  const items = useMemo(() => {
+    const hasFlags = rawItems.some((r) => r.in_pulse);
+    if (!hasFlags) return rawItems;
+    return rawItems.filter((r) => r.in_pulse);
+  }, [rawItems]);
+  const updatedAt = data?.updated_at;
+  const isStale = !!data?.stale;
+  const pulseCovered = data?.pulse_covered ?? items.length;
+
+  const num = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+  const ranked = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    let rows = items.filter((r) => {
+      if (!q) return true;
+      const pair = String(r.pair || "").toUpperCase();
+      const base = String(r.base || stripQuote(r.pair) || "").toUpperCase();
+      return pair.includes(q) || base.includes(q);
+    });
+    rows = [...rows];
+    rows.sort((a, b) => {
+      if (sort === "ticks") return (num(b.ticks_5m) ?? -1) - (num(a.ticks_5m) ?? -1);
+      if (sort === "dump5") return (num(a.chg_5m) ?? 0) - (num(b.chg_5m) ?? 0);
+      if (sort === "pump5") return (num(b.chg_5m) ?? 0) - (num(a.chg_5m) ?? 0);
+      if (sort === "chg1h") return Math.abs(num(b.chg_1h) ?? 0) - Math.abs(num(a.chg_1h) ?? 0);
+      if (sort === "chg24h") return Math.abs(num(b.chg_24h) ?? 0) - Math.abs(num(a.chg_24h) ?? 0);
+      return 0;
+    });
+    return rows;
+  }, [items, sort, query]);
+
+  const calledCount = useMemo(() => {
+    const map = statusCtx?.map;
+    if (!map) return 0;
+    return ranked.reduce((n, r) => (map[(r.pair || "").toUpperCase()] ? n + 1 : n), 0);
+  }, [ranked, statusCtx?.map]);
+
+  const totalPages = Math.max(1, Math.ceil(ranked.length / FLOW_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    setPage(1);
+  }, [sort, query, items.length]);
+
+  // Esc + body scroll lock while modal open (guide closes first)
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (guideOpen) {
+        closeGuide();
+        return;
+      }
+      requestClose();
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, requestClose, guideOpen, closeGuide]);
+
+  const pageRows = useMemo(() => {
+    const p = Math.min(page, totalPages);
+    const start = (p - 1) * FLOW_PAGE_SIZE;
+    return ranked.slice(start, start + FLOW_PAGE_SIZE);
+  }, [ranked, page, totalPages]);
+
+  const maxTicks = useMemo(
+    () => Math.max(1, ...ranked.map((r) => Number(r.ticks_5m) || 0)),
+    [ranked]
+  );
+
+  const ageLabel = useMemo(() => {
+    if (!updatedAt) return "waiting…";
+    try {
+      const ms = Date.now() - new Date(updatedAt).getTime();
+      if (Number.isNaN(ms)) return "—";
+      if (ms < 20_000) return "just now";
+      if (ms < 60_000) return `${Math.round(ms / 1000)}s ago`;
+      return `${Math.round(ms / 60_000)}m ago`;
+    } catch {
+      return "—";
+    }
+  }, [updatedAt]);
+
+  const teaser = useMemo(
+    () =>
+      [...items]
+        .sort((a, b) => (Number(b.ticks_5m) || 0) - (Number(a.ticks_5m) || 0))
+        .slice(0, 3),
+    [items]
+  );
+
+  const goPage = (p) => setPage(Math.max(1, Math.min(totalPages, p)));
+
+  const pageBtnClass = (active) =>
+    `inline-flex h-7 min-w-[28px] items-center justify-center rounded-md border px-2 font-mono text-[10px] tabular-nums transition-colors ${
+      active
+        ? "border-accent/40 bg-accent/15 text-accent font-semibold"
+        : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
+    }`;
+
+  const pageWindow = useMemo(() => {
+    const win = [];
+    const cur = safePage;
+    let start = Math.max(1, cur - 2);
+    let end = Math.min(totalPages, start + 4);
+    start = Math.max(1, end - 4);
+    for (let i = start; i <= end; i++) win.push(i);
+    return win;
+  }, [safePage, totalPages]);
+
+  const rankOf = (i) => (safePage - 1) * FLOW_PAGE_SIZE + i + 1;
+  const chgClass = (v) =>
+    v == null ? "text-text-muted" : v >= 0 ? "text-profit" : "text-loss";
+
+  // Start the sheet travelling but hand off immediately: what opens next sits
+  // far above this z-index, so waiting out the exit would only delay the thing
+  // the tap actually asked for.
+  const pickPair = (pair) => {
+    requestClose();
+    onSelect?.(pair);
+  };
+
+  const openSignal = (pair) => {
+    requestClose();
+    statusCtx?.openPair?.(pair);
+  };
+
+  const modal =
+    open &&
+    createPortal(
+      <div
+        className={`lq-modal-safe fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4 ${
+          closing ? "lq-sheet-closing" : ""
+        }`}
+      >
+        {/* Backdrop — same scrim and blur as every other overlay, so the page
+            behind recedes by the same amount wherever you are in the app. */}
+        <button
+          type="button"
+          aria-label="Close Hot Flow"
+          className={`lq-scrim transition-opacity duration-200 ${
+            closing ? "opacity-0" : "opacity-100"
+          }`}
+          onClick={requestClose}
+        />
+
+        {/* Panel — lq-sheet is the shared motion lifted from SignalModal: rises
+            from the bottom on a phone, scales in as a centred dialog from sm up.
+            dvh, not vh, or mobile browser chrome crops the footer. */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="hot-flow-title"
+          className="lq-sheet relative z-10 flex max-h-[min(92dvh,860px)] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:max-h-[min(88dvh,860px)] sm:rounded-2xl sm:border sm:shadow-[0_24px_64px_rgb(var(--scrim)_/_0.45)]"
+        >
+          {/* Grab handle — the affordance that says "this is a sheet, swipe or
+              tap away to dismiss". Phone only; a centred dialog has no edge to
+              drag from.
+
+              No accent bar under it, deliberately. This was the only sheet in
+              the app carrying a gold strip along its lip; every other one,
+              SignalModal included, opens as a single flat surface, and the
+              stripe was the thing making this one read as a different
+              component. The panel is one colour from edge to edge now. */}
+          <div className="flex shrink-0 justify-center pb-0.5 pt-2.5 sm:hidden" aria-hidden="true">
+            <div className="h-1 w-10 rounded-full bg-ink/25" />
+          </div>
+
+          {/* Modal header */}
+          <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b border-ink/[0.07] px-4 py-3.5 sm:px-5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="relative flex h-2 w-2 flex-shrink-0">
+                  <span
+                    className={`absolute inline-flex h-full w-full rounded-full opacity-60 ${
+                      items.length ? "animate-ping bg-accent" : "bg-text-muted"
+                    }`}
+                  />
+                  <span
+                    className={`relative inline-flex h-2 w-2 rounded-full ${
+                      items.length ? "bg-accent" : "bg-text-muted"
+                    }`}
+                  />
+                </span>
+                <h2
+                  id="hot-flow-title"
+                  className="text-[13px] font-semibold tracking-tight text-text-primary sm:text-[15px]"
+                >
+                  Hot Flow · Ticks Screener
+                </h2>
+                {items.length > 0 && (
+                  <span className="rounded-full border border-ink/10 bg-ink/[0.04] px-2 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                    {items.length} pairs
+                    {pulseCovered != null ? ` · ${pulseCovered} pulse` : ""}
+                  </span>
+                )}
+                {isStale && (
+                  <span className="rounded-full border border-loss/25 bg-loss/10 px-2 py-0.5 font-mono text-[9px] uppercase text-loss">
+                    stale
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] text-text-muted">
+                Trades per 5m · multi-TF Δ · Pulse coins only ·{" "}
+                <span className="font-mono tabular-nums">{ageLabel}</span>
+                {calledCount > 0 ? (
+                  <span className="text-accent"> · {calledCount} called</span>
+                ) : null}
+              </p>
+            </div>
+            <div className="flex flex-shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={openGuide}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-secondary px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted transition-colors hover:border-accent/35 hover:bg-accent/10 hover:text-accent"
+                title="What is Hot Flow?"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 16v-4" strokeLinecap="round" />
+                  <circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none" />
+                </svg>
+                Guide
+              </button>
+              <button
+                type="button"
+                onClick={requestClose}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary active:scale-95"
+                aria-label="Close"
+              >
+                <IconClose className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-ink/[0.06] px-4 py-2.5 sm:px-5">
+            <div className="relative min-w-[140px] flex-1 max-w-[240px]">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+                <IconSearch className="h-3 w-3" />
+              </span>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search pair…"
+                autoFocus
+                className="h-8 w-full rounded-lg border border-ink/[0.1] bg-surface-secondary pl-7 pr-2 text-[12px] text-text-primary placeholder:text-text-muted outline-none focus:border-accent/40"
+              />
+            </div>
+
+            <span
+              className="inline-flex h-8 items-center rounded-lg border border-accent/25 bg-accent/[0.08] px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
+              title="Only coins currently on Market Pulse"
+            >
+              Pulse only
+            </span>
+
+            <div className="w-full sm:ml-auto sm:w-auto">
+              <PulseSegGroup
+                options={FLOW_SORTS.map((s) => ({ value: s.id, label: s.label }))}
+                value={sort}
+                onChange={setSort}
+              />
+            </div>
+          </div>
+
+          {/* Scrollable body — guide is a separate overlay modal */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {ranked.length === 0 ? (
+              <div className="px-5 py-14 text-center">
+                <p className="text-[14px] font-medium text-text-primary">
+                  {items.length === 0 ? "Flow metrics warming up" : "No pairs match"}
+                </p>
+                <p className="mt-1.5 text-[12px] text-text-muted">
+                  {items.length === 0
+                    ? "Proxy covers every coin currently on Market Pulse."
+                    : "Try a different search."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="hidden md:block">
+                  <table className="w-full min-w-[720px] border-collapse text-left">
+                    <thead className="sticky top-0 z-[1] bg-surface-raised/95 backdrop-blur-sm">
+                      <tr className="border-b border-ink/[0.06] text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                        <th className="w-10 px-5 py-2.5 font-semibold">#</th>
+                        <th className="px-2 py-2.5 font-semibold">Pair</th>
+                        <th className="px-2 py-2.5 font-semibold text-right">Price</th>
+                        <th className="px-2 py-2.5 font-semibold text-right">Ticks 5m</th>
+                        <th className="px-2 py-2.5 font-semibold text-right">Δ 5m</th>
+                        <th className="px-2 py-2.5 font-semibold text-right">Δ 1h</th>
+                        <th className="px-2 py-2.5 font-semibold text-right">Δ 24h</th>
+                        <th className="px-2 py-2.5 font-semibold text-right">Vol 24h</th>
+                        <th className="px-4 py-2.5 font-semibold text-right">Signal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageRows.map((row, i) => {
+                        const ticks = Number(row.ticks_5m) || 0;
+                        const heat = Math.min(1, ticks / maxTicks);
+                        const chg5 = row.chg_5m;
+                        const chg1 = row.chg_1h;
+                        const chg24 = row.chg_24h;
+                        const hot = ticks >= maxTicks * 0.45 && ticks >= 2000;
+                        const callInfo = statusCtx?.map?.[(row.pair || "").toUpperCase()];
+                        const stMeta = callInfo
+                          ? STATUS_META[(callInfo.status || "open").toLowerCase()] ||
+                            STATUS_META.open
+                          : null;
+                        const rowOutcome =
+                          outcomeByPair[(row.pair || "").toUpperCase()] || null;
+                        return (
+                          <tr
+                            key={row.pair}
+                            onClick={() => pickPair(row.pair)}
+                            className="cursor-pointer border-b border-ink/[0.04] transition-colors hover:bg-accent/[0.05]"
+                          >
+                            <td className="px-5 py-2.5 font-mono text-[10px] tabular-nums text-text-muted">
+                              {rankOf(i)}
+                            </td>
+                            <td className="px-2 py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <CoinLogo pair={row.pair} size={24} />
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[13px] font-semibold tracking-tight text-text-primary">
+                                      {stripQuote(row.pair)}
+                                    </span>
+                                    {hot && (
+                                      <span className="rounded-sm border border-accent/30 bg-accent/10 px-1 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-accent">
+                                        hot
+                                      </span>
+                                    )}
+                                    {callInfo && (
+                                      <span
+                                        className="rounded-sm border px-1 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.08em]"
+                                        style={{
+                                          color: stMeta.color,
+                                          borderColor: `color-mix(in srgb, ${stMeta.color} 35%, transparent)`,
+                                          background: `color-mix(in srgb, ${stMeta.color} 12%, transparent)`,
+                                        }}
+                                      >
+                                        called
+                                      </span>
+                                    )}
+                                    {!callInfo && rowOutcome && (
+                                      <OutcomeBadge
+                                        outcome={rowOutcome}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openSignal(row.pair);
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                  <span className="font-mono text-[9px] text-text-muted">
+                                    {row.pair}
+                                    {callInfo?.created
+                                      ? ` · ${signalTimeAgo(callInfo.created) || ""}`
+                                      : ""}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2.5 text-right font-mono text-[11px] tabular-nums text-text-secondary">
+                              {formatPrice(row.price)}
+                            </td>
+                            <td className="px-2 py-2.5 text-right">
+                              <div className="inline-flex flex-col items-end gap-1">
+                                <span
+                                  className={`font-mono text-[13px] font-semibold tabular-nums leading-none ${
+                                    hot ? "text-accent" : "text-text-primary"
+                                  }`}
+                                >
+                                  {fmtTicks(ticks)}
+                                </span>
+                                <span className="h-[3px] w-16 overflow-hidden rounded-full bg-ink/[0.08]">
+                                  <span
+                                    className="block h-full rounded-full bg-accent/75"
+                                    style={{ width: `${Math.max(4, heat * 100)}%` }}
+                                  />
+                                </span>
+                              </div>
+                            </td>
+                            <td
+                              className={`px-2 py-2.5 text-right font-mono text-[12px] font-medium tabular-nums ${chgClass(chg5)}`}
+                            >
+                              {fmtChg(chg5)}
+                            </td>
+                            <td
+                              className={`px-2 py-2.5 text-right font-mono text-[11px] tabular-nums ${chgClass(chg1)}`}
+                            >
+                              {fmtChg(chg1)}
+                            </td>
+                            <td
+                              className={`px-2 py-2.5 text-right font-mono text-[11px] tabular-nums ${chgClass(chg24)}`}
+                            >
+                              {fmtChg(chg24)}
+                            </td>
+                            <td className="px-2 py-2.5 text-right font-mono text-[10px] tabular-nums text-text-muted">
+                              {formatVolume(row.quote_volume_24h)}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              {callInfo ? (
+                                <SwitchToSignalButton
+                                  size="sm"
+                                  onClick={() => openSignal(row.pair)}
+                                />
+                              ) : (
+                                <span className="font-mono text-[9px] text-text-muted/50">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 md:hidden">
+                  {pageRows.map((row, i) => {
+                    const ticks = Number(row.ticks_5m) || 0;
+                    const chg5 = row.chg_5m;
+                    const callInfo = statusCtx?.map?.[(row.pair || "").toUpperCase()];
+                    return (
+                      <div
+                        key={row.pair}
+                        className="flex items-center gap-3 border-b border-ink/[0.05] px-4 py-3 transition-colors hover:bg-ink/[0.03]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => pickPair(row.pair)}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <span className="w-5 font-mono text-[10px] text-text-muted">
+                            {rankOf(i)}
+                          </span>
+                          <CoinLogo pair={row.pair} size={26} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[13px] font-semibold text-text-primary">
+                                {stripQuote(row.pair)}
+                              </span>
+                              <span
+                                className={`font-mono text-[12px] tabular-nums ${chgClass(chg5)}`}
+                              >
+                                {fmtChg(chg5)}
+                              </span>
+                              {callInfo && (
+                                <span className="rounded-sm border border-accent/30 bg-accent/10 px-1 py-0.5 font-mono text-[8px] font-semibold uppercase text-accent">
+                                  called
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 font-mono text-[10px] text-text-muted">
+                              <span
+                                className={
+                                  ticks >= maxTicks * 0.45 ? "font-medium text-accent" : ""
+                                }
+                              >
+                                {fmtTicks(ticks)} ticks
+                              </span>
+                              {" · "}1h {fmtChg(row.chg_1h)} · 24h {fmtChg(row.chg_24h)}
+                            </p>
+                          </div>
+                        </button>
+                        {callInfo && (
+                          <SwitchToSignalButton
+                            size="sm"
+                            onClick={() => openSignal(row.pair)}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer pagination */}
+          {ranked.length > 0 && (
+            <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-t border-ink/[0.07] bg-ink/[0.02] px-4 py-2.5 sm:px-5">
+              <span className="font-mono text-[10px] tabular-nums text-text-muted">
+                {(safePage - 1) * FLOW_PAGE_SIZE + 1}–
+                {Math.min(safePage * FLOW_PAGE_SIZE, ranked.length)} of {ranked.length}
+                {query ? " · filtered" : " · pulse only"}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={safePage <= 1}
+                  onClick={() => goPage(1)}
+                  className={`${pageBtnClass(false)} disabled:opacity-35`}
+                >
+                  «
+                </button>
+                <button
+                  type="button"
+                  disabled={safePage <= 1}
+                  onClick={() => goPage(safePage - 1)}
+                  className={`${pageBtnClass(false)} disabled:opacity-35`}
+                >
+                  ‹
+                </button>
+                {pageWindow[0] > 1 && (
+                  <span className="px-1 font-mono text-[10px] text-text-muted">…</span>
+                )}
+                {pageWindow.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => goPage(p)}
+                    className={pageBtnClass(p === safePage)}
+                  >
+                    {p}
+                  </button>
+                ))}
+                {pageWindow[pageWindow.length - 1] < totalPages && (
+                  <span className="px-1 font-mono text-[10px] text-text-muted">…</span>
+                )}
+                <button
+                  type="button"
+                  disabled={safePage >= totalPages}
+                  onClick={() => goPage(safePage + 1)}
+                  className={`${pageBtnClass(false)} disabled:opacity-35`}
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  disabled={safePage >= totalPages}
+                  onClick={() => goPage(totalPages)}
+                  className={`${pageBtnClass(false)} disabled:opacity-35`}
+                >
+                  »
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body
+    );
+
+  // Separate guide modal — sits above Hot Flow (z-90), never steals table space
+  const guideModal =
+    open &&
+    guideOpen &&
+    createPortal(
+      <div className="lq-modal-safe fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-5">
+        <button
+          type="button"
+          aria-label="Close guide"
+          className="lq-scrim"
+          onClick={closeGuide}
+        />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="hot-flow-guide-title"
+          className="lq-sheet relative z-10 flex max-h-[min(86dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border-t border-ink/[0.08] bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim)_/_0.35)] sm:rounded-2xl sm:border sm:shadow-[0_24px_64px_rgb(var(--scrim)_/_0.45)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex shrink-0 justify-center pb-0.5 pt-2.5 sm:hidden" aria-hidden="true">
+            <div className="h-1 w-10 rounded-full bg-ink/25" />
+          </div>
+
+          <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-3 sm:px-5">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-accent/25 bg-accent/10 text-accent">
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 16v-4" strokeLinecap="round" />
+                  <circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none" />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <h3
+                  id="hot-flow-guide-title"
+                  className="text-[13px] font-semibold tracking-tight text-text-primary"
+                >
+                  Hot Flow guide
+                </h3>
+                <p className="text-[10px] text-text-muted">Ticks · multi-TF Δ · Pulse only</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={closeGuide}
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
+              aria-label="Close guide"
+            >
+              <IconClose className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3.5 sm:px-5">
+            <div className="space-y-2">
+              {FLOW_GUIDE_CARDS.map((card, i) => (
+                <div
+                  key={card.title}
+                  className="rounded-lg border border-ink/[0.07] bg-ink/[0.02] px-3 py-2.5"
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-[9px] tabular-nums text-text-muted">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <h4 className="text-[12px] font-semibold tracking-tight text-text-primary">
+                      {card.title}
+                    </h4>
+                  </div>
+                  <p className="mt-1 pl-6 text-[11.5px] leading-relaxed text-text-muted">
+                    {card.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.06] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
+                Sort · {FLOW_SORTS.find((s) => s.id === sort)?.label || sort}
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-text-secondary">
+                {FLOW_SORT_HELP.find((s) => s.id === sort)?.tip}
+              </p>
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[
+                { tag: "HOT", desc: "elevated ticks" },
+                { tag: "CALLED", desc: "open signal desk" },
+              ].map((x) => (
+                <span
+                  key={x.tag}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-ink/[0.08] bg-surface-secondary px-2 py-1 font-mono text-[9px] text-text-muted"
+                >
+                  <span className="font-semibold uppercase tracking-wider text-accent">{x.tag}</span>
+                  {x.desc}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] leading-snug text-text-muted">
+              Row → chart · Signal → plan · Refreshes ~30s
+            </p>
+          </div>
+
+          <div className="flex flex-shrink-0 justify-end border-t border-ink/[0.06] px-4 py-2.5 sm:px-5">
+            <button
+              type="button"
+              onClick={closeGuide}
+              className="inline-flex h-8 items-center rounded-lg bg-accent px-4 text-[12px] font-semibold text-accent-fg transition-transform hover:scale-[1.02] active:scale-[0.99]"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+
+  // Compact launcher strip on the page (never expands layout)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group flex w-full flex-wrap items-center justify-between gap-2 overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised px-4 py-3 text-left transition-colors hover:border-accent/30 hover:bg-accent/[0.03]"
+      >
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+            <span
+              className={`absolute inline-flex h-full w-full rounded-full opacity-60 ${
+                items.length ? "animate-ping bg-accent" : "bg-text-muted"
+              }`}
+            />
+            <span
+              className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
+                items.length ? "bg-accent" : "bg-text-muted"
+              }`}
+            />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-primary">
+                Hot Flow
+              </span>
+              {items.length > 0 && (
+                <span className="rounded-sm border border-ink/10 bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-text-muted">
+                  {items.length} pairs
+                  {pulseCovered != null ? ` · ${pulseCovered} pulse` : ""}
+                </span>
+              )}
+              <span className="rounded-sm border border-ink/10 bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-text-muted">
+                pulse only
+              </span>
+            </div>
+            <p className="mt-0.5 text-[10px] font-mono tabular-nums text-text-muted">
+              {items.length
+                ? `Ticks · Pulse coins · ${ageLabel} · open modal`
+                : "Ticks screener · waiting for Pulse data"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {teaser.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5 mr-0.5">
+              {teaser.map((row) => (
+                <span
+                  key={row.pair}
+                  className="inline-flex items-center gap-1 rounded-md border border-ink/[0.08] bg-surface-secondary px-1.5 py-0.5"
+                >
+                  <CoinLogo pair={row.pair} size={14} />
+                  <span className="text-[10px] font-medium text-text-primary">
+                    {stripQuote(row.pair)}
+                  </span>
+                  <span className="font-mono text-[9px] tabular-nums text-accent">
+                    {fmtTicks(row.ticks_5m)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent transition-colors group-hover:bg-accent/15">
+            Open
+            <svg
+              className="h-3 w-3"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              aria-hidden="true"
+            >
+              <path d="M7 17L17 7M10 7h7v7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </div>
+      </button>
+      {modal}
+      {guideModal}
+    </>
+  );
+};
+
+// ════════════════════════════════════════════════════════
 // KPI CARDS — Flowscan stat card pattern (flat + hairline + inset shadow)
 // ════════════════════════════════════════════════════════
 
 const StatCardShell = ({ children }) => (
-  <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 transition-colors hover:border-ink/14">
+  <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised px-3 py-2.5 transition-colors hover:border-ink/12">
     <div className="relative z-10 flex h-full flex-col">{children}</div>
   </div>
 );
@@ -923,32 +2236,27 @@ const KpiEvents = ({ total, uniqueCoins, histogram }) => {
   const max = Math.max(1, ...histogram.map((b) => b.bull + b.bear));
   return (
     <StatCardShell>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
           Events · 1h
         </span>
-        <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted">live</span>
+        <span className="text-[8px] font-mono uppercase text-text-muted">live</span>
       </div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl sm:text-[28px] font-semibold text-text-primary leading-none tabular-nums tracking-tight">
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-xl font-semibold tabular-nums leading-none tracking-tight text-text-primary sm:text-[22px]">
           {total}
         </span>
-        <span className="text-[11px] font-mono text-text-muted tabular-nums">
-          / {uniqueCoins} coins
-        </span>
+        <span className="font-mono text-[10px] tabular-nums text-text-muted">/ {uniqueCoins}</span>
       </div>
-      <div className="mt-auto pt-3 flex items-end gap-[2px] h-4">
+      <div className="mt-auto flex h-3 items-end gap-px pt-2">
         {histogram.map((b, i) => {
           const tot = b.bull + b.bear;
           const pct = (tot / max) * 100;
           const bullRatio = tot > 0 ? b.bull / tot : 0;
           return (
-            <div key={i} className="flex-1 flex flex-col-reverse" style={{ height: `${pct}%` }}>
+            <div key={i} className="flex flex-1 flex-col-reverse" style={{ height: `${pct}%` }}>
               {b.bull > 0 && (
-                <div
-                  className="rounded-[1px] bg-profit"
-                  style={{ height: `${bullRatio * 100}%` }}
-                />
+                <div className="rounded-[1px] bg-profit" style={{ height: `${bullRatio * 100}%` }} />
               )}
               {b.bear > 0 && (
                 <div
@@ -969,13 +2277,13 @@ const KpiBullBear = ({ ratio }) => {
   const dom = ratio.bull >= ratio.bear ? "bull" : "bear";
   return (
     <StatCardShell>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
-          Bull · Bear · 1h
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Bull · Bear
         </span>
         {ratio.total > 0 && (
           <span
-            className={`text-[10px] font-mono tabular-nums flex items-center gap-0.5 ${
+            className={`flex items-center gap-0.5 font-mono text-[9px] tabular-nums ${
               dom === "bull" ? "text-profit" : "text-loss"
             }`}
           >
@@ -984,31 +2292,19 @@ const KpiBullBear = ({ ratio }) => {
           </span>
         )}
       </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-2xl sm:text-[26px] font-semibold text-profit leading-none tabular-nums tracking-tight">
+      <div className="flex items-baseline gap-1">
+        <span className="text-xl font-semibold tabular-nums leading-none tracking-tight text-profit sm:text-[22px]">
           {ratio.bull}
         </span>
-        <span className="text-base text-text-muted/30">/</span>
-        <span className="text-2xl sm:text-[26px] font-semibold text-loss leading-none tabular-nums tracking-tight">
+        <span className="text-sm text-text-muted/30">/</span>
+        <span className="text-xl font-semibold tabular-nums leading-none tracking-tight text-loss sm:text-[22px]">
           {ratio.bear}
         </span>
       </div>
       {ratio.total > 0 && (
-        <div className="mt-auto pt-3">
-          <div className="h-1 rounded-full overflow-hidden bg-ink/[0.04] flex">
-            <div
-              className="bg-profit transition-all duration-500"
-              style={{ width: `${ratio.bullPct}%` }}
-            />
-            <div
-              className="bg-loss transition-all duration-500"
-              style={{ width: `${100 - ratio.bullPct}%` }}
-            />
-          </div>
-          <div className="mt-1.5 flex justify-between font-mono tabular-nums">
-            <span className="text-[10px] text-profit">{Math.round(ratio.bullPct)}%</span>
-            <span className="text-[10px] text-loss">{Math.round(100 - ratio.bullPct)}%</span>
-          </div>
+        <div className="mt-auto flex h-1 overflow-hidden rounded-full bg-ink/[0.04] pt-2">
+          <div className="bg-profit transition-all" style={{ width: `${ratio.bullPct}%` }} />
+          <div className="bg-loss transition-all" style={{ width: `${100 - ratio.bullPct}%` }} />
         </div>
       )}
     </StatCardShell>
@@ -1018,9 +2314,9 @@ const KpiBullBear = ({ ratio }) => {
 // ── KPI: Flash Moves ────────────────────────────────────
 const KpiFlash = ({ count, previews, onSelect }) => (
   <StatCardShell>
-    <div className="flex items-center justify-between mb-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
-        Flash Moves · 1h
+    <div className="mb-1 flex items-center justify-between">
+      <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+        Flash · 1h
       </span>
       {count > 0 && (
         <span className="relative flex h-1.5 w-1.5 shrink-0">
@@ -1029,41 +2325,34 @@ const KpiFlash = ({ count, previews, onSelect }) => (
         </span>
       )}
     </div>
-    <div className="flex items-baseline gap-2">
+    <div className="flex items-baseline gap-1.5">
       <span
-        className={`text-2xl sm:text-[28px] font-semibold leading-none tabular-nums tracking-tight ${
+        className={`text-xl font-semibold tabular-nums leading-none tracking-tight sm:text-[22px] ${
           count > 0 ? "text-accent" : "text-text-primary"
         }`}
       >
         {count}
       </span>
-      <span className="text-[11px] font-mono text-text-muted">spikes</span>
+      <span className="font-mono text-[10px] text-text-muted">spikes</span>
     </div>
-    <div className="mt-auto pt-3 space-y-1.5">
+    <div className="mt-auto space-y-1 pt-2">
       {previews.length > 0 ? (
-        previews.map((p, i) => {
-          const symbol = stripQuote(p.pair);
-          const pct = Math.min(Math.abs(p.pct_change || 0) / 10, 1);
-          return (
-            <button
-              key={i}
-              onClick={() => onSelect(p.pair)}
-              className="w-full flex items-center gap-2 group"
-            >
-              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted w-10 truncate text-left group-hover:text-text-primary transition-colors">
-                {symbol}
-              </span>
-              <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-ink/[0.08]">
-                <div className="h-full rounded-full bg-accent" style={{ width: `${pct * 100}%` }} />
-              </div>
-              <span className="font-mono text-[10px] tabular-nums text-text-muted">
-                {p.move_seconds}s
-              </span>
-            </button>
-          );
-        })
+        previews.slice(0, 1).map((p, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(p.pair)}
+            className="group flex w-full items-center gap-1.5"
+          >
+            <span className="w-9 truncate text-left font-mono text-[9px] uppercase text-text-muted group-hover:text-text-primary">
+              {stripQuote(p.pair)}
+            </span>
+            <span className="font-mono text-[9px] tabular-nums text-text-muted">
+              {p.move_seconds}s
+            </span>
+          </button>
+        ))
       ) : (
-        <p className="text-text-muted text-[10px]">No flash moves yet</p>
+        <p className="text-[9px] text-text-muted">—</p>
       )}
     </div>
   </StatCardShell>
@@ -1074,13 +2363,10 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   if (!biggest?.pair) {
     return (
       <StatCardShell>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
-          Biggest Move · 1h
+        <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Biggest · 1h
         </span>
-        <p className="text-text-primary text-2xl sm:text-[28px] font-semibold mt-2 leading-none tabular-nums">
-          —
-        </p>
-        <p className="text-text-muted text-[10px] mt-auto pt-3">No data yet</p>
+        <p className="mt-1 text-xl font-semibold tabular-nums leading-none text-text-primary">—</p>
       </StatCardShell>
     );
   }
@@ -1089,28 +2375,25 @@ const KpiBiggestMove = ({ biggest, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(biggest.pair)}
-      className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised p-4 text-left transition-colors hover:border-ink/14 cursor-pointer"
+      className="relative flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised px-3 py-2.5 text-left transition-colors hover:border-ink/12"
     >
-      <div className="relative z-10 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted">
-            Biggest Move · 1h
+      <div className="relative z-10 flex h-full flex-col">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Biggest · 1h
           </span>
           <IconChartLine className="h-3 w-3 text-text-muted/30" />
         </div>
-        <div className="flex items-center gap-2.5 mb-2">
-          <CoinLogo pair={biggest.pair} size={22} />
+        <div className="mb-1 flex items-center gap-2">
+          <CoinLogo pair={biggest.pair} size={18} />
           <div className="min-w-0">
-            <p className="text-text-primary text-[13px] font-medium truncate leading-tight">
+            <p className="truncate text-[12px] font-medium leading-tight text-text-primary">
               {titleCase(symbol)}
-            </p>
-            <p className="text-text-muted text-[10px] font-mono tabular-nums leading-tight mt-0.5">
-              {biggest.pair}
             </p>
           </div>
         </div>
         <p
-          className={`text-2xl sm:text-[26px] font-semibold leading-none tabular-nums tracking-tight mt-auto ${
+          className={`mt-auto text-xl font-semibold tabular-nums leading-none tracking-tight sm:text-[22px] ${
             pos ? "text-profit" : "text-loss"
           }`}
         >
@@ -1413,11 +2696,39 @@ const PulseSegGroup = ({ options, value, onChange }) => (
   </div>
 );
 
+// ── Repeat count badge (×N) — surfaces recurring pumps/dumps per coin ──
+const RepeatBadge = ({ count, kind = "events", compact = false }) => {
+  if (!count || count < 2) return null;
+  const tier = repeatTier(count);
+  const label =
+    kind === "pumps" ? "pumps" : kind === "dumps" ? "dumps" : "events";
+  const tone =
+    tier === "hot"
+      ? "border-accent/40 bg-accent/18 text-accent"
+      : tier === "warm"
+        ? kind === "dumps"
+          ? "border-loss/35 bg-loss/14 text-loss"
+          : "border-profit/35 bg-profit/14 text-profit"
+        : "border-ink/12 bg-ink/[0.05] text-text-muted";
+  return (
+    <span
+      className={`inline-flex items-center rounded-sm border font-mono font-semibold uppercase tracking-[0.1em] ${tone} ${
+        compact ? "px-1 py-0.5 text-[8.5px]" : "px-1.5 py-0.5 text-[9px]"
+      }`}
+      title={`${count} ${label} for this coin in the current feed window (24h)`}
+    >
+      ×{count}
+      {!compact ? ` ${label}` : ""}
+    </span>
+  );
+};
+
 // ── Feed list renderer (shared by all layout modes) ──────
 const FeedList = ({
   grouped,
   keyPrefix,
   coinHistograms,
+  pairPulseStats = {},
   selectedCoin,
   openChartModal,
   eventTagClass,
@@ -1425,8 +2736,21 @@ const FeedList = ({
   timeAgo,
   expandedGroups,
   toggleGroup,
+  flowByPair = {},
+  outcomeByPair = {},
+  sideHint = "all", // all | pump | dump — labels for ×N badge
 }) =>
   grouped.map((group, gi) => {
+    const stats = pairPulseStats[group.pair] || null;
+    const windowCount =
+      sideHint === "pump"
+        ? stats?.pumps ?? group.pumpCount ?? group.events.length
+        : sideHint === "dump"
+          ? stats?.dumps ?? group.dumpCount ?? group.events.length
+          : stats?.total ?? group.events.length;
+    const badgeKind =
+      sideHint === "pump" ? "pumps" : sideHint === "dump" ? "dumps" : "events";
+
     if (group.events.length === 1) {
       const event = group.events[0];
       return (
@@ -1439,11 +2763,17 @@ const FeedList = ({
           eventTagClass={eventTagClass}
           eventLabel={eventLabel}
           timeAgo={timeAgo}
+          flow={flowByPair[(event.pair || "").toUpperCase()]}
+          outcome={outcomeByPair[(event.pair || "").toUpperCase()] || null}
+          repeatCount={windowCount}
+          repeatKind={badgeKind}
         />
       );
     }
     const gkey = `${keyPrefix}-${gi}-${group.pair}`;
-    const isExpanded = expandedGroups[gkey] !== false;
+    // Multi-event coin groups start collapsed so the feed stays scannable;
+    // expand to audit every pulse. User toggle still wins.
+    const isExpanded = expandedGroups[gkey] === true;
     const avgPct = group.events.reduce((s, e) => s + (e.pct_change || 0), 0) / group.events.length;
     return (
       <div key={`${keyPrefix}-group-${gi}-${group.pair}`}>
@@ -1454,6 +2784,8 @@ const FeedList = ({
           onToggle={(e) => toggleGroup(gkey, e)}
           isSelected={selectedCoin === group.pair}
           onSelectCoin={() => openChartModal(group.pair)}
+          repeatCount={windowCount}
+          repeatKind={badgeKind}
         />
         {isExpanded &&
           group.events.map((event) => (
@@ -1470,30 +2802,34 @@ const FeedList = ({
     );
   });
 
-const CalledLocked = ({ count }) => (
-  <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15">
-      <svg className="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <rect x="5" y="11" width="14" height="10" rx="2" />
-        <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
-      </svg>
-    </span>
-    <div>
-      <p className="text-[14px] font-semibold text-text-primary">
-        {count ? `${count} coins called this week` : "Calls are for subscribers"}
-      </p>
-      <p className="mt-1 text-[12px] leading-snug text-text-muted">
-        Which coins we called — and the entry, targets and stop on each — comes with a plan.
-      </p>
+const CalledLocked = ({ count }) => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15">
+        <svg className="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+      </span>
+      <div>
+        <p className="text-[14px] font-semibold text-text-primary">
+          {count ? `${count} coins called this week` : "Calls are for subscribers"}
+        </p>
+        <p className="mt-1 text-[12px] leading-snug text-text-muted">
+          Which coins we called — and the entry, targets and stop on each — comes with a plan.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => navigate("/pricing")}
+        className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+      >
+        Unlock calls
+      </button>
     </div>
-    <a
-      href="/pricing"
-      className="rounded-md bg-accent px-5 py-2 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
-    >
-      Unlock calls
-    </a>
-  </div>
-);
+  );
+};
 
 const FeedEmpty = ({ label = "No events match your filters" }) => (
   <div className="p-12 flex flex-col items-center justify-center gap-3">
@@ -1526,6 +2862,51 @@ const SplitColHeader = ({ dir, count }) => {
   );
 };
 
+/** Fullscreen expand — same grammar as Signal Modal / TradingView chart full. */
+const FullscreenToggleBtn = ({ active, onClick, labelFull = "Full", labelBack = "Back" }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={active ? "Back to page layout (Esc)" : "Expand to full screen (F)"}
+    aria-label={active ? "Exit fullscreen" : "Expand fullscreen"}
+    className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
+      active
+        ? "border-accent/35 bg-accent/12 text-accent"
+        : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
+    }`}
+  >
+    {active ? <IconCollapse className="h-3 w-3" /> : <IconExpand className="h-3 w-3" />}
+    <span className="hidden sm:inline">{active ? labelBack : labelFull}</span>
+  </button>
+);
+
+/** Lock body scroll + Esc/F while a Pulse panel is fullscreen. */
+function usePulseFullscreen(open, setOpen) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (e.target?.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea" || e.target?.isContentEditable) return;
+        e.preventDefault();
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, setOpen]);
+}
+
 const ActivityFeedPanel = ({
   callFilter,
   entitled,
@@ -1537,13 +2918,17 @@ const ActivityFeedPanel = ({
   changeLayout,
   feedSide,
   setFeedSide,
+  feedSort = "latest",
+  changeFeedSort,
   groupedSide,
   groupedPump,
   groupedDump,
   pumpCount,
   dumpCount,
   sideCount,
+  coinCount,
   coinHistograms,
+  pairPulseStats = {},
   selectedCoin,
   openChartModal,
   eventTagClass,
@@ -1553,12 +2938,35 @@ const ActivityFeedPanel = ({
   toggleGroup,
   sidebarOpen,
   onToggleSidebar,
+  flowByPair = {},
+  outcomeByPair = {},
 }) => {
   const isSplit = feedLayout === "split";
   const isFocus = feedLayout === "focus";
+  const [feedFull, setFeedFull] = useState(false);
+  const toggleFeedFull = useCallback(() => setFeedFull((v) => !v), []);
+  usePulseFullscreen(feedFull, setFeedFull);
+
+  // F opens fullscreen when focus is not in an input (page-level convenience)
+  useEffect(() => {
+    if (feedFull) return undefined;
+    const onKey = (e) => {
+      if (e.key !== "f" && e.key !== "F") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = (e.target?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || e.target?.isContentEditable) return;
+      // Don't steal F when chart modal is open (?pair=)
+      if (new URLSearchParams(window.location.search).get("pair")) return;
+      e.preventDefault();
+      setFeedFull(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [feedFull]);
 
   const listProps = {
     coinHistograms,
+    pairPulseStats,
     selectedCoin,
     openChartModal,
     eventTagClass,
@@ -1566,9 +2974,14 @@ const ActivityFeedPanel = ({
     timeAgo,
     expandedGroups,
     toggleGroup,
+    flowByPair,
+    outcomeByPair,
   };
 
   const headerCount = isSplit ? pumpCount + dumpCount : sideCount;
+  const headerCoins = isSplit
+    ? groupedPump.length + groupedDump.length
+    : coinCount ?? groupedSide.length;
 
   const sideOptions = isFocus
     ? [
@@ -1581,9 +2994,108 @@ const ActivityFeedPanel = ({
         { value: "dump", label: "Dumps", accent: "red" },
       ];
 
-  return (
-    <div className="mp-feed-card overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised">
-      {/* Header strip */}
+  const feedBody = isSplit ? (
+    <div className={`mp-split-grid relative z-10 ${feedFull ? "mp-feed-body-full" : ""}`}>
+      <div className="mp-split-col">
+        <SplitColHeader dir="pump" count={pumpCount} />
+        <div className="mp-feed-list pulse-feed-scroll">
+          {loading && feed.length === 0 ? (
+            <FeedSkeleton />
+          ) : groupedPump.length === 0 ? (
+            <FeedEmpty label="No pumps yet" />
+          ) : (
+            <FeedList grouped={groupedPump} keyPrefix="p" sideHint="pump" {...listProps} />
+          )}
+        </div>
+      </div>
+      <div className="mp-split-col">
+        <SplitColHeader dir="dump" count={dumpCount} />
+        <div className="mp-feed-list pulse-feed-scroll">
+          {loading && feed.length === 0 ? (
+            <FeedSkeleton />
+          ) : groupedDump.length === 0 ? (
+            <FeedEmpty label="No dumps yet" />
+          ) : (
+            <FeedList grouped={groupedDump} keyPrefix="d" sideHint="dump" {...listProps} />
+          )}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className={`mp-feed-list pulse-feed-scroll relative z-10 ${feedFull ? "mp-feed-body-full" : ""}`}>
+      {loading && feed.length === 0 && <FeedSkeleton />}
+      {!loading && groupedSide.length === 0 && callFilter === "called" && !entitled ? (
+        <CalledLocked count={calledCount} />
+      ) : null}
+      {!loading && groupedSide.length === 0 && !(callFilter === "called" && !entitled) && (
+        <FeedEmpty
+          label={
+            feedSide === "pump"
+              ? "No pumps match your filters"
+              : feedSide === "dump"
+                ? "No dumps match your filters"
+                : "No events match your filters"
+          }
+        />
+      )}
+      <FeedList
+        grouped={groupedSide}
+        keyPrefix="s"
+        sideHint={feedSide === "pump" ? "pump" : feedSide === "dump" ? "dump" : "all"}
+        {...listProps}
+      />
+    </div>
+  );
+
+  const headerControls = (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {!isSplit && (
+        <PulseSegGroup options={sideOptions} value={feedSide} onChange={setFeedSide} />
+      )}
+      {typeof changeFeedSort === "function" && (
+        <PulseSegGroup
+          options={[
+            { value: "latest", label: "Latest" },
+            { value: "repeat", label: "Repeat", accent: "emerald" },
+          ]}
+          value={feedSort}
+          onChange={changeFeedSort}
+        />
+      )}
+      <PulseSegGroup
+        options={[
+          { value: "unified", label: "Unified" },
+          { value: "split", label: "Split" },
+          { value: "focus", label: "Focus" },
+        ]}
+        value={feedLayout}
+        onChange={changeLayout}
+      />
+
+      <FullscreenToggleBtn active={feedFull} onClick={toggleFeedFull} />
+
+      {/* Collapse side panel (desktop only, hidden in fullscreen) */}
+      {onToggleSidebar && !feedFull && (
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          aria-expanded={sidebarOpen}
+          aria-label={sidebarOpen ? "Hide side panel" : "Show side panel"}
+          title={sidebarOpen ? "Hide side panel" : "Show side panel"}
+          className="hidden h-7 w-7 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary lg:inline-flex"
+        >
+          {sidebarOpen ? (
+            <IconChevronsRight className="h-3.5 w-3.5" />
+          ) : (
+            <IconChevronsLeft className="h-3.5 w-3.5" />
+          )}
+        </button>
+      )}
+    </div>
+  );
+
+  const cardInner = (
+    <>
       <div className="px-4 py-3 border-b border-ink/[0.06] flex items-center justify-between gap-3 bg-ink/[0.015] flex-shrink-0 relative z-10 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="relative flex h-1.5 w-1.5">
@@ -1593,100 +3105,73 @@ const ActivityFeedPanel = ({
           <h2 className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.2em]">
             Activity Feed
           </h2>
-          <span className="text-[10px] font-mono tabular-nums text-text-muted">{headerCount}</span>
-        </div>
-
-        {/* View controls: layout + side */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {!isSplit && (
-            <PulseSegGroup options={sideOptions} value={feedSide} onChange={setFeedSide} />
-          )}
-          <PulseSegGroup
-            options={[
-              { value: "unified", label: "Unified" },
-              { value: "split", label: "Split" },
-              { value: "focus", label: "Focus" },
-            ]}
-            value={feedLayout}
-            onChange={changeLayout}
-          />
-
-          {/* Collapse side panel (desktop only) */}
-          {onToggleSidebar && (
-            <button
-              type="button"
-              onClick={onToggleSidebar}
-              aria-expanded={sidebarOpen}
-              aria-label={sidebarOpen ? "Hide side panel" : "Show side panel"}
-              title={sidebarOpen ? "Hide side panel" : "Show side panel"}
-              className="hidden h-7 w-7 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary lg:inline-flex"
-            >
-              {sidebarOpen ? (
-                <IconChevronsRight className="h-3.5 w-3.5" />
-              ) : (
-                <IconChevronsLeft className="h-3.5 w-3.5" />
-              )}
-            </button>
+          <span
+            className="text-[10px] font-mono tabular-nums text-text-muted"
+            title={`${headerCount} events · ${headerCoins} coins (grouped)`}
+          >
+            {headerCount}
+            <span className="text-text-muted/50"> · </span>
+            {headerCoins} coins
+          </span>
+          {feedFull && (
+            <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-accent sm:inline">
+              Fullscreen · Esc
+            </span>
           )}
         </div>
+        {headerControls}
       </div>
 
-      {/* Body */}
-      {isSplit ? (
-        <div className="mp-split-grid relative z-10">
-          <div className="mp-split-col">
-            <SplitColHeader dir="pump" count={pumpCount} />
-            <div className="mp-feed-list pulse-feed-scroll">
-              {loading && feed.length === 0 ? (
-                <FeedSkeleton />
-              ) : groupedPump.length === 0 ? (
-                <FeedEmpty label="No pumps yet" />
-              ) : (
-                <FeedList grouped={groupedPump} keyPrefix="p" {...listProps} />
-              )}
-            </div>
-          </div>
-          <div className="mp-split-col">
-            <SplitColHeader dir="dump" count={dumpCount} />
-            <div className="mp-feed-list pulse-feed-scroll">
-              {loading && feed.length === 0 ? (
-                <FeedSkeleton />
-              ) : groupedDump.length === 0 ? (
-                <FeedEmpty label="No dumps yet" />
-              ) : (
-                <FeedList grouped={groupedDump} keyPrefix="d" {...listProps} />
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="mp-feed-list pulse-feed-scroll relative z-10">
-          {loading && feed.length === 0 && <FeedSkeleton />}
-          {!loading && groupedSide.length === 0 && callFilter === "called" && !entitled ? (
-            <CalledLocked count={calledCount} />
-          ) : null}
-          {!loading && groupedSide.length === 0 && !(callFilter === "called" && !entitled) && (
-            <FeedEmpty
-              label={
-                feedSide === "pump"
-                  ? "No pumps match your filters"
-                  : feedSide === "dump"
-                    ? "No dumps match your filters"
-                    : "No events match your filters"
-              }
-            />
-          )}
-          <FeedList grouped={groupedSide} keyPrefix="s" {...listProps} />
-        </div>
-      )}
+      {feedBody}
 
-      {/* Footer */}
       <div className="px-4 py-2 border-t border-ink/[0.06] text-center bg-ink/[0.015] flex-shrink-0 relative z-10">
         <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted">
-          Auto-refresh · 10s
+          {feedFull
+            ? "Fullscreen · F / Esc to exit · Grouped by coin · ×N = repeats · Auto-refresh · 10s"
+            : "Grouped by coin · ×N = repeats · Full for desk view · Auto-refresh · 10s"}
         </span>
       </div>
+    </>
+  );
+
+  // Compact dock when feed is fullscreen (keeps grid height, one-click restore)
+  const dock = feedFull ? (
+    <div className="mp-feed-card overflow-hidden rounded-lg border border-dashed border-accent/30 bg-accent/[0.04]">
+      <div className="flex h-full min-h-[120px] flex-col items-center justify-center gap-2 px-4 py-6 text-center lg:min-h-0">
+        <p className="text-[12px] font-medium text-text-primary">Activity Feed is fullscreen</p>
+        <p className="text-[11px] text-text-muted">Press Esc or F, or restore below</p>
+        <FullscreenToggleBtn active onClick={toggleFeedFull} labelBack="Restore" />
+      </div>
     </div>
+  ) : null;
+
+  const inlineCard = (
+    <div className="mp-feed-card overflow-hidden rounded-lg border border-ink/[0.07] bg-surface-raised">
+      {cardInner}
+    </div>
+  );
+
+  const fullscreenLayer =
+    feedFull &&
+    createPortal(
+      <div
+        className="mp-panel-fullscreen lq-below-header fixed inset-0 z-[100000] flex flex-col bg-surface p-2 sm:p-3"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Activity Feed fullscreen"
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised shadow-2xl">
+          {cardInner}
+        </div>
+      </div>,
+      document.body
+    );
+
+  return (
+    <>
+      {feedFull ? dock : inlineCard}
+      {fullscreenLayer}
+    </>
   );
 };
 
@@ -1699,12 +3184,18 @@ const FeedRow = ({
   eventTagClass,
   eventLabel,
   timeAgo,
+  flow,
+  outcome = null,
+  repeatCount = 0,
+  repeatKind = "events",
 }) => {
   const symbol = stripQuote(event.pair);
   const isPositive = (event.pct_change || 0) >= 0;
   const magnitude = Math.min(Math.abs(event.pct_change || 0) / 10, 1);
   const statusCtx = useSignalStatus();
   const called = !!(statusCtx?.map && statusCtx.map[(event.pair || "").toUpperCase()]);
+  const ticks = flow?.ticks_5m;
+  const chg5 = flow?.chg_5m;
   return (
     <div
       onClick={onSelect}
@@ -1735,6 +3226,7 @@ const FeedRow = ({
             {isPositive ? "+" : ""}
             {event.pct_change}%
           </span>
+          <RepeatBadge count={repeatCount} kind={repeatKind} />
           <span
             className={`text-[9px] px-1.5 py-0.5 rounded-sm border font-mono uppercase tracking-[0.12em] hidden sm:inline-block ${eventTagClass(event)}`}
           >
@@ -1752,12 +3244,38 @@ const FeedRow = ({
               Called
             </button>
           )}
+          {!called && outcome && (
+            <OutcomeBadge
+              outcome={outcome}
+              onClick={(e) => {
+                e.stopPropagation();
+                statusCtx?.openPair?.(event.pair);
+              }}
+            />
+          )}
         </div>
         <p className="text-text-muted text-[10px] mt-1 font-mono tabular-nums">
           {event.pair} ·{" "}
           {event.source === "price_movement"
             ? `${event.move_seconds}s move`
             : `${event.timeframe || "—"} TF`}
+          {ticks != null ? (
+            <>
+              {" · "}
+              <span className={ticks >= 1000 ? "text-accent font-medium" : ""}>
+                {fmtTicks(ticks)} ticks
+              </span>
+            </>
+          ) : null}
+          {chg5 != null ? (
+            <>
+              {" · "}
+              <span className={chg5 >= 0 ? "text-profit/80" : "text-loss/80"}>
+                5m {chg5 >= 0 ? "+" : ""}
+                {chg5.toFixed(2)}%
+              </span>
+            </>
+          ) : null}
         </p>
       </div>
 
@@ -1785,60 +3303,106 @@ const FeedRow = ({
 };
 
 // ── Feed Group Header ───────────────────────────────────
-const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSelectCoin }) => {
+const FeedGroupHeader = ({
+  group,
+  avgPct,
+  expanded,
+  onToggle,
+  isSelected,
+  onSelectCoin,
+  repeatCount,
+  repeatKind = "events",
+}) => {
   const symbol = stripQuote(group.pair);
   const isPos = avgPct >= 0;
   const statusCtx = useSignalStatus();
   const called = !!(statusCtx?.map && statusCtx.map[(group.pair || "").toUpperCase()]);
+  const n = repeatCount || group.events.length;
   const groupHist = group.events
     .map((e) => ({ pct: e.pct_change || 0, bull: e.direction === "bullish" }))
     .reverse();
+  const latest = group.events[0];
+  const pumps = group.pumpCount ?? group.events.filter(isPumpEvent).length;
+  const dumps = group.dumpCount ?? group.events.length - pumps;
   return (
     <div
-      onClick={onSelectCoin}
-      className={`px-4 py-2 border-b border-ink/[0.04] flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-ink/[0.025] ${
+      onClick={onToggle}
+      className={`px-4 py-2.5 border-b border-ink/[0.04] flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-ink/[0.025] ${
         isSelected ? "bg-accent/[0.06]" : "bg-surface-secondary/40"
       }`}
+      title="Click to show / hide pulse history for this coin"
     >
-      <CoinLogo pair={group.pair} size={26} />
-      <div className="flex-1 flex items-center gap-2 min-w-0">
-        <span className="text-text-primary text-[12.5px] font-medium tracking-tight">{symbol}</span>
-        <span className="text-[9px] text-text-muted px-1.5 py-0.5 bg-ink/[0.04] rounded-sm font-mono uppercase tracking-wider">
-          ×{group.events.length} events
-        </span>
-        {called && (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectCoin?.();
+        }}
+        className="flex-shrink-0 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        title={`Open ${symbol} chart`}
+      >
+        <CoinLogo pair={group.pair} size={26} />
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
-              statusCtx?.openPair?.(group.pair);
+              onSelectCoin?.();
             }}
-            className="inline-flex items-center gap-1 rounded-sm border border-transparent bg-accent px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-accent-fg transition-opacity hover:opacity-90"
-            title="LuxQuant call — click for details"
+            className="text-text-primary text-[12.5px] font-medium tracking-tight hover:text-accent transition-colors"
           >
-            Called
+            {symbol}
           </button>
-        )}
+          <RepeatBadge count={n} kind={repeatKind} />
+          {called && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                statusCtx?.openPair?.(group.pair);
+              }}
+              className="inline-flex items-center gap-1 rounded-sm border border-transparent bg-accent px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-accent-fg transition-opacity hover:opacity-90"
+              title="LuxQuant call — click for details"
+            >
+              Called
+            </button>
+          )}
+        </div>
+        <p className="text-text-muted text-[10px] mt-1 font-mono tabular-nums">
+          {group.pair}
+          {repeatKind === "all" || repeatKind === "events"
+            ? ` · ${pumps}↑ ${dumps}↓`
+            : latest
+              ? ` · latest ${latest.event_type || "—"}`
+              : ""}
+          {" · "}
+          <span className="text-text-muted/70">{expanded ? "hide history" : "show history"}</span>
+        </p>
       </div>
-      <MiniSparkbar histogram={groupHist} height={16} gap={2} />
+      <div className="hidden sm:block opacity-80">
+        <MiniSparkbar histogram={groupHist.slice(-10)} height={16} gap={2} />
+      </div>
       <span
         className={`text-[11px] font-mono tabular-nums font-medium min-w-[60px] text-right flex items-center justify-end gap-1 ${
           isPos ? "text-profit" : "text-loss"
         }`}
+        title="Average move across grouped events"
       >
         {isPos ? <IconArrowUpTri /> : <IconArrowDownTri />}
         {isPos ? "+" : ""}
         {avgPct.toFixed(2)}%
       </span>
-      <button
-        onClick={onToggle}
-        className="w-[22px] h-[22px] rounded-sm border border-ink/[0.08] text-text-muted hover:text-text-primary hover:border-ink/20 transition-colors flex items-center justify-center"
+      <span
+        className="w-[22px] h-[22px] rounded-sm border border-ink/[0.08] text-text-muted flex items-center justify-center"
+        aria-hidden
       >
         {expanded ? (
           <IconChevronUp className="h-2.5 w-2.5" />
         ) : (
           <IconChevronDown className="h-2.5 w-2.5" />
         )}
-      </button>
+      </span>
     </div>
   );
 };
@@ -2062,6 +3626,7 @@ function HeatTreemap({ data, height, onPick }) {
 
 const HeatmapPanel = ({ heatmap, _selectedCoin, onSelect, sortMode, onSortChange }) => {
   const [expanded, setExpanded] = useState(false);
+  usePulseFullscreen(expanded, setExpanded);
   const statusCtx = useSignalStatus();
   const calledMap = statusCtx?.map;
 
@@ -2123,25 +3688,7 @@ const HeatmapPanel = ({ heatmap, _selectedCoin, onSelect, sortMode, onSortChange
           right={
             <div className="flex items-center gap-1.5">
               <SortToggle />
-              <button
-                onClick={() => setExpanded(true)}
-                title="Expand heatmap"
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-ink/18 hover:text-text-primary"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="w-3.5 h-3.5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3"
-                  />
-                </svg>
-              </button>
+              <FullscreenToggleBtn active={false} onClick={() => setExpanded(true)} />
             </div>
           }
         />
@@ -2152,36 +3699,27 @@ const HeatmapPanel = ({ heatmap, _selectedCoin, onSelect, sortMode, onSortChange
       {expanded &&
         createPortal(
           <div
-            className="fixed inset-0 z-[95] flex items-end justify-center bg-scrim/80 backdrop-blur-sm sm:items-center sm:p-6"
-            onClick={() => setExpanded(false)}
+            className="mp-panel-fullscreen lq-below-header fixed inset-0 z-[100000] flex flex-col bg-surface p-2 sm:p-3"
             role="dialog"
             aria-modal="true"
-            aria-label="Heatmap expanded"
+            aria-label="Heatmap fullscreen"
           >
-            <div
-              className="relative flex h-[min(92dvh,100%)] w-full max-w-6xl flex-col rounded-t-3xl border-t border-ink/10 bg-surface-raised p-4 shadow-[0_-12px_40px_rgb(var(--scrim) / 0.35)] animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:h-[calc(100vh-3rem)] sm:rounded-2xl sm:border sm:border-ink/12 sm:bg-surface-raised sm:p-6 sm:shadow-2xl sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-1 flex justify-center sm:hidden" aria-hidden="true">
-                <div className="h-1 w-10 rounded-full bg-ink/20" />
-              </div>
-              <span className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent sm:block" />
-              <div className="mb-3 flex shrink-0 items-center justify-between sm:mb-4">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-ink/[0.1] bg-surface-raised p-3 shadow-2xl sm:p-4">
+              <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="text-[15px] font-semibold text-text-primary">Heatmap</span>
+                  <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-text-primary">
+                    Heatmap
+                  </span>
                   <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted">
                     {withCalled.length} coins · 1h
+                  </span>
+                  <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-accent sm:inline">
+                    Fullscreen · Esc
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <SortToggle big />
-                  <button
-                    onClick={() => setExpanded(false)}
-                    className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/10 text-text-muted hover:border-ink/25 hover:text-text-primary"
-                    aria-label="Close"
-                  >
-                    ✕
-                  </button>
+                  <FullscreenToggleBtn active onClick={() => setExpanded(false)} />
                 </div>
               </div>
               <div className="min-h-0 flex-1">
@@ -2447,9 +3985,15 @@ const FeedSkeleton = () => (
 // COIN CHART MODAL — TradingView embed (logic identical, UI redesigned)
 // ════════════════════════════════════════════════════════
 
-const CoinChartModal = ({ pair, onClose }) => {
+const CoinChartModal = ({ pair, onClose, outcome = null }) => {
   const symbol = stripQuote(pair);
   const tvSymbol = `BINANCE:${pair}.P`;
+  const statusCtx = useSignalStatus();
+  const entitled = !!statusCtx?.entitled;
+  const callInfo = statusCtx?.map?.[(pair || "").toUpperCase()];
+  const stMeta = callInfo
+    ? STATUS_META[(callInfo.status || "open").toLowerCase()] || STATUS_META.open
+    : null;
 
   const [tvInterval, setTvInterval] = useState("60");
   const [metrics, setMetrics] = useState({
@@ -2459,8 +4003,31 @@ const CoinChartModal = ({ pair, onClose }) => {
     ratio: null,
   });
   const [isClosing, setIsClosing] = useState(false);
+  // Expanded fullscreen also unlocks richer TV chrome (one control, not two)
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      return localStorage.getItem("mp_chart_expanded") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const tvContainerRef = useRef(null);
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("mp_chart_expanded", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const openFullTradingView = useCallback(() => {
+    const url = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [tvSymbol]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -2477,13 +4044,26 @@ const CoinChartModal = ({ pair, onClose }) => {
     }, 180);
   }, [onClose]);
 
+  const switchToSignal = useCallback(() => {
+    // Keep chart open underneath; signal sheet is higher z-index
+    statusCtx?.openPair?.(pair);
+  }, [statusCtx, pair]);
+
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape") {
+        if (statusCtx?.modalPair) return; // let signal sheet handle Esc first
+        handleClose();
+      }
+      if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey) {
+        const tag = (e.target?.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
+        toggleExpanded();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleClose]);
+  }, [handleClose, toggleExpanded, statusCtx?.modalPair]);
 
   // Fetch metrics — IDENTICAL logic (external Binance/Bybit public APIs,
   // tidak melalui backend kita, jadi tetap pakai fetch() biasa)
@@ -2616,7 +4196,7 @@ const CoinChartModal = ({ pair, onClose }) => {
   const [appTheme, setAppTheme] = useState(getActiveTheme);
   useEffect(() => subscribeTheme(setAppTheme), []);
 
-  // Mount TradingView — theme-aware via shared desk palette
+  // Mount TradingView — theme-aware; full desk unlocks TV chrome
   useEffect(() => {
     const container = tvContainerRef.current;
     if (!container) return;
@@ -2628,8 +4208,15 @@ const CoinChartModal = ({ pair, onClose }) => {
       interval: tvInterval,
       studies: ["STD;EMA"],
       save_image: false,
+      hide_side_toolbar: false,
+      hide_top_toolbar: false,
+      withdateranges: !!expanded,
+      details: !!expanded,
+      allow_symbol_change: !!expanded,
+      hotlist: false,
+      calendar: false,
     });
-  }, [tvSymbol, tvInterval, appTheme]);
+  }, [tvSymbol, tvInterval, appTheme, expanded]);
 
   const last = metrics.ticker?.last;
   const change = metrics.ticker?.changePct;
@@ -2646,30 +4233,40 @@ const CoinChartModal = ({ pair, onClose }) => {
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[100000] flex justify-center ${
+      className={`lq-modal-safe lq-scrim-bg fixed inset-0 z-[100000] flex justify-center ${
         isClosing
           ? "animate-[mpfade-out_.18s_ease-in_forwards]"
           : "animate-[mpfade-in_.22s_ease-out]"
-      } items-end sm:items-start sm:px-6 md:px-8 sm:pt-[72px] sm:pb-6`}
-      style={{ backgroundColor: "rgb(var(--scrim) / 0.78)", backdropFilter: "blur(8px)" }}
+      } ${
+        // The hand-tuned `sm:pt-[72px]` that used to sit here is gone: it was a
+        // second, stale copy of the header clearance, and .lq-modal-safe now
+        // supplies the measured one.
+        expanded ? "items-stretch p-0" : "items-end sm:items-start sm:px-6 md:px-8 sm:pb-6"
+      }`}
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${symbol} chart`}
     >
-      {/* Mobile: bottom sheet (Top Gainers Filters grammar). Desktop: centered panel. */}
+      {/* Mobile: bottom sheet. Desktop: centered panel. Expanded: true fullscreen. */}
       <div
-        className={`relative flex w-full max-w-[1180px] flex-col overflow-hidden bg-surface-raised shadow-[0_-12px_40px_rgb(var(--scrim) / 0.35)] min-h-0 ${
+        className={`relative flex w-full flex-col overflow-hidden bg-surface-raised min-h-0 ${
           isClosing
             ? "animate-[mpsheet-out_.2s_ease-in_forwards] sm:animate-[mppanel-out_.18s_ease-in_forwards]"
             : "animate-[mpsheet-in_.3s_cubic-bezier(.16,1,.3,1)] sm:animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
-        } h-[min(92dvh,100%)] max-h-[92dvh] rounded-t-3xl border-t border-ink/10 sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:bg-surface-raised sm:shadow-[0_24px_80px_-12px_rgb(var(--scrim) / 0.8)]`}
+        } ${
+          expanded
+            ? "h-[100dvh] max-h-[100dvh] max-w-none rounded-none border-0 shadow-none sm:h-[100dvh] sm:max-h-[100dvh] sm:rounded-none"
+            : "h-[min(92dvh,100%)] max-h-[92dvh] max-w-[1180px] rounded-t-3xl border-t border-ink/10 shadow-[0_-12px_40px_rgb(var(--scrim)/0.35)] sm:h-[calc(100dvh-110px)] sm:max-h-[920px] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-[0_24px_80px_-12px_rgb(var(--scrim)/0.8)]"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Grab handle — mobile only */}
-        <div className="flex justify-center pt-2.5 pb-0.5 sm:hidden shrink-0" aria-hidden="true">
-          <div className="h-1 w-10 rounded-full bg-ink/20" />
-        </div>
+        {/* Grab handle — mobile only (hidden when expanded) */}
+        {!expanded && (
+          <div className="flex justify-center pt-2.5 pb-0.5 sm:hidden shrink-0" aria-hidden="true">
+            <div className="h-1 w-10 rounded-full bg-ink/20" />
+          </div>
+        )}
 
         {/* Top accent line — desktop */}
         <div
@@ -2687,8 +4284,35 @@ const CoinChartModal = ({ pair, onClose }) => {
                   {symbol}
                 </span>
                 <span className="text-text-muted text-[10px] font-mono tabular-nums">{pair}</span>
+                {callInfo && stMeta && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em]"
+                    style={{
+                      color: stMeta.color,
+                      borderColor: `color-mix(in srgb, ${stMeta.color} 35%, transparent)`,
+                      background: `color-mix(in srgb, ${stMeta.color} 12%, transparent)`,
+                    }}
+                    title={stMeta.desc}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: stMeta.color }}
+                    />
+                    {stMeta.label}
+                    {callInfo.created ? ` · ${signalTimeAgo(callInfo.created) || ""}` : ""}
+                  </span>
+                )}
+                {!callInfo && outcome && (
+                  <OutcomeBadge
+                    outcome={outcome}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      switchToSignal();
+                    }}
+                  />
+                )}
               </div>
-              <div className="flex items-baseline gap-2 mt-1.5">
+              <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
                 <span className="text-text-primary font-mono tabular-nums text-sm sm:text-base font-semibold leading-none tracking-tight">
                   {last != null ? `$${formatPrice(last)}` : "—"}
                 </span>
@@ -2712,14 +4336,71 @@ const CoinChartModal = ({ pair, onClose }) => {
             </div>
           </div>
 
-          <button
-            onClick={handleClose}
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary"
-            aria-label="Close"
-          >
-            <IconClose />
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1.5">
+            {callInfo && (
+              <SwitchToSignalButton
+                size="md"
+                onClick={switchToSignal}
+                className="hidden xs:inline-flex sm:inline-flex"
+              />
+            )}
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary"
+              aria-label={expanded ? "Exit fullscreen" : "Expand fullscreen"}
+              title={expanded ? "Exit fullscreen (F)" : "Expand fullscreen (F)"}
+            >
+              {expanded ? <IconCollapse /> : <IconExpand />}
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/12 bg-surface-secondary text-text-secondary transition-colors hover:border-ink/25 hover:text-text-primary"
+              aria-label="Close"
+            >
+              <IconClose />
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Switch CTA when called — full width under header */}
+        {callInfo && (
+          <div className="flex sm:hidden shrink-0 border-b border-ink/[0.05] px-4 py-2 bg-accent/[0.04]">
+            <SwitchToSignalButton size="md" onClick={switchToSignal} className="w-full justify-center" />
+          </div>
+        )}
+
+        {/* Free teaser: plan already hit TP3/TP4 on this pair */}
+        {!callInfo && outcome && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/15 bg-accent/[0.06] px-4 py-2 sm:px-5">
+            <p className="text-[11px] text-text-secondary">
+              <span className="font-semibold text-accent">
+                LuxQuant plan reached {outcome.label || "TP3+"}
+              </span>
+              {outcome.peak_pct != null ? (
+                <span className="font-mono text-profit">
+                  {" "}
+                  · {Number(outcome.peak_pct) >= 0 ? "+" : ""}
+                  {Number(outcome.peak_pct).toFixed(1)}%
+                </span>
+              ) : null}
+              {outcome.hours_to_hit != null ? (
+                <span className="text-text-muted"> · {outcome.hours_to_hit}h after call</span>
+              ) : null}
+              {!entitled ? (
+                <span className="text-text-muted"> — unlock for entry → TP path</span>
+              ) : null}
+            </p>
+            <button
+              type="button"
+              onClick={switchToSignal}
+              className="inline-flex h-7 items-center rounded-md bg-accent px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-fg"
+            >
+              {entitled ? "Open signal" : "Unlock full plan"}
+            </button>
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="px-4 sm:px-5 py-2 border-b border-ink/[0.04] flex items-center justify-between gap-3 bg-ink/[0.01] flex-shrink-0 flex-wrap relative z-10">
@@ -2739,15 +4420,15 @@ const CoinChartModal = ({ pair, onClose }) => {
             ))}
           </div>
 
-          <a
-            href={tvFullUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1 rounded-md text-[10px] font-medium uppercase tracking-[0.12em] border bg-ink/[0.03] text-text-muted border-ink/[0.06] hover:text-text-primary hover:border-ink/[0.14] transition-all flex items-center gap-1.5"
+          <button
+            type="button"
+            onClick={openFullTradingView}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-ink/[0.1] bg-surface-secondary text-text-muted transition-colors hover:border-accent/35 hover:text-accent"
+            title="Open on TradingView.com"
+            aria-label="Open on TradingView.com"
           >
-            <IconExternal />
-            <span>Open in TradingView</span>
-          </a>
+            <IconExternal className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Chart — Flowscan chart-surface bg */}
@@ -2793,8 +4474,11 @@ const CoinChartModal = ({ pair, onClose }) => {
         <div className="px-4 sm:px-5 py-2 border-t border-ink/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted bg-ink/[0.01] flex-shrink-0 relative z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-2">
           <span className="uppercase tracking-[0.15em]">
             Chart · TradingView · Metrics · Binance Futures
+            {callInfo ? " · Called" : ""}
           </span>
-          <span className="hidden uppercase tracking-[0.15em] sm:inline">ESC to close</span>
+          <span className="hidden uppercase tracking-[0.15em] sm:inline">
+            {expanded ? "F exit full · " : "F expand · "}ESC close
+          </span>
         </div>
       </div>
     </div>
@@ -2959,6 +4643,23 @@ const PulseStyles = () => (
  .animate-pulse-tape:hover {
  animation-play-state: paused;
  }
+ /* Recent Wins marquee — faster than top tape so motion is obvious */
+ @keyframes wins-marquee-scroll {
+ 0% { transform: translate3d(0, 0, 0); }
+ 100% { transform: translate3d(-50%, 0, 0); }
+ }
+ .animate-wins-marquee {
+ animation: wins-marquee-scroll 28s linear infinite;
+ }
+ .group\/wins:hover .animate-wins-marquee {
+ animation-play-state: paused;
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .animate-pulse-tape,
+ .animate-wins-marquee {
+ animation: none !important;
+ }
+ }
  .pulse-feed-scroll::-webkit-scrollbar { width: 5px; }
  .pulse-feed-scroll::-webkit-scrollbar-track { background: transparent; }
  .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.12); border-radius: 3px; }
@@ -3024,9 +4725,9 @@ const PulseStyles = () => (
  .mp-sidebar-rail { display: none; }
  @media (min-width: 1024px) {
  .mp-main-grid {
- grid-template-columns: 1.7fr 1fr;
+ grid-template-columns: minmax(0, 2.35fr) minmax(240px, 0.9fr);
  align-items: stretch;
- min-height: 600px;
+ min-height: min(78vh, 820px);
  transition: grid-template-columns .28s cubic-bezier(.4, 0, .2, 1);
  }
  .mp-main-grid.mp-sidebar-collapsed {
@@ -3070,6 +4771,23 @@ const PulseStyles = () => (
  flex: 1;
  min-height: 0;
  }
+ /* Activity Feed / panel true fullscreen (TradingView-style desk) */
+ .mp-panel-fullscreen .mp-feed-list,
+ .mp-panel-fullscreen .mp-feed-body-full {
+ flex: 1 1 auto;
+ max-height: none !important;
+ min-height: 0;
+ height: 100%;
+ }
+ .mp-panel-fullscreen .mp-split-grid {
+ flex: 1 1 auto;
+ min-height: 0;
+ height: 100%;
+ }
+ .mp-panel-fullscreen .mp-split-col {
+ min-height: 0;
+ height: 100%;
+ }
  .mp-sidebar-col {
  display: flex;
  flex-direction: column;
@@ -3084,7 +4802,10 @@ const PulseStyles = () => (
  @media (max-width: 1023px) {
  .mp-feed-col, .mp-sidebar-col { display: block; }
  .mp-sidebar-col > * + * { margin-top: 10px; }
- .mp-feed-list { max-height: 500px; overflow-y: auto; }
+ .mp-feed-list { max-height: min(70vh, 640px); overflow-y: auto; }
+ }
+ @media (min-width: 1024px) {
+ .mp-feed-list { min-height: 0; }
  }
  `}</style>
 );

@@ -1,33 +1,23 @@
 // src/components/ui/Loaders.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Loading system (v1)
-// Best-practice loading UX (Facebook/LinkedIn/YouTube pattern):
-// • LoadingScreen — branded full-screen loader for COLD BOOT and
-// full-page route transitions (logo + gold ring + shimmer bar).
-// Visually identical to the zero-JS pre-boot loader in index.html
-// so the handoff is seamless (no flash / no layout jump).
-// • Skeleton / PageSkeleton — content placeholders for IN-APP route
-// & data loads. Skeletons feel ~20–30% faster than spinners and
-// kill layout shift by mirroring the final layout.
-// Spinners are reserved for short discrete actions (save/auth/pay).
+// Loading system — top-app pattern (Linear / Stripe / Coinbase / Apple)
+//
+// Cold boot & full-page: thin spinner only. No logo, no wordmark.
+// Branding on every load reads amateur; product apps stay silent.
+// In-app routes: PageSkeleton (content placeholders, no brand stamp).
+// Spinners: short discrete actions (save / auth / pay) only.
 // ════════════════════════════════════════════════════════════════
 
-const BRAND_BG = "#0a0506";
-const GOLD = "rgb(var(--accent))";
-
-// ── Shared shimmer keyframes (injected once per loader instance) ──
+// ── Shared keyframes (injected once per loader instance) ──
 export const ShimmerStyles = () => (
   <style>{`
  @keyframes lqShimmer { 100% { transform: translateX(100%); } }
  @keyframes lqSpin { to { transform: rotate(360deg); } }
- @keyframes lqBreathe { 0%,100% { opacity:.85; transform: scale(1); } 50% { opacity:1; transform: scale(1.04); } }
- @keyframes lqBarSlide { 0% { left:-40%; } 100% { left:100%; } }
  @keyframes lqFadeIn { from { opacity:0; } to { opacity:1; } }
  .lqsk { position: relative; overflow: hidden; background: rgb(var(--ink) / 0.05); border-radius: 8px; }
  .lqsk::after { content:""; position:absolute; inset:0; transform: translateX(-100%);
  background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.07), transparent);
  animation: lqShimmer 1.4s infinite; }
- /* Group shimmer: one sweep across an existing multi-bar skeleton block */
  .lqsk-group { position: relative; overflow: hidden; }
  .lqsk-group::after { content:""; position:absolute; inset:0; transform: translateX(-100%); pointer-events:none;
  background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.06), transparent);
@@ -35,109 +25,46 @@ export const ShimmerStyles = () => (
  `}</style>
 );
 
-// ═══════════════════════════════════════════
-// LoadingScreen — branded full-screen loader
-// ═══════════════════════════════════════════
-export function LoadingScreen({ label = "Loading LuxQuant", fullscreen = true }) {
+/**
+ * Minimal full-screen (or block) loader.
+ * Same visual language as index.html preboot — seamless handoff.
+ * @param {string} [label] — screen-reader only (not shown)
+ * @param {boolean} [fullscreen=true]
+ */
+export function LoadingScreen({ label = "Loading", fullscreen = true }) {
   return (
     <div
-      className={`${fullscreen ? "fixed inset-0" : "min-h-[60vh] w-full"} z-[90000] flex items-center justify-center`}
-      style={{ background: fullscreen ? BRAND_BG : "transparent", animation: "lqFadeIn .2s ease" }}
+      className={`${fullscreen ? "lq-modal-safe fixed inset-0" : "min-h-[50vh] w-full"} z-[90000] flex items-center justify-center`}
+      style={{
+        // Solid surface — match preboot handoff; avoid theme flash
+        background: fullscreen ? "#0a0506" : "transparent",
+        animation: "lqFadeIn .18s ease",
+      }}
       role="status"
       aria-live="polite"
       aria-label={label}
     >
       <ShimmerStyles />
-      {/* faint radial gold glow behind emblem */}
+      {/* Quiet spinner — Stripe / Linear weight */}
       <div
-        className="pointer-events-none absolute"
-        style={{
-          width: 340,
-          height: 340,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${GOLD}22 0%, transparent 62%)`,
-          filter: "blur(6px)",
-        }}
-      />
-      <div className="relative flex flex-col items-center gap-6">
-        {/* Emblem: rotating gold ring + breathing logo */}
-        <div className="relative" style={{ width: 72, height: 72 }}>
-          <span
-            className="absolute inset-0 rounded-full"
-            style={{ border: `2px solid ${GOLD}22` }}
-          />
-          <span
-            className="absolute inset-0 rounded-full"
-            style={{
-              border: "2px solid transparent",
-              borderTopColor: GOLD,
-              borderRightColor: `${GOLD}99`,
-              animation: "lqSpin 0.9s linear infinite",
-            }}
-          />
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ animation: "lqBreathe 2.4s ease-in-out infinite" }}
-          >
-            <img
-              src="/logo.png"
-              alt="LuxQuant"
-              width={34}
-              height={34}
-              style={{ objectFit: "contain" }}
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Wordmark */}
-        <div className="flex flex-col items-center gap-3">
-          <span
-            className="font-mono uppercase"
-            style={{
-              color: "rgb(var(--fg))",
-              fontSize: 13,
-              letterSpacing: "0.42em",
-              textIndent: "0.42em",
-              fontWeight: 600,
-            }}
-          >
-            LuxQuant
-          </span>
-          {/* Indeterminate shimmer bar */}
-          <div
-            style={{
-              position: "relative",
-              width: 140,
-              height: 2,
-              borderRadius: 2,
-              background: "rgb(var(--ink) / 0.08)",
-              overflow: "hidden",
-            }}
-          >
-            <span
-              style={{
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                width: "40%",
-                borderRadius: 2,
-                background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`,
-                animation: "lqBarSlide 1.15s ease-in-out infinite",
-              }}
-            />
-          </div>
-          {label ? (
-            <span
-              className="font-mono"
-              style={{ color: "rgb(var(--fg-muted))", fontSize: 10, letterSpacing: "0.16em" }}
-            >
-              {label}…
-            </span>
-          ) : null}
-        </div>
+        className="relative shrink-0"
+        style={{ width: 28, height: 28 }}
+        aria-hidden
+      >
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{
+            border: "1.5px solid rgb(255 255 255 / 0.08)",
+          }}
+        />
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{
+            border: "1.5px solid transparent",
+            borderTopColor: "rgb(255 255 255 / 0.55)",
+            animation: "lqSpin 0.7s linear infinite",
+          }}
+        />
       </div>
     </div>
   );
@@ -152,9 +79,7 @@ export function Skeleton({ className = "", style }) {
 
 // ═══════════════════════════════════════════
 // PageSkeleton — generic content app-shell placeholder
-// Used as the Suspense fallback for in-shell route content. Mirrors the
-// common terminal layout (eyebrow + title, stat cards, then a data list)
-// so route switches feel instant and don't shift layout.
+// Used as Suspense fallback for in-shell route content.
 // ═══════════════════════════════════════════
 export function PageSkeleton() {
   return (

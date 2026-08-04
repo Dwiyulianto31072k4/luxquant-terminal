@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalJourneyExtended from "./SignalJourneyExtended";
@@ -192,31 +193,32 @@ const TopPerformers = () => {
 
   if (loading && !data) {
     return (
-      <div className="mb-10">
+      <div className="relative">
         <ShimmerStyles />
-        {/* Skeleton mirrors the loaded layout — flush, no panel. When this drew a
- boxed card the border vanished the moment data arrived, which read as the
- section jumping. Same rhythm in, same rhythm out. */}
-        <div className="lqsk-group relative">
-          <div className="py-1">
-            <div className="h-7 w-44 rounded bg-ink/[0.05]" />
-            <div className="mt-2 h-3 w-52 rounded bg-ink/[0.03]" />
+        {/* Gate-style soft card skeleton — same shell as loaded state */}
+        <div className="lqsk-group relative overflow-hidden rounded-2xl border border-ink/[0.05] bg-surface-raised p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="h-6 w-40 rounded-md bg-ink/[0.05]" />
+              <div className="mt-2 h-3 w-56 rounded bg-ink/[0.03]" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-8 w-24 rounded-lg bg-ink/[0.04]" />
+              <div className="h-8 w-20 rounded-lg bg-ink/[0.04]" />
+            </div>
           </div>
-          <div className="mt-5 flex gap-6 border-b border-ink/[0.09] pb-2.5">
-            {[...Array(4)].map((_, j) => (
-              <div key={j} className="h-3.5 w-16 rounded bg-ink/[0.05]" />
-            ))}
-          </div>
-          <div className="divide-y divide-ink/[0.04]">
+          <div className="mt-5 h-px bg-ink/[0.06]" />
+          <div className="mt-1 divide-y divide-ink/[0.04]">
             {[...Array(8)].map((_, j) => (
               <div key={j} className="flex items-center gap-3 py-3.5">
-                <div className="h-4 w-4 shrink-0 rounded bg-ink/[0.04]" />
+                <div className="h-3.5 w-5 shrink-0 rounded bg-ink/[0.04]" />
                 <div className="h-8 w-8 shrink-0 rounded-full bg-ink/[0.05]" />
                 <div className="min-w-0 flex-1">
-                  <div className="h-3.5 w-20 rounded bg-ink/[0.05]" />
-                  <div className="mt-1.5 h-2.5 w-28 rounded bg-ink/[0.03]" />
+                  <div className="h-3.5 w-24 rounded bg-ink/[0.05]" />
+                  <div className="mt-1.5 h-2.5 w-20 rounded bg-ink/[0.03]" />
                 </div>
-                <div className="hidden h-5 w-16 rounded bg-ink/[0.03] sm:block" />
+                <div className="hidden h-4 w-16 rounded bg-ink/[0.03] sm:block" />
+                <div className="hidden h-5 w-20 rounded bg-ink/[0.03] md:block" />
                 <div className="h-4 w-14 shrink-0 rounded bg-ink/[0.05]" />
               </div>
             ))}
@@ -226,13 +228,9 @@ const TopPerformers = () => {
     );
   }
 
-  // Quiet mono rank — no medals, no gold badges
+  // Uniform rank — Gate style, no top-3 medals
   const rankBadge = (rank) => (
-    <span
-      className={`inline-flex w-5 shrink-0 justify-center font-mono text-[11px] tabular-nums sm:w-6 sm:text-[12px] ${
-        rank <= 3 ? "text-text-primary/55" : "text-text-primary/30"
-      }`}
-    >
+    <span className="inline-flex w-5 shrink-0 justify-center font-mono text-[12px] tabular-nums text-text-muted sm:w-6">
       {rank}
     </span>
   );
@@ -241,51 +239,34 @@ const TopPerformers = () => {
 
   return (
     <div className="relative">
-      {/* Was flush and borderless on purpose, back when it was the only block on
- the page. Everything around it is a card now, so staying flush read as a
- mistake rather than a choice. Row hover still bleeds past the text margin,
- which is what keeps a borderless table reading as a table inside the card. */}
-      <div className="relative rounded-xl border border-ink/[0.06] bg-surface-raised p-4 sm:p-5">
-        {/* Section head */}
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+      {/* Gate-inspired soft market card: airy padding, quiet border, no chrome */}
+      <div className="relative overflow-hidden rounded-2xl border border-ink/[0.05] bg-surface-raised p-5 sm:p-6">
+        {/* Header + controls in one row (Gate Koin Hot / Gainer pattern) */}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h2 className="font-display text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-[17px] font-semibold tracking-tight text-text-primary sm:text-xl">
                 LuxQuant Calls
               </h2>
               {resultCount > 0 && (
-                <span className="rounded border border-ink/[0.09] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-text-muted">
                   {resultCount}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[12.5px] leading-snug text-text-muted">
-              Resolved signal leaderboard · open a row for call proof
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12.5px] leading-snug text-text-muted">
+              <span>Resolved signal leaderboard · open a row for call proof</span>
+              {periodRange.from ? (
+                <span className="font-mono text-[11px] tabular-nums text-text-muted/75">
+                  · {periodRange.from}
+                  {periodRange.to ? ` – ${periodRange.to}` : ""}
+                </span>
+              ) : null}
             </p>
           </div>
-        </div>
 
-        {/* Category tabs + range — toolbar */}
-        {data && data.top_gainers?.length > 0 && (
-          <div>
-            {/* Tabs ride ON the table's top hairline (-mb-px), so the active
- underline replaces that line instead of stacking a second one under it.
- Range control shares the row — one bar, not a stack of toolbars. */}
-            {/* Two dropdowns instead of a tab strip beside a pill group. Four
-                tabs plus five pills stopped fitting the row long before the
-                viewport got small, and the widths shifted with every label. */}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-ink/[0.09] pb-3">
-              {/* The window belongs beside the controls that set it, not floating
-                  in the header with nothing to balance it on the left. */}
-              <span className="font-mono text-[11px] tabular-nums text-text-muted">
-                {periodRange.from ? (
-                  <>
-                    {periodRange.from}
-                    {periodRange.to ? ` – ${periodRange.to}` : ""}
-                  </>
-                ) : null}
-              </span>
-              <div className="flex items-center gap-2">
+          {data && data.top_gainers?.length > 0 && (
+            <div className="flex shrink-0 items-center gap-2">
               <GateSelect
                 label="View"
                 value={category}
@@ -302,66 +283,65 @@ const TopPerformers = () => {
                   hint: short && label !== short ? label : undefined,
                 }))}
               />
-              </div>
             </div>
+          )}
+        </div>
 
-            {showCustom && (
-              <div className="grid grid-cols-2 gap-2 border-b border-ink/[0.07] py-3 sm:flex sm:flex-wrap sm:items-end">
-                <label className="flex min-w-0 flex-col gap-1">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-                    {t("top.from")}
-                  </span>
-                  <input
-                    type="date"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary focus:border-ink/25 focus:outline-none"
-                  />
-                </label>
-                <label className="flex min-w-0 flex-col gap-1">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-                    {t("top.to")}
-                  </span>
-                  <input
-                    type="date"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary focus:border-ink/25 focus:outline-none"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={handleCustomApply}
-                  disabled={!customFrom || !customTo}
-                  className="col-span-2 rounded-md border border-ink/15 bg-ink/[0.08] py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.12] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-5"
-                >
-                  {t("top.apply")}
-                </button>
-              </div>
-            )}
+        {data && data.top_gainers?.length > 0 && showCustom && (
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3 sm:flex sm:flex-wrap sm:items-end">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                {t("top.from")}
+              </span>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="w-full min-w-0 rounded-lg border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary focus:border-ink/25 focus:outline-none"
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                {t("top.to")}
+              </span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="w-full min-w-0 rounded-lg border border-ink/10 bg-surface-raised px-2.5 py-1.5 font-mono text-[11px] text-text-primary focus:border-ink/25 focus:outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleCustomApply}
+              disabled={!customFrom || !customTo}
+              className="col-span-2 rounded-lg border border-ink/12 bg-ink/[0.06] py-2 text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.1] disabled:opacity-30 sm:col-span-1 sm:ml-auto sm:px-5"
+            >
+              {t("top.apply")}
+            </button>
           </div>
         )}
 
         {data && (!data.top_gainers || data.top_gainers.length === 0) && (
-          <div className="border-t border-ink/[0.07] py-14 text-center">
+          <div className="mt-6 border-t border-ink/[0.05] py-14 text-center">
             <p className="text-[13px] text-text-muted">{t("top.no_tp")}</p>
           </div>
         )}
 
         {data && data.top_gainers?.length > 0 && (
-          <div className={loading ? "opacity-50 transition-opacity" : ""}>
-            {/* Inline proof cue — lives inside the card, not a floating global toast */}
+          <div className={`mt-5 ${loading ? "opacity-50 transition-opacity" : ""}`}>
+            {/* Quiet proof cue */}
             {showProofHint && !modalOpen && (
               <div
                 role="status"
                 aria-live="polite"
-                className={`mt-3 flex items-center gap-2.5 overflow-hidden rounded-lg border border-ink/[0.09] bg-ink/[0.02] px-3 py-2 transition-all duration-400 ${
+                className={`mb-3 flex items-center gap-2.5 overflow-hidden rounded-xl bg-ink/[0.03] px-3 py-2 transition-all duration-400 ${
                   isProofHintClosing
-                    ? "max-h-0 opacity-0 border-transparent py-0 mt-0"
+                    ? "mb-0 max-h-0 opacity-0 py-0"
                     : "max-h-20 opacity-100 animate-[proofHintIn_.28s_ease-out]"
                 }`}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-ink/[0.08] bg-ink/[0.04] text-text-primary/65">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink/[0.05] text-text-muted">
                   <svg
                     viewBox="0 0 24 24"
                     fill="currentColor"
@@ -371,36 +351,25 @@ const TopPerformers = () => {
                     <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
                   </svg>
                 </span>
-                <p className="min-w-0 flex-1 text-[12px] leading-snug text-text-primary/80">
+                <p className="min-w-0 flex-1 text-[12px] leading-snug text-text-muted">
                   <span className="font-medium text-text-primary">Call proof</span>
-                  <span className="text-text-muted">
-                    {" "}
-                    — open any row for the original call, targets, and charts.
-                  </span>
+                  {" — open any row for the original call, targets, and charts."}
                 </p>
               </div>
             )}
 
-            {/* Column headers — desk table */}
-            <div className="hidden border-b border-ink/[0.07] py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.5fr)_6.5rem_minmax(4.5rem,1fr)_6rem_8.5rem_1.25rem] sm:items-center sm:gap-3">
-              <span className="text-center text-[11px] font-medium text-text-muted">
-                #
-              </span>
-              <span className="text-[11px] font-medium text-text-muted">
-                Token
-              </span>
+            {/* Column headers — SignalsTable-style single band */}
+            <div className="hidden border-b border-ink/[0.06] py-2 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_6.75rem_minmax(4.5rem,1fr)_5.75rem_6.5rem_1.25rem] sm:items-center sm:gap-3">
+              <span className="text-center text-[11px] font-medium text-text-muted">#</span>
+              <span className="text-[11px] font-medium text-text-muted">Token</span>
               <span className="text-right text-[11px] font-medium text-text-muted">
-                {t("top.first_entry") || "Entry"}
+                {t("top.first_entry") || "First Entry"}
               </span>
-              <span className="text-center text-[11px] font-medium text-text-muted">
-                Path
-              </span>
+              <span className="text-center text-[11px] font-medium text-text-muted">Path</span>
               <span className="text-right text-[11px] font-medium text-text-muted">
-                {t("top.duration") || "Time"}
+                {t("top.duration") || "Duration"}
               </span>
-              <span className="text-right text-[11px] font-medium text-text-muted">
-                Gain
-              </span>
+              <span className="text-right text-[11px] font-medium text-text-muted">Gain</span>
               <span />
             </div>
 
@@ -421,30 +390,24 @@ const TopPerformers = () => {
                         handleItemClick(item);
                       }
                     }}
-                    style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
-                    className="tp-row group -mx-3 cursor-pointer px-3 transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none sm:-mx-4 sm:px-4"
+                    style={{ animationDelay: `${Math.min(idx * 16, 160)}ms` }}
+                    className="tp-row group -mx-2 cursor-pointer px-2 transition-colors hover:bg-ink/[0.028] active:bg-ink/[0.04] focus-visible:bg-ink/[0.03] focus-visible:outline-none sm:-mx-3 sm:px-3"
                   >
-                    {/* Desktop row */}
-                    <div className="hidden items-center gap-3 py-2.5 sm:grid sm:grid-cols-[2rem_minmax(0,1.5fr)_6.5rem_minmax(4.5rem,1fr)_6rem_8.5rem_1.25rem]">
+                    {/* Desktop — strict single line, no stacked subtext */}
+                    <div className="hidden h-12 items-center gap-3 sm:grid sm:grid-cols-[2rem_minmax(0,1.4fr)_6.75rem_minmax(4.5rem,1fr)_5.75rem_6.5rem_1.25rem]">
                       <div className="flex justify-center">{rankBadge(rank)}</div>
 
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <CoinLogo pair={cleanPair(item.pair)} size={30} />
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 items-baseline gap-1.5">
-                            <span className="truncate font-mono text-[13.5px] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-text-primary">
-                              {coinSymbol(item.pair)}
-                            </span>
-                            <span className="shrink-0 font-mono text-[10px] text-text-primary/28">
-                              USDT
-                            </span>
-                          </div>
-                          {multi && (
-                            <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted/70">
-                              {item.signal_count} calls in window
-                            </p>
-                          )}
-                        </div>
+                        <CoinLogo pair={cleanPair(item.pair)} size={26} />
+                        <span className="truncate text-[13px] font-semibold tracking-tight text-text-primary">
+                          {coinSymbol(item.pair)}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-text-muted">USDT</span>
+                        {multi && (
+                          <span className="shrink-0 rounded bg-ink/[0.05] px-1 py-px font-mono text-[10px] tabular-nums text-text-muted">
+                            ×{item.signal_count}
+                          </span>
+                        )}
                       </div>
 
                       <div className="whitespace-nowrap text-right font-mono text-[13px] tabular-nums text-text-primary">
@@ -452,32 +415,27 @@ const TopPerformers = () => {
                       </div>
 
                       <div className="flex justify-center px-1">
-                        <div className="w-full max-w-[120px]">
+                        <div className="w-full max-w-[110px]">
                           <SinceCallSpark item={item} />
                         </div>
                       </div>
 
-                      <div className="whitespace-nowrap text-right font-mono text-[12px] tabular-nums text-text-secondary">
+                      <div className="whitespace-nowrap text-right font-mono text-[12px] tabular-nums text-text-muted">
                         {item.duration_display}
                       </div>
 
-                      <div className="flex flex-col items-end gap-0.5">
+                      <div className="whitespace-nowrap text-right">
                         <span
-                          className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[12.5px] font-semibold tabular-nums leading-none ${
-                            gainUp ? "bg-profit/10 text-profit" : "bg-negative/[0.1] text-loss"
+                          className={`font-mono text-[13px] font-medium tabular-nums ${
+                            gainUp ? "text-profit" : "text-loss"
                           }`}
                         >
                           {gainUp ? "+" : ""}
                           {formatGainDisplay(item.gain_pct)}
                         </span>
-                        {item.tp_price > 0 && (
-                          <span className="whitespace-nowrap font-mono text-[10px] tabular-nums text-text-muted">
-                            peak ${formatPrice(item.tp_price)}
-                          </span>
-                        )}
                       </div>
 
-                      <div className="flex justify-end text-text-primary/15 transition-colors group-hover:text-text-primary/40">
+                      <div className="flex justify-end text-text-muted/35 transition-colors group-hover:text-text-muted">
                         <svg
                           className="h-3.5 w-3.5"
                           fill="none"
@@ -495,40 +453,31 @@ const TopPerformers = () => {
                       </div>
                     </div>
 
-                    {/* Mobile row */}
-                    <div className="flex items-center gap-2.5 py-2.5 sm:hidden">
+                    {/* Mobile — one line only: rank · logo · token · spark · gain */}
+                    <div className="flex h-12 items-center gap-2 sm:hidden">
                       {rankBadge(rank)}
-                      <CoinLogo pair={cleanPair(item.pair)} size={32} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate font-mono text-[14px] font-semibold text-text-primary">
-                            {coinSymbol(item.pair)}
+                      <CoinLogo pair={cleanPair(item.pair)} size={26} />
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="truncate text-[13.5px] font-semibold text-text-primary">
+                          {coinSymbol(item.pair)}
+                        </span>
+                        {multi && (
+                          <span className="shrink-0 rounded bg-ink/[0.05] px-1 py-px font-mono text-[10px] tabular-nums text-text-muted">
+                            ×{item.signal_count}
                           </span>
-                          {multi && (
-                            <span className="rounded border border-ink/[0.08] bg-ink/[0.03] px-1 font-mono text-[9px] text-text-primary/45">
-                              ×{item.signal_count}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-text-primary/40">
-                          <span>${formatPrice(item.entry)}</span>
-                          <span className="text-text-primary/15">·</span>
-                          <span>{item.duration_display}</span>
-                        </div>
+                        )}
                       </div>
-                      <div className="w-[48px] shrink-0 opacity-80">
+                      <div className="w-[44px] shrink-0 opacity-80">
                         <SinceCallSpark item={item} compact />
                       </div>
-                      <div className="w-[4.85rem] shrink-0 text-right">
-                        <span
-                          className={`inline-flex rounded-md px-1.5 py-0.5 font-mono text-[12.5px] font-semibold tabular-nums leading-none ${
-                            gainUp ? "bg-profit/10 text-profit" : "bg-negative/[0.1] text-loss"
-                          }`}
-                        >
-                          {gainUp ? "+" : ""}
-                          {formatGainDisplay(item.gain_pct)}
-                        </span>
-                      </div>
+                      <span
+                        className={`w-[4.4rem] shrink-0 text-right font-mono text-[13px] font-medium tabular-nums ${
+                          gainUp ? "text-profit" : "text-loss"
+                        }`}
+                      >
+                        {gainUp ? "+" : ""}
+                        {formatGainDisplay(item.gain_pct)}
+                      </span>
                     </div>
                   </div>
                 );
@@ -537,16 +486,16 @@ const TopPerformers = () => {
 
             {displayed.length === 0 && (
               <div className="px-4 py-12 text-center">
-                <p className="text-[13px] text-text-primary/35">{t("top.no_data")}</p>
+                <p className="text-[13px] text-text-muted">{t("top.no_data")}</p>
               </div>
             )}
 
             {displayed.length > 0 && (
-              <div className="flex items-center justify-between gap-3 border-t border-ink/[0.07] py-2.5">
-                <p className="font-mono text-[10px] text-text-muted/60">
+              <div className="mt-1 flex items-center justify-between gap-3 border-t border-ink/[0.05] pt-3">
+                <p className="text-[11px] text-text-muted">
                   Tap a row to open call proof
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-text-muted/50">
+                <p className="font-mono text-[11px] tabular-nums text-text-muted">
                   {resultCount} listed
                 </p>
               </div>
@@ -556,8 +505,8 @@ const TopPerformers = () => {
       </div>
 
       <style>{`
- @keyframes tpRowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
- .tp-row { animation: tpRowIn 0.32s ease-out both; }
+ @keyframes tpRowIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+ .tp-row { animation: tpRowIn 0.28s ease-out both; }
  @keyframes proofHintIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 80px; } }
  @media (prefers-reduced-motion: reduce) { .tp-row { animation: none; } }
  `}</style>
@@ -765,11 +714,14 @@ export const SignalDetailModal = ({
   t,
   onOpenHistory,
 }) => {
+  const navigate = useNavigate();
   const [lightboxImg, setLightboxImg] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const [showTV, setShowTV] = useState(false);
-  const [peakPrice, setPeakPrice] = useState(null);
-  const [peakIsPostStop, setPeakIsPostStop] = useState(false);
+  // Coin market high (kline) — secondary context only, never the hero gain
+  const [coinHighPrice, setCoinHighPrice] = useState(null);
+  const [coinHighIsPostStop, setCoinHighIsPostStop] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
   const [appTheme, setAppTheme] = useState(getActiveTheme);
   const pair = cleanPair(item.pair || detail?.pair);
   const total = signalIds.length;
@@ -791,28 +743,36 @@ export const SignalDetailModal = ({
 
   useEffect(() => {
     setShowTV(false);
-    setPeakPrice(null);
-    setPeakIsPostStop(false);
+    setCoinHighPrice(null);
+    setCoinHighIsPostStop(false);
+    setJourneyOpen(false);
   }, [currentIndex]);
 
+  // Secondary: coin market high during the *trade window only* (call → last update).
+  // Never used as the hero gain — that comes from signal updates.
   useEffect(() => {
     if (!detail?.entry || !created || !pair) return;
-    const fetchPeakPrice = async () => {
+    const fetchCoinHigh = async () => {
       try {
         const entryVal = Number(detail.entry);
         const symbol = pair.replace("USDT", "") + "USDT";
         const startTime = new Date(created).getTime();
         if (isNaN(startTime)) return;
 
-        // The peak is the coin's high over the whole window (the impressive
-        // number the founder wants shown). For a stopped-out call that high is
-        // usually AFTER the stop — we detect that by comparing the peak candle's
-        // time to the stop time, and the header tags it "after stop" so a losing
-        // trade never looks like it peaked +20% in-position.
         const slUpd = Array.isArray(detail.updates)
           ? detail.updates.find((u) => /sl|stop/i.test(u.update_type || ""))
           : null;
         const slTs = slUpd?.update_at ? Date.parse(slUpd.update_at) : NaN;
+        const lastUpd = Array.isArray(detail.updates) && detail.updates.length
+          ? detail.updates[detail.updates.length - 1]
+          : null;
+        const lastTs = lastUpd?.update_at ? Date.parse(lastUpd.update_at) : NaN;
+        // Cap at last signal event (or SL) — never open-ended to "now"
+        const endTime = !Number.isNaN(lastTs)
+          ? lastTs
+          : !Number.isNaN(slTs)
+            ? slTs
+            : Date.now();
 
         const extractPeak = (candles, gH, gT) => {
           if (!Array.isArray(candles) || candles.length === 0) return null;
@@ -820,24 +780,27 @@ export const SignalDetailModal = ({
           let bestTs = null;
           candles.forEach((c) => {
             const h = gH(c);
+            const ts = gT ? gT(c) : null;
+            if (ts != null && ts > endTime) return;
             if (h > best) {
               best = h;
-              bestTs = gT ? gT(c) : null;
+              bestTs = ts;
             }
           });
           return best > entryVal ? { price: best, ts: bestTs } : null;
         };
 
         const bH = (c) => parseFloat(c[2]);
-        const bT = (c) => Number(c[0]); // Binance open_time (ms)
+        const bT = (c) => Number(c[0]);
         const yH = (c) => parseFloat(c.high || c[2]);
-        const yT = (c) => Number(c.ts); // Bybit start (ms)
+        const yT = (c) => Number(c.ts);
 
         let peak = null;
+        const binanceQ = `startTime=${startTime}&endTime=${endTime}&limit=1500`;
 
         try {
           const r = await fetch(
-            `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=1500`
+            `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&${binanceQ}`
           );
           if (r.ok) {
             const d = await r.json();
@@ -847,7 +810,7 @@ export const SignalDetailModal = ({
         if (!peak) {
           try {
             const r = await fetch(
-              `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=1500`
+              `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&${binanceQ}`
             );
             if (r.ok) {
               const d = await r.json();
@@ -858,31 +821,7 @@ export const SignalDetailModal = ({
         if (!peak) {
           try {
             const r = await fetch(
-              `https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`
-            );
-            if (r.ok) {
-              const j = await r.json();
-              const list = (j?.result?.list || []).map((k) => ({ high: k[2], ts: k[0] }));
-              peak = extractPeak(list, yH, yT);
-            }
-          } catch {}
-        }
-        if (!peak) {
-          try {
-            const r = await fetch(
-              `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`
-            );
-            if (r.ok) {
-              const j = await r.json();
-              const list = (j?.result?.list || []).map((k) => ({ high: k[2], ts: k[0] }));
-              peak = extractPeak(list, yH, yT);
-            }
-          } catch {}
-        }
-        if (!peak) {
-          try {
-            const r = await fetch(
-              `https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`
+              `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=1000`
             );
             if (r.ok) {
               const j = await r.json();
@@ -893,14 +832,14 @@ export const SignalDetailModal = ({
         }
 
         if (peak) {
-          setPeakPrice(peak.price);
-          setPeakIsPostStop(peak.ts != null && !Number.isNaN(slTs) && peak.ts > slTs);
+          setCoinHighPrice(peak.price);
+          setCoinHighIsPostStop(peak.ts != null && !Number.isNaN(slTs) && peak.ts > slTs);
         }
       } catch (e) {
-        console.error("[PeakPrice] failed:", e);
+        console.error("[CoinHigh] failed:", e);
       }
     };
-    fetchPeakPrice();
+    fetchCoinHigh();
   }, [detail, created, pair]);
 
   const handleClose = () => {
@@ -1106,134 +1045,289 @@ export const SignalDetailModal = ({
     });
   }
 
+  // Derived display — hero gain must match leaderboard / server peak, not only last TP tick.
+  // LuxQuant Calls list uses signals.peak_price (→ item.gain_pct / item.tp_price).
+  // TP updates alone can stop at TP3 (+4.9%) while peak is +334%.
+  const lastUpdate = detail?.updates?.length
+    ? detail.updates[detail.updates.length - 1]
+    : null;
+  const durationText = lastUpdate
+    ? fmtDiff(created, lastUpdate.update_at)
+    : detail
+      ? "Active"
+      : "—";
+
+  const entryVal =
+    detail?.entry > 0
+      ? Number(detail.entry)
+      : item?.entry > 0
+        ? Number(item.entry)
+        : 0;
+
+  // Best TP hit from updates (exclude SL) — "realized to plan", not hero peak
+  let tpHitPrice = null;
+  let tpHitIsSL = false;
+  if (Array.isArray(detail?.updates) && entryVal > 0) {
+    let bestTp = null;
+    let slPrice = null;
+    for (const u of detail.updates) {
+      const p = Number(u.price);
+      if (!(p > 0)) continue;
+      const isSL = /sl|stop/i.test(u.update_type || "");
+      if (isSL) slPrice = p;
+      else if (bestTp == null || p > bestTp) bestTp = p;
+    }
+    if (isStopped && slPrice != null && bestTp == null) {
+      tpHitPrice = slPrice;
+      tpHitIsSL = true;
+    } else if (bestTp != null) {
+      tpHitPrice = bestTp;
+    } else if (lastUpdate?.price > 0) {
+      tpHitPrice = Number(lastUpdate.price);
+      tpHitIsSL = /sl|stop/i.test(lastUpdate.update_type || "");
+    }
+  }
+
+  const detailPeakPrice =
+    detail?.peak_price > 0 ? Number(detail.peak_price) : null;
+  const detailPeakPct =
+    detail?.peak_pct != null && !Number.isNaN(Number(detail.peak_pct))
+      ? Number(detail.peak_pct)
+      : detailPeakPrice && entryVal > 0
+        ? ((detailPeakPrice - entryVal) / entryVal) * 100
+        : null;
+
+  const itemPeakPrice = item?.tp_price > 0 ? Number(item.tp_price) : null;
+  const itemPeakPct =
+    item?.gain_pct != null && !Number.isNaN(Number(item.gain_pct))
+      ? Number(item.gain_pct)
+      : null;
+
+  // Hero = best known peak for this call (server peak → list peak → TP hit)
+  // Prefer the larger of detail peak vs item peak when both exist (multi-call row).
+  let gainPctNum = null;
+  let peakPriceDisplay = null;
+  const candidates = [];
+  if (detailPeakPct != null) {
+    candidates.push({
+      pct: detailPeakPct,
+      price: detailPeakPrice,
+      source: "detail",
+    });
+  }
+  // Item peak only when viewing the leaderboard's primary signal (same id)
+  const isPrimaryListSignal =
+    !item?.signal_id ||
+    !currentSid ||
+    String(item.signal_id) === String(currentSid);
+  if (isPrimaryListSignal && itemPeakPct != null) {
+    candidates.push({
+      pct: itemPeakPct,
+      price: itemPeakPrice,
+      source: "item",
+    });
+  }
+  if (tpHitPrice != null && entryVal > 0) {
+    candidates.push({
+      pct: ((tpHitPrice - entryVal) / entryVal) * 100,
+      price: tpHitPrice,
+      source: "tp",
+    });
+  }
+  if (candidates.length) {
+    candidates.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
+    gainPctNum = candidates[0].pct;
+    peakPriceDisplay =
+      candidates[0].price ??
+      (entryVal > 0 ? entryVal * (1 + candidates[0].pct / 100) : null);
+  }
+
+  const gainHero =
+    gainPctNum != null && !Number.isNaN(gainPctNum)
+      ? `${gainPctNum >= 0 ? "+" : ""}${Number(gainPctNum).toFixed(1)}%`
+      : null;
+  const gainIsLoss =
+    isStopped ||
+    tpHitIsSL ||
+    (gainPctNum != null && gainPctNum < 0);
+
+  // "Hit" in strip = peak price shown in hero (aligned with list %)
+  const hitPriceDisplay = peakPriceDisplay;
+
+  // Realized to highest TP (if much lower than peak, show as secondary)
+  const tpHitPct =
+    tpHitPrice != null && entryVal > 0
+      ? ((tpHitPrice - entryVal) / entryVal) * 100
+      : null;
+  const showTpRealized =
+    tpHitPct != null &&
+    gainPctNum != null &&
+    !tpHitIsSL &&
+    gainPctNum - tpHitPct > 5;
+
+  // Live kline high only if clearly above hero peak
+  const coinHighPct =
+    coinHighPrice && entryVal > 0
+      ? ((coinHighPrice - entryVal) / entryVal) * 100
+      : null;
+  const showCoinHigh =
+    coinHighPrice != null &&
+    hitPriceDisplay != null &&
+    coinHighPrice > hitPriceDisplay * 1.05;
+
+  const afterMark = lastUpdate?.price > 0 ? lastUpdate.price : null;
+  const afterPct =
+    afterMark && entryVal > 0
+      ? ((Math.abs(afterMark - entryVal) / entryVal) * 100).toFixed(1)
+      : null;
+
+  const iconBtn =
+    "inline-flex h-8 w-8 items-center justify-center rounded-full border border-ink/[0.08] bg-ink/[0.03] text-text-muted transition hover:bg-ink/[0.07] hover:text-text-primary sm:h-9 sm:w-9";
+
+  const journeyNode = (ev, i) => {
+    const c = themeColors[ev.key] || themeColors.gold;
+    const isLast = i === events.length - 1;
+    return (
+      <div key={i} className="relative flex flex-1 flex-col items-center min-w-[72px]">
+        {!isLast && (
+          <div className="absolute left-1/2 top-[13px] h-px w-full bg-ink/[0.08]" />
+        )}
+        <div
+          className={`relative z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full text-text-primary ${c.dot}`}
+        >
+          {i === 0 ? (
+            <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
+          ) : ev.isSL ? (
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+        <div className="mt-2 w-full px-0.5 text-center">
+          <p className={`truncate text-[11px] font-semibold ${c.text}`}>{ev.label}</p>
+          <p className="font-mono text-[10px] tabular-nums text-text-muted">{ev.time}</p>
+          {ev.detail && (
+            <p className={`truncate font-mono text-[10px] tabular-nums ${ev.isSL ? "text-loss" : "text-profit"}`}>
+              {ev.detail}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-3 lg:p-5 ${isClosing ? "animate-[smBO_.2s_ease-in_forwards]" : "animate-[smBI_.25s_ease-out]"}`}
+      className={`lq-modal-safe fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-4 lg:p-6 ${isClosing ? "animate-[smBO_.2s_ease-in_forwards]" : "animate-[smBI_.25s_ease-out]"}`}
     >
-      <div className="absolute inset-0 bg-scrim/75" onClick={handleClose} aria-hidden="true" />
+      <div className="lq-scrim" onClick={handleClose} aria-hidden="true" />
       <div
-        className={`relative flex h-[min(92dvh,100%)] max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-ink/[0.08] bg-surface-raised shadow-2xl lg:max-w-[1200px] sm:h-auto sm:max-h-[min(90dvh,900px)] sm:rounded-xl ${
+        className={`relative flex h-[min(94dvh,100%)] max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[1.35rem] border border-ink/[0.07] bg-surface-raised shadow-[0_24px_80px_-20px_rgb(var(--scrim)/0.55)] lg:max-w-[1080px] sm:h-auto sm:max-h-[min(92dvh,880px)] sm:rounded-2xl ${
           isClosing
             ? "animate-[smSheetDn_.22s_ease-in_forwards] sm:animate-[smCO_.2s_ease-in_forwards]"
             : "animate-[smSheetUp_.32s_cubic-bezier(.16,1,.3,1)] sm:animate-[smCI_.28s_cubic-bezier(.16,1,.3,1)]"
         }`}
       >
-        <div className="flex shrink-0 justify-center pt-2 sm:hidden">
-          <div className="h-1 w-9 rounded-full bg-ink/20" />
+        <div className="flex shrink-0 justify-center pt-2.5 sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-ink/20" />
         </div>
 
-        {/* Header — exchange trade ticket */}
-        <div className="flex shrink-0 items-center gap-2 border-b border-ink/[0.06] px-3 py-2.5 sm:px-4">
-          <CoinLogo pair={pair} size={28} />
+        {/* ── Hero header — single clean row, no stacked crumbs ── */}
+        <div className="flex shrink-0 items-center gap-2.5 border-b border-ink/[0.06] px-3.5 py-3 sm:gap-3 sm:px-5 sm:py-3.5">
+          <CoinLogo pair={pair} size={36} />
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="truncate font-mono text-[15px] font-semibold text-text-primary sm:text-base">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h2 className="truncate text-[15px] font-semibold tracking-tight text-text-primary sm:text-[17px]">
                 {pair}
               </h2>
               {status && (
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-text-primary ${sColor(status)}`}
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white sm:text-[10px] ${sColor(status)}`}
                 >
                   {sLabel(status)}
                 </span>
               )}
               {detail?.risk_level && (
-                <span className="rounded border border-ink/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-text-primary/50">
+                <span className="hidden shrink-0 rounded bg-ink/[0.05] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-text-muted sm:inline">
                   {detail.risk_level}
                 </span>
               )}
             </div>
-            <p className="truncate font-mono text-[10px] text-text-muted">{fmtDt(created)}</p>
+            <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-text-muted sm:text-[11px]">
+              {fmtDt(created)}
+              {durationText && durationText !== "—" ? ` · ${durationText}` : ""}
+            </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <a
-              href={xUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-ink/[0.1] bg-ink/[0.04] px-2 text-[11px] font-medium text-text-primary/80 transition hover:border-ink/20 hover:bg-ink/[0.08] hover:text-text-primary sm:px-2.5"
-              title={`Explore $${xCash} on X`}
-            >
-              <span className="hidden sm:inline text-text-muted">Explore on</span>
-              <svg
-                className="h-3.5 w-3.5 shrink-0"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-label="X"
-                role="img"
+
+          {gainHero && (
+            <div className="shrink-0 text-right">
+              <p
+                className={`font-mono text-[18px] font-bold leading-none tabular-nums sm:text-[22px] ${
+                  gainIsLoss ? "text-loss" : "text-profit"
+                }`}
               >
+                {gainHero}
+              </p>
+              {hitPriceDisplay != null && (
+                <p className="mt-0.5 whitespace-nowrap font-mono text-[10px] tabular-nums text-text-muted">
+                  peak ${formatPrice(hitPriceDisplay)}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex shrink-0 items-center gap-1">
+            <a href={xUrl} target="_blank" rel="noopener noreferrer" className={iconBtn} title={`Explore $${xCash} on X`}>
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
             </a>
             {onOpenHistory ? (
-              <button
-                type="button"
-                onClick={() => onOpenHistory(item)}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-ink/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-ink/[0.04] hover:text-text-primary sm:px-2.5"
-              >
+              <button type="button" onClick={() => onOpenHistory(item)} className={iconBtn} title="History">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="hidden sm:inline">History</span>
               </button>
             ) : (
-              <a
-                href={historyHref}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-ink/[0.08] px-2 text-[11px] text-text-primary/60 transition hover:bg-ink/[0.04] hover:text-text-primary sm:px-2.5"
-              >
+              <a href={historyHref} className={iconBtn} title="History">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="hidden sm:inline">History</span>
               </a>
             )}
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-ink/[0.08] text-text-primary/45 transition hover:bg-ink/[0.04] hover:text-text-primary"
-              aria-label="Close"
-            >
+            <button type="button" onClick={handleClose} className={iconBtn} aria-label="Close">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
+        {/* Multi-call segment */}
         {multi && (
-          <div className="flex shrink-0 items-center justify-center gap-2 border-b border-ink/[0.05] px-3 py-2">
+          <div className="flex shrink-0 items-center justify-center gap-1.5 border-b border-ink/[0.05] px-4 py-2.5">
             <button
               type="button"
               onClick={() => onNavigate(currentIndex - 1)}
               disabled={currentIndex <= 0}
-              className="rounded-md px-2 py-1 text-[11px] text-text-primary/50 disabled:opacity-25 hover:text-text-primary"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition hover:bg-ink/[0.06] disabled:opacity-25"
             >
               ‹
             </button>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 rounded-full bg-ink/[0.04] p-0.5">
               {signalIds.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => onNavigate(i)}
-                  className={`h-6 min-w-[1.5rem] rounded px-1 font-mono text-[10px] tabular-nums ${
+                  className={`h-7 min-w-[1.75rem] rounded-full px-2 font-mono text-[11px] tabular-nums transition ${
                     i === currentIndex
-                      ? "bg-ink/15 text-text-primary"
-                      : "text-text-primary/35 hover:text-text-primary/70"
+                      ? "bg-surface-raised text-text-primary shadow-sm"
+                      : "text-text-muted hover:text-text-primary"
                   }`}
                 >
                   {i + 1}
@@ -1244,189 +1338,129 @@ export const SignalDetailModal = ({
               type="button"
               onClick={() => onNavigate(currentIndex + 1)}
               disabled={currentIndex >= total - 1}
-              className="rounded-md px-2 py-1 text-[11px] text-text-primary/50 disabled:opacity-25 hover:text-text-primary"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition hover:bg-ink/[0.06] disabled:opacity-25"
             >
               ›
             </button>
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/10 border-t-white/50" />
+            <div className="flex items-center justify-center py-20">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink/10 border-t-text-primary/40" />
             </div>
           ) : detail?.is_redacted ? (
-            <div className="space-y-4 pb-2">
-              {/* Peak IS shown — the proof the call worked. Levels are blurred:
-                  they're the actionable alpha subscribers pay for. */}
-              <div className="rounded-xl border border-profit/25 bg-profit/[0.06] px-4 py-3.5 text-center">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-                  Peak reached
+            <div className="space-y-4 pb-1">
+              <div className="rounded-2xl bg-profit/[0.07] px-5 py-5 text-center">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">Peak reached</p>
+                <p className="mt-1.5 font-mono text-[32px] font-bold leading-none text-profit">
+                  {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "—"}
                 </p>
-                <p className="mt-1 font-mono text-[26px] font-bold leading-none text-profit">
-                  {detail.peak_pct != null
-                    ? `+${Number(detail.peak_pct).toFixed(1)}%`
-                    : "—"}
-                </p>
-                <p className="mt-1.5 text-[11px] text-text-muted">
-                  This call ran {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "in profit"} from entry.
+                <p className="mt-2 text-[12px] text-text-muted">
+                  This call ran{" "}
+                  {detail.peak_pct != null ? `+${Number(detail.peak_pct).toFixed(1)}%` : "in profit"} from entry.
                 </p>
               </div>
 
-              {/* Levels blurred (the paid alpha), risk shown */}
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  { k: "Entry", v: "$0.00000" },
-                  { k: "Target", v: "$0.00000" },
-                  { k: "Stop-loss", v: "$0.00000" },
-                  { k: "Risk", v: detail.risk_level || "—" },
-                ].map((c, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2"
-                  >
-                    <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                      {c.k}
-                    </p>
-                    <p
-                      className={`mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary ${
-                        i < 3 ? "select-none blur-[6px]" : ""
-                      }`}
-                      aria-hidden={i < 3}
-                    >
-                      {c.v}
-                    </p>
-                  </div>
-                ))}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-ink/[0.03] px-4 py-3 font-mono text-[12px] tabular-nums text-text-muted">
+                <span>
+                  Entry <span className="select-none blur-[5px] text-text-primary">$0.00000</span>
+                </span>
+                <span className="text-ink/15">·</span>
+                <span>
+                  Target <span className="select-none blur-[5px] text-text-primary">$0.00000</span>
+                </span>
+                <span className="text-ink/15">·</span>
+                <span>
+                  Stop <span className="select-none blur-[5px] text-text-primary">$0.00000</span>
+                </span>
+                <span className="text-ink/15">·</span>
+                <span>
+                  Risk <span className="text-text-primary">{detail.risk_level || "—"}</span>
+                </span>
               </div>
 
-              {/* Charts are blurred here, and this is a leak fix rather than a
-                  style choice: the generated chart prints every level it draws
-                  as a right-axis label — ENTRY, TP1..TP4, STOP LOSS — so the
-                  numbers the response carefully nulls out were legible in the
-                  image sitting right beneath them. The shape of the move still
-                  reads through the blur, which is the part that sells.
-                  The lightbox is disabled too; it opened the image full-size. */}
               {(entryImg || afterImg) && (
-                <div>
-                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    Trade proof
-                  </p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {[entryImg, afterImg].filter(Boolean).map((img, i) => (
-                      <div
-                        key={i}
-                        className="relative block h-[190px] w-full overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-secondary sm:h-[230px]"
-                      >
-                        <img
-                          src={img}
-                          alt=""
-                          className="absolute inset-0 h-full w-full select-none object-contain blur-[7px]"
-                          loading="lazy"
-                          draggable={false}
-                          aria-hidden="true"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-surface/25">
-                          <span className="flex items-center gap-1.5 rounded-full border border-ink/[0.12] bg-surface-raised/85 px-3 py-1.5 text-[11px] font-medium text-text-secondary backdrop-blur-sm">
-                            <svg className="h-3 w-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
-                              <rect x="5" y="11" width="14" height="10" rx="2" />
-                              <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
-                            </svg>
-                            Chart locked
-                          </span>
-                        </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {[entryImg, afterImg].filter(Boolean).map((img, i) => (
+                    <div
+                      key={i}
+                      className="relative h-[200px] overflow-hidden rounded-2xl bg-surface-secondary sm:h-[240px]"
+                    >
+                      <img
+                        src={img}
+                        alt=""
+                        className="absolute inset-0 h-full w-full select-none object-contain blur-[7px]"
+                        loading="lazy"
+                        draggable={false}
+                        aria-hidden="true"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-surface/30">
+                        <span className="flex items-center gap-1.5 rounded-full bg-surface-raised/90 px-3 py-1.5 text-[11px] font-medium text-text-secondary backdrop-blur-sm">
+                          <svg className="h-3 w-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                            <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+                          </svg>
+                          Chart locked
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* Slim unlock banner — charts + peak already shown above it */}
-              <div className="flex flex-col items-center gap-3 rounded-xl border border-accent/25 bg-accent/[0.06] p-4 text-center sm:flex-row sm:justify-between sm:text-left">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15">
-                    <svg
-                      className="h-4 w-4 text-accent"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    >
-                      <rect x="5" y="11" width="14" height="10" rx="2" />
-                      <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="text-[13.5px] font-semibold text-text-primary">
-                      Active call — entry, targets &amp; stop-loss locked
-                    </p>
-                    <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
-                      Live signals unlock with a plan — or open any call older than 7 days free.
-                    </p>
-                  </div>
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-accent/20 bg-accent/[0.06] p-4 sm:flex-row sm:justify-between">
+                <div>
+                  <p className="text-[13.5px] font-semibold text-text-primary">
+                    Entry, targets &amp; stop-loss locked
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-text-muted">
+                    Unlock with a plan — or open any call older than 7 days free.
+                  </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    window.location.href = "/pricing";
-                  }}
-                  className="shrink-0 rounded-md bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-transform hover:scale-[1.02]"
+                  onClick={() => navigate("/pricing")}
+                  className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition hover:opacity-95"
                 >
                   Unlock signal
                 </button>
               </div>
             </div>
           ) : detail ? (
-            <div className="space-y-4 pb-2">
-              {/* Compact metrics strip */}
+            <div className="space-y-5 pb-1">
+              {/* Stats grid — never stacks labels onto one cramped line */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                    Entry
-                  </p>
+                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Entry</p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
-                    {detail.entry > 0 ? `$${formatPrice(detail.entry)}` : "—"}
+                    {entryVal > 0 ? `$${formatPrice(entryVal)}` : "—"}
                   </p>
                 </div>
-                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                    Peak
-                    {peakPrice && peakIsPostStop && (
-                      <span className="ml-1 rounded-sm bg-accent/12 px-1 py-px text-[7.5px] font-semibold normal-case tracking-normal text-accent">
-                        after stop
-                      </span>
-                    )}
-                  </p>
+                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Peak</p>
                   <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
-                    {peakPrice ? `$${formatPrice(peakPrice)}` : "—"}
-                    {peakPrice && detail.entry > 0 && (
-                      <span className="ml-1.5 text-[11px] text-profit">
-                        +{((Math.abs(peakPrice - detail.entry) / detail.entry) * 100).toFixed(1)}%
-                      </span>
-                    )}
+                    {hitPriceDisplay != null ? `$${formatPrice(hitPriceDisplay)}` : "—"}
                   </p>
-                  {peakPrice && peakIsPostStop && (
-                    <p className="mt-0.5 text-[8.5px] leading-tight text-text-muted/70">
-                      coin&apos;s high after the trade stopped — not realized
+                  {gainHero && (
+                    <p
+                      className={`mt-0.5 font-mono text-[12px] font-semibold tabular-nums ${
+                        gainIsLoss ? "text-loss" : "text-profit"
+                      }`}
+                    >
+                      {gainHero}
                     </p>
                   )}
                 </div>
-                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                    {t("top.duration")}
-                  </p>
-                  <p className="mt-0.5 font-mono text-[13px] font-semibold text-text-primary">
-                    {detail.updates?.length > 0
-                      ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at)
-                      : "Active"}
+                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Time</p>
+                  <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-text-primary">
+                    {durationText}
                   </p>
                 </div>
-                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised px-3 py-2">
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
-                    {t("top.risk")}
-                  </p>
+                <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">Risk</p>
                   <p
                     className={`mt-0.5 font-mono text-[13px] font-semibold ${
                       detail.risk_level === "High"
@@ -1438,388 +1472,209 @@ export const SignalDetailModal = ({
                   >
                     {detail.risk_level || "—"}
                   </p>
+                  {detail.volume_rank_num && detail.volume_rank_den ? (
+                    <p className="mt-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                      Vol #{detail.volume_rank_num}/{detail.volume_rank_den}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              {/* Charts — symmetric proof desk (matches SignalModal Trade tab) */}
-              <div>
-                <div className="mb-2.5 flex items-center justify-between gap-2">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    {t("top.trade_proof")}
-                  </p>
-                  <span className="font-mono text-[9px] text-text-muted/55">
-                    Execution proof · signal progress
+              {showTpRealized && tpHitPrice != null && (
+                <p className="px-0.5 font-mono text-[11px] tabular-nums text-text-muted">
+                  Plan hit TP @ ${formatPrice(tpHitPrice)}{" "}
+                  <span className="text-profit">
+                    ({tpHitPct >= 0 ? "+" : ""}
+                    {tpHitPct.toFixed(1)}%)
                   </span>
+                  <span className="text-text-muted/70"> · peak ran further</span>
+                </p>
+              )}
+
+              {showCoinHigh && coinHighPct != null && (
+                <p className="px-0.5 font-mono text-[11px] tabular-nums text-text-muted">
+                  Coin high in window ${formatPrice(coinHighPrice)} (+{coinHighPct.toFixed(0)}%)
+                  {coinHighIsPostStop ? " · after stop" : ""}
+                </p>
+              )}
+
+              {/* Chart stage */}
+              <div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[13px] font-semibold text-text-primary">
+                    {t("top.trade_proof") || "Trade proof"}
+                  </p>
+                  {hasAnyImg && (
+                    <div className="flex items-center rounded-full bg-ink/[0.05] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowTV(false)}
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                          !showInteractiveRight
+                            ? "bg-surface-raised text-text-primary shadow-sm"
+                            : "text-text-muted hover:text-text-primary"
+                        }`}
+                      >
+                        Proof
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowTV(true)}
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                          showInteractiveRight
+                            ? "bg-surface-raised text-text-primary shadow-sm"
+                            : "text-text-muted hover:text-text-primary"
+                        }`}
+                      >
+                        Live
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {!hasAnyImg ? (
-                  <div className="relative h-[300px] overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-secondary sm:h-[400px]">
+
+                {!hasAnyImg || showInteractiveRight ? (
+                  <div className="relative h-[280px] overflow-hidden rounded-2xl bg-surface-secondary sm:h-[360px]">
                     <div id="tv_chart_modal_topperf" className="absolute inset-0 h-full w-full" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-0 items-stretch">
-                    {/* BEFORE */}
-                    <div className="min-w-0 flex flex-col rounded-xl border border-ink/[0.08] bg-surface-secondary/40 overflow-hidden">
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-ink/[0.06]">
-                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                          {t("top.before")}
+                  <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-[1fr_auto_1fr] md:gap-2">
+                    {/* BEFORE — edge-to-edge, floating chip */}
+                    <div className="relative min-w-0 overflow-hidden rounded-2xl bg-surface-secondary">
+                      <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex items-center gap-2">
+                        <span className="rounded-md bg-scrim/55 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                          {t("top.before") || "Before"}
                         </span>
                         {detail?.entry > 0 && (
-                          <span className="font-mono text-[11px] tabular-nums text-text-primary/80">
+                          <span className="rounded-md bg-scrim/45 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white/90 backdrop-blur-sm">
                             ${formatPrice(detail.entry)}
                           </span>
                         )}
                       </div>
-                      <div className="p-2 flex-1 flex flex-col">
-                        {entryImg ? (
-                          <button
-                            type="button"
-                            onClick={() => setLightboxImg(entryImg)}
-                            className="relative block h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[rgb(var(--surface-secondary))] sm:h-[260px] lg:h-[300px] cursor-zoom-in"
-                          >
-                            <img
-                              src={entryImg}
-                              alt=""
-                              className="absolute inset-0 h-full w-full object-contain"
-                              loading="lazy"
-                            />
-                          </button>
-                        ) : (
-                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-ink/10 bg-[rgb(var(--surface-secondary))] text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
-                            {t("top.waiting_ss")}
-                          </div>
-                        )}
-                        <div className="mt-2 flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            disabled={!entryImg}
-                            onClick={() => entryImg && setLightboxImg(entryImg)}
-                            className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-ink/[0.08] disabled:opacity-35 disabled:pointer-events-none"
-                          >
-                            Full size
-                          </button>
+                      {entryImg ? (
+                        <button
+                          type="button"
+                          onClick={() => setLightboxImg(entryImg)}
+                          className="relative block h-[220px] w-full cursor-zoom-in sm:h-[280px] lg:h-[300px]"
+                        >
+                          <img
+                            src={entryImg}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                        </button>
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center text-[12px] text-text-muted sm:h-[280px] lg:h-[300px]">
+                          {t("top.waiting_ss")}
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    <div className="hidden md:flex flex-col items-center justify-center px-2.5 shrink-0">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/[0.1] bg-surface-raised text-text-muted">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                          />
+                    <div className="hidden items-center justify-center md:flex">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink/[0.05] text-text-muted">
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                         </svg>
                       </div>
                     </div>
-                    <div className="md:hidden flex items-center justify-center py-0.5">
+                    <div className="flex items-center justify-center py-0.5 md:hidden">
                       <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/50">
                         ↓ after
                       </span>
                     </div>
 
                     {/* AFTER */}
-                    <div className="min-w-0 flex flex-col rounded-xl border border-ink/[0.08] bg-surface-secondary/40 overflow-hidden">
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-ink/[0.06]">
+                    <div className="relative min-w-0 overflow-hidden rounded-2xl bg-surface-secondary">
+                      <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-wrap items-center gap-1.5">
                         <span
-                          className={`font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${isStopped ? "text-loss" : "text-positive"}`}
+                          className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm ${
+                            isStopped ? "bg-loss/80" : "bg-profit/75"
+                          }`}
                         >
-                          {t("top.after")} · {status === "open" ? t("top.latest") : sLabel(status)}
+                          {t("top.after") || "After"} · {status === "open" ? t("top.latest") || "Latest" : sLabel(status)}
                         </span>
-                        <div className="flex items-center gap-2">
-                          {showInteractiveRight && afterImg && (
-                            <button
-                              type="button"
-                              onClick={() => setShowTV(false)}
-                              className="font-mono text-[9px] uppercase tracking-wide text-text-muted hover:text-text-primary"
-                            >
-                              Snapshot
-                            </button>
-                          )}
-                          {detail?.updates?.length > 0 && (
-                            <span className="font-mono text-[11px] tabular-nums text-text-primary/80">
-                              ${formatPrice(detail.updates[detail.updates.length - 1].price)}
-                              {detail.entry > 0 &&
-                                detail.updates[detail.updates.length - 1].price > 0 && (
-                                  <span
-                                    className={`ml-1 font-semibold ${isStopped ? "text-loss" : "text-positive"}`}
-                                  >
-                                    {(
-                                      (Math.abs(
-                                        detail.updates[detail.updates.length - 1].price -
-                                          detail.entry
-                                      ) /
-                                        detail.entry) *
-                                      100
-                                    ).toFixed(1)}
-                                    %
-                                  </span>
-                                )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-2 flex-1 flex flex-col">
-                        {showInteractiveRight ? (
-                          <div className="relative h-[200px] overflow-hidden rounded-lg border border-ink/[0.06] bg-[rgb(var(--surface-secondary))] sm:h-[260px] lg:h-[300px]">
-                            <div
-                              id="tv_chart_modal_topperf"
-                              className="absolute inset-0 h-full w-full"
-                            />
-                          </div>
-                        ) : afterImg ? (
-                          <div className="relative h-[200px] w-full overflow-hidden rounded-lg border border-ink/[0.06] bg-[rgb(var(--surface-secondary))] sm:h-[260px] lg:h-[300px]">
-                            <img
-                              src={afterImg}
-                              alt=""
-                              className="absolute inset-0 h-full w-full object-contain"
-                              loading="lazy"
-                              onError={(e) => {
-                                if (rawAfterImg && e.target.src !== rawAfterImg) {
-                                  e.target.onerror = null;
-                                  e.target.src = rawAfterImg;
-                                }
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-ink/10 text-[11px] text-text-muted sm:h-[260px] lg:h-[300px]">
-                            {t("top.waiting_ss")}
-                          </div>
+                        {afterMark != null && (
+                          <span className="rounded-md bg-scrim/45 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white/90 backdrop-blur-sm">
+                            ${formatPrice(afterMark)}
+                            {afterPct != null && (
+                              <span className={`ml-1 ${isStopped ? "text-red-200" : "text-emerald-200"}`}>
+                                {afterPct}%
+                              </span>
+                            )}
+                          </span>
                         )}
-                        <div className="mt-2 flex items-center gap-1.5">
-                          {!showInteractiveRight ? (
-                            <button
-                              type="button"
-                              onClick={() => setShowTV(true)}
-                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] text-[11px] font-semibold text-text-primary transition hover:bg-ink/[0.12]"
-                            >
-                              <svg
-                                className="h-3 w-3 shrink-0 opacity-80"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M3 3v18h18M7 14l3-3 3 3 5-6"
-                                />
-                              </svg>
-                              Live chart
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setShowTV(false)}
-                              className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-ink/[0.1] bg-ink/[0.04] text-[11px] font-medium text-text-primary/80 transition hover:bg-ink/[0.08]"
-                            >
-                              Show snapshot
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            disabled={!afterImg}
-                            onClick={() => afterImg && setLightboxImg(afterImg)}
-                            className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-ink/[0.1] px-3 text-[11px] font-medium text-text-muted transition hover:text-text-primary disabled:opacity-35 disabled:pointer-events-none"
-                          >
-                            Full
-                          </button>
-                        </div>
                       </div>
+                      {afterImg ? (
+                        <button
+                          type="button"
+                          onClick={() => setLightboxImg(afterImg)}
+                          className="relative block h-[220px] w-full cursor-zoom-in sm:h-[280px] lg:h-[300px]"
+                        >
+                          <img
+                            src={afterImg}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-contain"
+                            loading="lazy"
+                            onError={(e) => {
+                              if (rawAfterImg && e.target.src !== rawAfterImg) {
+                                e.target.onerror = null;
+                                e.target.src = rawAfterImg;
+                              }
+                            }}
+                          />
+                        </button>
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center text-[12px] text-text-muted sm:h-[280px] lg:h-[300px]">
+                          {t("top.waiting_ss")}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Journey */}
-              <div>
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
-                  {t("top.journey")}
-                </p>
-                <div className="rounded-lg border border-ink/[0.06] bg-surface-raised p-3 sm:p-4">
-                  <div className="sm:hidden space-y-0">
-                    {events.map((ev, i) => {
-                      const c = themeColors[ev.key] || themeColors.gold;
-                      const isLast = i === events.length - 1;
-                      return (
-                        <div key={i} className="flex gap-2.5">
-                          <div className="flex flex-col items-center">
-                            <div
-                              className={`flex h-7 w-7 items-center justify-center rounded-full text-text-primary ${c.dot}`}
-                            >
-                              {i === 0 ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
-                              ) : ev.isSL ? (
-                                <svg
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={3}
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              ) : (
-                                <svg
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={3}
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            {!isLast && (
-                              <div className="my-0.5 w-px flex-1 min-h-[12px] bg-ink/10" />
-                            )}
-                          </div>
-                          <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-2.5"}`}>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className={`text-[12px] font-semibold ${c.text}`}>
-                                {ev.label}
-                              </span>
-                              <span className="font-mono text-[9px] text-text-primary/40">
-                                {ev.time}
-                              </span>
-                            </div>
-                            {ev.sub && <p className="text-[10px] text-text-muted">{ev.sub}</p>}
-                            {ev.detail && (
-                              <p
-                                className={`font-mono text-[11px] ${ev.isSL ? "text-loss" : "text-profit"}`}
-                              >
-                                {ev.detail}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="hidden overflow-x-auto sm:block">
+              {/* Journey stepper */}
+              {events.length > 0 && (
+                <div>
+                  <p className="mb-2.5 text-[13px] font-semibold text-text-primary">
+                    {t("top.journey") || "Signal journey"}
+                  </p>
+                  <div className="overflow-x-auto rounded-2xl bg-ink/[0.025] px-2 py-4 sm:px-3">
                     <div
-                      className="flex items-start pt-1"
-                      style={{ minWidth: `${Math.max(events.length * 100, 400)}px` }}
+                      className="flex items-start"
+                      style={{ minWidth: `${Math.max(events.length * 96, 320)}px` }}
                     >
-                      {events.map((ev, i) => {
-                        const c = themeColors[ev.key] || themeColors.gold;
-                        const isLast = i === events.length - 1;
-                        return (
-                          <div key={i} className="relative flex flex-1 flex-col items-center">
-                            {!isLast && (
-                              <div className="absolute left-1/2 top-[14px] h-px w-full bg-ink/10" />
-                            )}
-                            <div
-                              className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-text-primary ${c.dot}`}
-                            >
-                              {i === 0 ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-ink/90" />
-                              ) : ev.isSL ? (
-                                <svg
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={3}
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              ) : (
-                                <svg
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={3}
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="mt-2 w-full px-1 text-center">
-                              <p className={`truncate text-[10px] font-semibold ${c.text}`}>
-                                {ev.label}
-                              </p>
-                              <p className="font-mono text-[9px] text-text-primary/40">{ev.time}</p>
-                              {ev.detail && (
-                                <p
-                                  className={`truncate font-mono text-[9px] ${ev.isSL ? "text-loss" : "text-profit"}`}
-                                >
-                                  {ev.detail}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {events.map((ev, i) => journeyNode(ev, i))}
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {detail.signal_id && (
-                <div>
-                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted">
-                    Detailed journey
-                  </p>
-                  <SignalJourneyExtended signalId={detail.signal_id} />
-                </div>
               )}
 
-              <div className="grid grid-cols-3 gap-2">
-                <StatBlock
-                  label={t("top.duration")}
-                  value={
-                    detail.updates?.length > 0
-                      ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at)
-                      : "Active"
-                  }
-                />
-                <StatBlock
-                  label={t("top.vol_rank")}
-                  value={
-                    detail.volume_rank_num && detail.volume_rank_den
-                      ? `#${detail.volume_rank_num}/${detail.volume_rank_den}`
-                      : "—"
-                  }
-                />
-                <StatBlock
-                  label={t("top.risk")}
-                  value={detail.risk_level || "—"}
-                  valueClass={
-                    detail.risk_level === "High"
-                      ? "text-loss"
-                      : detail.risk_level === "Medium"
-                        ? "text-accent"
-                        : "text-profit"
-                  }
-                />
-              </div>
+              {/* Detailed journey — collapsed by default */}
+              {detail.signal_id && (
+                <div className="rounded-2xl border border-ink/[0.06] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setJourneyOpen((v) => !v)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-ink/[0.02]"
+                  >
+                    <span className="text-[13px] font-semibold text-text-primary">Detailed journey</span>
+                    <svg
+                      className={`h-4 w-4 text-text-muted transition-transform ${journeyOpen ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  {journeyOpen && (
+                    <div className="border-t border-ink/[0.05] px-3 pb-3 pt-2 sm:px-4">
+                      <SignalJourneyExtended signalId={detail.signal_id} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-16 text-center text-[13px] text-text-muted">{t("top.failed")}</div>
@@ -1829,13 +1684,13 @@ export const SignalDetailModal = ({
 
       {lightboxImg && (
         <div
-          className="fixed inset-0 z-[200000] flex cursor-zoom-out items-center justify-center bg-scrim/95 p-4"
+          className="lq-modal-safe fixed inset-0 z-[200000] flex cursor-zoom-out items-center justify-center bg-scrim/95 p-4"
           onClick={() => setLightboxImg(null)}
         >
           <img
             src={lightboxImg}
             alt=""
-            className="max-h-[95vh] max-w-full rounded-lg object-contain"
+            className="max-h-[95vh] max-w-full rounded-xl object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -1853,16 +1708,5 @@ export const SignalDetailModal = ({
 
   return createPortal(modalContent, document.body);
 };
-
-const StatBlock = ({ label, value, valueClass = "text-text-primary" }) => (
-  <div className="flex flex-col items-center justify-center rounded-lg border border-ink/[0.06] bg-surface-raised px-2 py-2.5 text-center">
-    <span className="mb-1 font-mono text-[9px] uppercase tracking-wider text-text-muted">
-      {label}
-    </span>
-    <span className={`font-mono text-[12px] font-semibold sm:text-[13px] ${valueClass}`}>
-      {value}
-    </span>
-  </div>
-);
 
 export default TopPerformers;

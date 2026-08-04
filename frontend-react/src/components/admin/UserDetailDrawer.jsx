@@ -11,7 +11,7 @@
 // the contact edit form. Splitting Overview/Contact keeps each tab focused
 // and makes the contact-channel workflow more discoverable.
 //
-// Already modal-styled (max-w-3xl, rounded-2xl, fade-in zoom-in-95).
+// Gate/Home visual polish — Tailwind semantic tokens, no gold hairlines/glows.
 
 import { useState, useEffect, useCallback } from "react";
 import { AutoTradeTab } from "./users/AutoTradeTab";
@@ -75,48 +75,23 @@ const relativeTime = (dateStr) => {
   return `${Math.floor(days / 365)} years ago`;
 };
 
-const StatusBadge = ({ status }) => {
-  const colors = {
-    confirmed: {
-      bg: "rgb(var(--pos) / 0.10)",
-      text: "rgb(var(--pos-text))",
-      border: "rgb(var(--pos) / 0.30)",
-    },
-    pending: {
-      bg: "rgb(var(--accent) / 0.10)",
-      text: "rgb(var(--accent-text))",
-      border: "rgb(var(--accent) / 0.30)",
-    },
-    cancelled: {
-      bg: "rgba(107,92,82,0.10)",
-      text: "rgb(var(--fg-muted))",
-      border: "rgba(107,92,82,0.30)",
-    },
-    failed: {
-      bg: "rgb(var(--neg) / 0.10)",
-      text: "rgb(var(--neg-text))",
-      border: "rgb(var(--neg) / 0.30)",
-    },
-    refunded: {
-      bg: "rgb(var(--accent) / 0.10)",
-      text: "rgb(var(--accent-text))",
-      border: "rgb(var(--accent) / 0.30)",
-    },
-  };
-  const c = colors[status] || colors.cancelled;
-  return (
-    <span
-      className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded"
-      style={{
-        background: c.bg,
-        color: c.text,
-        border: `1px solid ${c.border}`,
-      }}
-    >
-      {status}
-    </span>
-  );
+const STATUS_BADGE = {
+  confirmed: "border-profit/25 bg-profit/10 text-profit",
+  pending: "border-accent/25 bg-accent/10 text-accent",
+  cancelled: "border-ink/15 bg-ink/[0.05] text-text-muted",
+  failed: "border-loss/25 bg-loss/10 text-loss",
+  refunded: "border-accent/25 bg-accent/10 text-accent",
 };
+
+const StatusBadge = ({ status }) => (
+  <span
+    className={`rounded-lg border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+      STATUS_BADGE[status] || STATUS_BADGE.cancelled
+    }`}
+  >
+    {status}
+  </span>
+);
 
 /* ════════════════════════════════════════
  Layout primitives
@@ -126,11 +101,8 @@ const Section = ({ title, Icon, action, children }) => (
   <section className="space-y-2.5">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-1.5">
-        {Icon && <Icon size={12} style={{ color: "rgb(var(--accent-text))" }} />}
-        <h4
-          className="text-[10px] font-bold tracking-wider uppercase"
-          style={{ color: "rgb(var(--ink) / 0.5)" }}
-        >
+        {Icon && <Icon size={12} className="text-text-muted" />}
+        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
           {title}
         </h4>
       </div>
@@ -140,47 +112,28 @@ const Section = ({ title, Icon, action, children }) => (
   </section>
 );
 
-const StatTile = ({ label, value, accent }) => (
-  <div
-    className="relative overflow-hidden rounded-lg px-3 py-2"
-    style={{
-      background: "rgb(var(--ink) / 0.02)",
-      border: "1px solid rgb(var(--ink) / 0.04)",
-    }}
-  >
-    <p
-      className="text-[9px] uppercase tracking-wider font-semibold mb-0.5"
-      style={{ color: "rgb(var(--ink) / 0.35)" }}
-    >
+const StatTile = ({ label, value, accentClass }) => (
+  <div className="overflow-hidden rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-3 py-2">
+    <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted">
       {label}
     </p>
     <p
-      className="text-[13px] font-medium tabular-nums tracking-tight truncate"
-      style={{ color: accent || "rgb(var(--fg))" }}
+      className={`truncate text-[13px] font-medium tabular-nums tracking-tight ${
+        accentClass || "text-text-primary"
+      }`}
     >
       {value ?? "—"}
     </p>
   </div>
 );
 
-const EmptyState = ({ Icon, title, hint, accent = "rgb(var(--fg-muted))" }) => (
-  <div className="text-center py-16">
-    <div
-      className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
-      style={{
-        background: `${accent}15`,
-        border: `1px solid ${accent}30`,
-        color: accent,
-      }}
-    >
+const EmptyState = ({ Icon, title, hint }) => (
+  <div className="py-16 text-center">
+    <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-ink/[0.08] bg-ink/[0.04] text-text-muted">
       {Icon && <Icon size={20} />}
     </div>
-    <p className="text-sm font-semibold text-text-primary mb-1">{title}</p>
-    {hint && (
-      <p className="text-[11.5px]" style={{ color: "rgb(var(--fg-muted))" }}>
-        {hint}
-      </p>
-    )}
+    <p className="mb-1 text-sm font-semibold text-text-primary">{title}</p>
+    {hint && <p className="text-[11.5px] text-text-muted">{hint}</p>}
   </div>
 );
 
@@ -188,103 +141,55 @@ const EmptyState = ({ Icon, title, hint, accent = "rgb(var(--fg-muted))" }) => (
  Hero — pinned at top of Overview tab
  ════════════════════════════════════════ */
 
+const ROLE_BADGE = {
+  admin: "border-ink/20 bg-ink/[0.08] text-text-muted",
+  co_admin: "border-ink/15 bg-ink/[0.06] text-text-muted",
+  founder: "border-accent/25 bg-accent/10 text-accent",
+  subscriber: "border-profit/25 bg-profit/10 text-profit",
+  premium: "border-profit/25 bg-profit/10 text-profit",
+  free: "border-ink/15 bg-ink/[0.05] text-text-muted",
+};
+
 const UserHero = ({ user }) => (
   <div className="flex items-start gap-4">
     <div
-      className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden"
-      style={{
-        background: user.avatar_url ? "transparent" : "rgb(var(--accent) / 0.12)",
-        color: "rgb(var(--accent-text))",
-        border: "1px solid rgb(var(--line) / 0.22)",
-      }}
+      className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-ink/[0.08] text-xl font-bold ${
+        user.avatar_url ? "bg-transparent" : "bg-ink/[0.04] text-accent"
+      }`}
     >
       {user.avatar_url ? (
-        <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+        <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
       ) : (
         user.username?.charAt(0).toUpperCase()
       )}
     </div>
 
-    <div className="flex-1 min-w-0 pt-0.5">
-      <div className="flex items-center gap-2 mb-1">
-        <h3 className="text-lg font-semibold text-text-primary tracking-tight truncate">
+    <div className="min-w-0 flex-1 pt-0.5">
+      <div className="mb-1 flex items-center gap-2">
+        <h3 className="truncate text-lg font-semibold tracking-tight text-text-primary">
           {user.username}
         </h3>
         <ProviderIcon provider={user.auth_provider} size={14} />
       </div>
-      <p className="text-[11px] font-mono truncate" style={{ color: "rgb(var(--fg-muted))" }}>
-        {user.email}
-      </p>
-      <div className="flex gap-1.5 mt-2 flex-wrap">
+      <p className="truncate font-mono text-[11px] text-text-muted">{user.email}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
         <span
-          className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded"
-          style={{
-            background:
-              user.role === "admin"
-                ? "rgb(var(--ink) / 0.12)"
-                : user.role === "co_admin"
-                  ? "rgba(138,138,147,0.12)"
-                  : user.role === "founder"
-                    ? "rgb(var(--accent) / 0.12)"
-                    : user.role === "subscriber" || user.role === "premium"
-                      ? "rgb(var(--pos) / 0.12)"
-                      : "rgba(107,92,82,0.12)",
-            color:
-              user.role === "admin"
-                ? "rgb(var(--fg-muted))"
-                : user.role === "co_admin"
-                  ? "#8a8a93"
-                  : user.role === "founder"
-                    ? "rgb(var(--accent-text))"
-                    : user.role === "subscriber" || user.role === "premium"
-                      ? "rgb(var(--pos-text))"
-                      : "rgb(var(--fg-muted))",
-            border: `1px solid ${
-              user.role === "admin"
-                ? "rgb(var(--ink) / 0.3)"
-                : user.role === "co_admin"
-                  ? "rgba(138,138,147,0.3)"
-                  : user.role === "founder"
-                    ? "rgb(var(--accent) / 0.3)"
-                    : user.role === "subscriber" || user.role === "premium"
-                      ? "rgb(var(--pos) / 0.3)"
-                      : "rgba(107,92,82,0.3)"
-            }`,
-          }}
+          className={`rounded-lg border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+            ROLE_BADGE[user.role] || ROLE_BADGE.free
+          }`}
         >
           {user.role}
         </span>
-        <span
-          className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
-          style={{
-            background: "rgb(var(--ink) / 0.04)",
-            color: "rgb(var(--fg-muted))",
-            border: "1px solid rgb(var(--ink) / 0.06)",
-          }}
-        >
+        <span className="rounded-lg border border-ink/[0.08] bg-ink/[0.04] px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-text-muted">
           {user.auth_provider}
         </span>
         {!user.is_active && (
-          <span
-            className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
-            style={{
-              background: "rgb(var(--neg) / 0.12)",
-              color: "rgb(var(--neg-text))",
-              border: "1px solid rgb(var(--neg) / 0.3)",
-            }}
-          >
+          <span className="rounded-lg border border-loss/25 bg-loss/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-loss">
             Banned
           </span>
         )}
         {user.subscription_source && (
-          <span
-            className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
-            style={{
-              background: "rgb(var(--accent) / 0.1)",
-              color: "rgb(var(--accent-text))",
-              border: "1px solid rgb(var(--line) / 0.22)",
-            }}
-          >
+          <span className="rounded-lg border border-accent/25 bg-accent/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-accent">
             via {user.subscription_source}
           </span>
         )}
@@ -340,13 +245,7 @@ const ActivityPulse = ({ userId }) => {
     return (
       <Section title="Activity Pulse" Icon={ClockIcon}>
         <div className="flex items-center justify-center py-6">
-          <span
-            className="inline-block w-4 h-4 rounded-full animate-spin"
-            style={{
-              border: "2px solid rgb(var(--ink) / 0.25)",
-              borderTopColor: "rgb(var(--fg-muted))",
-            }}
-          />
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-ink/60" />
         </div>
       </Section>
     );
@@ -356,49 +255,35 @@ const ActivityPulse = ({ userId }) => {
   const spark = data.sparkline_30d || [];
   const maxC = spark.reduce((m, p) => Math.max(m, p.count), 0) || 1;
   const score = data.engagement_score ?? 0;
-  const scoreColor =
-    score >= 60
-      ? "rgb(var(--pos-text))"
-      : score >= 30
-        ? "rgb(var(--accent-text))"
-        : "rgb(var(--fg-muted))";
+  const scoreClass =
+    score >= 60 ? "text-profit" : score >= 30 ? "text-accent" : "text-text-muted";
 
   return (
     <Section title="Activity Pulse" Icon={ClockIcon}>
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <StatTile label="Engagement" value={score} accent={scoreColor} />
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <StatTile label="Engagement" value={score} accentClass={scoreClass} />
         <StatTile label="Last seen" value={relativeTime(data.last_active_at)} />
         <StatTile label="Active days (30d)" value={data.active_days_30d ?? 0} />
         <StatTile label="Sessions" value={data.total_sessions ?? 0} />
       </div>
 
       {/* 30-day sparkline */}
-      <div
-        className="rounded-lg px-3 py-2.5"
-        style={{ background: "rgb(var(--ink) / 0.02)", border: "1px solid rgb(var(--ink) / 0.04)" }}
-      >
-        <div className="flex items-center justify-between mb-1.5">
-          <span
-            className="text-[9px] uppercase tracking-wider font-semibold"
-            style={{ color: "rgb(var(--ink) / 0.35)" }}
-          >
+      <div className="rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-3 py-2.5">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted">
             Last 30 days
           </span>
-          <span className="text-[9px]" style={{ color: "rgb(var(--fg-muted))" }}>
-            {data.events_30d ?? 0} actions
-          </span>
+          <span className="text-[9px] text-text-muted">{data.events_30d ?? 0} actions</span>
         </div>
-        <div className="flex items-end gap-[2px]" style={{ height: 36 }}>
+        <div className="flex h-9 items-end gap-[2px]">
           {spark.map((p, i) => (
             <div
               key={i}
               title={`${p.date}: ${p.count}`}
-              className="flex-1 rounded-sm"
-              style={{
-                height: `${Math.max(6, (p.count / maxC) * 100)}%`,
-                background: p.count > 0 ? "rgb(var(--fg-muted))" : "rgb(var(--ink) / 0.05)",
-                opacity: p.count > 0 ? 0.85 : 1,
-              }}
+              className={`flex-1 rounded-sm ${
+                p.count > 0 ? "bg-text-muted/80" : "bg-ink/[0.05]"
+              }`}
+              style={{ height: `${Math.max(6, (p.count / maxC) * 100)}%` }}
             />
           ))}
         </div>
@@ -406,12 +291,11 @@ const ActivityPulse = ({ userId }) => {
 
       {/* Top features */}
       {data.top_features && data.top_features.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           {data.top_features.map((f) => (
             <span
               key={f.feature}
-              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium"
-              style={{ background: "rgb(var(--ink) / 0.1)", color: "rgb(var(--fg-muted))" }}
+              className="inline-flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.06] px-2 py-0.5 text-[10px] font-medium text-text-muted"
             >
               {featLabel(f.feature)} ·{f.count}
             </span>
@@ -433,6 +317,22 @@ const hasActiveAccess = (user) => {
   return new Date(user.subscription_expires_at) > new Date();
 };
 
+const DIAG_SHELL = {
+  ok: "border-profit/25 bg-profit/10",
+  warn: "border-accent/25 bg-accent/10",
+  info: "border-ink/[0.08] bg-ink/[0.03]",
+  danger: "border-loss/25 bg-loss/10",
+  neutral: "border-ink/[0.08] bg-ink/[0.02]",
+};
+
+const DIAG_TEXT = {
+  ok: "text-profit",
+  warn: "text-accent",
+  info: "text-text-muted",
+  danger: "text-loss",
+  neutral: "text-text-muted",
+};
+
 const computeVipDiagnosis = (user) => {
   const active = hasActiveAccess(user);
   const hasTg = !!user.telegram_id;
@@ -443,15 +343,15 @@ const computeVipDiagnosis = (user) => {
     ? formatDate(user.subscription_expires_at)
     : "Lifetime";
 
-  // healthy
+  // healthy — still allow kick if admin needs to force-remove
   if (active && hasTg && inGroup) {
     return {
       tone: "ok",
-      color: "rgb(var(--pos-text))",
       icon: "check",
       title: "Healthy — active access & inside the VIP group",
-      detail: "No action needed.",
-      action: null,
+      detail:
+        "No action needed. You can still kick them from VIP (soft remove — they can rejoin later with a new invite).",
+      action: "kick",
       signals: { access: `Active · ${expDate}`, tg: "Linked", group: "Inside" },
     };
   }
@@ -459,11 +359,10 @@ const computeVipDiagnosis = (user) => {
   if (active && hasTg && !inGroup) {
     return {
       tone: "warn",
-      color: "rgb(var(--accent-text))",
       icon: "alert",
       title: "Paid & Telegram linked, but outside the group",
       detail:
-        "Telegram is linked and access is active, but they haven't joined (or have left) the VIP group. Generate an invite link to re-invite them.",
+        "Telegram is linked and access is active, but they haven't joined (or were removed). Generate an invite to re-invite — works even after a previous kick.",
       action: "invite",
       signals: { access: `Active · ${expDate}`, tg: "Linked", group: "Outside" },
     };
@@ -472,7 +371,6 @@ const computeVipDiagnosis = (user) => {
   if (active && !hasTg) {
     return {
       tone: "info",
-      color: "rgb(var(--fg-muted))",
       icon: "telegram",
       title: "Paid, but Telegram not linked yet",
       detail:
@@ -485,11 +383,10 @@ const computeVipDiagnosis = (user) => {
   if (!active && inGroup && inGrace) {
     return {
       tone: "warn",
-      color: "rgb(var(--warn))",
       icon: "alert",
       title: "Expired — in grace period",
-      detail: `Subscription has lapsed but is still within the grace period. They'll be auto-kicked when grace ends (${formatDate(user.telegram_grace_until)}).`,
-      action: null,
+      detail: `Subscription has lapsed but is still within the grace period. Auto-kick when grace ends (${formatDate(user.telegram_grace_until)}), or kick now.`,
+      action: "kick",
       signals: { access: "Expired (grace)", tg: hasTg ? "Linked" : "Not linked", group: "Inside" },
     };
   }
@@ -497,12 +394,11 @@ const computeVipDiagnosis = (user) => {
   if (!active && inGroup && !inGrace) {
     return {
       tone: "danger",
-      color: "rgb(var(--neg-text))",
       icon: "alert",
       title: "Expired but still inside the group",
       detail:
-        "Subscription has ended and grace has passed, yet the user is still in the VIP group. The worker should have kicked them — check subscription_worker, or kick manually.",
-      action: null,
+        "Subscription has ended and grace has passed, yet the user is still in the VIP group. Kick them now — soft remove so they can rejoin if they renew.",
+      action: "kick",
       signals: {
         access: "Expired",
         tg: hasTg ? "Linked" : "Not linked",
@@ -510,14 +406,28 @@ const computeVipDiagnosis = (user) => {
       },
     };
   }
+  // free / no access, outside — or free but still inside
+  if (!active && inGroup) {
+    return {
+      tone: "danger",
+      icon: "alert",
+      title: "No active access but still inside VIP",
+      detail: "Kick them from the VIP group. Soft remove (can re-invite later).",
+      action: "kick",
+      signals: {
+        access: "None",
+        tg: hasTg ? "Linked" : "Not linked",
+        group: "Inside",
+      },
+    };
+  }
   // free / no access, outside
   return {
     tone: "neutral",
-    color: "rgb(var(--fg-muted))",
     icon: "user",
     title: "No active access",
     detail: "User has no active access. Being outside the VIP group is expected.",
-    action: null,
+    action: hasTg ? "invite_only" : null,
     signals: {
       access: "None",
       tg: hasTg ? "Linked" : "Not linked",
@@ -527,23 +437,12 @@ const computeVipDiagnosis = (user) => {
 };
 
 const SignalCell = ({ label, value, good }) => (
-  <div style={{ background: "rgb(var(--ink) / 0.03)", borderRadius: 6, padding: "8px" }}>
+  <div className="rounded-xl border border-ink/[0.08] bg-ink/[0.03] p-2">
+    <div className="mb-0.5 text-[9px] uppercase tracking-wider text-text-muted">{label}</div>
     <div
-      className="text-[9px] uppercase tracking-wider mb-0.5"
-      style={{ color: "rgb(var(--ink) / 0.35)" }}
-    >
-      {label}
-    </div>
-    <div
-      className="text-[12px] font-medium"
-      style={{
-        color:
-          good === true
-            ? "rgb(var(--pos-text))"
-            : good === false
-              ? "rgb(var(--neg-text))"
-              : "rgb(var(--ink) / 0.45)",
-      }}
+      className={`text-[12px] font-medium ${
+        good === true ? "text-profit" : good === false ? "text-loss" : "text-text-muted"
+      }`}
     >
       {value}
     </div>
@@ -552,15 +451,20 @@ const SignalCell = ({ label, value, good }) => (
 
 const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
   const [busy, setBusy] = useState(false);
+  const [kickBusy, setKickBusy] = useState(false);
   const [inviteLink, setInviteLink] = useState(null);
+  const [confirmKick, setConfirmKick] = useState(false);
   const d = computeVipDiagnosis(user);
 
   const tg = !!user.telegram_id;
   const inGroup = !!user.telegram_in_group;
   const active = hasActiveAccess(user);
+  const textClass = DIAG_TEXT[d.tone] || DIAG_TEXT.neutral;
+  const shellClass = DIAG_SHELL[d.tone] || DIAG_SHELL.neutral;
 
   const handleInvite = async () => {
     setBusy(true);
+    setInviteLink(null);
     try {
       const res = await adminApi.generateVipInvite(user.id);
       if (res.already_member) {
@@ -571,12 +475,35 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
         try {
           await navigator.clipboard.writeText(res.invite_link);
         } catch {}
-        onToast?.("Invite link created & copied to clipboard.", "success");
+        onToast?.("Invite link created & copied. Soft re-join — works after a kick.", "success");
+      } else {
+        onToast?.(res.message || "No invite link returned.", "error");
       }
     } catch (e) {
       onToast?.(e.response?.data?.detail || "Failed to create invite link", "error");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleKick = async () => {
+    setKickBusy(true);
+    try {
+      const res = await adminApi.kickVip(user.id);
+      onToast?.(
+        res.message ||
+          (res.already_out
+            ? "Already outside the group."
+            : "Kicked from VIP. They can rejoin with a new invite."),
+        "success"
+      );
+      setConfirmKick(false);
+      setInviteLink(null);
+      onInvited?.(); // refresh drawer user flags
+    } catch (e) {
+      onToast?.(e.response?.data?.detail || "Kick failed", "error");
+    } finally {
+      setKickBusy(false);
     }
   };
 
@@ -618,23 +545,16 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
     }
   };
 
+  const showKick = canWrite && tg && inGroup;
+
   return (
     <Section title="VIP Access Diagnostic" Icon={AlertTriangleIcon}>
-      <div
-        style={{
-          background: `${d.color}0f`,
-          border: `1px solid ${d.color}4d`,
-          borderRadius: 10,
-          padding: 14,
-        }}
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <AlertTriangleIcon size={16} style={{ color: d.color }} />
-          <span className="text-[13px] font-medium" style={{ color: d.color }}>
-            {d.title}
-          </span>
+      <div className={`rounded-xl border p-3.5 ${shellClass}`}>
+        <div className="mb-3 flex items-center gap-2">
+          <AlertTriangleIcon size={16} className={textClass} />
+          <span className={`text-[13px] font-medium ${textClass}`}>{d.title}</span>
         </div>
-        <div className="grid grid-cols-3 gap-2 mb-2.5">
+        <div className="mb-2.5 grid grid-cols-3 gap-2">
           <SignalCell label="Paid access" value={d.signals.access} good={active} />
           <SignalCell label="Telegram" value={d.signals.tg} good={tg} />
           <SignalCell
@@ -643,80 +563,122 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
             good={inGroup ? true : d.signals.group === "n/a" ? null : false}
           />
         </div>
-        <div
-          className="text-[12px] leading-relaxed mb-3"
-          style={{ color: "rgb(var(--ink) / 0.6)" }}
-        >
-          {d.detail}
-        </div>
+        <div className="mb-3 text-[12px] leading-relaxed text-text-muted">{d.detail}</div>
 
-        {canWrite && d.action === "invite" && !inviteLink && (
-          <div className="flex items-center gap-2 flex-wrap">
+        {canWrite && d.action === "invite" && (
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={handleFollowup}
               disabled={fuBusy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
-              style={{
-                background: "#34d39924",
-                color: "rgb(var(--pos-text))",
-                border: "1px solid #34d3994d",
-                cursor: fuBusy ? "wait" : "pointer",
-              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-profit/25 bg-profit/10 px-3 py-1.5 text-[11px] font-semibold tracking-tight text-profit transition-colors hover:bg-profit/15 disabled:opacity-50"
+              style={{ cursor: fuBusy ? "wait" : "pointer" }}
             >
               <SendIcon size={13} /> {fuBusy ? "Sending…" : "Send follow-up via bot"}
             </button>
             <button
+              type="button"
               onClick={handleInvite}
               disabled={busy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
-              style={{
-                background: `${d.color}24`,
-                color: d.color,
-                border: `1px solid ${d.color}4d`,
-                cursor: busy ? "wait" : "pointer",
-              }}
+              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-semibold tracking-tight transition-colors disabled:opacity-50 ${shellClass} ${textClass}`}
+              style={{ cursor: busy ? "wait" : "pointer" }}
             >
-              <ExternalLinkIcon size={13} /> {busy ? "Generating…" : "Just generate link"}
+              <ExternalLinkIcon size={13} /> {busy ? "Generating…" : "Generate invite link"}
             </button>
           </div>
         )}
+
+        {canWrite && d.action === "invite_only" && (
+          <div className="mb-2">
+            <button
+              type="button"
+              onClick={handleInvite}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-ink/[0.04] px-3 py-1.5 text-[11px] font-semibold text-text-primary disabled:opacity-50"
+            >
+              <ExternalLinkIcon size={13} /> {busy ? "Generating…" : "Generate invite (no access)"}
+            </button>
+          </div>
+        )}
+
+        {/* Kick VIP — soft remove (ban→unban) so re-invite works later */}
+        {showKick && (
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {!confirmKick ? (
+              <button
+                type="button"
+                onClick={() => setConfirmKick(true)}
+                disabled={kickBusy}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-loss/30 bg-loss/10 px-3 py-1.5 text-[11px] font-semibold text-loss transition-colors hover:bg-loss/15 disabled:opacity-50"
+              >
+                Kick from VIP group
+              </button>
+            ) : (
+              <>
+                <span className="text-[11px] text-loss">
+                  Soft remove — not permanently banned. Re-invite later OK.
+                </span>
+                <button
+                  type="button"
+                  onClick={handleKick}
+                  disabled={kickBusy}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-loss/40 bg-loss/20 px-3 py-1.5 text-[11px] font-bold text-loss disabled:opacity-50"
+                >
+                  {kickBusy ? "Kicking…" : "Confirm kick"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmKick(false)}
+                  disabled={kickBusy}
+                  className="rounded-xl border border-ink/10 px-3 py-1.5 text-[11px] text-text-muted"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+            {inGroup && d.action === "kick" && active && (
+              <button
+                type="button"
+                onClick={handleInvite}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/12 bg-ink/[0.03] px-3 py-1.5 text-[11px] font-semibold text-text-secondary disabled:opacity-50"
+                title="Only needed after kick, or if they left and need a new link"
+              >
+                <ExternalLinkIcon size={13} /> {busy ? "…" : "New invite link"}
+              </button>
+            )}
+          </div>
+        )}
+
         {!canWrite && d.action && (
-          <p className="text-[11px]" style={{ color: "rgb(var(--fg-muted))" }}>
-            View-only — invite / follow-up actions are disabled.
+          <p className="text-[11px] text-text-muted">
+            View-only — kick / invite actions are disabled.
           </p>
         )}
         {canWrite && d.action === "email_link_tg" && (
           <button
+            type="button"
             onClick={handleCopyLinkTgMsg}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
-            style={{
-              background: `${d.color}24`,
-              color: d.color,
-              border: `1px solid ${d.color}4d`,
-              cursor: "pointer",
-            }}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-semibold tracking-tight ${shellClass} ${textClass}`}
           >
-            <SendIcon size={13} /> Copy "connect Telegram" message
+            <SendIcon size={13} /> Copy &quot;connect Telegram&quot; message
           </button>
         )}
         {inviteLink && (
-          <div
-            className="mt-2 p-2 rounded-md text-[11px] break-all"
-            style={{
-              background: "rgb(var(--ink) / 0.04)",
-              color: "rgb(var(--pos-text))",
-              border: "1px solid rgb(var(--pos) / 0.3)",
-            }}
-          >
-            <div
-              className="text-[9px] uppercase tracking-wider mb-1"
-              style={{ color: "rgb(var(--ink) / 0.4)" }}
-            >
-              Invite link (copied · valid 1 hour)
+          <div className="mt-2 break-all rounded-xl border border-profit/25 bg-ink/[0.03] p-2 text-[11px] text-profit">
+            <div className="mb-1 text-[9px] uppercase tracking-wider text-text-muted">
+              Invite link (copied · valid 1 hour · single use)
             </div>
-            {inviteLink}
+            <a href={inviteLink} target="_blank" rel="noopener noreferrer" className="underline">
+              {inviteLink}
+            </a>
           </div>
         )}
+        <p className="mt-2 text-[10px] leading-snug text-text-muted/80">
+          Kick = remove from group without permanent ban. After kick, use{" "}
+          <strong className="font-semibold text-text-muted">Generate invite</strong> so they can
+          rejoin (Telegram would otherwise block rejoin if left banned).
+        </p>
       </div>
     </Section>
   );
@@ -726,24 +688,19 @@ const VipDiagnostic = ({ user, onInvited, onToast, canWrite = true }) => {
  Account Timeline — chronological lifecycle from existing data
  ════════════════════════════════════════ */
 
-const TimelineRow = ({ icon: Icon, color, label, date, last }) => (
+const TimelineRow = ({ icon: Icon, toneClass, label, date, last }) => (
   <div className="flex gap-3">
     <div className="flex flex-col items-center">
       <div
-        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: `${color}1a`, border: `1px solid ${color}4d` }}
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}
       >
-        <Icon size={11} style={{ color }} />
+        <Icon size={11} />
       </div>
-      {!last && (
-        <div className="w-px flex-1 my-1" style={{ background: "rgb(var(--ink) / 0.08)" }} />
-      )}
+      {!last && <div className="my-1 w-px flex-1 bg-ink/[0.08]" />}
     </div>
-    <div className="pb-3 min-w-0">
+    <div className="min-w-0 pb-3">
       <div className="text-[12px] font-medium text-text-primary/80">{label}</div>
-      <div className="text-[10px] tabular-nums" style={{ color: "rgb(var(--ink) / 0.4)" }}>
-        {date}
-      </div>
+      <div className="text-[10px] tabular-nums text-text-muted">{date}</div>
     </div>
   </div>
 );
@@ -756,14 +713,14 @@ const AccountTimeline = ({ data }) => {
     events.push({
       ts: user.created_at,
       icon: SparklesIcon,
-      color: "rgb(var(--accent-text))",
+      toneClass: "border-accent/25 bg-accent/10 text-accent",
       label: `Account created (via ${user.auth_provider || "unknown"})`,
     });
   if (user.first_login_at)
     events.push({
       ts: user.first_login_at,
       icon: UserIcon,
-      color: "rgb(var(--fg-muted))",
+      toneClass: "border-ink/[0.08] bg-ink/[0.04] text-text-muted",
       label: "First login",
     });
 
@@ -773,7 +730,7 @@ const AccountTimeline = ({ data }) => {
       events.push({
         ts: p.verified_at || p.created_at,
         icon: StarIcon,
-        color: "rgb(var(--pos-text))",
+        toneClass: "border-profit/25 bg-profit/10 text-profit",
         label: `Payment confirmed${p.plan_label ? ` · ${p.plan_label}` : ""} ($${p.final_amount || p.amount_usdt})`,
       });
     });
@@ -782,17 +739,17 @@ const AccountTimeline = ({ data }) => {
     events.push({
       ts: user.subscription_granted_at,
       icon: StarIcon,
-      color: "rgb(var(--warn))",
+      toneClass: "border-accent/25 bg-accent/10 text-accent",
       label: `Subscription granted${user.subscription_source ? ` (${user.subscription_source})` : ""}`,
     });
   if (user.subscription_expires_at)
     events.push({
       ts: user.subscription_expires_at,
       icon: ClockIcon,
-      color:
+      toneClass:
         new Date(user.subscription_expires_at) > new Date()
-          ? "rgb(var(--pos-text))"
-          : "rgb(var(--neg-text))",
+          ? "border-profit/25 bg-profit/10 text-profit"
+          : "border-loss/25 bg-loss/10 text-loss",
       label:
         new Date(user.subscription_expires_at) > new Date()
           ? "Subscription valid until"
@@ -810,7 +767,7 @@ const AccountTimeline = ({ data }) => {
           <TimelineRow
             key={i}
             icon={e.icon}
-            color={e.color}
+            toneClass={e.toneClass}
             label={e.label}
             date={formatDateTime(e.ts)}
             last={i === events.length - 1}
@@ -825,20 +782,18 @@ const AccountTimeline = ({ data }) => {
  Tab 1: Overview
  ════════════════════════════════════════ */
 
-/* -- Follow-up history timeline (CRM) ------------------------------- */
-// hex -> rgba helper (avoids external tint dependency)
-const _fuRgba = (hex, a) => {
-  const h = hex.replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16),
-    g = parseInt(h.slice(2, 4), 16),
-    b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${a})`;
-};
 const FU_STATUS = {
-  pending: { color: "rgb(var(--warn))", label: "Pending" },
-  in_progress: { color: "rgb(var(--fg-muted))", label: "In progress" },
-  done: { color: "rgb(var(--pos-text))", label: "Done" },
-  cancelled: { color: "rgb(var(--fg-muted))", label: "Cancelled" },
+  pending: { className: "border-accent/25 bg-accent/10 text-accent", label: "Pending" },
+  in_progress: { className: "border-ink/15 bg-ink/[0.05] text-text-muted", label: "In progress" },
+  done: { className: "border-profit/25 bg-profit/10 text-profit", label: "Done" },
+  cancelled: { className: "border-ink/15 bg-ink/[0.05] text-text-muted", label: "Cancelled" },
+};
+
+const FU_DOT = {
+  pending: "bg-accent",
+  in_progress: "bg-text-muted",
+  done: "bg-profit",
+  cancelled: "bg-text-muted",
 };
 
 const FollowupTimeline = ({ userId }) => {
@@ -872,52 +827,30 @@ const FollowupTimeline = ({ userId }) => {
             const isLast = idx === items.length - 1;
             return (
               <div key={f.id} className="flex gap-3">
-                <div className="flex flex-col items-center shrink-0">
+                <div className="flex shrink-0 flex-col items-center">
                   <span
-                    className="rounded-full mt-1"
-                    style={{
-                      width: 9,
-                      height: 9,
-                      background: st.color,
-                      boxShadow: `0 0 6px ${_fuRgba(st.color, 0.5)}`,
-                    }}
+                    className={`mt-1 h-2.5 w-2.5 rounded-full ${FU_DOT[f.status] || FU_DOT.pending}`}
                   />
-                  {!isLast && (
-                    <span
-                      className="flex-1 w-px my-1"
-                      style={{ background: "rgb(var(--ink) / 0.08)" }}
-                    />
-                  )}
+                  {!isLast && <span className="my-1 w-px flex-1 bg-ink/[0.08]" />}
                 </div>
-                <div className="pb-4 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="min-w-0 flex-1 pb-4">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-medium text-text-primary">{f.title}</span>
                     <span
-                      className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
-                      style={{
-                        background: _fuRgba(st.color, 0.12),
-                        color: st.color,
-                        border: `1px solid ${_fuRgba(st.color, 0.25)}`,
-                      }}
+                      className={`rounded-lg border px-1.5 py-px text-[8px] font-bold uppercase tracking-wider ${st.className}`}
                     >
                       {st.label}
                     </span>
                     {f.priority === "urgent" && (
-                      <span
-                        className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
-                        style={{
-                          background: _fuRgba("rgb(var(--neg-text))", 0.12),
-                          color: "rgb(var(--neg-text))",
-                        }}
-                      >
+                      <span className="rounded-lg border border-loss/25 bg-loss/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-wider text-loss">
                         Urgent
                       </span>
                     )}
                   </div>
                   {f.note && (
-                    <p className="text-[11px] text-text-muted/60 mt-1 leading-relaxed">{f.note}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-text-muted/60">{f.note}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-text-muted/40 flex-wrap">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[10px] text-text-muted/40">
                     {f.category && <span>{f.category}</span>}
                     {f.category && <span>{"·"}</span>}
                     <span>{formatDate(f.created_at)}</span>
@@ -958,18 +891,12 @@ const OverviewTab = ({
       <UserHero user={user} />
 
       {canManageRoles && onSetRole && (
-        <div
-          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5"
-          style={{
-            background: "rgb(var(--ink) / 0.08)",
-            border: "1px solid rgb(var(--ink) / 0.22)",
-          }}
-        >
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-3 py-2.5">
           <div>
             <p className="text-[11px] font-semibold text-text-primary/90">Staff / member role</p>
-            <p className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+            <p className="text-[10px] text-text-muted">
               Current:{" "}
-              <span className="uppercase font-bold tracking-wider text-text-primary/70">
+              <span className="font-bold uppercase tracking-wider text-text-primary/70">
                 {user.role}
               </span>
               {" · "}admin full · co_admin/founder view-only
@@ -978,12 +905,7 @@ const OverviewTab = ({
           <button
             type="button"
             onClick={() => onSetRole(user)}
-            className="shrink-0 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-            style={{
-              background: "rgb(var(--ink) / 0.16)",
-              color: "rgb(var(--fg-muted))",
-              border: "1px solid rgb(var(--ink) / 0.35)",
-            }}
+            className="shrink-0 rounded-xl border border-ink/[0.08] bg-ink/[0.04] px-3 py-1.5 text-[10px] font-semibold tracking-tight text-text-muted transition-colors hover:border-ink/15 hover:text-text-primary"
           >
             Set role
           </button>
@@ -1016,8 +938,8 @@ const OverviewTab = ({
               value={
                 user.subscription_expires_at ? formatDate(user.subscription_expires_at) : "Lifetime"
               }
-              accent={
-                user.subscription_expires_at ? "rgb(var(--pos-text))" : "rgb(var(--accent-text))"
+              accentClass={
+                user.subscription_expires_at ? "text-profit" : "text-accent"
               }
             />
             <StatTile label="Granted" value={formatDate(user.subscription_granted_at)} />
@@ -1031,12 +953,12 @@ const OverviewTab = ({
             <StatTile
               label="Balance"
               value={`$${user.referral_credit_usdt}`}
-              accent="rgb(var(--pos-text))"
+              accentClass="text-profit"
             />
             <StatTile
               label="Lifetime Earned"
               value={`$${user.lifetime_credit_earned}`}
-              accent="rgb(var(--accent-text))"
+              accentClass="text-accent"
             />
           </div>
         </Section>
@@ -1070,22 +992,15 @@ const TelegramIdentityNote = ({ identity, resolving, onResolve, telegramId }) =>
   const appLink = identity?.app_link || `tg://user?id=${telegramId}`;
 
   return (
-    <div
-      className="rounded-lg px-3 py-2 text-[11px] space-y-2"
-      style={{
-        background: "rgb(34,158,217,0.05)",
-        border: "1px solid rgba(34,158,217,0.16)",
-        color: "rgb(var(--fg-muted))",
-      }}
-    >
+    <div className="space-y-2 rounded-xl border border-ink/[0.08] bg-ink/[0.02] px-3 py-2 text-[11px] text-text-muted">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 min-w-0">
+        <span className="flex min-w-0 items-center gap-1.5">
           <TelegramIcon size={11} colored />
           {resolving ? (
             <span>Asking the bot who this is…</span>
           ) : name ? (
             <span className="truncate">
-              Telegram name: <strong style={{ color: "rgb(var(--fg))" }}>{name}</strong>
+              Telegram name: <strong className="text-text-primary">{name}</strong>
               {hasUsername && <> · @{identity.username}</>}
             </span>
           ) : (
@@ -1095,42 +1010,29 @@ const TelegramIdentityNote = ({ identity, resolving, onResolve, telegramId }) =>
         <button
           onClick={onResolve}
           disabled={resolving}
-          className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider disabled:opacity-40"
-          style={{
-            color: "rgb(var(--accent-text))",
-            background: "rgb(var(--accent) / 0.08)",
-            border: "1px solid rgb(var(--line) / 0.22)",
-          }}
+          className="shrink-0 rounded-xl border border-accent/25 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-tight text-accent transition-colors hover:bg-accent/15 disabled:opacity-40"
         >
           {resolving ? "…" : "Re-check"}
         </button>
       </div>
 
       {!resolving && identity && !hasUsername && identity.message && name && (
-        <p style={{ color: "rgb(var(--fg-muted))" }}>{identity.message}</p>
+        <p className="text-text-muted">{identity.message}</p>
       )}
 
       <div className="flex items-center gap-2">
         <a
           href={appLink}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded font-semibold"
-          style={{
-            color: "#229ED9",
-            background: "rgba(34,158,217,0.08)",
-            border: "1px solid rgba(34,158,217,0.2)",
-          }}
+          className="inline-flex items-center gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.04] px-2 py-1 font-semibold text-text-primary transition-colors hover:border-ink/15"
         >
           <ExternalLinkIcon size={10} />
           Open in Telegram app
         </a>
         <button
           onClick={copyId}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded font-mono"
-          style={{
-            background: "rgb(var(--ink) / 0.03)",
-            border: "1px solid rgb(var(--ink) / 0.08)",
-            color: copied ? "rgb(var(--pos-text))" : "rgb(var(--fg-muted))",
-          }}
+          className={`inline-flex items-center gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-2 py-1 font-mono transition-colors ${
+            copied ? "text-profit" : "text-text-muted"
+          }`}
         >
           {copied ? "Copied" : `Copy id ${telegramId}`}
         </button>
@@ -1228,12 +1130,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
           !editing && (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-accent/10"
-              style={{
-                color: "rgb(var(--accent-text))",
-                background: "rgb(var(--accent) / 0.06)",
-                border: "1px solid rgb(var(--line) / 0.22)",
-              }}
+              className="flex items-center gap-1.5 rounded-xl border border-accent/25 bg-accent/10 px-2 py-1 text-[10px] font-semibold tracking-tight text-accent transition-colors hover:bg-accent/15"
             >
               <EditIcon size={11} />
               Edit
@@ -1284,15 +1181,8 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
               />
             )}
             {!hasAnyChannel && (
-              <div
-                className="text-xs p-3 rounded-lg flex items-start gap-2"
-                style={{
-                  background: "rgb(var(--neg) / 0.05)",
-                  color: "rgb(var(--neg-text))",
-                  border: "1px solid rgb(var(--neg) / 0.18)",
-                }}
-              >
-                <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 rounded-xl border border-loss/20 bg-loss/10 p-3 text-xs text-loss">
+                <AlertTriangleIcon size={13} className="mt-0.5 shrink-0" />
                 <span>
                   No contact channels available. Click <strong>Edit</strong> to add a Telegram or
                   Discord handle manually.
@@ -1301,18 +1191,9 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
             )}
           </div>
         ) : (
-          <div
-            className="space-y-3 rounded-lg p-3"
-            style={{
-              background: "rgb(var(--accent) / 0.04)",
-              border: "1px solid rgb(var(--line) / 0.2)",
-            }}
-          >
+          <div className="space-y-3 rounded-xl border border-ink/[0.08] bg-surface-raised p-3.5">
             <div>
-              <label
-                className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
-                style={{ color: "rgb(var(--accent-text))" }}
-              >
+              <label className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                 <TelegramIcon size={11} colored />
                 Admin Telegram Note
               </label>
@@ -1321,33 +1202,23 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 value={adminTg}
                 onChange={(e) => setAdminTg(e.target.value)}
                 placeholder="username (without @)"
-                className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none font-mono"
-                style={{
-                  background: "rgb(var(--scrim) / 0.3)",
-                  border: "1px solid rgb(var(--ink) / 0.1)",
-                }}
+                className="w-full rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-2.5 py-1.5 font-mono text-xs text-text-primary outline-none transition-colors focus:border-ink/20"
               />
               {user.telegram_username && (
-                <p
-                  className="text-[10px] mt-1 flex items-center gap-1"
-                  style={{ color: "rgb(var(--pos-text))" }}
-                >
-                  <span style={{ color: "rgb(var(--fg-muted))" }}>Real username (from login):</span>
+                <p className="mt-1 flex items-center gap-1 text-[10px] text-profit">
+                  <span className="text-text-muted">Real username (from login):</span>
                   <strong>@{user.telegram_username}</strong>
                 </p>
               )}
               {!user.telegram_username && (
-                <p className="text-[9px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
+                <p className="mt-1 text-[9px] text-text-muted">
                   No login-linked Telegram yet — admin note used as fallback.
                 </p>
               )}
             </div>
 
             <div>
-              <label
-                className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
-                style={{ color: "rgb(var(--accent-text))" }}
-              >
+              <label className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                 <DiscordIcon size={11} colored />
                 Discord Handle
               </label>
@@ -1356,24 +1227,15 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 value={adminDc}
                 onChange={(e) => setAdminDc(e.target.value)}
                 placeholder="username or numeric ID"
-                className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none font-mono"
-                style={{
-                  background: "rgb(var(--scrim) / 0.3)",
-                  border: "1px solid rgb(var(--ink) / 0.1)",
-                }}
+                className="w-full rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-2.5 py-1.5 font-mono text-xs text-text-primary outline-none transition-colors focus:border-ink/20"
               />
               {user.discord_id && (
-                <p className="text-[9px] mt-1" style={{ color: "rgb(var(--fg-muted))" }}>
-                  OAuth ID: {user.discord_id}
-                </p>
+                <p className="mt-1 text-[9px] text-text-muted">OAuth ID: {user.discord_id}</p>
               )}
             </div>
 
             <div>
-              <label
-                className="block text-[10px] uppercase tracking-wider font-semibold mb-1"
-                style={{ color: "rgb(var(--accent-text))" }}
-              >
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                 Admin Notes
               </label>
               <textarea
@@ -1381,24 +1243,13 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
                 onChange={(e) => setAdminNotes(e.target.value)}
                 rows={3}
                 placeholder="VIP customer, prefers TG. Pays annually on each renewal…"
-                className="w-full px-2.5 py-1.5 rounded-md text-xs text-text-primary focus:outline-none resize-none"
-                style={{
-                  background: "rgb(var(--scrim) / 0.3)",
-                  border: "1px solid rgb(var(--ink) / 0.1)",
-                }}
+                className="w-full resize-none rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-2.5 py-1.5 text-xs text-text-primary outline-none transition-colors focus:border-ink/20"
               />
             </div>
 
             {saveErr && (
-              <div
-                className="text-xs px-2 py-1.5 rounded flex items-start gap-2"
-                style={{
-                  background: "rgb(var(--neg) / 0.1)",
-                  color: "rgb(var(--neg-text))",
-                  border: "1px solid rgb(var(--neg) / 0.3)",
-                }}
-              >
-                <AlertTriangleIcon size={12} className="shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 rounded-xl border border-loss/25 bg-loss/10 px-2 py-1.5 text-xs text-loss">
+                <AlertTriangleIcon size={12} className="mt-0.5 shrink-0" />
                 {saveErr}
               </div>
             )}
@@ -1420,17 +1271,12 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
 
         {/* Audit trail */}
         {user.admin_enriched_at && enriched_by_user && (
-          <div
-            className="mt-1.5 text-[10px] flex items-center gap-1.5"
-            style={{ color: "rgb(var(--fg-muted))" }}
-          >
-            <SparklesIcon size={10} style={{ color: "rgb(var(--accent-text))" }} />
+          <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-text-muted">
+            <SparklesIcon size={10} className="text-accent" />
             <span>
               Enriched by{" "}
-              <strong style={{ color: "rgb(var(--accent-text))" }}>
-                @{enriched_by_user.username}
-              </strong>{" "}
-              on {formatDateTime(user.admin_enriched_at)}
+              <strong className="text-accent">@{enriched_by_user.username}</strong> on{" "}
+              {formatDateTime(user.admin_enriched_at)}
             </span>
           </div>
         )}
@@ -1439,15 +1285,7 @@ const ContactTab = ({ data, onContactUpdate, canWrite = true }) => {
       {/* Admin notes (view-only when not editing) */}
       {!editing && user.admin_notes && (
         <Section title="Admin Notes" Icon={EditIcon}>
-          <div
-            className="text-xs p-3 rounded-lg whitespace-pre-wrap"
-            style={{
-              background: "rgb(var(--ink) / 0.02)",
-              border: "1px solid rgb(var(--ink) / 0.05)",
-              color: "rgb(var(--fg-secondary))",
-              lineHeight: "1.5",
-            }}
-          >
+          <div className="whitespace-pre-wrap rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-3 text-xs leading-relaxed text-text-secondary">
             {user.admin_notes}
           </div>
         </Section>
@@ -1481,57 +1319,19 @@ const PaymentsTab = ({ data }) => {
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-2">
-        <div
-          className="relative overflow-hidden rounded-lg p-3"
-          style={{
-            background: "rgb(var(--pos) / 0.04)",
-            border: "1px solid rgb(var(--pos) / 0.18)",
-          }}
-        >
-          <div
-            className="absolute inset-x-0 top-0 h-px pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(to right, transparent, rgb(var(--pos) / 0.4), transparent)",
-            }}
-          />
-          <p
-            className="text-[10px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: "rgb(var(--pos-text))" }}
-          >
+        <div className="rounded-xl border border-profit/25 bg-profit/10 p-3.5">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-profit">
             Total Paid
           </p>
-          <p
-            className="text-xl font-light tabular-nums tracking-tight"
-            style={{ color: "rgb(var(--pos-text))" }}
-          >
+          <p className="text-xl font-light tabular-nums tracking-tight text-profit">
             ${totalConfirmed.toFixed(2)}
           </p>
         </div>
-        <div
-          className="relative overflow-hidden rounded-lg p-3"
-          style={{
-            background: "rgb(var(--accent) / 0.04)",
-            border: "1px solid rgb(var(--line) / 0.15)",
-          }}
-        >
-          <div
-            className="absolute inset-x-0 top-0 h-px pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(to right, transparent, rgb(var(--accent) / 0.4), transparent)",
-            }}
-          />
-          <p
-            className="text-[10px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: "rgb(var(--accent-text))" }}
-          >
+        <div className="rounded-xl border border-ink/[0.08] bg-surface-raised p-3.5">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
             Records
           </p>
-          <p
-            className="text-xl font-light tabular-nums tracking-tight"
-            style={{ color: "rgb(var(--accent-text))" }}
-          >
+          <p className="text-xl font-light tabular-nums tracking-tight text-text-primary">
             {payments.length}
           </p>
         </div>
@@ -1542,21 +1342,17 @@ const PaymentsTab = ({ data }) => {
           {payments.map((p) => (
             <div
               key={p.id}
-              className="rounded-lg p-2.5"
-              style={{
-                background: "rgb(var(--ink) / 0.018)",
-                border: "1px solid rgb(var(--ink) / 0.04)",
-              }}
+              className="rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-2.5"
             >
-              <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="mb-1 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-text-primary truncate">
+                  <p className="truncate text-xs font-semibold text-text-primary">
                     {p.plan_label || `Plan #${p.id}`}
                   </p>
-                  <p className="text-[11px] tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+                  <p className="text-[11px] tabular-nums text-text-muted">
                     ${(p.final_amount || p.amount_usdt).toFixed(2)}
                     {p.credit_redeemed > 0 && (
-                      <span className="text-[10px] ml-1.5" style={{ color: "rgb(var(--warn))" }}>
+                      <span className="ml-1.5 text-[10px] text-accent">
                         (−${p.credit_redeemed.toFixed(2)} credit)
                       </span>
                     )}
@@ -1564,18 +1360,14 @@ const PaymentsTab = ({ data }) => {
                 </div>
                 <StatusBadge status={p.status} />
               </div>
-              <div
-                className="flex items-center gap-3 text-[10px] flex-wrap"
-                style={{ color: "rgb(var(--fg-muted))" }}
-              >
+              <div className="flex flex-wrap items-center gap-3 text-[10px] text-text-muted">
                 <span className="tabular-nums">{formatDateTime(p.created_at)}</span>
                 {p.tx_hash && (
                   <a
                     href={`https://bscscan.com/tx/${p.tx_hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 hover:underline font-mono"
-                    style={{ color: "#8a8a93" }}
+                    className="inline-flex items-center gap-1 font-mono text-text-muted hover:text-text-primary hover:underline"
                   >
                     {p.tx_hash.slice(0, 8)}…{p.tx_hash.slice(-6)}
                     <ExternalLinkIcon size={10} />
@@ -1611,29 +1403,16 @@ const ReferralTab = ({ data }) => {
     <div className="space-y-4">
       {as_referred && (
         <Section title="Referred By" Icon={SparklesIcon}>
-          <div
-            className="rounded-lg p-3 flex items-center justify-between"
-            style={{
-              background: "rgba(138,138,147,0.04)",
-              border: "1px solid rgba(138,138,147,0.18)",
-            }}
-          >
+          <div className="flex items-center justify-between rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-3">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-text-primary truncate">
+              <p className="truncate text-xs font-semibold text-text-primary">
                 @{as_referred.referrer_username}
               </p>
-              <p className="text-[10px] tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+              <p className="text-[10px] tabular-nums text-text-muted">
                 Joined via: {formatDate(as_referred.created_at)}
               </p>
             </div>
-            <span
-              className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded shrink-0"
-              style={{
-                background: "rgba(138,138,147,0.15)",
-                color: "#8a8a93",
-                border: "1px solid rgba(138,138,147,0.3)",
-              }}
-            >
+            <span className="shrink-0 rounded-lg border border-ink/15 bg-ink/[0.05] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-text-muted">
               {as_referred.status}
             </span>
           </div>
@@ -1646,35 +1425,23 @@ const ReferralTab = ({ data }) => {
             {as_referrer.map((r) => (
               <div
                 key={r.id}
-                className="rounded-lg p-2.5 flex items-center justify-between"
-                style={{
-                  background: "rgb(var(--pos) / 0.03)",
-                  border: "1px solid rgb(var(--pos) / 0.15)",
-                }}
+                className="flex items-center justify-between rounded-xl border border-profit/20 bg-profit/10 p-2.5"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-text-primary truncate">
+                  <p className="truncate text-xs font-medium text-text-primary">
                     @{r.referee_username || "unknown"}
                   </p>
-                  <p className="text-[10px] tabular-nums" style={{ color: "rgb(var(--fg-muted))" }}>
+                  <p className="text-[10px] tabular-nums text-text-muted">
                     {formatDate(r.created_at)} · {r.total_payments || 0} payment(s)
                   </p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="shrink-0 text-right">
                   {r.total_commission_earned > 0 && (
-                    <p
-                      className="text-xs font-bold tabular-nums"
-                      style={{ color: "rgb(var(--pos-text))" }}
-                    >
+                    <p className="text-xs font-bold tabular-nums text-profit">
                       ${r.total_commission_earned.toFixed(2)}
                     </p>
                   )}
-                  <p
-                    className="text-[9px] uppercase tracking-wider"
-                    style={{ color: "rgb(var(--fg-muted))" }}
-                  >
-                    {r.status}
-                  </p>
+                  <p className="text-[9px] uppercase tracking-wider text-text-muted">{r.status}</p>
                 </div>
               </div>
             ))}
@@ -1731,25 +1498,14 @@ const InAppChatCard = ({ user }) => {
   };
 
   return (
-    <div
-      className="mb-4 rounded-lg p-3"
-      style={{
-        background: "rgb(var(--accent) / 0.05)",
-        border: "1px solid rgb(var(--accent) / 0.18)",
-      }}
-    >
+    <div className="mb-4 rounded-xl border border-ink/[0.08] bg-surface-raised p-3.5">
       <div className="mb-2 flex items-center gap-2">
-        <span
-          className="text-[10px] font-semibold uppercase tracking-wider"
-          style={{ color: "rgb(var(--accent-text))" }}
-        >
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
           In-app chat
         </span>
-        <span className="text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
-          reaches every account
-        </span>
+        <span className="text-[10px] text-text-muted">reaches every account</span>
         {thread?.exists && (
-          <span className="ml-auto font-mono text-[10px]" style={{ color: "rgb(var(--fg-muted))" }}>
+          <span className="ml-auto font-mono text-[10px] text-text-muted">
             {thread.message_count} message{thread.message_count === 1 ? "" : "s"}
             {thread.unread > 0 && ` · ${thread.unread} unread`}
           </span>
@@ -1763,19 +1519,19 @@ const InAppChatCard = ({ user }) => {
           setSent(false);
         }}
         placeholder={`Message @${user.username} in the app…`}
-        className="w-full resize-none rounded-md border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 text-xs text-text-primary placeholder:text-text-primary/30 focus:border-ink/20 focus:outline-none"
+        className="w-full resize-none rounded-xl border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 text-xs text-text-primary placeholder:text-text-primary/30 outline-none transition-colors focus:border-ink/20"
       />
       <div className="mt-2 flex items-center gap-2">
-        {err && <span className="text-[11px] text-neg-text">{err}</span>}
+        {err && <span className="text-[11px] text-loss">{err}</span>}
         {sent && !err && (
-          <span className="text-[11px]" style={{ color: "rgb(var(--pos-text))" }}>
+          <span className="text-[11px] text-profit">
             Sent — they'll get a notification if they don't open it.
           </span>
         )}
         <button
           onClick={send}
           disabled={sending || !body.trim()}
-          className="lq-cta-md ml-auto px-3 py-1.5 text-[11px] disabled:opacity-30"
+          className="lq-cta-md ml-auto rounded-xl px-3 py-1.5 text-[11px] tracking-tight disabled:opacity-30"
         >
           {sending ? "Sending…" : "Send"}
         </button>
@@ -1804,16 +1560,15 @@ const OutreachTab = ({ data, templates, canWrite = true }) => {
       <InAppChatCard user={user} />
       {hasAnyChannel ? (
         <>
-          <p className="text-[11px] mb-3" style={{ color: "rgb(var(--fg-muted))" }}>
+          <p className="mb-3 text-[11px] text-text-muted">
             Or pick a template to DM{" "}
             <strong className="text-text-primary">@{user.username}</strong>. Click{" "}
-            <strong style={{ color: "rgb(var(--accent-text))" }}>Send</strong> to copy the message
-            and open the channel.
+            <strong className="text-accent">Send</strong> to copy the message and open the channel.
           </p>
           <QuickSendPopover user={user} templates={templates} reach={reach} inline />
         </>
       ) : (
-        <p className="text-[11px]" style={{ color: "rgb(var(--fg-muted))" }}>
+        <p className="text-[11px] text-text-muted">
           No Telegram, Discord or real email on file — in-app chat above is the way to reach this
           one. Add a handle on the Contact tab to unlock DM templates.
         </p>
@@ -1898,61 +1653,29 @@ export const UserDetailDrawer = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-6"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[2147483646] flex items-end justify-center p-0 sm:items-center sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        background: "rgb(var(--scrim) / 0.75)",
-        backdropFilter: "blur(8px)",
-        zIndex: 2147483646,
-      }}
     >
       <div
-        className="w-full max-w-3xl max-h-[min(92dvh,100%)] h-[min(92dvh,100%)] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 fade-in duration-200"
-        style={{
-          background: "rgb(var(--surface-raised))",
-          border: "1px solid rgb(var(--line) / 0.25)",
-          boxShadow:
-            "0 -20px 60px rgb(var(--scrim) / 0.35), 0 0 0 1px rgb(var(--accent) / 0.08), 0 0 80px -10px rgb(var(--accent) / 0.15)",
-        }}
+        className="flex h-[min(92dvh,100%)] max-h-[min(92dvh,100%)] w-full max-w-3xl animate-in flex-col overflow-hidden rounded-t-3xl border border-ink/[0.08] bg-surface-raised shadow-[0_24px_48px_-12px_rgb(var(--scrim)/0.4)] duration-200 fade-in slide-in-from-bottom-4 sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 justify-center pt-2.5 pb-0 sm:hidden" aria-hidden="true">
+        <div className="flex shrink-0 justify-center pb-0 pt-2.5 sm:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-ink/25" />
         </div>
+
         {/* ── HEADER ── */}
-        <div
-          className="flex items-center justify-between px-5 py-3.5 shrink-0 relative"
-          style={{
-            background: "rgb(var(--surface-raised))",
-            borderBottom: "1px solid rgb(var(--ink) / 0.05)",
-          }}
-        >
-          <div
-            className="absolute inset-x-0 top-0 h-px pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(to right, transparent, rgb(var(--accent) / 0.35), transparent)",
-            }}
-          />
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-              style={{
-                background: "rgb(var(--accent) / 0.1)",
-                border: "1px solid rgb(var(--line) / 0.22)",
-              }}
-            >
-              <UserIcon size={14} style={{ color: "rgb(var(--accent-text))" }} />
+        <div className="relative flex shrink-0 items-center justify-between border-b border-ink/[0.07] bg-surface-raised px-5 py-3.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04]">
+              <UserIcon size={14} className="text-text-muted" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-text-primary tracking-tight leading-tight">
+              <h2 className="text-sm font-bold leading-tight tracking-tight text-text-primary">
                 User Detail
               </h2>
               {data?.user && (
-                <p
-                  className="text-[10px] font-mono tabular-nums leading-tight"
-                  style={{ color: "rgb(var(--fg-muted))" }}
-                >
+                <p className="font-mono text-[10px] leading-tight tabular-nums text-text-muted">
                   @{data.user.username} · #{data.user.id}
                 </p>
               )}
@@ -1961,12 +1684,7 @@ export const UserDetailDrawer = ({
 
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 shrink-0"
-            style={{
-              color: "rgb(var(--accent-text))",
-              background: "rgb(var(--accent) / 0.08)",
-              border: "1px solid rgb(var(--line) / 0.22)",
-            }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04] text-text-muted transition-colors hover:border-ink/15 hover:text-text-primary"
             title="Close (Esc)"
             aria-label="Close modal"
           >
@@ -1976,40 +1694,23 @@ export const UserDetailDrawer = ({
 
         {/* ── TABS ── */}
         {data && (
-          <div
-            className="flex shrink-0 px-2 pt-1.5 overflow-x-auto"
-            style={{
-              background: "rgb(var(--surface-secondary))",
-              borderBottom: "1px solid rgb(var(--ink) / 0.05)",
-            }}
-          >
+          <div className="flex shrink-0 overflow-x-auto border-b border-ink/[0.07] bg-surface-secondary px-2 pt-1.5">
             {TABS.map(({ id, label, Icon }) => {
               const isActive = activeTab === id;
               return (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className="flex-1 min-w-[80px] py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors relative flex items-center justify-center gap-1.5"
-                  style={{
-                    color: isActive ? "rgb(var(--fg))" : "rgb(var(--fg-muted))",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "#a89888";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "rgb(var(--fg-muted))";
-                  }}
+                  className={`relative flex min-w-[80px] flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold tracking-tight transition-colors ${
+                    isActive
+                      ? "text-text-primary"
+                      : "text-text-muted hover:text-text-primary"
+                  }`}
                 >
                   <Icon size={12} />
                   {label}
                   {isActive && (
-                    <span
-                      className="absolute bottom-0 left-3 right-3 h-0.5 rounded-t"
-                      style={{
-                        background:
-                          "linear-gradient(90deg, transparent, rgb(var(--accent)), transparent)",
-                      }}
-                    />
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-t bg-accent" />
                   )}
                 </button>
               );
@@ -2018,35 +1719,19 @@ export const UserDetailDrawer = ({
         )}
 
         {/* ── BODY ── */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 min-h-0">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {loading && (
             <div className="flex items-center justify-center py-20">
-              <div
-                className="inline-flex items-center gap-2 text-xs"
-                style={{ color: "rgb(var(--fg-muted))" }}
-              >
-                <div
-                  className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-                  style={{
-                    borderColor: "rgb(var(--accent) / 0.3)",
-                    borderTopColor: "rgb(var(--accent))",
-                  }}
-                />
+              <div className="inline-flex items-center gap-2 text-xs text-text-muted">
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink/20 border-t-ink/60" />
                 Loading…
               </div>
             </div>
           )}
 
           {err && (
-            <div
-              className="rounded-lg p-3 text-xs flex items-start gap-2"
-              style={{
-                background: "rgb(var(--neg) / 0.08)",
-                color: "rgb(var(--neg-text))",
-                border: "1px solid rgb(var(--neg) / 0.25)",
-              }}
-            >
-              <AlertTriangleIcon size={14} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-xl border border-loss/25 bg-loss/10 p-3 text-xs text-loss">
+              <AlertTriangleIcon size={14} className="mt-0.5 shrink-0" />
               {err}
             </div>
           )}

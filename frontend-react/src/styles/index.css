@@ -279,6 +279,190 @@
 }
 
 /* Bright desk chrome — solid header bar (no transparent float) */
+/* ── Modals clear the header without leaving a bald strip ────────────────────
+   The header paints above overlays, so a sheet pinned to inset:0 ran its top
+   edge under the bar and looked wedged beneath it. The first fix moved the
+   whole overlay root down — `top: var(--lq-modal-top)` — which also moved the
+   scrim, and the scrim is what carries the blur. The result was a band of
+   perfectly sharp, undimmed page between the header and the top of the scrim:
+   the modal read as floating over a hole.
+
+   The two jobs are separate and are separated here:
+
+     · the ROOT stays full-bleed (inset: 0) so the scrim and its blur reach
+       every pixel, including the strip under the header;
+     · the CARD is held clear of the header by padding, not by moving the box.
+
+   `.lq-modal-safe` is that padding. It is on the element that lays the card out
+   — for most overlays the root itself, since they are a single `fixed inset-0
+   flex` element that is both scrim and frame. Because the roots are position:
+   fixed with box-sizing: border-box, padding shortens the usable box exactly
+   the way the old `top` did: bottom sheets stop lower, centred dialogs centre
+   in the space under the bar.
+
+   --lq-header-h is a fallback only. useHeaderMetrics() measures the live header
+   and writes the real px onto <html>, so this adapts to every breakpoint,
+   orientation, font scale and notch instead of trusting two magic numbers. */
+:root {
+  --lq-header-h: 57px;
+  /* Zero on purpose. A 10px gap here used to read as a bald strip: the scrim
+     behind it is blurred, but blurred white page on a bright theme is still
+     white, so the eye sees a hole between the bar and the sheet rather than a
+     gap. Flush against the header is what makes the blur look attached to it. */
+  --lq-modal-gap: 0px;
+  --lq-modal-top: calc(var(--lq-header-h) + var(--lq-modal-gap));
+  /* One scrim recipe for the whole app. Before this the codebase held five
+     different blurs (4/6/8/10/12px) and six different dims (62%…95%), so two
+     sheets opened back to back looked like two products. */
+  --lq-scrim-blur: 10px;
+  --lq-scrim-alpha: 0.72;
+  /* Tallest a dialog may be and still clear the header on both edges. */
+  --lq-modal-maxh: calc(100dvh - var(--lq-modal-top) - 12px);
+}
+@media (min-width: 1024px) {
+  :root {
+    --lq-header-h: 65px;
+  }
+}
+@supports not (height: 100dvh) {
+  :root {
+    --lq-modal-maxh: calc(100vh - var(--lq-modal-top) - 12px);
+  }
+}
+
+/* Undo the old shift for anything still carrying it. Portalled roots are
+   full-bleed again; `.lq-modal-safe` is what keeps cards off the header. */
+body > .fixed.inset-0 {
+  top: 0;
+}
+
+/* Written as `body .lq-modal-safe` on purpose: the roots that need it also
+   carry Tailwind padding utilities (`p-0 sm:p-4`), which tie on specificity.
+   The extra element selector settles the tie without !important, so a
+   component can still override with an even more specific rule. */
+body .lq-modal-safe {
+  padding-top: var(--lq-modal-top);
+}
+
+/* Everything else that anchors itself to the top of the viewport and would
+   otherwise be swallowed by the header, which outranks all of them at 300000.
+   Two groups, one rule:
+
+   · Opaque full-screen panels that ARE the surface rather than a frame around
+     a card — the fullscreen chart, an expanded market panel, the in-app-browser
+     banner. Padding is wrong for these: their children are absolutely
+     positioned and resolve against the padding box, so the panel would obey the
+     clearance while everything inside it kept running under the bar. Shorten
+     the box instead. Nothing behind them is meant to show through, so there is
+     no scrim to keep full-bleed.
+
+   · `position: sticky` toolbars whose scroll container is the page. `top: 0`
+     pins them to the viewport, i.e. behind the header — on /terminal the whole
+     filter bar slid under it and vanished the moment you scrolled. Toolbars
+     inside an `overflow-auto` container stick to that container instead and
+     are deliberately left alone. */
+body .lq-below-header {
+  top: var(--lq-modal-top);
+}
+
+/* Toasts and corner notices anchor a fixed distance from the top of the
+   viewport. Every one of them used `top-4` — 16px, which on every page in this
+   app is *inside* the header, and the header outranks them at z-index 300000.
+   They were not merely clipped: they rendered entirely behind the bar, so a
+   whole class of "saved", "copied", "failed" feedback was invisible in
+   production. Anchor them below the bar and keep their own 16px offset. */
+body .lq-toast-safe {
+  top: calc(var(--lq-modal-top) + 1rem);
+}
+
+/* Clearance alone is not enough. A centred card taller than the space left
+   under the header overflows its frame evenly in both directions, which puts
+   its own top edge straight back behind the bar — the overlap the padding
+   exists to prevent. Most cards cap themselves at 90–94dvh, which is a few
+   pixels over on a short viewport, so it showed as a header-height crop rather
+   than an obvious break. Bound them to the box they are actually laid out in.
+   The scrim is not a flex item here (it is fixed), so this never touches it. */
+body .lq-modal-safe > * {
+  max-height: 100%;
+}
+
+/* The scrim recipe, in two pieces.
+
+   `.lq-scrim-bg` is paint only, for the common overlay that is a single
+   `fixed inset-0 flex` element acting as both scrim and frame.
+
+   `.lq-scrim` adds the positioning, for overlays that render a dedicated
+   backdrop element. It is fixed to the viewport rather than absolute inside
+   its parent, so no clearance padding on an ancestor can carve a sharp band
+   out of it again. */
+.lq-scrim-bg {
+  background: rgb(var(--scrim) / var(--lq-scrim-alpha));
+  backdrop-filter: blur(var(--lq-scrim-blur));
+  -webkit-backdrop-filter: blur(var(--lq-scrim-blur));
+}
+.lq-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgb(var(--scrim) / var(--lq-scrim-alpha));
+  backdrop-filter: blur(var(--lq-scrim-blur));
+  -webkit-backdrop-filter: blur(var(--lq-scrim-blur));
+}
+
+/* Devices without backdrop-filter (older Android WebView, Firefox with the
+   flag off, and the in-app browsers a lot of Telegram traffic arrives in) get
+   a deeper dim instead — otherwise the page behind stays fully legible and the
+   modal loses its figure/ground separation entirely. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --lq-scrim-alpha: 0.9;
+  }
+}
+
+/* Blur is expensive to composite and is the first thing to drop when the user
+   has asked for less motion/effect or the device is telling us it is cheap. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --lq-scrim-blur: 0px;
+    --lq-scrim-alpha: 0.88;
+  }
+}
+
+/* ── App header sits above every overlay ──────────────────────────────────────
+   Modals are portalled to document.body, so they are siblings of the app root
+   and no z-index on a nested element can beat them — the header has to win at
+   the root stacking context instead. Nothing between .lq-app-header and <html>
+   creates a stacking context (verified), so this value competes directly with
+   the overlays, whose highest is SignalModal at 200000.
+
+   Why at all: the header is the only way back out of a page, and burying it
+   under a blurred scrim removed the user's bearings every time a sheet opened.
+
+   The layering contract, so this does not have to be rediscovered: modals live
+   below 300000 — the tallest today is DeepAnalysis at 210000, which nests above
+   SignalModal at 200000. The header takes 300000 and leaves a wide gap on
+   purpose, because the first attempt at 200001 was quietly beaten by that
+   210000 shell and the bar vanished on exactly one screen. Anything new that
+   needs to cover the header has to say so out loud by crossing 300000. */
+.lq-app-header {
+  z-index: 300000;
+}
+
+/* The header is transparent until the page scrolls on the dark themes. Painting
+   it above a modal in that state let the dimmed content show straight through
+   it, so any scroll lock — what every modal in this app sets while open — makes
+   it opaque for as long as the overlay lasts. */
+.lq-overlay-open .lq-app-header {
+  background: rgb(var(--surface-raised)) !important;
+  border-bottom-color: rgb(var(--ink) / 0.1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  /* Instantly, not over the bar's usual 200ms colour transition. The scrim
+     appears in one frame; if the header fades to opaque behind it, the blurred
+     page is visible straight through the bar for those 200ms and the header
+     itself looks blurred — the one thing it must never look. */
+  transition: none !important;
+}
+
 [data-theme="bright"] .lq-app-header {
   background: rgb(var(--surface-raised)) !important;
   border-bottom: 1px solid rgb(var(--ink) / 0.08) !important;

@@ -87,6 +87,9 @@ const TelegramNudgeModal = () => {
   const [visible, setVisible] = useState(false);
   const [stage, setStage] = useState(null); // 'link' | 'join'
   const [loading, setLoading] = useState(false);
+  const [joinError, setJoinError] = useState(null);
+  const [joinOk, setJoinOk] = useState(null);
+  const [manualLink, setManualLink] = useState(null);
 
   // ── derive current condition (reuse VipGroupCard logic) ──
   const hasAccess =
@@ -140,18 +143,88 @@ const TelegramNudgeModal = () => {
     writeState({ ...state, [stage]: { ...cur, lastDismissed: Date.now() } });
   }, [stage]);
 
+  // Open Telegram invite without relying on window.open (blocked after await by
+  // most browsers). Same-tab navigation to t.me works on desktop + mobile apps.
+  const openInviteLink = (url) => {
+    if (!url || typeof url !== "string") return false;
+    try {
+      // Prefer location assign — not subject to popup blockers after async.
+      window.location.assign(url);
+      return true;
+    } catch {
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.rel = "noopener noreferrer";
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   const handleJoin = async () => {
     setLoading(true);
+    setJoinError(null);
+    setJoinOk(null);
     try {
       const res = await api.post("/api/v1/auth/telegram/join-vip");
-      const link = res.data?.invite_link;
-      if (link) {
-        window.open(link, "_blank", "noopener,noreferrer");
+      const data = res?.data || {};
+
+      if (data.already_member) {
+        setJoinOk(
+          t("nudge.already_member", "You're already in the VIP group — open Telegram to find it.")
+        );
+        // Don't hard-dismiss instantly; give feedback then close
+        setTimeout(() => dismiss(), 1800);
+        return;
       }
-      // acting closes the modal; user state will refresh & stop future shows
-      dismiss();
-    } catch {
-      dismiss();
+
+      const link = data.invite_link;
+      if (!link) {
+        setJoinError(
+          t(
+            "nudge.no_link",
+            "Couldn't create an invite link. Try again, or open Profile → VIP Group."
+          )
+        );
+        return;
+      }
+
+      // Keep modal open briefly so user sees feedback if navigation is delayed
+      setJoinOk(t("nudge.opening", "Opening Telegram invite…"));
+      const opened = openInviteLink(link);
+      if (!opened) {
+        // Absolute fallback: show the link so user can tap manually
+        setJoinError(null);
+        setJoinOk(null);
+        setJoinError(
+          t(
+            "nudge.copy_link",
+            "Popup was blocked. Tap the link below to join:"
+          )
+        );
+        // Store link for manual CTA
+        setManualLink(link);
+        return;
+      }
+      // Navigation away — dismiss for when they return
+      setTimeout(() => dismiss(), 400);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      const msg =
+        typeof detail === "string"
+          ? detail
+          : t(
+              "nudge.join_failed",
+              "Could not join VIP group. Check that Telegram is linked and your plan is active."
+            );
+      setJoinError(msg);
+      // Stay open — silent dismiss was the bug users hit
     } finally {
       setLoading(false);
     }
@@ -182,8 +255,7 @@ const TelegramNudgeModal = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{ background: "rgb(var(--scrim) / 0.72)", backdropFilter: "blur(4px)" }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={dismiss}
     >
       <div
@@ -263,6 +335,28 @@ const TelegramNudgeModal = () => {
           className="shrink-0 border-t border-ink/[0.06] px-6 pt-3 flex flex-col gap-2"
           style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
         >
+          {(joinError || joinOk) && (
+            <div
+              className={`mb-1 rounded-lg px-3 py-2 text-[11px] leading-snug ${
+                joinError
+                  ? "border border-negative/25 bg-negative/[0.08] text-loss"
+                  : "border border-profit/25 bg-profit/[0.08] text-profit"
+              }`}
+            >
+              {joinError || joinOk}
+              {manualLink ? (
+                <a
+                  href={manualLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 block break-all font-mono text-[10px] font-semibold underline underline-offset-2"
+                >
+                  {manualLink}
+                </a>
+              ) : null}
+            </div>
+          )}
+
           {isLink ? (
             <a
               href="/profile"
@@ -276,8 +370,23 @@ const TelegramNudgeModal = () => {
             >
               {t("nudge.link_cta", "Link Telegram")}
             </a>
+          ) : manualLink ? (
+            <a
+              href={manualLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all"
+              style={{
+                background: "linear-gradient(135deg, #0088cc, #006699)",
+                color: "rgb(var(--fg))",
+                border: "1px solid rgba(0,136,204,0.3)",
+              }}
+            >
+              {t("nudge.open_invite", "Open invite in Telegram")}
+            </a>
           ) : (
             <button
+              type="button"
               onClick={handleJoin}
               disabled={loading}
               className="w-full py-2.5 rounded-md font-mono text-[11px] uppercase tracking-wider font-bold transition-all disabled:opacity-50 flex items-center justify-center"
@@ -295,6 +404,7 @@ const TelegramNudgeModal = () => {
             </button>
           )}
           <button
+            type="button"
             onClick={dismiss}
             className="w-full py-2 rounded-md font-mono text-[10px] uppercase tracking-wider text-text-muted/50 hover:text-text-muted/80 transition-colors"
           >

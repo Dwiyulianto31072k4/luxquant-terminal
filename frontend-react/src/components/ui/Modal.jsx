@@ -93,10 +93,6 @@ export default function Modal({
 
   const simpleHeader = !header && (eyebrow || title || subtitle || icon);
   const hasChrome = Boolean(header || simpleHeader);
-  const hairlineBg = accentColor
-    ? `linear-gradient(to right, transparent, ${accentColor}, transparent)`
-    : "linear-gradient(to right, transparent, rgb(var(--ink) / 0.12), transparent)";
-
   const node = (
     <div
       style={{ zIndex }}
@@ -155,20 +151,20 @@ export default function Modal({
  }
  `}</style>
 
-      {/* Scrim — blur lives ONLY here, never on the card */}
+      {/* Scrim — blur lives ONLY here, never on the card. `.lq-scrim` is fixed
+          to the viewport, so it covers the strip behind the header too and the
+          dialog never floats over a sharp, undimmed band. */}
       <div
-        className="lqm-scrim absolute inset-0 bg-scrim/80"
-        style={{
-          WebkitBackdropFilter: "blur(10px)",
-          backdropFilter: "blur(10px)",
-        }}
+        className="lqm-scrim lq-scrim"
         onClick={closeOnBackdrop ? requestClose : undefined}
         aria-hidden="true"
       />
 
-      {/* Layout frame — no backdrop-filter, so card chrome stays crisp */}
+      {/* Layout frame — no backdrop-filter, so card chrome stays crisp.
+          `.lq-modal-safe` is where the header clearance lives: it shortens the
+          frame, not the scrim. */}
       <div
-        className={`pointer-events-none absolute inset-0 flex justify-center ${
+        className={`lq-modal-safe pointer-events-none absolute inset-0 flex justify-center ${
           placement === "bottom"
             ? "items-end p-0 sm:items-center sm:p-4 md:p-6"
             : "items-center p-3 sm:p-4 md:p-6"
@@ -180,12 +176,12 @@ export default function Modal({
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
-          className={`lqm-card pointer-events-auto relative flex w-full flex-col overflow-hidden border border-ink/[0.1] shadow-[0_28px_80px_rgb(var(--scrim) / 0.35)] isolate ${
+          className={`lqm-card pointer-events-auto relative flex w-full flex-col overflow-hidden border border-ink/[0.09] shadow-[0_28px_80px_rgb(var(--scrim) / 0.35)] isolate ${
             SIZES[size] || SIZES.md
           } ${
             placement === "bottom"
-              ? "lqm-sheet max-h-[min(94dvh,100%)] rounded-t-2xl border-b-0 sm:max-h-[min(90dvh,920px)] sm:rounded-xl sm:border-b"
-              : "max-h-[min(92dvh,calc(100dvh-1.5rem))] rounded-xl sm:max-h-[min(90dvh,920px)]"
+              ? "lqm-sheet max-h-[min(94dvh,100%)] rounded-t-2xl border-b-0 sm:max-h-[min(90dvh,920px)] sm:rounded-2xl sm:border-b"
+              : "max-h-[min(92dvh,calc(100dvh-1.5rem))] rounded-2xl sm:max-h-[min(90dvh,920px)]"
           } ${className}`}
           style={{
             // Explicit solid surface — never translucent over blurred scrim
@@ -201,12 +197,11 @@ export default function Modal({
             </div>
           ) : null}
 
-          {accent ? (
-            <span
-              className="pointer-events-none absolute inset-x-0 top-0 z-30 h-px"
-              style={{ background: hairlineBg }}
-            />
-          ) : null}
+          {/* The tinted hairline that used to sit here is gone. `accent` and
+              `accentColor` are still accepted so the dozen call sites keep
+              working, but nothing paints a coloured rim on a modal any more:
+              every panel is one flat surface from edge to edge, and the state
+              those colours encoded is already spelled out in the header. */}
 
           {/* Sticky header — solid, isolation, never under page blur */}
           {header ? (

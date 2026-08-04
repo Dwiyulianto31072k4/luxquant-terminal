@@ -77,7 +77,7 @@ function ChartFrame({ title, note, children, height = 200 }) {
 
 function TipBox({ rows }) {
   return (
-    <div className="rounded-lg border border-ink/15 bg-[#0B0E11] px-3 py-2 shadow-xl">
+    <div className="rounded-xl border border-ink/[0.1] bg-surface-raised px-3 py-2 shadow-xl">
       {rows.map(([k, v, color]) => (
         <p key={k} className="text-[11px] leading-5">
           <span className="text-text-muted">{k} </span>
@@ -144,7 +144,7 @@ const BotAccessControl = ({ userId, blocked, reason, blockedBy, onChanged }) => 
   return (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        blocked ? "border-[#F6465D]/40 bg-[#F6465D]/[0.06]" : "border-ink/[0.08] bg-surface-raised"
+        blocked ? "border-negative/40 bg-negative/[0.06]" : "border-ink/[0.08] bg-surface-raised"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -173,10 +173,10 @@ const BotAccessControl = ({ userId, blocked, reason, blockedBy, onChanged }) => 
             setErr("");
             setOpen((v) => !v);
           }}
-          className={`shrink-0 rounded-lg border px-3 py-1.5 text-[12px] transition-colors ${
+          className={`shrink-0 rounded-xl border px-3 py-1.5 text-[12px] transition-colors ${
             blocked
-              ? "border-ink/12 text-text-secondary hover:border-accent hover:text-accent"
-              : "border-[#F6465D]/40 text-[#F6465D] hover:bg-[#F6465D]/10"
+              ? "border-ink/[0.08] text-text-secondary hover:border-accent hover:text-accent"
+              : "border-negative/40 text-loss hover:bg-negative/10"
           }`}
         >
           {open ? "Cancel" : blocked ? "Switch back on" : "Switch bot off"}
@@ -200,13 +200,13 @@ const BotAccessControl = ({ userId, blocked, reason, blockedBy, onChanged }) => 
             }
             className="mt-1 w-full rounded-lg border border-ink/12 bg-surface-primary px-3 py-2 text-[12px] text-text-primary outline-none focus:border-accent"
           />
-          {err ? <p className="mt-1 text-[11px] text-[#F6465D]">{err}</p> : null}
+          {err ? <p className="mt-1 text-[11px] text-loss">{err}</p> : null}
           <div className="mt-2 flex items-center gap-2">
             <button
               type="button"
               disabled={busy}
               onClick={() => submit(!blocked)}
-              className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-surface-primary disabled:opacity-50"
+              className="rounded-xl bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-fg disabled:opacity-50"
             >
               {busy ? "Applying…" : blocked ? "Switch back on" : "Switch bot off"}
             </button>
@@ -318,12 +318,11 @@ export const AutoTradeUserModal = ({ user, onClose }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center p-0 sm:items-center sm:p-8"
-      style={{ background: "rgba(0,0,0,0.78)" }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[200] flex items-end justify-center p-0 sm:items-center sm:p-8"
       onClick={onClose}
     >
       <div
-        className="lq-sheet isolate flex max-h-[min(92dvh,100%)] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl border border-ink/12 shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
+        className="lq-sheet isolate flex max-h-[min(92dvh,100%)] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl border border-ink/[0.08] shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
         // Explicit and opaque: the utility class resolved translucent here, which
         // let the table underneath bleed through the numbers.
         style={{ backgroundColor: "rgb(var(--surface))" }}

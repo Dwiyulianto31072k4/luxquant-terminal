@@ -476,7 +476,7 @@ function PositionDetailModal({ position, onClose, onOpenSignal, onForceSell, bus
       role="dialog"
       aria-modal="true"
       aria-label="Position detail"
-      className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center bg-scrim/80 p-0 sm:p-4 backdrop-blur-sm"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -791,7 +791,7 @@ function DangerConfirmModal({ action, onClose, onConfirm, busy }) {
       role="dialog"
       aria-modal="true"
       aria-label="Confirm action"
-      className="fixed inset-0 z-[100010] flex items-end justify-center sm:items-center bg-scrim/85 p-0 sm:p-4 backdrop-blur-sm"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100010] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -1081,7 +1081,7 @@ export default function PositionsBoard({ portfolio, onChanged }) {
         onConfirm={runDangerAction}
       />
       {openingSignal && (
-        <div className="fixed inset-0 z-[100001] flex items-center justify-center bg-scrim/70 font-mono text-xs uppercase tracking-[0.16em] text-accent">
+        <div className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100001] flex items-center justify-center font-mono text-xs uppercase tracking-[0.16em] text-accent">
           Loading full signal…
         </div>
       )}

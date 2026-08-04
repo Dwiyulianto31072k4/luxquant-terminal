@@ -298,8 +298,8 @@ const GenerateModal = ({ isOpen, onClose, onGenerated }) => {
       role="dialog"
       aria-modal="true"
       aria-label="Generate referral code"
-      className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{ background: "rgb(var(--scrim) / 0.7)", zIndex: Z.modal }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-4"
+      style={{ zIndex: Z.modal }}
       onClick={onClose}
     >
       <div

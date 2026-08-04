@@ -389,11 +389,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
       role="dialog"
       aria-modal="true"
       aria-label="Quick send"
-      className="fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{
-        background: "rgb(var(--scrim) / 0.7)",
-        backdropFilter: "blur(6px)",
-      }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[99999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose && onClose()}
     >
       <div className="w-full max-w-lg max-h-[min(92dvh,100%)] overflow-y-auto rounded-t-3xl sm:rounded-2xl sm:max-w-none">

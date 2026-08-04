@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
 import TheRead from "./aiArenaV6/TheRead";
 import LongerView from "./aiArenaV6/LongerView";
 import {
+  getChartData,
   getEventRisk,
   getLatestReport,
   getOperationalHealth,
@@ -16,7 +16,9 @@ import PriceChart from "./aiArenaV6/PriceChart";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
 import BrainPanel from "./aiArenaV6/BrainPanel";
 import AssistantWidget from "./assistant/AssistantWidget";
+import CoinLogo from "./CoinLogo";
 import { Skeleton, ShimmerStyles } from "./ui/Loaders";
+import { fmtUsd, fmtPct, humanizeTrigger } from "./aiArenaV6/_ui";
 
 let pdfJsRuntimePromise;
 
@@ -65,144 +67,515 @@ function formatAge(timestamp) {
 function stanceMeta(direction) {
   const value = String(direction || "").toLowerCase();
   if (value === "bullish")
-    return { label: "Bullish", arrow: "↑", cls: "border-profit/25 bg-profit/10 text-profit" };
+    return {
+      label: "Bullish",
+      arrow: "↑",
+      pill: "bg-profit/12 text-profit",
+      text: "text-profit",
+    };
   if (value === "bearish")
-    return { label: "Bearish", arrow: "↓", cls: "border-loss/25 bg-loss/10 text-loss" };
+    return {
+      label: "Bearish",
+      arrow: "↓",
+      pill: "bg-negative/12 text-loss",
+      text: "text-loss",
+    };
   return {
     label: "Neutral",
     arrow: "→",
-    cls: "border-accent/20 bg-accent/10 text-accent",
+    pill: "bg-ink/[0.06] text-text-secondary",
+    text: "text-text-secondary",
   };
 }
 
-function ProductSwitcher({ active = "research" }) {
-  const base =
-    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors";
-  const on = "bg-ink/[0.1] text-text-primary shadow-sm";
-  const off = "text-text-muted hover:text-text-primary hover:bg-ink/[0.04]";
+const MODE_LABEL = {
+  ALTCOIN_FRIENDLY: "Risk-on",
+  SELECTIVE_RISK_ON: "Selective",
+  BTC_ONLY_RISK_ON: "BTC-led",
+  DEFENSIVE: "Defensive",
+  EMERGENCY_DE_RISK: "Protect capital",
+  CHOPPY_RANGE: "Range only",
+};
+
+/** Claude/ChatGPT chrome — quiet title, no product switcher, no card soup */
+function PageHeader({ healthStatus, onRefresh, refreshing }) {
+  const healthy = healthStatus === "healthy";
   return (
-    <div
-      className="inline-flex items-center rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-0.5"
-      role="navigation"
-      aria-label="Product"
-    >
-      <Link to="/signals" className={`${base} ${active === "trades" ? on : off}`}>
-        Trades
-      </Link>
-      <Link to="/terminal/scan" className={`${base} ${active === "terminal" ? on : off}`}>
-        Terminal
-      </Link>
-      <span className={`${base} ${active === "research" ? on : off}`} aria-current="page">
+    <header className="flex items-center justify-between gap-3">
+      <h1 className="font-display text-[22px] font-semibold tracking-tight text-text-primary sm:text-2xl">
         AI Research
-      </span>
+      </h1>
+      <div className="flex items-center gap-2">
+        <span
+          className={`hidden items-center gap-1.5 text-[12px] sm:inline-flex ${
+            healthy ? "text-profit" : "text-accent"
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-accent"}`} />
+          {healthy ? "Healthy" : "Check"}
+        </span>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-text-secondary transition hover:bg-ink/[0.05] hover:text-text-primary disabled:opacity-50"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            className={refreshing ? "animate-spin" : ""}
+          >
+            <path
+              d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          {refreshing ? "Refreshing" : "Refresh"}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/** Mini sparkline from close prices */
+/** Theme-safe sparkline — uses --pos/--neg channels (works in luxquant/dark/bright) */
+function Sparkline({ points, up, className = "" }) {
+  const geom = useMemo(() => {
+    if (!Array.isArray(points) || points.length < 2) return null;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const span = max - min || 1;
+    const w = 320;
+    const h = 88;
+    const coords = points.map((p, i) => {
+      const x = (i / (points.length - 1)) * w;
+      const y = h - ((p - min) / span) * (h - 12) - 6;
+      return [x, y];
+    });
+    const line = coords
+      .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`)
+      .join(" ");
+    const area = `${line} L${w},${h} L0,${h} Z`;
+    return { line, area, w, h };
+  }, [points]);
+
+  if (!geom) {
+    return <div className={`h-[88px] w-full rounded-lg bg-ink/[0.03] ${className}`} aria-hidden />;
+  }
+
+  // CSS channels — same tokens every theme uses for PnL
+  const stroke = up ? "rgb(var(--pos))" : "rgb(var(--neg))";
+  const fill = up ? "rgb(var(--pos) / 0.12)" : "rgb(var(--neg) / 0.12)";
+
+  return (
+    <svg
+      viewBox={`0 0 ${geom.w} ${geom.h}`}
+      className={`h-[88px] w-full ${className}`}
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <path d={geom.area} fill={fill} stroke="none" />
+      <path
+        d={geom.line}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * BTC visual card — real CoinLogo, theme-safe surfaces, spark + levels.
+ * Readable on luxquant / dark / bright (no hard-coded white/black fills).
+ */
+function BtcVisualPanel({ report }) {
+  const [spark, setSpark] = useState([]);
+  const tactical =
+    report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
+  const stance = stanceMeta(tactical.direction);
+  const conf = Number(tactical.confidence);
+  const btc = Number(report?.btc_price);
+  const contract = report?.report?.verdict?.scenario_contract || {};
+  const target = Number(contract?.primary_touch?.level) || null;
+  const invalidation = Number(contract?.invalidation?.level) || null;
+
+  useEffect(() => {
+    let cancelled = false;
+    getChartData("4H")
+      .then((data) => {
+        if (cancelled) return;
+        const candles = data?.candles || data?.ohlc || data?.bars || [];
+        const closes = candles
+          .map((c) => Number(c.close ?? c.c ?? c[4]))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        setSpark(closes.slice(-48));
+      })
+      .catch(() => {
+        if (!cancelled) setSpark([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Stance color for spark; fallback to price path if neutral
+  const pathUp =
+    stance.label === "Bullish"
+      ? true
+      : stance.label === "Bearish"
+        ? false
+        : spark.length >= 2
+          ? spark[spark.length - 1] >= spark[0]
+          : true;
+
+  const washClass =
+    stance.label === "Bearish"
+      ? "bg-[rgb(var(--neg)/0.08)]"
+      : stance.label === "Bullish"
+        ? "bg-[rgb(var(--pos)/0.08)]"
+        : "bg-ink/[0.03]";
+
+  const lo = [btc, target, invalidation].filter((n) => Number.isFinite(n) && n > 0);
+  const minL = lo.length ? Math.min(...lo) : 0;
+  const maxL = lo.length ? Math.max(...lo) : 1;
+  const span = maxL - minL || 1;
+  // Keep markers away from edges so labels don't clip
+  const xOf = (p) =>
+    Number.isFinite(p)
+      ? `${Math.max(8, Math.min(92, ((p - minL) / span) * 100))}%`
+      : "50%";
+
+  const levels = [
+    target != null && Number.isFinite(target)
+      ? {
+          p: target,
+          label: "Tgt",
+          priceCls: "text-profit",
+          dotCls: "border-profit bg-profit",
+        }
+      : null,
+    Number.isFinite(btc) && btc > 0
+      ? {
+          p: btc,
+          label: "Now",
+          priceCls: "text-text-primary",
+          dotCls: "border-ink/50 bg-surface-raised ring-2 ring-ink/10",
+        }
+      : null,
+    invalidation != null && Number.isFinite(invalidation)
+      ? {
+          p: invalidation,
+          label: "Inv",
+          priceCls: "text-loss",
+          dotCls: "border-loss bg-loss",
+        }
+      : null,
+  ].filter(Boolean);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface-raised shadow-sm">
+      {/* Theme-safe wash (pos/neg channels, not hard-coded hex) */}
+      <div className={`pointer-events-none absolute inset-0 ${washClass}`} aria-hidden />
+      <div
+        className="pointer-events-none absolute -right-8 -top-10 opacity-[0.12] grayscale"
+        aria-hidden
+      >
+        <CoinLogo pair="BTCUSDT" size={140} className="rounded-full" />
+      </div>
+
+      <div className="relative p-5 sm:p-6">
+        {/* Header — real logo */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="shrink-0 overflow-hidden rounded-full ring-1 ring-ink/10 shadow-sm">
+              <CoinLogo pair="BTCUSDT" size={44} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] font-medium text-text-muted">Bitcoin</p>
+              <p className="font-mono text-[22px] font-semibold tabular-nums leading-tight text-text-primary sm:text-[24px]">
+                {Number.isFinite(btc) && btc > 0 ? fmtUsd(btc) : "—"}
+              </p>
+            </div>
+          </div>
+          <span
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold ${stance.pill}`}
+          >
+            <span aria-hidden>{stance.arrow}</span>
+            {stance.label}
+            {isFinite(conf) ? (
+              <span className="font-mono font-medium tabular-nums opacity-80">{conf}%</span>
+            ) : null}
+          </span>
+        </div>
+
+        {/* Spark */}
+        <div className="mt-5">
+          <Sparkline points={spark} up={pathUp} />
+        </div>
+
+        {/* Level strip — price order on axis, clear dots */}
+        {levels.length >= 2 ? (
+          <div className="relative mt-6 pb-1 pt-5">
+            <div className="absolute inset-x-1 top-[1.65rem] h-px bg-ink/15" />
+            {levels.map((m) => (
+              <div
+                key={m.label}
+                className="absolute top-0 flex w-16 -translate-x-1/2 flex-col items-center"
+                style={{ left: xOf(m.p) }}
+              >
+                <span
+                  className={`font-mono text-[10px] font-medium tabular-nums leading-none ${m.priceCls}`}
+                >
+                  {fmtUsd(m.p)}
+                </span>
+                <span
+                  className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full border-2 ${m.dotCls}`}
+                />
+                <span className="mt-1 text-[9px] font-medium uppercase tracking-wider text-text-muted">
+                  {m.label}
+                </span>
+              </div>
+            ))}
+            {/* spacer for absolute markers */}
+            <div className="h-10" aria-hidden />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function PageHeader({ report, healthStatus, onRefresh, refreshing, activeLabel }) {
-  const healthy = healthStatus === "healthy";
+/**
+ * Thesis + BTC visual — full-width split on desktop.
+ */
+function ThesisBoard({ report }) {
+  const [whyOpen, setWhyOpen] = useState(false);
+  if (!report) return null;
+
+  const verdict = report?.report?.verdict || {};
   const tactical =
-    report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
+    report?.verdict_summary?.tactical_24h || verdict.tactical_24h || {};
   const stance = stanceMeta(tactical.direction);
-  const btcPrice = Number(report?.btc_price);
-  const stanceText =
-    stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-text-primary";
+  const conf = Number(tactical.confidence);
+  const btc = Number(report?.btc_price);
+  const contract = verdict.scenario_contract || {};
+  const target = Number(contract?.primary_touch?.level) || null;
+  const invalidation = Number(contract?.invalidation?.level) || null;
+  const modeKey = String(contract?.market_mode || "").toUpperCase();
+  const mode = MODE_LABEL[modeKey] || "Selective";
+
+  const whatChanged = verdict.what_changed || report?.report?.what_changed || "";
+  const isAnomaly = Boolean(report?.is_anomaly_triggered || report?.report?.is_anomaly_triggered);
+  const triggerHuman = humanizeTrigger(
+    report?.anomaly_reason || report?.report?.anomaly_reason || ""
+  );
+
+  const TACTICAL = new Set(["price_action", "liquidity", "derivatives", "smart_money"]);
+  const drivers = [...(report?.report?.evidence_matrix?.rows || [])]
+    .filter((r) => TACTICAL.has(r.key) && r.role !== "context_only")
+    .slice(0, 2);
+
+  const targetPct =
+    Number.isFinite(btc) && btc > 0 && target
+      ? fmtPct(((target - btc) / btc) * 100)
+      : null;
+  const invPct =
+    Number.isFinite(btc) && btc > 0 && invalidation
+      ? fmtPct(((invalidation - btc) / btc) * 100)
+      : null;
+
+  const whyFull = [whatChanged, triggerHuman].filter(Boolean).join(" ");
 
   return (
-    <header className="space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2 text-[12px]">
-            <h1 className="shrink-0 font-display text-[15px] font-semibold tracking-tight text-text-primary sm:text-base">
-              AI Research
-            </h1>
-            {activeLabel ? (
-              <>
-                <span className="text-text-primary/15">/</span>
-                <span className="truncate font-medium text-text-primary/80">{activeLabel}</span>
-              </>
+    <section className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
+      {/* Left — thesis prose */}
+      <div className="min-w-0 space-y-4 lg:col-span-7">
+        <div>
+          <h2
+            className={`font-display text-[34px] font-semibold leading-[1.1] tracking-tight sm:text-[42px] ${stance.text}`}
+          >
+            <span className="mr-2 opacity-70" aria-hidden>
+              {stance.arrow}
+            </span>
+            {stance.label}
+            {isFinite(conf) ? (
+              <span className="ml-2.5 font-mono text-[20px] font-medium tabular-nums text-text-muted sm:text-[22px]">
+                {conf}%
+              </span>
             ) : null}
-          </div>
-          <p className="mt-1.5 max-w-2xl text-[13px] leading-6 text-text-secondary">
-            BTC Compass — 24h outlook, projection levels, confluence & risk for alt exposure
+          </h2>
+          <p className="mt-2 text-[14px] text-text-muted">
+            {Number.isFinite(btc) && btc > 0 ? (
+              <span className="font-mono tabular-nums text-text-primary">{fmtUsd(btc)}</span>
+            ) : null}
+            <span className="mx-1.5 text-text-muted/40">·</span>
+            <span>{formatAge(report?.timestamp)}</span>
+            <span className="mx-1.5 text-text-muted/40">·</span>
+            <span>{mode}</span>
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <ProductSwitcher active="research" />
-          <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${
-              healthy
-                ? "border-profit/25 bg-profit/10 text-profit"
-                : "border-accent/30 bg-accent/10 text-accent"
-            }`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-accent"}`} />
-            {healthy ? "Healthy" : "Check"}
-          </span>
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-ink/10 bg-surface-secondary px-3.5 text-[12px] font-semibold text-text-primary transition hover:border-ink/18 hover:bg-ink/[0.06] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 16 16"
-              fill="none"
-              className={refreshing ? "animate-spin" : ""}
-            >
-              <path
-                d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {refreshing ? "Refreshing" : "Refresh"}
-          </button>
+        <div className="max-w-[42rem] space-y-3 text-[15.5px] leading-[1.75] text-text-secondary">
+          <p>
+            The 24-hour read is{" "}
+            <span className={`font-medium ${stance.text}`}>
+              {stance.label.toLowerCase()}
+              {isFinite(conf) ? ` at ${conf}% confidence` : ""}
+            </span>
+            {drivers.length > 0 ? (
+              <>
+                , driven mainly by{" "}
+                {drivers.map((r, i) => (
+                  <span key={r.key}>
+                    {i > 0 ? (i === drivers.length - 1 ? " and " : ", ") : ""}
+                    {r.label?.toLowerCase()}
+                  </span>
+                ))}
+              </>
+            ) : null}
+            .
+          </p>
+          {(target || invalidation) && (
+            <p>
+              {target ? (
+                <>
+                  Path toward{" "}
+                  <span className="font-mono font-medium tabular-nums text-text-primary">
+                    {fmtUsd(target)}
+                  </span>
+                  {targetPct ? (
+                    <span className="text-text-muted"> ({targetPct})</span>
+                  ) : null}
+                </>
+              ) : null}
+              {target && invalidation ? "; " : null}
+              {invalidation ? (
+                <>
+                  the read breaks under{" "}
+                  <span className="font-mono font-medium tabular-nums text-text-primary">
+                    {fmtUsd(invalidation)}
+                  </span>
+                  {invPct ? <span className="text-text-muted"> ({invPct})</span> : null}
+                </>
+              ) : null}
+              .
+            </p>
+          )}
         </div>
+
+        {whyFull ? (
+          <div className="max-w-[42rem]">
+            <button
+              type="button"
+              onClick={() => setWhyOpen((v) => !v)}
+              className="group text-left text-[13.5px] leading-relaxed text-text-muted transition hover:text-text-secondary"
+            >
+              <span className="font-medium text-text-secondary group-hover:text-text-primary">
+                {isAnomaly ? "Why this updated" : "What changed"}
+              </span>
+              <span className="mx-1.5 text-text-muted/50">·</span>
+              {whyOpen ? (
+                <span className="text-text-secondary">{whyFull}</span>
+              ) : (
+                <span>
+                  {whyFull.slice(0, 110)}
+                  {whyFull.length > 110 ? "…" : ""}{" "}
+                  <span className="text-text-primary/70 underline-offset-2 group-hover:underline">
+                    more
+                  </span>
+                </span>
+              )}
+            </button>
+          </div>
+        ) : null}
       </div>
 
-      {/* Ticker strip — Terminal KPI language */}
-      <div className="flex flex-wrap items-stretch divide-x divide-ink/[0.06] overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-        {Number.isFinite(btcPrice) && btcPrice > 0 && (
-          <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
-            <div className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted">
-              BTC / USDT
-            </div>
-            <div className="mt-1.5 font-mono text-[18px] font-semibold tabular-nums leading-none tracking-tight text-text-primary">
-              ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </div>
-        )}
-        <div className="min-w-[120px] flex-1 px-4 py-3 sm:flex-none">
-          <div className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted">
-            24h stance
-          </div>
-          <div
-            className={`mt-1.5 font-display text-[16px] font-semibold leading-none ${stanceText}`}
-          >
-            {stance.arrow} {stance.label}
-            {tactical.confidence != null ? (
-              <span className="ml-1.5 font-mono text-[12px] font-semibold text-text-muted">
-                {tactical.confidence}%
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="min-w-[100px] flex-1 px-4 py-3 sm:flex-none">
-          <div className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-text-muted">
-            Updated
-          </div>
-          <div className="mt-1.5 font-mono text-[14px] font-semibold leading-none text-text-primary">
-            {formatAge(report?.timestamp)}
-          </div>
-        </div>
+      {/* Right — visual fills the void */}
+      <div className="min-w-0 lg:col-span-5">
+        <BtcVisualPanel report={report} />
       </div>
-    </header>
+    </section>
+  );
+}
+
+/** Quiet one-line context when not on Outlook — avoids repeating full hero */
+function MiniContextStrip({ report, onOpenOutlook }) {
+  if (!report) return null;
+  const tactical =
+    report?.verdict_summary?.tactical_24h || report?.report?.verdict?.tactical_24h || {};
+  const stance = stanceMeta(tactical.direction);
+  const conf = Number(tactical.confidence);
+  const btc = Number(report?.btc_price);
+  const modeKey = String(
+    report?.report?.verdict?.scenario_contract?.market_mode || ""
+  ).toUpperCase();
+  const mode = MODE_LABEL[modeKey] || "Selective";
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenOutlook}
+      className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-ink/[0.07] bg-surface-raised px-4 py-3 text-left text-[13px] transition hover:border-ink/12"
+    >
+      <span className={`font-semibold ${stance.text}`}>
+        {stance.arrow} {stance.label}
+        {isFinite(conf) ? ` ${conf}%` : ""}
+      </span>
+      {Number.isFinite(btc) && btc > 0 ? (
+        <>
+          <span className="text-text-muted/40">·</span>
+          <span className="font-mono tabular-nums text-text-primary">{fmtUsd(btc)}</span>
+        </>
+      ) : null}
+      <span className="text-text-muted/40">·</span>
+      <span className="text-text-muted">{mode}</span>
+      <span className="text-text-muted/40">·</span>
+      <span className="text-text-muted">{formatAge(report?.timestamp)}</span>
+      <span className="ml-auto text-[12px] font-medium text-text-muted">Outlook →</span>
+    </button>
+  );
+}
+
+/** Text tabs — ChatGPT/Claude style, not a fat pill bar */
+function WorkspacePills({ activeTab, onChange, tabs }) {
+  return (
+    <div
+      className="no-scrollbar -mx-1 flex gap-0.5 overflow-x-auto border-b border-ink/[0.08] px-1"
+      role="tablist"
+      aria-label="AI Research sections"
+    >
+      {tabs.map((tab) => {
+        const on = activeTab === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            title={tab.description}
+            onClick={() => onChange(tab.key)}
+            className={`relative shrink-0 px-3 py-2.5 text-[13.5px] font-medium transition-colors ${
+              on
+                ? "text-text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.short || tab.label}
+            {on ? (
+              <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-text-primary" />
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -292,211 +665,14 @@ function ErrorState({ error, onRetry }) {
   );
 }
 
-// Terminal-style side navigation — SVG glyphs (not numeric "01")
-const WORKSPACE_GROUPS = [
-  { g: "Compass", keys: ["read", "longer", "chart"] },
-  { g: "Audit", keys: ["evaluation", "brain"] },
-  { g: "Library", keys: ["archive"] },
-];
-
-const TAB_ICON_PATHS = {
-  read: (
-    <>
-      <path d="M4 5.5h16v13H4z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M7 9h10M7 12.5h7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </>
-  ),
-  longer: (
-    <>
-      <path
-        d="M3 17l5-5 4 3 8-9"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16 5h5v5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </>
-  ),
-  chart: (
-    <>
-      <rect x="3" y="11" width="4" height="9" rx="1" />
-      <rect x="10" y="6" width="4" height="14" rx="1" opacity="0.7" />
-      <rect x="17" y="9" width="4" height="11" rx="1" opacity="0.45" />
-    </>
-  ),
-  evaluation: (
-    <>
-      <path
-        d="M9 11l2.2 2.2L16 8.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="3.5"
-        y="3.5"
-        width="17"
-        height="17"
-        rx="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        opacity="0.7"
-      />
-    </>
-  ),
-  brain: (
-    <>
-      <circle cx="9" cy="10" r="3.2" opacity="0.55" />
-      <circle cx="15" cy="10" r="3.2" opacity="0.55" />
-      <path
-        d="M8 16c1.2 1.5 2.6 2.2 4 2.2S14.8 17.5 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </>
-  ),
-  archive: (
-    <>
-      <path d="M4 7.5h16v11H4z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M4 7.5 6.5 4h11L20 7.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path d="M9 12h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </>
-  ),
-};
-
-const TabGlyph = ({ id }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className="h-[15px] w-[15px] shrink-0"
-    aria-hidden="true"
-  >
-    {TAB_ICON_PATHS[id] || <rect x="4" y="4" width="16" height="16" rx="2" />}
-  </svg>
-);
-
-function WorkspaceSideNav({ activeTab, onChange, tabs }) {
-  const byKey = Object.fromEntries(tabs.map((t) => [t.key, t]));
-
-  return (
-    <>
-      {/* Mobile — horizontal chips with glyphs */}
-      <div className="mb-2 flex gap-1 overflow-x-auto pb-1 lg:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {tabs.map((tab) => {
-          const on = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => onChange(tab.key)}
-              title={tab.description}
-              className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
-                on
-                  ? "bg-ink/[0.1] text-text-primary"
-                  : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
-              }`}
-            >
-              <span className={on ? "text-text-primary" : "text-text-muted"}>
-                <TabGlyph id={tab.key} />
-              </span>
-              {tab.short || tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Desktop — Terminal-identical slim rail */}
-      <aside className="hidden w-[172px] shrink-0 overflow-y-auto lg:block [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/10">
-        <nav className="space-y-2.5 pr-1" aria-label="AI Research sections">
-          {WORKSPACE_GROUPS.map(({ g, keys }) => (
-            <div key={g}>
-              <div className="mb-1 px-2 font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55">
-                {g}
-              </div>
-              <div className="space-y-px">
-                {keys.map((key) => {
-                  const tab = byKey[key];
-                  if (!tab) return null;
-                  const on = activeTab === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => onChange(key)}
-                      title={tab.description}
-                      aria-current={on ? "page" : undefined}
-                      className={`relative flex w-full items-center gap-2 rounded-md py-1.5 pl-2.5 pr-2 text-left text-[12px] font-medium transition-colors ${
-                        on
-                          ? "bg-ink/[0.07] text-text-primary"
-                          : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
-                      }`}
-                    >
-                      {on && (
-                        <span className="absolute bottom-1.5 left-0 top-1.5 w-[2.5px] rounded-full bg-accent" />
-                      )}
-                      <span className={on ? "text-text-primary" : "text-text-muted"}>
-                        <TabGlyph id={key} />
-                      </span>
-                      <span className="truncate leading-tight">{tab.short || tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-      </aside>
-    </>
-  );
-}
-
 function ChartPanel({ report }) {
   return (
-    <section className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-ink/[0.06] px-4 py-3.5 md:px-5">
-        <div>
-          <div className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
-            Price context
-          </div>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-text-primary md:text-xl">
-            BTC projection chart
-          </h2>
-          <p className="mt-0.5 max-w-3xl text-[12px] leading-5 text-text-muted">
-            Live candles with Compass magnets, zones, and invalidation levels.
-          </p>
-        </div>
-        <div className="rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2 text-right font-mono text-[10px] text-text-muted">
-          <div className="uppercase tracking-[0.14em]">Basis</div>
-          <div className="mt-1 font-semibold text-text-primary">BTC + report</div>
-        </div>
+    <section className="min-w-0">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-medium text-text-primary">BTC projection</h2>
+        <p className="text-[12px] text-text-muted">Candles · magnets · zones · levels</p>
       </div>
-      <div className="p-3 md:p-4">
+      <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised">
         <PriceChart report={report} />
       </div>
     </section>
@@ -580,207 +756,109 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
     "rounded-md border border-ink/[0.1] bg-surface-secondary px-2.5 py-1.5 font-mono text-[10px] font-semibold text-text-secondary transition hover:border-ink/18 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35";
 
   return (
-    <div className="space-y-4">
-      <section className="relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
-        <div className="border-b border-ink/[0.07] p-4 md:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Report library
-              </div>
-              <h2 className="mt-1 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
-                Saved Compass PDFs
-              </h2>
-              <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-secondary">
-                Each card shows stance, price, magnets, and risk — open the themed reader for the
-                full archive.
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
-              <div className="rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Reports
-                </div>
-                <div className="mt-1 text-sm font-semibold text-text-primary">{items.length}</div>
-              </div>
-              <div className="rounded-md border border-profit/20 bg-profit/[0.07] px-3 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  PDF ready
-                </div>
-                <div className="mt-1 text-sm font-semibold text-profit">{readyCount}</div>
-              </div>
-              <div className="rounded-md border border-ink/[0.08] bg-surface-secondary px-3 py-2">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Latest
-                </div>
-                <div className="mt-1 text-sm font-semibold text-text-primary">
-                  {latest ? formatAge(latest.timestamp) : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-          {error && (
-            <div className="mt-4 rounded-lg border border-loss/25 bg-loss/[0.06] px-4 py-3 text-sm text-loss">
-              {error}
-            </div>
-          )}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-[22px] font-semibold tracking-tight text-text-primary">
+            Report library
+          </h2>
+          <p className="mt-1 text-[14px] text-text-muted">
+            {items.length} reports · {readyCount} PDF ready
+            {latest ? ` · latest ${formatAge(latest.timestamp)}` : ""}
+          </p>
         </div>
-
         {items.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/[0.07] bg-surface-secondary/50 px-4 py-2.5 md:px-5">
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Showing{" "}
-              <span className="text-text-primary">
-                {pageStart + 1}–{pageEnd}
-              </span>{" "}
-              of <span className="text-text-primary">{items.length}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setPage((value) => Math.max(1, value - 1))}
-                disabled={page <= 1}
-                className={pageBtn}
-              >
-                Prev
-              </button>
-              {pageNumbers.map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  onClick={() => setPage(pageNumber)}
-                  className={`h-8 min-w-8 rounded-md border px-2 font-mono text-[10px] font-semibold transition ${
-                    pageNumber === page
-                      ? "border-transparent bg-accent text-accent-fg"
-                      : "border-ink/[0.1] bg-surface-secondary text-text-muted hover:border-ink/18 hover:text-text-primary"
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                disabled={page >= pageCount}
-                className={pageBtn}
-              >
-                Next
-              </button>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={page <= 1}
+              className={pageBtn}
+            >
+              Prev
+            </button>
+            <span className="px-2 text-[12px] text-text-muted">
+              {pageStart + 1}–{pageEnd} / {items.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+              disabled={page >= pageCount}
+              className={pageBtn}
+            >
+              Next
+            </button>
           </div>
         )}
+      </div>
 
-        <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
-          {pagedItems.map((item, index) => {
-            const loading = loadingId === item.report_id;
-            const direction = item.tactical_24h?.direction;
-            const confidence = item.tactical_24h?.confidence;
-            const bearish = String(direction || "").toLowerCase() === "bearish";
-            const bullish = String(direction || "").toLowerCase() === "bullish";
-            const ringClass = bullish
-              ? "hover:border-profit/35"
-              : bearish
-                ? "hover:border-loss/35"
-                : "hover:border-ink/20";
-            return (
-              <article
-                key={item.report_id}
-                className={`group relative overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-secondary p-4 transition ${ringClass} hover:bg-surface-raised`}
-              >
-                <div className="relative flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-ink/[0.08] bg-surface-raised px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                        #{pageStart + index + 1}
-                      </span>
-                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
-                        {formatDateTime(item.timestamp)}
-                      </span>
-                      <span
-                        className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] ${directionClasses(direction)}`}
-                      >
-                        {readableLabel(direction)} {confidence ?? "—"}%
-                      </span>
-                    </div>
-                    <h3 className="mt-3 line-clamp-2 text-[16px] font-semibold leading-snug text-text-primary">
-                      {item.headline || "Compass report"}
-                    </h3>
-                  </div>
-                  <div className="shrink-0 text-right font-mono">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      BTC
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-text-primary">
-                      {formatMoney(item.btc_price)}
-                    </div>
-                  </div>
-                </div>
-
-                <p className="relative mt-3 line-clamp-3 text-[13px] leading-6 text-text-secondary">
-                  {item.summary ||
-                    item.tactical_24h?.rationale ||
-                    "Archived Compass report with full breakdown."}
-                </p>
-
-                <div className="relative mt-4 grid gap-2 text-xs md:grid-cols-3">
-                  <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5">
-                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      Below magnet
-                    </div>
-                    <div className="mt-1 font-mono font-semibold text-loss">
-                      {formatMoney(item.nearest_magnet_below)}
-                    </div>
-                  </div>
-                  <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5">
-                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      Above magnet
-                    </div>
-                    <div className="mt-1 font-mono font-semibold text-profit">
-                      {formatMoney(item.nearest_magnet_above)}
-                    </div>
-                  </div>
-                  <div className="rounded-md border border-ink/[0.08] bg-surface-raised p-2.5">
-                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      Event risk
-                    </div>
-                    <div className="mt-1 font-mono font-semibold text-text-primary">
-                      {readableLabel(item.event_risk)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.07] pt-3.5">
-                  <span
-                    className={`rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${
-                      item.pdf_ready
-                        ? "border-profit/25 bg-profit/10 text-profit"
-                        : "border-accent/30 bg-accent/10 text-accent"
-                    }`}
-                  >
-                    {item.pdf_ready
-                      ? `${formatBytes(item.pdf_size_bytes)} ready`
-                      : item.pdf_error || "Pending"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenPdf(item)}
-                    disabled={loading}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-accent px-3.5 text-[12px] font-semibold leading-none text-accent-fg transition hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {loading ? "Opening…" : "Open reader →"}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+      {error && (
+        <div className="rounded-xl border border-loss/20 bg-loss/[0.06] px-4 py-3 text-sm text-loss">
+          {error}
         </div>
+      )}
 
-        {items.length === 0 && (
-          <div className="p-8 text-center text-sm text-text-primary/40">
-            No archived Compass reports yet. The next scheduled report will create the first PDF.
-          </div>
-        )}
-      </section>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {pagedItems.map((item) => {
+          const loading = loadingId === item.report_id;
+          const direction = item.tactical_24h?.direction;
+          const confidence = item.tactical_24h?.confidence;
+          const d = String(direction || "").toLowerCase();
+          const stanceCls =
+            d === "bearish"
+              ? "bg-negative/10 text-loss"
+              : d === "bullish"
+                ? "bg-profit/10 text-profit"
+                : "bg-ink/[0.05] text-text-secondary";
+          return (
+            <article
+              key={item.report_id}
+              className="flex flex-col rounded-2xl border border-ink/[0.08] bg-surface-raised p-5 transition hover:border-ink/14"
+            >
+              <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-muted">
+                <span>{formatDateTime(item.timestamp)}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${stanceCls}`}
+                >
+                  {readableLabel(direction)} {confidence ?? "—"}%
+                </span>
+              </div>
+              <h3 className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-text-primary">
+                {item.headline || "Compass report"}
+              </h3>
+              <p className="mt-1 font-mono text-[13px] tabular-nums text-text-secondary">
+                BTC {formatMoney(item.btc_price)}
+              </p>
+              <p className="mt-2 line-clamp-2 flex-1 text-[13px] leading-relaxed text-text-muted">
+                {item.summary ||
+                  item.tactical_24h?.rationale ||
+                  "Archived Compass report with full breakdown."}
+              </p>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink/[0.06] pt-3">
+                <span className="text-[12px] text-text-muted">
+                  {item.pdf_ready
+                    ? `${formatBytes(item.pdf_size_bytes)} ready`
+                    : item.pdf_error || "Pending"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenPdf(item)}
+                  disabled={loading}
+                  className="text-[13px] font-medium text-accent transition hover:opacity-80 disabled:opacity-50"
+                >
+                  {loading ? "Opening…" : "Open →"}
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {items.length === 0 && (
+        <div className="py-12 text-center text-sm text-text-muted">
+          No archived Compass reports yet.
+        </div>
+      )}
     </div>
   );
 }
@@ -796,7 +874,7 @@ function ReportPdfModal({ modal, onClose }) {
   // Full chrome uses theme tokens (bright / dark / luxquant) — no fixed dark wash
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] flex items-end justify-center overflow-hidden p-0 text-text-primary sm:items-center sm:p-3 lg:p-5"
+      className="lq-modal-safe fixed inset-0 z-[100000] flex items-end justify-center overflow-hidden p-0 text-text-primary sm:items-center sm:p-3 lg:p-5"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
@@ -806,7 +884,7 @@ function ReportPdfModal({ modal, onClose }) {
         type="button"
         aria-label="Close reader"
         onClick={onClose}
-        className="absolute inset-0 bg-scrim/70 backdrop-blur-sm"
+        className="lq-scrim"
       />
 
       <div className="lq-sheet relative z-10 flex h-[min(94dvh,100%)] max-h-[min(94dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-ink/[0.1] bg-surface-raised shadow-2xl sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))] sm:rounded-2xl">
@@ -1452,9 +1530,6 @@ export default function AIArenaPageV6() {
       ? "healthy"
       : operationalHealth?.status || dashboardHealth?.status || "unknown";
 
-  const activeLabel =
-    workspaceTabs.find((t) => t.key === activeWorkspace)?.label || "Market Outlook";
-
   return (
     <div
       className="min-h-screen overflow-x-clip text-text-primary"
@@ -1462,51 +1537,48 @@ export default function AIArenaPageV6() {
         fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      <div className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-10">
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 md:px-8 md:py-8 xl:px-10">
         <PageHeader
-          report={report}
           healthStatus={healthStatus}
           onRefresh={() => loadAll(true)}
           refreshing={refreshing}
-          activeLabel={activeLabel}
         />
 
-        {/* Terminal-style shell: side nav + scroll content */}
-        <div className="mt-5 flex flex-col gap-3 lg:h-[calc(100vh-11rem)] lg:flex-row lg:items-stretch lg:gap-3 lg:overflow-hidden">
-          <WorkspaceSideNav
-            activeTab={activeWorkspace}
-            onChange={setWorkspace}
-            tabs={workspaceTabs}
-          />
+        {/* Full thesis only on Outlook; other tabs get a quiet one-line context */}
+        {activeWorkspace === "read" ? (
+          <ThesisBoard report={report} />
+        ) : (
+          <MiniContextStrip report={report} onOpenOutlook={() => setWorkspace("read")} />
+        )}
 
-          <main className="min-w-0 flex-1 space-y-5 lg:overflow-y-auto lg:pr-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--ink)_/_0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
-            {activeWorkspace === "read" && <TheRead data={report} />}
+        <WorkspacePills
+          activeTab={activeWorkspace}
+          onChange={setWorkspace}
+          tabs={workspaceTabs}
+        />
 
-            {activeWorkspace === "longer" && <LongerView data={report} />}
+        <main className="min-w-0 space-y-8">
+          {activeWorkspace === "read" && <TheRead data={report} />}
+          {activeWorkspace === "longer" && <LongerView data={report} />}
+          {activeWorkspace === "evaluation" && <VerdictLedger ledger={ledger} pageSize={8} />}
+          {activeWorkspace === "chart" && <ChartPanel report={report} />}
+          {activeWorkspace === "brain" && <BrainPanel />}
+          {activeWorkspace === "archive" && (
+            <ReportArchivePanel
+              archive={reportArchive}
+              report={report}
+              loadingId={pdfLoadingId}
+              error={pdfError}
+              onOpenPdf={openReportPdf}
+            />
+          )}
 
-            {activeWorkspace === "evaluation" && <VerdictLedger ledger={ledger} pageSize={8} />}
-
-            {activeWorkspace === "chart" && <ChartPanel report={report} />}
-
-            {activeWorkspace === "brain" && <BrainPanel />}
-
-            {activeWorkspace === "archive" && (
-              <ReportArchivePanel
-                archive={reportArchive}
-                report={report}
-                loadingId={pdfLoadingId}
-                error={pdfError}
-                onOpenPdf={openReportPdf}
-              />
-            )}
-
-            <footer className="border-t border-ink/[0.06] pb-4 pt-5 text-center">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] leading-relaxed text-text-muted/45">
-                LuxQuant BTC Compass · decision support only, not financial advice
-              </p>
-            </footer>
-          </main>
-        </div>
+          <footer className="pb-10 pt-2">
+            <p className="text-[12px] leading-relaxed text-text-muted/55">
+              Decision support only — not financial advice.
+            </p>
+          </footer>
+        </main>
 
         <ReportPdfModal modal={pdfModal} onClose={closePdfModal} />
       </div>

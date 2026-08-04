@@ -167,12 +167,8 @@ export const GuideModal = ({ onClose }) => {
 
   const content = (
     <div
-      className="fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{
-        zIndex: 100000,
-        background: "rgb(var(--scrim) / 0.72)",
-        backdropFilter: "blur(2px)",
-      }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 flex items-end justify-center sm:items-center p-0 sm:p-4"
+      style={{ zIndex: 100000 }}
       onClick={onClose}
     >
       <div

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import StarButton from "./StarButton";
@@ -14,41 +15,18 @@ import SignalCompare from "./SignalCompare";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 /**
- * SignalsTable — Full Original + Strong Color Fix (emerald-400 & red-400)
- * Tidak ada yang dihapus. Hanya warna yang diubah.
+ * SignalsTable — denser, Gate/Coinbase-style market table for signal rows.
  *
- * ROUTING FIX (NEW):
- * - SignalsTable used to own its OWN `selectedSignal` state and render its OWN
- * <SignalModal>, completely independent from the one in SignalsPage. That
- * meant the `onRowClick` prop passed down from the parent was silently
- * ignored, two separate modal instances existed, and `onSwitchSignal` (used
- * by the History tab) only worked on the parent's instance — which almost
- * never opened via normal row clicks.
- * - Fixed: this component no longer owns any modal state. Every place that
- * used to call its local `setSelectedSignal(signal)` now calls the
- * `onRowClick` prop instead, so SignalsPage (URL-driven via useSearchParams)
- * is the single source of truth for which signal/tab is open.
+ * UX notes (redesign):
+ * - Soft rounded-xl shell, hairline grid, soft status/risk/verdict pills.
+ * - Frozen compare/star/pair panes so horizontal scroll never loses identity.
+ * - Adaptive density (compact / cozy / roomy) from visible column count.
+ * - Numbered pagination, hover-only share, column picker with localStorage.
  *
- * COLUMN PICKER:
- * - User bisa pilih kolom mana yang ditampilkan di tabel desktop lewat tombol
- * "Columns" di kanan atas. Preferensi disimpan di localStorage, jadi pilihan
- * user persist antar-sesi. Kolom Star + Pair selalu tampil (identitas baris).
- * - Mobile tetap pakai card layout (semua field ringkas), jadi picker hanya
- * relevan & aktif di desktop table.
- * - Set kolom dibuat sebagai registry (SIGNAL_COLUMNS) supaya nambah kolom baru
- * (mis. BTC Correlation / Win Streak) cukup tambah 1 entri + 1 header + 1 sel.
- *
- * VOLUME SORT FIX:
- * - Prices/volume are now fetched for ALL pairs (via `allPairs` prop), not just
- * the current page. Sorting by volume therefore has data for every row.
- * - The accumulated price map is MERGED (never replaced), so navigating pages or
- * the 15s refresh never blanks out previously-fetched pairs → no reshuffle.
- *
- * PRICE/PNL REGRESSION FIX:
- * - The browser CANNOT reach api.bybit.com directly in many regions (e.g. ID
- * returns net::ERR_CONNECTION_REFUSED). So we fetch through the BACKEND PROXY
- * (server-side on the VPS, which can reach Bybit + has .com/.id fallback),
- * chunked to avoid HTTP 414 on large symbol sets. Direct Bybit is last-resort.
+ * Architecture:
+ * - Parent (SignalsPage) owns the signal modal via onRowClick / URL params.
+ * - Prices via backend proxy (chunked); map is merged, never replaced.
+ * - Mobile uses expandable cards; desktop uses the column-picker table.
  */
 
 // ================================================================
@@ -96,7 +74,169 @@ const loadVisibleCols = () => {
 };
 
 // ================================================================
+// MOBILE CARD FIELDS — optional chips on collapsed cards (not desktop columns).
+// Core always shown: pair · status · E→target · live price/%.
+// Default = Telegram-simple; power users can turn extras on.
+// ================================================================
+const MOBILE_FIELDS = [
+  { key: "verdict", label: "Verdict / WR", hint: "Worth · Avoid · win rate" },
+  { key: "risk", label: "Risk", hint: "High · Medium · Low chip" },
+  { key: "stop_loss", label: "Stop loss", hint: "SL next to entry path" },
+  { key: "vol", label: "Volume", hint: "24h volume on the card" },
+  { key: "called_time", label: "Called time", hint: "When the call went out" },
+];
+
+const MOBILE_FIELDS_KEY = "lq:signals:mobile-fields";
+
+const defaultMobileFields = () =>
+  MOBILE_FIELDS.reduce((acc, f) => {
+    // Simple default: verdict only; rest off until user asks
+    acc[f.key] = f.key === "verdict";
+    return acc;
+  }, {});
+
+const loadMobileFields = () => {
+  const defaults = defaultMobileFields();
+  try {
+    const raw = localStorage.getItem(MOBILE_FIELDS_KEY);
+    if (!raw) return defaults;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== "object") return defaults;
+    return { ...defaults, ...saved };
+  } catch {
+    return defaults;
+  }
+};
+
+// ================================================================
+// MOBILE FIELDS SHEET — bottom sheet for card field toggles (lg:hidden only)
+// ================================================================
+const MobileFieldsSheet = ({ open, onClose, fields, onToggle, onReset, onPreset }) => {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="lq-modal-safe fixed inset-0 z-[99990] flex items-end justify-center lg:hidden">
+      <button
+        type="button"
+        aria-label="Close"
+        className="lq-scrim"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mobile-fields-title"
+        className="relative z-10 w-full max-w-lg rounded-t-2xl border border-ink/[0.08] bg-surface-raised shadow-2xl"
+        style={{
+          paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+          animation: "sigSheetUp .28s cubic-bezier(.16,1,.3,1)",
+        }}
+      >
+        <div className="flex justify-center pt-2.5 pb-1">
+          <div className="h-1 w-10 rounded-full bg-ink/20" />
+        </div>
+        <div className="flex items-start justify-between gap-3 px-4 pb-3 pt-1">
+          <div className="min-w-0">
+            <h2
+              id="mobile-fields-title"
+              className="text-[15px] font-semibold tracking-tight text-text-primary"
+            >
+              Card fields
+            </h2>
+            <p className="mt-0.5 text-[12px] leading-snug text-text-muted">
+              Pair, entry → target, and live price always stay on. Toggle extras only.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-ink/[0.08] text-text-muted"
+            aria-label="Close"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex gap-2 px-4 pb-3">
+          <button
+            type="button"
+            onClick={() => onPreset("simple")}
+            className="flex-1 rounded-xl border border-ink/[0.1] bg-ink/[0.03] py-2 text-[12px] font-semibold text-text-primary"
+          >
+            Simple
+          </button>
+          <button
+            type="button"
+            onClick={() => onPreset("trader")}
+            className="flex-1 rounded-xl border border-ink/[0.1] bg-ink/[0.03] py-2 text-[12px] font-semibold text-text-primary"
+          >
+            Trader
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-xl border border-ink/[0.08] px-3 py-2 text-[12px] font-medium text-text-muted"
+          >
+            Reset
+          </button>
+        </div>
+
+        <ul className="max-h-[50vh] space-y-0.5 overflow-y-auto px-3 pb-4">
+          {MOBILE_FIELDS.map((f) => {
+            const on = !!fields[f.key];
+            return (
+              <li key={f.key}>
+                <button
+                  type="button"
+                  onClick={() => onToggle(f.key)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-ink/[0.04]"
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                      on
+                        ? "border-accent bg-accent text-accent-fg"
+                        : "border-ink/20 bg-transparent text-transparent"
+                    }`}
+                  >
+                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-medium text-text-primary">{f.label}</span>
+                    <span className="block text-[11px] text-text-muted">{f.hint}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <style>{`@keyframes sigSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+    </div>,
+    document.body
+  );
+};
+
+// ================================================================
 // COLUMNS MENU — dropdown of checkboxes to toggle visible columns
+// Gate/Notion-style: soft pill trigger, rounded-xl panel, clear density cue.
 // ================================================================
 const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
   const [open, setOpen] = useState(false);
@@ -116,69 +256,79 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-ink/[0.08] hover:border-ink/12 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+          open
+            ? "border-ink/14 bg-ink/[0.06] text-text-primary"
+            : "border-ink/[0.08] bg-ink/[0.03] text-text-secondary hover:border-ink/12 hover:bg-ink/[0.05] hover:text-text-primary"
+        }`}
       >
         <svg
-          className="w-3.5 h-3.5"
+          className="h-3.5 w-3.5 opacity-70"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
         >
-          <rect x="3" y="3" width="7" height="18" rx="1" />
-          <rect x="14" y="3" width="7" height="18" rx="1" />
+          <rect x="3" y="3" width="7" height="18" rx="1.5" />
+          <rect x="14" y="3" width="7" height="18" rx="1.5" />
         </svg>
         <span>Columns</span>
-        <span className="text-text-primary/45 tabular-nums">
+        <span className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
           {visibleCount}/{SIGNAL_COLUMNS.length}
         </span>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 z-50 bg-surface-raised border border-ink/[0.1] rounded-md shadow-2xl overflow-hidden">
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/10 to-transparent" />
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-ink/[0.06]">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-primary">
-              Visible Columns
-            </span>
+        <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-ink/[0.1] bg-surface-raised shadow-2xl">
+          <div className="flex items-center justify-between border-b border-ink/[0.06] px-3.5 py-2.5">
+            <span className="text-[12px] font-medium text-text-primary">Visible columns</span>
             <button
+              type="button"
               onClick={onReset}
-              className="font-mono text-[9px] uppercase tracking-wider text-text-primary/75 hover:text-text-primary transition-colors"
+              className="text-[11px] font-medium text-text-muted transition-colors hover:text-accent"
             >
               Reset
             </button>
           </div>
-          <div className="py-1 max-h-72 overflow-y-auto">
+          <div className="max-h-72 overflow-y-auto py-1" role="listbox">
             {SIGNAL_COLUMNS.map((c) => {
               const active = !!visibleCols[c.key];
               const isLast = active && visibleCount === 1; // keep at least one column
               return (
                 <button
                   key={c.key}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
                   onClick={() => {
                     if (!isLast) onToggle(c.key);
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 font-mono text-[11px] transition-colors ${
-                    isLast ? "cursor-not-allowed opacity-60" : "hover:bg-ink/[0.04]"
+                  className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] transition-colors ${
+                    isLast
+                      ? "cursor-not-allowed opacity-50"
+                      : "hover:bg-ink/[0.04]"
                   }`}
                 >
                   <span
-                    className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
+                    className={`flex h-4 w-4 items-center justify-center rounded-[5px] border transition-colors ${
                       active
-                        ? "bg-accent/20 border-ink/18 text-accent"
-                        : "border-ink/[0.15] text-transparent"
+                        ? "border-accent bg-accent text-accent-fg"
+                        : "border-ink/[0.16] bg-transparent text-transparent"
                     }`}
                   >
                     <svg
-                      className="w-2.5 h-2.5"
+                      className="h-2.5 w-2.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="3"
+                      strokeWidth="3.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       aria-hidden="true"
@@ -186,7 +336,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </span>
-                  <span className={active ? "text-text-primary" : "text-text-primary/75"}>
+                  <span className={active ? "text-text-primary" : "text-text-secondary"}>
                     {c.label}
                   </span>
                 </button>
@@ -197,6 +347,23 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
       )}
     </div>
   );
+};
+
+/** Page numbers with ellipsis gaps — stable width like Gate / Coinbase tables. */
+const pageWindow = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = new Set([1, total, current]);
+  if (current - 1 > 1) pages.add(current - 1);
+  if (current + 1 < total) pages.add(current + 1);
+  const sorted = [...pages].sort((a, b) => a - b);
+  const out = [];
+  let prev = null;
+  for (const p of sorted) {
+    if (prev !== null && p - prev > 1) out.push(null);
+    out.push(p);
+    prev = p;
+  }
+  return out;
 };
 
 const SignalsTable = ({
@@ -252,6 +419,46 @@ const SignalsTable = ({
   // ── Column visibility (desktop table) ──
   const [visibleCols, setVisibleCols] = useState(loadVisibleCols);
 
+  // ── Mobile card fields (separate prefs from desktop columns) ──
+  const [mobileFields, setMobileFields] = useState(loadMobileFields);
+  const [mobileFieldsOpen, setMobileFieldsOpen] = useState(false);
+
+  const persistMobileFields = (next) => {
+    try {
+      localStorage.setItem(MOBILE_FIELDS_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const toggleMobileField = (key) => {
+    setMobileFields((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      persistMobileFields(next);
+      return next;
+    });
+  };
+
+  const resetMobileFields = () => {
+    const d = defaultMobileFields();
+    setMobileFields(d);
+    persistMobileFields(d);
+  };
+
+  const presetMobileFields = (kind) => {
+    const next =
+      kind === "trader"
+        ? MOBILE_FIELDS.reduce((acc, f) => {
+            acc[f.key] = true;
+            return acc;
+          }, {})
+        : defaultMobileFields();
+    setMobileFields(next);
+    persistMobileFields(next);
+  };
+
+  const mobileExtraCount = MOBILE_FIELDS.filter((f) => mobileFields[f.key]).length;
+
   const toggleCol = (key) => {
     setVisibleCols((prev) => {
       const next = { ...prev, [key]: !prev[key] };
@@ -274,10 +481,10 @@ const SignalsTable = ({
     }
   };
 
-  // Total <th>/<td> count = Compare (1) + Star (1) + Pair (1) + visible toggleable columns.
+  // Total <th>/<td> count = Compare + Star + Pair + visible toggleable + Share.
   // Used for the loading skeleton + empty-state colSpan so they stay aligned.
   const visibleColCount = useMemo(
-    () => 3 + SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length,
+    () => 4 + SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length,
     [visibleCols]
   );
 
@@ -610,12 +817,13 @@ const SignalsTable = ({
     return ((current - entry) / entry) * 100;
   };
 
-  // ==================== WARNA KUAT (emerald & red) ====================
+  // Soft semantic chips — Coinbase/Gate language: tinted pill + optional live dot,
+  // no heavy borders that fight the table grid on bright theme.
   const getRiskClasses = (risk) => {
     const r = risk?.toLowerCase() || "";
-    if (r.startsWith("low")) return "bg-profit/10 text-profit border-profit/25";
-    if (r.startsWith("high")) return "bg-negative/10 text-loss border-negative/30";
-    return "bg-accent/10 text-accent border-accent/30";
+    if (r.startsWith("low")) return "bg-profit/12 text-profit";
+    if (r.startsWith("high")) return "bg-negative/12 text-loss";
+    return "bg-accent/12 text-accent";
   };
 
   const getRiskLabel = (risk) => {
@@ -640,28 +848,37 @@ const SignalsTable = ({
 
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase() || "";
-    let cls, label;
+    let cls;
+    let label;
+    let live = false;
 
     if (s === "open") {
-      cls = "bg-accent/10 text-accent border-accent/30";
-      label = "OPEN";
+      cls = "bg-accent/12 text-accent";
+      label = "Open";
+      live = true;
     } else if (s === "closed_loss" || s === "sl") {
-      cls = "bg-negative/10 text-loss border-negative/30";
-      label = "LOSS";
+      cls = "bg-negative/12 text-loss";
+      label = "Loss";
     } else if (s === "closed_win") {
-      cls = "bg-profit/10 text-profit border-profit/25";
-      label = "WIN";
+      cls = "bg-profit/12 text-profit";
+      label = "Win";
     } else if (s.startsWith("tp")) {
-      cls = "bg-profit/10 text-profit border-profit/25";
+      cls = "bg-profit/12 text-profit";
       label = s.toUpperCase();
     } else {
-      cls = "bg-ink/[0.04] text-text-primary/75 border-ink/[0.06]";
-      label = status || "-";
+      cls = "bg-ink/[0.05] text-text-secondary";
+      label = status || "—";
     }
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${cls}`}
+        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${cls}`}
       >
+        {live ? (
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-40" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+          </span>
+        ) : null}
         {label}
       </span>
     );
@@ -706,24 +923,25 @@ const SignalsTable = ({
     const isActive = sortBy === field;
     const textAlign =
       align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
-    const justify = align === "right" ? "justify-end" : align === "center" ? "justify-center" : "";
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
     return (
       <th
-        className={`py-3 px-4 font-mono text-[10px] font-medium uppercase tracking-[0.18em] cursor-pointer transition-colors select-none ${textAlign} ${
-          isActive ? "text-text-primary" : "text-text-primary/50 hover:text-text-primary/80"
+        className={`cursor-pointer select-none px-3 py-2.5 transition-colors ${textAlign} ${
+          isActive ? "text-text-primary" : "text-text-muted hover:text-text-secondary"
         }`}
         onClick={() => onSort && onSort(field)}
       >
-        <span className={`group flex items-center gap-1.5 ${justify}`}>
+        <span className={`group inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium ${justify}`}>
           <span>{label}</span>
-          <svg
-            className={`w-3 h-3 transition-all ${isActive ? "opacity-100 text-accent" : "opacity-40 group-hover:opacity-70"}`}
-            style={{ transform: isActive && sortOrder === "asc" ? "rotate(180deg)" : "none" }}
-            viewBox="0 0 24 24"
-            fill="currentColor"
+          <span
+            className={`text-[8px] leading-none transition-opacity ${
+              isActive ? "text-accent opacity-100" : "opacity-0 group-hover:opacity-40"
+            }`}
+            aria-hidden="true"
           >
-            <path d="M17.6569 16.2427L19.0711 14.8285L12.0001 7.75739L4.92896 14.8285L6.34317 16.2427L12.0001 10.5858L17.6569 16.2427Z" />
-          </svg>
+            {isActive && sortOrder === "asc" ? "▲" : "▼"}
+          </span>
         </span>
       </th>
     );
@@ -747,7 +965,7 @@ const SignalsTable = ({
   // Compare checkbox. Deliberately always visible rather than hover-revealed:
   // a hover-only control simply does not exist on a touch device, which is how
   // the Confluence compare pin ended up unreachable on phones.
-  const CompareBox = ({ signal, size = 16 }) => {
+  const CompareBox = ({ signal, size = 15 }) => {
     const on = isCompared(signal.signal_id);
     const full = !on && compareSel.length >= COMPARE_MAX;
     return (
@@ -771,10 +989,10 @@ const SignalsTable = ({
         style={{ width: size, height: size }}
         className={`inline-flex items-center justify-center rounded-[4px] border transition-colors ${
           on
-            ? "border-accent bg-accent text-accent-fg"
+            ? "border-accent bg-accent text-accent-fg shadow-sm"
             : full
               ? "cursor-not-allowed border-ink/[0.08] text-transparent"
-              : "border-ink/[0.18] text-transparent hover:border-accent/60 hover:bg-accent/[0.08]"
+              : "border-ink/[0.16] text-transparent hover:border-accent/55 hover:bg-accent/[0.08]"
         }`}
       >
         <svg
@@ -804,75 +1022,105 @@ const SignalsTable = ({
     const btc = getBtc(signal);
     const maxTarget = getMaxTarget(signal);
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
+    const mf = mobileFields;
+    const showVerdict = !!mf.verdict;
+    const showRisk = !!mf.risk;
+    const showSl = !!mf.stop_loss;
+    const showVol = !!mf.vol;
+    const showCalled = !!mf.called_time;
 
     return (
-      <div className="relative bg-surface-raised rounded-md border border-ink/[0.06] overflow-hidden transition-all hover:border-ink/12">
-        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/12 to-transparent" />
-
-        {/* COLLAPSED — overview, tap to expand */}
-        <div className="flex items-center gap-2.5 p-3">
+      <div className="overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised transition-colors hover:border-ink/12">
+        {/* COLLAPSED — telegram-simple core + optional fields */}
+        <div className="flex items-center gap-2.5 p-3.5">
           <button
             onClick={toggle}
             aria-expanded={open}
-            className="flex flex-1 items-center gap-2.5 min-w-0 text-left"
+            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
           >
-            <CoinLogo pair={signal.pair} size={30} />
+            <CoinLogo pair={signal.pair} size={32} />
             <div className="min-w-0 flex-1">
               {/* line 1 — identity */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-text-primary font-mono text-sm tracking-wide">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[13.5px] font-medium text-text-primary">
                   {getCoinName(signal.pair)}
+                  <span className="text-text-muted">/USDT</span>
                 </span>
-                <span className="text-text-primary/45 text-[10px] font-mono">USDT</span>
                 {getStatusBadge(signal.status)}
+                {showRisk ? (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}
+                  >
+                    {getRiskLabel(signal.risk_level)}
+                  </span>
+                ) : null}
               </div>
-              {/* line 2 — trade levels: entry -> max target + potential */}
-              <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] flex-wrap">
-                <span className="text-text-primary/45">E</span>
-                <span className="text-text-primary/85 tabular-nums">
+              {/* line 2 — trade levels: entry -> max target (+ SL optional) */}
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+                <span className="text-text-muted">E</span>
+                <span className="tabular-nums text-text-secondary">
                   {formatPrice(signal.entry)}
                 </span>
                 {maxTarget != null ? (
                   <>
-                    <span className="text-text-primary/30">→</span>
-                    <span className="text-profit tabular-nums">{formatPrice(maxTarget)}</span>
+                    <span className="text-text-muted/60">→</span>
+                    <span className="tabular-nums text-profit">{formatPrice(maxTarget)}</span>
                     {potentialPct != null ? (
-                      <span className="text-profit font-medium tabular-nums">
+                      <span className="font-medium tabular-nums text-profit">
                         +{potentialPct.toFixed(1)}%
                       </span>
                     ) : null}
                   </>
                 ) : null}
+                {showSl && signal.stop_loss ? (
+                  <>
+                    <span className="text-text-muted/40">·</span>
+                    <span className="text-text-muted">SL</span>
+                    <span className="tabular-nums text-loss/90">
+                      {formatPrice(signal.stop_loss)}
+                    </span>
+                  </>
+                ) : null}
               </div>
-              {/* line 3 — live + quality cue */}
-              <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] flex-wrap">
+              {/* line 3 — live + optional quality / vol / time */}
+              <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono text-[11px]">
                 {priceChange !== null ? (
                   <span
-                    className={`tabular-nums font-medium ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
+                    className={`font-medium tabular-nums ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
                   >
                     {priceChange >= 0 ? "+" : ""}
                     {priceChange.toFixed(2)}%
                   </span>
                 ) : (
-                  <span className="text-text-primary/40">—</span>
+                  <span className="text-text-muted">—</span>
                 )}
                 {currentPrice ? (
-                  <span className="text-text-primary/45 tabular-nums">
+                  <span className="tabular-nums text-text-muted">
                     now {formatPrice(currentPrice)}
                   </span>
                 ) : null}
-                {v && v.verdict !== "neutral" ? (
+                {showVerdict && v && v.verdict !== "neutral" ? (
                   <span
-                    className={`px-1.5 py-0.5 border rounded-sm text-[9px] uppercase tracking-wider ${v.verdict === "avoid" ? "bg-negative/10 text-loss border-negative/30" : "bg-profit/10 text-profit border-profit/25"}`}
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${v.verdict === "avoid" ? "bg-negative/12 text-loss" : "bg-profit/12 text-profit"}`}
                   >
                     {v.verdict === "avoid" ? "Avoid" : "Worth"}
                     {v.coin.risk_score != null ? ` ${v.coin.risk_score}` : ""}
                   </span>
-                ) : wr != null ? (
+                ) : showVerdict && wr != null ? (
                   <span
-                    className={`px-1.5 py-0.5 border rounded-sm text-[9px] tabular-nums ${wr >= 70 ? "bg-profit/10 text-profit border-profit/25" : wr >= 50 ? "bg-accent/10 text-accent border-accent/30" : "bg-negative/10 text-loss border-negative/30"}`}
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
                   >
                     {wr}%
+                  </span>
+                ) : null}
+                {showVol && currentVol ? (
+                  <span className="tabular-nums text-text-muted">
+                    vol {formatVolume(currentVol)}
+                  </span>
+                ) : null}
+                {showCalled && signal.created_at ? (
+                  <span className="tabular-nums text-text-muted">
+                    {formatTimeAgo(signal.created_at)}
                   </span>
                 ) : null}
               </div>
@@ -911,23 +1159,23 @@ const SignalsTable = ({
 
         {/* EXPANDED — detail + open full signal */}
         {open ? (
-          <div className="border-t border-ink/[0.06] p-3 space-y-3">
+          <div className="space-y-3 border-t border-ink/[0.06] p-3.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span
-                className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${getRiskClasses(signal.risk_level)}`}
               >
                 {getRiskLabel(signal.risk_level)}
               </span>
               {wr != null ? (
                 <span
-                  className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${wr >= 70 ? "bg-profit/10 text-profit border-profit/25" : wr >= 50 ? "bg-accent/10 text-accent border-accent/30" : "bg-negative/10 text-loss border-negative/30"}`}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${wr >= 70 ? "bg-profit/12 text-profit" : wr >= 50 ? "bg-accent/12 text-accent" : "bg-negative/12 text-loss"}`}
                 >
-                  {wr}%
+                  WR {wr}%
                 </span>
               ) : null}
               {streak ? (
                 <span
-                  className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${streak.type === "win" ? "bg-profit/10 text-profit border-profit/25" : "bg-negative/10 text-loss border-negative/30"}`}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${streak.type === "win" ? "bg-profit/12 text-profit" : "bg-negative/12 text-loss"}`}
                 >
                   {streak.length}
                   {streak.type === "win" ? "W" : "L"}
@@ -936,7 +1184,7 @@ const SignalsTable = ({
               {topTag ? (
                 <span
                   title={`${fmtTag(topTag.tag)}: ${topTag.wr}% historical win rate when present`}
-                  className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-accent/12 text-accent border-ink/12 normal-case max-w-[160px] truncate"
+                  className="max-w-[160px] truncate rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-medium text-accent"
                 >
                   {fmtTag(topTag.tag).toLowerCase()} {topTag.wr}%
                 </span>
@@ -944,9 +1192,9 @@ const SignalsTable = ({
             </div>
 
             {signal.last_update_at ? (
-              <div className="flex items-center justify-between px-3 py-2 bg-ink/[0.02] border border-ink/[0.06] rounded-sm">
+              <div className="flex items-center justify-between rounded-lg border border-ink/[0.06] bg-ink/[0.02] px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-accent/60" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
                   {getUpdateTypeBadge(signal.last_update_type)}
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-primary/45">
@@ -955,42 +1203,36 @@ const SignalsTable = ({
               </div>
             ) : null}
 
-            <div className="grid grid-cols-3 gap-2 bg-ink/[0.02] border border-ink/[0.06] p-3 rounded-sm">
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-ink/[0.06] bg-ink/[0.02] p-3">
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-wider text-text-primary/45 mb-1">
-                  Entry
-                </p>
-                <p className="text-text-primary font-mono text-[12px] tabular-nums font-medium">
+                <p className="mb-1 text-[10px] font-medium text-text-muted">Entry</p>
+                <p className="font-mono text-[12.5px] font-medium tabular-nums text-text-primary">
                   {formatPrice(signal.entry)}
                 </p>
               </div>
-              <div className="text-center border-x border-ink/[0.04]">
-                <p className="font-mono text-[9px] uppercase tracking-wider text-text-primary/45 mb-1">
-                  Current
-                </p>
+              <div className="border-x border-ink/[0.05] text-center">
+                <p className="mb-1 text-[10px] font-medium text-text-muted">Current</p>
                 {currentPrice ? (
                   <p
-                    className={`font-mono text-[12px] tabular-nums font-medium ${priceChange !== null ? (priceChange >= 0 ? "text-profit" : "text-loss") : "text-text-primary"}`}
+                    className={`font-mono text-[12.5px] font-medium tabular-nums ${priceChange !== null ? (priceChange >= 0 ? "text-profit" : "text-loss") : "text-text-primary"}`}
                   >
                     {formatPrice(currentPrice)}
                   </p>
                 ) : (
-                  <p className="text-text-primary/30 text-[12px]">-</p>
+                  <p className="text-[12.5px] text-text-muted">—</p>
                 )}
               </div>
               <div className="text-right">
-                <p className="font-mono text-[9px] uppercase tracking-wider text-text-primary/45 mb-1">
-                  P&amp;L
-                </p>
+                <p className="mb-1 text-[10px] font-medium text-text-muted">P&amp;L</p>
                 {priceChange !== null ? (
                   <p
-                    className={`font-mono text-[12px] tabular-nums font-medium ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
+                    className={`font-mono text-[12.5px] font-medium tabular-nums ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
                   >
                     {priceChange >= 0 ? "+" : ""}
                     {priceChange.toFixed(2)}%
                   </p>
                 ) : (
-                  <p className="text-text-primary/30 text-[12px]">-</p>
+                  <p className="text-[12.5px] text-text-muted">—</p>
                 )}
               </div>
             </div>
@@ -1006,16 +1248,14 @@ const SignalsTable = ({
                 return (
                   <div
                     key={i}
-                    className="text-center bg-ink/[0.015] border border-ink/[0.06] py-1.5 px-1 rounded-sm"
+                    className="rounded-lg border border-ink/[0.06] bg-ink/[0.015] px-1 py-1.5 text-center"
                   >
-                    <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">
-                      {tp.label}
-                    </p>
-                    <p className="text-text-primary/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">
+                    <p className="text-[9px] font-medium text-text-muted">{tp.label}</p>
+                    <p className="mt-0.5 font-mono text-[10.5px] font-medium tabular-nums text-text-secondary">
                       {tp.value ? formatPrice(tp.value) : "—"}
                     </p>
                     {pct != null ? (
-                      <p className="text-profit/70 font-mono text-[8px] tabular-nums mt-0.5">
+                      <p className="mt-0.5 font-mono text-[9px] tabular-nums text-profit/80">
                         +{pct.toFixed(1)}%
                       </p>
                     ) : null}
@@ -1072,20 +1312,22 @@ const SignalsTable = ({
 
             <div className="flex items-center justify-between gap-2 border-t border-ink/[0.06] pt-3">
               <button
+                type="button"
                 onClick={() => onRowClick && onRowClick(signal)}
-                className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent hover:text-accent"
+                className="text-[12px] font-medium text-accent transition-colors hover:text-accent/80"
               >
-                Open full signal →
+                Open signal →
               </button>
               <div className="flex items-center gap-1.5">
                 {v && v.verdict !== "neutral" ? (
                   <button
+                    type="button"
                     onClick={() => setSelectedCoinIntel(v.coin)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${v.verdict === "avoid" ? "bg-negative/10 text-loss border-negative/30" : "bg-profit/10 text-profit border-profit/25"}`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${v.verdict === "avoid" ? "bg-negative/12 text-loss" : "bg-profit/12 text-profit"}`}
                   >
                     {v.verdict === "avoid" ? "Avoid" : "Worth"} detail
                     <svg
-                      className="w-2.5 h-2.5 opacity-60"
+                      className="h-2.5 w-2.5 opacity-60"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1098,10 +1340,11 @@ const SignalsTable = ({
                   </button>
                 ) : null}
                 <button
+                  type="button"
                   onClick={(e) => handleShareSignal(e, signal)}
                   title="Share signal"
                   aria-label="Share signal"
-                  className="w-8 h-8 flex items-center justify-center rounded-sm text-accent hover:bg-accent/12 transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-accent transition-colors hover:bg-accent/12"
                 >
                   {sharedId === signal.signal_id
                     ? Ic.check("w-3.5 h-3.5")
@@ -1119,109 +1362,192 @@ const SignalsTable = ({
     <div className="lqsk-group space-y-3">
       <ShimmerStyles />
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-surface-raised rounded-md p-4 border border-ink/[0.06]">
-          <div className="flex items-center justify-between mb-4">
+        <div key={i} className="rounded-xl border border-ink/[0.06] bg-surface-raised p-4">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-ink/[0.04] rounded-full" />
+              <div className="h-8 w-8 rounded-full bg-ink/[0.04]" />
               <div>
-                <div className="h-3 w-16 bg-ink/[0.04] rounded mb-1.5" />
-                <div className="h-2 w-10 bg-ink/[0.04] rounded" />
+                <div className="mb-1.5 h-3 w-16 rounded bg-ink/[0.04]" />
+                <div className="h-2 w-10 rounded bg-ink/[0.04]" />
               </div>
             </div>
-            <div className="h-5 w-16 bg-ink/[0.04] rounded-sm" />
+            <div className="h-5 w-16 rounded-full bg-ink/[0.04]" />
           </div>
-          <div className="h-14 w-full bg-ink/[0.03] rounded-sm mb-3" />
-          <div className="h-7 w-full bg-ink/[0.03] rounded-sm mb-3" />
-          <div className="h-3 w-full bg-ink/[0.03] rounded" />
+          <div className="mb-3 h-14 w-full rounded-lg bg-ink/[0.03]" />
+          <div className="mb-3 h-7 w-full rounded-lg bg-ink/[0.03]" />
+          <div className="h-3 w-full rounded bg-ink/[0.03]" />
         </div>
       ))}
     </div>
   );
 
+  const PaginationBar = ({ className = "" }) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 ${className}`}
+      >
+        <span className="font-mono text-[11px] tabular-nums text-text-muted">
+          Page {page} of {totalPages}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+            aria-label="Previous page"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[15px] leading-none text-text-secondary transition-colors hover:bg-ink/[0.06] hover:text-text-primary disabled:pointer-events-none disabled:opacity-25"
+          >
+            ‹
+          </button>
+          {pageWindow(page, totalPages).map((p, i) =>
+            p === null ? (
+              <span key={`gap-${i}`} className="px-1 text-[12px] text-text-muted">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                onClick={() => onPageChange(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={`h-7 min-w-[28px] rounded-md px-2 font-mono text-[12px] tabular-nums transition-colors ${
+                  p === page
+                    ? "bg-accent text-accent-fg"
+                    : "text-text-secondary hover:bg-ink/[0.06] hover:text-text-primary"
+                }`}
+              >
+                {p}
+              </button>
+            )
+          )}
+          <button
+            type="button"
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages}
+            aria-label="Next page"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[15px] leading-none text-text-secondary transition-colors hover:bg-ink/[0.06] hover:text-text-primary disabled:pointer-events-none disabled:opacity-25"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="lg:hidden">
+        {/* Mobile toolbar — Fields (not desktop Columns) */}
+        <div className="mb-2.5 flex items-center justify-between gap-2 px-0.5">
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-medium text-text-primary">Signals</p>
+            {!loading && signals?.length > 0 ? (
+              <p className="font-mono text-[10px] tabular-nums text-text-muted">
+                {signals.length}
+                {totalPages > 1 ? ` · p${page}/${totalPages}` : ""}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileFieldsOpen(true)}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-ink/[0.1] bg-surface-raised px-2.5 text-[12px] font-medium text-text-primary transition-colors hover:border-ink/20"
+          >
+            <svg
+              className="h-3.5 w-3.5 text-text-muted"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <rect x="3" y="4" width="7" height="7" rx="1" />
+              <rect x="14" y="4" width="7" height="7" rx="1" />
+              <rect x="3" y="13" width="7" height="7" rx="1" />
+              <rect x="14" y="13" width="7" height="7" rx="1" />
+            </svg>
+            Fields
+            {mobileExtraCount > 0 ? (
+              <span className="rounded-md bg-ink/[0.06] px-1 py-px font-mono text-[10px] tabular-nums text-text-muted">
+                {mobileExtraCount}
+              </span>
+            ) : null}
+          </button>
+        </div>
+
         {loading ? (
           <MobileLoadingSkeleton />
         ) : signals?.length === 0 ? (
-          <div className="bg-surface-raised rounded-md p-8 border border-ink/[0.06] text-center relative overflow-hidden">
-            <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent/25 to-transparent" />
+          <div className="rounded-xl border border-ink/[0.07] bg-surface-raised p-10 text-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
                 <EmptyStateIcon />
               </div>
-              <p className="text-text-primary font-mono text-sm">No signals found</p>
-              <p className="text-text-primary/75 font-mono text-[10px] uppercase tracking-wider">
+              <p className="text-sm font-medium text-text-primary">No signals found</p>
+              <p className="text-[12px] text-text-muted">
                 Adjust your filters and try again
               </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {signals.map((signal, idx) => (
               <MobileSignalCard key={signal.signal_id || idx} signal={signal} />
             ))}
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between py-4 mt-2">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/75">
-              Page {page}/{totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPageChange(page - 1)}
-                disabled={page <= 1}
-                className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
-              >
-                Prev
-              </button>
-              <button
-                onClick={() => onPageChange(page + 1)}
-                disabled={page >= totalPages}
-                className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <PaginationBar className="mt-3 px-1 py-3" />
+
+        <MobileFieldsSheet
+          open={mobileFieldsOpen}
+          onClose={() => setMobileFieldsOpen(false)}
+          fields={mobileFields}
+          onToggle={toggleMobileField}
+          onReset={resetMobileFields}
+          onPreset={presetMobileFields}
+        />
       </div>
 
-      <div className="hidden lg:block w-full">
-        {/* Toolbar — column picker (sits outside the overflow-hidden card so the
- dropdown isn't clipped) */}
-        <div className="flex items-center justify-end mb-3">
-          <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
-        </div>
+      <div className="hidden w-full lg:block">
+        {/* Gate-style shell: soft rounded card, toolbar inside, horizontal scroll only. */}
+        {/* No overflow-hidden on the shell — ColumnsMenu dropdown must paint outside. */}
+        <div className="relative rounded-xl border border-ink/[0.07] bg-surface-raised">
+          <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] px-4 py-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-[12.5px] font-medium text-text-primary">Signals</span>
+              {!loading && signals?.length > 0 ? (
+                <span className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-text-muted">
+                  {signals.length}
+                  {totalPages > 1 ? ` · p${page}/${totalPages}` : ""}
+                </span>
+              ) : null}
+              {pricesLoading ? (
+                <span className="hidden items-center gap-1.5 text-[11px] text-text-muted sm:inline-flex">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+                  Updating prices
+                </span>
+              ) : null}
+            </div>
+            <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
+          </div>
 
-        {/* De-boxed list — flat rows di atas background halaman (CoinGecko/MEXC-style),
- tanpa card border. Baris dipisah hairline + hover highlight. */}
-        <div className="relative">
           <style>{`
- .sig-t td, .sig-t th { transition: padding .18s ease; }
- /* compact: banyak kolom → rapat, fit tanpa scroll */
- .sig-compact td, .sig-compact th { padding: 8px 8px !important; }
- /* cozy: menengah */
+ .sig-t td, .sig-t th { transition: padding .18s ease; vertical-align: middle; }
+ /* Single-line cells — keep vertical padding tight so rows stay even height */
+ .sig-compact td, .sig-compact th { padding: 10px 10px !important; }
  .sig-cozy td, .sig-cozy th { padding: 11px 12px !important; }
- /* roomy: sedikit kolom → lega */
- .sig-roomy td, .sig-roomy th { padding: 15px 20px !important; }
+ .sig-roomy td, .sig-roomy th { padding: 12px 14px !important; }
 
- /* NOTE: no sticky thead here. The table sits inside overflow-x-auto, and CSS
-    forces overflow-y to auto alongside it — so that div becomes the scroll
-    container and the top offset is measured from ITS top edge, not the
-    viewport. It never scrolls vertically, so a sticky header just parks itself
-    that many pixels down and lands on top of the first row. Making the header
-    stick to the page would mean giving this container a fixed height and its
-    own vertical scroll, which is a bigger layout change than it's worth. */
+ /* Sticky thead skipped inside overflow-x-auto — see prior notes. */
 
- /* ── Frozen identity columns ─────────────────────────────────────
-    With 8–12 columns you scroll sideways and lose WHICH COIN the row is.
-    Star + Pair stay put so a row never becomes anonymous. Backgrounds are
-    opaque (and inherited) so body content can't show through underneath. */
- .sig-t tbody tr { background: rgb(var(--surface)); }
- .sig-t tbody tr:hover { background: color-mix(in srgb, rgb(var(--ink)) 4%, rgb(var(--surface))); }
+ /* Frozen identity columns (compare / star / pair) so sideways scroll never
+    loses row identity — opaque bg so body cells don't bleed through. */
+ .sig-t tbody tr { background: rgb(var(--surface-raised)); }
+ .sig-t tbody tr:hover { background: color-mix(in srgb, rgb(var(--ink)) 3.5%, rgb(var(--surface-raised))); }
  .sig-t th:nth-child(1), .sig-t td:nth-child(1),
  .sig-t th:nth-child(2), .sig-t td:nth-child(2),
  .sig-t th:nth-child(3), .sig-t td:nth-child(3) {
@@ -1229,46 +1555,47 @@ const SignalsTable = ({
    background: inherit;
    z-index: 1;
  }
- /* The density classes rewrite padding with !important, which resizes these two
-    utility columns — measured in Chrome, roomy blew them out to 58px/60px and the
-    frozen panes overlapped each other by 14 and 20 pixels. Pinning width AND
-    padding here (higher specificity than .sig-roomy td, so it wins among
-    !important declarations) keeps the offsets below true at every density. */
  .sig-t th:nth-child(1), .sig-t td:nth-child(1) {
-   width: 44px;
+   width: 42px;
    padding-left: 14px !important;
-   padding-right: 14px !important;
+   padding-right: 8px !important;
  }
  .sig-t th:nth-child(2), .sig-t td:nth-child(2) {
-   width: 40px;
-   padding-left: 10px !important;
-   padding-right: 10px !important;
+   width: 38px;
+   padding-left: 6px !important;
+   padding-right: 6px !important;
  }
  .sig-t th:nth-child(1), .sig-t td:nth-child(1) { left: 0; }
- .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 44px; }
- .sig-t th:nth-child(3), .sig-t td:nth-child(3) { left: 84px; }
- /* header corner cells still need to outrank the frozen body cells */
- .sig-t thead th:nth-child(1), .sig-t thead th:nth-child(2), .sig-t thead th:nth-child(3) {
+ .sig-t th:nth-child(2), .sig-t td:nth-child(2) { left: 42px; }
+ .sig-t th:nth-child(3), .sig-t td:nth-child(3) { left: 80px; }
+ .sig-t thead th:nth-child(1),
+ .sig-t thead th:nth-child(2),
+ .sig-t thead th:nth-child(3) {
    z-index: 3;
-   background: rgb(var(--surface));
+   background: rgb(var(--surface-raised));
  }
- /* hairline marks where the frozen pane ends */
- .sig-t th:nth-child(3), .sig-t td:nth-child(3) { box-shadow: 1px 0 0 rgb(var(--ink) / 0.07); }
-
- /* keyboard focus must be visible now that rows are reachable by Tab */
+ .sig-t th:nth-child(3), .sig-t td:nth-child(3) {
+   box-shadow: 1px 0 0 rgb(var(--ink) / 0.07);
+ }
  .sig-t tbody tr:focus-visible {
    outline: 1px solid rgb(var(--accent));
    outline-offset: -1px;
  }
+ /* Share affordance: quiet until row hover / keyboard focus */
+ .sig-share-btn { opacity: 0; transition: opacity .15s ease, background .15s ease; }
+ .sig-t tbody tr:hover .sig-share-btn,
+ .sig-t tbody tr:focus-within .sig-share-btn { opacity: 1; }
  `}</style>
           <div className="overflow-x-auto">
-            <table className={`sig-t sig-${density} w-full text-left whitespace-nowrap`}>
-              <thead className="border-b border-ink/[0.08]">
-                <tr>
-                  <th className="py-3 pl-4 pr-1 w-11 text-center">
+            <table className={`sig-t sig-${density} w-full min-w-[980px] border-collapse text-left whitespace-nowrap`}>
+              <thead>
+                <tr className="border-b border-ink/[0.07] text-text-muted">
+                  <th className="w-11 text-center">
                     <span className="sr-only">Compare</span>
                   </th>
-                  <th className="py-3 px-4 w-10 text-center"></th>
+                  <th className="w-10 text-center">
+                    <span className="sr-only">Watchlist</span>
+                  </th>
                   <SortableHeader field="pair" label="Pair" />
                   {visibleCols.current_price && (
                     <SortableHeader field="current_price" label="Price" align="right" />
@@ -1280,7 +1607,7 @@ const SignalsTable = ({
                     <SortableHeader field="max_target" label="Target" align="right" />
                   )}
                   {visibleCols.stop_loss && (
-                    <SortableHeader field="stop_loss" label="Stop Loss" align="right" />
+                    <SortableHeader field="stop_loss" label="Stop" align="right" />
                   )}
                   {visibleCols.risk_level && (
                     <SortableHeader field="risk_level" label="Risk" align="center" />
@@ -1292,51 +1619,37 @@ const SignalsTable = ({
                     <SortableHeader field="volume" label="Vol 24h" align="right" />
                   )}
                   {visibleCols.track_record && (
-                    <th className="py-3 px-4 font-mono text-[10px] font-medium uppercase tracking-[0.18em] select-none text-center">
-                      <span className="flex items-center justify-center gap-1.5">
+                    <th className="select-none px-3 py-2.5 text-center">
+                      <span className="inline-flex items-center justify-center gap-1.5 text-[11px] font-medium">
                         <InfoTip
                           side="bottom"
                           title={t("guide.track_t")}
                           text={t("guide.track_d")}
                         />
                         <button
+                          type="button"
                           onClick={() => onSort && onSort("win_rate")}
-                          className={`flex items-center gap-0.5 transition-colors ${sortBy === "win_rate" ? "text-text-primary" : "text-text-primary/50 hover:text-text-primary/80"}`}
+                          className={`inline-flex items-center gap-0.5 transition-colors ${sortBy === "win_rate" ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
                         >
                           WR
-                          <svg
-                            className={`w-2.5 h-2.5 transition-all ${sortBy === "win_rate" ? "opacity-100 text-accent" : "opacity-0"}`}
-                            style={{
-                              transform:
-                                sortBy === "win_rate" && sortOrder === "asc"
-                                  ? "rotate(180deg)"
-                                  : "none",
-                            }}
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
+                          <span
+                            className={`text-[8px] leading-none ${sortBy === "win_rate" ? "text-accent opacity-100" : "opacity-0"}`}
                           >
-                            <path d="M17.6569 16.2427L19.0711 14.8285L12.0001 7.75739L4.92896 14.8285L6.34317 16.2427L12.0001 10.5858L17.6569 16.2427Z" />
-                          </svg>
+                            {sortBy === "win_rate" && sortOrder === "asc" ? "▲" : "▼"}
+                          </span>
                         </button>
-                        <span className="text-text-primary/25">/</span>
+                        <span className="text-text-muted/40">/</span>
                         <button
+                          type="button"
                           onClick={() => onSort && onSort("win_streak")}
-                          className={`flex items-center gap-0.5 transition-colors ${sortBy === "win_streak" ? "text-text-primary" : "text-text-primary/50 hover:text-text-primary/80"}`}
+                          className={`inline-flex items-center gap-0.5 transition-colors ${sortBy === "win_streak" ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
                         >
                           Streak
-                          <svg
-                            className={`w-2.5 h-2.5 transition-all ${sortBy === "win_streak" ? "opacity-100 text-accent" : "opacity-0"}`}
-                            style={{
-                              transform:
-                                sortBy === "win_streak" && sortOrder === "asc"
-                                  ? "rotate(180deg)"
-                                  : "none",
-                            }}
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
+                          <span
+                            className={`text-[8px] leading-none ${sortBy === "win_streak" ? "text-accent opacity-100" : "opacity-0"}`}
                           >
-                            <path d="M17.6569 16.2427L19.0711 14.8285L12.0001 7.75739L4.92896 14.8285L6.34317 16.2427L12.0001 10.5858L17.6569 16.2427Z" />
-                          </svg>
+                            {sortBy === "win_streak" && sortOrder === "asc" ? "▲" : "▼"}
+                          </span>
                         </button>
                       </span>
                     </th>
@@ -1351,31 +1664,31 @@ const SignalsTable = ({
                     <SortableHeader field="status" label="Status" align="center" />
                   )}
                   {visibleCols.created_at && (
-                    <SortableHeader field="created_at" label="Called Time" align="right" />
+                    <SortableHeader field="created_at" label="Called" align="right" />
                   )}
-                  <th className="py-3 px-2 w-10"></th>
+                  <th className="w-10 px-2" />
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   [...Array(10)].map((_, i) => (
-                    <tr key={i} className="border-b border-ink/[0.03]">
+                    <tr key={i} className="border-b border-ink/[0.04]">
                       {[...Array(visibleColCount)].map((_, j) => (
-                        <td key={j} className="py-4 px-4">
-                          <div className="h-3 bg-ink/[0.04] rounded animate-pulse"></div>
+                        <td key={j} className="px-3 py-3.5">
+                          <div className="h-3 animate-pulse rounded bg-ink/[0.05]" />
                         </td>
                       ))}
                     </tr>
                   ))
                 ) : signals?.length === 0 ? (
                   <tr>
-                    <td colSpan={visibleColCount} className="text-center py-16">
+                    <td colSpan={visibleColCount} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-14 h-14 rounded-full bg-ink/[0.03] border border-ink/[0.06] flex items-center justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/[0.06] bg-ink/[0.03]">
                           <EmptyStateIcon />
                         </div>
-                        <p className="text-text-primary font-mono text-sm">No signals found</p>
-                        <p className="text-text-primary/75 font-mono text-[10px] uppercase tracking-wider">
+                        <p className="text-sm font-medium text-text-primary">No signals found</p>
+                        <p className="text-[12px] text-text-muted">
                           Adjust your filters and try again
                         </p>
                       </div>
@@ -1407,16 +1720,16 @@ const SignalsTable = ({
                         }}
                         tabIndex={0}
                         aria-label={`Open ${signal.pair} signal`}
-                        className="group cursor-pointer border-b border-ink/[0.05] transition-colors"
+                        className="group cursor-pointer border-b border-ink/[0.045] transition-colors last:border-0"
                       >
                         <td
-                          className="py-3 pl-4 pr-1 text-center"
+                          className="text-center"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <CompareBox signal={signal} />
                         </td>
 
-                        <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <td className="text-center" onClick={(e) => e.stopPropagation()}>
                           <StarButton
                             signalId={signal.signal_id}
                             isStarred={watchlistIds.includes(signal.signal_id)}
@@ -1424,102 +1737,102 @@ const SignalsTable = ({
                           />
                         </td>
 
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <CoinLogo pair={signal.pair} size={28} />
-                            <div>
-                              <p className="text-text-primary font-mono text-sm tracking-wide group-hover:text-accent transition-colors">
+                        <td>
+                          <div className="flex items-center gap-2.5">
+                            <CoinLogo pair={signal.pair} size={26} />
+                            <div className="leading-tight">
+                              <p className="text-[13px] font-medium text-text-primary transition-colors group-hover:text-accent">
                                 {getCoinName(signal.pair)}
+                                <span className="text-text-muted">/USDT</span>
                               </p>
-                              <p className="text-text-primary/45 text-[10px] font-mono">USDT</p>
                             </div>
                           </div>
                         </td>
 
                         {visibleCols.current_price && (
-                          <td className="py-3 px-4 text-right">
+                          <td className="text-right">
                             {pricesLoading && !currentPrice ? (
-                              <div className="h-3 w-16 bg-ink/[0.04] rounded animate-pulse ml-auto" />
+                              <div className="ml-auto h-3 w-16 animate-pulse rounded bg-ink/[0.05]" />
                             ) : currentPrice ? (
-                              <div className="flex flex-col items-end">
-                                <span
-                                  className={`font-mono text-sm tabular-nums font-medium ${currentPriceColor}`}
-                                >
+                              /* Yahoo/Google Finance: price then relative change in parentheses */
+                              <span className="inline-flex items-baseline justify-end gap-1 whitespace-nowrap font-mono tabular-nums">
+                                <span className={`text-[13px] font-medium ${currentPriceColor}`}>
                                   {formatPrice(currentPrice)}
                                 </span>
                                 {priceChange !== null && (
                                   <span
-                                    className={`font-mono text-[10px] tabular-nums mt-0.5 font-medium ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
+                                    className={`text-[11px] font-medium ${priceChange >= 0 ? "text-profit" : "text-loss"}`}
                                   >
-                                    {priceChange >= 0 ? "+" : ""}
-                                    {priceChange.toFixed(2)}%
+                                    ({priceChange >= 0 ? "+" : ""}
+                                    {priceChange.toFixed(2)}%)
                                   </span>
                                 )}
-                              </div>
+                              </span>
                             ) : (
-                              <span className="text-text-primary/30">-</span>
+                              <span className="text-text-muted">—</span>
                             )}
                           </td>
                         )}
 
                         {visibleCols.entry && (
-                          <td className="py-3 px-4 text-right">
-                            <span className="text-text-primary/75 font-mono text-sm tabular-nums font-medium">
+                          <td className="text-right">
+                            <span className="whitespace-nowrap font-mono text-[13px] tabular-nums text-text-secondary">
                               {formatPrice(signal.entry)}
                             </span>
                           </td>
                         )}
 
                         {visibleCols.max_target && (
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="text-profit font-mono text-sm tabular-nums font-medium">
-                                {maxTarget ? formatPrice(maxTarget) : "-"}
-                              </span>
-                              {maxTarget &&
-                                (() => {
+                          <td className="text-right">
+                            {maxTarget ? (
+                              <span className="inline-flex items-baseline justify-end gap-1 whitespace-nowrap font-mono tabular-nums">
+                                <span className="text-[13px] font-medium text-profit">
+                                  {formatPrice(maxTarget)}
+                                </span>
+                                {(() => {
                                   const pct = calcPct(maxTarget, signal.entry);
                                   return pct !== null ? (
-                                    <span className="text-profit/70 font-mono text-[10px] tabular-nums mt-0.5">
-                                      +{pct.toFixed(1)}%
+                                    <span className="text-[11px] text-profit/80">
+                                      (+{pct.toFixed(1)}%)
                                     </span>
                                   ) : null;
                                 })()}
-                            </div>
+                              </span>
+                            ) : (
+                              <span className="text-text-muted">—</span>
+                            )}
                           </td>
                         )}
 
                         {visibleCols.stop_loss && (
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="text-loss font-mono text-sm tabular-nums font-medium">
-                                {signal.stop1 ? formatPrice(signal.stop1) : "-"}
-                              </span>
-                              {signal.stop1 &&
-                                (() => {
+                          <td className="text-right">
+                            {signal.stop1 ? (
+                              <span className="inline-flex items-baseline justify-end gap-1 whitespace-nowrap font-mono tabular-nums">
+                                <span className="text-[13px] font-medium text-loss">
+                                  {formatPrice(signal.stop1)}
+                                </span>
+                                {(() => {
                                   const pct = calcPct(signal.stop1, signal.entry);
                                   return pct !== null ? (
-                                    <span className="text-loss/70 font-mono text-[10px] tabular-nums mt-0.5">
-                                      {pct.toFixed(1)}%
+                                    <span className="text-[11px] text-loss/80">
+                                      ({pct.toFixed(1)}%)
                                     </span>
                                   ) : null;
                                 })()}
-                            </div>
+                              </span>
+                            ) : (
+                              <span className="text-text-muted">—</span>
+                            )}
                           </td>
                         )}
 
                         {visibleCols.risk_level && (
-                          <td className="py-3 px-4 text-center">
+                          <td className="text-center">
                             {(() => {
                               const rl = getRiskLabel(signal.risk_level);
-                              const c = /high/i.test(rl)
-                                ? "text-loss"
-                                : /low/i.test(rl)
-                                  ? "text-profit"
-                                  : "text-accent";
                               return (
                                 <span
-                                  className={`font-mono text-[11px] uppercase tracking-wider font-semibold ${c}`}
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${getRiskClasses(signal.risk_level)}`}
                                 >
                                   {rl}
                                 </span>
@@ -1529,115 +1842,107 @@ const SignalsTable = ({
                         )}
 
                         {visibleCols.market_cap && (
-                          <td className="py-3 px-4 text-right">
+                          <td className="text-right">
                             {signal.market_cap ? (
-                              <span className="text-text-primary/75 font-mono text-sm tabular-nums font-medium">
+                              <span className="font-mono text-[13px] tabular-nums text-text-secondary">
                                 {formatMarketCap(signal.market_cap)}
                               </span>
                             ) : (
-                              <span className="text-text-primary/30">-</span>
+                              <span className="text-text-muted">—</span>
                             )}
                           </td>
                         )}
 
                         {visibleCols.volume && (
-                          <td className="py-3 px-4 text-right">
+                          <td className="text-right">
                             {currentVol ? (
-                              <span className="text-text-primary/75 font-mono text-sm tabular-nums font-medium">
+                              <span className="font-mono text-[13px] tabular-nums text-text-secondary">
                                 {formatVolume(currentVol)}
                               </span>
                             ) : signal.volume_rank_num && signal.volume_rank_den ? (
-                              <span className="text-text-primary/75 font-mono text-sm tabular-nums font-medium">
+                              <span className="font-mono text-[13px] tabular-nums text-text-secondary">
                                 {signal.volume_rank_num}
-                                <span className="text-text-primary/30">
+                                <span className="text-text-muted">
                                   /{signal.volume_rank_den}
                                 </span>
                               </span>
                             ) : (
-                              <span className="text-text-primary/30">-</span>
+                              <span className="text-text-muted">—</span>
                             )}
                           </td>
                         )}
 
                         {visibleCols.track_record && (
-                          <td className="py-3 px-4 text-center">
+                          <td className="text-center">
                             {(() => {
                               const wr = getWinRate(signal.pair);
                               const s = getStreak(signal.pair);
+                              const tt = getTopTag(signal.signal_id);
                               if (wr == null && !s)
-                                return <span className="text-text-primary/30 text-xs">—</span>;
+                                return <span className="text-xs text-text-muted">—</span>;
+                              const tagTitle = tt
+                                ? `${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`
+                                : undefined;
+                              /* Sibling metrics: middot separator (Linear / Apple style) */
                               return (
-                                <div className="flex flex-col items-center">
+                                <span
+                                  title={tagTitle}
+                                  className="inline-flex items-baseline justify-center gap-1 whitespace-nowrap font-mono tabular-nums"
+                                >
                                   {wr != null ? (
-                                    <span
-                                      className={`font-mono text-sm tabular-nums font-medium ${wrColor(wr)}`}
-                                    >
+                                    <span className={`text-[13px] font-medium ${wrColor(wr)}`}>
                                       {wr}%
                                     </span>
-                                  ) : (
-                                    <span className="text-text-primary/30 text-xs">—</span>
-                                  )}
-                                  {s && (
+                                  ) : null}
+                                  {wr != null && s ? (
+                                    <span className="text-[11px] text-text-muted/50" aria-hidden>
+                                      ·
+                                    </span>
+                                  ) : null}
+                                  {s ? (
                                     <span
-                                      className={`font-mono text-[10px] tabular-nums mt-0.5 font-medium ${s.type === "win" ? "text-profit/80" : "text-loss/80"}`}
+                                      className={`text-[11px] font-medium ${s.type === "win" ? "text-profit/85" : "text-loss/85"}`}
                                     >
-                                      {s.type === "win" ? "▲" : "▼"} {s.length}
+                                      {s.type === "win" ? "▲" : "▼"}
+                                      {s.length}
                                       {s.type === "win" ? "W" : "L"}
                                     </span>
-                                  )}
-                                  {(() => {
-                                    const tt = getTopTag(signal.signal_id);
-                                    if (!tt) return null;
-                                    return (
-                                      <span
-                                        title={`${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`}
-                                        className="font-mono text-[9px] tabular-nums mt-1 px-1.5 py-0.5 rounded-sm bg-accent/12 text-accent border border-ink/10 normal-case leading-none max-w-[120px] truncate"
-                                      >
-                                        {fmtTag(tt.tag).toLowerCase()} · {tt.wr}%
-                                      </span>
-                                    );
-                                  })()}
-                                </div>
+                                  ) : null}
+                                </span>
                               );
                             })()}
                           </td>
                         )}
 
                         {visibleCols.btc_corr && (
-                          <td className="py-3 px-4 text-center">
+                          <td className="text-center">
                             {(() => {
                               const b = getBtc(signal);
                               if (!b)
-                                return <span className="text-text-primary/30 text-xs">—</span>;
+                                return <span className="text-xs text-text-muted">—</span>;
+                              const flags = [
+                                b.decoupled ? "Decoupled from BTC" : null,
+                                b.extended ? "Extended move" : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ");
                               return (
-                                <div className="flex flex-col items-center">
-                                  <div className="flex items-center gap-1">
-                                    {b.decoupled && (
-                                      <span
-                                        className="text-accent text-[10px]"
-                                        title="Decoupled from BTC"
-                                      >
-                                        ⚡
-                                      </span>
-                                    )}
-                                    {b.extended && (
-                                      <span
-                                        className="text-accent text-[10px]"
-                                        title="Extended move"
-                                      >
-                                        🔥
-                                      </span>
-                                    )}
-                                    <span
-                                      className={`font-mono text-sm tabular-nums font-medium ${btcScoreColor(b.score)}`}
-                                    >
-                                      {b.score}
-                                    </span>
-                                  </div>
-                                  <span className="font-mono text-[10px] tabular-nums text-text-primary/45 mt-0.5">
+                                <span
+                                  title={flags || undefined}
+                                  className="inline-flex items-baseline justify-center gap-1 whitespace-nowrap font-mono tabular-nums"
+                                >
+                                  <span
+                                    className={`text-[13px] font-medium ${btcScoreColor(b.score)}`}
+                                  >
+                                    {b.score}
+                                  </span>
+                                  <span className="text-[11px] text-text-muted/50" aria-hidden>
+                                    ·
+                                  </span>
+                                  <span className="text-[11px] text-text-muted">
                                     ρ{fmtSigned(b.corr)} · β{fmtSigned(b.beta)}
                                   </span>
-                                </div>
+                                </span>
                               );
                             })()}
                           </td>
@@ -1645,34 +1950,37 @@ const SignalsTable = ({
 
                         {visibleCols.verdict && (
                           <td
-                            className="py-3 px-4 text-center relative"
+                            className="relative text-center"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {(() => {
                               const v = getVerdict(signal.pair);
                               if (!v || v.verdict === "neutral")
-                                return <span className="text-text-primary/30 text-xs">—</span>;
+                                return <span className="text-xs text-text-muted">—</span>;
                               const isAvoid = v.verdict === "avoid";
                               const score = v.coin.risk_score ?? null;
                               const showHint = showVerdictHint && idx === firstVerdictIdx;
                               return (
                                 <div className="relative inline-block">
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       setShowVerdictHint(false);
                                       setSelectedCoinIntel(v.coin);
                                     }}
                                     title="View deep analysis"
-                                    className={`group/vd inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider transition-all hover:brightness-125 cursor-pointer ${
-                                      isAvoid ? "text-loss" : "text-profit"
-                                    } ${showHint ? "ring-2 ring-accent/50 ring-offset-1 ring-offset-[rgb(var(--surface-raised))] rounded-sm px-1" : ""}`}
+                                    className={`group/vd inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-all hover:brightness-110 ${
+                                      isAvoid
+                                        ? "bg-negative/12 text-loss"
+                                        : "bg-profit/12 text-profit"
+                                    } ${showHint ? "ring-2 ring-accent/45 ring-offset-1 ring-offset-[rgb(var(--surface-raised))]" : ""}`}
                                   >
-                                    <span>{isAvoid ? "⛔ Avoid" : "✓ Worth It"}</span>
+                                    <span>{isAvoid ? "Avoid" : "Worth"}</span>
                                     {score != null && (
                                       <span className="tabular-nums opacity-70">{score}</span>
                                     )}
                                     <svg
-                                      className="w-2.5 h-2.5 opacity-50 group-hover/vd:opacity-100 group-hover/vd:translate-x-0.5 transition-all"
+                                      className="h-2.5 w-2.5 opacity-50 transition-all group-hover/vd:translate-x-0.5 group-hover/vd:opacity-100"
                                       viewBox="0 0 24 24"
                                       fill="none"
                                       stroke="currentColor"
@@ -1685,25 +1993,24 @@ const SignalsTable = ({
                                   </button>
 
                                   {showHint && (
-                                    <div className="lq-verdict-hint absolute top-full left-1/2 -translate-x-1/2 mt-2 z-40 w-60 text-left">
-                                      {/* arrow */}
-                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-surface-raised border-l border-t border-ink/15" />
-                                      <div className="relative bg-surface-raised border border-ink/15 rounded-lg shadow-2xl p-3 overflow-hidden">
-                                        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent" />
-                                        <div className="flex items-center justify-between mb-1.5">
-                                          <span className="font-mono text-[10px] uppercase tracking-wider text-accent">
-                                            👆 Click for detail
+                                    <div className="lq-verdict-hint absolute left-1/2 top-full z-40 mt-2 w-60 -translate-x-1/2 text-left">
+                                      <span className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-ink/12 bg-surface-raised" />
+                                      <div className="relative overflow-hidden rounded-xl border border-ink/12 bg-surface-raised p-3 shadow-2xl">
+                                        <div className="mb-1.5 flex items-center justify-between">
+                                          <span className="text-[11px] font-medium text-accent">
+                                            Click for detail
                                           </span>
                                           <button
+                                            type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setShowVerdictHint(false);
                                             }}
-                                            className="text-text-primary/45 hover:text-text-primary"
+                                            className="text-text-muted hover:text-text-primary"
                                             aria-label="Dismiss"
                                           >
                                             <svg
-                                              className="w-3 h-3"
+                                              className="h-3 w-3"
                                               viewBox="0 0 24 24"
                                               fill="none"
                                               stroke="currentColor"
@@ -1715,41 +2022,31 @@ const SignalsTable = ({
                                             </svg>
                                           </button>
                                         </div>
-                                        <p className="font-mono text-[10px] leading-relaxed text-text-primary/75 normal-case tracking-normal mb-2">
+                                        <p className="mb-2 text-[11px] leading-relaxed text-text-secondary">
                                           Full assessment based on win-rate history, streaks &amp;
                                           more.
                                         </p>
-                                        <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-ink/[0.06]">
+                                        <div className="grid grid-cols-2 gap-1.5 border-t border-ink/[0.06] pt-2">
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">
+                                            <p className="text-[9px] font-medium text-text-muted">
                                               Win Rate
                                             </p>
                                             <p
-                                              className="font-mono text-[11px] tabular-nums"
-                                              style={{
-                                                color:
-                                                  v.coin.win_rate >= 70
-                                                    ? "#34d399"
-                                                    : v.coin.win_rate >= 50
-                                                      ? "#fbbf24"
-                                                      : "#f87171",
-                                              }}
+                                              className={`font-mono text-[12px] tabular-nums ${wrColor(v.coin.win_rate ?? 0)}`}
                                             >
                                               {v.coin.win_rate}%
                                             </p>
                                           </div>
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">
+                                            <p className="text-[9px] font-medium text-text-muted">
                                               Streak
                                             </p>
                                             <p
-                                              className="font-mono text-[11px] tabular-nums"
-                                              style={{
-                                                color:
-                                                  v.coin.current_streak?.type === "win"
-                                                    ? "#34d399"
-                                                    : "#f87171",
-                                              }}
+                                              className={`font-mono text-[12px] tabular-nums ${
+                                                v.coin.current_streak?.type === "win"
+                                                  ? "text-profit"
+                                                  : "text-loss"
+                                              }`}
                                             >
                                               {v.coin.current_streak?.length
                                                 ? `${v.coin.current_streak.length}${v.coin.current_streak.type === "win" ? "W" : "L"}`
@@ -1757,30 +2054,31 @@ const SignalsTable = ({
                                             </p>
                                           </div>
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">
+                                            <p className="text-[9px] font-medium text-text-muted">
                                               Trades
                                             </p>
-                                            <p className="font-mono text-[11px] tabular-nums text-text-primary">
+                                            <p className="font-mono text-[12px] tabular-nums text-text-primary">
                                               {v.coin.closed_trades ?? "—"}
                                             </p>
                                           </div>
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-primary/45">
+                                            <p className="text-[9px] font-medium text-text-muted">
                                               Avg TP
                                             </p>
-                                            <p className="font-mono text-[11px] tabular-nums text-text-primary">
+                                            <p className="font-mono text-[12px] tabular-nums text-text-primary">
                                               {v.coin.avg_outcome ?? "—"}
                                             </p>
                                           </div>
                                         </div>
                                         <button
+                                          type="button"
                                           onClick={() => {
                                             setShowVerdictHint(false);
                                             setSelectedCoinIntel(v.coin);
                                           }}
-                                          className="w-full mt-2.5 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-accent text-accent-fg border border-ink/12 hover:bg-accent/25 transition-all"
+                                          className="mt-2.5 w-full rounded-lg bg-accent py-1.5 text-[11px] font-medium text-accent-fg transition-colors hover:bg-accent/90"
                                         >
-                                          View Detail →
+                                          View detail →
                                         </button>
                                       </div>
                                     </div>
@@ -1792,55 +2090,52 @@ const SignalsTable = ({
                         )}
 
                         {visibleCols.status && (
-                          <td className="py-3 px-4 text-center">
-                            <div className="flex flex-col items-center gap-1">
+                          <td className="text-center">
+                            <span
+                              className="inline-flex whitespace-nowrap"
+                              title={
+                                signal.last_update_at
+                                  ? `Updated ${formatTimeAgo(signal.last_update_at)}`
+                                  : undefined
+                              }
+                            >
                               {getStatusBadge(signal.status)}
-                              {signal.last_update_at && (
-                                <span className="font-mono text-[9px] uppercase tracking-wider text-text-primary/40 whitespace-nowrap">
-                                  {formatTimeAgo(signal.last_update_at)}
-                                </span>
-                              )}
-                            </div>
+                            </span>
                           </td>
                         )}
 
                         {visibleCols.created_at && (
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="text-text-primary/75 font-mono text-[11px] tabular-nums font-medium">
-                                {(() => {
-                                  const d = new Date(signal.created_at);
-                                  return d.toLocaleDateString("en-GB", {
-                                    day: "2-digit",
-                                    month: "short",
-                                  });
-                                })()}
-                              </span>
-                              <span className="font-mono text-[10px] tabular-nums text-text-primary/45 mt-0.5 font-medium">
-                                {(() => {
-                                  const d = new Date(signal.created_at);
-                                  return d.toLocaleTimeString("en-GB", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: false,
-                                  });
-                                })()}
-                              </span>
-                            </div>
+                          <td className="text-right">
+                            <span className="whitespace-nowrap font-mono text-[12px] tabular-nums text-text-secondary">
+                              {(() => {
+                                const d = new Date(signal.created_at);
+                                const date = d.toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                });
+                                const time = d.toLocaleTimeString("en-GB", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false,
+                                });
+                                return `${date} ${time}`;
+                              })()}
+                            </span>
                           </td>
                         )}
 
-                        {/* Share — appears on row hover (desktop) */}
+                        {/* Share — quiet until row hover (desktop) */}
                         <td
-                          className="py-3 px-2 w-10 text-center"
+                          className="w-10 px-2 text-center"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
+                            type="button"
                             onClick={(e) => handleShareSignal(e, signal)}
                             title="Share signal"
                             aria-label="Share signal"
-                            className={`w-7 h-7 inline-flex items-center justify-center rounded-sm transition-all text-accent hover:bg-accent/12 ${
-                              sharedId === signal.signal_id ? "scale-110" : ""
+                            className={`sig-share-btn inline-flex h-7 w-7 items-center justify-center rounded-md text-accent transition-colors hover:bg-accent/12 ${
+                              sharedId === signal.signal_id ? "scale-105 opacity-100" : ""
                             }`}
                           >
                             {sharedId === signal.signal_id
@@ -1856,29 +2151,7 @@ const SignalsTable = ({
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-ink/[0.06] bg-ink/[0.015]">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-primary/75">
-                Page {page} of {totalPages}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onPageChange(page - 1)}
-                  disabled={page <= 1}
-                  className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
-                >
-                  Prev
-                </button>
-                <button
-                  onClick={() => onPageChange(page + 1)}
-                  disabled={page >= totalPages}
-                  className="px-3 py-1.5 bg-ink/[0.03] border border-ink/[0.08] hover:bg-ink/[0.06] hover:border-ink/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono text-[10px] uppercase tracking-wider text-text-primary rounded-sm"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <PaginationBar className="border-t border-ink/[0.06] px-4 py-3" />
         </div>
       </div>
 

@@ -120,15 +120,15 @@ const CostBar = ({ cost }) => {
   ];
   return (
     <div className="mb-5 space-y-2">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted">
           Generation spend
         </p>
         <span
-          className={`text-[9px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border ${
+          className={`rounded-lg border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide ${
             tracking === "actual"
-              ? "bg-positive/10 text-positive border-positive/25"
-              : "bg-ink/[0.04] text-text-muted border-ink/10"
+              ? "border-profit/25 bg-profit/10 text-profit"
+              : "border-ink/[0.08] bg-surface-raised text-text-muted"
           }`}
           title={cost.note || ""}
         >
@@ -139,14 +139,17 @@ const CostBar = ({ cost }) => {
               : "Estimated"}
         </span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         {cards.map((c, i) => (
-          <div key={i} className="rounded-lg bg-ink/[0.03] border border-ink/[0.08] px-3 py-2.5">
-            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-text-muted">
+          <div
+            key={i}
+            className="rounded-xl border border-ink/[0.07] bg-surface-raised px-3 py-2.5"
+          >
+            <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted">
               {c.label}
             </p>
-            <p className="text-text-primary text-[16px] font-semibold mt-0.5">{c.value}</p>
-            {c.sub && <p className="text-[10px] text-text-muted/70 mt-0.5">{c.sub}</p>}
+            <p className="mt-0.5 text-[16px] font-semibold text-text-primary">{c.value}</p>
+            {c.sub && <p className="mt-0.5 text-[10px] text-text-muted">{c.sub}</p>}
           </div>
         ))}
       </div>
@@ -291,7 +294,7 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100000] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
@@ -547,7 +550,7 @@ const ModelSpendBreakdown = () => {
           </div>
 
           {(data.by_model || []).length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-ink/[0.07]">
+            <div className="overflow-x-auto rounded-xl border border-ink/[0.07] bg-surface-raised">
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="text-text-muted text-[10px] uppercase tracking-wide">
@@ -635,7 +638,7 @@ const GenerationConsole = ({
     : isRunning
       ? "border-ink/35"
       : isDone
-        ? "border-positive/30"
+        ? "border-profit/30"
         : "border-ink/[0.08]";
 
   const glow = isRunning ? "shadow-[0_0_40px_-12px_rgb(var(--accent) / 0.45)]" : "";
@@ -669,7 +672,7 @@ const GenerationConsole = ({
                   : isError
                     ? "bg-negative/15 border-negative/40"
                     : isDone
-                      ? "bg-positive/15 border-positive/40"
+                      ? "bg-profit/15 border-profit/40"
                       : "bg-ink/[0.04] border-ink/10"
               }`}
             >
@@ -703,7 +706,7 @@ const GenerationConsole = ({
                   </span>
                 )}
                 {isDone && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-positive/15 text-positive border border-positive/30">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-[0.14em] bg-profit/15 text-profit border border-profit/30">
                     Complete
                   </span>
                 )}
@@ -792,7 +795,7 @@ const GenerationConsole = ({
 
         {/* Active / recent job panel */}
         {(isRunning || isDone || isError || job) && (
-          <div className="rounded-lg border border-ink/[0.07] bg-ink/[0.04] p-3.5 sm:p-4 space-y-3.5">
+          <div className="space-y-3.5 rounded-xl border border-ink/[0.07] bg-surface-raised p-3.5 sm:p-4">
             {/* Progress bar + meta */}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -810,7 +813,7 @@ const GenerationConsole = ({
                 <div className="text-right shrink-0">
                   <p
                     className={`text-[18px] font-semibold tabular-nums leading-none ${
-                      isError ? "text-loss" : isDone ? "text-positive" : "text-accent"
+                      isError ? "text-loss" : isDone ? "text-profit" : "text-accent"
                     }`}
                   >
                     {isError ? "!" : `${progress}%`}
@@ -827,7 +830,7 @@ const GenerationConsole = ({
                     isError
                       ? "bg-negative"
                       : isDone
-                        ? "bg-positive"
+                        ? "bg-profit"
                         : "bg-gradient-to-r from-accent via-accent to-accent"
                   }`}
                   style={{
@@ -853,7 +856,7 @@ const GenerationConsole = ({
                         : active
                           ? "bg-accent/12 border-ink/35 text-accent"
                           : done
-                            ? "bg-positive/8 border-positive/20 text-positive/90"
+                            ? "bg-profit/8 border-profit/20 text-profit/90"
                             : "bg-ink/[0.02] border-ink/[0.06] text-text-muted/70"
                     }`}
                   >
@@ -864,7 +867,7 @@ const GenerationConsole = ({
                           : active
                             ? "bg-accent text-accent-fg"
                             : done
-                              ? "bg-positive text-text-primary"
+                              ? "bg-profit text-text-primary"
                               : "bg-ink/10 text-text-muted"
                       }`}
                     >
@@ -883,7 +886,7 @@ const GenerationConsole = ({
             )}
 
             {isDone && Array.isArray(job?.result) && job.result.length > 0 && (
-              <div className="rounded-md bg-positive/10 border border-positive/25 px-3 py-2 text-[11px] text-positive/95">
+              <div className="rounded-md bg-profit/10 border border-profit/25 px-3 py-2 text-[11px] text-profit/95">
                 Draft ready
                 {job.result[0]?.id ? ` · post #${job.result[0].id}` : ""}
                 {job.result[0]?.headline ? ` — ${job.result[0].headline}` : ""}
@@ -944,7 +947,7 @@ const ImageCard = ({ post, onOpen }) => {
   return (
     <button
       onClick={() => onOpen(post)}
-      className="group relative rounded-lg overflow-hidden bg-ink/[0.04] border border-ink/[0.08] hover:border-ink/15 transition-colors text-left"
+      className="group relative overflow-hidden rounded-xl border border-ink/[0.08] bg-surface-raised text-left transition-colors hover:border-ink/15"
     >
       {post.image_url ? (
         <img
@@ -1208,7 +1211,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const pending = inv.filter((i) => i.status === "missing" || i.status === "needs_upload");
 
   const statusStyle = (st) => {
-    if (st === "resolved") return "bg-positive/15 text-positive border-positive/25";
+    if (st === "resolved") return "bg-profit/15 text-profit border-profit/25";
     if (st === "needs_upload") return "bg-accent/15 text-accent border-accent/30";
     return "bg-negative/10 text-loss border-negative/25";
   };
@@ -1232,7 +1235,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             {data.missing_count} required
           </span>
         ) : (
-          <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-positive/15 text-positive border border-positive/30">
+          <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wide bg-profit/15 text-profit border border-profit/30">
             Verified
           </span>
         )}
@@ -1398,7 +1401,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                     <p className="text-[10px] text-accent/85 mt-1 leading-snug">{item.request}</p>
                   )}
                   {item.trusted && (
-                    <p className="text-[9px] font-mono text-positive/80 mt-0.5">
+                    <p className="text-[9px] font-mono text-profit/80 mt-0.5">
                       trusted · {item.source || "admin"}
                     </p>
                   )}
@@ -1596,7 +1599,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[100000] bg-scrim/85 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-8"
+ className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-8"
       onClick={onClose}
     >
       <button
@@ -1810,7 +1813,7 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                   disabled={busy || needsMaterials(post)}
                   title={needsMaterials(post) ? "Upload missing materials first" : undefined}
                   onClick={() => onStatus(post.id, "approved")}
-                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-positive/15 text-positive border border-positive/30 hover:bg-positive/25 disabled:opacity-40 transition-colors"
+                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-profit/15 text-profit border border-profit/30 hover:bg-profit/25 disabled:opacity-40 transition-colors"
                 >
                   Approve
                 </button>

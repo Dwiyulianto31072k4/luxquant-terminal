@@ -820,7 +820,7 @@ export default function SignalsAnalytics() {
   return (
     <div className="space-y-2.5">
       {/* ── sticky toolbar (exchange-style: search · status · date · facets) ── */}
-      <div className="sticky top-0 z-30 -mx-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-ink/[0.05] bg-surface/95 px-0.5 py-1.5 backdrop-blur-md">
+      <div className="lq-below-header sticky z-30 -mx-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-ink/[0.05] bg-surface/95 px-0.5 py-1.5 backdrop-blur-md">
         <div className="relative">
           <svg
             className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted/50"

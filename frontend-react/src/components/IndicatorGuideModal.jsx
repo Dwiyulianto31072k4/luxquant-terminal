@@ -161,11 +161,11 @@ const IndicatorGuideModal = ({ isOpen, onClose }) => {
 
   const content = (
     <div
-      className="lq-guide-root fixed inset-0 flex items-end sm:items-center justify-center"
+      className="lq-guide-root lq-modal-safe fixed inset-0 flex items-end sm:items-center justify-center"
       style={{ zIndex: 210000 }}
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-scrim/85 backdrop-blur-sm" />
+      <div className="lq-scrim" />
 
       <div
         className="lq-guide-card relative w-full sm:w-[92vw] sm:max-w-[920px] max-h-[min(92dvh,100%)] overflow-y-auto custom-scrollbar bg-surface border-t border-ink/15 sm:border rounded-t-3xl sm:rounded-2xl shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)]"

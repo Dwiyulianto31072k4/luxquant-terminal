@@ -74,8 +74,7 @@ const AnnouncementModal = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
-      style={{ background: "rgb(var(--scrim) / 0.72)", backdropFilter: "blur(4px)" }}
+      className="lq-modal-safe lq-scrim-bg fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4"
       onClick={dismiss}
     >
       <div

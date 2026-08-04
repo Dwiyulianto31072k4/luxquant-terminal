@@ -73,17 +73,21 @@ const PRIORITY_CONFIG = {
     bg: "rgb(var(--accent) / 0.1)",
     border: "rgb(var(--accent) / 0.3)",
   },
-  normal: { color: "#8a8a93", bg: "rgba(138,138,147,0.08)", border: "rgba(138,138,147,0.22)" },
+  normal: {
+    color: "rgb(var(--fg-muted))",
+    bg: "rgb(var(--ink) / 0.06)",
+    border: "rgb(var(--ink) / 0.14)",
+  },
   low: {
     color: "rgb(var(--fg-muted))",
-    bg: "rgba(138,122,110,0.08)",
-    border: "rgba(138,122,110,0.22)",
+    bg: "rgb(var(--ink) / 0.04)",
+    border: "rgb(var(--ink) / 0.1)",
   },
 };
 
 const STATUS_CONFIG = {
-  pending: { color: "rgb(var(--warn))", label: "Pending" },
-  in_progress: { color: "#8a8a93", label: "In Progress" },
+  pending: { color: "rgb(var(--accent-text))", label: "Pending" },
+  in_progress: { color: "rgb(var(--fg-secondary))", label: "In Progress" },
   done: { color: "rgb(var(--pos-text))", label: "Done" },
   cancelled: { color: "rgb(var(--fg-muted))", label: "Cancelled" },
 };
@@ -114,50 +118,32 @@ const SparkIcon = ({ size = 13 }) => (
 );
 
 const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
-  <div className="flex items-start justify-between gap-3 flex-wrap">
-    <div className="flex items-start gap-3 min-w-0">
-      <IconBadge Icon={ClockIcon} color="#8a8a93" size={38} iconSize={18} />
+  <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex min-w-0 items-start gap-3">
+      <IconBadge Icon={ClockIcon} color="rgb(var(--fg-muted))" size={38} iconSize={18} />
       <div className="min-w-0">
-        <p
-          className="text-[9.5px] uppercase tracking-[0.18em] font-bold"
-          style={{ color: "rgba(138,138,147,0.7)" }}
-        >
+        <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-text-muted">
           Outreach Queue
         </p>
-        <h2 className="text-lg font-semibold text-text-primary tracking-tight">Follow-up Queue</h2>
-        <p className="text-[11px] mt-0.5 max-w-md" style={{ color: "rgb(var(--fg-muted))" }}>
+        <h2 className="text-lg font-semibold tracking-tight text-text-primary">Follow-up Queue</h2>
+        <p className="mt-0.5 max-w-md text-[11px] text-text-muted">
           Collections, renewal reminders, and support tickets — all scheduled here.
         </p>
       </div>
     </div>
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex shrink-0 items-center gap-2">
       <button
         onClick={onGenerate}
         disabled={generating}
         title="Auto-create renewal & win-back follow-ups from the subscription lifecycle"
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
-        style={{
-          background: "rgba(138,138,147,0.10)",
-          color: "#8a8a93",
-          border: "1px solid rgba(138,138,147,0.28)",
-        }}
-        onMouseEnter={(e) => {
-          if (!generating) e.currentTarget.style.background = "rgba(138,138,147,0.18)";
-        }}
-        onMouseLeave={(e) => {
-          if (!generating) e.currentTarget.style.background = "rgba(138,138,147,0.10)";
-        }}
+        className="flex items-center gap-2 rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted transition-colors hover:border-ink/14 hover:text-text-primary disabled:opacity-50"
       >
         <SparkIcon size={13} />
         {generating ? "Generating…" : "Generate"}
       </button>
       <button
         onClick={onCreate}
-        className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-        style={{
-          background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent)))",
-          color: "rgb(var(--accent-fg))",
-        }}
+        className="flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-accent-fg transition-colors hover:opacity-90"
       >
         <PlusIcon size={13} />
         Add Follow-up
@@ -171,43 +157,27 @@ const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
 const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
   <button
     onClick={onClick}
-    className="relative overflow-hidden text-left rounded-xl px-4 py-3 transition-all"
-    style={{
-      background: "rgb(var(--surface-raised))",
-      border: `1px solid ${active ? `${accent}80` : "rgb(var(--ink) / 0.07)"}`,
-    }}
-    onMouseEnter={(e) => {
-      if (!active) e.currentTarget.style.borderColor = "rgb(var(--accent) / 0.25)";
-    }}
-    onMouseLeave={(e) => {
-      if (!active) e.currentTarget.style.borderColor = "rgb(var(--ink) / 0.07)";
-    }}
+    className={`rounded-xl border bg-surface-raised px-4 py-3 text-left transition-colors ${
+      active ? "border-ink/14" : "border-ink/[0.07] hover:border-ink/12"
+    }`}
   >
-    <div
-      className="absolute inset-x-0 top-0 h-px pointer-events-none"
-      style={{
-        background: `linear-gradient(to right, transparent, rgb(var(--accent) / ${active ? 0.4 : 0.2}), transparent)`,
-      }}
-    />
-    <div className="relative flex items-center justify-between mb-1.5">
-      <span
-        className="text-[10px] uppercase tracking-wider font-semibold"
-        style={{ color: "rgb(var(--ink) / 0.4)" }}
-      >
+    <div className="mb-1.5 flex items-center justify-between">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
         {label}
       </span>
       {Icon && (
         <span
-          className={`flex items-center justify-center rounded-md ${alert ? "animate-pulse" : ""}`}
-          style={{ width: 22, height: 22, background: `${accent}14`, color: accent }}
+          className={`flex h-[22px] w-[22px] items-center justify-center rounded-md bg-ink/[0.05] text-text-muted ${alert ? "animate-pulse text-loss" : ""}`}
+          style={accent && !alert ? { color: accent } : undefined}
         >
           <Icon size={12} />
         </span>
       )}
     </div>
     <p
-      className="relative text-2xl font-bold tracking-tight tabular-nums leading-none"
-      style={{ color: alert ? accent : "rgb(var(--fg))" }}
+      className={`text-2xl font-bold leading-none tracking-tight tabular-nums ${
+        alert ? "text-loss" : "text-text-primary"
+      }`}
     >
       {value ?? "—"}
     </p>
@@ -225,78 +195,60 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
 
   return (
     <div
-      className="rounded-xl p-3 transition-colors"
-      style={{
-        background: "rgb(var(--surface-raised))",
-        border: `1px solid ${
-          due?.overdue && isOpen ? "rgb(var(--neg) / 0.25)" : "rgb(var(--ink) / 0.07)"
-        }`,
-      }}
+      className={`rounded-xl border bg-surface-raised p-3 transition-colors ${
+        due?.overdue && isOpen ? "border-loss/25" : "border-ink/[0.07]"
+      }`}
     >
       <div className="flex items-start gap-3">
         <div
-          className="w-1 self-stretch rounded-full shrink-0"
+          className="w-1 shrink-0 self-stretch rounded-full"
           style={{ background: pri.color, opacity: isOpen ? 1 : 0.3 }}
         />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex items-start justify-between gap-2.5">
             <h4
-              className="text-sm font-semibold tracking-tight"
-              style={{
-                color: isOpen ? "rgb(var(--fg))" : "rgb(var(--fg-muted))",
-                textDecoration: followup.status === "cancelled" ? "line-through" : "none",
-              }}
+              className={`text-sm font-semibold tracking-tight ${
+                isOpen ? "text-text-primary" : "text-text-muted"
+              } ${followup.status === "cancelled" ? "line-through" : ""}`}
             >
               {followup.title}
             </h4>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex shrink-0 items-center gap-1.5">
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                className="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                 style={{ background: pri.bg, color: pri.color, border: `1px solid ${pri.border}` }}
               >
                 {followup.priority}
               </span>
               <span
-                className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                style={{
-                  background: `${stat.color}15`,
-                  color: stat.color,
-                  border: `1px solid ${stat.color}30`,
-                }}
+                className="rounded-md border border-ink/[0.1] bg-ink/[0.04] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                style={{ color: stat.color }}
               >
                 {stat.label}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap text-[11px] mb-2">
-            <span className="flex items-center gap-1" style={{ color: "rgb(var(--fg-muted))" }}>
+          <div className="mb-2 flex flex-wrap items-center gap-2.5 text-[11px] text-text-muted">
+            <span className="flex items-center gap-1">
               <span>{cat.emoji}</span>
               {cat.label}
             </span>
             {followup.user && (
-              <span
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded font-mono"
-                style={{
-                  background: "rgba(138,138,147,0.06)",
-                  color: "#8a8a93",
-                  border: "1px solid rgba(138,138,147,0.18)",
-                }}
-              >
+              <span className="flex items-center gap-1 rounded-md border border-ink/[0.08] bg-surface-secondary/50 px-1.5 py-0.5 font-mono text-text-secondary">
                 <UserIcon size={10} />@{followup.user.username}
               </span>
             )}
             {due && (
               <span
-                className="flex items-center gap-1 font-semibold tabular-nums"
-                style={{
-                  color: due.overdue
-                    ? "rgb(var(--neg-text))"
+                className={`flex items-center gap-1 font-semibold tabular-nums ${
+                  due.overdue
+                    ? "text-loss"
                     : due.urgent
-                      ? "rgb(var(--accent-text))"
-                      : "rgb(var(--fg-muted))",
-                }}
+                      ? "text-accent"
+                      : "text-text-muted"
+                }`}
               >
                 <ClockIcon size={10} />
                 {due.text}
@@ -306,40 +258,33 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
 
           {followup.note && (
             <p
-              className="text-xs mb-2 whitespace-pre-wrap"
-              style={{ color: "rgb(var(--fg-secondary))", opacity: isOpen ? 1 : 0.6 }}
+              className={`mb-2 whitespace-pre-wrap text-xs text-text-secondary ${
+                isOpen ? "" : "opacity-60"
+              }`}
             >
               {followup.note}
             </p>
           )}
 
-          <div className="flex items-center justify-between gap-2">
-            <div
-              className="text-[10px] flex items-center gap-2 flex-wrap"
-              style={{ color: "rgb(var(--fg-muted))" }}
-            >
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] text-text-muted">
               <span>Due {formatDateTime(followup.due_date)}</span>
               {followup.creator && <span>· by @{followup.creator.username}</span>}
               {followup.completer && (
-                <span style={{ color: "rgb(var(--pos-text))" }}>
+                <span className="text-profit">
                   · ✓ by @{followup.completer.username}
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex shrink-0 items-center gap-1.5">
               {isOpen && (
                 <>
                   {followup.status === "pending" && (
                     <button
                       onClick={() => onStatusChange(followup.id, "in_progress")}
                       title="Mark as in progress"
-                      className="p-1.5 rounded-md transition-colors"
-                      style={{
-                        color: "#8a8a93",
-                        background: "rgba(138,138,147,0.08)",
-                        border: "1px solid rgba(138,138,147,0.2)",
-                      }}
+                      className="rounded-xl border border-ink/[0.08] bg-surface-raised p-1.5 text-text-muted transition-colors hover:border-ink/14 hover:text-text-primary"
                     >
                       <ClockIcon size={11} />
                     </button>
@@ -347,12 +292,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                   <button
                     onClick={() => onStatusChange(followup.id, "done")}
                     title="Mark as done"
-                    className="p-1.5 rounded-md transition-colors"
-                    style={{
-                      color: "rgb(var(--pos-text))",
-                      background: "rgb(var(--pos) / 0.08)",
-                      border: "1px solid rgb(var(--pos) / 0.2)",
-                    }}
+                    className="rounded-xl border border-profit/20 bg-profit/10 p-1.5 text-profit transition-colors"
                   >
                     <CheckCircleIcon size={11} />
                   </button>
@@ -362,12 +302,7 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
                 <button
                   onClick={() => onStatusChange(followup.id, "pending")}
                   title="Reopen"
-                  className="p-1.5 rounded-md transition-colors"
-                  style={{
-                    color: "rgb(var(--warn))",
-                    background: "rgb(var(--accent) / 0.08)",
-                    border: "1px solid rgb(var(--accent) / 0.2)",
-                  }}
+                  className="rounded-xl border border-accent/20 bg-accent/10 p-1.5 text-accent transition-colors"
                 >
                   <ClockIcon size={11} />
                 </button>
@@ -375,24 +310,14 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
               <button
                 onClick={() => onEdit(followup)}
                 title="Edit"
-                className="p-1.5 rounded-md transition-colors"
-                style={{
-                  color: "rgb(var(--accent-text))",
-                  background: "rgb(var(--accent) / 0.08)",
-                  border: "1px solid rgb(var(--line) / 0.2)",
-                }}
+                className="rounded-xl border border-ink/[0.08] bg-surface-raised p-1.5 text-text-muted transition-colors hover:border-ink/14 hover:text-text-primary"
               >
                 <EditIcon size={11} />
               </button>
               <button
                 onClick={() => onDelete(followup)}
                 title="Delete"
-                className="p-1.5 rounded-md transition-colors"
-                style={{
-                  color: "rgb(var(--neg-text))",
-                  background: "rgb(var(--neg) / 0.08)",
-                  border: "1px solid rgb(var(--neg) / 0.2)",
-                }}
+                className="rounded-xl border border-loss/20 bg-loss/10 p-1.5 text-loss transition-colors"
               >
                 <TrashIcon size={11} />
               </button>
@@ -409,16 +334,13 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === "error";
-  const color = isError ? "rgb(var(--neg-text))" : "rgb(var(--pos-text))";
   return (
     <div
-      className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
-      style={{
-        background: isError ? "rgb(var(--neg) / 0.18)" : "rgb(var(--pos) / 0.18)",
-        color,
-        border: `1px solid ${color}40`,
-        backdropFilter: "blur(12px)",
-      }}
+      className={`lq-toast-safe fixed right-4 z-[100000] rounded-xl border px-4 py-2.5 text-[12px] font-medium shadow-2xl backdrop-blur ${
+        isError
+          ? "border-loss/30 bg-loss/15 text-loss"
+          : "border-profit/30 bg-profit/15 text-profit"
+      }`}
     >
       {toast.msg}
     </div>
@@ -571,10 +493,10 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
   const hasFilters = search || categoryFilter || priorityFilter || statusFilter !== "open";
 
-  const fieldStyle = (active) => ({
-    background: "rgb(var(--scrim) / 0.28)",
-    border: `1px solid ${active ? "rgb(var(--accent) / 0.35)" : "rgb(var(--ink) / 0.06)"}`,
-  });
+  const fieldCls = (active) =>
+    `rounded-xl border bg-surface-raised px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-ink/15 transition-colors ${
+      active ? "border-ink/14" : "border-ink/[0.08]"
+    }`;
 
   return (
     <div className="space-y-5">
@@ -582,11 +504,11 @@ export const FollowupTab = ({ onRefreshStats }) => {
 
       <FollowupHeader onCreate={handleCreate} onGenerate={handleGenerate} generating={generating} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <StatCard
           label="Open"
           value={counts.open}
-          accent="#8a8a93"
+          accent="rgb(var(--fg-muted))"
           Icon={ClockIcon}
           active={statusFilter === "open"}
           onClick={() => setStatusFilter("open")}
@@ -619,28 +541,25 @@ export const FollowupTab = ({ onRefreshStats }) => {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[200px] flex-1">
           <SearchIcon
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "rgb(var(--fg-muted))" }}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title or note…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none"
-            style={fieldStyle(!!search)}
+            className={`w-full pl-9 pr-3 ${fieldCls(!!search)}`}
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(statusFilter !== "open")}
+          className={`cursor-pointer ${fieldCls(statusFilter !== "open")}`}
         >
           <option value="open">Open (Pending + In Progress)</option>
           <option value="overdue">Overdue Only</option>
@@ -654,8 +573,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(!!categoryFilter)}
+          className={`cursor-pointer ${fieldCls(!!categoryFilter)}`}
         >
           <option value="">All Categories</option>
           <option value="renewal">🔄 Renewal</option>
@@ -668,8 +586,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-text-primary focus:outline-none cursor-pointer"
-          style={fieldStyle(!!priorityFilter)}
+          className={`cursor-pointer ${fieldCls(!!priorityFilter)}`}
         >
           <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -686,12 +603,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
               setCategoryFilter("");
               setPriorityFilter("");
             }}
-            className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
-            style={{
-              color: "rgb(var(--neg-text))",
-              background: "rgb(var(--neg) / 0.06)",
-              border: "1px solid rgb(var(--neg) / 0.2)",
-            }}
+            className="flex items-center gap-1.5 rounded-xl border border-loss/20 bg-loss/10 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-loss transition-colors"
           >
             <CloseIcon size={11} />
             Clear all
@@ -702,81 +614,48 @@ export const FollowupTab = ({ onRefreshStats }) => {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div
-            className="inline-flex items-center gap-2 text-xs"
-            style={{ color: "rgb(var(--fg-muted))" }}
-          >
-            <div
-              className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: "rgb(var(--accent) / 0.3)",
-                borderTopColor: "rgb(var(--accent))",
-              }}
-            />
+          <div className="inline-flex items-center gap-2.5 text-xs text-text-muted">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink/15 border-t-accent" />
             Loading…
           </div>
         </div>
       ) : followups.length === 0 ? (
-        <div
-          className="relative text-center py-16 rounded-2xl overflow-hidden"
-          style={{
-            background: "rgb(var(--ink) / 0.015)",
-            border: "1px dashed rgb(var(--ink) / 0.08)",
-          }}
-        >
-          <div
-            className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: "rgba(138,138,147,0.08)", filter: "blur(40px)" }}
-          />
-          <div className="relative">
-            <div
-              className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
-              style={{
-                background: "rgba(138,138,147,0.10)",
-                border: "1px solid rgba(138,138,147,0.22)",
-                color: "#8a8a93",
-              }}
-            >
-              <ClockIcon size={20} />
-            </div>
-            <p className="text-sm font-semibold text-text-primary mb-1">
-              {hasFilters ? "No follow-ups match these filters" : "No follow-ups yet"}
-            </p>
-            <p className="text-[11.5px] mb-4" style={{ color: "rgb(var(--fg-muted))" }}>
-              {hasFilters
-                ? "Try adjusting the filters or search."
-                : "Schedule your first collection or renewal reminder."}
-            </p>
-            <button
-              onClick={
-                hasFilters
-                  ? () => {
-                      setSearch("");
-                      setStatusFilter("open");
-                      setCategoryFilter("");
-                      setPriorityFilter("");
-                    }
-                  : handleCreate
-              }
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{
-                background: "rgb(var(--accent) / 0.10)",
-                color: "rgb(var(--accent-text))",
-                border: "1px solid rgb(var(--line) / 0.28)",
-              }}
-            >
-              {hasFilters ? (
-                "Reset filters"
-              ) : (
-                <>
-                  <PlusIcon size={11} /> Add first follow-up
-                </>
-              )}
-            </button>
+        <div className="rounded-xl border border-dashed border-ink/[0.08] bg-surface-raised py-16 text-center">
+          <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-surface-secondary text-text-muted">
+            <ClockIcon size={20} />
           </div>
+          <p className="mb-1 text-sm font-semibold text-text-primary">
+            {hasFilters ? "No follow-ups match these filters" : "No follow-ups yet"}
+          </p>
+          <p className="mb-4 text-[11.5px] text-text-muted">
+            {hasFilters
+              ? "Try adjusting the filters or search."
+              : "Schedule your first collection or renewal reminder."}
+          </p>
+          <button
+            onClick={
+              hasFilters
+                ? () => {
+                    setSearch("");
+                    setStatusFilter("open");
+                    setCategoryFilter("");
+                    setPriorityFilter("");
+                  }
+                : handleCreate
+            }
+            className="inline-flex items-center gap-1.5 rounded-xl border border-ink/[0.08] bg-surface-raised px-4 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-text-primary transition-colors hover:border-ink/14"
+          >
+            {hasFilters ? (
+              "Reset filters"
+            ) : (
+              <>
+                <PlusIcon size={11} /> Add first follow-up
+              </>
+            )}
+          </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {followups.map((f) => (
             <FollowupCard
               key={f.id}

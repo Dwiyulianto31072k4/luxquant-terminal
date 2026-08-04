@@ -91,14 +91,14 @@ export default function BottomSheet({
     >
       <button
         type="button"
-        className="lq-bs-backdrop absolute inset-0 bg-scrim/80 backdrop-blur-sm"
+        className="lq-bs-backdrop lq-scrim"
         onClick={closeOnBackdrop ? requestClose : undefined}
         aria-label="Close overlay"
       />
 
       <div
         className={`lq-bs-sheet absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full flex-col rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:bottom-auto sm:top-1/2 sm:max-h-[min(90dvh,880px)] sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:bg-surface-raised sm:shadow-2xl ${maxWidth} ${className}`}
-        style={{ maxHeight: "min(92dvh, 100%)" }}
+        style={{ maxHeight: "min(92dvh, var(--lq-modal-maxh))" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 justify-center pt-2.5 pb-1 sm:hidden" aria-hidden="true">
@@ -127,6 +127,11 @@ export default function BottomSheet({
  .lq-bs-sheet { animation: lqBsUp .32s cubic-bezier(.16,1,.3,1); }
  .lq-bs-root.is-closing .lq-bs-sheet { animation: lqBsDn ${EXIT_MS}ms ease forwards; }
  @media (min-width: 640px) {
+ /* The sheet is absolutely positioned, so it resolves against the root's
+    padding box — the whole viewport — and clearance padding on an ancestor
+    cannot reach it. Centre inside the region below the header instead, or a
+    tall panel puts its own top edge behind the bar. */
+ .lq-bs-sheet { top: calc(50% + (var(--lq-modal-top) / 2)); }
  .lq-bs-sheet { animation: lqBsPanel .28s cubic-bezier(.16,1,.3,1); }
  .lq-bs-root.is-closing .lq-bs-sheet { animation: lqBsPanelOut ${EXIT_MS}ms ease forwards; }
  }
@@ -151,7 +156,7 @@ export default function BottomSheet({
 
 /** Tailwind class helpers for bespoke overlays that can't use the component. */
 export const sheetOverlayClass =
-  "fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4 sm:p-6";
+  "lq-modal-safe fixed inset-0 z-[100000] flex items-end justify-center sm:items-center p-0 sm:p-4";
 export const sheetCardClass =
   "relative w-full max-h-[min(92dvh,100%)] flex flex-col overflow-hidden rounded-t-3xl border-t border-ink/12 bg-surface-raised shadow-[0_-20px_60px_rgb(var(--scrim) / 0.35)] sm:rounded-2xl sm:border sm:border-ink/[0.08] sm:shadow-2xl";
 export const sheetHandle = (

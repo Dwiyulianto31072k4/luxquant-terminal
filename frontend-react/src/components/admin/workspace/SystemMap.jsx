@@ -23,33 +23,33 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { workspaceApi } from "../../../services/workspaceApi";
 
-// ── palette / vocab (shared with the cards view) ──
+// ── palette / vocab (shared with the cards view)
+// Gate desk: neutral · accent (warn) · profit · loss only.
 const C = {
   ok: "#34d399",
   down: "#f87171",
   warn: "#fbbf24",
   idle: "rgb(var(--fg-muted))",
   gold: "rgb(var(--accent))",
-  teal: "#2dd4bf",
-  blue: "#8a8a93",
-  purple: "#8a8a93",
+  muted: "#8a8a93",
 };
 const EDGE = {
   depends: { c: "rgb(var(--fg-muted))", flow: false, label: "depends on" },
-  db: { c: "#8a8a93", flow: false, label: "Postgres" },
-  cache: { c: "#f87171", flow: false, label: "Redis" },
-  poll: { c: "#fbbf24", flow: true, label: "polls external" },
-  deliver: { c: "#8a8a93", flow: true, label: "delivers to" },
-  proxy: { c: "#34d399", flow: false, label: "proxies" },
+  db: { c: C.muted, flow: false, label: "Postgres" },
+  cache: { c: C.down, flow: false, label: "Redis" },
+  poll: { c: C.warn, flow: true, label: "polls external" },
+  deliver: { c: C.muted, flow: true, label: "delivers to" },
+  proxy: { c: C.ok, flow: false, label: "proxies" },
 };
+// Cluster nodes use status colors only — category is labeled in text, not hue.
 const CATCOLOR = {
   "Core API": C.gold,
-  "AI Compass": C.purple,
-  "Agent / Cryptobot": C.teal,
-  Signals: C.blue,
-  "Market Data": C.blue,
-  Distribution: C.purple,
-  Discord: "#5865F2",
+  "AI Compass": C.muted,
+  "Agent / Cryptobot": C.muted,
+  Signals: C.muted,
+  "Market Data": C.muted,
+  Distribution: C.muted,
+  Discord: C.muted,
   News: C.warn,
   Infrastructure: C.ok,
   Other: C.idle,
@@ -725,19 +725,21 @@ const CSS = `
    Matches SignalModal and every other overlay in the product: on a phone this
    arrives from the bottom edge and fills the width, because a centred card with
    a 20px gutter wastes the only screen where space is scarce. */
-.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:lqfade .18s ease}
+/* Full-bleed so the dim and blur reach the top of the screen; padding-top is
+   what clears the app header. Same contract as every other overlay. */
+.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:var(--lq-modal-top) 0 0 0;background:rgb(var(--scrim) / var(--lq-scrim-alpha));backdrop-filter:blur(var(--lq-scrim-blur));-webkit-backdrop-filter:blur(var(--lq-scrim-blur));animation:lqfade .18s ease}
 @keyframes lqfade{from{opacity:0}to{opacity:1}}
 .lqm-card{position:relative;width:100%;max-height:min(92dvh,100%);display:flex;flex-direction:column;background:linear-gradient(180deg,rgb(var(--surface-raised)),rgb(var(--surface)));border:1px solid rgb(var(--line) / .22);border-radius:18px 18px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.65);overflow:hidden;animation:lqup .32s cubic-bezier(.16,1,.3,1)}
 .lqm-handle{flex:0 0 auto;display:flex;justify-content:center;padding:10px 0 2px}
 .lqm-handle span{display:block;width:40px;height:4px;border-radius:999px;background:rgb(var(--ink) / .25)}
 @media (min-width:640px){
-  .lqm-overlay{align-items:center;padding:20px}
-  .lqm-card{width:min(680px,94vw);max-height:86vh;border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+  .lqm-overlay{align-items:center;padding:var(--lq-modal-top) 20px 20px}
+  .lqm-card{width:min(680px,94vw);max-height:min(86vh,var(--lq-modal-maxh));border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
   .lqm-handle{display:none}
 }
 @keyframes lqup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes lqpop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
-.lqm-card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgb(var(--accent) / .5),transparent);z-index:2}
+/* gold rim removed — modals in this app are a single flat surface */
 .lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}
 .lqm-close:hover{color:#fff;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.14)}
 .lqd-body{padding:22px;overflow-y:auto}
