@@ -15,9 +15,39 @@ from __future__ import annotations
 import os
 from typing import Any, Optional
 
-# ── Chat (xAI Grok-4 published rates) ────────────────────────────
+# ── Chat rates, per model ───────────────────────────────────────
+# These were two flat constants pinned to grok-4's $3/$15. xAI has since retired
+# grok-4 — it is not on their model list any more — and everything current is
+# cheaper, so a one-line model switch would have left the invoice quoting a
+# price we no longer pay. Rates follow the model now, the way image rates
+# already do.
 PRICE_CHAT_INPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_INPUT_PER_M", "3.0"))
 PRICE_CHAT_OUTPUT_PER_M = float(os.environ.get("SOCIAL_COST_CHAT_OUTPUT_PER_M", "15.0"))
+# Published $/1M (input, output). xAI tiers above 200k context; every draft here
+# runs ~4k, so the low tier is the one that applies.
+PRICE_CHAT_BY_MODEL = {
+    "grok-4": (3.00, 15.00),          # legacy, still billed at the old rate
+    "grok-4.5": (2.00, 6.00),
+    "grok-4.3": (1.25, 2.50),
+    "grok-4.20": (1.25, 2.50),
+    "grok-build-0.1": (1.00, 2.00),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+    "gemini-3-pro": (2.00, 12.00),
+    "gemini-3-flash": (0.50, 3.00),
+}
+
+
+def chat_rates(model: str = "") -> tuple[float, float]:
+    """Published rates for the model that actually ran, else the configured default."""
+    key = (model or "").strip().lower()
+    if key in PRICE_CHAT_BY_MODEL:
+        return PRICE_CHAT_BY_MODEL[key]
+    for name, rates in PRICE_CHAT_BY_MODEL.items():
+        if key.startswith(name):
+            return rates
+    return (PRICE_CHAT_INPUT_PER_M, PRICE_CHAT_OUTPUT_PER_M)
 
 # ── OpenAI gpt-image-2 token rates ($ / 1M tokens) ───────────────
 PRICE_OAI_IMG_IN_PER_M = float(os.environ.get("SOCIAL_COST_OAI_IMG_IN_PER_M", "8.0"))
@@ -73,11 +103,12 @@ def _usd_from_tokens(tokens: int, price_per_m: float) -> float:
     return (int(tokens or 0) / 1_000_000.0) * float(price_per_m)
 
 
-def compute_chat_usd(*, prompt_tokens: int, completion_tokens: int) -> dict:
-    """Chat cost from API usage (actual tokens)."""
+def compute_chat_usd(*, prompt_tokens: int, completion_tokens: int, model: str = "") -> dict:
+    """Chat cost from API usage (actual tokens), priced for the model that ran."""
     pt = int(prompt_tokens or 0)
     ct = int(completion_tokens or 0)
-    usd = _usd_from_tokens(pt, PRICE_CHAT_INPUT_PER_M) + _usd_from_tokens(ct, PRICE_CHAT_OUTPUT_PER_M)
+    in_rate, out_rate = chat_rates(model)
+    usd = _usd_from_tokens(pt, in_rate) + _usd_from_tokens(ct, out_rate)
     return {
         "prompt_tokens": pt,
         "completion_tokens": ct,
@@ -243,6 +274,7 @@ def build_generation_cost(
     chat = compute_chat_usd(
         prompt_tokens=int(chat_usage.get("prompt_tokens") or 0),
         completion_tokens=int(chat_usage.get("completion_tokens") or 0),
+        model=chat_model or str(chat_usage.get("chat_model") or ""),
     )
     search = compute_search_usd(search_count=search_count)
 
@@ -584,7 +616,8 @@ def build_line_items(
                 "in": int(cost.get("prompt_tokens") or 0),
                 "out": int(cost.get("completion_tokens") or 0),
             },
-            rates={"in_per_m": PRICE_CHAT_INPUT_PER_M, "out_per_m": PRICE_CHAT_OUTPUT_PER_M},
+            rates=dict(zip(("in_per_m", "out_per_m"),
+                           chat_rates(chat_model or os.environ.get("XAI_CHAT_MODEL", "")))),
             note="editorial pack",
         ))
 
