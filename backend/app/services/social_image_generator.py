@@ -868,7 +868,9 @@ def _strip_stored_style_tail(scene: str) -> str:
 
 
 def _brand_allowlist_clause(
-    verified_names: list[str], hero_names: Optional[list[str]] = None
+    verified_names: list[str],
+    hero_names: Optional[list[str]] = None,
+    editor_subjects: int = 0,
 ) -> str:
     """Hard rule: only admin-verified marks may appear — and only the headline's
     mark gets built.
@@ -902,6 +904,17 @@ def _brand_allowlist_clause(
         "If a company is part of the story but its mark is not the hero, show it only via abstract "
         "architecture/lighting with zero readable logo."
     )
+    if editor_subjects:
+        # The rule above ends with "not on a wall, a screen, a badge or a coin",
+        # which is exactly what an editor gets told when they attach a coin on
+        # purpose. An attached subject reference is admin-verified by definition
+        # — a person chose that file — so it has to be carved out explicitly or
+        # the ban silently wins.
+        clause += (
+            f" EXCEPTION — the editor attached {editor_subjects} subject reference image(s) on purpose. "
+            "Those specific objects MUST appear, reproduced exactly from the reference, and this rule "
+            "does not apply to them."
+        )
     return clause
 
 
@@ -943,18 +956,40 @@ def _brand_pass_prompt(
     scene_prompt: str,
     *,
     verified_brand_names: list[str],
+    direction: str = "",
+    editor_subjects: int = 0,
 ) -> str:
-    """Second edit: inject ONLY verified brands; never invent missing ones (e.g. HYPE)."""
+    """Second edit: inject ONLY verified brands; never invent missing ones (e.g. HYPE).
+
+    This pass re-renders OVER the first pass's output, so anything it is not
+    told about is quietly erased. It used to be told almost nothing: its context
+    was `scene_prompt[:400]`, and scene_prompt opens with the 2,609-character
+    house style — so the slice was pure boilerplate and neither the story nor
+    the editor's instruction ever arrived. An editor who attached a coin and
+    asked for it in the scene got it built in pass one and painted out in pass
+    two.
+    """
     allowed = ", ".join(verified_brand_names) if verified_brand_names else "(none)"
-    return (
-        f"{BRAND_PASS_FACE_LOCK}"
+    # Skip the house-style preamble: this pass inherits the look from the image
+    # it is editing, so those characters are better spent on the story.
+    story = scene_prompt
+    if BRAND_VISUAL_SIGNATURE and BRAND_VISUAL_SIGNATURE in story:
+        story = story.split(BRAND_VISUAL_SIGNATURE, 1)[-1]
+    story = story.strip()[:700]
+    parts = [
+        BRAND_PASS_FACE_LOCK,
         f"Integrate ONLY these official verified brands as physical scene elements: {allowed}. "
         "Place marks as wall signage, product emblems, desk objects, or architectural elements — "
-        "accurate geometry, not tiny corner stickers. "
-        f"{_brand_allowlist_clause(verified_brand_names)} "
-        f"Keep it a photograph of a real place, vertical 4:5. Context: {scene_prompt[:400]} "
-        "No readable body text, no caption bars."
-    )
+        "accurate geometry, not tiny corner stickers.",
+    ]
+    if direction:
+        # Ahead of the brand instruction, because the editor asked for this and
+        # the brand rule is what would otherwise delete it.
+        parts.append(direction)
+    parts.append(_brand_allowlist_clause(verified_brand_names, editor_subjects=editor_subjects))
+    parts.append(f"Keep it a photograph of a real place, vertical 4:5. Context: {story}")
+    parts.append("No readable body text, no caption bars.")
+    return " ".join(p for p in parts if p)
 
 
 def _readable_image(path: str) -> Optional["object"]:
@@ -1891,7 +1926,11 @@ def generate_ai_social_image(
         allow = verified_brand_names or ([primary_org_name] if primary_org_name else [])
         heroes = hero_brand_names or allow
 
-        scene_prompt = f"{prompt} {_brand_allowlist_clause(allow, heroes)}"
+        editor_subjects = sum(
+            1 for r in (extra_refs or [])
+            if isinstance(r, dict) and (r.get("role") or "style") == "subject"
+        )
+        scene_prompt = f"{prompt} {_brand_allowlist_clause(allow, heroes, editor_subjects)}"
         # The editor's own attachments ride along on every branch. Their order
         # here is the order the prompt block numbered them in.
         admin_refs = _ordered_ref_paths(extra_refs)
@@ -1956,17 +1995,26 @@ def generate_ai_social_image(
             ):
                 try:
                     brand_prompt = _brand_pass_prompt(
-                        scene_prompt, verified_brand_names=heroes
+                        scene_prompt,
+                        verified_brand_names=heroes,
+                        direction=_custom_direction_block(extra_prompt, extra_refs),
+                        editor_subjects=sum(
+                            1 for r in (extra_refs or [])
+                            if isinstance(r, dict) and (r.get("role") or "style") == "subject"
+                        ),
                     )
                     # The pass that exists to fix the mark must be able to SEE
                     # the mark: send the rendered frame and the artwork sheet,
-                    # not the frame alone.
+                    # not the frame alone. The editor's own references go too —
+                    # without them this pass cannot reproduce an object it is
+                    # being told to keep, and it repaints the frame either way.
                     second_refs = [str(raw_path)]
                     sheet = _prepare_logos_sheet(
                         [str(p) for p in logo_paths], news_id=news_id
                     )
                     if sheet:
                         second_refs.append(sheet)
+                    second_refs.extend(admin_refs)
                     u2 = _edit_image(brand_prompt, second_refs, raw_path, provider=provider)
                     image_usage_acc = _merge_usage(image_usage_acc, u2)
                     image_api_calls += 1

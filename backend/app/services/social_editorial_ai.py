@@ -205,7 +205,73 @@ def _normalize_paragraphs(text: str) -> str:
     return "\n\n".join(paras)
 
 
-def assemble_caption(pack: dict, *, source_domain: Optional[str] = None) -> str:
+_OUTLET_NAMES = {
+    "coindesk.com": "CoinDesk", "cryptoslate.com": "CryptoSlate", "decrypt.co": "Decrypt",
+    "cryptopotato.com": "CryptoPotato", "crypto.news": "crypto.news",
+    "koreajoongangdaily.com": "Korea JoongAng Daily", "stocktitan.net": "StockTitan",
+    "deloitte.com": "Deloitte", "theblock.co": "The Block", "reuters.com": "Reuters",
+    "bloomberg.com": "Bloomberg", "cointelegraph.com": "Cointelegraph",
+    "en.bloomingbit.io": "Bloomingbit", "bitcoinworld.co.in": "Bitcoin World",
+}
+# Aggregators and link shorteners are where a story was FOUND, never where it
+# came from. Citing them tells the reader nothing they can check.
+_NON_OUTLETS = {"t.co", "news.google.com", "twitter.com", "x.com", "tradingview.com"}
+
+
+def _outlet(host: str) -> str:
+    host = (host or "").lower().strip().removeprefix("www.")
+    return _OUTLET_NAMES.get(host, host)
+
+
+def _citation_line(
+    ai_note: str, source_domain: Optional[str], references: Optional[list]
+) -> str:
+    """Name every outlet the caption actually drew on, not the one it was found at.
+
+    The line used to be whatever the model wrote. On an AMD draft that produced
+    "Source: TheKobeissiLetter on X" — a 151-character tweet — while every figure
+    in the caption came from the earnings release attached beside it, which the
+    reader was never told about and could not look up.
+    """
+    import re as _re
+
+    names: list[str] = []
+
+    def _add(name: str) -> None:
+        n = (name or "").strip()
+        if n and n.lower() not in {x.lower() for x in names}:
+            names.append(n)
+
+    note = (ai_note or "").strip()
+    if note and note.lower() not in _NON_OUTLETS:
+        _add(note)
+    host = (source_domain or "").lower().removeprefix("www.")
+    if host and host not in _NON_OUTLETS:
+        _add(_outlet(host))
+    for ref in references or []:
+        url = str((ref or {}).get("url") or "")
+        m = _re.match(r"https?://(?:www\.)?([^/]+)", url)
+        if not m:
+            continue
+        h = m.group(1).lower()
+        if h in _NON_OUTLETS:
+            continue
+        _add(_outlet(h))
+
+    if not names:
+        return ""
+    # Cap it: a caption is not a bibliography, and the full list lives on the
+    # draft's sources either way.
+    shown = names[:3]
+    return ("Source: " if len(shown) == 1 else "Sources: ") + ", ".join(shown)
+
+
+def assemble_caption(
+    pack: dict,
+    *,
+    source_domain: Optional[str] = None,
+    references: Optional[list] = None,
+) -> str:
     """Build the final post caption: body → source → AI label → [disclaimer] → CTA → hashtags.
 
     The disclaimer and crypto CTA are only added for financially-relevant topics, so a
@@ -226,10 +292,11 @@ def assemble_caption(pack: dict, *, source_domain: Optional[str] = None) -> str:
         # Recorded on the pack so the draft can show what was cut and the admin
         # is not left wondering why a paragraph is shorter than expected.
         pack["advice_removed"] = _cut
-    raw_note = str(pack.get("source_note") or "").strip() or (source_domain or "")
-    note = ""
-    if raw_note:
-        note = raw_note if raw_note.lower().startswith("source") else f"Source: {raw_note}"
+    note = _citation_line(
+        str(pack.get("source_note") or ""),
+        source_domain,
+        references if references is not None else pack.get("references"),
+    )
 
     topic = str(pack.get("topic") or "").strip().lower()
     is_financial = topic in FINANCIAL_TOPICS or bool(pack.get("tokens"))

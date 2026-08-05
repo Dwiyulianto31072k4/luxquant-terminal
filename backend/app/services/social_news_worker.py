@@ -463,7 +463,14 @@ def build_draft(
         headline = _clean_text(ai_pack.get("headline")) or _headline_for(item)
         hashtags = ai_pack.get("hashtags") or _hashtags_for(item)
         ai_pack["hashtags"] = hashtags
-        caption = assemble_caption(ai_pack, source_domain=item.domain or "LuxQuant News")
+        # References go in too: the citation line is built from the outlets the
+        # caption actually drew on, and the pack's own source_note is only the
+        # model's opinion of where the story came from.
+        caption = assemble_caption(
+            ai_pack,
+            source_domain=item.domain or "",
+            references=ai_pack.get("references") or [],
+        )
         ai_image_prompt = ai_pack.get("image_prompt")
         content_source = "ai"
     else:
