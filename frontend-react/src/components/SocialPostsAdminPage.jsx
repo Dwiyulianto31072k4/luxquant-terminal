@@ -154,7 +154,7 @@ const CostBar = ({ cost }) => {
         ))}
       </div>
       {cost.note && (
-        <p className="text-[9px] text-text-muted/70 font-mono leading-relaxed">{cost.note}</p>
+        <p className="text-[9px] text-text-muted font-mono leading-relaxed">{cost.note}</p>
       )}
     </div>
   );
@@ -491,7 +491,7 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
                     </div>
                     <div className="flex items-center gap-2 px-2.5 py-1.5 bg-ink/[0.03]">
                       <span className="text-[10px] text-text-muted truncate">{it.domain || "news"}</span>
-                      <span className="ml-auto text-[10px] text-text-muted/70 shrink-0">
+                      <span className="ml-auto text-[10px] text-text-muted shrink-0">
                         {_timeAgo(it.created_at) && `${_timeAgo(it.created_at)} ago`}
                       </span>
                     </div>
@@ -624,7 +624,7 @@ const InvoiceRollup = () => {
               className="flex items-baseline gap-2 rounded-md border border-ink/[0.06] bg-ink/[0.02] px-2 py-1"
             >
               <span className="text-[10.5px] text-text-primary truncate">{m.model}</span>
-              <span className="text-[9px] font-mono text-text-muted/75 shrink-0">
+              <span className="text-[9px] font-mono text-text-muted shrink-0">
                 {m.images} img · {num(m.out_tokens)} out
               </span>
               <span className="ml-auto text-[10px] font-mono tabular-nums text-text-muted shrink-0">
@@ -639,7 +639,7 @@ const InvoiceRollup = () => {
       )}
 
       {open && data.legacy_drafts > 0 && (
-        <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+        <p className="text-[9px] font-mono text-text-muted leading-relaxed">
           {data.legacy_drafts} draft(s) predate the ledger — counted in the total, but
           they cannot say which model they spent on, so they are left out of the
           breakdown rather than guessed at.
@@ -1023,7 +1023,7 @@ const GenerationConsole = ({
                           ? "bg-accent/12 border-ink/35 text-accent"
                           : done
                             ? "bg-profit/8 border-profit/20 text-profit/90"
-                            : "bg-ink/[0.02] border-ink/[0.06] text-text-muted/70"
+                            : "bg-ink/[0.02] border-ink/[0.06] text-text-muted"
                     }`}
                   >
                     <span
@@ -1060,7 +1060,7 @@ const GenerationConsole = ({
             )}
 
             {isRunning && (
-              <p className="text-[10px] text-text-muted/80 font-mono">
+              <p className="text-[10px] text-text-muted font-mono">
                 Safe to refresh or leave this page — the job keeps running and this console will
                 resume.
               </p>
@@ -1080,7 +1080,7 @@ const GenerationConsole = ({
             ].map((label, i) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1.5 text-[10px] font-mono text-text-muted/80"
+                className="inline-flex items-center gap-1.5 text-[10px] font-mono text-text-muted"
               >
                 <span className="w-4 h-4 rounded-full bg-ink/[0.05] border border-ink/10 flex items-center justify-center text-[8px] text-text-muted">
                   {i + 1}
@@ -1131,7 +1131,7 @@ const ImageCard = ({ post, onOpen }) => {
             {post.headline || "Draft"}
           </p>
           {waiting && (
-            <span className="text-[9px] text-text-muted/80 font-mono">
+            <span className="text-[9px] text-text-muted font-mono">
               Image not generated yet — saves cost
             </span>
           )}
@@ -1153,6 +1153,129 @@ const ImageCard = ({ post, onOpen }) => {
 // ── Editor's own art direction: a standing prompt, extra references ─────────
 // Until now the only thing an admin could change about a picture was which
 // model drew it. Everything else came from the editorial AI.
+// ── Model picker ───────────────────────────────────────────────────────────
+// Colours go through the semantic tokens rather than ink-opacity shades. The
+// first version drew its bars with bg-ink/25 and its labels with */70, which
+// reads fine on the dark desks and turns to pale grey mush on Bright, where
+// --ink is a dark slate that fades to nothing at low alpha.
+const ModelPicker = ({ models, picked, onPick, chosen }) => {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const list = models?.models || [];
+
+  const Row = ({ m, inMenu }) => {
+    const on = modelKey(m) === picked;
+    return (
+      <>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[12px] font-semibold text-text-primary leading-tight truncate">
+            {SHORT_LABEL[m.model] || m.model}
+          </span>
+          {m.quality && (
+            <span className="shrink-0 text-[9px] font-mono uppercase tracking-wide px-1.5 py-px rounded bg-ink/[0.07] text-text-secondary">
+              {m.quality}
+            </span>
+          )}
+          {m.best_value && (
+            <span className="shrink-0 text-[9px] font-mono uppercase tracking-wide px-1.5 py-px rounded bg-accent/20 text-accent-text">
+              value
+            </span>
+          )}
+          <span className="ml-auto shrink-0 text-[12px] font-mono tabular-nums font-semibold text-text-primary">
+            {usd(m.usd)}
+          </span>
+          {!inMenu && (
+            <svg
+              viewBox="0 0 24 24"
+              className={`shrink-0 w-3 h-3 text-text-secondary transition-transform ${open ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className="h-[3px] flex-1 rounded-full bg-ink/[0.10] overflow-hidden">
+            <span
+              // /55, not /40: measured against the /10 track on Bright, 40%
+              // gives 2.05:1 and 55% is the first step that clears the 3:1 a
+              // graphical indicator needs. It reads 4.95:1 on the dark desks.
+              className={`block h-full rounded-full ${on ? "bg-accent" : "bg-ink/55"}`}
+              style={{ width: `${m.quality_pct || 0}%` }}
+            />
+          </span>
+          <span className="shrink-0 text-[10px] font-mono tabular-nums text-text-secondary">
+            {m.elo_edit ? `${m.elo_edit}` : "—"}
+            {m.rank_edit ? <span className="text-text-muted"> · #{m.rank_edit}</span> : null}
+          </span>
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <div ref={boxRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full px-3 py-2 rounded-lg border border-ink/[0.14] bg-surface text-left hover:border-ink/25 transition-colors"
+      >
+        {chosen ? (
+          <Row m={chosen} />
+        ) : (
+          <span className="text-[11px] font-mono text-text-muted">Loading models…</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 inset-x-0 max-h-[280px] overflow-y-auto rounded-lg border border-ink/[0.14] bg-surface-raised shadow-2xl p-1 lqm-scroll">
+          <p className="px-2 pt-1 pb-1.5 text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
+            ranked by editing elo — best first
+          </p>
+          {list.map((m) => {
+            const k = modelKey(m);
+            const on = k === picked;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => {
+                  onPick(k);
+                  setOpen(false);
+                }}
+                className={`w-full px-2 py-1.5 rounded-md text-left transition-colors ${
+                  on ? "bg-accent/[0.10] ring-1 ring-accent/35" : "hover:bg-ink/[0.05]"
+                }`}
+              >
+                <Row m={m} inMenu />
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
   const [prompt, setPrompt] = useState("");
   const [savedPrompt, setSavedPrompt] = useState("");
@@ -1244,7 +1367,7 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
           rows={3}
           maxLength={2000}
           placeholder="Standing instruction for this draft — e.g. late-afternoon newsroom, no suits, keep the desk clutter."
-          className="w-full rounded-md border border-ink/[0.12] bg-surface px-2.5 py-2 text-[11.5px] leading-relaxed text-text-primary placeholder:text-text-muted/60 focus:border-accent/45 focus:outline-none resize-y"
+          className="w-full rounded-md border border-ink/[0.12] bg-surface px-2.5 py-2 text-[11.5px] leading-relaxed text-text-primary placeholder:text-text-muted focus:border-accent/45 focus:outline-none resize-y"
         />
         <div className="flex items-center gap-2">
           <button
@@ -1255,7 +1378,7 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
           >
             {busy === "save" ? "Saving…" : dirty ? "Save direction" : "Saved"}
           </button>
-          <span className="text-[9px] font-mono text-text-muted/70">
+          <span className="text-[9px] font-mono text-text-muted">
             kept for every render of this draft
           </span>
         </div>
@@ -1288,7 +1411,7 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
             onChange={(e) => upload(e.target.files?.[0])}
           />
         </div>
-        <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+        <p className="text-[9px] font-mono text-text-muted leading-relaxed">
           {REF_ROLE_HELP[role]}
         </p>
 
@@ -1328,7 +1451,7 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
         onChange={(e) => setNote(e.target.value)}
         maxLength={400}
         placeholder="One-shot note for the next render only (not saved)…"
-        className="w-full rounded-md border border-dashed border-ink/[0.14] bg-surface px-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted/60 focus:border-accent/45 focus:outline-none"
+        className="w-full rounded-md border border-dashed border-ink/[0.14] bg-surface px-2.5 py-1.5 text-[11px] text-text-primary placeholder:text-text-muted focus:border-accent/45 focus:outline-none"
       />
 
       {err && <p className="text-[10px] text-negative">{String(err)}</p>}
@@ -1408,7 +1531,7 @@ const InvoicePanel = ({ postId, refreshKey }) => {
                     {usd(l.usd)}
                   </span>
                 </div>
-                <div className="text-[9px] font-mono text-text-muted/75 mt-0.5">
+                <div className="text-[9px] font-mono text-text-muted mt-0.5">
                   {l.kind === "search"
                     ? `${l.count || 0} search`
                     : `${num(inTok)} in · ${num(tk.out)} out`}
@@ -1418,13 +1541,13 @@ const InvoicePanel = ({ postId, refreshKey }) => {
             );
           })}
           <div className="flex items-baseline gap-2 pt-0.5">
-            <span className="text-[9px] font-mono text-text-muted/75">
+            <span className="text-[9px] font-mono text-text-muted">
               {num(t.tokens_in)} tokens in · {num(t.tokens_out)} out · {t.images || 0} image
               {t.images === 1 ? "" : "s"}
             </span>
           </div>
           {inv.reconstructed && (
-            <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+            <p className="text-[9px] font-mono text-text-muted leading-relaxed">
               Rebuilt from the old counters — this draft predates the ledger, so its
               token split is not reliable.
             </p>
@@ -1813,7 +1936,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                 onChange={(e) => uploadManualImage(e.target.files?.[0])}
               />
             </label>
-            <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+            <p className="text-[9px] font-mono text-text-muted text-center leading-relaxed">
               We add the headline, the CTA and the lockup automatically · $0
             </p>
           </div>
@@ -1933,110 +2056,50 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
           or let our AI draw it — you pay per click
         </p>
 
-        {/* Ranked by MEASURED quality, not by price. The old list sorted
-            cheapest-first, which answered the wrong question: you are choosing
-            how good the poster should be; the price is the consequence. */}
-        <div className="space-y-1">
-          {(models?.models || []).map((m) => {
-            const k = modelKey(m);
-            const on = k === picked;
-            return (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setPicked(k)}
-                className={`w-full px-2.5 py-2 rounded-md border text-left transition-colors ${
-                  on
-                    ? "border-accent/50 bg-accent/[0.08]"
-                    : "border-ink/[0.08] bg-ink/[0.02] hover:border-ink/20"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-text-primary leading-tight">
-                    {SHORT_LABEL[m.model] || m.model}
-                  </span>
-                  {m.quality && (
-                    <span className="text-[9px] font-mono uppercase tracking-wide px-1 py-px rounded bg-ink/[0.07] text-text-muted">
-                      {m.quality}
-                    </span>
-                  )}
-                  {m.best_value && (
-                    <span className="text-[8.5px] font-mono uppercase tracking-wide px-1 py-px rounded bg-accent/20 text-accent">
-                      best value
-                    </span>
-                  )}
-                  {m.is_default && (
-                    <span className="text-[8.5px] font-mono uppercase tracking-wide text-text-muted/70">
-                      default
-                    </span>
-                  )}
-                  <span className="ml-auto text-[11px] font-mono tabular-nums text-text-primary">
-                    {usd(m.usd)}
-                  </span>
-                </div>
-                {/* Model strength — the arena's editing Elo, which is the board
-                    that matches what this pipeline actually calls. */}
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="h-1 flex-1 rounded-full bg-ink/[0.08] overflow-hidden">
-                    <span
-                      className={`block h-full rounded-full ${on ? "bg-accent" : "bg-ink/25"}`}
-                      style={{ width: `${m.quality_pct || 0}%` }}
-                    />
-                  </span>
-                  <span className="text-[9px] font-mono tabular-nums text-text-muted shrink-0">
-                    {m.elo_edit ? `elo ${m.elo_edit}` : "unrated"}
-                    {m.rank_edit ? ` · #${m.rank_edit}` : ""}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-          {!models && (
-            <p className="text-[10px] font-mono text-text-muted/70 py-1">Loading models…</p>
-          )}
-        </div>
+        {/* A dropdown, not a 14-row list. Ranked by measured quality inside,
+            but collapsed by default: the panel already carries the assets, the
+            direction and the invoice, and the picker was crowding all of it. */}
+        <ModelPicker models={models} picked={picked} onPick={setPicked} chosen={chosen} />
 
         {chosen && (
-          <div className="rounded-md border border-ink/[0.08] bg-surface px-2.5 py-2 space-y-1">
+          <div className="rounded-lg border border-ink/[0.10] bg-surface px-3 py-2.5 space-y-1.5">
             <div className="flex items-baseline gap-2">
-              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
+              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-secondary">
                 this render
               </span>
-              <span className="ml-auto text-[14px] font-mono tabular-nums font-semibold text-text-primary">
+              <span className="ml-auto text-[16px] font-mono tabular-nums font-semibold text-text-primary">
                 {usd(chosen.usd)}
               </span>
             </div>
             {/* A face story runs the identity pass AND the brand pass. Quoting
                 one image is what made $0.40 a surprise. */}
             <div className="flex items-baseline gap-2">
-              <span className="text-[9.5px] font-mono text-text-muted/80">
+              <span className="text-[10px] text-text-muted">
                 if it needs 2 passes (face + brand)
               </span>
-              <span className="ml-auto text-[10.5px] font-mono tabular-nums text-text-muted">
+              <span className="ml-auto text-[11px] font-mono tabular-nums text-text-secondary">
                 {usd(chosen.usd_two_pass)}
               </span>
             </div>
             {chosen.quality && chosen.tier_score && (
               <div className="flex items-baseline gap-2">
-                <span className="text-[9.5px] font-mono text-text-muted/80">
-                  tier score (0–5, measured)
-                </span>
-                <span className="ml-auto text-[10.5px] font-mono tabular-nums text-text-muted">
+                <span className="text-[10px] text-text-muted">tier score (0–5, measured)</span>
+                <span className="ml-auto text-[11px] font-mono tabular-nums text-text-secondary">
                   {chosen.tier_score.toFixed(3)}
                 </span>
               </div>
             )}
             {chosen.note && (
-              <p className="text-[9.5px] text-text-muted/80 leading-relaxed pt-0.5">
+              <p className="text-[10.5px] text-text-secondary leading-relaxed pt-1 border-t border-ink/[0.07]">
                 {chosen.note}
               </p>
             )}
             {/* Two boards, two different answers, and the gap is the argument
                 for the cheap models on this pipeline specifically. */}
             {chosen.elo_edit && (
-              <p className="text-[9px] font-mono text-text-muted/60 leading-relaxed pt-0.5">
-                editing elo {chosen.elo_edit} (#{chosen.rank_edit})
-                {chosen.elo_t2i ? ` · text-to-image ${chosen.elo_t2i} (#${chosen.rank_t2i})` : ""}
+              <p className="text-[9.5px] font-mono text-text-muted leading-relaxed">
+                editing {chosen.elo_edit} (#{chosen.rank_edit})
+                {chosen.elo_t2i ? ` · t2i ${chosen.elo_t2i} (#${chosen.rank_t2i})` : ""}
                 {chosen.elo_tier ? ` · measured at ${chosen.elo_tier}` : ""}
               </p>
             )}
@@ -2062,7 +2125,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
             : `Generate · ${chosen ? usd(chosen.usd) : "—"}`}
         </button>
         {(note.trim() || refCount > 0) && (
-          <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+          <p className="text-[9px] font-mono text-text-muted text-center leading-relaxed">
             using your direction{refCount > 0 ? ` + ${refCount} reference${refCount > 1 ? "s" : ""}` : ""}
             {" — "}full render, not a free recompose
           </p>
@@ -2076,12 +2139,12 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                 {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}
               </span>
             </div>
-            <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+            <p className="text-[9px] font-mono text-text-muted leading-relaxed">
               Aman ditinggal — tidak akan menagih dua kali. Biasanya 1–4 menit di kualitas tinggi.
             </p>
           </div>
         ) : (
-          <p className="text-[9px] font-mono text-text-muted/70 text-center leading-relaxed">
+          <p className="text-[9px] font-mono text-text-muted text-center leading-relaxed">
             Alternatif lebih murah · gratis kalau background-nya sudah ada (cuma compose ulang)
           </p>
         )}
@@ -2293,20 +2356,20 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
                         className="block text-[11px] text-accent/90 hover:text-accent truncate"
                       >
                         {i + 1}.{" "}
-                        {s.date ? <span className="text-text-muted/70">[{s.date}] </span> : null}
+                        {s.date ? <span className="text-text-muted">[{s.date}] </span> : null}
                         {s.label || s.url}
                       </a>
                     ))}
                 </div>
               )}
 
-            <div className="text-[10px] font-mono text-text-muted/80 pt-1">
+            <div className="text-[10px] font-mono text-text-muted pt-1">
               #{post.id} · {post.source_domain || "—"} · score {Math.round(post.score || 0)} ·{" "}
               {isXai ? "xAI" : post.image_mode || "img"}
             </div>
 
             {post.gen_meta && post.gen_meta.total_usd != null && (
-              <div className="text-[10px] font-mono text-text-muted/80">
+              <div className="text-[10px] font-mono text-text-muted">
                 cost{" "}
                 {post.gen_meta.cost_source === "actual" || post.gen_meta.cost_actual ? "" : "≈ "}
                 {money(post.gen_meta.total_usd)}
