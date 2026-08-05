@@ -84,6 +84,15 @@ const buildCaption = (w) => {
   if (peak && realized) {
     c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high${lag ? ` ${lag} in` : ""}.`);
     c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak${lag ? ` ${lag} after entry` : ""}.`);
+    // The card closes at a target; the move often does not stop there. Saying
+    // so is what keeps the two numbers from reading as one event.
+    c.push(`$${sym} closed at target for +${realized}%. The move carried on to +${peak}%${lag ? ` ${lag} after entry` : ""}.`);
+    c.push(`Target hit on $${sym} at +${realized}%, and price kept running to a +${peak}% high${lag ? ` ${lag} in` : ""}.`);
+  }
+  if (peak && levPeak) {
+    // Peak-based and labelled as such: this is the peak move geared, not a
+    // position anyone held to the high.
+    c.push(`$${sym} peaked +${peak}%${lag ? ` ${lag} after the call` : ""} — about +${levPeak}% on that move at ${lev}x.`);
   }
   if (c.length === 0) return `$${sym}, called ${ago || "recently"}.`;
 
@@ -300,7 +309,9 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
           Real calls. Real peaks.
         </h2>
         <p className="mt-3 text-sm sm:text-[15px] text-text-primary/55 max-w-lg mx-auto leading-relaxed">
-          Every card is an actual LuxQuant call, from entry to peak, exactly as it played out.
+          Every card is a real LuxQuant call. The trade closes at a target; the peak is where the
+          move actually stopped, and each one says how long after the call that took. Both are
+          dated, so you can check any of them on a chart.
         </p>
       </div>
 
