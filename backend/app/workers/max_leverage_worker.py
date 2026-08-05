@@ -279,8 +279,20 @@ async def run_loop():
                         pass
                     conn = await _connect_with_listener(queue)
                 done = await _sweep_pending(conn, client)
-                if done:
-                    logger.info(f"sweep processed {done} pending signal(s)")
+                # Log every sweep, not only the ones that found work. The
+                # watchdog's liveness check is "has this worker logged in the
+                # last 7 minutes", which only means anything if a healthy idle
+                # worker still says something. Staying silent when there was
+                # nothing to do made silence ambiguous, and signals arrive every
+                # 13.7 minutes on average — so 59% of quiet gaps tripped a false
+                # CRITICAL, the longest being 74 minutes. The alert was wrong
+                # more often than it was right, which is how an alert channel
+                # gets ignored.
+                #
+                # This line is also a stronger signal than mere process liveness:
+                # reaching it proves the loop is turning, the LISTEN connection
+                # answered SELECT 1, and the sweep query ran against the database.
+                logger.info("sweep ok — %d pending signal(s) processed", done)
                 continue
 
             try:
