@@ -26,7 +26,20 @@ function GoogleIcon() {
 
 export default function HeroSignupPill({ text = "Start using LuxQuant today", className = "" }) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loginWithGoogle } = useAuth();
+
+  // The Google mark sat beside the button and did exactly what the button did
+  // — went to /login. It reads as one-tap Google and delivered another page,
+  // on the step 86% of visitors never take. Goes through the context helper
+  // rather than the URL directly: that endpoint answers with JSON, not a
+  // redirect, and it is also where a stored referral code is attached.
+  const goGoogle = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    loginWithGoogle().catch(() => navigate("/login"));
+  };
 
   const goPlatform = () => {
     navigate(isAuthenticated ? "/home" : "/login");
@@ -57,7 +70,7 @@ export default function HeroSignupPill({ text = "Start using LuxQuant today", cl
 
       <button
         type="button"
-        onClick={goPlatform}
+        onClick={goGoogle}
         aria-label="Continue with Google"
         className="ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05] sm:h-9 sm:w-9"
       >

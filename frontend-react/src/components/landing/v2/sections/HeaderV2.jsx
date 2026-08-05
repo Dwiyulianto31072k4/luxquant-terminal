@@ -242,7 +242,11 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             </div>
           </nav>
 
-          {/* Right: Appearance · Language · Log In · Sign Up */}
+          {/* Right side, one cell at every width: the lg-only cluster, the CTA
+              and the hamburger. Keeping them in a single cell is what stops the
+              CTA being auto-placed into another column on desktop. */}
+          <div className="col-start-3 flex items-center justify-self-end gap-1.5 lg:gap-2 2xl:gap-3">
+          {/* Appearance · Language · Log In */}
           <div className="hidden shrink-0 items-center gap-2 lg:flex 2xl:gap-3">
             <LandingThemePicker />
             <button
@@ -284,21 +288,26 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               </button>
             )}
 
+          </div>
+
+          {/* CTA and hamburger share the grid's third cell. The CTA used to sit
+              inside the lg-only cluster above, so below 1024px — 40% of visits
+              — the header offered a hamburger and nothing else, and the first
+              CTA was most of a screen further down. */}
             <button
               type="button"
               onClick={isAuthenticated ? () => navigate("/home") : goSignup}
-              className="rounded-full px-4 py-2 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent) / 0.36)]"
+              className="whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent) / 0.36)] lg:px-4"
               style={GOLD_BTN}
             >
               {isAuthenticated ? "Open App" : "Sign Up"}
             </button>
-          </div>
 
           {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setMobileOpen((value) => !value)}
-            className="col-start-3 justify-self-end p-2 text-text-primary/70 transition-colors hover:text-text-primary lg:hidden"
+            className="-mr-1 p-2 text-text-primary/70 transition-colors hover:text-text-primary lg:hidden"
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
           >
@@ -323,6 +332,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               />
             </div>
           </button>
+          </div>
         </div>
       </div>
 

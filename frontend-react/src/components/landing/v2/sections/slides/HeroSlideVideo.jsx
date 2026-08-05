@@ -47,15 +47,30 @@ const MEDIA_MASK = {
  )`,
 };
 
+const MOBILE_QUERY = "(max-width: 639px)";
+
 export default function HeroSlideVideo() {
   const [hideHeadline, setHideHeadline] = useState(false);
+  // Which clip to mount. Deciding in JS rather than with `sm:hidden` on two
+  // <video> elements is the whole point: a hidden video still downloads, so the
+  // CSS version fetched both — 1.9 MB on every visit to show one of them.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(MOBILE_QUERY).matches
+  );
+
   useEffect(() => {
-    const isMobile =
-      typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
-    if (!isMobile) return;
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const sync = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
     const t = setTimeout(() => setHideHeadline(true), 5000);
     return () => clearTimeout(t);
-  }, []);
+  }, [isMobile]);
 
   return (
     <div className="relative w-full min-h-[640px] sm:min-h-[710px] lg:min-h-[780px] xl:min-h-[820px]">
@@ -65,31 +80,23 @@ export default function HeroSlideVideo() {
         style={MEDIA_MASK}
         aria-hidden="true"
       >
-        {/* Mobile portrait */}
+        {/* One clip, chosen for this viewport. `key` forces a remount when the
+            breakpoint is crossed so the element actually reloads its source. */}
         <video
-          className="absolute inset-0 h-full w-full object-cover object-center sm:hidden"
+          key={isMobile ? "m" : "d"}
+          src={isMobile ? VIDEO_MOBILE : VIDEO_DESKTOP}
+          className={
+            isMobile
+              ? "absolute inset-0 h-full w-full object-cover object-center"
+              : "absolute inset-0 h-full w-full scale-[1.06] object-cover"
+          }
+          style={isMobile ? undefined : { objectPosition: "50% 58%" }}
           autoPlay
           loop
           muted
           playsInline
           preload="auto"
-        >
-          <source src={VIDEO_MOBILE} type="video/mp4" />
-          <source src={VIDEO_DESKTOP} type="video/mp4" />
-        </video>
-
-        {/* Desktop / tablet landscape */}
-        <video
-          className="absolute inset-0 hidden h-full w-full scale-[1.06] object-cover sm:block"
-          style={{ objectPosition: "50% 58%" }}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-        >
-          <source src={VIDEO_DESKTOP} type="video/mp4" />
-        </video>
+        />
 
         {/* Top nav readability only (does not touch bottom) */}
         <div
