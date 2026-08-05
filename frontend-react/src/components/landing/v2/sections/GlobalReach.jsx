@@ -2595,7 +2595,7 @@ function StatAnnotation({ stats }) {
     items.push({ v: Number(stats.closed_trades).toLocaleString("en-US"), c: "Signals resolved on public record." });
   }
   if (stats?.win_rate) {
-    items.push({ v: `${Number(stats.win_rate).toFixed(1)}%`, c: "Verified win rate — every call auditable." });
+    items.push({ v: `${Number(stats.win_rate).toFixed(1)}%`, c: "Calls that reached a target — every one auditable." });
   }
   if (stats?.active_pairs) {
     items.push({ v: Number(stats.active_pairs).toLocaleString("en-US"), c: "Pairs tracked in real time." });

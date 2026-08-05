@@ -85,9 +85,6 @@ const buildCaption = (w) => {
     c.push(`$${sym}: +${realized}% booked to plan, +${peak}% at the high${lag ? ` ${lag} in` : ""}.`);
     c.push(`$${sym} played out clean, +${realized}% realized, +${peak}% at the peak${lag ? ` ${lag} after entry` : ""}.`);
   }
-  if (peak && levPeak) {
-    c.push(`$${sym} peaked +${peak}%${lag ? ` ${lag} after the call` : ""}. At ${lev}x, that is roughly +${levPeak}%.`);
-  }
   if (c.length === 0) return `$${sym}, called ${ago || "recently"}.`;
 
   let h = 0;

@@ -11,11 +11,11 @@ import HeroSignupPill from "../shared/HeroSignupPill";
 // Real calls feel "inside" the same world, not under a cut.
 // ════════════════════════════════════════════════════════════════
 
-const HEADLINE_TOP = "Read the Market.";
-const HEADLINE_BOTTOM = "Move With Conviction.";
+const HEADLINE_TOP = "Algo-Backed Crypto Calls."
+const HEADLINE_BOTTOM = "Plus The Full Terminal."
 
 const HERO_DESCRIPTION =
-  "Real time market intelligence, capital flow insight, and quantified risk analysis powered by a 24/7 engine with a transparent track record since 2023.";
+  "Entry, targets and stop on every call — plus live market data, on-chain flow, and a track record you can audit. Running since 2023.";
 
 const VIDEO_DESKTOP = "/hero-video.mp4";
 const VIDEO_MOBILE = "/hero-video-mobile.mp4";

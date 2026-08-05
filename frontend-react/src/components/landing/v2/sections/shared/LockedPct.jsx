@@ -26,9 +26,9 @@ export default function LockedPct({ className = "" }) {
     <span
       aria-label="Average P/L — sign in to view"
       className={`select-none tabular-nums ${className}`}
-      style={{ filter: "blur(4px)", color: "rgb(var(--fg) / 0.45)" }}
+      style={{ filter: "blur(3px)", color: "rgb(var(--fg) / 0.45)" }}
     >
-      <span aria-hidden="true">+0.0%</span>
+      <span aria-hidden="true">••••</span>
     </span>
   );
 }

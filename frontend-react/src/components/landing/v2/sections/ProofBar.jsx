@@ -17,7 +17,7 @@ export default function ProofBar({ stats }) {
   const items = [
     {
       value: stats ? `${stats.win_rate?.toFixed(1)}%` : "—",
-      label: "Verified Win Rate",
+      label: "Reached A Target",
     },
     {
       value: stats ? (stats.total_signals ?? 0).toLocaleString() : "—",

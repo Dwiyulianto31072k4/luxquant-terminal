@@ -169,14 +169,14 @@ export default function HeroSlideAlgo() {
         className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-text-primary text-[2.05rem] sm:text-[2.8rem] lg:whitespace-nowrap lg:text-[3.2rem] xl:text-[3.8rem]"
         style={{ textShadow: "0 2px 30px rgb(var(--scrim) / 0.35)" }}
       >
-        Data Meets{" "}
+        Every Call, Plus{" "}
         <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-          Algorithmic Precision.
+          The Whole Desk.
         </span>
       </h1>
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base lg:text-lg">
-        One live intelligence layer for market structure, flow, momentum, and risk.
+        Charts, order book, on-chain flow, whale alerts, a journal and your portfolio — in one place.
       </p>
 
       {/* ════════ Product proof — iMac + iPhone showcase ════════ */}

@@ -224,7 +224,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
     },
     {
       // angka netral → putih (MEXC-clean, gak dipaksa warna brand)
-      label: "Verified Win Rate",
+      label: "Reached A Target",
       value: stats ? `${(stats.win_rate ?? 0).toFixed(1)}%` : "—",
       accent: "text-text-primary",
       onClick: () => navigate("/performance"),

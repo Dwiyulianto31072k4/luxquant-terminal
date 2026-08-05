@@ -782,7 +782,7 @@ export default function Performance({ data }) {
   }, []);
 
   const headline = [
-    { label: "Win Rate", value: stats ? pct(stats.win_rate) : "—", accent: true },
+    { label: "Reached A Target", value: stats ? pct(stats.win_rate) : "—", accent: true },
     { label: "Signals Resolved", value: stats ? nfmt(stats.closed_trades) : "—" },
     { label: "Winners", value: stats ? nfmt(stats.total_winners) : "—" },
     { label: "Pairs Traded", value: stats ? nfmt(stats.active_pairs) : "—" },
