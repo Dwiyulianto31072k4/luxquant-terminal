@@ -10,11 +10,15 @@ control surface: read/flip draft-vs-post mode, trigger a render, review drafts, 
 approve → publish. Publishing shells out to card_poster (which owns the X/Telegram
 creds in its own venv) so no posting secrets live in the backend.
 """
+import io
+import json
+import logging
 import os
 import subprocess
+import zipfile
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -23,6 +27,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_admin_user
 from app.core.database import get_db
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/admin/signal-cards", tags=["admin-signal-cards"])
 
@@ -43,21 +49,32 @@ CARD_META = {
     "money_flow":     {"label": "Money Flow",       "group": "insight"},
     "sector_edge":    {"label": "Sector Edge",      "group": "insight"},
     "etf_flows":      {"label": "ETF Flows",        "group": "insight"},
+    "etf_flows_eth":  {"label": "ETF Flows (ETH)",  "group": "insight"},
+    # Bundles: the leaderboard plus a Proof of Call receipt for each coin on it,
+    # published as one post. image_path is the leaderboard, so everything that
+    # reads a draft row keeps working; the receipts ride in images_json.
+    "daily_gainers_bundle":   {"label": "Top Gainers + Proof",     "group": "gainers"},
+    "weekly_gainers_bundle":  {"label": "Weekly Gainers + Proof",  "group": "gainers"},
+    "monthly_gainers_bundle": {"label": "Monthly Gainers + Proof", "group": "gainers"},
 }
-# Slot clock (UTC) — mirrors the systemd timers luxquant-card-poster-{a..f}.timer
-SLOT_HOURS = {"A": 0, "B": 10, "C": 14, "D": 15, "E": 1, "F": 11}
-SLOTS = ["A", "E", "B", "F", "C", "D"]  # display order = chronological by hour
+# Slot clock (UTC) — mirrors the systemd timers luxquant-card-poster-{a..g}.timer.
+# (hour, minute): G fires at :30, so the clock cannot be hours alone.
+SLOT_HOURS = {"A": (0, 0), "B": (10, 0), "C": (14, 0), "D": (15, 0),
+              "E": (1, 0), "F": (11, 0), "G": (14, 30)}
+SLOTS = ["A", "E", "B", "F", "C", "G", "D"]  # display order = chronological by time
 
 
 def pick_card(d, slot: str) -> str:
-    """Exact mirror of card_poster.pick_card (6 slots). "" = nothing this slot today."""
+    """Exact mirror of card_poster.pick_card (7 slots). "" = nothing this slot today."""
     wd = d.weekday()  # Mon=0 .. Sun=6
     if slot == "A":
         return "daily_recap"
     if slot == "B":
-        return "daily_gainers"
+        return "daily_gainers_bundle"
     if slot == "C":
         return "etf_flows" if wd in (1, 2, 3, 4, 5) else ""
+    if slot == "G":
+        return "etf_flows_eth" if wd in (1, 2, 3, 4, 5) else ""
     if slot == "D":
         if d.day == 15:
             return "track_record"
@@ -68,8 +85,8 @@ def pick_card(d, slot: str) -> str:
         return "weekly_recap" if wd == 0 else ""
     if slot == "F":
         if d.day == 1:
-            return "monthly_gainers"
-        return "weekly_gainers" if wd == 0 else ""
+            return "monthly_gainers_bundle"
+        return "weekly_gainers_bundle" if wd == 0 else ""
     return ""
 
 
@@ -92,6 +109,9 @@ def _ensure_table(db: Session):
         image_path text, caption text, reply_text text,
         status text NOT NULL DEFAULT 'draft', mode text, tweet_id text, error text,
         created_at timestamptz DEFAULT now(), posted_at timestamptz)"""))
+    # Bundles keep their full carousel here; card_poster adds the same column, and
+    # whichever process runs first must not leave the other reading a missing one.
+    db.execute(text("ALTER TABLE signal_card_drafts ADD COLUMN IF NOT EXISTS images_json text"))
     db.commit()
 
 
@@ -126,8 +146,8 @@ def _next_runs():
     """Upcoming slot firings that actually have a card, soonest first."""
     now = datetime.now(timezone.utc)
     out = []
-    for slot, hh in SLOT_HOURS.items():
-        nxt = now.replace(hour=hh, minute=0, second=0, microsecond=0)
+    for slot, (hh, mm) in SLOT_HOURS.items():
+        nxt = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
         for _ in range(8):                       # walk forward to the next day that has one
             if nxt > now:
                 card = pick_card(nxt.date(), slot)
@@ -165,7 +185,7 @@ def get_config(db: Session = Depends(get_db), admin: User = Depends(get_admin_us
         "cards": [{"key": k, **v} for k, v in CARD_META.items()],
         "next_runs": _next_runs(),
         "slot_order": SLOTS,
-        "slots": {s: f"{SLOT_HOURS[s]:02d}:00 UTC" for s in SLOTS},
+        "slots": {s: "%02d:%02d UTC" % SLOT_HOURS[s] for s in SLOTS},
     }
 
 
@@ -177,33 +197,134 @@ def set_mode(body: ModeIn, db: Session = Depends(get_db), admin: User = Depends(
     return {"mode": body.mode}
 
 
+def _slides(image_path, images_json) -> list:
+    """Every slide of a draft, in post order, filtered to what is still on disk.
+
+    A bundle stores its full carousel in images_json and repeats the lead card in
+    image_path; a plain card has image_path only. Falling back to image_path means
+    rows written before bundles existed keep behaving exactly as they did.
+    """
+    paths = []
+    if images_json:
+        try:
+            paths = [p for p in json.loads(images_json) if p]
+        except Exception:
+            paths = []
+    if not paths and image_path:
+        paths = [image_path]
+    return [p for p in paths if os.path.exists(p)]
+
+
 @router.get("")
 def list_drafts(status: str = None, limit: int = 60,
                 db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     _ensure_table(db)
     where = "" if not status or status == "all" else "WHERE status = :st"
     rows = db.execute(text(f"""SELECT id, card_key, slot, post_date, caption, reply_text,
-            status, mode, tweet_id, created_at, posted_at, image_path
+            status, mode, tweet_id, created_at, posted_at, image_path, images_json
         FROM signal_card_drafts {where} ORDER BY created_at DESC LIMIT :lim"""),
         {"st": status, "lim": min(limit, 200)}).mappings().all()
     out = []
     for r in rows:
         d = dict(r)
+        slides = _slides(r["image_path"], r.get("images_json"))
         d["label"] = CARD_META.get(r["card_key"], {}).get("label", r["card_key"])
-        d["has_image"] = bool(r["image_path"] and os.path.exists(r["image_path"]))
+        d["has_image"] = bool(slides)
+        d["slide_count"] = len(slides)
         d["image_url"] = f"/api/v1/admin/signal-cards/{r['id']}/image"
+        # Every slide addressable, so the tab can page through a carousel.
+        d["slide_urls"] = [f"/api/v1/admin/signal-cards/{r['id']}/image?n={i}"
+                           for i in range(len(slides))]
+        d["download_url"] = f"/api/v1/admin/signal-cards/{r['id']}/download"
         d["tweet_url"] = f"https://x.com/luxquantcrypto/status/{r['tweet_id']}" if r["tweet_id"] else None
         d.pop("image_path", None)
+        d.pop("images_json", None)
         out.append(d)
     return {"drafts": out}
 
 
+def _thumb(path: str, width: int):
+    """A small JPEG beside the original, made once and reused.
+
+    The cards render at 2x — 2160x2700, ~4.8MB each — and the admin grid was
+    downloading every one of them at full size to fill a 300px box: twelve
+    drafts on screen meant 40MB before the page settled. Previews are for
+    looking at, not for publishing, so they are JPEG; every download path still
+    serves the untouched PNG.
+
+    Cached as `<original>.w<width>.jpg`, which keeps it inside the drafts folder
+    and therefore inside the retention sweep — no second thing to clean up.
+    Returns the original on any failure, so a preview is never lost to this.
+    """
+    width = max(120, min(int(width), 1200))
+    out = f"{path}.w{width}.jpg"
+    try:
+        if os.path.exists(out) and os.path.getmtime(out) >= os.path.getmtime(path):
+            return out, "image/jpeg"
+        from PIL import Image
+        with Image.open(path) as im:
+            if im.width <= width:
+                return path, "image/png"
+            im.convert("RGB").resize(
+                (width, round(im.height * width / im.width)), Image.LANCZOS
+            ).save(out, "JPEG", quality=82, optimize=True)
+        return out, "image/jpeg"
+    except Exception:
+        logger.warning("thumbnail failed for %s", path, exc_info=True)
+        return path, "image/png"
+
+
 @router.get("/{draft_id}/image")
-def draft_image(draft_id: int, db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
-    row = db.execute(text("SELECT image_path FROM signal_card_drafts WHERE id=:i"), {"i": draft_id}).fetchone()
-    if not row or not row[0] or not os.path.exists(row[0]):
+def draft_image(draft_id: int, n: int = 0, w: int = 0,
+                db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """One slide. n defaults to 0 and w to 0 (full size), so existing callers are
+    unaffected; the admin grid asks for a width and gets a thumbnail."""
+    row = db.execute(text("SELECT image_path, images_json FROM signal_card_drafts WHERE id=:i"),
+                     {"i": draft_id}).fetchone()
+    if not row:
+        raise HTTPException(404, "draft not found")
+    slides = _slides(row[0], row[1])
+    if not slides:
         raise HTTPException(404, "image not found")
-    return FileResponse(row[0], media_type="image/png")
+    if n < 0 or n >= len(slides):
+        raise HTTPException(404, f"slide {n} not found — this draft has {len(slides)}")
+    path, media = (slides[n], "image/png") if w <= 0 else _thumb(slides[n], w)
+    return FileResponse(path, media_type=media,
+                        headers={"Cache-Control": "private, max-age=86400"})
+
+
+@router.get("/{draft_id}/download")
+def draft_download(draft_id: int, db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """The whole post as one zip — every slide in post order, plus the caption.
+
+    Slides are numbered 01, 02, … so they sort correctly in Finder and upload to
+    Instagram in the order they were composed; caption.txt carries the same text
+    that went to X, so nothing has to be retyped.
+    """
+    row = db.execute(text("""SELECT card_key, post_date, caption, reply_text, image_path, images_json
+                             FROM signal_card_drafts WHERE id=:i"""), {"i": draft_id}).mappings().first()
+    if not row:
+        raise HTTPException(404, "draft not found")
+    slides = _slides(row["image_path"], row["images_json"])
+    if not slides:
+        raise HTTPException(404, "no images on this draft")
+
+    stem = f"luxquant-{row['card_key'] or 'card'}-{row['post_date'] or draft_id}"
+    buf = io.BytesIO()
+    # STORED, not DEFLATED: PNG is already compressed, so deflating ~25MB of
+    # slides costs seconds of CPU and saves nothing.
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
+        for i, p in enumerate(slides, start=1):
+            z.write(p, f"{stem}/{i:02d}.png")
+        caption = (row["caption"] or "").strip()
+        if row["reply_text"]:
+            caption += "\n\n--- reply ---\n" + row["reply_text"].strip()
+        z.writestr(f"{stem}/caption.txt", caption + "\n")
+    # Whole zip is already in memory, so hand it over as one body. Streaming a
+    # BytesIO iterates it by LINE, which shreds binary data into a chunk per 0x0A.
+    return Response(
+        content=buf.getvalue(), media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{stem}.zip"'})
 
 
 @router.post("/render")
