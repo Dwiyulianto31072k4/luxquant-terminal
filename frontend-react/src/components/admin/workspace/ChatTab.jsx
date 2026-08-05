@@ -650,7 +650,12 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   }, [messages]);
 
   const sendReply = async (bodyOverride = null, kind = "text") => {
-    const body = (bodyOverride ?? reply).trim();
+    // An override is a string or it is nothing. Checked by type rather than
+    // against null: a handler wired by reference hands this a React event,
+    // which is not null, and .trim() on it throws above the try block where
+    // nothing catches it — the button just stops working, silently.
+    const fromInput = typeof bodyOverride !== "string";
+    const body = (fromInput ? reply : bodyOverride).trim();
     if (!body || sending || !selected) return;
     setSending(true);
     setErr("");
@@ -658,7 +663,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
       const data = await adminChatApi.sendMessage(selected.id, body, newClientMsgId(), kind);
       setMessages((prev) => [...prev, data.message]);
       cursorRef.current = Math.max(cursorRef.current, data.message.seq);
-      if (bodyOverride === null) setReply("");
+      if (fromInput) setReply("");
       loadList();
     } catch (e) {
       setErr(e?.response?.data?.detail || "Reply didn't send.");
@@ -1081,7 +1086,12 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                     className={`${inputCls} max-h-32 flex-1 resize-none`}
                   />
                   <button
-                    onClick={sendReply}
+                    // Wrapped, not passed by reference: React hands the click
+                    // event to the first parameter, which here is bodyOverride
+                    // — a MouseEvent is not null, so ?? kept it and .trim()
+                    // threw. Enter calls sendReply() with no args, which is why
+                    // only the button was dead, and only where people tap it.
+                    onClick={() => sendReply()}
                     disabled={sending || !reply.trim()}
                     className="lq-cta-md h-10 px-4 text-xs disabled:opacity-30"
                   >
