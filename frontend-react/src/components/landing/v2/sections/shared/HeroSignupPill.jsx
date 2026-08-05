@@ -1,5 +1,15 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ensureTelegram } from "../../../../../utils/telegramLoader";
 import { useAuth } from "../../../../../context/AuthContext";
+
+function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="#229ED9" aria-hidden="true">
+      <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.56 8.23-1.86 8.78c-.14.62-.51.77-1.03.48l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.58.28l.2-2.9 5.28-4.77c.23-.2-.05-.32-.36-.12l-6.52 4.11-2.81-.88c-.61-.19-.62-.61.13-.9l10.98-4.24c.51-.18.96.12.79.94z" />
+    </svg>
+  );
+}
 
 function GoogleIcon() {
   return (
@@ -24,9 +34,20 @@ function GoogleIcon() {
   );
 }
 
-export default function HeroSignupPill({ text = "Start using LuxQuant today", className = "" }) {
+export default function HeroSignupPill({
+  text = "Start using LuxQuant today",
+  shortText = "Access Terminal",
+  className = "",
+}) {
   const navigate = useNavigate();
-  const { isAuthenticated, loginWithGoogle } = useAuth();
+  const { isAuthenticated, loginWithGoogle, loginWithTelegram } = useAuth();
+
+  // The Telegram widget has to be present before the first tap or the click
+  // reports "still loading" — which on this page would just look broken.
+  useEffect(() => {
+    if (isAuthenticated) return;
+    ensureTelegram().catch(() => {});
+  }, [isAuthenticated]);
 
   // The Google mark sat beside the button and did exactly what the button did
   // — went to /login. It reads as one-tap Google and delivered another page,
@@ -39,6 +60,19 @@ export default function HeroSignupPill({ text = "Start using LuxQuant today", cl
       return;
     }
     loginWithGoogle().catch(() => navigate("/login"));
+  };
+
+  const goTelegram = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    loginWithTelegram()
+      .then(() => navigate("/home"))
+      .catch((err) => {
+        // "cancelled" is the user closing the popup — nothing to say about it.
+        if (err?.message !== "cancelled") navigate("/login");
+      });
   };
 
   const goPlatform = () => {
@@ -57,7 +91,8 @@ export default function HeroSignupPill({ text = "Start using LuxQuant today", cl
         onClick={goPlatform}
         className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1.5 text-left text-[11px] font-medium text-accent-fg outline-none sm:px-4 sm:py-2 sm:text-[13px]"
       >
-        {text}
+        <span className="sm:hidden">{shortText}</span>
+        <span className="hidden sm:inline">{text}</span>
       </button>
 
       <button
@@ -66,6 +101,15 @@ export default function HeroSignupPill({ text = "Start using LuxQuant today", cl
         className="ml-1.5 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-3.5 text-[11px] font-semibold text-accent-fg shadow-[0_5px_14px_rgb(var(--accent) / 0.22)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_8px_18px_rgb(var(--accent) / 0.35)] sm:h-9 sm:px-5 sm:text-[13px]"
       >
         Sign Up
+      </button>
+
+      <button
+        type="button"
+        onClick={goTelegram}
+        aria-label="Continue with Telegram"
+        className="ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05] sm:h-9 sm:w-9"
+      >
+        <TelegramIcon />
       </button>
 
       <button
