@@ -244,6 +244,21 @@ const AuthedImage = ({ src, alt, className }) => {
   return <img src={url} alt={alt} className={className} />;
 };
 
+// FastAPI reports validation failures as an ARRAY of {loc, msg} and plain
+// errors as a string. Reading only the string case is why a 422 that named the
+// exact missing field surfaced as a bare "Upload failed".
+const errText = (e, fallback) => {
+  const d = e?.response?.data?.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d) && d.length) {
+    const first = d[0];
+    const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
+    return [field, first?.msg].filter(Boolean).join(": ") || fallback;
+  }
+  if (e?.response?.status) return `${fallback} (HTTP ${e.response.status})`;
+  return fallback;
+};
+
 const REF_ROLE_HELP = {
   subject: "Reproduce exactly — a mark, a product, a building",
   scene: "Copy the framing and camera distance, not the subject",
@@ -1071,7 +1086,7 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
       });
       setSavedPrompt(prompt);
     } catch (e) {
-      setErr(e?.response?.data?.detail || "Could not save");
+      setErr(errText(e, "Could not save"));
     } finally {
       setBusy(null);
     }
@@ -1086,11 +1101,15 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
     fd.append("role", role);
     fd.append("label", file.name.replace(/\.[^.]+$/, "").slice(0, 60));
     try {
-      await api.post(`/api/v1/admin/social-posts/${postId}/refs`, fd);
+      // The axios instance defaults to application/json, so a FormData posted
+      // without this override arrives as an unparseable body and FastAPI
+      // rejects the whole request with 422 before any of our own checks run.
+      await api.post(`/api/v1/admin/social-posts/${postId}/refs`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       await load();
     } catch (e) {
-      const d = e?.response?.data?.detail;
-      setErr(typeof d === "string" ? d : "Upload failed");
+      setErr(errText(e, "Upload failed"));
     } finally {
       setBusy(null);
       if (fileRef.current) fileRef.current.value = "";
