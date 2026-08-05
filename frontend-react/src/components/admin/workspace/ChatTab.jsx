@@ -724,7 +724,7 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         : {})}
       className={`grid gap-4 lg:grid-cols-[320px_1fr] ${
         expanded
-          ? "fixed inset-0 z-[9998] grid-rows-[minmax(0,1fr)] bg-surface p-3 sm:p-4"
+          ? "lq-below-header fixed inset-0 z-[9998] grid-rows-[minmax(0,1fr)] bg-surface p-3 sm:p-4"
           : ""
       }`}
     >
