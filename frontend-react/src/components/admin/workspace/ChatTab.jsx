@@ -6,6 +6,7 @@
 // Backend: /api/v1/admin/chat
 // ════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDialog } from "../../../hooks/useDialog";
 import { adminApi } from "../../../services/adminApi";
 import { adminChatApi } from "../../../services/adminChatApi";
 import { NEUTRAL } from "../designSystem";
@@ -551,6 +552,11 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   const scrollRef = useRef(null);
   const cursorRef = useRef(0);
   const replyFileRef = useRef(null);
+  // Full-screen reading mode. The panes are pinned to 640px so the workspace
+  // tabs stay put, which is right when skimming and wrong when actually working
+  // a thread — long replies scroll in a letterbox.
+  const [expanded, setExpanded] = useState(false);
+  const expandRef = useRef(null);
   const selectedIdRef = useRef(null);
 
   // ── list ──────────────────────────────────────────────────────────
@@ -671,6 +677,15 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
     }
   };
 
+  useDialog({ isOpen: expanded, onClose: () => setExpanded(false), ref: expandRef });
+
+  // Leaving the thread leaves full screen. The toggle lives in the thread
+  // header, so deselecting while expanded would strand you in a full-screen
+  // inbox with no visible way out — and on a phone there is no Escape key.
+  useEffect(() => {
+    if (!selected && expanded) setExpanded(false);
+  }, [selected, expanded]);
+
   const toggleClosed = async () => {
     if (!selected) return;
     const next = selected.status === "closed" ? "open" : "closed";
@@ -702,14 +717,24 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
         }
       }}
     />
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+    <div
+      ref={expandRef}
+      {...(expanded
+        ? { role: "dialog", "aria-modal": "true", "aria-label": "Chat, expanded", tabIndex: -1 }
+        : {})}
+      className={`grid gap-4 lg:grid-cols-[320px_1fr] ${
+        expanded
+          ? "fixed inset-0 z-[9998] grid-rows-[minmax(0,1fr)] bg-surface p-3 sm:p-4"
+          : ""
+      }`}
+    >
       {/* ── Left: inbox ──
           Below lg the two panes are one column, so stacking them meant picking
           someone appended the thread underneath the whole inbox and you had to
           scroll past every conversation to reach the reply box. On a phone this
           switches instead: list, or thread — never both. */}
       <Surface
-        className={`h-[640px] flex-col overflow-hidden lg:flex ${
+        className={`${expanded ? "h-full min-h-0" : "h-[640px]"} flex-col overflow-hidden lg:flex ${
           selected ? "hidden lg:flex" : "flex"
         }`}
       >
@@ -780,9 +805,9 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
 
       {/* ── Right: thread ── */}
       <Surface
-        className={`h-[min(78dvh,640px)] flex-col overflow-hidden lg:flex lg:h-[640px] ${
-          selected ? "flex" : "hidden lg:flex"
-        }`}
+        className={`${
+          expanded ? "h-full min-h-0" : "h-[min(78dvh,640px)] lg:h-[640px]"
+        } flex-col overflow-hidden lg:flex ${selected ? "flex" : "hidden lg:flex"}`}
       >
         {!selected ? (
           <EmptyState
@@ -818,19 +843,39 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
               <Badge variant="status" value={selected.status} size="xs">
                 {selected.status}
               </Badge>
-              {canWrite && (
+              <div className="ml-auto flex items-center gap-3">
+                {canWrite && (
+                  <button
+                    onClick={toggleClosed}
+                    className="font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:text-text-primary"
+                  >
+                    {selected.status === "closed" ? "Reopen" : "Close thread"}
+                  </button>
+                )}
                 <button
-                  onClick={toggleClosed}
-                  className="ml-auto font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:text-text-primary"
+                  type="button"
+                  onClick={() => setExpanded((v) => !v)}
+                  title={expanded ? "Exit full screen (Esc)" : "Expand to full screen"}
+                  aria-label={expanded ? "Exit full screen" : "Expand to full screen"}
+                  aria-pressed={expanded}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-ink/[0.08] text-text-muted transition-colors hover:bg-ink/5 hover:text-text-primary"
                 >
-                  {selected.status === "closed" ? "Reopen" : "Close thread"}
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                    {expanded ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9H4m5 0V4m0 5L3.5 3.5M15 9h5m-5 0V4m0 5l5.5-5.5M9 15H4m5 0v5m0-5l-5.5 5.5M15 15h5m-5 0v5m0-5l5.5 5.5" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                    )}
+                  </svg>
                 </button>
-              )}
+              </div>
             </div>
 
             <div
               ref={scrollRef}
-              className="custom-scrollbar flex-1 space-y-2.5 overflow-y-auto bg-surface-secondary/20 px-4 py-4"
+              className={`custom-scrollbar flex-1 space-y-2.5 overflow-y-auto bg-surface-secondary/20 px-4 py-4 ${
+                expanded ? "[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-3xl" : ""
+              }`}
             >
               {loadingThread ? (
                 <LoadingState label="Loading messages…" />
@@ -896,7 +941,11 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
               )}
             </div>
 
-            <div className="border-t border-ink/[0.07] bg-surface-raised p-3">
+            <div
+              className={`border-t border-ink/[0.07] bg-surface-raised p-3 ${
+                expanded ? "[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-3xl" : ""
+              }`}
+            >
               {err && <p className="mb-2 px-1 text-[11px] text-loss">{err}</p>}
               {!canWrite ? (
                 // View-only staff can read every thread but not reply — the
