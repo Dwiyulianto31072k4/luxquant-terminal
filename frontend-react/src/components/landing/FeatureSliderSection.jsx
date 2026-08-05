@@ -9,7 +9,7 @@ const FEATURES = [
     id: "signals",
     title: "Algorithmic Signals",
     desc: "Precise entry, multiple take-profit targets, and strict stop-loss levels — auto-delivered 24/7 with risk scoring and volume ranking on every single call.",
-    macImg: "/mockups/mac-signals.png",
+    macImg: "/mockups/mac-signals.webp",
     phoneImg: "/mockups/phone-signals.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -26,7 +26,7 @@ const FEATURES = [
     id: "ai-researcher",
     title: "AI Researcher",
     desc: "A dedicated AI analyst processing millions of data points per hour — price action, derivatives flow, on-chain metrics, sentiment, and breaking news — compressed into one clear market verdict.",
-    macImg: "/mockups/mac-ai.png",
+    macImg: "/mockups/mac-ai.webp",
     phoneImg: "/mockups/phone-ai.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,7 +43,7 @@ const FEATURES = [
     id: "onchain",
     title: "On-Chain Intelligence",
     desc: "Real-time on-chain metrics, smart money flows, large wallet movements, and exchange netflow — see what whales are doing before price reacts.",
-    macImg: "/mockups/mac-onchain.png",
+    macImg: "/mockups/mac-onchain.webp",
     phoneImg: "/mockups/phone-onchain.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,7 +60,7 @@ const FEATURES = [
     id: "whale",
     title: "Whale Surveillance",
     desc: "See what the big players are doing before the crowd reacts. Real-time tracking of massive transfers and exchange flows across major blockchains.",
-    macImg: "/mockups/mac-whale.png",
+    macImg: "/mockups/mac-whale.webp",
     phoneImg: "/mockups/phone-whale.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -77,7 +77,7 @@ const FEATURES = [
     id: "orderbook",
     title: "Order Book Heatmap",
     desc: "Spot hidden liquidity walls and know exactly where the real support and resistance sit — straight from live order flow data.",
-    macImg: "/mockups/mac-orderbook.png",
+    macImg: "/mockups/mac-orderbook.webp",
     phoneImg: "/mockups/phone-orderbook.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,7 +94,7 @@ const FEATURES = [
     id: "proof",
     title: "Visual Trade Proof",
     desc: "We don't just call trades — we prove them. Branded before-and-after chart captures with a step-by-step journey timeline from entry to each TP hit.",
-    macImg: "/mockups/mac-proof.png",
+    macImg: "/mockups/mac-proof.webp",
     phoneImg: "/mockups/phone-proof.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -111,7 +111,7 @@ const FEATURES = [
     id: "portfolio",
     title: "Portfolio & Analytics",
     desc: "Real-time PnL tracking, equity curve, win rate, risk-adjusted performance, and complete trade history — all in one powerful dashboard.",
-    macImg: "/mockups/mac-portfolio.png",
+    macImg: "/mockups/mac-portfolio.webp",
     phoneImg: "/mockups/phone-portfolio.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +128,7 @@ const FEATURES = [
     id: "pulse",
     title: "Market Pulse",
     desc: "Real-time market overview with bull/bear ratio, event tracking, activity feed, heatmap, and most active coins — feel the pulse of the market.",
-    macImg: "/mockups/mac-pulse.png",
+    macImg: "/mockups/mac-pulse.webp",
     phoneImg: "/mockups/phone-pulse.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -145,7 +145,7 @@ const FEATURES = [
     id: "news",
     title: "Crypto News",
     desc: "Real-time crypto news aggregator with live feed, featured stories, trending topics, and multi-source coverage — stay informed 24/7.",
-    macImg: "/mockups/mac-news.png",
+    macImg: "/mockups/mac-news.webp",
     phoneImg: "/mockups/phone-news.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,7 +162,7 @@ const FEATURES = [
     id: "autotrade",
     title: "Agent",
     desc: "Coming Soon — Automated execution with smart risk management. Connect your exchange and let the system trade for you 24/7.",
-    macImg: "/mockups/mac-autotrade.png",
+    macImg: "/mockups/mac-autotrade.webp",
     phoneImg: "/mockups/phone-autotrade.png",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

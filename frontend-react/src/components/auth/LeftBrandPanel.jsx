@@ -136,7 +136,7 @@ export const DeviceShowcase = ({ compact = false, phone = true }) => {
               style={{ aspectRatio: "16 / 10" }}
             >
               <img
-                src={`/mockups/hero-mac-dashboard.png${v}`}
+                src={`/mockups/hero-mac-dashboard.webp${v}`}
                 alt="LuxQuant dashboard"
                 className="h-full w-full object-cover object-top"
                 onError={(e) => {
@@ -202,7 +202,7 @@ export const DeviceShowcase = ({ compact = false, phone = true }) => {
               style={{ aspectRatio: "9 / 19.5" }}
             >
               <img
-                src={`/mockup-hp.png${v}`}
+                src={`/mockup-hp.webp${v}`}
                 alt="LuxQuant mobile"
                 className="absolute inset-0 h-full w-full object-cover"
                 onError={(e) => {

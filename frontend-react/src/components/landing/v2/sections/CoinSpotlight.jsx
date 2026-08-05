@@ -5,6 +5,7 @@
 // Data: /analytics/edge-lab (coin list) + /signals/journey-insights/{pair}.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sharedGet } from "../../../../utils/sharedGet";
 import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import CoinLogo from "../../../CoinLogo";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
@@ -97,8 +98,7 @@ export default function CoinSpotlight() {
   // coin list (cached server-side) → chips + search source
   useEffect(() => {
     let alive = true;
-    fetch("/api/v1/analytics/edge-lab?days=90&sector=all")
-      .then((r) => (r.ok ? r.json() : null))
+    sharedGet("/api/v1/analytics/edge-lab?days=90&sector=all")
       .then((j) => {
         if (!alive || !j) return;
         const lb = (j.coin_leaderboard || []).filter((c) => !STABLE.has(sym(c.pair)));

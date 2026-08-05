@@ -1755,7 +1755,7 @@ const LandingPage = () => {
                       <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-ink/10" />
                     </div>
                     <img
-                      src="/mockups/hero-mac-dashboard.png"
+                      src="/mockups/hero-mac-dashboard.webp"
                       alt="Dashboard Preview"
                       className="w-full h-full object-cover object-top opacity-95"
                       onError={(e) => {
@@ -1788,7 +1788,7 @@ const LandingPage = () => {
                     </div>
                     <div className="absolute inset-[2px] rounded-[1.5rem] lg:rounded-[2.4rem] overflow-hidden bg-bg-primary">
                       <img
-                        src="/mockup-hp.png"
+                        src="/mockup-hp.webp"
                         alt="LuxQuant Mobile"
                         className="w-full h-full object-cover"
                         onError={(e) => {

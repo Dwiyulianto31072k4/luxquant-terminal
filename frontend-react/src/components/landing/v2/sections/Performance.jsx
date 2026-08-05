@@ -10,6 +10,7 @@
 // Palette: LuxQuant gold = primary/performance · red = loss · BTC = orange.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
+import { sharedGet } from "../../../../utils/sharedGet";
 import { useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -770,10 +771,7 @@ export default function Performance({ data }) {
   useEffect(() => {
     let alive = true;
     const grab = (url, set) =>
-      fetch(url)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((j) => alive && j && set(j))
-        .catch(() => {});
+      sharedGet(url).then((j) => alive && j && set(j));
     grab("/api/v1/analytics/edge-lab?days=90&sector=all", setEdge);
     grab("/api/v1/analytics/wr-vs-btc?range=all", setWrbtc);
     grab("/api/v1/signals/journey-insights/ALL", setTiming); // aggregate: all pairs
