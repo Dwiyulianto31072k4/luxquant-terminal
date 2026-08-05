@@ -897,103 +897,213 @@ export default function Performance({ data }) {
       id="performance"
       className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 lg:px-8 lg:py-28"
     >
-      {/* ── header: the claim, in a sentence ──
-          The number used to appear four times — a tile, a donut centre, a
-          second donut centre, and the copy — in three shapes that each need
-          decoding. Once is enough if it is stated plainly. */}
-      <div className="mx-auto max-w-3xl text-center">
+      {/* header */}
+      <div className="mb-12 text-center lg:mb-16">
         <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/60" />
           Verified Track Record
         </span>
-        <h2 className="mt-6 text-[2rem] font-bold leading-[1.15] tracking-tight text-text-primary sm:text-[2.6rem] lg:text-[3.4rem]">
-          LuxQuant reached a target on{" "}
-          <span className="text-accent">{stats ? pct(stats.win_rate) : "—"}</span> of{" "}
-          {stats ? nfmt(stats.closed_trades) : "—"} calls.
+        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.9rem]">
+          An edge you can{" "}
+          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
+            audit.
+          </span>
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-[13px] leading-relaxed text-text-primary/50 lg:text-sm">
-          Every signal recorded since day one — no hidden trades, no cherry-picking. Each
-          outcome is public and timestamped.
-        </p>
-
-        {/* the tiles, reduced to the line of facts they were */}
-        <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.14em] text-text-muted">
-          {stats ? nfmt(stats.total_signals) : "—"} signals
-          <span className="mx-2.5 text-text-muted/40">·</span>
-          {stats ? nfmt(stats.total_winners) : "—"} winners
-          <span className="mx-2.5 text-text-muted/40">·</span>
-          {stats ? nfmt(stats.active_pairs) : "—"} pairs
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
+          Every signal recorded since day one — no hidden trades, no cherry-picking.{" "}
+          {stats ? nfmt(stats.total_signals) : "—"} signals on record, each outcome publicly
+          verifiable.
         </p>
       </div>
 
-      {/* ── where winners exit, as a list ──
-          A donut cannot be read to two decimal places and this data is five
-          rows. The rows carry what the chart was standing in for. */}
-      <div className="mx-auto mt-14 max-w-3xl lg:mt-20">
-        <div className="flex items-baseline justify-between border-b border-ink/[0.08] pb-3">
-          <h3 className="text-lg font-semibold text-text-primary">Where winners exit</h3>
-          <span className="font-mono text-[11px] text-text-muted">
-            {stats ? nfmt(stats.closed_trades) : "—"} closed trades
-          </span>
-        </div>
+      {/* headline */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        {headline.map((s) => (
+          <Card key={s.label} className="!p-4 hover:-translate-y-0.5 lg:!p-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
+              {s.label}
+            </p>
+            <p
+              className="mt-2 text-3xl font-bold leading-none tabular-nums transition-transform duration-300 group-hover:scale-[1.04] group-hover:origin-left lg:text-4xl"
+              style={{ color: s.accent ? C.gold : "#fff" }}
+            >
+              {s.value}
+            </p>
+          </Card>
+        ))}
+      </div>
 
-        {stats ? (
-          <div>
-            {outcome.map((o) => {
-              const share = outcomeTotal ? (o.count / outcomeTotal) * 100 : 0;
-              const isSl = o.label === "SL";
-              return (
-                <div
-                  key={o.label}
-                  className="flex items-center gap-4 border-b border-ink/[0.05] py-4 sm:gap-6"
-                >
-                  <span
-                    className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                    style={{ background: o.color }}
-                  />
-                  <span
-                    className="w-14 flex-shrink-0 font-mono text-[13px] font-semibold sm:text-sm"
-                    style={{ color: isSl ? C.loss : "#fff" }}
-                  >
-                    {o.label === "TP4" ? "TP4+" : o.label}
+      {/* win rate donut + outcome donut */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="flex flex-col">
+          <CardHead
+            title="Win Rate"
+            info={INFO.winRate}
+            sub={stats ? `${nfmt(stats.total_winners)} W · ${nfmt(stats.sl_count)} L` : "—"}
+          />
+          {stats ? (
+            <div className="flex flex-1 items-center gap-6">
+              <div className="relative h-44 w-44 flex-shrink-0">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <defs>
+                      <linearGradient id="wrArc" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor={C.goldL} />
+                        <stop offset="100%" stopColor={C.gold2} />
+                      </linearGradient>
+                    </defs>
+                    <Pie
+                      data={wrDonut}
+                      dataKey="value"
+                      startAngle={90}
+                      endAngle={-270}
+                      innerRadius="76%"
+                      outerRadius="100%"
+                      stroke="none"
+                      cornerRadius={6}
+                      paddingAngle={1}
+                    >
+                      <Cell fill="url(#wrArc)" />
+                      <Cell fill="rgba(248,113,113,0.25)" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-bold tabular-nums" style={{ color: C.gold }}>
+                    {winRate.toFixed(1)}%
                   </span>
-                  <span className="w-16 flex-shrink-0 text-right font-mono text-[13px] tabular-nums text-text-primary/70 sm:text-sm">
-                    {share.toFixed(0)}%
-                  </span>
-                  <span className="hidden flex-1 text-right font-mono text-[13px] tabular-nums text-text-muted sm:block">
-                    {nfmt(o.count)} trades
-                  </span>
-                  <span className="flex-1 text-right font-mono text-[13px] tabular-nums sm:hidden">
-                    <span className="text-text-muted">{nfmt(o.count)}</span>
-                  </span>
-                  <span className="w-20 flex-shrink-0 text-right sm:w-24">
-                    {isLockedTarget(o.label) ? (
-                      <LockedPct className="font-mono text-[13px] sm:text-sm" />
-                    ) : (
-                      <span
-                        className="font-mono text-[13px] font-semibold tabular-nums sm:text-base"
-                        style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}
-                      >
-                        {o.avg == null ? "—" : signed(o.avg)}
-                      </span>
-                    )}
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
+                    win rate
                   </span>
                 </div>
-              );
-            })}
-
-            <p className="mt-5 font-mono text-[10px] leading-relaxed text-text-muted">
-              TP1–TP3 average gains are{" "}
-              <span className="text-text-primary">shown on sign-in</span> ·{" "}
-              <span className="text-text-primary">TP4+ is the average peak</span> — TP4 is the
-              final target and winners usually run past it · SL is the average loss.
-            </p>
-          </div>
-        ) : (
-          <div className="py-10">
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                    Winners
+                  </p>
+                  <p className="text-xl font-bold tabular-nums" style={{ color: C.gold }}>
+                    {nfmt(stats.total_winners)}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                    Stopped out
+                  </p>
+                  <p className="text-xl font-bold tabular-nums" style={{ color: C.loss }}>
+                    {nfmt(stats.sl_count)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
             <Spinner />
-          </div>
-        )}
+          )}
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHead
+            title="Where Winners Exit"
+            info={INFO.outcome}
+            sub={`${nfmt(outcomeTotal)} closed trades`}
+          />
+          {outcomeTotal > 0 ? (
+            <>
+              {/* Mobile: stack donut + full-width legend so Share % never clips.
+ Desktop: side-by-side. */}
+              <div className="flex flex-1 flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
+                <div className="relative h-40 w-40 flex-shrink-0 sm:h-44 sm:w-44">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={outcome}
+                        dataKey="count"
+                        nameKey="label"
+                        startAngle={90}
+                        endAngle={-270}
+                        innerRadius="62%"
+                        outerRadius="100%"
+                        stroke="none"
+                        paddingAngle={1.5}
+                      >
+                        {outcome.map((o) => (
+                          <Cell key={o.label} fill={o.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold tabular-nums text-text-primary">
+                      {pct(
+                        (outcome.slice(0, 4).reduce((s, o) => s + o.count, 0) / outcomeTotal) * 100
+                      )}
+                    </span>
+                    <span className="font-mono text-[8px] uppercase tracking-wider text-text-muted">
+                      reach TP
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full min-w-0 flex-1 space-y-2">
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-x-2 pb-0.5 font-mono text-[8px] uppercase tracking-wider text-text-muted sm:gap-x-2.5">
+                    <span className="w-2.5" />
+                    <span>Exit</span>
+                    <span className="text-right">Avg P/L</span>
+                    <span className="text-right">Trades</span>
+                    <span className="min-w-[2.5rem] text-right">Share</span>
+                  </div>
+                  {outcome.map((o) => {
+                    const share = (o.count / outcomeTotal) * 100;
+                    return (
+                      <div
+                        key={o.label}
+                        className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-2.5"
+                      >
+                        <span
+                          className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+                          style={{ background: o.color }}
+                        />
+                        <span
+                          className="font-mono text-[12px] font-semibold"
+                          style={{ color: o.label === "SL" ? C.loss : "#fff" }}
+                        >
+                          {o.label === "TP4" ? "TP4+" : o.label}
+                        </span>
+                        {isLockedTarget(o.label) ? (
+                          <LockedPct className="text-right font-mono text-[12px]" />
+                        ) : (
+                          <span
+                            className="text-right font-mono text-[12px] tabular-nums"
+                            style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}
+                          >
+                            {o.avg == null ? "—" : signed(o.avg)}
+                          </span>
+                        )}
+                        <span className="text-right font-mono text-[12px] tabular-nums text-text-primary">
+                          {nfmt(o.count)}
+                        </span>
+                        <span
+                          className="min-w-[2.5rem] text-right font-mono text-[11px] font-semibold tabular-nums sm:text-[10px]"
+                          style={{ color: o.label === "SL" ? C.loss : C.gold }}
+                          title={`${share.toFixed(1)}% of closed trades`}
+                        >
+                          {share.toFixed(0)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="mt-3 border-t border-ink/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
+                Avg P/L · TP1–TP3 = actual target gains,{" "}
+                <span className="text-text-primary">shown on sign-in</span> ·{" "}
+                <span className="text-text-primary">TP4+ = avg peak</span> (TP4 is the final target
+                — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
+              </p>
+            </>
+          ) : (
+            <Spinner />
+          )}
+        </Card>
       </div>
 
       {/* ── RISK-ADJUSTED EDGE — locked teaser ──
