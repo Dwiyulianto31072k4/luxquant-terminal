@@ -108,6 +108,11 @@ export default function HeroSignupPill({
         {isAuthenticated ? "Open App" : "Start Free"}
       </button>
 
+      {/* Provider marks are for signing in. Once there is a session they have
+          nothing to offer, and beside the header's own button they read as a
+          duplicate. */}
+      {!isAuthenticated && (
+      <>
       <button
         type="button"
         onClick={goTelegram}
@@ -125,6 +130,8 @@ export default function HeroSignupPill({
       >
         <GoogleIcon />
       </button>
+      </>
+      )}
     </div>
   );
 }
