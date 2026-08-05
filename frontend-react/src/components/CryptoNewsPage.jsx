@@ -111,55 +111,23 @@ const hasBrandImage = (item) =>
 const hasVisual = (item) => !!getCardImage(item);
 
 // Auto-categorize by title keywords (lightweight, client-side)
+// Topic chips. The feed decides which of these a story carries — see
+// _TOPIC_PATTERNS in crypto_news_endpoint.py, which is the only place to change
+// them. These entries exist for the label and icon, and the patterns are kept
+// only to label a row served from a cache written before the field existed.
+//
+// A story can carry several: 262 of 1,298 do, and forcing one winner is what
+// made "SEC sues Ripple" arbitrarily regulation or altcoins by rule order.
 const CATEGORY_RULES = [
-  {
-    key: "bitcoin",
-    label: "Bitcoin",
-    icon: "₿",
-    patterns: [/\bbtc\b/i, /\bbitcoin\b/i, /satoshi/i],
-  },
-  {
-    key: "ethereum",
-    label: "Ethereum",
-    icon: "Ξ",
-    patterns: [/\beth\b/i, /\bethereum\b/i, /vitalik/i],
-  },
-  {
-    key: "altcoins",
-    label: "Altcoins",
-    icon: "◎",
-    patterns: [
-      /\bsol\b|solana/i,
-      /\bxrp\b|ripple/i,
-      /cardano|\bada\b/i,
-      /\bdoge\b|dogecoin/i,
-      /toncoin|\bton\b/i,
-      /altcoin/i,
-    ],
-  },
-  {
-    key: "macro",
-    label: "Macro",
-    icon: "⊞",
-    patterns: [
-      /fed|fomc|rate cut|inflation/i,
-      /etf flow|spot etf/i,
-      /sec\b|regulation|cftc/i,
-      /\bm2\b|liquidity/i,
-    ],
-  },
-  {
-    key: "defi",
-    label: "DeFi",
-    icon: "⬡",
-    patterns: [/defi|tvl|yield|staking/i, /\buni\b|uniswap|aave|curve/i, /lending|liquidity pool/i],
-  },
-  {
-    key: "listings",
-    label: "Listings",
-    icon: "▲",
-    patterns: [/listing|listed on|upbit|kucoin|binance listing/i, /token unlock|airdrop/i],
-  },
+  { key: "bitcoin", label: "Bitcoin", icon: "\u20BF", patterns: [/\bbtc\b/i, /bitcoin/i, /satoshi/i] },
+  { key: "ethereum", label: "Ethereum", icon: "\u039E", patterns: [/\beth\b/i, /ethereum/i, /vitalik/i] },
+  { key: "altcoins", label: "Altcoins", icon: "\u25CE", patterns: [/\bsol\b|solana/i, /\bxrp\b|ripple/i, /cardano/i, /dogecoin/i, /altcoin/i] },
+  { key: "stablecoins", label: "Stablecoins", icon: "\u2261", patterns: [/stablecoin/i, /tether|\busdt\b/i, /\busdc\b/i] },
+  { key: "etf", label: "ETF", icon: "\u25A6", patterns: [/\betfs?\b/i, /spot etf/i] },
+  { key: "regulation", label: "Regulation", icon: "\u00A7", patterns: [/\bsec\b|regulat/i, /lawsuit|court/i] },
+  { key: "security", label: "Security", icon: "\u26A0", patterns: [/hack|exploit|breach/i, /scam|fraud/i] },
+  { key: "defi", label: "DeFi", icon: "\u2b21", patterns: [/defi/i, /uniswap|aave/i] },
+  { key: "macro", label: "Macro", icon: "\u229E", patterns: [/\bfed\b|fomc|inflation/i, /s&p 500|nasdaq/i] },
 ];
 
 const categorizeItem = (item) => {
@@ -1645,6 +1613,9 @@ const CryptoNewsPage = () => {
     // rows served from a cache written before the field existed.
     return allItems.map((item) => ({
       ...item,
+      // `category` is the first topic the feed matched; `topics` is all of
+      // them. categorizeItem is only reached for rows cached before the feed
+      // started labelling them.
       _category: item.category ?? categorizeItem(item),
     }));
   }, [allItems]);

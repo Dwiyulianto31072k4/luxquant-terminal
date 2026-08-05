@@ -188,40 +188,66 @@ def _build_cache_key(prefix: str, **kwargs) -> str:
 # ════════════════════════════════════════════
 
 # ── story topics ────────────────────────────────────────────────────
-# These used to live in the browser and were applied to whichever page of 28
-# rows happened to be loaded, so "Altcoins" showed nothing while 52 altcoin
-# stories sat in the table, and the chip counts described the page rather than
-# the feed. Deciding it here means the filter, the total and the page count all
-# come from one place.
+# Chosen by measuring the corpus rather than by guessing, and the measurements
+# are worth keeping because two of them killed obvious-looking designs:
 #
-# First match wins, in this order, matching the rules this replaces. \y is the
-# Postgres word boundary; the JS patterns used \b.
-_CATEGORY_PATTERNS = [
-    ("bitcoin", r"(\ybtc\y|\ybitcoin\y|satoshi)"),
-    ("ethereum", r"(\yeth\y|\yethereum\y|vitalik)"),
-    ("altcoins", r"(\ysol\y|solana|\yxrp\y|ripple|cardano|\yada\y|\ydoge\y|dogecoin|toncoin|\yton\y|altcoin)"),
-    ("macro", r"(fed|fomc|rate cut|inflation|etf flow|spot etf|\ysec\y|regulation|cftc|\ym2\y|liquidity)"),
-    ("defi", r"(defi|uniswap|aave|liquid staking|tvl)"),
-    ("listings", r"(listing|delist|will list|perpetual)"),
+#   · Matching the 749-row `coins` table by ticker is unusable. "THE" is a real
+#     token and appears in 318 stories; IN 292, ON 187, US 101, AI 83, and among
+#     four-letter symbols NEAR 23, BANK 23, OPEN 22. The $TICKER convention that
+#     would disambiguate them appears zero times in this feed. Matching project
+#     names instead is safe but adds only ~47 stories, and brings its own
+#     collisions (maker, secret, waves). Hence curated patterns, and bare
+#     tickers only where the word is not also English — link, apt, arb, dot and
+#     ton are therefore absent, and only chainlink, aptos, arbitrum, polkadot
+#     and toncoin are matched.
+#
+#   · Roughly a third of the feed is not crypto at all. Two of the Telegram
+#     sources are macro/markets wires, so geopolitics and equities together are
+#     ~28% of stories. Without a topic that admits this, those stories can only
+#     ever be untagged, which is what left 61% of the feed with no topic.
+#
+# Multi-label on purpose: 262 stories match more than one of these, and forcing
+# a single winner is what made "SEC sues Ripple" arbitrarily regulation *or*
+# altcoins depending on rule order. Order here is display order (the card badge
+# shows the first match), not precedence.
+#
+# \y is the Postgres word boundary; \b works too but \y is the documented one.
+# Measured over a 3-day window (1,298 stories): bitcoin 351, macro 299,
+# altcoins 127, etf 107, regulation 94, ethereum 65, stablecoins 64,
+# security 56, defi 28 — 65.5% of stories carry at least one topic, up from 39%.
+_TOPIC_PATTERNS = [
+    ("bitcoin", r"(\ybtc\y|bitcoin|satoshi|\ybip-?[0-9]|hashrate|\bmining\y|\bminers?\y)"),
+    ("ethereum", r"(\yeth\y|ethereum|vitalik|\yl2\y|rollup|layer.?2)"),
+    ("altcoins", r"(\ysol\y|solana|\yxrp\y|ripple|cardano|\yada\y|\ydoge\y|dogecoin|toncoin|altcoin|\ybnb\y|chainlink|\yavax\y|avalanche|\ysui\y|aptos|arbitrum|polkadot|\ymatic\y|polygon|\yltc\y|litecoin|\ytrx\y|tron|\yshib\y|pepe|memecoin|hyperliquid|zcash|\yzec\y|cosmos|ethena)"),
+    ("stablecoins", r"(stablecoin|\yusdt\y|tether|\yusdc\y|de-?peg)"),
+    ("etf", r"(\yetf\y|\yetfs\y|spot etf|net inflow|net outflow)"),
+    ("regulation", r"(\ysec\y|\ycftc\y|regulat|lawsuit|court|congress|senate|\ybill\y|\bban\y|sanction|\bsued?\y)"),
+    ("security", r"(hack|exploit|breach|stolen|\bscam|fraud|phishing|vulnerab|\btheft\y)"),
+    ("defi", r"(defi|uniswap|aave|pancakeswap|\ytvl\y|liquid staking|\bdex\y|lending protocol|yield farm)"),
+    ("macro", r"(\yfed\y|fomc|rate cut|inflation|\ycpi\y|jobs report|treasury|\yboj\y|\yecb\y|\ygdp\y|tariff|s&p 500|nasdaq|dow jones|earnings|premarket|oil price|iran|israel|russia|ukraine|trump)"),
 ]
-CATEGORY_KEYS = tuple(k for k, _ in _CATEGORY_PATTERNS)
+TOPIC_KEYS = tuple(k for k, _ in _TOPIC_PATTERNS)
 
 
-def _category_case(alias: str = "n") -> str:
-    """SQL labelling one row with its topic, or NULL.
+def _haystack(alias: str = "n") -> str:
+    return f"({alias}.title || ' ' || coalesce({alias}.description, ''))"
+
+
+def _topics_array(alias: str = "n") -> str:
+    """SQL producing every topic a row carries, in display order.
 
     Patterns are bound as parameters rather than interpolated, so the built
-    expression contains no literal pattern text.
+    expression carries no pattern text of its own.
     """
-    hay = f"({alias}.title || ' ' || coalesce({alias}.description, ''))"
-    whens = "".join(
-        f" WHEN {hay} ~* :catpat_{key} THEN '{key}'" for key, _ in _CATEGORY_PATTERNS
+    hay = _haystack(alias)
+    arms = ", ".join(
+        f"CASE WHEN {hay} ~* :topicpat_{key} THEN '{key}' END" for key, _ in _TOPIC_PATTERNS
     )
-    return f"CASE{whens} END"
+    return f"ARRAY_REMOVE(ARRAY[{arms}], NULL)"
 
 
-def _category_params() -> dict:
-    return {f"catpat_{k}": pat for k, pat in _CATEGORY_PATTERNS}
+def _topic_params() -> dict:
+    return {f"topicpat_{k}": pat for k, pat in _TOPIC_PATTERNS}
 
 
 @router.get("/feed")
@@ -249,11 +275,10 @@ def get_news_feed(
         params = {"limit": limit, "offset": offset}
         # Always bound: the SELECT list labels every row whether or not the
         # caller is filtering on one.
-        params.update(_category_params())
+        params.update(_topic_params())
 
-        if category and category in CATEGORY_KEYS:
-            where_clauses.append(f"({_category_case()}) = :category")
-            params["category"] = category
+        if category and category in TOPIC_KEYS:
+            where_clauses.append(f"{_haystack()} ~* :topicpat_{category}")
 
         if content_type and content_type in ("article", "photo", "headline", "video"):
             where_clauses.append("n.content_type = :content_type")
@@ -276,7 +301,7 @@ def get_news_feed(
                    n.has_photo, n.has_video, n.raw_text,
                    n.source_channel, n.source_msg_id,
                    COALESCE(e.source_domain, e.domain) AS resolved_host,
-                   ({_category_case()}) AS category
+                   ({_topics_array()}) AS topics
             FROM crypto_news n
             LEFT JOIN news_article_extracts e
                    ON e.news_id = n.id
@@ -307,7 +332,10 @@ def get_news_feed(
                 "has_photo": r[10],
                 "has_video": r[11],
                 "raw_text": _strip_self_promo(r[12], handle),
-                "category": r[16],
+                # Every topic it carries, plus the first as the one a card
+                # badge shows.
+                "topics": list(r[16] or []),
+                "category": (r[16] or [None])[0],
             })
 
         db.close()
@@ -349,21 +377,33 @@ def get_news_stats():
         headlines = type_map.get("headline", 0)
         videos = type_map.get("video", 0)
 
-        # Counted across the feed, not the visible page, and broken down by
-        # kind so the chip still tells the truth while Articles or Photos is on.
+        # Counted across the whole window rather than the visible page, and
+        # split by kind so a chip still tells the truth while Articles or Photos
+        # is on. Overlapping by design — a story counts under every topic it
+        # carries, which is what the chips now select on.
+        topic_cols = ", ".join(
+            f"COUNT(*) FILTER (WHERE {_haystack()} ~* :topicpat_{k}) AS t_{k}"
+            for k in TOPIC_KEYS
+        )
         cat_q = text(f"""
-            SELECT n.content_type, ({_category_case()}) AS category, COUNT(*)
+            SELECT n.content_type, {topic_cols}
             FROM crypto_news n
             WHERE n.created_at > NOW() - INTERVAL '3 days'
-            GROUP BY 1, 2
+            GROUP BY 1
         """)
-        categories = {}
+        categories = {k: 0 for k in TOPIC_KEYS}
         categories_by_type = {}
-        for ctype, cat, n in db.execute(cat_q, _category_params()).fetchall():
-            if not cat:
-                continue
-            categories[cat] = categories.get(cat, 0) + n
-            categories_by_type.setdefault(ctype, {})[cat] = n
+        for row in db.execute(cat_q, _topic_params()).fetchall():
+            ctype = row[0]
+            per_type = {}
+            for i, k in enumerate(TOPIC_KEYS, start=1):
+                n = row[i] or 0
+                if n:
+                    per_type[k] = n
+                    categories[k] += n
+            if per_type:
+                categories_by_type[ctype] = per_type
+        categories = {k: v for k, v in categories.items() if v}
 
         hour_q = text("SELECT COUNT(*) FROM crypto_news WHERE created_at > NOW() - INTERVAL '1 hour'")
         last_hour = db.execute(hour_q).scalar()
