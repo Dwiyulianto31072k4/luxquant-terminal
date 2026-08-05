@@ -230,8 +230,8 @@ export default function HeroSlideAlgo() {
       {/* Access / Sign-up CTA — extra bottom room so Real calls never collides */}
       <div className="mt-1 w-full pb-10 sm:mt-3 sm:pb-14 lg:pb-16">
         <HeroSignupPill
-          text="Access LuxQuant Terminal"
-          className="!max-w-[360px] sm:!max-w-[400px]"
+          text=""
+          className="!max-w-[360px] sm:!max-w-[460px]"
         />
       </div>
     </div>

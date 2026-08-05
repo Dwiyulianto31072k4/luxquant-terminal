@@ -297,17 +297,17 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             <button
               type="button"
               onClick={isAuthenticated ? () => navigate("/home") : goSignup}
-              className="whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent) / 0.36)] lg:px-4"
+              className="inline-flex h-11 items-center whitespace-nowrap rounded-full px-4 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent) / 0.36)] lg:h-10"
               style={GOLD_BTN}
             >
-              {isAuthenticated ? "Open App" : "Sign Up"}
+              {isAuthenticated ? "Open App" : "Start Free"}
             </button>
 
           {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setMobileOpen((value) => !value)}
-            className="-mr-1 p-2 text-text-primary/70 transition-colors hover:text-text-primary lg:hidden"
+            className="-mr-1 flex h-11 w-11 items-center justify-center text-text-primary/70 transition-colors hover:text-text-primary lg:hidden"
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
           >
@@ -444,7 +444,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               className="rounded-full px-4 py-2.5 text-[13px] font-semibold"
               style={GOLD_BTN}
             >
-              {isAuthenticated ? "Open App" : "Sign Up"}
+              {isAuthenticated ? "Open App" : "Start Free"}
             </button>
           </div>
         </div>

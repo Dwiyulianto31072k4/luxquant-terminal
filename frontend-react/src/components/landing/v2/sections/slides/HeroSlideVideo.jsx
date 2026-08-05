@@ -216,7 +216,7 @@ export default function HeroSlideVideo() {
           />
           <HeroSignupPill
             text="Access LuxQuant Terminal"
-            className="!max-w-[290px] sm:!max-w-[400px]"
+            className="!max-w-[290px] sm:!max-w-[460px]"
           />
         </div>
       </div>

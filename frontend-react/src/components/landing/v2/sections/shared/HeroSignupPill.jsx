@@ -5,7 +5,7 @@ import { useAuth } from "../../../../../context/AuthContext";
 
 function TelegramIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="#229ED9" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill="#229ED9" aria-hidden="true">
       <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.56 8.23-1.86 8.78c-.14.62-.51.77-1.03.48l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.58.28l.2-2.9 5.28-4.77c.23-.2-.05-.32-.36-.12l-6.52 4.11-2.81-.88c-.61-.19-.62-.61.13-.9l10.98-4.24c.51-.18.96.12.79.94z" />
     </svg>
   );
@@ -13,7 +13,7 @@ function TelegramIcon() {
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[16px] w-[16px]" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" aria-hidden="true">
       <path
         fill="#EA4335"
         d="M12 10.2v3.9h5.4c-.24 1.26-.96 2.33-2.04 3.05l3.3 2.56c1.92-1.77 3.03-4.38 3.03-7.49 0-.72-.06-1.41-.19-2.01H12z"
@@ -82,14 +82,19 @@ export default function HeroSignupPill({
   return (
     <div
       className={[
-        "mx-auto flex w-full max-w-[400px] items-center rounded-full border border-ink/20 bg-ink/[0.96] p-1 shadow-[0_10px_24px_rgb(var(--scrim) / 0.24)] backdrop-blur-md sm:max-w-[440px]",
+        "mx-auto flex w-fit max-w-[420px] items-center justify-center gap-1.5 rounded-full sm:w-full border border-ink/20 bg-ink/[0.96] p-1.5 shadow-[0_10px_24px_rgb(var(--scrim) / 0.24)] backdrop-blur-md sm:max-w-[460px] sm:gap-2",
         className,
       ].join(" ")}
     >
+      {/* Dropped entirely where there is no room for it — a clipped sentence
+          reads worse than none, and this button goes exactly where the CTA
+          beside it goes. */}
       <button
         type="button"
         onClick={goPlatform}
-        className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1.5 text-left text-[11px] font-medium text-accent-fg outline-none sm:px-4 sm:py-2 sm:text-[13px]"
+        className={`h-11 min-w-0 flex-1 items-center truncate rounded-full px-3 text-left text-[12px] font-medium text-accent-fg outline-none sm:px-4 sm:text-[13px] ${
+          text ? "hidden sm:flex" : "hidden"
+        }`}
       >
         <span className="sm:hidden">{shortText}</span>
         <span className="hidden sm:inline">{text}</span>
@@ -98,16 +103,16 @@ export default function HeroSignupPill({
       <button
         type="button"
         onClick={goPlatform}
-        className="ml-1.5 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-3.5 text-[11px] font-semibold text-accent-fg shadow-[0_5px_14px_rgb(var(--accent) / 0.22)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_8px_18px_rgb(var(--accent) / 0.35)] sm:h-9 sm:px-5 sm:text-[13px]"
+        className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-4 text-[13px] font-semibold text-accent-fg shadow-[0_5px_14px_rgb(var(--accent) / 0.22)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_8px_18px_rgb(var(--accent) / 0.35)] sm:px-5 sm:text-[14px]"
       >
-        Sign Up
+        {isAuthenticated ? "Open App" : "Start Free"}
       </button>
 
       <button
         type="button"
         onClick={goTelegram}
         aria-label="Continue with Telegram"
-        className="ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05] sm:h-9 sm:w-9"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
       >
         <TelegramIcon />
       </button>
@@ -116,7 +121,7 @@ export default function HeroSignupPill({
         type="button"
         onClick={goGoogle}
         aria-label="Continue with Google"
-        className="ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05] sm:h-9 sm:w-9"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
       >
         <GoogleIcon />
       </button>
