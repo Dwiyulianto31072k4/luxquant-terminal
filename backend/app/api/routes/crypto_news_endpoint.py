@@ -187,14 +187,55 @@ def _build_cache_key(prefix: str, **kwargs) -> str:
 # 1. NEWS FEED — paginated, filterable
 # ════════════════════════════════════════════
 
+# ── story topics ────────────────────────────────────────────────────
+# These used to live in the browser and were applied to whichever page of 28
+# rows happened to be loaded, so "Altcoins" showed nothing while 52 altcoin
+# stories sat in the table, and the chip counts described the page rather than
+# the feed. Deciding it here means the filter, the total and the page count all
+# come from one place.
+#
+# First match wins, in this order, matching the rules this replaces. \y is the
+# Postgres word boundary; the JS patterns used \b.
+_CATEGORY_PATTERNS = [
+    ("bitcoin", r"(\ybtc\y|\ybitcoin\y|satoshi)"),
+    ("ethereum", r"(\yeth\y|\yethereum\y|vitalik)"),
+    ("altcoins", r"(\ysol\y|solana|\yxrp\y|ripple|cardano|\yada\y|\ydoge\y|dogecoin|toncoin|\yton\y|altcoin)"),
+    ("macro", r"(fed|fomc|rate cut|inflation|etf flow|spot etf|\ysec\y|regulation|cftc|\ym2\y|liquidity)"),
+    ("defi", r"(defi|uniswap|aave|liquid staking|tvl)"),
+    ("listings", r"(listing|delist|will list|perpetual)"),
+]
+CATEGORY_KEYS = tuple(k for k, _ in _CATEGORY_PATTERNS)
+
+
+def _category_case(alias: str = "n") -> str:
+    """SQL labelling one row with its topic, or NULL.
+
+    Patterns are bound as parameters rather than interpolated, so the built
+    expression contains no literal pattern text.
+    """
+    hay = f"({alias}.title || ' ' || coalesce({alias}.description, ''))"
+    whens = "".join(
+        f" WHEN {hay} ~* :catpat_{key} THEN '{key}'" for key, _ in _CATEGORY_PATTERNS
+    )
+    return f"CASE{whens} END"
+
+
+def _category_params() -> dict:
+    return {f"catpat_{k}": pat for k, pat in _CATEGORY_PATTERNS}
+
+
 @router.get("/feed")
 def get_news_feed(
     limit: int = Query(24, ge=1, le=100),
     offset: int = Query(0, ge=0),
     content_type: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
 ):
-    cache_key = _build_cache_key("feed", limit=limit, offset=offset, content_type=content_type, search=search)
+    cache_key = _build_cache_key(
+        "feed", limit=limit, offset=offset, content_type=content_type,
+        search=search, category=category,
+    )
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -206,6 +247,13 @@ def get_news_feed(
         # a title column — unqualified names would be ambiguous there.
         where_clauses = ["n.created_at > NOW() - INTERVAL '3 days'"]
         params = {"limit": limit, "offset": offset}
+        # Always bound: the SELECT list labels every row whether or not the
+        # caller is filtering on one.
+        params.update(_category_params())
+
+        if category and category in CATEGORY_KEYS:
+            where_clauses.append(f"({_category_case()}) = :category")
+            params["category"] = category
 
         if content_type and content_type in ("article", "photo", "headline", "video"):
             where_clauses.append("n.content_type = :content_type")
@@ -227,7 +275,8 @@ def get_news_feed(
                    n.image_url, n.video_url, n.published_at, n.created_at,
                    n.has_photo, n.has_video, n.raw_text,
                    n.source_channel, n.source_msg_id,
-                   COALESCE(e.source_domain, e.domain) AS resolved_host
+                   COALESCE(e.source_domain, e.domain) AS resolved_host,
+                   ({_category_case()}) AS category
             FROM crypto_news n
             LEFT JOIN news_article_extracts e
                    ON e.news_id = n.id
@@ -258,6 +307,7 @@ def get_news_feed(
                 "has_photo": r[10],
                 "has_video": r[11],
                 "raw_text": _strip_self_promo(r[12], handle),
+                "category": r[16],
             })
 
         db.close()
@@ -298,6 +348,22 @@ def get_news_stats():
         photos = type_map.get("photo", 0)
         headlines = type_map.get("headline", 0)
         videos = type_map.get("video", 0)
+
+        # Counted across the feed, not the visible page, and broken down by
+        # kind so the chip still tells the truth while Articles or Photos is on.
+        cat_q = text(f"""
+            SELECT n.content_type, ({_category_case()}) AS category, COUNT(*)
+            FROM crypto_news n
+            WHERE n.created_at > NOW() - INTERVAL '3 days'
+            GROUP BY 1, 2
+        """)
+        categories = {}
+        categories_by_type = {}
+        for ctype, cat, n in db.execute(cat_q, _category_params()).fetchall():
+            if not cat:
+                continue
+            categories[cat] = categories.get(cat, 0) + n
+            categories_by_type.setdefault(ctype, {})[cat] = n
 
         hour_q = text("SELECT COUNT(*) FROM crypto_news WHERE created_at > NOW() - INTERVAL '1 hour'")
         last_hour = db.execute(hour_q).scalar()
@@ -352,6 +418,7 @@ def get_news_stats():
             "headlines": headlines, "videos": videos,
             "last_hour": last_hour, "last_6h": last_6h,
             "hourly": hourly, "top_domains": top_domains,
+            "categories": categories, "categories_by_type": categories_by_type,
         }
         cache_set(cache_key, result, ttl=120)
         return result

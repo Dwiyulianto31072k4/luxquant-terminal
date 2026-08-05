@@ -1532,6 +1532,7 @@ const CryptoNewsPage = () => {
         };
         if (activeFilter !== "all") params.content_type = activeFilter;
         if (searchQuery) params.search = searchQuery;
+        if (activeCategory) params.category = activeCategory;
         const res = await api.get(`/api/v1/crypto-news-feed/feed`, { params });
         setAllItems(res.data.items || []);
         setTotal(res.data.total || 0);
@@ -1541,7 +1542,7 @@ const CryptoNewsPage = () => {
         setLoading(false);
       }
     },
-    [activeFilter, searchQuery]
+    [activeFilter, searchQuery, activeCategory]
   );
 
   const fetchMeta = useCallback(async () => {
@@ -1565,7 +1566,7 @@ const CryptoNewsPage = () => {
       fetchMeta();
     }, 60000);
     return () => clearInterval(iv);
-  }, [activeFilter, searchQuery, page, fetchFeed, fetchMeta]);
+  }, [activeFilter, searchQuery, activeCategory, page, fetchFeed, fetchMeta]);
 
   // ── Article modal (URL-driven, dgn cache spy modal ga ilang saat refresh) ──
   useEffect(() => {
@@ -1640,21 +1641,28 @@ const CryptoNewsPage = () => {
 
   // ── Derived state ──────────────────────
   const itemsWithCategory = useMemo(() => {
-    return allItems.map((item) => ({ ...item, _category: categorizeItem(item) }));
+    // The feed labels every row now. The local rules stay as a fallback for
+    // rows served from a cache written before the field existed.
+    return allItems.map((item) => ({
+      ...item,
+      _category: item.category ?? categorizeItem(item),
+    }));
   }, [allItems]);
 
+  // Counting the loaded page said "Bitcoin 12" out of 346 and left Altcoins
+  // blank while 52 altcoin stories waited behind it. These come from /stats,
+  // over the whole window, and follow the active kind so the number always
+  // matches what picking the chip would actually return.
   const categoryCounts = useMemo(() => {
-    const counts = {};
-    itemsWithCategory.forEach((item) => {
-      if (item._category) counts[item._category] = (counts[item._category] || 0) + 1;
-    });
-    return counts;
-  }, [itemsWithCategory]);
+    if (!stats) return {};
+    if (activeFilter === "all") return stats.categories || {};
+    return (stats.categories_by_type || {})[activeFilter] || {};
+  }, [stats, activeFilter]);
 
-  const filteredItems = useMemo(() => {
-    if (!activeCategory) return itemsWithCategory;
-    return itemsWithCategory.filter((item) => item._category === activeCategory);
-  }, [itemsWithCategory, activeCategory]);
+  // Filtering here as well would narrow a page the server had already
+  // narrowed — which is what emptied the grid: the topic was applied to the 28
+  // rows on screen while the pager still counted every story in the feed.
+  const filteredItems = itemsWithCategory;
 
   // Featured pair only on clean page-1 feed (Bitcoin-page pattern)
   const heroEnabled = page === 1 && !searchQuery && !activeCategory && activeFilter === "all";
