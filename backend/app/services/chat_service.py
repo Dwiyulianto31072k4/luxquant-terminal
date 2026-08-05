@@ -294,6 +294,44 @@ def mark_read(db: Session, conversation_id: int, who: str, seq: int) -> None:
     db.commit()
 
 
+def mark_all_read(db: Session) -> int:
+    """Advance every admin cursor to the end of its thread.
+
+    One statement rather than a loop: the inbox can hold hundreds of threads and
+    this runs from a button click. Only rows that are actually behind are
+    touched, so the returned count is the number of conversations cleared and
+    updated_at does not churn for threads that were already read.
+    """
+    res = db.execute(
+        text("""
+            UPDATE chat_conversations
+               SET admin_last_read_seq = last_seq, updated_at = now()
+             WHERE last_seq > admin_last_read_seq
+        """)
+    )
+    db.commit()
+    return res.rowcount or 0
+
+
+def mark_unread(db: Session, conversation_id: int) -> None:
+    """Deliberately rewind one admin cursor so the thread returns to the inbox.
+
+    Separate from mark_read, which is monotonic on purpose — a late poll must
+    never rewind a cursor. This is the only place allowed to move one backwards,
+    which is why it takes no seq: the caller cannot use it to set an arbitrary
+    position, only to reopen the last message.
+    """
+    db.execute(
+        text("""
+            UPDATE chat_conversations
+               SET admin_last_read_seq = GREATEST(last_seq - 1, 0), updated_at = now()
+             WHERE id = :cid
+        """),
+        {"cid": conversation_id},
+    )
+    db.commit()
+
+
 # ════════════════════════════════════════════════════════════════════
 # Admin inbox
 # ════════════════════════════════════════════════════════════════════

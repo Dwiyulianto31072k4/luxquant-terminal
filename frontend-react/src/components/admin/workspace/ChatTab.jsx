@@ -557,6 +557,10 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
   // a thread — long replies scroll in a letterbox.
   const [expanded, setExpanded] = useState(false);
   const expandRef = useRef(null);
+  // Bulk read is confirmed rather than instant: it clears the whole queue and
+  // there is no per-thread undo for it.
+  const [confirmReadAll, setConfirmReadAll] = useState(false);
+  const [readingAll, setReadingAll] = useState(false);
   const selectedIdRef = useRef(null);
 
   // ── list ──────────────────────────────────────────────────────────
@@ -686,6 +690,41 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
     if (!selected && expanded) setExpanded(false);
   }, [selected, expanded]);
 
+  const markAllRead = async () => {
+    if (readingAll) return;
+    setReadingAll(true);
+    setErr("");
+    try {
+      const data = await adminChatApi.markAllRead();
+      setConfirmReadAll(false);
+      // Refresh both the list and the tab badge — the badge is owned by the
+      // parent, so clearing here without telling it leaves a stale 99+.
+      await loadList();
+      onRefreshUnread?.();
+      if (!data?.cleared) setErr("Nothing was unread.");
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Couldn't mark everything read.");
+    } finally {
+      setReadingAll(false);
+    }
+  };
+
+  const markUnread = async () => {
+    if (!selected) return;
+    setErr("");
+    try {
+      await adminChatApi.markUnread(selected.id);
+      // Close the thread first. The open-thread poll marks read on every tick,
+      // so staying here would undo this within a second.
+      setSelected(null);
+      selectedIdRef.current = null;
+      await loadList();
+      onRefreshUnread?.();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Couldn't mark it unread.");
+    }
+  };
+
   const toggleClosed = async () => {
     if (!selected) return;
     const next = selected.status === "closed" ? "open" : "closed";
@@ -700,6 +739,37 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
 
   return (
     <>
+    <Modal
+      isOpen={confirmReadAll}
+      onClose={() => setConfirmReadAll(false)}
+      title="Mark everything read?"
+      subtitle="Clears the unread badge across the whole inbox"
+      size="sm"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setConfirmReadAll(false)}
+            className="px-3 py-2 text-xs text-text-muted hover:text-text-primary"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={markAllRead}
+            disabled={readingAll}
+            className="lq-cta-md px-4 py-2 text-[11px] uppercase tracking-wider disabled:opacity-50"
+          >
+            {readingAll ? "Marking…" : "Mark all read"}
+          </button>
+        </div>
+      }
+    >
+      <p className="text-xs leading-relaxed text-text-muted">
+        This only moves your own read markers — nobody is replied to and nothing
+        is sent. Threads still waiting on a reply stay in the{" "}
+        <span className="text-text-primary">Needs reply</span> filter, so they
+        will not be lost.
+      </p>
+    </Modal>
     <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     <NewChatModal
       isOpen={newChatOpen}
@@ -767,6 +837,15 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                 {f.label}
               </button>
             ))}
+            {canWrite && (
+              <button
+                onClick={() => setConfirmReadAll(true)}
+                title="Mark every conversation as read"
+                className="rounded-xl px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-text-muted transition-colors hover:bg-ink/[0.04] hover:text-text-primary"
+              >
+                Read all
+              </button>
+            )}
             {canWrite && (
               <button
                 onClick={() => setSettingsOpen(true)}
@@ -844,6 +923,15 @@ export const ChatTab = ({ canWrite = true, onRefreshUnread }) => {
                 {selected.status}
               </Badge>
               <div className="ml-auto flex items-center gap-3">
+                {canWrite && (
+                  <button
+                    onClick={markUnread}
+                    title="Put this back in the inbox and close it"
+                    className="font-mono text-[10px] uppercase tracking-wider text-text-muted transition-colors hover:text-text-primary"
+                  >
+                    Mark unread
+                  </button>
+                )}
                 {canWrite && (
                   <button
                     onClick={toggleClosed}

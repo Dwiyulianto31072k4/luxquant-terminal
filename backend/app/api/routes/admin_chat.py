@@ -281,6 +281,39 @@ def mark_read(
     return {"ok": True}
 
 
+@router.post("/read-all")
+def read_all(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Clear every unread in the inbox at once.
+
+    POST, so get_admin_user already refuses view-only staff. Returns how many
+    threads it actually cleared — the caller shows that number rather than
+    claiming success over a no-op.
+    """
+    try:
+        cleared = chat_service.mark_all_read(db)
+    except ChatSchemaMissing as e:
+        raise _schema_guard(e)
+    return {"ok": True, "cleared": cleared}
+
+
+@router.post("/conversations/{conversation_id}/unread")
+def mark_unread(
+    conversation_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Put one thread back in the inbox — "I read this, I'll deal with it later"."""
+    try:
+        _require_conv(db, conversation_id)
+        chat_service.mark_unread(db, conversation_id)
+    except ChatSchemaMissing as e:
+        raise _schema_guard(e)
+    return {"ok": True}
+
+
 @router.patch("/conversations/{conversation_id}")
 def patch_conversation(
     conversation_id: int,

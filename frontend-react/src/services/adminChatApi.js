@@ -81,6 +81,22 @@ export const adminChatApi = {
     return response.data;
   },
 
+  // Clears every unread in one call. Returns { cleared } — how many threads
+  // actually moved, so the UI can report the real number.
+  markAllRead: async () => {
+    const response = await api.post("/api/v1/admin/chat/read-all");
+    return response.data;
+  },
+
+  // Puts one thread back in the inbox. Takes no seq: the server only ever
+  // rewinds to the last message, so this cannot set an arbitrary cursor.
+  markUnread: async (conversationId) => {
+    const response = await api.post(
+      `/api/v1/admin/chat/conversations/${conversationId}/unread`
+    );
+    return response.data;
+  },
+
   setStatus: async (conversationId, status) => {
     const response = await api.patch(`/api/v1/admin/chat/conversations/${conversationId}`, {
       status,
