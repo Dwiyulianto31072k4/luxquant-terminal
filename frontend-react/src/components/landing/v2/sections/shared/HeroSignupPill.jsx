@@ -34,13 +34,21 @@ function GoogleIcon() {
   );
 }
 
+function DiscordIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill="#5865F2" aria-hidden="true">
+      <path d="M20.32 4.57A19.79 19.79 0 0 0 15.43 3c-.24.42-.51.99-.7 1.44a18.3 18.3 0 0 0-5.46 0A12.6 12.6 0 0 0 8.56 3 19.74 19.74 0 0 0 3.68 4.58C.58 9.2-.26 13.7.16 18.14a19.9 19.9 0 0 0 6.03 3.05c.49-.66.92-1.37 1.29-2.11-.71-.27-1.39-.6-2.03-.98.17-.13.34-.26.5-.4a14.2 14.2 0 0 0 12.1 0c.16.14.33.27.5.4-.64.38-1.32.71-2.03.98.37.74.8 1.45 1.29 2.11a19.87 19.87 0 0 0 6.03-3.05c.5-5.15-.84-9.6-3.52-13.57ZM8.02 15.41c-1.18 0-2.15-1.09-2.15-2.42s.95-2.42 2.15-2.42 2.17 1.09 2.15 2.42c0 1.33-.95 2.42-2.15 2.42Zm7.96 0c-1.18 0-2.15-1.09-2.15-2.42s.95-2.42 2.15-2.42 2.17 1.09 2.15 2.42c0 1.33-.95 2.42-2.15 2.42Z" />
+    </svg>
+  );
+}
+
 export default function HeroSignupPill({
   text = "Start using LuxQuant today",
   shortText = "Access Terminal",
   className = "",
 }) {
   const navigate = useNavigate();
-  const { isAuthenticated, loginWithGoogle, loginWithTelegram } = useAuth();
+  const { isAuthenticated, loginWithGoogle, loginWithTelegram, loginWithDiscord } = useAuth();
 
   // The Telegram widget has to be present before the first tap or the click
   // reports "still loading" — which on this page would just look broken.
@@ -75,6 +83,14 @@ export default function HeroSignupPill({
       });
   };
 
+  const goDiscord = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    loginWithDiscord().catch(() => navigate("/login"));
+  };
+
   const goPlatform = () => {
     navigate(isAuthenticated ? "/home" : "/login");
   };
@@ -82,55 +98,54 @@ export default function HeroSignupPill({
   return (
     <div
       className={[
-        "mx-auto flex w-fit max-w-[420px] items-center justify-center gap-2.5 sm:w-full sm:max-w-[460px] sm:gap-2 sm:rounded-full sm:border sm:border-ink/20 sm:bg-ink/[0.96] sm:p-1.5 sm:shadow-[0_10px_24px_rgb(var(--scrim)_/_0.24)] sm:backdrop-blur-md",
+        "mx-auto flex w-full max-w-[400px] items-center gap-1.5 rounded-full border border-ink/20",
+        "bg-ink/[0.96] p-1.5 shadow-[0_10px_24px_rgb(var(--scrim)_/_0.24)] backdrop-blur-md",
+        "sm:max-w-[440px] sm:gap-2",
         className,
       ].join(" ")}
     >
-      {/* Dropped entirely where there is no room for it — a clipped sentence
-          reads worse than none, and this button goes exactly where the CTA
-          beside it goes. */}
+      {/* The offer, as a line of text rather than a second button — one gold
+          control beside three marks read as two competing calls to action. It
+          stays tappable so nobody who aims at the words gets nothing. */}
       <button
         type="button"
         onClick={goPlatform}
-        className={`h-11 min-w-0 flex-1 items-center truncate rounded-full px-3 text-left text-[12px] font-medium text-accent-fg outline-none sm:px-4 sm:text-[13px] ${
-          text ? "hidden sm:flex" : "hidden"
-        }`}
-      >
-        <span className="sm:hidden">{shortText}</span>
-        <span className="hidden sm:inline">{text}</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={goPlatform}
-        className="inline-flex h-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-7 text-[14px] font-semibold text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)_/_0.3)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_10px_24px_rgb(var(--accent)_/_0.42)] sm:h-11 sm:px-5"
+        className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3 text-left text-[14px] font-semibold text-accent-fg outline-none sm:px-4 sm:text-[15px]"
       >
         {isAuthenticated ? "Open App" : "Start Free"}
       </button>
 
-      {/* Provider marks are for signing in. Once there is a session they have
-          nothing to offer, and beside the header's own button they read as a
-          duplicate. */}
+      {/* Signing in is what the marks are for; with a session there is nothing
+          left for them to do. */}
       {!isAuthenticated && (
-      <>
-      <button
-        type="button"
-        onClick={goTelegram}
-        aria-label="Continue with Telegram"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/15 backdrop-blur-md transition-all duration-300 hover:scale-[1.05] hover:bg-white/25 sm:border-black/[0.08] sm:bg-white sm:shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] sm:backdrop-blur-none sm:hover:bg-white"
-      >
-        <TelegramIcon />
-      </button>
+        <>
+          <button
+            type="button"
+            onClick={goTelegram}
+            aria-label="Continue with Telegram"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
+          >
+            <TelegramIcon />
+          </button>
 
-      <button
-        type="button"
-        onClick={goGoogle}
-        aria-label="Continue with Google"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/15 backdrop-blur-md transition-all duration-300 hover:scale-[1.05] hover:bg-white/25 sm:border-black/[0.08] sm:bg-white sm:shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] sm:backdrop-blur-none sm:hover:bg-white"
-      >
-        <GoogleIcon />
-      </button>
-      </>
+          <button
+            type="button"
+            onClick={goGoogle}
+            aria-label="Continue with Google"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
+          >
+            <GoogleIcon />
+          </button>
+
+          <button
+            type="button"
+            onClick={goDiscord}
+            aria-label="Continue with Discord"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
+          >
+            <DiscordIcon />
+          </button>
+        </>
       )}
     </div>
   );
