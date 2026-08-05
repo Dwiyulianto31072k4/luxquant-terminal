@@ -293,11 +293,67 @@ def mark_read(db: Session, conversation_id: int, who: str, seq: int) -> None:
 # Admin inbox
 # ════════════════════════════════════════════════════════════════════
 
+def _derive_read_state(
+    *,
+    last_seq: int,
+    admin_last_read_seq: int,
+    user_last_read_seq: int,
+    last_sender: Optional[str],
+    last_admin_message_at,
+    last_active_at,
+) -> Dict[str, Any]:
+    """Human-facing inbox state for one conversation.
+
+    unread for admin is "they wrote, we haven't opened". awaiting_read is
+    "we wrote, they haven't opened". user_active_unread is the sharp version:
+    they came back to the product after our reply and still didn't open chat.
+    """
+    admin_unread = max(0, int(last_seq or 0) - int(admin_last_read_seq or 0))
+    user_unread = max(0, int(last_seq or 0) - int(user_last_read_seq or 0))
+    needs_reply = last_sender == "user"
+    awaiting_read = (
+        last_sender in ("admin", "ai", "system")
+        and user_unread > 0
+        and int(last_seq or 0) > 0
+    )
+    user_active_unread = False
+    if awaiting_read and last_active_at and last_admin_message_at:
+        try:
+            user_active_unread = last_active_at > last_admin_message_at
+        except TypeError:
+            user_active_unread = False
+
+    if admin_unread > 0 and needs_reply:
+        label = "needs_reply"
+    elif admin_unread > 0:
+        label = "unread"
+    elif user_active_unread:
+        label = "active_unread"
+    elif awaiting_read:
+        label = "awaiting_read"
+    elif last_seq:
+        label = "seen"
+    else:
+        label = "empty"
+
+    return {
+        "admin_unread": admin_unread,
+        "user_unread": user_unread,
+        "needs_reply": needs_reply,
+        "awaiting_read": awaiting_read,
+        "user_active_unread": user_active_unread,
+        "read_state": label,
+    }
+
+
 def admin_conversation_list(
     db: Session,
     status: Optional[str] = None,
     search: Optional[str] = None,
     unread_only: bool = False,
+    awaiting_read_only: bool = False,
+    active_unread_only: bool = False,
+    needs_reply_only: bool = False,
     limit: int = 50,
     offset: int = 0,
 ) -> Dict[str, Any]:
@@ -317,6 +373,30 @@ def admin_conversation_list(
         params["q"] = f"%{search}%"
     if unread_only:
         where.append("c.last_seq > c.admin_last_read_seq")
+    if awaiting_read_only:
+        # We spoke last; their read cursor has not caught last_seq.
+        where.append("""
+            c.last_seq > c.user_last_read_seq
+            AND c.last_admin_message_at IS NOT NULL
+            AND (c.last_user_message_at IS NULL
+                 OR c.last_admin_message_at >= c.last_user_message_at)
+        """)
+    if active_unread_only:
+        # Active in the product after our reply, still haven't opened the chat.
+        where.append("""
+            c.last_seq > c.user_last_read_seq
+            AND c.last_admin_message_at IS NOT NULL
+            AND u.last_active_at IS NOT NULL
+            AND u.last_active_at > c.last_admin_message_at
+            AND (c.last_user_message_at IS NULL
+                 OR c.last_admin_message_at >= c.last_user_message_at)
+        """)
+    if needs_reply_only:
+        where.append("""
+            c.last_user_message_at IS NOT NULL
+            AND (c.last_admin_message_at IS NULL
+                 OR c.last_user_message_at > c.last_admin_message_at)
+        """)
 
     clause = " AND ".join(where)
 
@@ -324,7 +404,7 @@ def admin_conversation_list(
         rows = db.execute(
             text(f"""
                 SELECT c.id, c.user_id, c.status, c.last_seq,
-                       c.admin_last_read_seq,
+                       c.admin_last_read_seq, c.user_last_read_seq,
                        (c.last_seq - c.admin_last_read_seq) AS unread,
                        c.last_message_at, c.last_user_message_at,
                        c.last_admin_message_at, c.tg_topic_state,
@@ -363,6 +443,17 @@ def admin_conversation_list(
     items = []
     for r in rows:
         d = dict(r)
+        state = _derive_read_state(
+            last_seq=d.get("last_seq") or 0,
+            admin_last_read_seq=d.get("admin_last_read_seq") or 0,
+            user_last_read_seq=d.get("user_last_read_seq") or 0,
+            last_sender=d.get("last_sender"),
+            last_admin_message_at=d.get("last_admin_message_at"),
+            last_active_at=d.get("last_active_at"),
+        )
+        d.update(state)
+        # Keep `unread` as admin-facing alias (existing UI).
+        d["unread"] = state["admin_unread"]
         for k in ("last_message_at", "last_user_message_at", "last_admin_message_at",
                   "last_active_at", "user_created_at", "subscription_expires_at",
                   "handoff_sent_at", "dm_bound_at"):
@@ -624,6 +715,79 @@ def maybe_send_away_reply(db: Session, conversation_id: int) -> Optional[Dict[st
         # Never let the courtesy reply break the user's actual send.
         logger.warning("away auto-reply skipped: %s", e)
         return None
+
+
+# Only accounts created from this moment on are greeted. Without it, the first
+# poll after deploy would have sent "Welcome to LuxQuant" to all 800 existing
+# users, paying subscribers included — a mass unsolicited message dressed up as
+# a welcome. Move this forward, never backward.
+WELCOME_AUTO_SINCE = datetime(2026, 8, 5, 7, 0, tzinfo=timezone.utc)
+
+# Marks the rows this function wrote, so "have we greeted them already" is one
+# indexed lookup and needs no new column.
+WELCOME_SOURCE = "welcome_auto"
+
+
+def maybe_send_welcome(db: Session, user_id: int, created_at: Optional[datetime]) -> None:
+    """Greet a genuinely new account once, on their first poll.
+
+    Hung off the unread-count endpoint rather than off login: that is what the
+    launcher polls when the app loads, so the message is already waiting when
+    they arrive instead of appearing only after they think to open the chat.
+    Half of all new accounts never come back after their first session, and a
+    single return visit is worth six times the conversion rate — so the badge
+    has to be there on that first visit or it has missed its moment.
+
+    Silent on every failure. A greeting is never worth breaking the badge poll
+    that every logged-in user makes.
+    """
+    try:
+        if not created_at:
+            return
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if created_at < WELCOME_AUTO_SINCE:
+            return
+
+        body = (get_settings(db).get("welcome_message") or "").strip()
+        if not body:
+            # Unset means the feature is off, which is also the kill switch:
+            # clear it in the admin Chat settings and greetings stop at once.
+            return
+
+        already = db.execute(
+            text("""SELECT 1 FROM chat_messages m
+                    JOIN chat_conversations c ON c.id = m.conversation_id
+                    WHERE c.user_id = :uid AND m.source = :src LIMIT 1"""),
+            {"uid": user_id, "src": WELCOME_SOURCE},
+        ).first()
+        if already:
+            return
+
+        # Someone already talking to this person outranks a form letter.
+        has_history = db.execute(
+            text("""SELECT 1 FROM chat_messages m
+                    JOIN chat_conversations c ON c.id = m.conversation_id
+                    WHERE c.user_id = :uid LIMIT 1"""),
+            {"uid": user_id},
+        ).first()
+        if has_history:
+            return
+
+        conv = get_or_create_conversation(db, user_id)
+        append_message(
+            db,
+            conversation_id=conv["id"],
+            sender="admin",
+            body=body,
+            source=WELCOME_SOURCE,
+            # Written by us, so it must not be mirrored back into the admin's
+            # own Telegram topic as though a human had typed it.
+            relay_state="skipped",
+        )
+        logger.info("welcome sent to user_id=%s", user_id)
+    except Exception as e:
+        logger.warning("welcome skipped for user_id=%s: %s", user_id, e)
 
 
 def conversations_awaiting_admin(db: Session, older_than_min: int, limit: int = 50) -> List[Dict[str, Any]]:

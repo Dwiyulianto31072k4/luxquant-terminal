@@ -112,6 +112,9 @@ def get_conversation(
         "status": conv["status"],
         "last_seq": conv["last_seq"],
         "unread": max(0, conv["last_seq"] - conv["user_last_read_seq"]),
+        # Lets the user UI show "Seen" on their bubbles once admin has read.
+        "admin_last_read_seq": conv["admin_last_read_seq"],
+        "user_last_read_seq": conv["user_last_read_seq"],
         "messages": messages,
         "welcome_message": settings.get("welcome_message"),
         "away_enabled": away,
@@ -137,10 +140,19 @@ def list_messages(
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
 
+    # Re-fetch after list so admin_last_read_seq is current (admin may have
+    # opened the thread between polls — that's how "Seen" appears live).
+    try:
+        conv = chat_service.get_conversation(db, conv["id"]) or conv
+    except Exception:
+        pass
+
     return {
         "messages": messages,
         "last_seq": conv["last_seq"],
         "status": conv["status"],
+        "admin_last_read_seq": conv.get("admin_last_read_seq", 0),
+        "user_last_read_seq": conv.get("user_last_read_seq", 0),
     }
 
 
@@ -212,6 +224,11 @@ def unread_count(
     already polls; the preview is skipped entirely when there is nothing unread.
     """
     try:
+        # A new account is greeted here, before the count is taken, so the badge
+        # it creates is visible on the very first poll rather than one poll
+        # later. Bounded to accounts created after a cutoff and to one message
+        # ever; see maybe_send_welcome.
+        chat_service.maybe_send_welcome(db, user.id, getattr(user, "created_at", None))
         n = chat_service.user_unread_count(db, user.id)
         return {
             "unread": n,
