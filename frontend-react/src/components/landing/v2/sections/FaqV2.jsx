@@ -64,8 +64,12 @@ function Row({ index, q, a, open, onToggle }) {
   );
 }
 
+const PREVIEW_COUNT = 5;
+
 export default function FaqV2() {
   const [openIdx, setOpenIdx] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  const hidden = Math.max(FAQ_DATA.length - PREVIEW_COUNT, 0);
 
   return (
     <section
@@ -92,16 +96,50 @@ export default function FaqV2() {
 
       <div className="border-t border-ink/[0.07]">
         {FAQ_DATA.map((item, i) => (
-          <Row
+          // Rendered, not unmounted: the answers stay in the markup a crawler
+          // reads even while they are collapsed out of view.
+          <div
             key={i}
-            index={i + 1}
-            q={item.q}
-            a={item.a}
-            open={openIdx === i}
-            onToggle={() => setOpenIdx(openIdx === i ? -1 : i)}
-          />
+            className={
+              i < PREVIEW_COUNT || showAll
+                ? ""
+                : "pointer-events-none h-0 overflow-hidden opacity-0"
+            }
+            aria-hidden={i < PREVIEW_COUNT || showAll ? undefined : "true"}
+          >
+            <Row
+              index={i + 1}
+              q={item.q}
+              a={item.a}
+              open={openIdx === i}
+              onToggle={() => setOpenIdx(openIdx === i ? -1 : i)}
+            />
+          </div>
         ))}
       </div>
+
+      {hidden > 0 && (
+        <div className="mt-7 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            aria-expanded={showAll}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-ink/[0.12] px-5 text-[13px] font-medium text-text-primary/75 transition-colors hover:border-ink/20 hover:text-text-primary"
+          >
+            {showAll ? "Show fewer questions" : `Show all ${FAQ_DATA.length} questions`}
+            <svg
+              className={`h-3.5 w-3.5 transition-transform duration-300 ${showAll ? "rotate-180" : ""}`}
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
     </section>
   );
 }
