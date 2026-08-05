@@ -129,13 +129,19 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
   const { isAuthenticated } = useAuth();
 
   const [scrolled, setScrolled] = useState(false);
+  // The hero carries its own CTA in the first screen. Showing the header's copy
+  // beside it asks the same thing twice; it takes over once the hero's is gone.
+  const [pastHero, setPastHero] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({}); // mobile accordion — collapsed by default
 
   const toggleGroup = (name) => setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 24);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 24);
+      setPastHero(window.scrollY > window.innerHeight * 0.6);
+    };
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -297,7 +303,11 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             <button
               type="button"
               onClick={isAuthenticated ? () => navigate("/home") : goSignup}
-              className="inline-flex h-11 items-center whitespace-nowrap rounded-full px-4 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent) / 0.36)] lg:h-10"
+              className={`inline-flex h-11 items-center whitespace-nowrap rounded-full px-4 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent)_/_0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent)_/_0.36)] lg:h-10 ${
+              isAuthenticated || pastHero
+                ? "pointer-events-auto opacity-100"
+                : "pointer-events-none opacity-0"
+            }`}
               style={GOLD_BTN}
             >
               {isAuthenticated ? "Open App" : "Start Free"}

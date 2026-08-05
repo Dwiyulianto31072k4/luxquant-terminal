@@ -82,7 +82,7 @@ export default function HeroSignupPill({
   return (
     <div
       className={[
-        "mx-auto flex w-fit max-w-[420px] items-center justify-center gap-1.5 rounded-full sm:w-full border border-ink/20 bg-ink/[0.96] p-1.5 shadow-[0_10px_24px_rgb(var(--scrim) / 0.24)] backdrop-blur-md sm:max-w-[460px] sm:gap-2",
+        "mx-auto flex w-fit max-w-[420px] items-center justify-center gap-2.5 sm:w-full sm:max-w-[460px] sm:gap-2 sm:rounded-full sm:border sm:border-ink/20 sm:bg-ink/[0.96] sm:p-1.5 sm:shadow-[0_10px_24px_rgb(var(--scrim)_/_0.24)] sm:backdrop-blur-md",
         className,
       ].join(" ")}
     >
@@ -103,7 +103,7 @@ export default function HeroSignupPill({
       <button
         type="button"
         onClick={goPlatform}
-        className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-4 text-[13px] font-semibold text-accent-fg shadow-[0_5px_14px_rgb(var(--accent) / 0.22)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_8px_18px_rgb(var(--accent) / 0.35)] sm:px-5 sm:text-[14px]"
+        className="inline-flex h-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-7 text-[14px] font-semibold text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)_/_0.3)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_10px_24px_rgb(var(--accent)_/_0.42)] sm:h-11 sm:px-5"
       >
         {isAuthenticated ? "Open App" : "Start Free"}
       </button>
@@ -117,7 +117,7 @@ export default function HeroSignupPill({
         type="button"
         onClick={goTelegram}
         aria-label="Continue with Telegram"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/15 backdrop-blur-md transition-all duration-300 hover:scale-[1.05] hover:bg-white/25 sm:border-black/[0.08] sm:bg-white sm:shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] sm:backdrop-blur-none sm:hover:bg-white"
       >
         <TelegramIcon />
       </button>
@@ -126,7 +126,7 @@ export default function HeroSignupPill({
         type="button"
         onClick={goGoogle}
         aria-label="Continue with Google"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/15 backdrop-blur-md transition-all duration-300 hover:scale-[1.05] hover:bg-white/25 sm:border-black/[0.08] sm:bg-white sm:shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] sm:backdrop-blur-none sm:hover:bg-white"
       >
         <GoogleIcon />
       </button>
