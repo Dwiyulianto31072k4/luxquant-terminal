@@ -38,7 +38,12 @@ DEFAULT_AWAY_MESSAGE = (
 )
 
 SENDERS = frozenset(("user", "admin", "system", "ai"))
-SOURCES = frozenset(("web", "admin_panel", "telegram_topic", "telegram_dm", "system"))
+# `welcome_auto` is its own source rather than reusing `system`: it is what
+# answers "have we already greeted this account", and folding it in with away
+# replies would make that question unanswerable.
+SOURCES = frozenset(
+    ("web", "admin_panel", "telegram_topic", "telegram_dm", "system", "welcome_auto")
+)
 
 
 class ChatSchemaMissing(RuntimeError):
