@@ -57,6 +57,8 @@ export function useChatThread({ active }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  // Admin's read cursor — drives "Seen" under the user's own bubbles.
+  const [adminLastReadSeq, setAdminLastReadSeq] = useState(0);
 
   // Cursor lives in a ref as well as state: the transport reads it on every
   // tick and must see the newest value, not one captured in a stale closure.
@@ -71,6 +73,9 @@ export function useChatThread({ active }) {
       if (top > cursorRef.current) cursorRef.current = top;
     }
     if (meta?.status) setStatus(meta.status);
+    if (meta?.admin_last_read_seq != null) {
+      setAdminLastReadSeq((prev) => Math.max(prev, Number(meta.admin_last_read_seq) || 0));
+    }
   }, []);
 
   // ── open: one round trip for thread + tail ────────────────────────
@@ -86,6 +91,7 @@ export function useChatThread({ active }) {
       setAwayMessage(data.away_message || null);
       setMessages(data.messages || []);
       cursorRef.current = data.last_seq || 0;
+      setAdminLastReadSeq(Number(data.admin_last_read_seq) || 0);
       setLoaded(true);
     } catch (e) {
       setError(e?.response?.data?.detail || "Couldn't load the conversation.");
@@ -96,7 +102,7 @@ export function useChatThread({ active }) {
 
   // ── send: optimistic, idempotent ──────────────────────────────────
   const send = useCallback(
-    async (text) => {
+    async (text, kind = "text") => {
       const body = (text || "").trim();
       if (!body || sending) return;
 
@@ -106,7 +112,7 @@ export function useChatThread({ active }) {
         seq: null,
         sender: "user",
         body,
-        kind: "text",
+        kind,
         client_msg_id: clientMsgId,
         created_at: new Date().toISOString(),
         pending: true,
@@ -116,7 +122,7 @@ export function useChatThread({ active }) {
       setError(null);
 
       try {
-        const data = await chatApi.sendMessage(body, clientMsgId);
+        const data = await chatApi.sendMessage(body, clientMsgId, kind);
         const saved = data.message;
         setMessages((prev) => mergeMessages(prev, [saved]));
         if (saved.seq > cursorRef.current) cursorRef.current = saved.seq;
@@ -183,6 +189,24 @@ export function useChatThread({ active }) {
     }
   }, [active, conversationId, messages]);
 
+  // Upload, then send the URL as an ordinary message. Two steps rather than one
+  // multipart send: a failed send is retried from the URL, so nobody waits for
+  // the same photo to travel twice.
+  const sendImage = useCallback(
+    async (file) => {
+      if (!file || sending) return;
+      setError(null);
+      try {
+        const { url } = await chatApi.uploadImage(file);
+        if (!url) throw new Error("Upload returned no URL");
+        await send(url, "image");
+      } catch (e) {
+        setError(e?.response?.data?.detail || "Couldn't send that image.");
+      }
+    },
+    [send, sending]
+  );
+
   return {
     messages,
     conversationId,
@@ -193,8 +217,10 @@ export function useChatThread({ active }) {
     sending,
     error,
     loaded,
+    adminLastReadSeq,
     load,
     send,
+    sendImage,
     retry,
   };
 }

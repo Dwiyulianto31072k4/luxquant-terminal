@@ -1296,3 +1296,18 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .lq-chat-scrim { animation: none; }
 }
+
+/* Chat thread wallpaper.
+   A messenger thread reads wrong on a flat panel background — the bubbles have
+   nothing to sit on. This is the faintest possible tile: two dot layers at ~2%
+   over the app surface, so it registers as texture without competing with the
+   message text. Built from gradients rather than an image so it costs no
+   request and inherits the theme. */
+.lq-chat-thread {
+  background-color: rgb(var(--surface));
+  background-image:
+    radial-gradient(rgb(var(--ink) / 0.028) 1px, transparent 1px),
+    radial-gradient(rgb(var(--ink) / 0.02) 1px, transparent 1px);
+  background-size: 22px 22px, 22px 22px;
+  background-position: 0 0, 11px 11px;
+}

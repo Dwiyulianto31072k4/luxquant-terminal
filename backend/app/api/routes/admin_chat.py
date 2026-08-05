@@ -37,6 +37,9 @@ _STATUSES = ("open", "snoozed", "closed")
 
 class AdminSendIn(BaseModel):
     body: str = Field(min_length=1, max_length=chat_service.MAX_BODY_CHARS)
+    # For an image the body carries the URL from /chat/upload, which admins
+    # reuse rather than having a second upload endpoint that does the same job.
+    kind: str = Field(default="text", pattern="^(text|image)$")
     client_msg_id: Optional[str] = Field(default=None, max_length=64)
 
 
@@ -86,6 +89,9 @@ def list_conversations(
     status_filter: Optional[str] = Query(None, alias="status"),
     search: Optional[str] = Query(None),
     unread_only: bool = Query(False),
+    awaiting_read_only: bool = Query(False),
+    active_unread_only: bool = Query(False),
+    needs_reply_only: bool = Query(False),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     admin: User = Depends(get_admin_user),
@@ -95,8 +101,15 @@ def list_conversations(
         raise HTTPException(status_code=400, detail=f"status must be one of {_STATUSES}")
     try:
         return chat_service.admin_conversation_list(
-            db, status=status_filter, search=search,
-            unread_only=unread_only, limit=limit, offset=offset,
+            db,
+            status=status_filter,
+            search=search,
+            unread_only=unread_only,
+            awaiting_read_only=awaiting_read_only,
+            active_unread_only=active_unread_only,
+            needs_reply_only=needs_reply_only,
+            limit=limit,
+            offset=offset,
         )
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
@@ -144,6 +157,7 @@ def start_conversation(
             sender_user_id=admin.id,
             body=payload.body,
             source="admin_panel",
+            kind=getattr(payload, "kind", "text"),
             client_msg_id=payload.client_msg_id,
         )
         chat_service.mark_read(db, conv["id"], "admin", msg["seq"])
@@ -214,7 +228,15 @@ def list_messages(
         )
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
-    return {"messages": messages, "last_seq": conv["last_seq"], "status": conv["status"]}
+    # Fresh cursors so admin UI can show "Seen by user" live while polling.
+    fresh = chat_service.get_conversation(db, conversation_id) or conv
+    return {
+        "messages": messages,
+        "last_seq": fresh["last_seq"],
+        "status": fresh["status"],
+        "user_last_read_seq": fresh.get("user_last_read_seq", 0),
+        "admin_last_read_seq": fresh.get("admin_last_read_seq", 0),
+    }
 
 
 @router.post("/conversations/{conversation_id}/messages")
@@ -233,6 +255,7 @@ def send_message(
             sender_user_id=admin.id,
             body=payload.body,
             source="admin_panel",
+            kind=getattr(payload, "kind", "text"),
             client_msg_id=payload.client_msg_id,
         )
         chat_service.mark_read(db, conversation_id, "admin", msg["seq"])

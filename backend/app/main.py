@@ -343,6 +343,11 @@ ANNOUNCEMENT_IMAGES_DIR = os.environ.get("ANNOUNCEMENT_IMAGES_DIR", "/opt/luxqua
 os.makedirs(ANNOUNCEMENT_IMAGES_DIR, exist_ok=True)
 app.mount("/api/v1/announcement-images", StaticFiles(directory=ANNOUNCEMENT_IMAGES_DIR), name="announcement-images")
 
+# Serve images sent in chat as static files
+CHAT_IMAGES_DIR = os.environ.get("CHAT_IMAGES_DIR", "/opt/luxquant/chat-images")
+os.makedirs(CHAT_IMAGES_DIR, exist_ok=True)
+app.mount("/api/v1/chat-images", StaticFiles(directory=CHAT_IMAGES_DIR), name="chat-images")
+
 # Serve generated social post images as static files
 SOCIAL_POST_ASSETS_DIR = os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts")
 os.makedirs(SOCIAL_POST_ASSETS_DIR, exist_ok=True)

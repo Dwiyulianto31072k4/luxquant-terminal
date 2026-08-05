@@ -10,6 +10,10 @@ export const chatEn = {
   loading: "Loading…",
   sending: "sending…",
   retry: "retry",
+  attach: "Send an image",
+  image: "Sent image",
+  seen: "Seen by support",
+  delivered: "Delivered",
   empty: "Ask us anything — how a signal works, billing, or which plan fits you.",
   closed: "This conversation has been closed.",
 };
@@ -24,6 +28,10 @@ export const chatZh = {
   loading: "加载中…",
   sending: "发送中…",
   retry: "重试",
+  attach: "发送图片",
+  image: "已发送的图片",
+  seen: "客服已读",
+  delivered: "已送达",
   empty: "有任何问题都可以问我们 — 信号怎么看、账单、或者哪个方案更适合你。",
   closed: "此对话已关闭。",
 };

@@ -19,32 +19,53 @@ function timeLabel(iso) {
   }
 }
 
-/** Insert a date divider whenever the day changes. */
+/** Date dividers, plus the grouping WhatsApp uses.
+ *
+ * Consecutive messages from the same sender close together read as one turn,
+ * so only the last of a run gets a tail and a timestamp. Without that, five
+ * quick lines look like five separate interruptions.
+ */
+const GROUP_WINDOW_MS = 3 * 60 * 1000;
+
 function withDayBreaks(messages) {
   const out = [];
   let lastDay = null;
-  for (const m of messages) {
+  for (let i = 0; i < messages.length; i += 1) {
+    const m = messages[i];
     const day = m.created_at ? new Date(m.created_at).toDateString() : null;
     if (day && day !== lastDay) {
       out.push({ _divider: true, key: `d-${day}`, day });
       lastDay = day;
     }
-    out.push(m);
+    const next = messages[i + 1];
+    const sameRun =
+      next &&
+      next.sender === m.sender &&
+      next.created_at &&
+      m.created_at &&
+      new Date(next.created_at) - new Date(m.created_at) < GROUP_WINDOW_MS &&
+      new Date(next.created_at).toDateString() === day;
+    out.push({ ...m, _last: !sameRun });
   }
   return out;
 }
+
+/** An image message stores the URL in body; everything else is text. */
+const isImage = (m) => m.kind === "image" && typeof m.body === "string" && m.body.startsWith("/");
 
 export default function ChatPanel({ onClose }) {
   const { t } = useTranslation();
   const panelRef = useRef(null);
   const scrollRef = useRef(null);
+  const fileRef = useRef(null);
   const [input, setInput] = useState("");
 
   useDialog({ isOpen: true, onClose, ref: panelRef });
 
   const {
     messages, status, welcome, awayMessage,
-    loading, sending, error, loaded, load, send, retry,
+    loading, sending, error, loaded, adminLastReadSeq,
+    load, send, sendImage, retry,
   } = useChatThread({ active: true });
 
   useEffect(() => {
@@ -125,7 +146,10 @@ export default function ChatPanel({ onClose }) {
         )}
 
         {/* Thread */}
-        <div ref={scrollRef} className="custom-scrollbar flex-1 space-y-2.5 overflow-y-auto px-4 py-4">
+        <div
+          ref={scrollRef}
+          className="lq-chat-thread custom-scrollbar flex-1 overflow-y-auto px-3 py-3"
+        >
           {loading && !loaded && (
             <p className="py-8 text-center text-[12px] text-text-muted">
               {t("chat.loading") || "Loading…"}
@@ -144,47 +168,93 @@ export default function ChatPanel({ onClose }) {
 
           {rows.map((m) =>
             m._divider ? (
-              <div key={m.key} className="flex items-center gap-2 py-1">
-                <span className="h-px flex-1 bg-ink/8" />
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+              <div key={m.key} className="flex justify-center py-1.5">
+                <span className="rounded-lg bg-ink/[0.06] px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-text-muted">
                   {m.day}
                 </span>
-                <span className="h-px flex-1 bg-ink/8" />
               </div>
             ) : (
               <div
                 key={m.id ?? `s-${m.seq}`}
-                className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} ${
+                  m._last ? "mb-1.5" : "mb-0.5"
+                }`}
               >
-                <div className="max-w-[85%]">
-                  <div
-                    className={`whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
-                      m.sender === "user"
-                        ? "bg-accent font-medium text-accent-fg"
-                        : m.sender === "system"
-                          ? "border border-ink/5 bg-ink/[0.03] italic text-text-muted"
-                          : "border border-ink/5 bg-ink/[0.05] text-text-primary/90"
-                    } ${m.pending ? "opacity-60" : ""} ${m.failed ? "opacity-70 ring-1 ring-neg/40" : ""}`}
-                  >
-                    {m.body}
-                  </div>
-                  <div
-                    className={`mt-0.5 flex items-center gap-1.5 px-1 ${
-                      m.sender === "user" ? "justify-end" : "justify-start"
+                <div
+                  className={`relative max-w-[80%] shadow-sm ${
+                    m.sender === "system"
+                      ? "rounded-lg bg-ink/[0.04] italic"
+                      : m.sender === "user"
+                        ? `bg-accent text-accent-fg ${m._last ? "rounded-2xl rounded-br-sm" : "rounded-2xl"}`
+                        : // One step above the thread wallpaper, which is plain
+                          // --surface: an incoming bubble painted in --surface
+                          // is the same colour as what it sits on and vanishes.
+                          `border border-ink/[0.07] bg-surface-raised text-text-primary ${
+                            m._last ? "rounded-2xl rounded-bl-sm" : "rounded-2xl"
+                          }`
+                  } ${m.pending ? "opacity-60" : ""} ${m.failed ? "ring-1 ring-neg/40" : ""} ${
+                    isImage(m) ? "overflow-hidden p-1" : "px-3 py-2"
+                  }`}
+                >
+                  {isImage(m) ? (
+                    // Opens full size in a tab rather than a custom lightbox:
+                    // the browser already zooms, rotates and saves better than
+                    // anything worth writing here.
+                    <a href={m.body} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={m.body}
+                        alt={t("chat.image")}
+                        loading="lazy"
+                        className="h-auto max-h-[360px] w-auto max-w-[260px] rounded-xl"
+                      />
+                    </a>
+                  ) : (
+                    <span className="whitespace-pre-wrap break-words text-[13px] leading-relaxed">
+                      {m.body}
+                    </span>
+                  )}
+
+                  {/* Meta rides inside the bubble, bottom-right, the way every
+                      messenger does it — floated so short lines wrap around it
+                      instead of leaving a hole. */}
+                  <span
+                    className={`pointer-events-none select-none whitespace-nowrap text-[9px] ${
+                      isImage(m)
+                        ? "absolute bottom-2 right-2 rounded-md bg-black/45 px-1.5 py-0.5 text-white"
+                        : `float-right ml-2 mt-1 ${
+                            m.sender === "user" ? "text-accent-fg/65" : "text-text-muted/70"
+                          }`
                     }`}
                   >
-                    <span className="font-mono text-[9px] text-text-muted/60">
-                      {m.pending ? t("chat.sending") || "sending…" : timeLabel(m.created_at)}
-                    </span>
-                    {m.failed && (
-                      <button
-                        onClick={() => retry(m.client_msg_id)}
-                        className="font-mono text-[9px] uppercase tracking-wider text-neg-text hover:underline"
+                    {m.pending ? t("chat.sending") || "sending…" : timeLabel(m.created_at)}
+                    {m.sender === "user" && !m.pending && !m.failed && m.seq != null && (
+                      <span
+                        className={`ml-1 ${
+                          isImage(m)
+                            ? "text-white"
+                            : adminLastReadSeq >= m.seq
+                              ? "text-sky-500"
+                              : "text-accent-fg/65"
+                        }`}
+                        title={
+                          adminLastReadSeq >= m.seq
+                            ? t("chat.seen")
+                            : t("chat.delivered")
+                        }
                       >
-                        {t("chat.retry") || "retry"}
-                      </button>
+                        {adminLastReadSeq >= m.seq ? "✓✓" : "✓"}
+                      </span>
                     )}
-                  </div>
+                  </span>
+
+                  {m.failed && (
+                    <button
+                      onClick={() => retry(m.client_msg_id)}
+                      className="ml-2 text-[9px] uppercase tracking-wider text-neg-text underline"
+                    >
+                      {t("chat.retry") || "retry"}
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -202,6 +272,29 @@ export default function ChatPanel({ onClose }) {
             </p>
           ) : (
             <div className="flex items-end gap-2">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  // Reset first: picking the same file twice must still fire.
+                  e.target.value = "";
+                  if (f) sendImage(f);
+                }}
+              />
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={sending}
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-ink/10 text-text-muted transition-colors hover:bg-ink/5 hover:text-text-primary disabled:opacity-30"
+                aria-label={t("chat.attach")}
+                title={t("chat.attach")}
+              >
+                <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                </svg>
+              </button>
               <textarea
                 rows={1}
                 value={input}

@@ -10,6 +10,9 @@ export const adminChatApi = {
     status = null,
     search = null,
     unreadOnly = false,
+    awaitingReadOnly = false,
+    activeUnreadOnly = false,
+    needsReplyOnly = false,
     limit = 50,
     offset = 0,
   } = {}) => {
@@ -17,6 +20,9 @@ export const adminChatApi = {
     if (status) params.status = status;
     if (search) params.search = search;
     if (unreadOnly) params.unread_only = true;
+    if (awaitingReadOnly) params.awaiting_read_only = true;
+    if (activeUnreadOnly) params.active_unread_only = true;
+    if (needsReplyOnly) params.needs_reply_only = true;
     const response = await api.get("/api/v1/admin/chat/conversations", { params });
     return response.data;
   },
@@ -47,11 +53,23 @@ export const adminChatApi = {
     return response.data;
   },
 
-  sendMessage: async (conversationId, body, clientMsgId) => {
+  sendMessage: async (conversationId, body, clientMsgId, kind = "text") => {
     const response = await api.post(
       `/api/v1/admin/chat/conversations/${conversationId}/messages`,
-      { body, client_msg_id: clientMsgId }
+      { body, kind, client_msg_id: clientMsgId }
     );
+    return response.data;
+  },
+
+  // Reuses the user-side upload: an admin is a logged-in user, and a second
+  // endpoint storing the same files in the same place would only be one more
+  // thing to keep in step.
+  uploadImage: async (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await api.post("/api/v1/chat/upload", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 

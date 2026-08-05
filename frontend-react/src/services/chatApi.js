@@ -19,10 +19,23 @@ export const chatApi = {
 
   // clientMsgId makes the send idempotent — a retry or double-click collapses
   // to the original row server-side.
-  sendMessage: async (body, clientMsgId) => {
+  sendMessage: async (body, clientMsgId, kind = "text") => {
     const response = await api.post("/api/v1/chat/messages", {
       body,
+      kind,
       client_msg_id: clientMsgId,
+    });
+    return response.data;
+  },
+
+  // Upload first, then send the returned URL as a normal message with
+  // kind="image". Kept separate so a failed send can be retried without
+  // re-uploading the file.
+  uploadImage: async (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await api.post("/api/v1/chat/upload", form, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
   },

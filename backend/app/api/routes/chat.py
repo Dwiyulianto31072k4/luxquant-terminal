@@ -17,7 +17,10 @@ import secrets
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import os
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -37,6 +40,10 @@ SEND_LIMIT_PER_MIN = 10
 
 class SendIn(BaseModel):
     body: str = Field(min_length=1, max_length=chat_service.MAX_BODY_CHARS)
+    # "text" or "image". For an image the body carries the URL returned by
+    # /chat/upload; anything else is rejected rather than stored, so a client
+    # cannot invent kinds the renderers do not know how to draw.
+    kind: str = Field(default="text", pattern="^(text|image)$")
     # Client-generated UUID. Makes send idempotent so an optimistic-UI retry or
     # a double-click can't post twice.
     client_msg_id: Optional[str] = Field(default=None, max_length=64)
@@ -178,6 +185,7 @@ def send_message(
             sender_user_id=user.id,
             body=payload.body,
             source="web",
+            kind=payload.kind,
             client_msg_id=payload.client_msg_id,
         )
         # Sending is also reading everything before it.
@@ -210,6 +218,61 @@ def mark_read(
     except ChatSchemaMissing as e:
         raise _schema_guard(e)
     return {"ok": True}
+
+
+# --- image messages ----------------------------------------------
+# Stored outside the repo so a deploy never wipes what people sent, matching how
+# announcement and news images are already handled.
+CHAT_IMAGES_DIR = os.environ.get("CHAT_IMAGES_DIR", "/opt/luxquant/chat-images")
+ALLOWED_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+# Unlike the admin upload endpoints this one is open to every logged-in user, so
+# it needs a ceiling. A phone photo sits comfortably under this; a video renamed
+# to .jpg does not.
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+def validate_chat_image(filename: Optional[str], blob: bytes) -> str:
+    """Return the stored extension, or raise. Pure so the rules can be tested.
+
+    Extension-only: the bytes are never trusted to say what they are, and are
+    never executed — they are written under a random name and served by
+    StaticFiles, which types the response from this same extension. SVG is
+    absent on purpose; it can carry script and would run on our own origin.
+    """
+    ext = os.path.splitext(filename or "")[1].lower()
+    if ext not in ALLOWED_IMG:
+        raise HTTPException(400, f"{ext or 'That file type'} is not an image we accept")
+    if len(blob) > MAX_IMAGE_BYTES:
+        raise HTTPException(413, "Image is larger than 8 MB")
+    if not blob:
+        raise HTTPException(400, "That file is empty")
+    return ext
+
+
+@router.post("/upload")
+async def upload_chat_image(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+):
+    """Store one image and return the path to send as a message body.
+
+    Deliberately does not create the message. The client uploads, then sends a
+    normal message with kind='image', which keeps the retry story simple: a
+    failed send can be retried without re-uploading, and an upload nobody sends
+    is an orphaned file rather than half a thread.
+    """
+    # Read against a cap rather than trusting content-length, which the client
+    # sets; the extra byte is what makes an over-size file detectable.
+    blob = await file.read(MAX_IMAGE_BYTES + 1)
+    ext = validate_chat_image(file.filename, blob)
+
+    # Created here, not at import: a filesystem side effect at import time makes
+    # the module unimportable anywhere the path does not exist, tests included.
+    os.makedirs(CHAT_IMAGES_DIR, exist_ok=True)
+    fname = f"{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(CHAT_IMAGES_DIR, fname), "wb") as buf:
+        buf.write(blob)
+    return {"ok": True, "url": f"/api/v1/chat-images/{fname}"}
 
 
 @router.get("/unread-count")
