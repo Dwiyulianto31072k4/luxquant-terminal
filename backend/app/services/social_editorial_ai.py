@@ -160,6 +160,15 @@ _ADVICE_PATTERNS = (
     r"\bbefore any sustained (?:recovery|rally|move)\b",
     r"\bbreak(?:out|down) (?:above|below)\b",
     r"\bentry (?:point|zone)\b",
+    # Signal-shaped guidance. Found via the fallback writer's canned paragraph
+    # ("watch confirmation from volume, open interest, and how the market prices
+    # the next major level"), which carried no target and no named level and so
+    # sailed straight through the first version of this list.
+    r"\bnext major level\b",
+    r"\bwatch confirmation\b",
+    r"\bkey levels? to watch\b",
+    r"\bwatch for a (?:break|bounce|retest|reclaim)\b",
+    r"\blevel to (?:watch|beat|reclaim)\b",
     # Direct recommendations
     r"\b(?:investors|traders|you)\s+should\s+(?:buy|sell|hold|accumulate|exit)\b",
     r"\btime to (?:buy|sell)\b",

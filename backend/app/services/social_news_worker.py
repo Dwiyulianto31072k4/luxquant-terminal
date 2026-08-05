@@ -174,25 +174,37 @@ def _angle_for(item: NewsItem) -> str:
 
 
 def _headline_for(item: NewsItem) -> str:
+    """Fallback headline when the editorial AI is unavailable.
+
+    This used to return canned lines chosen by substring match, and both halves
+    of that were wrong.
+
+    The match was wrong: `"sol" in lower` fires on "insolvency", "consolidation"
+    and "sold", so a story about an exchange collapsing was headlined "Solana
+    bulls wake up as activity returns". `"strategy" in lower` turned any mention
+    of the word — "the Fed outlines strategy" — into a MicroStrategy headline.
+
+    The canned text was wrong even on a true match, because it asserts a market
+    claim the story never made: "Solana network halted after validator bug" also
+    came out as "bulls wake up as activity returns", the opposite of the news.
+
+    A fallback must not invent. Use the outlet's own words, trimmed to fit.
+    """
     title = _clean_text(item.extracted_title or item.title)
-    lower = title.lower()
-
-    if "sol" in lower or "solana" in lower:
-        return "Solana bulls wake up as activity returns"
-    if "microstrategy" in lower or "strategy" in lower:
-        return "Strategy headline tests Bitcoin conviction"
-    if "xrp" in lower:
-        return "XRP volume steals the spotlight"
-    if "fed" in lower or "inflation" in lower:
-        return "Fed inflation talk keeps markets alert"
-    if "memecoin" in lower or "meme coin" in lower:
-        return "Political memecoin debate heats up"
-    if "trump" in lower and "crypto" in lower:
-        return "Trump crypto links draw fresh scrutiny"
-
-    words = title.split()
-    headline = " ".join(words[:12])
-    return headline.rstrip(".,").title() if headline.isupper() else headline.rstrip(".,")
+    if not title:
+        return "Market update"
+    # Prefer a clean clause break over a hard word cut, so the headline reads as
+    # a sentence rather than a truncation.
+    if len(title) > 64:
+        cut = title[:64]
+        for sep in (" — ", " – ", ": ", ", "):
+            if sep in cut:
+                cut = cut.rsplit(sep, 1)[0]
+                break
+        else:
+            cut = cut.rsplit(" ", 1)[0]
+        title = cut.rstrip(" ,;:—–-")
+    return title.title() if title.isupper() else title
 
 
 def _hashtags_for(item: NewsItem) -> list[str]:
@@ -276,18 +288,16 @@ def _caption_for(item: NewsItem, headline: str, hashtags: list[str]) -> str:
 
     sentences = _article_sentences(desc, limit=2)
     paragraph_1 = " ".join(sentences) if sentences else desc.rstrip(".") + "."
-    paragraph_2 = (
-        "For traders, the question is whether this becomes a real liquidity "
-        "shift or stays as headline risk. Watch confirmation from volume, open "
-        "interest, and how the market prices the next major level."
-    )
-
-    return "\n\n".join([
+    # The canned second paragraph that used to sit here — "watch confirmation
+    # from volume, open interest, and how the market prices the next major
+    # level" — was trading guidance bolted onto every fallback caption
+    # regardless of the story, and it said nothing true about any of them. A
+    # fallback reports; it does not advise.
+    return "\n\n".join(p for p in [
         paragraph_1,
-        paragraph_2,
-        f"Source: {source}",
+        f"Source: {source}" if source else "",
         " ".join(hashtags),
-    ])
+    ] if p)
 
 
 def _wrap_text(draw, text_value: str, font, max_width: int) -> list[str]:
