@@ -129,6 +129,75 @@ CAPTION_AI_LABEL = os.environ.get(
 FINANCIAL_TOPICS = {"crypto", "markets", "macro"}
 
 
+# ── Deterministic advice scrubber ───────────────────────────────────────────
+# The system prompt already forbids price targets and buy/sell/hold advice, and
+# a caption shipped both anyway: an AMD draft carried "average price target of
+# 579 dollars" and "the stock must clear the moving-average resistance zone near
+# 511 to 517 dollars on strong volume before any sustained recovery". Neither was
+# invented — $579.11 really was the analyst average — which is exactly why the
+# prompt could not stop it: the model was reporting a fact, and the rule it broke
+# was about what we are willing to publish, not about truth.
+#
+# The same lesson was learned on the X card poster, where a prompt rule against
+# raw counts was not enough either and a deterministic scrubber had to back it.
+# A rule that must never be broken cannot live only in a prompt.
+#
+# Sentence-level, and deliberately narrow: it removes the sentence carrying the
+# advice rather than editing round it, because a half-deleted forecast reads
+# worse than no forecast.
+_ADVICE_PATTERNS = (
+    # Analyst / model price targets in any phrasing
+    r"\bprice target",
+    r"\btarget price\b",
+    r"\btarget of \$?\d",
+    r"\b(?:12|twelve)[- ]month target\b",
+    r"\bfair value of \$?\d",
+    # Technical-analysis levels presented as what the reader should watch for
+    r"\bresistance (?:zone|level|area)\b",
+    r"\bsupport (?:zone|level|area)\b",
+    r"\bmust clear\b",
+    r"\bmoving[- ]average (?:resistance|support)\b",
+    r"\bbefore any sustained (?:recovery|rally|move)\b",
+    r"\bbreak(?:out|down) (?:above|below)\b",
+    r"\bentry (?:point|zone)\b",
+    # Direct recommendations
+    r"\b(?:investors|traders|you)\s+should\s+(?:buy|sell|hold|accumulate|exit)\b",
+    r"\btime to (?:buy|sell)\b",
+    # Promises
+    r"\bguarantee[sd]?\b",
+    r"\bwill (?:rally|surge|soar|double|moon)\b",
+)
+_ADVICE_RE = re.compile("|".join(_ADVICE_PATTERNS), re.I)
+
+
+def strip_advice(caption: str) -> tuple[str, list[str]]:
+    """Drop any sentence that states a price target or tells the reader to trade.
+
+    Returns the cleaned caption and the sentences removed, so the admin can see
+    what was cut instead of wondering why a paragraph looks short.
+    """
+    # Short-circuit when there is nothing to cut. Without this the function
+    # still round-trips the text through a split and re-join, which collapses
+    # runs of whitespace — so a caption that broke no rule would come back
+    # subtly reformatted, and every caption would look "processed".
+    if not caption or not _ADVICE_RE.search(caption):
+        return caption, []
+
+    removed: list[str] = []
+    kept_paras: list[str] = []
+    for para in re.split(r"\n{2,}", caption or ""):
+        sentences = re.split(r"(?<=[.!?])\s+", para.strip())
+        keep = []
+        for sent in sentences:
+            if sent and _ADVICE_RE.search(sent):
+                removed.append(sent.strip())
+            elif sent:
+                keep.append(sent)
+        if keep:
+            kept_paras.append(" ".join(keep))
+    return "\n\n".join(kept_paras).strip(), removed
+
+
 def _normalize_paragraphs(text: str) -> str:
     """Collapse mixed single/double newlines into uniform blank-line-separated
     paragraphs so caption spacing is consistent (AI sometimes uses \\n, sometimes \\n\\n)."""
@@ -145,6 +214,18 @@ def assemble_caption(pack: dict, *, source_domain: Optional[str] = None) -> str:
     burned into the image.
     """
     body = _normalize_paragraphs(str(pack.get("caption") or ""))
+    # Last gate before the text becomes a post. Runs here rather than at the
+    # model boundary so it also covers the rule-based fallback writer and any
+    # future caller — there is exactly one funnel, and this is it.
+    body, _cut = strip_advice(body)
+    if _cut:
+        logger.warning(
+            "strip_advice removed %d advice sentence(s) from a caption: %s",
+            len(_cut), " || ".join(c[:120] for c in _cut),
+        )
+        # Recorded on the pack so the draft can show what was cut and the admin
+        # is not left wondering why a paragraph is shorter than expected.
+        pack["advice_removed"] = _cut
     raw_note = str(pack.get("source_note") or "").strip() or (source_domain or "")
     note = ""
     if raw_note:
@@ -339,7 +420,10 @@ def build_editorial_pack(
         "any relative time expression unless it is true relative to `today_utc`; when the story is more than a day old, "
         "write no relative time at all rather than implying it just happened.\n"
         "SAFETY & COMPLIANCE RULES: Never promise, guarantee or imply profit, returns or price targets. Never advise the "
-        "audience to buy, sell or hold any asset. Do not use hype or FOMO language (e.g. 'to the moon', 'last chance', "
+        "audience to buy, sell or hold any asset. This holds even when the figure is REAL and well sourced: do not report "
+        "analyst price targets, consensus targets, fair-value estimates, or technical levels such as support, resistance, "
+        "breakout or entry zones, and never state what a price 'must' do before it can recover. Those are accurate facts "
+        "we still refuse to publish, so omit the sentence rather than attribute it. Do not use hype or FOMO language (e.g. 'to the moon', 'last chance', "
         "'don't miss out'). Do not downplay risk. For stories involving death, war, disaster or personal tragedy, write "
         "soberly and respectfully and never trivialize human harm. Keep contested political topics evenhanded and "
         "non-partisan. Avoid demographic, national, religious or cultural stereotypes in both text and imagery."
