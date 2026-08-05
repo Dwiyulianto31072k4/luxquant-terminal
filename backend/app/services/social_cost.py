@@ -526,3 +526,125 @@ def image_model_catalog(size: str = "1024x1536") -> list[dict]:
     for r in rows:
         r["best_value"] = bool(best and r is best)
     return rows
+
+
+# ── Per-draft invoice ledger ────────────────────────────────────────────────
+# The aggregate fields (image_usd, total_usd, image_output_tokens…) cannot
+# describe a draft that was rendered more than once: re-render adds dollars to
+# the running total but never rewrites the token fields, so a draft ends up
+# quoting the dollars of every render against the tokens of none. That is why
+# draft 124 stored $0.0563 next to image_input_tokens = 0.
+#
+# A ledger fixes it structurally. Every paid call appends one immutable line
+# with its own tokens, its own rates and its own price, so the total is a sum of
+# things that actually happened rather than a counter that drifts.
+
+def _line(kind: str, usd: float, *, source: str, note: str = "", **fields) -> dict:
+    import uuid as _uuid
+    from datetime import datetime, timezone
+
+    return {
+        "id": _uuid.uuid4().hex[:10],
+        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "kind": kind,
+        "usd": round(float(usd or 0), 6),
+        "source": source,
+        "note": note,
+        **fields,
+    }
+
+
+def build_line_items(
+    cost: dict,
+    *,
+    provider: str = "",
+    model: str = "",
+    quality: str = "",
+    size: str = "",
+    is_edit: bool = False,
+    chat_model: str = "",
+    note: str = "",
+) -> list[dict]:
+    """Turn one build_generation_cost result into invoice lines.
+
+    One line per billed thing, never a merged row: a draft that ran an identity
+    pass and then a brand pass should read as two image lines, because that is
+    what the bill says.
+    """
+    items: list[dict] = []
+
+    if float(cost.get("chat_usd") or 0) > 0 or int(cost.get("prompt_tokens") or 0):
+        items.append(_line(
+            "chat",
+            cost.get("chat_usd"),
+            source=cost.get("chat_source") or "actual",
+            model=chat_model or os.environ.get("XAI_CHAT_MODEL", "grok-4"),
+            provider="xai",
+            tokens={
+                "in": int(cost.get("prompt_tokens") or 0),
+                "out": int(cost.get("completion_tokens") or 0),
+            },
+            rates={"in_per_m": PRICE_CHAT_INPUT_PER_M, "out_per_m": PRICE_CHAT_OUTPUT_PER_M},
+            note="editorial pack",
+        ))
+
+    if int(cost.get("search_count") or 0) > 0:
+        items.append(_line(
+            "search",
+            cost.get("search_usd"),
+            source=cost.get("search_source") or "published_rate",
+            provider="tavily",
+            count=int(cost.get("search_count") or 0),
+            rates={"flat_per_search": PRICE_SEARCH_USD},
+            note="source enrichment",
+        ))
+
+    n_img = int(cost.get("image_count") or 0)
+    if n_img > 0:
+        in_rate, out_rate = PRICE_OAI_IMAGE_BY_MODEL.get(
+            (model or "").lower(), (PRICE_OAI_IMG_IN_PER_M, PRICE_OAI_IMG_OUT_PER_M)
+        )
+        flat = PRICE_IMAGE_XAI_BY_MODEL.get((model or "").lower())
+        items.append(_line(
+            "image",
+            cost.get("image_usd"),
+            source=cost.get("image_source") or "billing_schedule",
+            provider=provider or "openai",
+            model=model,
+            quality=quality or None,
+            size=size or None,
+            is_edit=bool(is_edit),
+            count=n_img,
+            tokens={
+                "text_in": int(cost.get("image_text_tokens") or 0),
+                "image_in": int(cost.get("image_input_tokens") or 0),
+                "out": int(cost.get("image_output_tokens") or 0),
+            },
+            rates=(
+                {"flat_per_image": flat} if flat else
+                {"text_in_per_m": PRICE_OAI_TEXT_IN_PER_M,
+                 "image_in_per_m": in_rate, "out_per_m": out_rate}
+            ),
+            note=note or ("edit" if is_edit else "generate"),
+        ))
+    return items
+
+
+def invoice_totals(items: list) -> dict:
+    """Sum a ledger. This — not a running counter — is the draft's real cost."""
+    items = [i for i in (items or []) if isinstance(i, dict)]
+    by_kind: dict = {}
+    tok_in = tok_out = 0
+    for i in items:
+        by_kind[i.get("kind")] = round(by_kind.get(i.get("kind"), 0.0) + float(i.get("usd") or 0), 6)
+        t = i.get("tokens") or {}
+        tok_in += int(t.get("in") or 0) + int(t.get("text_in") or 0) + int(t.get("image_in") or 0)
+        tok_out += int(t.get("out") or 0)
+    return {
+        "lines": len(items),
+        "total_usd": round(sum(float(i.get("usd") or 0) for i in items), 6),
+        "by_kind": by_kind,
+        "tokens_in": tok_in,
+        "tokens_out": tok_out,
+        "images": sum(int(i.get("count") or 1) for i in items if i.get("kind") == "image"),
+    }

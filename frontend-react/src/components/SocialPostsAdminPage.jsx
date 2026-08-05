@@ -548,6 +548,107 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
 };
 
 // ── Spend by what you picked ───────────────────────────────────────
+// ── Feature-level roll-up, itemised ────────────────────────────────────────
+// CostBar sums the aggregate counters and reaches into the spend archive, so it
+// covers deleted drafts. This one reads the per-draft LEDGERS instead, which is
+// the only source that can say what was actually bought — which model, at which
+// tier — because those lines record the call rather than a running total.
+const InvoiceRollup = () => {
+  const [data, setData] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState(7);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .get("/api/v1/admin/social-posts/invoice-summary", { params: { days } })
+      .then((r) => alive && setData(r.data))
+      .catch(() => alive && setData(null));
+    return () => {
+      alive = false;
+    };
+  }, [days]);
+
+  if (!data || !data.lines) return null;
+  const num = (n) => (n || 0).toLocaleString("en-US");
+
+  return (
+    <div className="rounded-xl border border-ink/[0.08] bg-surface-raised px-3 py-2.5 space-y-2">
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted hover:text-text-primary"
+        >
+          itemised spend · {data.drafts} draft{data.drafts === 1 ? "" : "s"} · {data.lines} line
+          {data.lines === 1 ? "" : "s"} {open ? "▾" : "▸"}
+        </button>
+        <div className="flex items-center gap-1">
+          {[1, 7, 30].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDays(d)}
+              className={`px-1.5 py-0.5 rounded text-[9.5px] font-mono transition-colors ${
+                days === d
+                  ? "bg-accent/15 text-accent"
+                  : "text-text-muted hover:text-text-primary"
+              }`}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto text-[15px] font-mono tabular-nums font-semibold text-text-primary">
+          {usd(data.total_usd)}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {Object.entries(data.by_kind || {}).map(([k, v]) => (
+          <span key={k} className="text-[10px] font-mono text-text-muted">
+            {k} <span className="text-text-primary tabular-nums">{usd(v)}</span>
+          </span>
+        ))}
+        <span className="text-[10px] font-mono text-text-muted">
+          {num(data.tokens_in)} tok in · {num(data.tokens_out)} out · {data.images} image
+          {data.images === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      {open && (data.by_model || []).length > 0 && (
+        <div className="space-y-1 pt-0.5">
+          {data.by_model.map((m) => (
+            <div
+              key={m.model}
+              className="flex items-baseline gap-2 rounded-md border border-ink/[0.06] bg-ink/[0.02] px-2 py-1"
+            >
+              <span className="text-[10.5px] text-text-primary truncate">{m.model}</span>
+              <span className="text-[9px] font-mono text-text-muted/75 shrink-0">
+                {m.images} img · {num(m.out_tokens)} out
+              </span>
+              <span className="ml-auto text-[10px] font-mono tabular-nums text-text-muted shrink-0">
+                {usd(m.usd_per_image)}/img
+              </span>
+              <span className="text-[11px] font-mono tabular-nums text-text-primary shrink-0 w-16 text-right">
+                {usd(m.usd)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {open && data.legacy_drafts > 0 && (
+        <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+          {data.legacy_drafts} draft(s) predate the ledger — counted in the total, but
+          they cannot say which model they spent on, so they are left out of the
+          breakdown rather than guessed at.
+        </p>
+      )}
+    </div>
+  );
+};
+
 // The CostBar above already carries the totals. What it cannot answer is the
 // question the price buttons create: where did the money actually go, and on
 // which model? Read from each draft's recorded cost — nothing estimated here.
@@ -1235,6 +1336,105 @@ const ArtDirectionPanel = ({ postId, note, setNote, onRefsChanged }) => {
   );
 };
 
+// ── Per-draft invoice: every billed call, its tokens and its price ─────────
+// The old panel showed one blended total. It could not show a draft rendered
+// twice honestly, because re-render added dollars to a counter without ever
+// rewriting the token fields beside it.
+const InvoicePanel = ({ postId, refreshKey }) => {
+  const [inv, setInv] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .get(`/api/v1/admin/social-posts/${postId}/invoice`)
+      .then((r) => alive && setInv(r.data))
+      .catch(() => alive && setInv(null));
+    return () => {
+      alive = false;
+    };
+  }, [postId, refreshKey]);
+
+  if (!inv || !inv.lines?.length) return null;
+  const t = inv.totals || {};
+  const num = (n) => (n || 0).toLocaleString("en-US");
+
+  return (
+    <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] p-2.5 space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-baseline gap-2 text-left"
+      >
+        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-text-muted">
+          invoice · {t.lines} line{t.lines === 1 ? "" : "s"}
+        </span>
+        <span className="ml-auto text-[13px] font-mono tabular-nums font-semibold text-text-primary">
+          {usd(t.total_usd)}
+        </span>
+        <span className="text-[10px] text-text-muted">{open ? "▾" : "▸"}</span>
+      </button>
+
+      {!inv.reconciles && (
+        <p className="text-[9px] font-mono text-negative/90 leading-relaxed">
+          ledger {usd(t.total_usd)} ≠ stored {usd(inv.stored_total_usd)}
+        </p>
+      )}
+
+      {open && (
+        <div className="space-y-1.5">
+          {inv.lines.map((l) => {
+            const tk = l.tokens || {};
+            const inTok = (tk.in || 0) + (tk.text_in || 0) + (tk.image_in || 0);
+            return (
+              <div
+                key={l.id}
+                className="rounded-md border border-ink/[0.07] bg-surface px-2 py-1.5"
+              >
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wide text-accent/90">
+                    {l.kind}
+                  </span>
+                  <span className="text-[10.5px] text-text-primary truncate">
+                    {l.model || l.provider}
+                    {l.quality ? ` · ${l.quality}` : ""}
+                  </span>
+                  {l.source === "legacy" && (
+                    <span className="text-[8.5px] font-mono uppercase px-1 rounded bg-ink/[0.08] text-text-muted">
+                      legacy
+                    </span>
+                  )}
+                  <span className="ml-auto text-[11px] font-mono tabular-nums text-text-primary">
+                    {usd(l.usd)}
+                  </span>
+                </div>
+                <div className="text-[9px] font-mono text-text-muted/75 mt-0.5">
+                  {l.kind === "search"
+                    ? `${l.count || 0} search`
+                    : `${num(inTok)} in · ${num(tk.out)} out`}
+                  {l.note ? ` — ${l.note}` : ""}
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex items-baseline gap-2 pt-0.5">
+            <span className="text-[9px] font-mono text-text-muted/75">
+              {num(t.tokens_in)} tokens in · {num(t.tokens_out)} out · {t.images || 0} image
+              {t.images === 1 ? "" : "s"}
+            </span>
+          </div>
+          {inv.reconstructed && (
+            <p className="text-[9px] font-mono text-text-muted/70 leading-relaxed">
+              Rebuilt from the old counters — this draft predates the ledger, so its
+              token split is not reliable.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MaterialsPanel = ({ postId, onUpdated }) => {
   // Model choice, the editor's one-shot note, and how many references are
   // attached — the last one only so the button can say what it is about to use.
@@ -1716,6 +1916,8 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
           </p>
         )}
       </div>
+
+      <InvoicePanel postId={postId} refreshKey={busy} />
 
       <ArtDirectionPanel
         postId={postId}
@@ -2372,6 +2574,7 @@ const SocialPostsAdminPage = () => {
 
       <CostBar cost={cost} />
 
+      <InvoiceRollup />
       <ModelSpendBreakdown />
 
       <div className="flex items-center gap-1.5 mb-5 flex-wrap">

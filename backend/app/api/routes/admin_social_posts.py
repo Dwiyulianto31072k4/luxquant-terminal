@@ -746,10 +746,42 @@ def re_render_post_image(
                 image_quality=str(vm.get("image_quality") or os.environ.get("OPENAI_IMAGE_QUALITY", "medium")),
                 image_is_edit=bool(vm.get("image_is_edit", True)),
             )
-            prev_total = float(meta.get("total_usd") or 0)
+            # Append a real invoice line for THIS render. The counters below
+            # accumulate dollars but were never rewriting the token fields, so a
+            # twice-rendered draft quoted the dollars of both renders against
+            # the tokens of neither. The ledger is the record; the counters are
+            # kept only because the older dashboards still read them.
+            from app.services.social_cost import build_line_items, invoice_totals
+
+            ledger = [x for x in (meta.get("invoice") or []) if isinstance(x, dict)]
+            ledger += build_line_items(
+                add,
+                provider=str(vm.get("image_provider") or "openai"),
+                model=str(vm.get("image_model") or os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")),
+                quality=str(vm.get("image_quality") or os.environ.get("OPENAI_IMAGE_QUALITY", "medium")),
+                size=str(vm.get("image_size") or os.environ.get("OPENAI_IMAGE_SIZE", "1024x1536")),
+                is_edit=bool(vm.get("image_is_edit", True)),
+                note=str(image_mode or "").replace("ai_", "").replace("_", " ") or None,
+            )
+            meta["invoice"] = ledger
+            totals = invoice_totals(ledger)
+
             meta["image_count"] = int(meta.get("image_count") or 0) + int(add.get("image_count") or 1)
             meta["image_usd"] = round(float(meta.get("image_usd") or 0) + float(add.get("image_usd") or 0), 6)
-            meta["total_usd"] = round(prev_total + float(add.get("image_usd") or 0), 6)
+            meta["total_usd"] = round(float(meta.get("total_usd") or 0) + float(add.get("image_usd") or 0), 6)
+            # Token counters now follow the money instead of going stale.
+            meta["image_output_tokens"] = sum(
+                int((x.get("tokens") or {}).get("out") or 0) for x in ledger if x.get("kind") == "image"
+            )
+            meta["image_input_tokens"] = sum(
+                int((x.get("tokens") or {}).get("image_in") or 0) for x in ledger if x.get("kind") == "image"
+            )
+            meta["image_text_tokens"] = sum(
+                int((x.get("tokens") or {}).get("text_in") or 0) for x in ledger if x.get("kind") == "image"
+            )
+            meta["image_model"] = str(vm.get("image_model") or meta.get("image_model") or "")
+            meta["image_quality"] = str(vm.get("image_quality") or meta.get("image_quality") or "")
+            meta["invoice_total_usd"] = totals["total_usd"]
             meta["cost_source"] = add.get("cost_source") or meta.get("cost_source")
             meta["cost_actual"] = add.get("cost_source") == "actual"
             meta["image_source"] = add.get("image_source")
@@ -1350,3 +1382,168 @@ def delete_post_ref(
                 pass
     _save_meta(db, post_id, {"extra_refs": keep})
     return {"ok": True, "remaining": len(keep)}
+
+
+@router.get("/{post_id}/invoice")
+def get_post_invoice(
+    post_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Itemised bill for one draft: every paid call, its tokens and its price.
+
+    Drafts created before the ledger existed have no lines. Rather than show
+    them as free, their aggregate counters are rendered as a single line marked
+    `legacy` — honest about being a reconstruction, and about the fact that the
+    token split on those rows was never written correctly.
+    """
+    from app.services.social_cost import invoice_totals
+
+    row = _get_post_row(db, post_id)
+    meta = _meta_of(row)
+    ledger = [x for x in (meta.get("invoice") or []) if isinstance(x, dict)]
+    reconstructed = False
+
+    if not ledger and float(meta.get("total_usd") or 0) > 0:
+        reconstructed = True
+        if float(meta.get("chat_usd") or 0) > 0:
+            ledger.append({
+                "id": "legacy-chat", "kind": "chat", "source": "legacy",
+                "usd": round(float(meta.get("chat_usd") or 0), 6),
+                "model": meta.get("chat_model") or "", "provider": "xai",
+                "tokens": {"in": int(meta.get("prompt_tokens") or 0),
+                           "out": int(meta.get("completion_tokens") or 0)},
+                "note": "editorial pack",
+            })
+        if float(meta.get("search_usd") or 0) > 0:
+            ledger.append({
+                "id": "legacy-search", "kind": "search", "source": "legacy",
+                "usd": round(float(meta.get("search_usd") or 0), 6),
+                "provider": "tavily", "count": int(meta.get("search_count") or 0),
+                "note": "source enrichment",
+            })
+        if float(meta.get("image_usd") or 0) > 0:
+            ledger.append({
+                "id": "legacy-image", "kind": "image", "source": "legacy",
+                "usd": round(float(meta.get("image_usd") or 0), 6),
+                "model": meta.get("image_model") or "", "quality": meta.get("image_quality") or None,
+                "provider": meta.get("image_provider") or "openai",
+                "count": int(meta.get("image_count") or 1),
+                "tokens": {"text_in": int(meta.get("image_text_tokens") or 0),
+                           "image_in": int(meta.get("image_input_tokens") or 0),
+                           "out": int(meta.get("image_output_tokens") or 0)},
+                "note": "recorded before the ledger — token split unreliable",
+            })
+
+    totals = invoice_totals(ledger)
+    stored = round(float(meta.get("total_usd") or 0), 6)
+    return {
+        "post_id": post_id,
+        "headline": row.get("headline"),
+        "image_mode": row.get("image_mode"),
+        "lines": ledger,
+        "totals": totals,
+        "stored_total_usd": stored,
+        # Surfaced, not hidden: if the ledger and the old counter disagree, the
+        # UI should say so rather than quietly pick one.
+        "reconciles": abs(totals["total_usd"] - stored) < 0.0005,
+        "reconstructed": reconstructed,
+        "note": (
+            "Every line is one billed API call with its own tokens and rates. "
+            "Lines marked 'legacy' were rebuilt from aggregate counters written "
+            "before the ledger existed; their token split is not reliable."
+        ),
+    }
+
+
+@router.get("/invoice-summary")
+def invoice_summary(
+    days: int = 7,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Roll-up across every live draft's ledger: what was bought, and for how much.
+
+    Deliberately separate from /cost-summary. That one sums the aggregate
+    counters and reaches back through the spend archive to cover deleted rows;
+    this one reads the itemised lines, so it can break spend down by what was
+    actually called — which model, at which tier, edit or generate — and can
+    only see drafts that still exist.
+    """
+    days = max(1, min(int(days or 7), 90))
+    rows = db.execute(text("""
+        SELECT id, gen_meta
+        FROM social_posts
+        WHERE gen_meta IS NOT NULL
+          AND created_at > now() - make_interval(days => :d)
+    """), {"d": days}).mappings().all()
+
+    by_kind: dict = {}
+    by_model: dict = {}
+    total = 0.0
+    lines = 0
+    drafts = 0
+    tok_in = tok_out = 0
+    images = 0
+    legacy_drafts = 0
+
+    for r in rows:
+        meta = r["gen_meta"] or {}
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                continue
+        ledger = [x for x in (meta.get("invoice") or []) if isinstance(x, dict)]
+        if not ledger:
+            # Counted, but kept out of the per-model breakdown: a draft with no
+            # ledger cannot say which model it spent on, and guessing would put
+            # invented rows in a bill.
+            if float(meta.get("total_usd") or 0) > 0:
+                legacy_drafts += 1
+                total = round(total + float(meta.get("total_usd") or 0), 6)
+                drafts += 1
+            continue
+        drafts += 1
+        for it in ledger:
+            lines += 1
+            usd = float(it.get("usd") or 0)
+            total = round(total + usd, 6)
+            kind = it.get("kind") or "other"
+            by_kind[kind] = round(by_kind.get(kind, 0.0) + usd, 6)
+            t = it.get("tokens") or {}
+            tok_in += int(t.get("in") or 0) + int(t.get("text_in") or 0) + int(t.get("image_in") or 0)
+            tok_out += int(t.get("out") or 0)
+            if kind == "image":
+                images += int(it.get("count") or 1)
+                key = f"{it.get('model') or 'unknown'}"
+                if it.get("quality"):
+                    key += f" · {it['quality']}"
+                slot = by_model.setdefault(key, {"usd": 0.0, "images": 0, "out_tokens": 0})
+                slot["usd"] = round(slot["usd"] + usd, 6)
+                slot["images"] += int(it.get("count") or 1)
+                slot["out_tokens"] += int(t.get("out") or 0)
+
+    models = [
+        {"model": k, **v, "usd_per_image": round(v["usd"] / v["images"], 6) if v["images"] else None}
+        for k, v in by_model.items()
+    ]
+    models.sort(key=lambda m: -m["usd"])
+    return {
+        "days": days,
+        "drafts": drafts,
+        "lines": lines,
+        "total_usd": total,
+        "by_kind": by_kind,
+        "by_model": models,
+        "tokens_in": tok_in,
+        "tokens_out": tok_out,
+        "images": images,
+        "legacy_drafts": legacy_drafts,
+        "note": (
+            "Itemised from per-draft ledgers, so it only covers drafts that still "
+            "exist (rows are pruned after 2 days). "
+            + (f"{legacy_drafts} draft(s) predate the ledger and are counted in the "
+               "total but cannot be broken down by model." if legacy_drafts else "")
+        ),
+    }

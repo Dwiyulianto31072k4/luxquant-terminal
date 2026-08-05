@@ -625,6 +625,24 @@ def build_draft(
             image_quality=str(vm.get("image_quality") or os.environ.get("OPENAI_IMAGE_QUALITY", "medium")),
             image_is_edit=bool(vm.get("image_is_edit")),
         )
+        # Seed the ledger at creation: the editorial call and the search are
+        # already real spend, and a draft that is never rendered should still
+        # show what it cost to write.
+        try:
+            from app.services.social_cost import build_line_items, invoice_totals
+            _items = build_line_items(
+                draft.gen_meta,
+                provider=str(img_provider or ""),
+                model=img_model,
+                quality=str(vm.get("image_quality") or ""),
+                size=str(vm.get("image_size") or ""),
+                is_edit=bool(vm.get("image_is_edit")),
+                chat_model=str(usage.get("chat_model") or ""),
+            )
+            draft.gen_meta["invoice"] = _items
+            draft.gen_meta["invoice_total_usd"] = invoice_totals(_items)["total_usd"]
+        except Exception:
+            pass
         draft.gen_meta["cheap_mode"] = os.environ.get("SOCIAL_CHEAP_MODE", "1")
         draft.gen_meta["image_api_calls"] = image_count
         if vm:
