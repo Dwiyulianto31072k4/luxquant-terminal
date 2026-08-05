@@ -378,15 +378,55 @@ def estimate_cost(
 # schedule reads $0.1872 where OpenAI actually billed ~$0.1736, so treat these
 # as a ceiling, not a promise.
 
+# ── Measured quality, researched 2026-08-05 ─────────────────────────────────
+# Two independent sources, because neither alone answers the question.
+#
+# 1. Artificial Analysis Image Arena — blind pairwise votes, Elo. It publishes
+#    BOTH a text-to-image and an image-EDITING board, and they disagree in a way
+#    that matters here: this pipeline sends an *edit* on almost every render (a
+#    brand sheet, a face, the editor's own references), so the editing board is
+#    the one to rank by. GPT Image 2 leads text-to-image by 135 Elo over
+#    grok-imagine-image-quality but by only 28 on editing — at 3.7x the price.
+#
+# 2. VibeDex tier benchmark — the arena only ever measures the `high` tier, so
+#    it cannot say what `medium` or `low` are worth. VibeDex scored gpt-image-2
+#    across all three on a 0-5 scale over 50 prompts: high 4.155, medium 4.108,
+#    low 3.946. Medium beat high on 19 of 50 prompts and tied 9, so the gap is
+#    close to a coin flip; low lost 35 of 50 to medium.
+#
+# The practical consequence for THIS product: the usual reason to pay for `high`
+# is small or dense text, and we never ask the model for text — the headline,
+# CTA and lockup are composited afterwards in PIL. What `high` still buys us is
+# close-up faces and fine material detail. So medium is the right default and
+# high is for face stories, which is the opposite of how it was configured.
+#
+# elo_edit / elo_t2i are MEASURED, at the tier named in elo_tier. Anything else
+# is derived and marked as such.
+_ARENA = {
+    #                              elo_edit, rank_edit, elo_t2i, rank_t2i, tier
+    "gpt-image-2":               (1258, 2,  1339, 1,  "high"),
+    "gpt-image-1.5":             (1253, 4,  1263, 5,  "high"),
+    "grok-imagine-image-quality": (1230, 9,  1204, 13, None),
+    "grok-imagine-image":        (1213, 13, 1181, 23, None),
+    "gpt-image-1":               (1133, 46, 1137, 51, "high"),
+    "gpt-image-1-mini":          (1064, 57, 1093, 78, "medium"),
+}
+
+# VibeDex tier scores for gpt-image-2, as a fraction of its own `high`. Applied
+# as a proportional haircut to the normalised quality of any tier the arena did
+# not measure — a measured within-model ratio, not an invented Elo.
+_TIER_RATIO = {"high": 1.0, "medium": 4.108 / 4.155, "low": 3.946 / 4.155}
+_TIER_SCORE = {"high": 4.155, "medium": 4.108, "low": 3.946}
+
 # Quality is meaningless for xAI (flat per image) and the arena rank is what the
 # extra money buys, so both are stated where the admin is choosing.
 _MODEL_NOTES = {
-    "gpt-image-2": "Top of the text-to-image arena. The default for a poster that has to carry a face or a real brand mark.",
-    "gpt-image-1.5": "Previous flagship. Rarely worth it over gpt-image-2 at the same quality.",
-    "gpt-image-1-mini": "Cheapest usable tier — roughly a quarter of the token rate. Good for a plain scene with no face and no mark.",
-    "gpt-image-1": "Legacy. Billed at the gpt-image-2 rate; no reason to pick it.",
-    "grok-imagine-image": "Flat price, no quality tier. Fast and cheap; weaker at reproducing a supplied mark exactly.",
-    "grok-imagine-image-quality": "Flat price, xAI's better image model. Still below gpt-image-2 on the arena board.",
+    "gpt-image-2": "Best in the arena on both boards. Worth its price on a close-up face or fine material detail; on anything else medium is nearly the same picture.",
+    "gpt-image-1.5": "Within 5 Elo of gpt-image-2 on editing. A reasonable substitute, rarely a reason to prefer it.",
+    "gpt-image-1-mini": "Bottom of the measured set — 194 Elo behind the leader. Fine for a plain scene with no face and no mark.",
+    "gpt-image-1": "Legacy, and billed at the gpt-image-2 rate. No reason to pick it.",
+    "grok-imagine-image": "Only 45 Elo behind the leader on EDITING at a ninth of the price — the value pick when a story has a mark but no face.",
+    "grok-imagine-image-quality": "28 Elo behind gpt-image-2 on editing at a quarter of the price. Flat rate, no tiers.",
 }
 
 
@@ -409,34 +449,80 @@ def estimate_image_usd(
 
 
 def image_model_catalog(size: str = "1024x1536") -> list[dict]:
-    """Every selectable model/quality with its computed per-image price."""
+    """Every selectable model/quality with its computed price AND measured quality.
+
+    Ordered best-first. The picker used to sort by price, which answered the
+    wrong question: the admin is choosing how good the poster should be, and the
+    price is the consequence. Ranked by the EDITING board because that is what
+    this pipeline actually calls — see the note on _ARENA.
+    """
     from app.services.social_image_generator import (
         IMAGE_MODELS_ALLOWED,
         IMAGE_QUALITIES_ALLOWED,
         XAI_MODELS_ALLOWED,
     )
 
-    out: list[dict] = []
+    rows: list[dict] = []
+
+    def _row(provider: str, model: str, quality):
+        elo_edit, rank_edit, elo_t2i, rank_t2i, elo_tier = _ARENA.get(
+            model, (None, None, None, None, None)
+        )
+        # The arena measured one tier per model. Say which, and mark every other
+        # tier as derived rather than quoting an Elo that was never measured.
+        measured = quality is None or elo_tier is None or quality == elo_tier
+        return {
+            "provider": provider,
+            "model": model,
+            "quality": quality,
+            "size": size,
+            "usd": estimate_image_usd(model=model, quality=quality or "medium", size=size),
+            "output_tokens": openai_image_output_tokens(size, quality) if quality else None,
+            "elo_edit": elo_edit,
+            "elo_t2i": elo_t2i,
+            "rank_edit": rank_edit,
+            "rank_t2i": rank_t2i,
+            "elo_tier": elo_tier,
+            "elo_measured": bool(measured and elo_edit),
+            "tier_score": _TIER_SCORE.get(quality) if model == "gpt-image-2" else None,
+            "note": _MODEL_NOTES.get(model, ""),
+        }
+
     for model in IMAGE_MODELS_ALLOWED:
         for quality in IMAGE_QUALITIES_ALLOWED:
-            out.append({
-                "provider": "openai",
-                "model": model,
-                "quality": quality,
-                "size": size,
-                "usd": estimate_image_usd(model=model, quality=quality, size=size),
-                "output_tokens": openai_image_output_tokens(size, quality),
-                "note": _MODEL_NOTES.get(model, ""),
-            })
+            rows.append(_row("openai", model, quality))
     for model in XAI_MODELS_ALLOWED:
-        out.append({
-            "provider": "xai",
-            "model": model,
-            # xAI bills flat per image; a quality tier here would be a lie.
-            "quality": None,
-            "size": size,
-            "usd": estimate_image_usd(model=model),
-            "output_tokens": None,
-            "note": _MODEL_NOTES.get(model, ""),
-        })
-    return sorted(out, key=lambda r: r["usd"])
+        # xAI bills flat per image; a quality tier here would be a lie.
+        rows.append(_row("xai", model, None))
+
+    # Quality is TWO axes, and merging them would invent a comparison nobody
+    # measured. The arena ranks MODELS (at one tier each); VibeDex ranks TIERS
+    # (within gpt-image-2 only). There is no bridge between them, so an earlier
+    # version that multiplied a normalised Elo by the tier ratio ended up
+    # claiming gpt-image-2 (low) beats grok-imagine-image-quality — a matchup
+    # that has never been run.
+    #
+    # So: quality_pct is the MODEL's measured strength and is identical across
+    # that model's tiers. The tier is reported separately, with its own measured
+    # score where one exists. Sorting is model strength first, then tier.
+    elos = [r["elo_edit"] for r in rows if r["elo_edit"]]
+    lo, hi = (min(elos), max(elos)) if elos else (0, 1)
+    span = max(1, hi - lo)
+    _TIER_ORDER = {"high": 3, "medium": 2, "low": 1, None: 2}
+    for r in rows:
+        r["quality_pct"] = (
+            round(8.0 + 0.92 * (100.0 * (r["elo_edit"] - lo) / span), 1)
+            if r["elo_edit"] else None
+        )
+        r["tier_rank"] = _TIER_ORDER.get(r["quality"], 2)
+
+    rows.sort(key=lambda r: (-(r["quality_pct"] or 0), -r["tier_rank"], r["usd"]))
+
+    # Quality per dollar, on the rows where both numbers are real. This is what
+    # makes the cheap edit models look as strong as they actually measure.
+    for r in rows:
+        r["value"] = round((r["quality_pct"] or 0) / r["usd"], 1) if r["usd"] else None
+    best = max((r for r in rows if r["value"]), key=lambda r: r["value"], default=None)
+    for r in rows:
+        r["best_value"] = bool(best and r is best)
+    return rows

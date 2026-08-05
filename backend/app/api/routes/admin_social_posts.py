@@ -1203,6 +1203,16 @@ def list_image_models(admin: User = Depends(get_admin_user)):
             "(xAI is flat per image). Measured against real drafts the schedule reads "
             "slightly high — $0.1872 where OpenAI billed $0.1736 — so treat it as a ceiling."
         ),
+        "quality_note": (
+            "Ranked by Artificial Analysis' image-EDITING Elo, not text-to-image: this "
+            "pipeline sends an edit on nearly every render. The two boards disagree — "
+            "gpt-image-2 leads text-to-image by 135 Elo over grok-imagine-image-quality "
+            "but by only 28 on editing, at 3.7x the price. Tier scores are VibeDex's "
+            "0-5 benchmark over 50 prompts (gpt-image-2 only; the arena measures one "
+            "tier per model). Model strength and tier are separate axes and are not "
+            "combined, because no benchmark has compared one model's low tier against "
+            "another model."
+        ),
     }
 
 

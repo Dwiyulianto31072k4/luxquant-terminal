@@ -1731,7 +1731,9 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
           or let our AI draw it — you pay per click
         </p>
 
-        {/* Every price here is computed server-side from the billing tables. */}
+        {/* Ranked by MEASURED quality, not by price. The old list sorted
+            cheapest-first, which answered the wrong question: you are choosing
+            how good the poster should be; the price is the consequence. */}
         <div className="space-y-1">
           {(models?.models || []).map((m) => {
             const k = modelKey(m);
@@ -1741,33 +1743,54 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                 key={k}
                 type="button"
                 onClick={() => setPicked(k)}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-left transition-colors ${
+                className={`w-full px-2.5 py-2 rounded-md border text-left transition-colors ${
                   on
                     ? "border-accent/50 bg-accent/[0.08]"
                     : "border-ink/[0.08] bg-ink/[0.02] hover:border-ink/20"
                 }`}
               >
-                <span className="text-[11px] font-semibold text-text-primary leading-tight">
-                  {SHORT_LABEL[m.model] || m.model}
-                </span>
-                {m.quality && (
-                  <span className="text-[9.5px] font-mono uppercase tracking-wide text-text-muted">
-                    {m.quality}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-text-primary leading-tight">
+                    {SHORT_LABEL[m.model] || m.model}
                   </span>
-                )}
-                {m.is_default && (
-                  <span className="text-[8.5px] font-mono uppercase tracking-wide text-accent/90">
-                    default
+                  {m.quality && (
+                    <span className="text-[9px] font-mono uppercase tracking-wide px-1 py-px rounded bg-ink/[0.07] text-text-muted">
+                      {m.quality}
+                    </span>
+                  )}
+                  {m.best_value && (
+                    <span className="text-[8.5px] font-mono uppercase tracking-wide px-1 py-px rounded bg-accent/20 text-accent">
+                      best value
+                    </span>
+                  )}
+                  {m.is_default && (
+                    <span className="text-[8.5px] font-mono uppercase tracking-wide text-text-muted/70">
+                      default
+                    </span>
+                  )}
+                  <span className="ml-auto text-[11px] font-mono tabular-nums text-text-primary">
+                    {usd(m.usd)}
                   </span>
-                )}
-                <span className="ml-auto text-[11px] font-mono tabular-nums text-text-primary">
-                  {usd(m.usd)}
-                </span>
+                </div>
+                {/* Model strength — the arena's editing Elo, which is the board
+                    that matches what this pipeline actually calls. */}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="h-1 flex-1 rounded-full bg-ink/[0.08] overflow-hidden">
+                    <span
+                      className={`block h-full rounded-full ${on ? "bg-accent" : "bg-ink/25"}`}
+                      style={{ width: `${m.quality_pct || 0}%` }}
+                    />
+                  </span>
+                  <span className="text-[9px] font-mono tabular-nums text-text-muted shrink-0">
+                    {m.elo_edit ? `elo ${m.elo_edit}` : "unrated"}
+                    {m.rank_edit ? ` · #${m.rank_edit}` : ""}
+                  </span>
+                </div>
               </button>
             );
           })}
           {!models && (
-            <p className="text-[10px] font-mono text-text-muted/70 py-1">Loading prices…</p>
+            <p className="text-[10px] font-mono text-text-muted/70 py-1">Loading models…</p>
           )}
         </div>
 
@@ -1791,9 +1814,28 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
                 {usd(chosen.usd_two_pass)}
               </span>
             </div>
+            {chosen.quality && chosen.tier_score && (
+              <div className="flex items-baseline gap-2">
+                <span className="text-[9.5px] font-mono text-text-muted/80">
+                  tier score (0–5, measured)
+                </span>
+                <span className="ml-auto text-[10.5px] font-mono tabular-nums text-text-muted">
+                  {chosen.tier_score.toFixed(3)}
+                </span>
+              </div>
+            )}
             {chosen.note && (
               <p className="text-[9.5px] text-text-muted/80 leading-relaxed pt-0.5">
                 {chosen.note}
+              </p>
+            )}
+            {/* Two boards, two different answers, and the gap is the argument
+                for the cheap models on this pipeline specifically. */}
+            {chosen.elo_edit && (
+              <p className="text-[9px] font-mono text-text-muted/60 leading-relaxed pt-0.5">
+                editing elo {chosen.elo_edit} (#{chosen.rank_edit})
+                {chosen.elo_t2i ? ` · text-to-image ${chosen.elo_t2i} (#${chosen.rank_t2i})` : ""}
+                {chosen.elo_tier ? ` · measured at ${chosen.elo_tier}` : ""}
               </p>
             )}
           </div>
