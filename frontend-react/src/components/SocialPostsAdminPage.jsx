@@ -1570,6 +1570,10 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
   const picked = pickedRaw || (defaultKey ? modelKey(defaultKey) : null);
   const chosen = (models?.models || []).find((m) => modelKey(m) === picked) || null;
   const [data, setData] = useState(null);
+  // Drives both the button's verb and whether the free path is offered at
+  // all. Declared after `data` — reading it above that line is a temporal
+  // dead zone and throws at render, which the bundler does not catch.
+  const hasImage = Boolean(data?.has_raw_image);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
@@ -2115,6 +2119,11 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               model: chosen.model,
               quality: chosen.quality || undefined,
               note: note.trim() || undefined,
+              // Always a real render from this button. Without it, a draft that
+              // already had a background fell into the free recompose path,
+              // which repaints the headline over the same picture — so "the
+              // image is wrong, try again" returned the wrong image again.
+              force_new: true,
             })
           }
           className="w-full px-3 py-2.5 rounded-lg text-[12px] font-semibold border border-ink/15 bg-accent/15 text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-40 transition-colors shadow-[0_0_18px_-6px_rgb(var(--accent) / 0.6)]"
@@ -2122,14 +2131,34 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         >
           {busy === "__render__"
             ? "Generating…"
-            : `Generate · ${chosen ? usd(chosen.usd) : "—"}`}
+            : `${hasImage ? "Regenerate" : "Generate"} · ${chosen ? usd(chosen.usd) : "—"}`}
         </button>
+        {hasImage && (
+          <p className="text-[9px] font-mono text-text-muted text-center leading-relaxed">
+            a different picture every time — the model is not deterministic
+          </p>
+        )}
         {(note.trim() || refCount > 0) && (
           <p className="text-[9px] font-mono text-text-muted text-center leading-relaxed">
             using your direction{refCount > 0 ? ` + ${refCount} reference${refCount > 1 ? "s" : ""}` : ""}
-            {" — "}full render, not a free recompose
           </p>
         )}
+
+        {/* Free path, only offered when there is actually a background to
+            reuse. It repaints the headline and lockup — useful after a caption
+            edit, useless when the picture itself is the problem, so it says so
+            rather than sitting behind the same word as the paid button. */}
+        {hasImage && (
+          <button
+            type="button"
+            disabled={!!busy}
+            onClick={() => reRender({})}
+            className="w-full px-3 py-1.5 rounded-lg text-[11px] font-medium border border-ink/[0.12] text-text-secondary hover:border-ink/25 hover:text-text-primary disabled:opacity-40 transition-colors"
+          >
+            Keep this picture, redraw the headline · free
+          </button>
+        )}
+
         {busy === "__render__" ? (
           <div className="rounded-md border border-accent/25 bg-accent/[0.05] px-2.5 py-2 space-y-1">
             <div className="flex items-center gap-2">

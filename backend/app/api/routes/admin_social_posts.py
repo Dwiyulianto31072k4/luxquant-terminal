@@ -448,6 +448,13 @@ async def get_post_materials(
         "last_image_error": _meta.get("last_image_error"),
         "last_image_error_at": _meta.get("last_image_error_at"),
         "last_image_attempt": _meta.get("last_image_attempt"),
+        # Whether a background already exists. The panel needs this to offer the
+        # free "redraw the headline" path only when there is something to reuse,
+        # and to say "Regenerate" rather than "Generate" once there is.
+        "has_raw_image": bool(
+            _meta.get("raw_image_path")
+            and Path(str(_meta.get("raw_image_path"))).exists()
+        ),
         "entities": entities,
         "featured_person": featured,
         "primary_org": assets.get("primary_org"),
@@ -543,6 +550,12 @@ def re_render_post_image(
     # draft (PUT /direction); this is for "same again but wider", which you do
     # not want stored and silently re-applied to every later render.
     note: Optional[str] = None,
+    # "The picture is wrong, give me a different one." Without this there was no
+    # such button: once a raw background existed, every click fell into the free
+    # recompose path, which repaints the headline over the SAME background and
+    # hands back a picture that looks identical. The editor read that as broken,
+    # and they were right — nothing they could click would buy a new image.
+    force_new: bool = False,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -629,7 +642,8 @@ def re_render_post_image(
     prior_mode = str(row.get("image_mode") or "")
     brand_already_in_scene = "brand" in prior_mode
     can_free = (
-        raw_path
+        not force_new
+        and raw_path
         and Path(raw_path).exists()
         and (not primary_logo or brand_already_in_scene)
         # Recompose only repaints the headline over the SAME background, so it
@@ -684,6 +698,19 @@ def re_render_post_image(
             db.rollback()
 
     if not composed_free:
+        # Keep the previous background instead of overwriting it. The generator
+        # writes to a path derived from the headline, so a regenerate would
+        # clobber the only copy of an image the editor might still prefer —
+        # and "try again" should never destroy the thing you are comparing
+        # against.
+        if force_new and raw_path and Path(raw_path).exists():
+            try:
+                stamp = datetime.utcnow().strftime("%H%M%S")
+                keep = Path(raw_path).with_name(f"{Path(raw_path).stem}_prev{stamp}.png")
+                Path(raw_path).replace(keep)
+                meta.setdefault("previous_raws", []).append(str(keep))
+            except Exception:
+                pass
         result = generate_ai_social_image(
             news_id=news_id,
             headline=headline,
@@ -782,6 +809,7 @@ def re_render_post_image(
             meta["image_model"] = str(vm.get("image_model") or meta.get("image_model") or "")
             meta["image_quality"] = str(vm.get("image_quality") or meta.get("image_quality") or "")
             meta["invoice_total_usd"] = totals["total_usd"]
+            meta["last_render_kind"] = "regenerate" if force_new else "render"
             meta["cost_source"] = add.get("cost_source") or meta.get("cost_source")
             meta["cost_actual"] = add.get("cost_source") == "actual"
             meta["image_source"] = add.get("image_source")
