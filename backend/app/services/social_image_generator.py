@@ -215,7 +215,12 @@ def _custom_direction_block(
     if refs:
         # Numbered in the order they are attached to the API call, so "the third
         # image" in the prompt and the third attachment are the same file.
-        lines.append("ATTACHED REFERENCE IMAGES, in order:")
+        # Anchored to the END, not numbered from 1: a face or a brand sheet is
+        # attached before these, so absolute positions would name the wrong
+        # image the moment a story had either.
+        lines.append(
+            f"The LAST {len(refs)} attached image(s) are the editor's references, in this order:"
+        )
         n = 0
         for role in REF_ROLE_ORDER:
             for r in refs:
@@ -1910,7 +1915,6 @@ def generate_ai_social_image(
             # model was told the brand's name and then had to draw it from
             # memory. The second attachment is the actual artwork.
             edit_refs = [face_ref]
-            edit_refs.extend(admin_refs)
             if heroes and logo_ok:
                 logo_ref = _prepare_logos_sheet(
                     [str(p) for p in logo_paths], news_id=news_id
@@ -1930,6 +1934,12 @@ def generate_ai_social_image(
                         f" No usable artwork for {', '.join(heroes)} was supplied, so show the "
                         "company through architecture and setting only — draw NO logo at all."
                     )
+            # The editor's own references go LAST, after the face and the brand
+            # sheet. Slotting them in between broke the sentence directly above
+            # this — "the second is the official artwork" stopped being true the
+            # moment anything was attached — and it is what the direction block
+            # means by "the last N attached images".
+            edit_refs.extend(admin_refs)
             gen_prompt = identity_prompt
             u = _edit_image(identity_prompt, edit_refs, raw_path, provider=provider)
             image_usage_acc = _merge_usage(image_usage_acc, u)
