@@ -95,6 +95,22 @@ export default function HeroSignupPill({
     navigate(isAuthenticated ? "/home" : "/login");
   };
 
+  // Signed in there is one action and nothing to choose between, so the capsule
+  // — which exists to hold a choice — would be an empty frame.
+  if (isAuthenticated) {
+    return (
+      <div className={["mx-auto flex w-full max-w-[400px] justify-center sm:max-w-[440px]", className].join(" ")}>
+        <button
+          type="button"
+          onClick={goPlatform}
+          className="inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-8 text-[14px] font-semibold text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)_/_0.3)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_10px_24px_rgb(var(--accent)_/_0.42)]"
+        >
+          Open App
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       className={[
@@ -104,49 +120,43 @@ export default function HeroSignupPill({
         className,
       ].join(" ")}
     >
-      {/* The offer, as a line of text rather than a second button — one gold
-          control beside three marks read as two competing calls to action. It
-          stays tappable so nobody who aims at the words gets nothing. */}
+      {/* The offer, set as a label rather than a second button — a filled
+          control here competed with the three that actually do the work. Still
+          tappable so nobody aiming at the words gets nothing. */}
       <button
         type="button"
         onClick={goPlatform}
-        className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3 text-left text-[14px] font-semibold text-accent-fg outline-none sm:px-4 sm:text-[15px]"
+        className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3.5 text-left text-[13px] font-medium text-accent-fg/80 outline-none transition-colors hover:text-accent-fg sm:px-4 sm:text-[14px]"
       >
-        {isAuthenticated ? "Open App" : "Start Free"}
+        Start Free
       </button>
 
-      {/* Signing in is what the marks are for; with a session there is nothing
-          left for them to do. */}
-      {!isAuthenticated && (
-        <>
-          <button
-            type="button"
-            onClick={goTelegram}
-            aria-label="Continue with Telegram"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
-          >
-            <TelegramIcon />
-          </button>
+      <button
+        type="button"
+        onClick={goTelegram}
+        aria-label="Continue with Telegram"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12]"
+      >
+        <TelegramIcon />
+      </button>
 
-          <button
-            type="button"
-            onClick={goGoogle}
-            aria-label="Continue with Google"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
-          >
-            <GoogleIcon />
-          </button>
+      <button
+        type="button"
+        onClick={goGoogle}
+        aria-label="Continue with Google"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12]"
+      >
+        <GoogleIcon />
+      </button>
 
-          <button
-            type="button"
-            onClick={goDiscord}
-            aria-label="Continue with Discord"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white shadow-[inset_0_1px_0_rgb(var(--ink)_/_0.9)] transition-transform duration-300 hover:scale-[1.05]"
-          >
-            <DiscordIcon />
-          </button>
-        </>
-      )}
+      <button
+        type="button"
+        onClick={goDiscord}
+        aria-label="Continue with Discord"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] transition-colors duration-200 hover:bg-ink/[0.12]"
+      >
+        <DiscordIcon />
+      </button>
     </div>
   );
 }
