@@ -389,7 +389,7 @@ const NewsPickerModal = ({ onClose, onPick, currentId }) => {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search headlines…"
-              className="w-36 sm:w-52 px-3 py-2 bg-transparent text-text-primary text-[12px] placeholder:text-text-muted/50 focus:outline-none"
+              className="w-36 sm:w-52 px-3 py-2 bg-transparent text-text-primary text-[12px] placeholder:text-text-muted focus:outline-none"
             />
             {q && (
               <button
@@ -1908,7 +1908,7 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
               </p>
             ) : null}
             {brief?.story && (
-              <p className="text-[10px] text-text-muted/90 leading-relaxed bg-ink/[0.04] rounded-md p-2 border border-ink/5">
+              <p className="text-[10px] text-text-muted leading-relaxed bg-ink/[0.04] rounded-md p-2 border border-ink/5">
                 <span className="font-semibold text-text-primary">Context:</span> {brief.story}
               </p>
             )}
