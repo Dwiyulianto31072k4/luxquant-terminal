@@ -24,7 +24,6 @@ import { PageHeader } from "./ui/PageHeader";
 const PAGE_SIZE = 28; // multiple of 4 → fills the desktop 4-col grid without lone trailing cards
 
 // Brand assets (in /public — referenced by absolute path)
-const LUXQUANT_LOGO = "/logo.png";
 const TRADINGVIEW_IMAGE = "/news-flow-tradingview.jpg";
 
 // Domains that should display their own promo/marketing image as full-bleed thumbnail
@@ -64,7 +63,39 @@ const getImageSrc = (item) => {
   const url = item?.image_url;
   if (!url || url === "webpage_photo" || (typeof url === "string" && url.trim() === ""))
     return null;
+  // Relative paths served by our API (telegram screenshots, etc.)
+  if (typeof url === "string" && url.startsWith("/")) return url;
   return url;
+};
+
+/** Reject obvious non-photo / broken placeholders after load attempts. */
+const isLikelyBadImageHost = (url) => {
+  if (!url) return true;
+  const u = String(url).toLowerCase();
+  // Generic 1×1 / tracking / known empty shells
+  if (u.includes("1x1") || u.includes("pixel.gif") || u.includes("spacer")) return true;
+  return false;
+};
+
+/** Brand cover when a source never ships image_url (TradingView News Flow, etc.). */
+const getBrandCover = (item) => {
+  const domain = String(item?.domain || "").toLowerCase();
+  if (!domain) return null;
+  for (const [d, img] of Object.entries(FULL_BLEED_BRAND_IMAGES)) {
+    if (domain.includes(d)) return img;
+  }
+  return null;
+};
+
+/**
+ * Best card image: article photo first, then known brand cover.
+ * TradingView items almost never carry image_url — without this they render
+ * as blank text cards even though we ship a proper News Flow cover.
+ */
+const getCardImage = (item) => {
+  const raw = getImageSrc(item);
+  if (raw && !isLikelyBadImageHost(raw)) return raw;
+  return getBrandCover(item);
 };
 
 const getVideoSrc = (item) => {
@@ -77,7 +108,7 @@ const hasBrandImage = (item) =>
   Object.keys(FULL_BLEED_BRAND_IMAGES).some((d) => item?.domain?.includes(d));
 
 // "Visual" = has a real image OR a full-bleed brand promo (good enough to anchor a hero)
-const hasVisual = (item) => !!getImageSrc(item) || hasBrandImage(item);
+const hasVisual = (item) => !!getCardImage(item);
 
 // Auto-categorize by title keywords (lightweight, client-side)
 const CATEGORY_RULES = [
@@ -162,18 +193,17 @@ const cleanText = (s) => {
   }
 };
 
-// BrandThumbnail — solid black "wire" card (Bloomberg-style masthead).
-// No gold glow / grid / corner fold — logo + wordmark only.
+// Soft fill for missing art — no red tile, no logo stamp (looks empty/broken).
 const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
   const fullBleedImageKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) => domain?.includes(d));
   if (fullBleedImageKey) {
     const imgUrl = FULL_BLEED_BRAND_IMAGES[fullBleedImageKey];
     return (
-      <div className="w-full h-full overflow-hidden bg-black">
+      <div className="h-full w-full overflow-hidden bg-black">
         <img
           src={imgUrl}
           alt={domain}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover"
           style={{ objectPosition: "10% center" }}
           loading="lazy"
         />
@@ -181,37 +211,21 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
     );
   }
 
+  // Quiet surface only — never a logo hole. Text lives outside this block.
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden bg-[rgb(var(--surface))]">
-      {/* subtle top rule — terminal masthead, not a glow */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-ink/[0.08]" />
+    <div
+      className="relative h-full w-full overflow-hidden bg-ink/[0.04]"
+      aria-hidden="true"
+    >
       <div
-        className={`relative z-10 flex flex-col items-center ${compact ? "gap-1.5" : "gap-2.5"}`}
-      >
-        <img
-          src={LUXQUANT_LOGO}
-          alt="LuxQuant"
-          className={`object-contain opacity-95 ${compact ? "w-9 h-9" : "w-14 h-14 sm:w-16 sm:h-16"}`}
-        />
-        <div className="flex flex-col items-center gap-0.5">
-          <span
-            className={`font-mono uppercase tracking-[0.28em] text-ink/75 ${
-              compact ? "text-[7px]" : "text-[9px] sm:text-[10px]"
-            }`}
-          >
-            LuxQuant
-          </span>
-          <span
-            className={`font-mono uppercase tracking-[0.22em] text-ink/40 ${
-              compact ? "text-[6.5px]" : "text-[8px]"
-            }`}
-          >
-            News
-          </span>
-        </div>
-      </div>
-      {isHeadline ? (
-        <span className="absolute bottom-2 left-2 font-mono text-[8px] uppercase tracking-[0.16em] text-ink/35">
+        className="absolute inset-0 opacity-80"
+        style={{
+          background:
+            "linear-gradient(145deg, rgb(var(--ink) / 0.06) 0%, transparent 55%, rgb(var(--ink) / 0.04) 100%)",
+        }}
+      />
+      {!compact && isHeadline ? (
+        <span className="absolute bottom-2 left-2 font-mono text-[8px] uppercase tracking-[0.16em] text-text-muted/35">
           Wire
         </span>
       ) : null}
@@ -223,17 +237,101 @@ const BrandThumbnail = ({ domain, isHeadline = false, compact = false }) => {
 // 3. NEWS DETAIL MODAL — reader desk (solid chrome, responsive sheet/dialog)
 // ════════════════════════════════════════════
 
+/** Credit card for the account that published a story first. Links straight to
+ *  that post when the channel is public, so readers can verify at the origin. */
+const SourceCredit = ({ credit, faviconUrl }) => {
+  const [markFailed, setMarkFailed] = useState(false);
+  const initials = String(credit.name || "?")
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  const inner = (
+    <>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/[0.1] bg-surface-secondary">
+        {faviconUrl && !markFailed ? (
+          <img
+            src={faviconUrl}
+            alt=""
+            /* A channel avatar is a full picture and should fill the tile;
+               a favicon is a small glyph and needs breathing room. */
+            className={
+              credit.kind === "telegram"
+                ? "h-full w-full object-cover"
+                : "h-[18px] w-[18px] object-contain"
+            }
+            onError={() => setMarkFailed(true)}
+          />
+        ) : credit.kind === "telegram" ? (
+          <svg className="h-[18px] w-[18px] text-text-muted" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+          </svg>
+        ) : (
+          <span className="font-mono text-[10px] font-semibold uppercase text-text-primary">
+            {initials || "??"}
+          </span>
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold text-text-primary">
+          {credit.name}
+        </span>
+        <span className="block truncate font-mono text-[10px] text-text-muted">
+          {credit.handle || (credit.url ? "Original publisher" : "Private channel")}
+        </span>
+      </span>
+      {credit.url ? (
+        <svg
+          className="h-3.5 w-3.5 shrink-0 text-text-muted"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+          />
+        </svg>
+      ) : null}
+    </>
+  );
+
+  const shell =
+    "flex items-center gap-3 rounded-lg border border-ink/[0.1] bg-surface-secondary px-3 py-2.5";
+
+  return credit.url ? (
+    <a
+      href={credit.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${shell} transition hover:border-ink/25`}
+    >
+      {inner}
+    </a>
+  ) : (
+    <div className={shell}>{inner}</div>
+  );
+};
+
 const NewsModal = ({ item, onClose }) => {
   const [extract, setExtract] = useState(null);
   const [loading, setLoading] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [faviconFailed, setFaviconFailed] = useState(false);
+  const [mediaRatio, setMediaRatio] = useState(null);
 
   useEffect(() => {
     if (!item?.id) return;
     setExtract(null);
     setImgFailed(false);
     setFaviconFailed(false);
+    setMediaRatio(null);
     setLoading(true);
     api
       .get(`/api/v1/crypto-news-feed/extract/${item.id}`)
@@ -250,17 +348,33 @@ const NewsModal = ({ item, onClose }) => {
   const videoSrc = getVideoSrc(extract) || getVideoSrc(item);
   const summary = extract?.summary || item.description || null;
   const fullText = extract?.full_text || item.raw_text || null;
+  // The API builds summary as the first 600 chars of full_text, so rendering
+  // both printed the same paragraph twice. Only keep the lead when it is
+  // genuinely different text.
+  const leadIsPrefix =
+    !!summary &&
+    !!fullText &&
+    cleanText(fullText).startsWith(cleanText(summary).slice(0, 120));
+  const leadText = fullText && leadIsPrefix ? null : summary;
+  const bodyText = fullText && fullText !== summary ? fullText : leadText ? null : summary;
   const keywords = extract?.keywords || [];
   const authors = extract?.authors || [];
   const isPhoto = item.content_type === "photo";
   const isVideo = item.content_type === "video" || !!videoSrc;
-  const faviconUrl = getFaviconUrl(item.domain, 64);
-  const domainShort = shortDomain(item.domain) || item.source || "Wire";
-  const domainLabel = (item.domain || item.source || "")
+  const credit = item.source || null;
+  // Prefer the mark the API resolved (channel avatar, or the publisher's own
+  // favicon behind a redirect) over guessing from a domain we may not have.
+  const faviconUrl = credit?.icon || getFaviconUrl(item.domain, 64);
+  const isTelegramCredit = credit?.kind === "telegram";
+  const domainShort = shortDomain(item.domain) || credit?.name || "Wire";
+  const domainLabel = (item.domain || credit?.name || "")
     .replace(/^www\./i, "")
     .split(".")[0]
     ?.toUpperCase();
-  const category = categorizeItem(item);
+  // categorizeItem hands back a key, not the rule, so the chip was rendering
+  // empty for every story that did match a category.
+  const categoryKey = categorizeItem(item);
+  const category = categoryKey ? CATEGORY_RULES.find((c) => c.key === categoryKey) : null;
   const published = item.created_at
     ? (() => {
         try {
@@ -284,7 +398,11 @@ const NewsModal = ({ item, onClose }) => {
           <img
             src={faviconUrl}
             alt=""
-            className="h-4 w-4 object-contain sm:h-[18px] sm:w-[18px]"
+            className={
+              isTelegramCredit
+                ? "h-full w-full object-cover"
+                : "h-4 w-4 object-contain sm:h-[18px] sm:w-[18px]"
+            }
             onError={() => setFaviconFailed(true)}
           />
         ) : (
@@ -295,9 +413,20 @@ const NewsModal = ({ item, onClose }) => {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="truncate font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
-            {domainShort}
-          </span>
+          {credit?.url ? (
+            <a
+              href={credit.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary underline decoration-ink/25 underline-offset-[3px] transition hover:decoration-ink/60"
+            >
+              {credit.name}
+            </a>
+          ) : (
+            <span className="truncate font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
+              {domainShort}
+            </span>
+          )}
           <span className="h-1 w-1 shrink-0 rounded-full bg-ink/25" />
           <span className="font-mono text-[10px] tabular-nums text-text-muted">
             {timeAgo(item.created_at)}
@@ -350,22 +479,52 @@ const NewsModal = ({ item, onClose }) => {
     </div>
   );
 
-  const heroMax = "max-h-[min(34vh,260px)] sm:max-h-[min(40vh,360px)] md:max-h-[min(42vh,400px)]";
+  // Layout follows the picture. Measured across the live feed: RSS art is all
+  // landscape (1.5–1.9), Telegram art is mostly 1:1 with a portrait tail, and
+  // three quarters of stories carry no image at all. A landscape shot squeezed
+  // into a side column reads tiny, and a square one stretched across the top
+  // wastes the fold — so wide media goes on top, square and taller media sits
+  // beside the text. Seed the guess by host so the layout doesn't jump on load.
+  const seedRatio = imgSrc && String(imgSrc).startsWith("http") ? 1.6 : 1;
+  const ratio = mediaRatio ?? seedRatio;
+  const isSplit = !!imgSrc && !videoSrc && ratio < 1.15;
+  // Three quarters of stories are wire headlines with no picture. A brand cover
+  // is worth showing; an empty placeholder box is not, so those open as text.
+  const brandCover = getBrandCover(item);
+  const hasMedia = !!(videoSrc || imgSrc || brandCover);
+  const heroMax = isSplit
+    ? "max-h-[min(34vh,260px)] sm:max-h-[min(40vh,360px)] md:max-h-[min(78vh,620px)]"
+    : "max-h-[min(34vh,260px)] sm:max-h-[min(38vh,340px)] md:max-h-[min(44vh,420px)]";
 
   return (
     <Modal
       isOpen
       onClose={onClose}
-      size="reader"
+      size="2xl"
       padded={false}
       accent={false}
       header={header}
-      footer={footer}
+      /* No article link means no action, and an empty footer bar just looks broken. */
+      footer={item.url ? footer : undefined}
     >
-      {/* Hero media — full-bleed, scales with viewport */}
-      <div className="relative w-full overflow-hidden bg-black">
+      <div className={isSplit ? "md:grid md:grid-cols-[minmax(0,42%)_minmax(0,58%)]" : ""}>
+      {/* Media panel — its shape follows the picture, see layout notes above */}
+      {hasMedia ? (
+      <div className={`relative w-full overflow-hidden bg-black ${isSplit ? "md:h-full" : ""}`}>
+        {/* Blurred copy of the same image fills the leftover box, so an
+            off-ratio picture never sits in dead black bars. */}
+        {imgSrc && !videoSrc ? (
+          <img
+            src={imgSrc}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
+          />
+        ) : null}
         <div
-          className={`flex min-h-[9.5rem] w-full items-center justify-center sm:min-h-[12rem] ${heroMax}`}
+          className={`relative flex min-h-[9.5rem] w-full items-center justify-center sm:min-h-[12rem] ${
+            isSplit ? "md:h-full md:min-h-[24rem]" : ""
+          } ${heroMax}`}
         >
           {videoSrc ? (
             <video
@@ -385,7 +544,11 @@ const NewsModal = ({ item, onClose }) => {
             <img
               src={imgSrc}
               alt=""
-              className={`w-full object-cover sm:object-contain ${heroMax}`}
+              className={`max-h-full w-full object-contain ${heroMax}`}
+              onLoad={(e) => {
+                const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                if (w && h) setMediaRatio(w / h);
+              }}
               onError={() => setImgFailed(true)}
             />
           ) : (
@@ -397,13 +560,22 @@ const NewsModal = ({ item, onClose }) => {
         {/* Bottom scrim + source chip — solid black, no page blur */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-scrim/70 via-scrim/25 to-transparent" />
         {domainLabel ? (
-          <span className="pointer-events-none absolute bottom-3 right-3 rounded border border-ink/12 bg-scrim/75 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink/75">
+          // Sits on the photo, so it keeps its own dark-on-light contrast
+          // rather than theme tokens — ink/75 on scrim/75 rendered invisible.
+          <span className="pointer-events-none absolute bottom-3 right-3 max-w-[55%] truncate rounded border border-white/15 bg-black/65 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/85">
             {domainLabel}
           </span>
         ) : null}
       </div>
+      ) : null}
 
-      <div className="space-y-5 px-4 py-5 sm:space-y-6 sm:px-6 sm:py-6">
+      <div
+        className={`space-y-5 px-4 py-5 sm:space-y-6 sm:px-6 sm:py-6 ${
+          isSplit
+            ? "md:border-l md:border-ink/[0.07]"
+            : "mx-auto w-full max-w-[46rem]" /* keep line length readable when text runs alone */
+        }`}
+      >
         {/* Headline block */}
         <header className="space-y-2.5">
           {category ? (
@@ -431,18 +603,20 @@ const NewsModal = ({ item, onClose }) => {
             <div className="h-3 w-4/6 rounded bg-ink/5" />
             <div className="h-3 w-3/4 rounded bg-ink/5" />
           </div>
-        ) : summary ? (
+        ) : leadText ? (
           <section className="space-y-2">
             <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
               Summary
             </h3>
             <p className="text-[14px] leading-[1.7] text-text-secondary sm:text-[15px] sm:leading-[1.75]">
-              {cleanText(summary)}
+              {cleanText(leadText)}
             </p>
           </section>
-        ) : (
+        ) : bodyText ? null : (
           <p className="font-mono text-[11px] text-text-muted/70">
-            Full extract unavailable — open the original article.
+            {isTelegramCredit
+              ? "Posted straight to Telegram — open the original for full context."
+              : "Full extract unavailable — open the original article."}
           </p>
         )}
 
@@ -459,17 +633,30 @@ const NewsModal = ({ item, onClose }) => {
           </div>
         ) : null}
 
-        {fullText && fullText !== summary ? (
-          <section className="space-y-2.5 border-t border-ink/[0.07] pt-5">
-            <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
-              Article preview
-            </h3>
-            <p className="whitespace-pre-line text-[13px] leading-[1.75] text-text-muted sm:text-[13.5px]">
-              {cleanText(fullText).slice(0, 1400)}
-              {fullText.length > 1400 ? "…" : ""}
+        {bodyText ? (
+          <section className={`space-y-2.5 ${leadText ? "border-t border-ink/[0.07] pt-5" : ""}`}>
+            {leadText ? (
+              <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
+                Article preview
+              </h3>
+            ) : null}
+            <p className="whitespace-pre-line text-[14px] leading-[1.7] text-text-secondary sm:text-[15px] sm:leading-[1.75]">
+              {cleanText(bodyText).slice(0, 1400)}
+              {cleanText(bodyText).length > 1400 ? "…" : ""}
             </p>
           </section>
         ) : null}
+
+        {/* Attribution — who published this first, and where to read it there */}
+        {credit ? (
+          <section className="space-y-2.5 border-t border-ink/[0.07] pt-5">
+            <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
+              {isTelegramCredit ? "Shared from" : "Source"}
+            </h3>
+            <SourceCredit credit={credit} faviconUrl={faviconUrl} />
+          </section>
+        ) : null}
+      </div>
       </div>
     </Modal>
   );
@@ -480,7 +667,9 @@ const NewsModal = ({ item, onClose }) => {
 // ════════════════════════════════════════════
 
 const sourceLabel = (item) =>
-  shortDomain(item?.domain) || (item?.source ? String(item.source).slice(0, 18) : "") || "Wire";
+  shortDomain(item?.domain) ||
+  (item?.source?.name ? String(item.source.name).slice(0, 18) : "") ||
+  "Wire";
 
 // Media with real fallback (never leave a blank black hole after img error)
 const MediaBlock = ({ item, className = "", playSize = "md", compact = false }) => {
@@ -536,127 +725,151 @@ const MediaBlock = ({ item, className = "", playSize = "md", compact = false }) 
   );
 };
 
-// Lead — classic top media + headline (clean, not awkward side-by-side stretch)
-const LeadCard = ({ item, onSelect }) => (
-  <article onClick={() => onSelect(item)} className="group cursor-pointer h-full flex flex-col">
-    <MediaBlock
-      item={item}
-      className="w-full aspect-[16/10] max-h-[220px] sm:max-h-[240px]"
-      playSize="md"
-    />
-    <div className="pt-2.5 space-y-1.5 flex-1">
-      <div className="flex items-center gap-1.5">
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-          {sourceLabel(item)}
+// ── Source chip (favicon or letter — never LuxQuant seal) ──
+const SourceMark = ({ item, size = 18 }) => {
+  const [failed, setFailed] = useState(false);
+  // RSS rows carry no domain, so the card fell back to a bare letter. The API
+  // resolves a real mark for every source — channel avatar or publisher icon.
+  const resolved = item?.source?.icon;
+  const fav = !failed ? resolved || (item?.domain ? getFaviconUrl(item.domain, 64) : null) : null;
+  const letter = (sourceLabel(item) || "N").slice(0, 1).toUpperCase();
+
+  if (fav) {
+    return (
+      <img
+        src={fav}
+        alt=""
+        width={size}
+        height={size}
+        className={`shrink-0 rounded-md ${
+          item?.source?.kind === "telegram" ? "object-cover" : "object-contain"
+        }`}
+        style={{ width: size, height: size }}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center rounded-md bg-ink/[0.06] font-mono font-semibold text-text-muted"
+      style={{ width: size, height: size, fontSize: Math.max(9, size * 0.48) }}
+    >
+      {letter}
+    </span>
+  );
+};
+
+// ── Card media: only real photos. On fail → hide (parent reflows to text). ──
+const CardMedia = ({ src, hasVideo, tall = false }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed || isLikelyBadImageHost(src)) return null;
+  return (
+    <div
+      className={`relative w-full overflow-hidden bg-ink/[0.05] ${
+        tall ? "aspect-[16/10] max-h-[260px]" : "aspect-[16/10]"
+      }`}
+    >
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        onError={() => setFailed(true)}
+      />
+      {hasVideo && (
+        <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white">
+          <svg className="ml-0.5 h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </span>
-        <span className="text-text-muted/35">·</span>
-        <span className="font-mono text-[9px] text-text-muted/65">{timeAgo(item.created_at)}</span>
+      )}
+    </div>
+  );
+};
+
+const cardShell =
+  "group flex h-full w-full flex-col overflow-hidden rounded-xl border border-ink/[0.07] bg-surface-raised text-left transition-all duration-200 hover:border-ink/[0.14] hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgb(var(--scrim)_/_0.1)]";
+
+// ── Featured (Bitcoin page): image optional · title ALWAYS below on solid surface ──
+const FeaturedCard = ({ item, onSelect }) => {
+  const src = getCardImage(item);
+  const hasVideo = !!getVideoSrc(item);
+  return (
+    <article
+      onClick={() => onSelect(item)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(item);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Read: ${item.title || "article"}`}
+      className="h-full cursor-pointer"
+    >
+      <div className={cardShell}>
+        <CardMedia src={src} hasVideo={hasVideo} tall />
+        <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <SourceMark item={item} size={16} />
+            <span className="truncate text-[11px] font-medium uppercase tracking-wide text-text-secondary">
+              {sourceLabel(item)}
+            </span>
+            <span className="text-text-muted/40">·</span>
+            <span className="shrink-0 tabular-nums text-[11px] text-text-muted">
+              {timeAgo(item.created_at)}
+            </span>
+          </div>
+          <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-text-primary line-clamp-3 sm:text-[17px]">
+            {item.title}
+          </h2>
+          {item.description ? (
+            <p className="text-[12.5px] leading-relaxed text-text-secondary line-clamp-2">
+              {cleanText(item.description)}
+            </p>
+          ) : null}
+        </div>
       </div>
-      <h2 className="font-display text-[18px] sm:text-[20px] lg:text-[22px] font-semibold leading-[1.22] tracking-tight text-text-primary group-hover:text-text-primary transition-colors line-clamp-3">
-        {item.title}
-      </h2>
-      {item.description ? (
-        <p className="text-[12.5px] leading-snug text-text-secondary line-clamp-2">
-          {cleanText(item.description)}
-        </p>
-      ) : null}
-    </div>
-  </article>
-);
+    </article>
+  );
+};
 
-// Stack beside lead
-const StackStory = ({ item, onSelect }) => (
-  <button
-    type="button"
-    onClick={() => onSelect(item)}
-    className="group w-full flex gap-2.5 text-left py-2 first:pt-0 last:pb-0 border-b border-ink/[0.06] last:border-b-0"
-  >
-    <MediaBlock
-      item={item}
-      className="w-[72px] h-[54px] shrink-0 rounded-sm"
-      playSize="sm"
-      compact
-    />
-    <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
-      <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted">
-        {sourceLabel(item)}
-        <span className="text-text-muted/35"> · </span>
-        {timeAgo(item.created_at)}
-      </span>
-      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-text-primary transition-colors">
-        {item.title}
-      </h3>
-    </div>
-  </button>
-);
+// ── Story card (grid): same rule — never title-on-image, never logo tile ──
+const StoryCard = ({ item, onSelect }) => {
+  const src = getCardImage(item);
+  const hasVideo = !!getVideoSrc(item);
+  const title = item.title || "Untitled";
 
-// Mid-band cards — guaranteed image frame height
-const SecondaryCard = ({ item, onSelect }) => (
-  <article onClick={() => onSelect(item)} className="group cursor-pointer flex flex-col min-w-0">
-    <MediaBlock item={item} className="w-full aspect-[16/10] rounded-sm" playSize="sm" compact />
-    <div className="pt-2 space-y-1">
-      <span className="font-mono text-[8.5px] uppercase tracking-[0.12em] text-text-muted">
-        {sourceLabel(item)}
-        <span className="text-text-muted/35"> · </span>
-        {timeAgo(item.created_at)}
-      </span>
-      <h3 className="font-display text-[13px] font-semibold leading-snug text-text-primary line-clamp-2 group-hover:text-text-primary transition-colors">
-        {item.title}
-      </h3>
-    </div>
-  </article>
-);
-
-// Wire with thumbnail so previews always show below the fold
-const WireRow = ({ item, onSelect }) => (
-  <button
-    type="button"
-    onClick={() => onSelect(item)}
-    className="group grid grid-cols-[48px_minmax(0,1fr)] sm:grid-cols-[48px_48px_84px_minmax(0,1fr)] gap-x-2.5 w-full py-1.5 text-left border-b border-ink/[0.05] hover:bg-ink/[0.025] transition-colors items-center"
-  >
-    <span className="font-mono text-[10px] tabular-nums text-text-muted/80 self-start pt-1">
-      {timeAgo(item.created_at).replace(" ago", "")}
-    </span>
-    <MediaBlock
-      item={item}
-      className="hidden sm:block w-12 h-9 shrink-0 rounded-sm"
-      playSize="sm"
-      compact
-    />
-    <span className="hidden sm:block font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-muted/70 truncate self-start pt-1">
-      {sourceLabel(item)}
-    </span>
-    <span className="font-display text-[13px] font-medium leading-snug text-text-primary group-hover:text-text-primary transition-colors line-clamp-2 sm:line-clamp-1 min-w-0">
-      <span className="sm:hidden font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted mr-1.5">
-        {sourceLabel(item)}
-      </span>
-      {item.title}
-    </span>
-  </button>
-);
-
-const ListRow = ({ item, onSelect }) => (
-  <button
-    type="button"
-    onClick={() => onSelect(item)}
-    className="group relative w-full flex gap-2.5 py-2 text-left border-b border-ink/[0.05]"
-  >
-    <MediaBlock
-      item={item}
-      className="w-[68px] h-[52px] shrink-0 rounded-sm"
-      playSize="sm"
-      compact
-    />
-    <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-      <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted">
-        {sourceLabel(item)} · {timeAgo(item.created_at)}
-      </span>
-      <h4 className="font-display text-[13px] font-medium leading-snug line-clamp-2 text-text-primary group-hover:text-text-primary transition-colors">
-        {item.title}
-      </h4>
-    </div>
-  </button>
-);
+  return (
+    <button type="button" onClick={() => onSelect(item)} className={cardShell}>
+      <CardMedia src={src} hasVideo={hasVideo} />
+      <div className="flex min-h-[108px] flex-1 flex-col gap-2 p-3 sm:min-h-[118px] sm:p-3.5">
+        <h3
+          className="text-[12.5px] font-semibold leading-snug text-text-primary sm:text-[13.5px]"
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: src ? 3 : 4,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {title}
+        </h3>
+        <div className="mt-auto flex items-center gap-2 border-t border-ink/[0.06] pt-2">
+          <SourceMark item={item} size={14} />
+          <span className="min-w-0 truncate text-[10px] font-medium uppercase tracking-wide text-text-secondary sm:text-[11px]">
+            {sourceLabel(item)}
+          </span>
+          <span className="ml-auto shrink-0 tabular-nums text-[10px] text-text-muted sm:text-[11px]">
+            {timeAgo(item.created_at)}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+};
 
 // Right rail — compact desk
 // Client-side safety: never show source handles as "topics"
@@ -692,33 +905,39 @@ const cleanTrendingTopics = (trending, limit = 10) => {
   return raw.filter((t) => !isSourceyTopic(t.topic)).slice(0, limit);
 };
 
+const SideShell = ({ title, children }) => (
+  <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
+    <div className="px-4 py-3">
+      <h3 className="text-[14px] font-semibold text-text-primary">{title}</h3>
+    </div>
+    <div className="px-2 pb-2">{children}</div>
+  </div>
+);
+
 const MarketDesk = ({ trending, stats, onSearchTopic }) => {
   const topDomains = stats?.top_domains?.slice(0, 7) || [];
   const topics = cleanTrendingTopics(trending, 10);
   return (
-    <aside className="space-y-4">
-      <div>
-        <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-ink/[0.1] pb-1.5 mb-1">
-          Trending
-        </h3>
+    <aside className="space-y-3">
+      <SideShell title="Trending">
         {topics.length === 0 ? (
-          <p className="text-[11px] text-text-muted/60 py-2">No topics yet</p>
+          <p className="px-2 py-3 text-[12px] text-text-muted">No topics yet</p>
         ) : (
-          <ol>
+          <ol className="space-y-px">
             {topics.map((t, i) => (
               <li key={t.topic}>
                 <button
                   type="button"
                   onClick={() => onSearchTopic(t.topic)}
-                  className="group flex w-full items-baseline gap-2 py-1.5 border-b border-ink/[0.045] text-left hover:bg-ink/[0.02]"
+                  className="group flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-ink/[0.04]"
                 >
-                  <span className="font-mono text-[10px] tabular-nums text-text-muted/45 w-3.5 shrink-0">
+                  <span className="w-4 shrink-0 font-mono text-[10px] tabular-nums text-text-muted">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="flex-1 text-[12px] leading-snug text-text-primary/90 group-hover:text-text-primary transition-colors line-clamp-1">
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-text-primary">
                     {t.topic}
                   </span>
-                  <span className="font-mono text-[9.5px] tabular-nums text-text-muted/45">
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-text-muted">
                     ×{t.count}
                   </span>
                 </button>
@@ -726,51 +945,48 @@ const MarketDesk = ({ trending, stats, onSearchTopic }) => {
             ))}
           </ol>
         )}
-      </div>
+      </SideShell>
 
       {topDomains.length > 0 && (
-        <div>
-          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-ink/[0.1] pb-1.5 mb-1">
-            Sources
-          </h3>
-          <ul>
+        <SideShell title="Sources">
+          <ul className="space-y-px">
             {topDomains.map((d) => (
               <li
                 key={d.domain}
-                className="flex items-center justify-between py-1.5 border-b border-ink/[0.045]"
+                className="flex items-center justify-between rounded-lg px-2 py-2"
               >
-                <span className="text-[11.5px] text-text-secondary truncate pr-2">{d.domain}</span>
-                <span className="font-mono text-[10px] tabular-nums text-text-muted shrink-0">
+                <span className="truncate pr-2 text-[13px] text-text-secondary">{d.domain}</span>
+                <span className="shrink-0 font-mono text-[11px] tabular-nums text-text-muted">
                   {d.count}
                 </span>
               </li>
             ))}
           </ul>
-        </div>
+        </SideShell>
       )}
 
       {stats && (
-        <div>
-          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted border-b border-ink/[0.1] pb-1.5 mb-1.5">
-            Desk pulse
-          </h3>
-          <div className="grid grid-cols-3 gap-px bg-ink/[0.06] border border-ink/[0.06]">
+        <SideShell title="Desk pulse">
+          <div className="grid grid-cols-3 gap-1.5 px-1 pb-1">
             {[
               { l: "1h", v: stats.last_hour },
               { l: "6h", v: stats.last_6h },
               { l: "All", v: stats.total },
             ].map((s) => (
-              <div key={s.l} className="bg-surface-raised px-1.5 py-2 text-center">
-                <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-text-muted">
+              <div
+                key={s.l}
+                className="rounded-lg border border-ink/[0.06] bg-surface-secondary px-1.5 py-2.5 text-center"
+              >
+                <div className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
                   {s.l}
                 </div>
-                <div className="mt-0.5 font-mono text-[14px] font-semibold tabular-nums text-text-primary">
+                <div className="mt-0.5 font-mono text-[15px] font-semibold tabular-nums text-text-primary">
                   {s.v ?? "—"}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </SideShell>
       )}
     </aside>
   );
@@ -952,12 +1168,12 @@ const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
   const srcCount = stats?.top_domains?.length || 0;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-ink/[0.08] bg-surface-raised">
+    <div className="overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised">
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 group"
+        className="group flex w-full items-center justify-between px-3.5 py-3 sm:px-4"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted group-hover:text-text-primary/80 transition-colors">
@@ -1063,51 +1279,34 @@ const Pagination = ({ page, totalPages, onChange }) => {
 const LoadingSkeleton = () => (
   <div className="lqsk-group">
     <ShimmerStyles />
-    <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8">
-      <div className="lg:col-span-8 space-y-6">
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-7 space-y-3">
-            <div className="aspect-[16/10] bg-ink/5" />
-            <div className="h-3 w-24 bg-ink/5 rounded" />
-            <div className="h-6 w-5/6 bg-ink/5 rounded" />
-            <div className="h-3 w-full bg-ink/5 rounded" />
-          </div>
-          <div className="col-span-5 space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="w-[88px] h-[66px] bg-ink/5 shrink-0" />
-                <div className="flex-1 space-y-2 py-1">
-                  <div className="h-2 w-20 bg-ink/5 rounded" />
-                  <div className="h-3 w-full bg-ink/5 rounded" />
-                </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <div className="space-y-4 lg:col-span-9">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="overflow-hidden rounded-xl border border-ink/[0.06]">
+              <div className="aspect-[16/10] bg-ink/[0.04]" />
+              <div className="space-y-2 p-4">
+                <div className="h-4 w-5/6 rounded bg-ink/[0.05]" />
+                <div className="h-3 w-full rounded bg-ink/[0.03]" />
+                <div className="h-3 w-1/3 rounded bg-ink/[0.03]" />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-        <div className="space-y-2 pt-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-10 bg-ink/[0.03] border-b border-ink/[0.04]" />
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-xl border border-ink/[0.06]">
+              <div className="aspect-[16/10] bg-ink/[0.04]" />
+              <div className="h-8 bg-ink/[0.02]" />
+            </div>
           ))}
         </div>
       </div>
-      <div className="lg:col-span-4 space-y-3">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-8 bg-ink/[0.03] border-b border-ink/[0.04]" />
+      <div className="hidden space-y-3 lg:col-span-3 lg:block">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-40 rounded-xl border border-ink/[0.06] bg-ink/[0.03]" />
         ))}
       </div>
-    </div>
-    <div className="lg:hidden space-y-4">
-      <div className="aspect-[16/10] bg-ink/5" />
-      <div className="h-5 w-4/5 bg-ink/5 rounded" />
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex gap-3">
-          <div className="w-[76px] h-[58px] bg-ink/5 shrink-0" />
-          <div className="flex-1 space-y-2 py-1">
-            <div className="h-2.5 bg-ink/5 rounded w-full" />
-            <div className="h-2 bg-ink/5 rounded w-1/3" />
-          </div>
-        </div>
-      ))}
     </div>
   </div>
 );
@@ -1236,10 +1435,10 @@ const FilterBar = ({
   ];
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2.5 overflow-hidden rounded-xl border border-ink/[0.06] bg-surface-raised p-3 sm:p-3.5">
       <div className="relative">
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted/55"
+          className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted/55"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -1256,16 +1455,16 @@ const FilterBar = ({
           value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search headlines, topics, sources…"
-          className="h-9 w-full rounded-md border border-ink/[0.1] bg-surface-raised pl-9 pr-9 font-mono text-[12px] text-text-primary placeholder:text-text-muted transition-colors focus:border-ink/20 focus:outline-none"
+          className="h-10 w-full rounded-lg border border-ink/[0.08] bg-surface-secondary pl-9 pr-9 text-[13px] text-text-primary placeholder:text-text-muted transition-colors focus:border-ink/20 focus:outline-none"
         />
         {searchInput && (
           <button
             type="button"
             onClick={onClearSearch}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 before:absolute before:-inset-2 before:content-[''] rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-ink/[0.06]"
+            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-muted hover:bg-ink/[0.06] hover:text-text-primary"
             title="Clear search"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1457,73 +1656,41 @@ const CryptoNewsPage = () => {
     return itemsWithCategory.filter((item) => item._category === activeCategory);
   }, [itemsWithCategory, activeCategory]);
 
-  // Editorial hierarchy is used only on the unfiltered main feed (page 1)
+  // Featured pair only on clean page-1 feed (Bitcoin-page pattern)
   const heroEnabled = page === 1 && !searchQuery && !activeCategory && activeFilter === "all";
 
-  // Partition into lead / secondary / list — prefer visual items for hero tiers
-  const { lead, secondary, midBand, listItems } = useMemo(() => {
+  const { featured, gridItems } = useMemo(() => {
+    // Prefer real article photos (not brand fillers) for featured + denser grid.
+    const hasPhoto = (it) => !!getCardImage(it);
+
     if (!heroEnabled || filteredItems.length === 0) {
-      return { lead: null, secondary: [], midBand: [], listItems: filteredItems };
+      // Even without hero: put photo stories first so the page looks full.
+      const withP = [];
+      const noP = [];
+      for (const it of filteredItems) {
+        (hasPhoto(it) ? withP : noP).push(it);
+      }
+      return { featured: [], gridItems: [...withP, ...noP] };
     }
-    // Compact desk: 1 lead + 4 stack (fills side column) + 4 mid-band + wire
-    const STACK_COUNT = 4;
-    const MID_BAND = 4;
+
     const used = new Set();
-    const leadItem = filteredItems.find(hasVisual) || filteredItems[0];
-    if (leadItem) used.add(leadItem.id);
-
-    const sec = [];
+    const featured = [];
     for (const it of filteredItems) {
-      if (sec.length >= STACK_COUNT) break;
-      if (used.has(it.id)) continue;
-      if (hasVisual(it)) {
-        sec.push(it);
+      if (featured.length >= 2) break;
+      if (hasPhoto(it)) {
+        featured.push(it);
         used.add(it.id);
       }
     }
-    if (sec.length < STACK_COUNT) {
-      for (const it of filteredItems) {
-        if (sec.length >= STACK_COUNT) break;
-        if (!used.has(it.id)) {
-          sec.push(it);
-          used.add(it.id);
-        }
-      }
+    // Don't force text-only into featured — keep featured for real visuals only.
+    const rest = filteredItems.filter((it) => !used.has(it.id));
+    const withP = [];
+    const noP = [];
+    for (const it of rest) {
+      (hasPhoto(it) ? withP : noP).push(it);
     }
-
-    // Prefer visual stories for mid-band so the photo strip never looks empty
-    const mid = [];
-    for (const it of filteredItems) {
-      if (mid.length >= MID_BAND) break;
-      if (used.has(it.id)) continue;
-      if (hasVisual(it)) {
-        mid.push(it);
-        used.add(it.id);
-      }
-    }
-    if (mid.length < MID_BAND) {
-      for (const it of filteredItems) {
-        if (mid.length >= MID_BAND) break;
-        if (!used.has(it.id)) {
-          mid.push(it);
-          used.add(it.id);
-        }
-      }
-    }
-
-    const list = filteredItems.filter((it) => !used.has(it.id));
-    return { lead: leadItem, secondary: sec, midBand: mid, listItems: list };
+    return { featured, gridItems: [...withP, ...noP] };
   }, [filteredItems, heroEnabled]);
-
-  // When hero is off, treat all as list wire
-  const layout = heroEnabled
-    ? { lead, secondary, midBand, listItems }
-    : {
-        lead: null,
-        secondary: [],
-        midBand: [],
-        listItems: filteredItems,
-      };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -1531,66 +1698,48 @@ const CryptoNewsPage = () => {
     ? CATEGORY_RULES.find((c) => c.key === activeCategory)?.label
     : searchQuery
       ? "Search results"
-      : "Top stories";
+      : "Latest";
 
   // ── Render ─────────────────────────────
   return (
-    <div className="pb-6">
+    <div className="space-y-3 pb-10 sm:space-y-4">
       {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
       <PageHeader
-        className="mb-3 border-b border-ink/[0.08] pb-3"
         title="News"
         subtitle="Markets wire · live crypto headlines"
         right={
-          <div className="flex flex-shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums text-text-muted">
-            {stats?.last_hour != null && (
-              <span>
-                <span className="text-text-muted">1h </span>
-                <span className="font-semibold text-text-primary">{stats.last_hour}</span>
-              </span>
-            )}
-            {stats?.total != null && (
-              <span>
-                <span className="text-text-muted">Idx </span>
-                <span className="font-semibold text-text-primary">
-                  {Number(stats.total).toLocaleString()}
+          stats?.total != null ? (
+            <span className="font-mono text-[12px] tabular-nums text-text-muted">
+              {Number(stats.total).toLocaleString()} stories
+              {stats.last_hour != null ? (
+                <span className="ml-2 text-text-secondary">
+                  · <span className="font-semibold text-text-primary">{stats.last_hour}</span> / 1h
                 </span>
-              </span>
-            )}
-            <div className="flex h-8 items-center gap-2 rounded-md border border-ink/[0.1] bg-surface-raised px-2.5">
-              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-profit" />
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-profit">
-                Live
-              </span>
-            </div>
-          </div>
+              ) : null}
+            </span>
+          ) : null
         }
       />
 
-      <div className="mb-3">
-        <FilterBar
-          searchInput={searchInput}
-          onSearchChange={handleSearchInput}
-          onClearSearch={handleClearSearch}
-          activeFilter={activeFilter}
-          onFilterChange={handleFilterChange}
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryChange}
-          categoryCounts={categoryCounts}
-          stats={stats}
-        />
-      </div>
+      <FilterBar
+        searchInput={searchInput}
+        onSearchChange={handleSearchInput}
+        onClearSearch={handleClearSearch}
+        activeFilter={activeFilter}
+        onFilterChange={handleFilterChange}
+        activeCategory={activeCategory}
+        onCategoryChange={handleCategoryChange}
+        categoryCounts={categoryCounts}
+        stats={stats}
+      />
 
       {loading ? (
         <LoadingSkeleton />
       ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center border-y border-ink/[0.06]">
-          <p className="font-display text-text-primary text-base mb-1">No results</p>
-          <p className="text-text-muted text-xs max-w-sm">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-ink/[0.06] bg-surface-raised py-16 text-center">
+          <p className="mb-1 text-base font-semibold text-text-primary">No results</p>
+          <p className="max-w-sm text-[13px] text-text-muted">
             {searchQuery
               ? `Nothing matches “${searchQuery}”.`
               : activeCategory
@@ -1599,94 +1748,49 @@ const CryptoNewsPage = () => {
           </p>
         </div>
       ) : (
-        <>
-          {/* Desktop: 9+3 denser columns */}
-          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
-            <div className="lg:col-span-9 min-w-0 space-y-5">
-              {layout.lead && (
-                <section className="grid grid-cols-12 gap-5 border-b border-ink/[0.09] pb-4">
-                  <div className="col-span-12 md:col-span-7 min-w-0">
-                    <LeadCard item={layout.lead} onSelect={openArticle} />
-                  </div>
-                  <div className="col-span-12 md:col-span-5 md:border-l md:border-ink/[0.07] md:pl-4 min-w-0 flex flex-col">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted mb-1 pb-1.5 border-b border-ink/[0.07]">
-                      Also on the wire
-                    </p>
-                    <div className="flex-1">
-                      {layout.secondary.map((it) => (
-                        <StackStory key={it.id} item={it} onSelect={openArticle} />
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {layout.midBand?.length > 0 && (
-                <section className="border-b border-ink/[0.09] pb-4">
-                  <div className="grid grid-cols-4 gap-3">
-                    {layout.midBand.map((it) => (
-                      <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              <section>
-                <div className="flex items-baseline justify-between border-b border-ink/[0.1] pb-1.5 mb-0.5">
-                  <h2 className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-                    {layout.lead ? "Latest" : sectionLabel}
-                  </h2>
-                  <span className="font-mono text-[9px] tabular-nums text-text-muted/45">
-                    {layout.listItems.length} headlines
-                  </span>
-                </div>
-                <div>
-                  {(layout.listItems.length > 0
-                    ? layout.listItems
-                    : !layout.lead
-                      ? filteredItems
-                      : []
-                  ).map((it) => (
-                    <WireRow key={it.id} item={it} onSelect={openArticle} />
-                  ))}
-                </div>
-                <div className="pt-3">
-                  <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
-                </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start lg:gap-5">
+          <div className="min-w-0 space-y-4 lg:col-span-9">
+            {/* Featured — Bitcoin-page dual cards */}
+            {featured.length > 0 && (
+              <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {featured.map((it) => (
+                  <FeaturedCard key={it.id} item={it} onSelect={openArticle} />
+                ))}
               </section>
+            )}
+
+            {/* Mobile insights */}
+            <div className="lg:hidden">
+              <CollapsibleInsights
+                trending={trending}
+                stats={stats}
+                onSearchTopic={handleSearchTopic}
+              />
             </div>
 
-            <div className="lg:col-span-3 lg:sticky lg:top-16 self-start">
-              <MarketDesk trending={trending} stats={stats} onSearchTopic={handleSearchTopic} />
-            </div>
-          </div>
-
-          {/* Mobile */}
-          <div className="lg:hidden space-y-3">
-            {layout.lead && <LeadCard item={layout.lead} onSelect={openArticle} />}
-            {layout.secondary.length > 0 && (
-              <div className="border-t border-ink/[0.07] pt-0.5">
-                {layout.secondary.map((it) => (
-                  <StackStory key={it.id} item={it} onSelect={openArticle} />
+            {/* Grid — Choose-news style cards */}
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-[14px] font-semibold text-text-primary">{sectionLabel}</h2>
+                <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                  {gridItems.length} headlines
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3">
+                {(gridItems.length > 0 ? gridItems : filteredItems).map((it) => (
+                  <StoryCard key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </div>
-            )}
-            <CollapsibleInsights
-              trending={trending}
-              stats={stats}
-              onSearchTopic={handleSearchTopic}
-            />
-            <div className="border-t border-ink/[0.09] pt-0.5">
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted py-1.5">
-                {layout.lead ? "Latest" : sectionLabel}
-              </p>
-              {[...(layout.midBand || []), ...layout.listItems].map((it) => (
-                <ListRow key={it.id} item={it} onSelect={openArticle} />
-              ))}
-            </div>
-            <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+              <div className="pt-2">
+                <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+              </div>
+            </section>
           </div>
-        </>
+
+          <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-16 lg:self-start">
+            <MarketDesk trending={trending} stats={stats} onSearchTopic={handleSearchTopic} />
+          </div>
+        </div>
       )}
 
       <AssistantWidget pageId="crypto-news" />
