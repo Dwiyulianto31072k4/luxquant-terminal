@@ -470,79 +470,23 @@ function useArchGeometry(wrapRef) {
   return geo;
 }
 
-/* ── mobile story stepper ── */
+/* ── mobile: 4 tight steps only (title + one line) — no grids / cards / essays ── */
 function MobileStory() {
   return (
-    <ol className="mx-auto max-w-lg space-y-0 lg:hidden">
-      {STAGES.map((s, i) => {
-        const isLast = i === STAGES.length - 1;
-        return (
-          <li key={s.id} className="relative flex gap-5">
-            {/* rail */}
-            <div className="flex w-10 flex-col items-center">
-              <span className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-ink/[0.05] text-[13px] font-semibold tabular-nums text-accent">
-                {s.n}
-              </span>
-              {!isLast && <span className="w-px flex-1 bg-gradient-to-b from-ink/15 to-ink/[0.04]" />}
-            </div>
-
-            <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-10"}`}>
-              <h3 className="text-lg font-semibold tracking-tight text-text-primary">{s.title}</h3>
-              <p className="mt-1 text-[14px] font-medium text-accent">{s.lead}</p>
-              <p className="mt-2 text-[14px] leading-relaxed text-text-muted">{s.body}</p>
-
-              {/* stage-specific detail */}
-              {s.id === "data" && (
-                <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2.5">
-                  {INPUTS.map((inp) => (
-                    <li key={inp.title} className="flex items-center gap-2">
-                      <Icon name={inp.icon} className="h-4 w-4 flex-shrink-0" />
-                      <span className="text-[12.5px] text-text-primary/80">{inp.title}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {s.id === "sanitize" && (
-                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-ink/[0.03] px-4 py-3">
-                  <IconChip name="sanitizer" />
-                  <p className="text-[13px] leading-snug text-text-primary/70">
-                    Outliers · stale ticks · exchange glitches filtered out
-                  </p>
-                </div>
-              )}
-
-              {s.id === "engine" && (
-                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-ink/[0.03] px-4 py-3 ring-1 ring-accent/20">
-                  <IconChip name="core" />
-                  <p className="text-[13px] leading-snug text-text-primary/70">
-                    Risk geometry first — only cleared setups publish
-                  </p>
-                </div>
-              )}
-
-              {s.id === "terminal" && (
-                <div className={`mt-4 p-4 ${SURFACE}`}>
-                  <div className="mb-3 flex items-center gap-2">
-                    <img src="/logo.png" alt="" className="h-5 w-5 rounded" onError={hideOnError} />
-                    <span className="text-[13px] font-semibold text-text-primary">
-                      LuxQuant Terminal
-                    </span>
-                  </div>
-                  <ul className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-                    {FEATURES.map((f) => (
-                      <li key={f.t} className="flex items-center gap-2">
-                        <Icon name={f.icon} className="h-4 w-4 flex-shrink-0" />
-                        <span className="text-[12.5px] text-text-primary/80">{f.t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </li>
-        );
-      })}
+    <ol className="mx-auto max-w-md divide-y divide-ink/[0.07] lg:hidden">
+      {STAGES.map((s) => (
+        <li key={s.id} className="flex gap-3.5 py-5 first:pt-0 last:pb-0">
+          <span className="mt-0.5 w-7 flex-shrink-0 text-[13px] font-semibold tabular-nums text-accent">
+            {s.n}
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-[16px] font-semibold tracking-tight text-text-primary">
+              {s.title}
+            </h3>
+            <p className="mt-1 text-[14px] leading-snug text-text-muted">{s.lead}</p>
+          </div>
+        </li>
+      ))}
     </ol>
   );
 }
@@ -554,7 +498,7 @@ export default function Architecture() {
   return (
     <section
       id="how-it-works"
-      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-24 lg:px-8 lg:py-32"
+      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 sm:py-20 lg:px-8 lg:py-32"
     >
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
@@ -574,21 +518,27 @@ export default function Architecture() {
       <EdgeArt side="left" />
       <EdgeArt side="right" />
 
-      {/* Hero — one clear sentence, trust first */}
+      {/* Hero — compact on mobile, full on desktop */}
       <div className="mx-auto max-w-3xl text-center">
-        <p className="text-[13px] font-medium tracking-wide text-text-muted">How it works</p>
-        <h2 className="mt-4 text-[2.4rem] font-semibold leading-[1.08] tracking-tight text-text-primary sm:text-5xl lg:text-[3.4rem]">
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
+          How it works
+        </p>
+        <h2 className="mt-3 text-[1.85rem] font-semibold leading-[1.12] tracking-tight text-text-primary sm:mt-4 sm:text-5xl lg:text-[3.4rem]">
           From live data to a call{" "}
           <span className="text-accent">you can audit.</span>
         </h2>
-        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
-          Four steps. No black box. Market data in, risk-defined calls out — every level
-          timestamped so you can verify what happened.
+        {/* Short line on mobile; full copy from sm up */}
+        <p className="mx-auto mt-3 max-w-xl text-[14px] leading-snug text-text-muted sm:mt-5 sm:text-lg sm:leading-relaxed">
+          <span className="sm:hidden">Data in → risk-defined call out. Every level timestamped.</span>
+          <span className="hidden sm:inline">
+            Four steps. No black box. Market data in, risk-defined calls out — every level
+            timestamped so you can verify what happened.
+          </span>
         </p>
       </div>
 
-      {/* Trust pills */}
-      <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 sm:mt-12">
+      {/* Trust pills — desktop only (too noisy on phone) */}
+      <div className="mx-auto mt-12 hidden max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:flex">
         {TRUST_PILLS.map((p) => (
           <div key={p.k} className="flex items-baseline gap-1.5 text-[13px]">
             <span className="font-semibold text-text-primary">{p.k}</span>
@@ -654,8 +604,8 @@ export default function Architecture() {
         </div>
       </div>
 
-      {/* MOBILE story */}
-      <div className="mt-14 lg:hidden">
+      {/* MOBILE — tight 4-step list only */}
+      <div className="mt-10 sm:mt-12 lg:hidden">
         <MobileStory />
       </div>
 
