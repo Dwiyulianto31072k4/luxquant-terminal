@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
-import { CTA } from "../../landingCopy";
+import { CTA } from "../landingCopy";
 import PhoneMockup from "./shared/PhoneMockup";
 
 const TG_LINK = "https://t.me/LuxQuantSignal";

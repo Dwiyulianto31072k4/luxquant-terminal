@@ -296,7 +296,7 @@ export default function TerminalPreview() {
                     Everything else a serious trader needs — already built into the terminal.
                   </p>
                   <div className="mt-1 w-full max-w-[340px]">
-                    <HeroSignupPill text="Access LuxQuant Terminal" className="!max-w-[340px]" />
+                    <HeroSignupPill text="Start free — no card needed" shortText="Start free" className="!max-w-[340px]" />
                   </div>
                 </div>
               </div>

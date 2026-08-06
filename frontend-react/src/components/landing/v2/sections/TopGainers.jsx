@@ -23,7 +23,7 @@ import { SignalDetailModal } from "../../../TopPerformers";
 import { peakLagFromSeconds } from "../../../../utils/peakTiming";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
-import { CTA } from "../../landingCopy";
+import { CTA } from "../landingCopy";
 
 const FREE_PREVIEW_KEY = "lq_landing_free_preview_v1";
 const FREE_PREVIEW_LIMIT = 1;

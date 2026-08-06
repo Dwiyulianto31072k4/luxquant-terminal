@@ -22,7 +22,7 @@ import { useTheme } from "../../../../context/ThemeContext";
 import MoreMenuDropdown from "../../../MoreMenuDropdown";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
-import { CTA } from "../../landingCopy";
+import { CTA } from "../landingCopy";
 
 // Compact appearance picker for the landing header (admin-gated while theming
 // is in preview). Three swatches — click to switch the whole site live.
