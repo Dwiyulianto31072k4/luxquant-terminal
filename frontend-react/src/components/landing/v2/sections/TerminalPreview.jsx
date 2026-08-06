@@ -2,7 +2,7 @@
 // Product stage — no device chrome. Large real UI, pill tabs, honest copy.
 // Pattern: Linear / Vercel / Autopilot — show the product, not the hardware.
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
@@ -127,21 +127,9 @@ export default function TerminalPreview() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [activeIdx, setActiveIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
   const tabRef = useRef(null);
 
-  useEffect(() => {
-    if (paused) return undefined;
-    const iv = setInterval(() => {
-      setActiveIdx((prev) => {
-        const next = (prev + 1) % TABS.length;
-        scrollToTab(next);
-        return next;
-      });
-    }, 6500);
-    return () => clearInterval(iv);
-  }, [paused]);
-
+  // Manual tabs only — auto-rotate competes with reading product UI.
   const scrollToTab = (i) => {
     const c = tabRef.current;
     const el = c?.children?.[i];
@@ -156,8 +144,6 @@ export default function TerminalPreview() {
   const handleTab = (i) => {
     setActiveIdx(i);
     scrollToTab(i);
-    setPaused(true);
-    window.setTimeout(() => setPaused(false), 12000);
   };
 
   const active = TABS[activeIdx];
@@ -230,11 +216,7 @@ export default function TerminalPreview() {
 
       {/* Product stage — floating UI, no Mac chrome */}
       <div className="mx-auto mt-8 max-w-5xl sm:mt-10 lg:mt-12">
-        <div
-          className="relative overflow-hidden rounded-[1.25rem] border border-ink/[0.08] bg-surface-raised shadow-[0_24px_80px_rgb(var(--scrim)/0.35)] sm:rounded-[1.5rem]"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-        >
+        <div className="relative overflow-hidden rounded-[1.25rem] border border-ink/[0.08] bg-surface-raised shadow-[0_24px_80px_rgb(var(--scrim)/0.35)] sm:rounded-[1.5rem]">
           {/* thin app chrome */}
           <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-3.5 py-2.5 sm:px-4">
             <div className="flex items-center gap-2 min-w-0">

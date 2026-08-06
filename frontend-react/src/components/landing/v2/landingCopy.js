@@ -15,9 +15,12 @@ export const CTA = {
   pill: "Access LuxQuant Terminal",
   pillShort: "Start free",
   openApp: "Open app",
+  // One primary verb across sticky / gate / free / section CTAs
+  primaryGuest: "Create free account",
+  primaryAuthed: "Open free features",
   stickyTitle: "Free features · no card",
   stickySub: "Pulse, track record & more · 30s",
-  stickyBtn: "Continue",
+  stickyBtn: "Create free account",
   logIn: "Log In",
   // Header keeps Start Free; hero stays brand-led
   signUp: "Start Free",
@@ -51,7 +54,7 @@ export const CTA = {
     "Free account = Pulse, News, Performance, watchlist & more in the app. Telegram = public samples. Best results: use both.",
   freeChannelCta: "Join free channel",
   // Top gainers footer CTA
-  gainersCtaGuest: "Free features · create account",
+  gainersCtaGuest: "Create free account",
   gainersCtaAuth: "See full track record",
 };
 

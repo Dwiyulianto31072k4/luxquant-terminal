@@ -30,7 +30,7 @@ import {
 import CoinLogo from "../../../CoinLogo";
 import DayDrillModal from "./DayDrillModal";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
-import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
+import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const C = {
   gold: "#e7c373",
@@ -728,6 +728,8 @@ export default function Performance({ data }) {
   const [customEnd, setCustomEnd] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [anaTab, setAnaTab] = useState("wrbtc");
+  // Landing stays light — deep charts optional (skimmers convert first).
+  const [showDeep, setShowDeep] = useState(false);
   const [showBtc, setShowBtc] = useState(true);
   // Retires the tap cue once the user has actually opened a day.
   const [clickHintSeen, setClickHintSeen] = useState(false);
@@ -1092,9 +1094,24 @@ export default function Performance({ data }) {
         </div>
       </div>
 
-      {/* ── Deep analytics: quiet pill tabs ── */}
+      {/* ── Deep analytics: collapsed by default on landing ── */}
       <div className="mt-16 lg:mt-24">
-        <div className="mb-8 flex justify-center">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <p className="text-[13px] text-text-muted">
+            Want the full regime breakdown, patterns, and coin leaders?
+          </p>
+          <SecondaryButton
+            size="md"
+            onClick={() => setShowDeep((v) => !v)}
+            aria-expanded={showDeep}
+          >
+            {showDeep ? "Hide deep analytics" : "Show deep analytics"}
+          </SecondaryButton>
+        </div>
+
+        {showDeep && (
+        <>
+        <div className="mb-8 mt-10 flex justify-center">
           <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-full bg-ink/[0.04] p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {ANA_TABS.map((tb) => {
               const on = anaTab === tb.id;
@@ -1562,6 +1579,8 @@ export default function Performance({ data }) {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* footer CTA — open, no boxed bar */}

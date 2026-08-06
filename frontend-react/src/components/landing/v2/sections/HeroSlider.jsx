@@ -23,6 +23,8 @@ const prefersReducedMotion = () =>
 export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  // After user swipes/dots, stop auto-rotate permanently (attention stays put).
+  const [userLocked, setUserLocked] = useState(false);
   const touchStartX = useRef(null);
 
   const ActiveSlide = SLIDES[active];
@@ -34,23 +36,22 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
     onSlideChange?.(active, { isVideoSlide });
   }, [active, isVideoSlide, onSlideChange]);
 
-  const goToSlide = (index) => {
+  const goToSlide = (index, fromUser = false) => {
     const total = SLIDES.length;
     setActive((index + total) % total);
+    if (fromUser) setUserLocked(true);
   };
 
-  // Auto-advance every ROTATE_MS. `active` is a dependency so the timer RESETS
-  // whenever the slide changes (incl. manual swipe / dot click) — i.e. each
-  // slide always gets a full 10s before advancing, "unless swiped".
+  // Auto-advance only until the user takes control.
   useEffect(() => {
-    if (paused || prefersReducedMotion()) return undefined;
+    if (paused || userLocked || prefersReducedMotion()) return undefined;
 
     const timer = window.setTimeout(() => {
       setActive((current) => (current + 1) % SLIDES.length);
     }, ROTATE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [paused, active]);
+  }, [paused, userLocked, active]);
 
   const handleTouchStart = (event) => {
     touchStartX.current = event.touches[0]?.clientX ?? null;
@@ -63,9 +64,9 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
     const distance = currentX - touchStartX.current;
 
     if (distance < -55) {
-      goToSlide(active + 1);
+      goToSlide(active + 1, true);
     } else if (distance > 55) {
-      goToSlide(active - 1);
+      goToSlide(active - 1, true);
     }
 
     touchStartX.current = null;
@@ -78,12 +79,12 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
   const handleKeyDown = (event) => {
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      goToSlide(active + 1);
+      goToSlide(active + 1, true);
     }
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      goToSlide(active - 1);
+      goToSlide(active - 1, true);
     }
   };
 
@@ -149,7 +150,7 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
               type="button"
               aria-label={`Go to slide ${index + 1}`}
               aria-current={isActive ? "true" : undefined}
-              onClick={() => goToSlide(index)}
+              onClick={() => goToSlide(index, true)}
               className={[
                 "rounded-full transition-all duration-300",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/80",

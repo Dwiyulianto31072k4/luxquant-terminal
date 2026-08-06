@@ -8,6 +8,7 @@ import { LANDING_FAQ } from "../../../../content/faq";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { useAuth } from "../../../../context/AuthContext";
+import { CTA } from "../landingCopy";
 import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const FAQ_DATA = LANDING_FAQ;
@@ -179,7 +180,7 @@ export default function FaqV2() {
           <span className="text-text-primary/80">&amp; more</span> — no card.
         </p>
         <PrimaryButton size="lg" width="fullMobile" onClick={goStart} className="group">
-          {isAuthenticated ? "Open free features" : "Create free account"}
+          {isAuthenticated ? CTA.primaryAuthed : CTA.primaryGuest}
           <BtnArrow />
         </PrimaryButton>
       </div>

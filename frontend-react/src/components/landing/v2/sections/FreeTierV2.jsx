@@ -31,7 +31,10 @@ export default function FreeTierV2() {
   };
 
   return (
-    <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16 lg:px-8 lg:py-24">
+    <section
+      id="free-features"
+      className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16 lg:px-8 lg:py-24"
+    >
       <div className="absolute left-1/2 top-1/2 -z-10 h-[440px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface-secondary blur-[150px]" />
 
       {/* Centered title (MEXC pattern) */}

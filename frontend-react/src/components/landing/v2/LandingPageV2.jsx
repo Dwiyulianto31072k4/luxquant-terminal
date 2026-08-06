@@ -14,7 +14,7 @@
 //
 // Dipasang di route /v2 (lihat catatan integrasi App.jsx).
 // ════════════════════════════════════════════════════════════════
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
 import { trackFunnel } from "../../../utils/funnelAnalytics";
@@ -24,7 +24,6 @@ import HeaderV2 from "./sections/HeaderV2";
 import HeroSlider from "./sections/HeroSlider";
 import RecentWinnersMarquee from "./sections/RecentWinnersMarquee";
 import TopGainers from "./sections/TopGainers";
-import GlobalReach from "./sections/GlobalReach";
 import Architecture from "./sections/Architecture";
 import TerminalPreview from "./sections/TerminalPreview";
 import Performance from "./sections/Performance";
@@ -33,6 +32,9 @@ import FreeTierV2 from "./sections/FreeTierV2";
 import FaqV2 from "./sections/FaqV2";
 import FooterV2 from "./sections/FooterV2";
 import StickyLandingCta from "./sections/shared/StickyLandingCta";
+
+// Heavy canvas globe — code-split so first paint / mid-funnel stay light.
+const GlobalReach = lazy(() => import("./sections/GlobalReach"));
 
 export default function LandingPageV2() {
   const { stats, topGainers, performanceData } = useLandingData();
@@ -98,15 +100,25 @@ export default function LandingPageV2() {
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
       <main id="main">
+        {/* Conversion order: proof → free CTA → how it works → product → depth */}
         <HeroSlider onNav={scrollTo} gainers={topGainers} onSlideChange={onHeroSlideChange} />
         <RecentWinnersMarquee gainers={topGainers} blendWithHero={heroIsVideo} />
         <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
+        <FreeTierV2 />
         <Architecture />
         <TerminalPreview />
         <Performance data={performanceData} />
         <CoinSpotlight />
-        <GlobalReach gainers={topGainers} stats={stats} />
-        <FreeTierV2 />
+        <Suspense
+          fallback={
+            <div
+              className="mx-auto min-h-[320px] max-w-6xl px-4 py-20 text-center text-sm text-text-muted"
+              aria-hidden="true"
+            />
+          }
+        >
+          <GlobalReach gainers={topGainers} stats={stats} />
+        </Suspense>
         <FaqV2 />
       </main>
       <FooterV2 onNav={scrollTo} />
