@@ -27,6 +27,7 @@ import { FollowupTab } from "./admin/workspace/FollowupTab";
 import { MarketingTab } from "./admin/workspace/MarketingTab";
 import { FinanceTab } from "./admin/workspace/FinanceTab";
 import { GrowthTab } from "./admin/workspace/GrowthTab";
+import { ConversionTab } from "./admin/workspace/ConversionTab";
 import { TodoTab } from "./admin/workspace/TodoTab";
 import { ActivityTab } from "./admin/workspace/ActivityTab";
 import { AutoTradeOpsTab } from "./admin/workspace/AutoTradeOpsTab";
@@ -117,6 +118,13 @@ const TABS = [
     label: "Users",
     description: "Members, roles, and access",
     Icon: UsersRingIcon,
+    accent: NEUTRAL,
+  },
+  {
+    id: "conversion",
+    label: "Conversion",
+    description: "Login funnel & acquisition quality",
+    Icon: TargetIcon,
     accent: NEUTRAL,
   },
   {
@@ -677,6 +685,7 @@ const AdminWorkspacePage = () => {
             <UserManagementPage />
           </div>
         )}
+        {activeTab === "conversion" && <ConversionTab />}
         {activeTab === "chat" && (
           <ChatTab canWrite={!viewOnly} onRefreshUnread={fetchChatUnread} />
         )}

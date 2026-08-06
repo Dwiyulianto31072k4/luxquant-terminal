@@ -5,7 +5,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { workspaceApi } from "../../../services/workspaceApi";
-import { growthApi } from "../../../services/growthApi";
 import { StatTile, Surface, Bar3D, Avatar, Spinner, EmptyState } from "../primitives";
 import { TrendingUpIcon, UsersIcon, CrownIcon, ClockIcon, RefreshIcon, ShieldIcon } from "../Icons";
 
@@ -178,19 +177,13 @@ const Panel = ({ title, sub, children, right, className = "" }) => (
 
 export const GrowthTab = () => {
   const [data, setData] = useState(null);
-  const [conversion, setConversion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchGrowth = useCallback(async (isRefresh = false) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const [growth, conv] = await Promise.all([
-        workspaceApi.getGrowth(),
-        growthApi.getConversion(30).catch(() => null),
-      ]);
-      setData(growth);
-      setConversion(conv);
+      setData(await workspaceApi.getGrowth());
     } catch (e) {
       console.error("Failed to load growth analytics:", e);
     } finally {
@@ -215,11 +208,6 @@ export const GrowthTab = () => {
   const rec = data?.recurring || {};
   const churn = data?.churn || {};
   const attr = data?.attribution || {};
-  const u = conversion?.users || {};
-  const fun = conversion?.funnel_events || {};
-  const rates = conversion?.rates || {};
-  const act = conversion?.activity || {};
-  const pct = (n) => (n == null ? "—" : `${(Number(n) * 100).toFixed(1)}%`);
 
   return (
     <div className="space-y-5">
@@ -233,7 +221,8 @@ export const GrowthTab = () => {
             Growth &amp; Revenue
           </h2>
           <p className="mt-0.5 max-w-lg text-[12px] text-text-muted">
-            Revenue, recurring run-rate, churn, and where your paying members come from.
+            Revenue, recurring run-rate, churn, and where your paying members come from. Login funnel
+            lives under the Conversion tab (next to Users).
           </p>
         </div>
         <button
@@ -246,68 +235,6 @@ export const GrowthTab = () => {
           {refreshing ? "Refreshing…" : "Refresh"}
         </button>
       </div>
-
-      {/* Login conversion (30d) */}
-      {conversion && (
-        <Panel
-          title="Login conversion · 30d"
-          sub="Landing funnel events + account quality (one-shot vs multi-login)."
-        >
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-            <StatTile label="Signups" value={num(u.signups)} Icon={UsersIcon} accent="muted" />
-            <StatTile
-              label="One-shot rate"
-              value={pct(u.one_shot_rate)}
-              Icon={ClockIcon}
-              accent="muted"
-              sub={`${num(u.signups_one_shot)} users`}
-            />
-            <StatTile
-              label="Multi-login rate"
-              value={pct(u.multi_login_rate)}
-              Icon={TrendingUpIcon}
-              accent="muted"
-              sub={`${num(u.signups_multi_login)} users`}
-            />
-            <StatTile label="WAU (activity)" value={num(act.wau)} Icon={UsersIcon} accent="muted" />
-            <StatTile
-              label="Landing views"
-              value={num(fun.landing_view)}
-              Icon={UsersIcon}
-              accent="muted"
-            />
-            <StatTile
-              label="CTA → auth start"
-              value={pct(rates.auth_start_per_cta)}
-              Icon={TrendingUpIcon}
-              accent="muted"
-              sub={`${num(fun.cta_click)} CTAs · ${num(fun.auth_start)} starts`}
-            />
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary/40 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Auth providers</p>
-              <p className="mt-1 text-[12px] text-text-primary">
-                Google {num(u.by_provider?.google)} · TG {num(u.by_provider?.telegram)} · Discord{" "}
-                {num(u.by_provider?.discord)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary/40 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Client funnel</p>
-              <p className="mt-1 text-[12px] text-text-primary">
-                Views {num(fun.landing_view)} → CTA {num(fun.cta_click)} → Auth{" "}
-                {num(fun.auth_start)} → OK {num(fun.auth_success)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-ink/[0.06] bg-surface-secondary/40 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Soft gates</p>
-              <p className="mt-1 text-[12px] text-text-primary">
-                Shown {num(fun.soft_gate_shown)} · Login click {num(fun.soft_gate_login_click)}
-              </p>
-            </div>
-          </div>
-        </Panel>
-      )}
 
       {/* Revenue KPIs */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
