@@ -15,7 +15,8 @@ const SIZE = {
 const WIDTH = {
   auto: "w-auto",
   full: "w-full",
-  fullMobile: "w-full max-w-md sm:w-auto",
+  // Centered on mobile so it never hugs the left edge in open layouts.
+  fullMobile: "mx-auto w-full max-w-sm sm:mx-0 sm:w-auto sm:max-w-none",
 };
 
 const base =

@@ -43,14 +43,15 @@ export default function StickyLandingCta() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
-      <div className="mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-ink/10 bg-surface/95 p-2 shadow-[0_-8px_32px_rgb(var(--scrim)/0.35)] backdrop-blur-xl">
-        <div className="min-w-0 flex-1 pl-1.5">
+      <div className="mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-ink/10 bg-surface/95 p-2.5 shadow-[0_-8px_32px_rgb(var(--scrim)/0.35)] backdrop-blur-xl">
+        <div className="min-w-0 flex-1 pl-1">
           <p className="truncate text-[13px] font-semibold text-text-primary">
             {CTA.stickyTitle}
           </p>
           <p className="truncate text-[11px] text-text-muted">{CTA.stickySub}</p>
         </div>
-        <PrimaryButton size="md" onClick={go} className="shrink-0 !px-5">
+        {/* Compact primary — one gold action on phone while scrolling */}
+        <PrimaryButton size="md" onClick={go} className="shrink-0 !min-w-[6.5rem] !px-5">
           {CTA.stickyBtn}
         </PrimaryButton>
       </div>

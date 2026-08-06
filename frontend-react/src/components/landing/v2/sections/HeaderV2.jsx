@@ -289,7 +289,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               <button
                 type="button"
                 onClick={goLogin}
-                className="rounded-full px-3.5 py-2 text-[13px] font-medium text-text-primary/80 transition-colors hover:text-text-primary"
+                className="hidden rounded-full px-3.5 py-2 text-[13px] font-medium text-text-primary/80 transition-colors hover:text-text-primary lg:inline-flex"
               >
                 {CTA.logIn}
               </button>
@@ -297,17 +297,15 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
 
           </div>
 
-          {/* CTA and hamburger share the grid's third cell. The CTA used to sit
-              inside the lg-only cluster above, so below 1024px — 40% of visits
-              — the header offered a hamburger and nothing else, and the first
-              CTA was most of a screen further down. */}
+          {/* Desktop-only gold CTA. Mobile: sticky "Continue" owns conversion after
+              scroll; menu holds Start Free — avoids two competing gold primaries. */}
             <PrimaryButton
               size="md"
               onClick={isAuthenticated ? () => navigate("/home") : goSignup}
-              className={`!h-11 !px-4 !text-[13px] lg:!h-10 ${
+              className={`!hidden !h-10 !px-4 !text-[13px] lg:!inline-flex ${
                 isAuthenticated || pastHero
-                  ? "pointer-events-auto opacity-100"
-                  : "pointer-events-none opacity-0"
+                  ? "lg:pointer-events-auto lg:opacity-100"
+                  : "lg:pointer-events-none lg:opacity-0"
               }`}
             >
               {isAuthenticated ? CTA.openAppHeader : CTA.signUp}

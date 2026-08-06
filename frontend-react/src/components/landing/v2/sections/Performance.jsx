@@ -1065,12 +1065,12 @@ export default function Performance({ data }) {
         />
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
           <RrLadder />
-          <div className="flex flex-col gap-6">
-            <div className="flex gap-10">
+          <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
+            <div className="flex w-full justify-center gap-10 lg:justify-start">
               <LockedStat label="Expectancy" hint="per call, in R" />
               <LockedStat label="Cumulative R" hint="since Dec 2023" />
             </div>
-            <p className="text-[15px] leading-relaxed text-text-muted">
+            <p className="max-w-md text-[15px] leading-relaxed text-text-muted lg:max-w-none">
               A win rate alone cannot tell you if a strategy makes money. This ladder needs{" "}
               <span className="font-semibold text-text-primary">
                 {rGeo?.breakeven_win_rate_pct != null
