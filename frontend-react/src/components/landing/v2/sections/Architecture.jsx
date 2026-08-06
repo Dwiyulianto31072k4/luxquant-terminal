@@ -1,16 +1,16 @@
 // src/components/landing/v2/sections/Architecture.jsx
 // ════════════════════════════════════════════════════════════════
-// SECTION — Quantitative Pipeline.
-// LIVE MARKET DATA → DATA SANITIZER → PREDICTIVE ALPHA → TERMINAL
+// How it works — clear pipeline that builds trust.
+// LIVE DATA → SANITIZE → QUANT ENGINE → TERMINAL
 //
-// Animated gold connectors + edge art KEPT (the moving pipeline).
-// Cards/nodes redesigned SOLID & timeless: flat rgb(var(--surface)), hairline
-// borders, solid gold icons, no glow/scan/beam. Mobile stepper below.
+// Design: Autopilot-style hierarchy (one story, open surfaces, less chrome).
+// Desktop keeps the animated gold wire network; mobile is a readable
+// vertical narrative with why-each-step-matters copy.
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useLayoutEffect, useRef } from "react";
 
-/* ── solid gold glyphs (data sources + nodes) ── */
+/* ── solid gold glyphs ── */
 const ICONS = {
   ohlc: (
     <g fill="url(#lqGold)">
@@ -81,61 +81,31 @@ const ICONS = {
     </>
   ),
   mSignals: (
-    <g
-      fill="none"
-      stroke="url(#lqGold)"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
     </g>
   ),
   mAi: (
-    <g
-      fill="none"
-      stroke="url(#lqGold)"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="6" />
       <path d="M15.5 15.5L21 21" />
       <path d="M11 8.5v5M8.5 11h5" strokeOpacity="0.55" />
     </g>
   ),
   mFlow: (
-    <g
-      fill="none"
-      stroke="url(#lqGold)"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 8c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
       <path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
     </g>
   ),
   mBell: (
-    <g
-      fill="none"
-      stroke="url(#lqGold)"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3a5 5 0 00-5 5c0 4.5-2 6-2 6h14s-2-1.5-2-6a5 5 0 00-5-5z" />
       <path d="M10 19a2 2 0 004 0" />
     </g>
   ),
   mAgent: (
-    <g
-      fill="none"
-      stroke="url(#lqGold)"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
       <path d="M9.25 7V4.5" />
       <circle cx="9.25" cy="3.4" r="0.85" />
@@ -146,13 +116,7 @@ const ICONS = {
     </g>
   ),
   mPerf: (
-    <g
-      fill="none"
-      stroke="url(#lqGold)"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g fill="none" stroke="url(#lqGold)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <path d="M7 14l4-4 4 4 6-6" />
       <path d="M17 8h4v4" />
@@ -168,28 +132,15 @@ function Icon({ name, className = "h-[18px] w-[18px]" }) {
   );
 }
 
-function IconChip({ name, size = "h-9 w-9", ic = "h-[18px] w-[18px]" }) {
+function IconChip({ name, size = "h-10 w-10", ic = "h-[18px] w-[18px]" }) {
   return (
     <span
-      className={`flex ${size} flex-shrink-0 items-center justify-center rounded-xl border border-ink/10 bg-ink/[0.035]`}
+      className={`flex ${size} flex-shrink-0 items-center justify-center rounded-2xl bg-ink/[0.04]`}
     >
       <Icon name={name} className={ic} />
     </span>
   );
 }
-
-const Chevron = ({ className = "" }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-  </svg>
-);
 
 const INPUTS = [
   { icon: "ohlc", title: "Price & Volume", desc: "OHLCV · all timeframes" },
@@ -209,92 +160,124 @@ const FEATURES = [
   { icon: "mPerf", t: "Verified Performance", s: "Full, timestamped track record" },
 ];
 
+// Trust narrative — what each stage does (plain language, no jargon dump).
+const STAGES = [
+  {
+    n: "01",
+    id: "data",
+    title: "Live market data",
+    lead: "We never invent prices.",
+    body: "The engine streams multi-source feeds in real time — price, depth, derivatives, on-chain, volatility, and market breadth — so every decision starts from what the market actually is.",
+  },
+  {
+    n: "02",
+    id: "sanitize",
+    title: "Data sanitizer",
+    lead: "Noise never reaches the model.",
+    body: "Outliers, stale ticks, and exchange glitches are filtered before scoring. Clean inputs are how you keep false signals out of your feed.",
+  },
+  {
+    n: "03",
+    id: "engine",
+    title: "Predictive alpha",
+    lead: "Only setups that clear the rules ship.",
+    body: "The quant engine scores candidates 24/7 against risk geometry — entry, targets, and stop — and only publishes calls that pass. No discretionary override after the fact.",
+  },
+  {
+    n: "04",
+    id: "terminal",
+    title: "Your terminal",
+    lead: "Act on it. Audit every call.",
+    body: "Every call lands with entry, TP, and SL you can check. The same terminal holds research, money flow, agent execution, and a full public track record.",
+  },
+];
+
+const TRUST_PILLS = [
+  { k: "24/7", v: "engine, always on" },
+  { k: "Timestamped", v: "every call on record" },
+  { k: "Risk-defined", v: "entry · TP · SL" },
+  { k: "Auditable", v: "public track record" },
+];
+
 const hideOnError = (e) => {
   e.currentTarget.style.display = "none";
 };
 
-const CARD = "rounded-2xl border border-ink/[0.08] bg-surface-raised";
+const SURFACE = "rounded-[1.5rem] border border-ink/[0.06] bg-surface-raised/80";
 
-/* ════════════════════ DESKTOP CARDS (solid / timeless) ════════════════════ */
+/* ════════════════════ DESKTOP ════════════════════ */
 
 function InputCard({ item }) {
   return (
     <div
-      className={`group relative flex items-center gap-3 p-3.5 transition-colors duration-200 hover:border-ink/20 ${CARD}`}
+      className={`group relative flex items-center gap-3 px-3.5 py-3 transition-colors duration-200 hover:bg-ink/[0.02] ${SURFACE}`}
     >
-      <IconChip name={item.icon} size="h-11 w-11" ic="h-[20px] w-[20px]" />
+      <IconChip name={item.icon} size="h-10 w-10" ic="h-[18px] w-[18px]" />
       <div className="min-w-0">
-        <h4 className="text-[12.5px] font-semibold uppercase tracking-wide text-text-primary">
-          {item.title}
-        </h4>
-        <p className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-text-muted">
-          {item.desc}
-        </p>
+        <h4 className="text-[13px] font-semibold tracking-tight text-text-primary">{item.title}</h4>
+        <p className="mt-0.5 text-[12px] leading-tight text-text-muted">{item.desc}</p>
       </div>
-      <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-text-primary/25" />
-      {/* wire anchor — endpoint of the animated connector */}
       <span
         data-wire="in"
         aria-hidden="true"
-        className="absolute -right-[5px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-accent/85"
+        className="absolute -right-[5px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-accent/80"
       />
     </div>
   );
 }
 
-function StageNode({ icon, title, subtitle, dataWire, accent = false }) {
+function StageNode({ icon, title, subtitle, blurb, dataWire, accent = false }) {
   return (
     <div
       data-wire={dataWire}
-      className={`relative flex min-h-[220px] w-full flex-col items-center justify-center px-5 text-center ${CARD} ${accent ? "border-ink/12" : ""}`}
+      className={`relative flex min-h-[240px] w-full flex-col items-center justify-center px-5 py-8 text-center ${SURFACE} ${
+        accent ? "ring-1 ring-accent/25" : ""
+      }`}
     >
       <IconChip name={icon} size="h-14 w-14" ic="h-7 w-7" />
-      <h3 className="mt-4 text-[13.5px] font-semibold uppercase tracking-[0.08em] text-text-primary">
-        {title}
-      </h3>
-      <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-        {subtitle}
-      </p>
+      <h3 className="mt-5 text-[15px] font-semibold tracking-tight text-text-primary">{title}</h3>
+      <p className="mt-1 text-[12px] text-text-muted">{subtitle}</p>
+      {blurb && (
+        <p className="mt-4 max-w-[200px] text-[12.5px] leading-relaxed text-text-primary/55">
+          {blurb}
+        </p>
+      )}
     </div>
   );
 }
 
 function TerminalPanel() {
   return (
-    <div className={`w-full p-5 ${CARD}`}>
-      <div className="flex items-center gap-2.5 border-b border-ink/[0.08] pb-4">
-        <img src="/logo.png" alt="" className="h-6 w-6 rounded" onError={hideOnError} />
-        <span className="text-[13px] font-semibold tracking-[0.13em] text-text-primary">
-          LUXQUANT TERMINAL
-        </span>
+    <div className={`w-full p-6 ${SURFACE}`}>
+      <div className="flex items-center gap-2.5 pb-4">
+        <img src="/logo.png" alt="" className="h-6 w-6 rounded-md" onError={hideOnError} />
+        <div>
+          <p className="text-[14px] font-semibold tracking-tight text-text-primary">
+            LuxQuant Terminal
+          </p>
+          <p className="text-[12px] text-text-muted">Where the call becomes action</p>
+        </div>
       </div>
-      <div className="mt-3 divide-y divide-ink/[0.05]">
+      <div className="divide-y divide-ink/[0.05]">
         {FEATURES.map((f) => (
-          <div key={f.t} data-wire="out" className="group flex items-center gap-3 py-2.5">
-            <IconChip name={f.icon} size="h-9 w-9" ic="h-[18px] w-[18px]" />
+          <div key={f.t} data-wire="out" className="flex items-center gap-3 py-3">
+            <IconChip name={f.icon} size="h-9 w-9" ic="h-[16px] w-[16px]" />
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-text-primary">{f.t}</p>
-              <p className="truncate text-[11px] text-text-muted">{f.s}</p>
+              <p className="text-[13.5px] font-medium text-text-primary">{f.t}</p>
+              <p className="truncate text-[12px] text-text-muted">{f.s}</p>
             </div>
-            <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-text-primary/25 transition-colors group-hover:text-text-muted" />
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-ink/[0.06] pt-3">
-        <span className="text-[10.5px] text-text-muted">
-          Markets · Portfolio · Journal · News · Calendar
-        </span>
-        <span className="flex items-center gap-1 text-[11px] font-medium text-accent">
-          &amp; more <Chevron className="h-3.5 w-3.5" />
-        </span>
-      </div>
+      <p className="mt-4 border-t border-ink/[0.06] pt-4 text-[12px] text-text-muted">
+        Plus Markets, Portfolio, Journal, News &amp; Calendar
+      </p>
     </div>
   );
 }
 
-/* ════════════════════ ANIMATED GOLD LAYER (kept) ════════════════════ */
+/* ════════════════════ ANIMATED GOLD LAYER ════════════════════ */
 
-/* decorative circuit art on the far edges (desktop only) — animated gold traces */
 function EdgeArt({ side }) {
   const gid = `archEdgeGlow-${side}`;
   const sid = `archEdgeStream-${side}`;
@@ -311,7 +294,9 @@ function EdgeArt({ side }) {
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute top-[20%] bottom-[10%] z-0 hidden w-[min(13vw,230px)] opacity-[0.35] [mask-image:linear-gradient(to_right,#000_42%,transparent)] lg:block ${side === "left" ? "-left-2" : "-right-2 -scale-x-100"}`}
+      className={`pointer-events-none absolute top-[20%] bottom-[10%] z-0 hidden w-[min(13vw,230px)] opacity-[0.28] [mask-image:linear-gradient(to_right,#000_42%,transparent)] lg:block ${
+        side === "left" ? "-left-2" : "-right-2 -scale-x-100"
+      }`}
     >
       <svg viewBox="0 0 380 800" preserveAspectRatio="none" className="h-full w-full">
         <defs>
@@ -356,22 +341,21 @@ function EdgeArt({ side }) {
   );
 }
 
-/* animated gold connector network — measured from real DOM anchors */
 function PipelineWires({ geo }) {
   if (!geo) return null;
   const { W, H, ins, outs, san, eng } = geo;
   const n = ins.length || 1;
   const entryY = (i) => san.top + (san.bot - san.top) * (n === 1 ? 0.5 : i / (n - 1));
   const inPath = (p, i) => {
-    const ex = san.l.x,
-      ey = entryY(i);
+    const ex = san.l.x;
+    const ey = entryY(i);
     const c1 = p.x + (ex - p.x) * 0.55;
     const c2 = ex - (ex - p.x) * 0.45;
     return `M${p.x} ${p.y} C ${c1} ${p.y} ${c2} ${ey} ${ex} ${ey}`;
   };
   const outPath = (p) => {
-    const sx = eng.r.x,
-      sy = eng.r.y;
+    const sx = eng.r.x;
+    const sy = eng.r.y;
     const c1 = sx + (p.x - sx) * 0.45;
     const c2 = p.x - (p.x - sx) * 0.55;
     return `M${sx} ${sy} C ${c1} ${sy} ${c2} ${p.y} ${p.x} ${p.y}`;
@@ -440,12 +424,11 @@ function PipelineWires({ geo }) {
   );
 }
 
-/* measure DOM anchors relative to the pipeline wrapper (re-runs on resize) */
 function useArchGeometry(wrapRef) {
   const [geo, setGeo] = useState(null);
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
-    if (!wrap) return;
+    if (!wrap) return undefined;
     const measure = () => {
       const cr = wrap.getBoundingClientRect();
       if (!cr.width) return;
@@ -487,30 +470,91 @@ function useArchGeometry(wrapRef) {
   return geo;
 }
 
-/* ── mobile stepper ── */
-function Step({ n, accent = false, line = true, children }) {
+/* ── mobile story stepper ── */
+function MobileStory() {
   return (
-    <li className="flex gap-4">
-      <div className="flex flex-col items-center">
-        <span
-          className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border bg-surface-raised font-mono text-[13px] font-medium ${accent ? "border-ink/15 text-accent" : "border-ink/15 text-text-primary/55"}`}
-        >
-          {n}
-        </span>
-        {line && <span className="my-1.5 w-px flex-1 bg-ink/10" />}
-      </div>
-      <div className="flex-1 pb-6">{children}</div>
-    </li>
+    <ol className="mx-auto max-w-lg space-y-0 lg:hidden">
+      {STAGES.map((s, i) => {
+        const isLast = i === STAGES.length - 1;
+        return (
+          <li key={s.id} className="relative flex gap-5">
+            {/* rail */}
+            <div className="flex w-10 flex-col items-center">
+              <span className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-ink/[0.05] text-[13px] font-semibold tabular-nums text-accent">
+                {s.n}
+              </span>
+              {!isLast && <span className="w-px flex-1 bg-gradient-to-b from-ink/15 to-ink/[0.04]" />}
+            </div>
+
+            <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-10"}`}>
+              <h3 className="text-lg font-semibold tracking-tight text-text-primary">{s.title}</h3>
+              <p className="mt-1 text-[14px] font-medium text-accent">{s.lead}</p>
+              <p className="mt-2 text-[14px] leading-relaxed text-text-muted">{s.body}</p>
+
+              {/* stage-specific detail */}
+              {s.id === "data" && (
+                <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2.5">
+                  {INPUTS.map((inp) => (
+                    <li key={inp.title} className="flex items-center gap-2">
+                      <Icon name={inp.icon} className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-[12.5px] text-text-primary/80">{inp.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {s.id === "sanitize" && (
+                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-ink/[0.03] px-4 py-3">
+                  <IconChip name="sanitizer" />
+                  <p className="text-[13px] leading-snug text-text-primary/70">
+                    Outliers · stale ticks · exchange glitches filtered out
+                  </p>
+                </div>
+              )}
+
+              {s.id === "engine" && (
+                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-ink/[0.03] px-4 py-3 ring-1 ring-accent/20">
+                  <IconChip name="core" />
+                  <p className="text-[13px] leading-snug text-text-primary/70">
+                    Risk geometry first — only cleared setups publish
+                  </p>
+                </div>
+              )}
+
+              {s.id === "terminal" && (
+                <div className={`mt-4 p-4 ${SURFACE}`}>
+                  <div className="mb-3 flex items-center gap-2">
+                    <img src="/logo.png" alt="" className="h-5 w-5 rounded" onError={hideOnError} />
+                    <span className="text-[13px] font-semibold text-text-primary">
+                      LuxQuant Terminal
+                    </span>
+                  </div>
+                  <ul className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+                    {FEATURES.map((f) => (
+                      <li key={f.t} className="flex items-center gap-2">
+                        <Icon name={f.icon} className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-[12.5px] text-text-primary/80">{f.t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
 export default function Architecture() {
   const pipeRef = useRef(null);
   const geo = useArchGeometry(pipeRef);
+
   return (
     <section
       id="how-it-works"
-      className="relative z-10 mx-auto -mt-10 w-full max-w-7xl px-4 pt-6 pb-20 lg:-mt-16 lg:px-8 lg:pt-10 lg:pb-28"
+      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-24 lg:px-8 lg:py-32"
     >
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
@@ -524,43 +568,48 @@ export default function Architecture() {
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[460px] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-[100%] bg-accent/[0.035] blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[460px] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-[100%] bg-accent/[0.03] blur-[120px]"
       />
 
       <EdgeArt side="left" />
       <EdgeArt side="right" />
 
-      {/* header */}
-      <div className="mb-14 text-center lg:mb-20">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
-          <span className="h-px w-7 bg-accent/40" />
-          How It Works
-          <span className="h-px w-7 bg-accent/40" />
-        </span>
-        <h2 className="mt-5 text-3xl font-bold tracking-tight text-text-primary lg:text-5xl">
-          From market data to <span className="text-accent">your terminal</span>
+      {/* Hero — one clear sentence, trust first */}
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="text-[13px] font-medium tracking-wide text-text-muted">How it works</p>
+        <h2 className="mt-4 text-[2.4rem] font-semibold leading-[1.08] tracking-tight text-text-primary sm:text-5xl lg:text-[3.4rem]">
+          From live data to a call{" "}
+          <span className="text-accent">you can audit.</span>
         </h2>
-        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
-          A 24/7 quant engine turns live market data into precise calls — and a complete trading
-          terminal you can act on.
+        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
+          Four steps. No black box. Market data in, risk-defined calls out — every level
+          timestamped so you can verify what happened.
         </p>
       </div>
 
-      {/* DESKTOP — solid cards + animated gold wires */}
-      <div className="relative mx-auto hidden w-full max-w-[1320px] lg:block">
+      {/* Trust pills */}
+      <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 sm:mt-12">
+        {TRUST_PILLS.map((p) => (
+          <div key={p.k} className="flex items-baseline gap-1.5 text-[13px]">
+            <span className="font-semibold text-text-primary">{p.k}</span>
+            <span className="text-text-muted">{p.v}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* DESKTOP pipeline */}
+      <div className="relative mx-auto mt-16 hidden w-full max-w-[1320px] lg:mt-20 lg:block">
         <div
           ref={pipeRef}
-          className="relative grid items-center gap-6 xl:gap-9"
+          className="relative grid items-center gap-5 xl:gap-7"
           style={{
             gridTemplateColumns:
-              "minmax(280px,310px) minmax(150px,176px) minmax(250px,300px) minmax(340px,1fr)",
+              "minmax(260px,300px) minmax(160px,190px) minmax(200px,240px) minmax(320px,1fr)",
           }}
         >
           <PipelineWires geo={geo} />
-          <div className="relative z-10 flex flex-col gap-3">
-            <p className="mb-1 ml-1 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
-              Live Market Data
-            </p>
+          <div className="relative z-10 flex flex-col gap-2.5">
+            <p className="mb-1 ml-1 text-[12px] font-medium text-text-muted">Live market data</p>
             {INPUTS.map((i) => (
               <InputCard key={i.title} item={i} />
             ))}
@@ -568,16 +617,18 @@ export default function Architecture() {
           <div className="relative z-10">
             <StageNode
               icon="sanitizer"
-              title="Data Sanitizer"
-              subtitle="Sanitization"
+              title="Data sanitizer"
+              subtitle="Clean inputs only"
+              blurb="Filters noise before the model scores a setup."
               dataWire="sanitizer"
             />
           </div>
           <div className="relative z-10">
             <StageNode
               icon="core"
-              title="Predictive Alpha"
-              subtitle="Quant Engine"
+              title="Predictive alpha"
+              subtitle="Quant engine · 24/7"
+              blurb="Only risk-cleared setups become public calls."
               dataWire="engine"
               accent
             />
@@ -586,76 +637,27 @@ export default function Architecture() {
             <TerminalPanel />
           </div>
         </div>
+
+        {/* Desktop caption under pipeline — reinforces understanding */}
+        <div className="mt-12 grid grid-cols-4 gap-6 border-t border-ink/[0.06] pt-10">
+          {STAGES.map((s) => (
+            <div key={s.id}>
+              <p className="text-[11px] font-semibold tabular-nums tracking-wide text-accent">
+                {s.n}
+              </p>
+              <p className="mt-2 text-[14px] font-semibold tracking-tight text-text-primary">
+                {s.title}
+              </p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{s.lead}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* MOBILE — compact vertical stepper */}
-      <ol className="mx-auto max-w-md lg:hidden">
-        <Step n={1}>
-          <div className={`p-4 ${CARD}`}>
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-text-primary">
-              Live Market Data
-            </p>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-              {INPUTS.map((i) => (
-                <div key={i.title} className="flex items-center gap-2">
-                  <Icon name={i.icon} className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-[11px] leading-tight text-text-primary/75">{i.title}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Step>
-
-        <Step n={2}>
-          <div className={`flex items-center gap-3 p-3.5 ${CARD}`}>
-            <IconChip name="sanitizer" />
-            <div>
-              <p className="text-[13px] font-medium uppercase tracking-wide text-text-primary">
-                Data Sanitizer
-              </p>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                Sanitization
-              </p>
-            </div>
-          </div>
-        </Step>
-
-        <Step n={3} accent>
-          <div className={`flex items-center gap-3 p-3.5 ${CARD} border-ink/12`}>
-            <IconChip name="core" />
-            <div>
-              <p className="text-[13px] font-medium uppercase tracking-wide text-text-primary">
-                Predictive Alpha
-              </p>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                Quant Engine
-              </p>
-            </div>
-          </div>
-        </Step>
-
-        <Step n={4} line={false}>
-          <div className={`p-4 ${CARD}`}>
-            <div className="mb-3 flex items-center gap-2 border-b border-ink/10 pb-3">
-              <img src="/logo.png" alt="" className="h-5 w-5 rounded" onError={hideOnError} />
-              <span className="text-[12px] font-medium uppercase tracking-wide text-text-primary">
-                LuxQuant Terminal
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
-              {FEATURES.map((f) => (
-                <div key={f.t} className="flex items-center gap-2">
-                  <Icon name={f.icon} className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-[11px] leading-tight text-text-primary/75">{f.t}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3.5 border-t border-ink/[0.06] pt-3 text-[11px] font-medium text-accent/85">
-              + Markets, Portfolio, Journal &amp; more
-            </p>
-          </div>
-        </Step>
-      </ol>
+      {/* MOBILE story */}
+      <div className="mt-14 lg:hidden">
+        <MobileStory />
+      </div>
 
       <style>{`
  @keyframes archDash { to { stroke-dashoffset: -160; } }
