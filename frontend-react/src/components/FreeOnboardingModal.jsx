@@ -28,32 +28,32 @@ const markDone = () => {
 
 const STEPS = [
   {
-    id: "signals",
-    title: "Browse verified calls",
-    body: "Open Signals — closed calls older than 7 days unlock in full (free track record). Live levels stay Premium.",
-    path: "/signals",
-    cta: "Open Signals",
-  },
-  {
-    id: "watchlist",
-    title: "Save coins to watchlist",
-    body: "Pin pairs you care about. Free accounts get a full personal watchlist — no card required.",
-    path: "/watchlist",
-    cta: "Open Watchlist",
-  },
-  {
     id: "pulse",
-    title: "Check Market Pulse & News",
-    body: "Stay current without paying — Pulse and Crypto News are free for every account.",
+    title: "Market Pulse & News",
+    body: "Core free features — market moves and headlines without a subscription.",
     path: "/market-pulse",
     cta: "Open Pulse",
   },
   {
     id: "performance",
-    title: "See the track record",
-    body: "Win rate, top gainers, proof — the public edge that built LuxQuant. Free after login.",
+    title: "Verified track record",
+    body: "Win rate, top gainers, and proof charts — free after login.",
     path: "/performance",
     cta: "Open Performance",
+  },
+  {
+    id: "watchlist",
+    title: "Watchlist",
+    body: "Pin pairs you care about. Free personal list — no card required.",
+    path: "/watchlist",
+    cta: "Open Watchlist",
+  },
+  {
+    id: "signals",
+    title: "Signals board",
+    body: "Browse calls and older track-record detail. Live entry/SL/TP levels stay Premium.",
+    path: "/signals",
+    cta: "Open Signals",
   },
 ];
 
@@ -103,14 +103,14 @@ export default function FreeOnboardingModal() {
       >
         <div className="border-b border-ink/[0.06] px-5 py-4 sm:px-6">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-            Free account · start here
+            Free features · start here
           </p>
           <h2 id="free-onboard-title" className="mt-1.5 text-lg font-bold text-text-primary">
-            You&apos;re in — here&apos;s what you get free
+            You&apos;re in — free tools to use today
           </h2>
           <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">
-            No card. Use these now so LuxQuant is useful on day one. Premium unlocks live levels,
-            Terminal, and Agent when you&apos;re ready.
+            No card. Pulse, News, Performance, watchlist &amp; more. Premium is for live signal
+            levels, Terminal, and Agent when you want more.
           </p>
         </div>
 

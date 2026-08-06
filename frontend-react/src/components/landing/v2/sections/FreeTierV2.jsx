@@ -27,11 +27,11 @@ export default function FreeTierV2() {
 
   const goAccount = () => {
     if (isAuthenticated) {
-      navigate("/signals");
+      navigate("/home");
       return;
     }
     trackFunnel("cta_click", { source: "free_tier_account", path: "/" });
-    navigate(loginUrl("/signals", { source: "free_tier_account" }));
+    navigate(loginUrl("/home", { source: "free_tier_account" }));
   };
 
   return (
@@ -42,18 +42,18 @@ export default function FreeTierV2() {
       <div className="mb-16 text-center lg:mb-48">
         <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/60" />
-          Free account · real product
+          Free features · no card
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-accent/60" />
         </span>
         <h2 className="mt-7 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
-          Free access to{" "}
+          Real free tools —{" "}
           <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-            signals &amp; watchlist.
+            not just a teaser.
           </span>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55">
-          Create a free account: verified track record (calls older than 7 days unlock in full),
-          personal watchlist, Pulse &amp; News. Premium adds live levels, Terminal &amp; Agent.
+          Free account: Market Pulse, News, Performance, watchlist, tips &amp; verified track record.
+          Premium adds live signal levels, Terminal &amp; Agent when you want more.
         </p>
       </div>
 
@@ -108,11 +108,11 @@ export default function FreeTierV2() {
                 {/* heading + desc */}
                 <div className="min-w-0">
                   <p className="text-lg font-bold text-text-primary sm:text-xl">
-                    Account free · channel free
+                    Free features + free channel
                   </p>
                   <p className="mt-2.5 text-sm leading-relaxed text-text-primary/55">
-                    Free account = Signals track record + watchlist in the terminal. Telegram channel
-                    = public samples. Best results: do both.
+                    Free account = Pulse, News, Performance, watchlist &amp; more in the app. Telegram
+                    = public samples. Best results: use both.
                   </p>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export default function FreeTierV2() {
                   className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-[0_6px_18px_rgb(var(--accent)/0.28)] transition-all duration-300 hover:-translate-y-0.5"
                   style={GOLD_BTN}
                 >
-                  {isAuthenticated ? "Open free signals" : "Create free account"}
+                  {isAuthenticated ? "Open free features" : "Create free account"}
                 </button>
                 <a
                   href={TG_LINK}

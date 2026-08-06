@@ -30,8 +30,7 @@ export default function StickyLandingCta() {
 
   const go = () => {
     trackFunnel("cta_click", { source: "sticky_mobile", path: "/" });
-    // Land on free value, not empty home shell
-    navigate(loginUrl("/signals", { source: "sticky_mobile" }));
+    navigate(loginUrl("/home", { source: "sticky_mobile" }));
   };
 
   return (
@@ -39,9 +38,9 @@ export default function StickyLandingCta() {
       <div className="mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-ink/10 bg-surface/95 p-2.5 shadow-[0_-8px_32px_rgb(var(--scrim)/0.35)] backdrop-blur-xl">
         <div className="min-w-0 flex-1 pl-1.5">
           <p className="truncate text-[13px] font-semibold text-text-primary">
-            Free · signals &amp; watchlist
+            Free features · no card
           </p>
-          <p className="truncate text-[11px] text-text-muted">Track record free · 30 seconds</p>
+          <p className="truncate text-[11px] text-text-muted">Pulse, track record &amp; more · 30s</p>
         </div>
         <button
           type="button"

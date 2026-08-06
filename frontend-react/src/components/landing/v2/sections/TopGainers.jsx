@@ -127,8 +127,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       return;
     }
     trackFunnel("cta_click", { source: "top_gainers_cta", path: "/" });
-    // Free accounts can open Signals after login
-    navigate(loginUrl("/signals", { source: "top_gainers_cta" }));
+    navigate(loginUrl("/home", { source: "top_gainers_cta" }));
   };
 
   // ── custom date range (top-performers supports date_from/date_to) ──
@@ -186,30 +185,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
     }
   }, []);
 
-  const handleItemClick = (item) => {
-    if (!item?.signal_id) {
-      console.warn(
-        "[TopGainers] gainer tanpa signal_id — pastikan useLandingData pass signal_id/all_signal_ids",
-        item
-      );
-      return;
-    }
-
-    // Soft gate: 1 free chart preview per session for guests, then login.
-    // Landing HTML + gainer cards stay public for SEO; detail depth is gated.
-    if (!isAuthenticated && readFreePreviewCount() >= FREE_PREVIEW_LIMIT) {
-      setGateItem(item);
-      setGateOpen(true);
-      trackFunnel("soft_gate_shown", {
-        source: "top_gainers",
-        path: "/",
-        meta: { pair: item.pair, signal_id: item.signal_id },
-      });
-      return;
-    }
-
-    if (!isAuthenticated) bumpFreePreviewCount();
-
+  const openChart = (item) => {
     const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
     const bi = ids.indexOf(item.signal_id);
     setModalSignalIds(ids);
@@ -219,13 +195,41 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
     fetchDetail(item.signal_id);
   };
 
+  const handleItemClick = (item) => {
+    if (!item?.signal_id) {
+      console.warn(
+        "[TopGainers] gainer tanpa signal_id — pastikan useLandingData pass signal_id/all_signal_ids",
+        item
+      );
+      return;
+    }
+
+    // Guests always keep the chart open (no hard wall). After the first free
+    // preview we also show a soft account tease — dismissible, chart stays.
+    const guest = !isAuthenticated;
+    const usedFree = guest && readFreePreviewCount() >= FREE_PREVIEW_LIMIT;
+    if (guest && !usedFree) bumpFreePreviewCount();
+
+    openChart(item);
+
+    if (guest && usedFree) {
+      setGateItem(item);
+      setGateOpen(true);
+      trackFunnel("soft_gate_shown", {
+        source: "top_gainers",
+        path: "/",
+        meta: { pair: item.pair, signal_id: item.signal_id },
+      });
+    }
+  };
+
   const goGateLogin = () => {
     trackFunnel("soft_gate_login_click", {
       source: "top_gainers",
       path: "/",
       meta: gateItem ? { pair: gateItem.pair, signal_id: gateItem.signal_id } : null,
     });
-    navigate(loginUrl("/signals", { source: "top_gainers_soft_gate" }));
+    navigate(loginUrl("/home", { source: "top_gainers_soft_gate" }));
   };
 
   const goToSignal = (i) => {
@@ -587,7 +591,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
           className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] hover:shadow-[0_6px_20px_rgb(var(--accent) / 0.35)]"
           style={GOLD_BTN}
         >
-          {isAuthenticated ? "See full track record" : "Free account · open signals"}
+          {isAuthenticated ? "See full track record" : "Free features · create account"}
           <svg
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
             fill="none"
@@ -616,34 +620,35 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
         />
       )}
 
-      {/* Soft gate — guest used free preview; ask for account without full hard block on SEO content */}
+      {/* Soft account tease — chart stays open underneath (z below proof modal = 100000).
+          Guests keep viewing; we only pitch free features + account. */}
       {gateOpen && (
         <div
-          className="fixed inset-0 z-[80] flex items-end justify-center bg-scrim/60 p-4 sm:items-center"
+          className="fixed inset-0 z-[100050] flex items-end justify-center bg-scrim/35 p-3 sm:items-end sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="lq-soft-gate-title"
           onClick={() => setGateOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-ink/10 bg-surface p-6 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-ink/10 bg-surface p-5 shadow-2xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-              Free preview used
+              Free features
             </p>
             <h3
               id="lq-soft-gate-title"
               className="mt-2 text-lg font-bold text-text-primary"
             >
               {gateItem?.pair
-                ? `Unlock full chart for ${symbolOf(gateItem.pair)}`
-                : "Unlock full call charts"}
+                ? `Like ${symbolOf(gateItem.pair)}? Create a free account`
+                : "Create a free account"}
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-text-muted">
-              Free account unlocks Signals (full levels on calls older than 7 days), watchlist,
-              Pulse &amp; Performance — Google or Telegram, under 30 seconds. Live levels stay
-              Premium.
+              Keep exploring charts here. Free account unlocks more tools — Market Pulse, News,
+              Performance, watchlist, tips &amp; track record. Google or Telegram · ~30 seconds.
+              Live signal levels stay Premium.
             </p>
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
@@ -652,14 +657,14 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                 className="flex-1 rounded-full px-4 py-2.5 text-sm font-semibold"
                 style={GOLD_BTN}
               >
-                Continue free
+                Create free account
               </button>
               <button
                 type="button"
                 onClick={() => setGateOpen(false)}
                 className="flex-1 rounded-full border border-ink/12 px-4 py-2.5 text-sm font-medium text-text-primary/80"
               >
-                Keep browsing
+                Keep viewing chart
               </button>
             </div>
           </div>
