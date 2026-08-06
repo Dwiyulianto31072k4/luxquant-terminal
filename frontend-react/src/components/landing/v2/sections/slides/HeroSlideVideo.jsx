@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import HeroSignupPill from "../shared/HeroSignupPill";
+import { HERO, CTA } from "../../landingCopy";
 
 // ════════════════════════════════════════════════════════════════
 // Hero video — sits INSIDE the page canvas (same grammar as
@@ -11,11 +12,9 @@ import HeroSignupPill from "../shared/HeroSignupPill";
 // Real calls feel "inside" the same world, not under a cut.
 // ════════════════════════════════════════════════════════════════
 
-const HEADLINE_TOP = "Algo-Backed Crypto Calls."
-const HEADLINE_BOTTOM = "Plus The Full Terminal."
-
-const HERO_DESCRIPTION =
-  "Entry, targets and stop on every call — plus live market data, on-chain flow, and a track record you can audit. Running since 2023.";
+const HEADLINE_TOP = HERO.line1;
+const HEADLINE_BOTTOM = HERO.line2;
+const HERO_DESCRIPTION = HERO.sub;
 
 const VIDEO_DESKTOP = "/hero-video.mp4";
 const VIDEO_MOBILE = "/hero-video-mobile.mp4";
@@ -162,19 +161,19 @@ export default function HeroSlideVideo() {
           />
 
           <h1
-            className="relative z-10 max-w-6xl font-bold leading-[1.02] tracking-[-0.03em] text-[2.55rem] sm:leading-[1.05] sm:text-[3.5rem] md:text-[4.2rem] lg:text-[5.1rem] xl:text-[5.7rem]"
+            className="relative z-10 max-w-4xl font-bold leading-[1.08] tracking-[-0.025em] text-[1.85rem] sm:leading-[1.1] sm:text-[2.65rem] md:text-[3.15rem] lg:text-[3.65rem] xl:text-[4rem]"
             style={{
               textShadow: "0 2px 30px rgb(var(--scrim) / 0.35), 0 1px 4px rgb(var(--scrim) / 0.3)",
             }}
           >
-            <span className="block text-balance text-text-primary sm:whitespace-nowrap">
+            <span className="block text-balance text-text-primary">
               {HEADLINE_TOP}
             </span>
             <span
-              className="mt-1 block text-balance sm:whitespace-nowrap"
+              className="mt-1.5 block text-balance text-[0.92em] sm:mt-2 sm:text-[0.95em]"
               style={{
                 color: "rgb(var(--warn))",
-                textShadow: "0 0 18px rgba(255, 203, 46, 0.5), 0 6px 16px rgb(var(--scrim) / 0.28)",
+                textShadow: "0 0 18px rgba(255, 203, 46, 0.45), 0 6px 16px rgb(var(--scrim) / 0.28)",
               }}
             >
               {HEADLINE_BOTTOM}
@@ -215,8 +214,9 @@ export default function HeroSlideVideo() {
             }}
           />
           <HeroSignupPill
-            text="Access LuxQuant Terminal"
-            className="!max-w-[290px] sm:!max-w-[460px]"
+            text={CTA.pill}
+            shortText={CTA.pillShort}
+            className="!max-w-[300px] sm:!max-w-[480px]"
           />
         </div>
       </div>

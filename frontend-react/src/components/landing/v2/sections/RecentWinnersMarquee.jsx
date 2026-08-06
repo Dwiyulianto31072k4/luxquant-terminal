@@ -305,13 +305,12 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
 
       {/* Heading — only overlaps video dissolve when blendWithHero */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
-        <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-text-primary">
+        <h2 className="text-2xl sm:text-3xl lg:text-[2.5rem] font-bold leading-[1.1] tracking-tight text-text-primary">
           Real calls. Real peaks.
         </h2>
         <p className="mt-3 text-sm sm:text-[15px] text-text-primary/55 max-w-lg mx-auto leading-relaxed">
-          Every card is a real LuxQuant call. The trade closes at a target; the peak is where the
-          move actually stopped, and each one says how long after the call that took. Both are
-          dated, so you can check any of them on a chart.
+          Every card is a dated LuxQuant call — close level and peak time — so you can audit it on
+          any chart.
         </p>
       </div>
 

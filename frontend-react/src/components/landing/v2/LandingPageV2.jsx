@@ -59,10 +59,10 @@ export default function LandingPageV2() {
   return (
     <div className="lp-v2 min-h-screen bg-bg-primary text-text-primary relative overflow-x-hidden">
       <Seo
-        title="LuxQuant Terminal — Quantitative Crypto Intelligence"
-        description="LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you."
+        title="LuxQuant — Verified Crypto Calls & Free Market Tools"
+        description="Audit every crypto call with timestamped entries and peaks. Free: Market Pulse, News, Performance & track record. Premium: live levels and the full terminal."
         path="/"
-        keywords="luxquant, crypto terminal, quantitative crypto, trading signals, on-chain intelligence, agent"
+        keywords="luxquant, crypto signals, verified track record, market pulse, crypto terminal, free crypto tools"
         jsonLd={[
           {
             "@context": "https://schema.org",

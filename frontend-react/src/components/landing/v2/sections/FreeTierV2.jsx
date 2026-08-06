@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { CTA } from "../../landingCopy";
 import PhoneMockup from "./shared/PhoneMockup";
 
 const TG_LINK = "https://t.me/LuxQuantSignal";
@@ -42,18 +43,17 @@ export default function FreeTierV2() {
       <div className="mb-16 text-center lg:mb-48">
         <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/60" />
-          Free features · no card
+          {CTA.freeEyebrow}
           <span className="h-px w-7 bg-gradient-to-l from-transparent to-accent/60" />
         </span>
         <h2 className="mt-7 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
-          Real free tools —{" "}
+          {CTA.freeTitleLead}{" "}
           <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-            not just a teaser.
+            {CTA.freeTitleGold}
           </span>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55">
-          Free account: Market Pulse, News, Performance, watchlist, tips &amp; verified track record.
-          Premium adds live signal levels, Terminal &amp; Agent when you want more.
+          {CTA.freeBody}
         </p>
       </div>
 
@@ -108,11 +108,10 @@ export default function FreeTierV2() {
                 {/* heading + desc */}
                 <div className="min-w-0">
                   <p className="text-lg font-bold text-text-primary sm:text-xl">
-                    Free features + free channel
+                    {CTA.freeChannelTitle}
                   </p>
                   <p className="mt-2.5 text-sm leading-relaxed text-text-primary/55">
-                    Free account = Pulse, News, Performance, watchlist &amp; more in the app. Telegram
-                    = public samples. Best results: use both.
+                    {CTA.freeChannelBody}
                   </p>
                 </div>
               </div>
@@ -126,7 +125,7 @@ export default function FreeTierV2() {
                   className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-[0_6px_18px_rgb(var(--accent)/0.28)] transition-all duration-300 hover:-translate-y-0.5"
                   style={GOLD_BTN}
                 >
-                  {isAuthenticated ? "Open free features" : "Create free account"}
+                  {isAuthenticated ? CTA.freePrimaryAuthed : CTA.freePrimary}
                 </button>
                 <a
                   href={TG_LINK}
@@ -145,7 +144,7 @@ export default function FreeTierV2() {
                   >
                     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                   </svg>
-                  <span className="tracking-wide">Join free channel</span>
+                  <span className="tracking-wide">{CTA.freeChannelCta}</span>
                 </a>
               </div>
             </div>

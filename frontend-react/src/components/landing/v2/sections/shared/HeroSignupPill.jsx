@@ -4,6 +4,7 @@ import { ensureTelegram } from "../../../../../utils/telegramLoader";
 import { useAuth } from "../../../../../context/AuthContext";
 import { loginUrl, stashPostLoginRedirect, consumePostLoginRedirect } from "../../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
+import { CTA } from "../../landingCopy";
 
 function TelegramIcon() {
   return (
@@ -45,8 +46,8 @@ function DiscordIcon() {
 }
 
 export default function HeroSignupPill({
-  text = "Free features · Pulse, track record & more",
-  shortText = "Start free",
+  text = CTA.pill,
+  shortText = CTA.pillShort,
   className = "",
   source = "hero_pill",
   redirect = "/home",
@@ -127,7 +128,7 @@ export default function HeroSignupPill({
           onClick={() => navigate("/home")}
           className="inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-8 text-[14px] font-semibold text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)_/_0.3)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_10px_24px_rgb(var(--accent)_/_0.42)]"
         >
-          Open App
+          {CTA.openApp}
         </button>
       </div>
     );

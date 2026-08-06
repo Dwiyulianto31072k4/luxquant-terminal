@@ -23,6 +23,7 @@ import { SignalDetailModal } from "../../../TopPerformers";
 import { peakLagFromSeconds } from "../../../../utils/peakTiming";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { CTA } from "../../landingCopy";
 
 const FREE_PREVIEW_KEY = "lq_landing_free_preview_v1";
 const FREE_PREVIEW_LIMIT = 1;
@@ -591,7 +592,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
           className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] hover:shadow-[0_6px_20px_rgb(var(--accent) / 0.35)]"
           style={GOLD_BTN}
         >
-          {isAuthenticated ? "See full track record" : "Free features · create account"}
+          {isAuthenticated ? CTA.gainersCtaAuth : CTA.gainersCtaGuest}
           <svg
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
             fill="none"
@@ -635,20 +636,16 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
             onClick={(e) => e.stopPropagation()}
           >
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-              Free features
+              {CTA.gateEyebrow}
             </p>
             <h3
               id="lq-soft-gate-title"
               className="mt-2 text-lg font-bold text-text-primary"
             >
-              {gateItem?.pair
-                ? `Like ${symbolOf(gateItem.pair)}? Create a free account`
-                : "Create a free account"}
+              {CTA.gateTitle(gateItem?.pair ? symbolOf(gateItem.pair) : null)}
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-text-muted">
-              Keep exploring charts here. Free account unlocks more tools — Market Pulse, News,
-              Performance, watchlist, tips &amp; track record. Google or Telegram · ~30 seconds.
-              Live signal levels stay Premium.
+              {CTA.gateBody}
             </p>
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
@@ -657,14 +654,14 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                 className="flex-1 rounded-full px-4 py-2.5 text-sm font-semibold"
                 style={GOLD_BTN}
               >
-                Create free account
+                {CTA.gatePrimary}
               </button>
               <button
                 type="button"
                 onClick={() => setGateOpen(false)}
                 className="flex-1 rounded-full border border-ink/12 px-4 py-2.5 text-sm font-medium text-text-primary/80"
               >
-                Keep viewing chart
+                {CTA.gateSecondary}
               </button>
             </div>
           </div>

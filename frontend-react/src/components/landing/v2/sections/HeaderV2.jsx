@@ -22,6 +22,7 @@ import { useTheme } from "../../../../context/ThemeContext";
 import MoreMenuDropdown from "../../../MoreMenuDropdown";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { CTA } from "../../landingCopy";
 
 // Compact appearance picker for the landing header (admin-gated while theming
 // is in preview). Three swatches — click to switch the whole site live.
@@ -295,7 +296,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                 onClick={goLogin}
                 className="rounded-full px-3.5 py-2 text-[13px] font-medium text-text-primary/80 transition-colors hover:text-text-primary"
               >
-                Log In
+                {CTA.logIn}
               </button>
             )}
 
@@ -315,7 +316,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             }`}
               style={GOLD_BTN}
             >
-              {isAuthenticated ? "Open App" : "Start Free"}
+              {isAuthenticated ? CTA.openAppHeader : CTA.signUp}
             </button>
 
           {/* Mobile hamburger */}
@@ -443,7 +444,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                 onClick={goLogin}
                 className="rounded-full border border-ink/15 px-4 py-2.5 text-[13px] font-medium text-text-primary/85 transition-colors hover:bg-ink/[0.04]"
               >
-                Log In
+                {CTA.logIn}
               </button>
             )}
             <button
@@ -459,7 +460,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               className="rounded-full px-4 py-2.5 text-[13px] font-semibold"
               style={GOLD_BTN}
             >
-              {isAuthenticated ? "Open App" : "Start Free"}
+              {isAuthenticated ? CTA.openAppHeader : CTA.signUp}
             </button>
           </div>
         </div>

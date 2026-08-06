@@ -9,6 +9,7 @@
 // Hardware frames are pure CSS so any screenshot drops straight in.
 // ════════════════════════════════════════════════════════════════
 import HeroSignupPill from "../shared/HeroSignupPill";
+import { HERO, CTA } from "../../landingCopy";
 
 const hideOnError = (event) => {
   event.currentTarget.style.display = "none";
@@ -166,17 +167,18 @@ export default function HeroSlideAlgo() {
     <div className="flex w-full flex-col items-center text-center">
       {/* Headline — white + gold accent (matches other sections) */}
       <h1
-        className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-text-primary text-[2.05rem] sm:text-[2.8rem] lg:whitespace-nowrap lg:text-[3.2rem] xl:text-[3.8rem]"
+        className="font-display font-bold leading-[1.1] tracking-[-0.025em] text-text-primary text-[1.75rem] sm:text-[2.35rem] lg:text-[2.85rem] xl:text-[3.15rem]"
         style={{ textShadow: "0 2px 30px rgb(var(--scrim) / 0.35)" }}
       >
-        Every Call, Plus{" "}
+        One desk for{" "}
         <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-          The Whole Desk.
+          calls, markets &amp; risk.
         </span>
       </h1>
 
-      <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base lg:text-lg">
-        Charts, order book, on-chain flow, whale alerts, a journal and your portfolio — in one place.
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base">
+        Free tools to explore today. Premium opens live levels, Terminal depth, and Agent when you
+        want more.
       </p>
 
       {/* ════════ Product proof — iMac + iPhone showcase ════════ */}
@@ -230,8 +232,9 @@ export default function HeroSlideAlgo() {
       {/* Access / Sign-up CTA — extra bottom room so Real calls never collides */}
       <div className="mt-1 w-full pb-10 sm:mt-3 sm:pb-14 lg:pb-16">
         <HeroSignupPill
-          text=""
-          className="!max-w-[360px] sm:!max-w-[460px]"
+          text={CTA.pill}
+          shortText={CTA.pillShort}
+          className="!max-w-[320px] sm:!max-w-[480px]"
         />
       </div>
     </div>
