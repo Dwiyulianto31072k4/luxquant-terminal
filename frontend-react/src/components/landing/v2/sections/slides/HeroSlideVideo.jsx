@@ -161,19 +161,19 @@ export default function HeroSlideVideo() {
           />
 
           <h1
-            className="relative z-10 max-w-4xl font-bold leading-[1.08] tracking-[-0.025em] text-[1.85rem] sm:leading-[1.1] sm:text-[2.65rem] md:text-[3.15rem] lg:text-[3.65rem] xl:text-[4rem]"
+            className="relative z-10 max-w-6xl font-bold leading-[1.05] tracking-[-0.03em] text-[2.15rem] sm:leading-[1.06] sm:text-[3.1rem] md:text-[3.75rem] lg:text-[4.5rem] xl:text-[5rem]"
             style={{
               textShadow: "0 2px 30px rgb(var(--scrim) / 0.35), 0 1px 4px rgb(var(--scrim) / 0.3)",
             }}
           >
-            <span className="block text-balance text-text-primary">
+            <span className="block text-balance text-text-primary sm:whitespace-nowrap">
               {HEADLINE_TOP}
             </span>
             <span
-              className="mt-1.5 block text-balance text-[0.92em] sm:mt-2 sm:text-[0.95em]"
+              className="mt-1 block text-balance sm:whitespace-nowrap"
               style={{
                 color: "rgb(var(--warn))",
-                textShadow: "0 0 18px rgba(255, 203, 46, 0.45), 0 6px 16px rgb(var(--scrim) / 0.28)",
+                textShadow: "0 0 18px rgba(255, 203, 46, 0.5), 0 6px 16px rgb(var(--scrim) / 0.28)",
               }}
             >
               {HEADLINE_BOTTOM}

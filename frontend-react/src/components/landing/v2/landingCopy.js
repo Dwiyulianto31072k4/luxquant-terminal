@@ -2,28 +2,25 @@
 // Keep short, concrete, honest about free vs premium.
 
 export const HERO = {
-  // Two short lines — sales-friendly, not "enterprise jargon wall"
-  line1: "Crypto calls you can verify.",
-  line2: "Start free. Go deeper when ready.",
-  // Supporting line under the headline
+  // Branding first — do not replace with soft "start free" messaging
+  line1: "Algo-Backed Crypto Calls.",
+  line2: "Plus The Full Terminal.",
+  // Transparency + free/premium honesty under the brand lines
   sub:
-    "Timestamped entries, targets & stops — plus free tools (Pulse, News, track record). Premium unlocks live levels and the full terminal.",
+    "Every call is timestamped — entry, targets, stops you can audit. Free tools (Pulse, News, track record). Premium unlocks live levels and the full terminal. Running since 2023.",
 };
 
 export const CTA = {
-  // Hero pill primary label (desktop)
-  pill: "Start free — no card needed",
-  // Hero pill compact (mobile)
+  // Hero pill — secondary to branding, still clear CTA
+  pill: "Access LuxQuant Terminal",
   pillShort: "Start free",
-  // Authenticated
   openApp: "Open app",
-  // Sticky bar
   stickyTitle: "Free features · no card",
   stickySub: "Pulse, track record & more · 30s",
   stickyBtn: "Continue",
-  // Header
   logIn: "Log In",
-  signUp: "Start free",
+  // Header keeps Start Free; hero stays brand-led
+  signUp: "Start Free",
   openAppHeader: "Open App",
   // Soft gate
   gateEyebrow: "Free features",

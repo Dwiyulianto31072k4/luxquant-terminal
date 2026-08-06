@@ -167,18 +167,18 @@ export default function HeroSlideAlgo() {
     <div className="flex w-full flex-col items-center text-center">
       {/* Headline — white + gold accent (matches other sections) */}
       <h1
-        className="font-display font-bold leading-[1.1] tracking-[-0.025em] text-text-primary text-[1.75rem] sm:text-[2.35rem] lg:text-[2.85rem] xl:text-[3.15rem]"
+        className="font-display font-bold leading-[1.08] tracking-[-0.03em] text-text-primary text-[1.95rem] sm:text-[2.65rem] lg:text-[3.1rem] xl:text-[3.5rem]"
         style={{ textShadow: "0 2px 30px rgb(var(--scrim) / 0.35)" }}
       >
-        One desk for{" "}
+        Algo calls,{" "}
         <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-          calls, markets &amp; risk.
+          full transparency.
         </span>
       </h1>
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base">
-        Free tools to explore today. Premium opens live levels, Terminal depth, and Agent when you
-        want more.
+        Every level is dated and auditable — charts, markets, on-chain and journal in one desk.
+        Free tools today; live levels &amp; Agent when you upgrade.
       </p>
 
       {/* ════════ Product proof — iMac + iPhone showcase ════════ */}
