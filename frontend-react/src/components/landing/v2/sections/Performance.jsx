@@ -223,12 +223,6 @@ function pearson(xs, ys) {
   return d === 0 ? null : num / d;
 }
 
-// Card shell retired for Performance — open sections only.
-// Kept as no-op wrapper only if something still imports the name elsewhere in file.
-function Card({ className = "", children }) {
-  return <div className={className}>{children}</div>;
-}
-
 /** Period filter popover — mobile-safe (never clips off the left edge). */
 function PeriodFilterPopover({
   filterOpen,
