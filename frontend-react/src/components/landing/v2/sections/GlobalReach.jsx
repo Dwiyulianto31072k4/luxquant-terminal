@@ -2828,9 +2828,14 @@ export default function GlobalReach({ gainers = [], stats = null }) {
       <LandingSoftGateSheet
         open={gateOpen}
         coinPair={gateItem?.pair}
+        gainPct={gateItem?.gain_pct}
         meta={
           gateItem
-            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            ? {
+                pair: gateItem.pair,
+                signal_id: gateItem.signal_id,
+                gain_pct: gateItem.gain_pct,
+              }
             : null
         }
         source="global_reach_soft_gate"

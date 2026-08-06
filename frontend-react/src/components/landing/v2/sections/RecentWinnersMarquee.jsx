@@ -453,9 +453,14 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
       <LandingSoftGateSheet
         open={gateOpen}
         coinPair={gateItem?.pair}
+        gainPct={gateItem?.gain_pct}
         meta={
           gateItem
-            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            ? {
+                pair: gateItem.pair,
+                signal_id: gateItem.signal_id,
+                gain_pct: gateItem.gain_pct,
+              }
             : null
         }
         source="recent_winners_soft_gate"

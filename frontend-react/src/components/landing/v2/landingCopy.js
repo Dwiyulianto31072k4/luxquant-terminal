@@ -22,11 +22,19 @@ export const CTA = {
   // Header keeps Start Free; hero stays brand-led
   signUp: "Start Free",
   openAppHeader: "Open App",
-  // Soft gate
-  gateEyebrow: "Free features",
-  gateTitle: (coin) => (coin ? `Like ${coin}? Create a free account` : "Create a free account"),
+  // Soft gate — proof-led FOMO, honest free vs premium
+  gateEyebrow: "We called it",
+  gateTitle: (coin, gainPct) => {
+    const g =
+      gainPct != null && Number.isFinite(Number(gainPct)) && Number(gainPct) > 0
+        ? `+${Math.round(Number(gainPct))}%`
+        : null;
+    if (coin && g) return `Like ${coin}? We called ${g}.`;
+    if (coin) return `Like ${coin}? We called the move.`;
+    return "Like this call? We flagged it first.";
+  },
   gateBody:
-    "Keep viewing charts. Free tools: Market Pulse, News, Performance, watchlist & more. Live signal levels stay Premium.",
+    "Wanna profit on the next one? Free account: Pulse, News, track record & watchlist. Live signal levels stay Premium.",
   gatePrimary: "Create free account",
   gateSecondary: "Keep viewing chart",
   // Free tier section

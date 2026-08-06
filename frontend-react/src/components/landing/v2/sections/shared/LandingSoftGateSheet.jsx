@@ -1,7 +1,10 @@
 // Soft account tease over open proof charts — chart stays open underneath.
+// Portaled to document.body so fixed positioning is never clipped by
+// section transform/overflow (marquee, sticky parents, etc.).
 // Sticky CTA is hidden while this is open (via lq-soft-gate-* events).
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { loginUrl } from "../../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
@@ -16,7 +19,14 @@ const GOLD_BTN = {
 
 const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || null;
 
-export default function LandingSoftGateSheet({ open, coinPair, meta = null, source = "landing_soft_gate", onClose }) {
+export default function LandingSoftGateSheet({
+  open,
+  coinPair,
+  gainPct = null,
+  meta = null,
+  source = "landing_soft_gate",
+  onClose,
+}) {
   const navigate = useNavigate();
 
   // Only the open instance owns sticky-hide; closed mounts must not emit close
@@ -27,9 +37,10 @@ export default function LandingSoftGateSheet({ open, coinPair, meta = null, sour
     return () => emitSoftGateClose();
   }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const coin = symbolOf(coinPair);
+  const gain = gainPct ?? meta?.gain_pct ?? null;
 
   const goLogin = () => {
     trackFunnel("soft_gate_login_click", {
@@ -40,7 +51,7 @@ export default function LandingSoftGateSheet({ open, coinPair, meta = null, sour
     navigate(loginUrl("/home", { source }));
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100050] flex items-end justify-center bg-scrim/35 p-3 sm:items-end sm:p-6"
       role="dialog"
@@ -56,7 +67,7 @@ export default function LandingSoftGateSheet({ open, coinPair, meta = null, sour
           {CTA.gateEyebrow}
         </p>
         <h3 id="lq-soft-gate-title" className="mt-2 text-lg font-bold text-text-primary">
-          {CTA.gateTitle(coin)}
+          {CTA.gateTitle(coin, gain)}
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">{CTA.gateBody}</p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -77,6 +88,7 @@ export default function LandingSoftGateSheet({ open, coinPair, meta = null, sour
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -496,9 +496,14 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
       <LandingSoftGateSheet
         open={gateOpen}
         coinPair={gateItem?.pair}
+        gainPct={gateItem?.gain_pct ?? gateItem?.peak_pct}
         meta={
           gateItem
-            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            ? {
+                pair: gateItem.pair,
+                signal_id: gateItem.signal_id,
+                gain_pct: gateItem.gain_pct ?? gateItem.peak_pct,
+              }
             : null
         }
         source="day_drill_soft_gate"
