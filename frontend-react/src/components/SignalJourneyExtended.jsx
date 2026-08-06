@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 /**
  * SignalJourneyExtended — Layer 6
@@ -98,6 +99,7 @@ const formatDuration = (seconds) => {
 };
 
 const SignalJourneyExtended = ({ signalId }) => {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -184,9 +186,7 @@ const SignalJourneyExtended = ({ signalId }) => {
           </p>
           <button
             type="button"
-            onClick={() => {
-              window.location.href = "/pricing";
-            }}
+            onClick={() => navigate("/pricing")}
             className="lq-cta-md px-5 py-2.5 text-xs"
           >
             Subscribe to Unlock
@@ -213,7 +213,36 @@ const SignalJourneyExtended = ({ signalId }) => {
     );
   }
 
-  const { entry_stats, events = [], outcome } = data;
+  const { entry_stats, events: rawEvents = [], outcome } = data;
+  // If SL appears before TP (or outcome is win with both), drop SL chips — same
+  // rule as proof-modal journey steppers (SL then TP confuses users).
+  const tagOf = (e) => String(e?.label || e?.type || e?.event || e?.kind || "").toLowerCase();
+  const isSlEv = (e) => /\bsl\b|stop\s*loss|stop loss|^sl[12]?$/.test(tagOf(e));
+  const isTpEv = (e) => /tp\s*[1-4]|take profit|target\s*[1-4]|^tp[1-4]$/.test(tagOf(e));
+  let sawSl = false;
+  let tpAfterSl = false;
+  for (const e of rawEvents) {
+    if (isSlEv(e)) sawSl = true;
+    if (isTpEv(e) && sawSl) tpAfterSl = true;
+  }
+  const outcomeWin = /win|tp/i.test(
+    String(outcome?.final_status || outcome?.result || outcome?.label || "")
+  );
+  const events =
+    tpAfterSl || (sawSl && rawEvents.some(isTpEv) && outcomeWin)
+      ? rawEvents.filter((e) => !isSlEv(e))
+      : rawEvents.map((e) => {
+          // Relabel bare SL → SL1 / SL2 when we do show stop-outs
+          if (!isSlEv(e)) return e;
+          const tag = tagOf(e);
+          if (/sl\s*2|sl2|stop\s*2/.test(tag)) {
+            return { ...e, label: e.label?.includes("SL2") ? e.label : "SL2 Hit" };
+          }
+          if (/sl\s*1|sl1|stop\s*1/.test(tag) || tag === "sl") {
+            return { ...e, label: e.label?.includes("SL1") ? e.label : "SL1 Hit" };
+          }
+          return e;
+        });
   const eventCount = events.length;
   const visibleEvents = showAll ? events : events.slice(0, 15);
   const hasMore = eventCount > 15;

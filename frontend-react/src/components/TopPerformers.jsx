@@ -8,6 +8,9 @@ import SignalModal from "./SignalModal";
 import { ShimmerStyles } from "./ui/Loaders";
 import { getActiveTheme, getTradingViewTheme, subscribeTheme } from "../utils/themeColors";
 import GateSelect from "./ui/GateSelect";
+import { buildProofJourneyEvents } from "../utils/journeyEvents";
+import { useAuth } from "../context/AuthContext";
+import { isEntitled } from "../utils/entitlement";
 
 const API_BASE = "/api/v1";
 
@@ -715,6 +718,8 @@ export const SignalDetailModal = ({
   onOpenHistory,
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isEntitledUser = isEntitled(user);
   const [lightboxImg, setLightboxImg] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const [showTV, setShowTV] = useState(false);
@@ -1017,33 +1022,24 @@ export const SignalDetailModal = ({
     };
   }, [pair, hasAnyImg, showInteractiveRight, detail, appTheme]);
 
-  const events = [];
-  events.push({
-    label: t("top.called_sig"),
-    time: "T+0",
-    sub: fmtDt(created),
-    detail: `${t("top.entry")} @ $${formatPrice(detail?.entry)}`,
-    key: "gold",
-    isSL: false,
+  // Journey stepper: hide SL failure chips when the call still hit TP / finished WIN
+  // (SL then TP looks like a bug). Label SL1 vs SL2 on real stop-outs.
+  const { events, suppressedSl, note: journeyNote } = buildProofJourneyEvents({
+    updates: detail?.updates,
+    status,
+    entry: detail?.entry,
+    createdAt: created,
+    formatPrice,
+    fmtDiff,
+    fmtDt,
+    labels: {
+      called: t("top.called_sig"),
+      sl1: t("top.sl1_hit", "SL1 Hit"),
+      sl2: t("top.sl2_hit", "SL2 Hit"),
+      hit: t("top.hit"),
+      entry: t("top.entry"),
+    },
   });
-  if (detail?.updates) {
-    detail.updates.forEach((u) => {
-      const isSL = u.update_type === "sl" || u.update_type === "sl1" || u.update_type === "sl2";
-      events.push({
-        label: isSL
-          ? t("top.sl_hit")
-          : `${u.update_type?.toUpperCase().replace("TP", "TP ")} ${t("top.hit")}`,
-        time: `+${fmtDiff(created, u.update_at)}`,
-        sub: fmtDt(u.update_at),
-        detail:
-          u.price > 0
-            ? `$${formatPrice(u.price)}${!isSL && detail.entry > 0 ? ` (+${((Math.abs(u.price - detail.entry) / detail.entry) * 100).toFixed(2)}%)` : ""}`
-            : null,
-        key: isSL ? "red" : "green",
-        isSL,
-      });
-    });
-  }
 
   // Derived display — hero gain must match leaderboard / server peak, not only last TP tick.
   // LuxQuant Calls list uses signals.peak_price (→ item.gain_pct / item.tp_price).
@@ -1647,6 +1643,42 @@ export const SignalDetailModal = ({
                       {events.map((ev, i) => journeyNode(ev, i))}
                     </div>
                   </div>
+                  {journeyNote && (
+                    <p className="mt-2 text-[11px] leading-relaxed text-text-muted">{journeyNote}</p>
+                  )}
+                  {suppressedSl && (
+                    <p className="mt-1 text-[10px] text-text-muted/80">
+                      Temporary SL noise removed — final path is TP (not a stop-out).
+                    </p>
+                  )}
+                  {detail?.stop2 > 0 && (
+                    <p className="mt-1 text-[10px] text-text-muted/80">
+                      SL1 = tight stop · SL2 = structure stop (swing / intraday).
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Free users: upgrade tease on the proof they already value */}
+              {!isEntitledUser && (
+                <div className="rounded-2xl border border-accent/25 bg-accent/[0.07] px-4 py-3.5">
+                  <p className="text-[13px] font-semibold text-text-primary">
+                    Want live levels on new calls?
+                  </p>
+                  <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+                    Free includes this verified track record. Premium unlocks live entry / SL1 / SL2 /
+                    TP on open signals, Terminal, and Agent.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose?.();
+                      navigate("/pricing");
+                    }}
+                    className="mt-3 rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-accent-fg shadow-[0_4px_12px_rgb(var(--accent)/0.28)]"
+                  >
+                    View Premium plans
+                  </button>
                 </div>
               )}
 

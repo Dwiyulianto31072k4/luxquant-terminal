@@ -54,6 +54,8 @@ export const enTop = {
   journey: "Signal Journey",
   called_sig: "Signal Called",
   sl_hit: "Stop Loss Hit",
+  sl1_hit: "SL1 Hit",
+  sl2_hit: "SL2 Hit",
   hit: "Hit",
   sig_data: "Signal Data",
   duration: "Duration",

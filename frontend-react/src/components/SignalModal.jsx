@@ -24,6 +24,7 @@ import {
 } from "../utils/themeColors";
 import { deriveChartWithCard } from "./signalModal/utils";
 import { peakContextLabel, daysToPeak, peakIsAfterStop } from "../utils/peakTiming";
+import { buildLevelTimeline } from "../utils/journeyEvents";
 
 const SignalModal = ({
   signal,
@@ -927,14 +928,18 @@ const SignalModal = ({
       label: "SL1",
       value: signal.stop1,
       pct: calcPct(signal.stop1, signal.entry),
-      hit: isStopped,
+      // Only mark hit on true stop-out; prefer SL2 if that was the update
+      hit:
+        isStopped &&
+        !!(getUpdateInfo("sl") || getUpdateInfo("sl1")) &&
+        !getUpdateInfo("sl2"),
       reachedAt: getUpdateInfo("sl")?.update_at || getUpdateInfo("sl1")?.update_at,
     },
     {
       label: "SL2",
       value: signal.stop2,
       pct: calcPct(signal.stop2, signal.entry),
-      hit: false,
+      hit: isStopped && !!getUpdateInfo("sl2"),
       reachedAt: getUpdateInfo("sl2")?.update_at,
     },
   ].filter((s) => s.value);
@@ -1073,94 +1078,16 @@ const SignalModal = ({
     },
   ];
 
-  // === TIMELINE (HORIZONTAL) — SL ON LEFT OF ENTRY ===
-  const buildTimeline = () => {
-    const ev = [];
-
-    // SL goes FIRST (left of entry)
-    if (signal?.stop1) {
-      const su = getUpdateInfo("sl") || getUpdateInfo("sl1");
-      ev.push({
-        label: "SL",
-        sub: isStopped ? formatShortDateTime(su?.update_at) : "Pending",
-        detail: `${formatPrice(signal.stop1)}`,
-        pct: `${calcPct(signal.stop1, signal?.entry)}%`,
-        icon: isStopped ? "✗" : "⊘",
-        active: isStopped,
-        color: isStopped ? "text-negative" : "text-text-muted",
-        border: isStopped ? "border-negative/30" : "border-line",
-        bg: isStopped ? "bg-negative/10" : "bg-surface-secondary",
-      });
-    }
-
-    // ENTRY in the middle
-    ev.push({
-      label: "ENTRY",
-      sub: formatShortDateTime(signal?.created_at),
-      detail: `@ ${formatPrice(signal?.entry)}`,
-      icon: "•",
-      active: true,
-      color: "text-text-secondary",
-      border: "border-ink/10",
-      bg: "bg-ink/[0.04]",
-    });
-
-    // TPs go RIGHT of entry — unified green color for elegance
-    const tps = [
-      {
-        k: "tp1",
-        l: "TP1",
-        v: signal?.target1,
-        c: "text-positive",
-        b: "border-positive/30",
-        bg: "bg-positive/10",
-      },
-      {
-        k: "tp2",
-        l: "TP2",
-        v: signal?.target2,
-        c: "text-positive",
-        b: "border-positive/30",
-        bg: "bg-positive/10",
-      },
-      {
-        k: "tp3",
-        l: "TP3",
-        v: signal?.target3,
-        c: "text-positive",
-        b: "border-positive/30",
-        bg: "bg-positive/10",
-      },
-      {
-        k: "tp4",
-        l: "TP4",
-        v: signal?.target4,
-        c: "text-positive",
-        b: "border-positive/30",
-        bg: "bg-positive/10",
-      },
-    ];
-
-    tps.forEach((tp, i) => {
-      if (!tp.v) return;
-      const u = getUpdateInfo(tp.k);
-      const h = hitTargets[i];
-      ev.push({
-        label: tp.l,
-        sub: h ? formatShortDateTime(u?.update_at) : "Pending",
-        detail: `${formatPrice(tp.v)}`,
-        pct: `+${calcPct(tp.v, signal?.entry)}%`,
-        icon: h ? "✓" : (i + 1).toString(),
-        active: h,
-        color: h ? tp.c : "text-text-muted",
-        border: h ? tp.b : "border-line",
-        bg: h ? tp.bg : "bg-surface-secondary",
-      });
-    });
-
-    return ev;
-  };
-  const timeline = buildTimeline();
+  // Level strip: SL1/SL2 as risk structure (hit only on true stop-out), then ENTRY + TPs
+  const timeline = buildLevelTimeline({
+    signal,
+    hitTargets,
+    isStopped,
+    getUpdateInfo,
+    formatPrice,
+    calcPct,
+    formatShortDateTime,
+  });
   const LinkIcon = () => (
     <svg
       className="w-2.5 h-2.5 text-text-primary/40 group-hover:text-text-primary/70"
