@@ -1,26 +1,24 @@
 // src/components/landing/v2/sections/TerminalPreview.jsx
-// ════════════════════════════════════════════════════════════════
-// TERMINAL PREVIEW — V2.
-// • Realistic iMac mockup (silver chin + Apple logo + stand).
-// • Top 5 flagship features, named + iconed to MATCH the More menu
-// (icons copied 1:1 from MoreMenuDropdown for consistency).
-// • "signal" → "algo call"; Agent → "Agent".
-// • Last slide = "...and much more" panel rendered INSIDE the iMac,
-// containing the Access-LuxQuant sign-up pill.
-// ════════════════════════════════════════════════════════════════
+// Product stage — no device chrome. Large real UI, pill tabs, honest copy.
+// Pattern: Linear / Vercel / Autopilot — show the product, not the hardware.
+
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../../context/AuthContext";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import HeroSignupPill from "./shared/HeroSignupPill";
 
-/* ── Icons — copied from MoreMenuDropdown so the section matches the menu ── */
 const svgProps = {
-  className: "h-[22px] w-[22px] sm:h-6 sm:w-6",
+  className: "h-4 w-4",
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: "1.5",
+  strokeWidth: "1.75",
   strokeLinecap: "round",
   strokeLinejoin: "round",
 };
+
 const ICONS = {
   signals: (
     <svg {...svgProps}>
@@ -30,20 +28,19 @@ const ICONS = {
   agent: (
     <svg {...svgProps}>
       <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
-      <path d="M9.25 7 V4.5" />
+      <path d="M9.25 7V4.5" />
       <circle cx="9.25" cy="3.4" r="0.85" />
       <circle cx="7" cy="11.3" r="1" />
       <circle cx="11.5" cy="11.3" r="1" />
-      <path d="M3.5 11 H2.2 M15 11 H16.3" />
+      <path d="M3.5 11H2.2M15 11h1.3" />
       <circle cx="17.8" cy="17.3" r="2.1" />
-      <path d="M17.8 14.6 v0.8 M17.8 20 v-0.8 M15.1 17.3 h0.8 M20.5 17.3 h-0.8 M16 15.5 l0.55 0.55 M19.6 19.1 l-0.55 -0.55 M19.6 15.5 l-0.55 0.55 M16 19.1 l0.55 -0.55" />
     </svg>
   ),
   ai: (
     <svg {...svgProps}>
       <circle cx="11" cy="11" r="6" />
-      <path d="M15.5 15.5 L21 21" />
-      <path d="M11 8.5 v5 M8.5 11 h5" strokeOpacity="0.55" />
+      <path d="M15.5 15.5L21 21" />
+      <path d="M11 8.5v5M8.5 11h5" strokeOpacity="0.55" />
     </svg>
   ),
   onchain: (
@@ -61,283 +58,287 @@ const ICONS = {
   ),
   pulse: (
     <svg {...svgProps}>
-      <path d="M3 12 H7 L9 6 L13 18 L15 12 H21" />
+      <path d="M3 12H7L9 6L13 18L15 12H21" />
     </svg>
   ),
   more: (
     <svg {...svgProps}>
       <path d="M12 3l1.7 5 5 1.7-5 1.7L12 16.4l-1.7-5-5-1.7 5-1.7z" />
-      <path d="M19 14l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" strokeOpacity="0.6" />
     </svg>
   ),
 };
 
-/* ── Top 5 features (names match the More menu) + the closing slide ── */
 const FEATURES = [
   {
     id: "signals",
     title: "Algo Calls",
-    desc: "Precise entries, multiple take-profit targets, and strict stop-loss levels — every algo call auto-delivered 24/7 with risk scoring and volume ranking.",
-    macImg: "/mockups/mac-signals.webp",
+    short: "Entry · TP · SL on every call",
+    desc: "Precise entries, staged take-profits, hard stops — every call timestamped so you can audit it.",
+    img: "/mockups/mac-signals.webp",
     icon: ICONS.signals,
   },
   {
     id: "agent",
     title: "Agent",
-    desc: "Agentic trading that executes for you — connect your exchange and let the agent act on every algo call 24/7 with strict, smart risk management.",
-    macImg: "/mockups/mac-autotrade.webp",
+    short: "Executes under your limits",
+    desc: "Connect exchange keys and let Agent follow the plan 24/7 — size, caps, and cooldowns stay yours.",
+    img: "/mockups/mac-autotrade.webp",
     icon: ICONS.agent,
   },
   {
     id: "ai",
     title: "AI Research",
-    desc: "A dedicated AI analyst processing millions of data points per hour — price action, derivatives flow, on-chain metrics, sentiment, and news — into one clear market verdict.",
-    macImg: "/mockups/mac-ai.webp",
+    short: "Regime reads in one desk",
+    desc: "Price, derivatives, on-chain, and news compressed into a clear market read — not another feed to babysit.",
+    img: "/mockups/mac-ai.webp",
     icon: ICONS.ai,
   },
   {
     id: "onchain",
     title: "On-Chain",
-    desc: "Real-time on-chain metrics, smart-money flows, large wallet movements, and exchange netflow — see what whales are doing before price reacts.",
-    macImg: "/mockups/mac-onchain.webp",
+    short: "Whale moves, live",
+    desc: "Smart-money flows, large wallets, exchange netflow — context before price reacts.",
+    img: "/mockups/mac-onchain.webp",
     icon: ICONS.onchain,
   },
   {
     id: "pulse",
-    title: "Market Pulse",
-    desc: "A real-time market overview — bull/bear ratio, momentum, activity feed, heatmap, and the most active coins. Feel the pulse of the market at a glance.",
-    macImg: "/mockups/mac-pulse.webp",
+    title: "Pulse",
+    short: "Market temperature",
+    desc: "Bull/bear ratio, momentum, heatmap, and activity — feel the market without five tabs.",
+    img: "/mockups/mac-pulse.webp",
     icon: ICONS.pulse,
   },
 ];
 
 const MORE_SLIDE = {
   id: "more",
-  title: "…and much more",
-  desc: "Markets, Pulse, Money Flow, Bitcoin, News, Journal, Portfolio & more — everything a serious trader needs, already built into the terminal.",
+  title: "More",
+  short: "Markets · Journal · Portfolio…",
+  desc: "Markets, Money Flow, Bitcoin, News, Journal, Portfolio & more — one terminal, not three apps.",
   isMore: true,
   icon: ICONS.more,
 };
 
 const TABS = [...FEATURES, MORE_SLIDE];
 
-function AppleLogo({ className = "" }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.35 1.206-3.08.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
-    </svg>
-  );
-}
-
 export default function TerminalPreview() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [activeIdx, setActiveIdx] = useState(0);
-  const scrollRef = useRef(null);
+  const [paused, setPaused] = useState(false);
+  const tabRef = useRef(null);
 
   useEffect(() => {
+    if (paused) return undefined;
     const iv = setInterval(() => {
       setActiveIdx((prev) => {
         const next = (prev + 1) % TABS.length;
         scrollToTab(next);
         return next;
       });
-    }, 7000);
+    }, 6500);
     return () => clearInterval(iv);
-  }, []);
+  }, [paused]);
 
-  const scrollNav = (dir) => {
-    scrollRef.current?.scrollBy({ left: dir === "left" ? -280 : 280, behavior: "smooth" });
-  };
   const scrollToTab = (i) => {
-    const c = scrollRef.current;
-    const el = c?.children[i];
-    if (c && el)
+    const c = tabRef.current;
+    const el = c?.children?.[i];
+    if (c && el) {
       c.scrollTo({
         left: el.offsetLeft - c.offsetWidth / 2 + el.offsetWidth / 2,
         behavior: "smooth",
       });
+    }
   };
+
   const handleTab = (i) => {
     setActiveIdx(i);
     scrollToTab(i);
+    setPaused(true);
+    window.setTimeout(() => setPaused(false), 12000);
   };
 
   const active = TABS[activeIdx];
 
+  const goFree = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    trackFunnel("cta_click", { source: "terminal_preview", path: "/" });
+    navigate(loginUrl("/home", { source: "terminal_preview" }));
+  };
+
   return (
     <section
       id="terminal-preview"
-      className="relative z-10 w-full overflow-hidden pb-16 pt-20 lg:pb-24 lg:pt-28"
+      className="relative z-10 w-full overflow-hidden px-4 pb-20 pt-16 sm:px-6 sm:pt-20 lg:px-8 lg:pb-28 lg:pt-28"
     >
-      {/* HEADER */}
-      <div className="mx-auto mb-10 max-w-7xl px-4 text-center lg:px-8">
-        <h2 className="text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.6rem]">
-          Interactive{" "}
-          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-            Terminal Preview
-          </span>
+      {/* ambient */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-[42%] -z-10 h-[420px] w-[min(90%,720px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/[0.07] blur-[100px]"
+      />
+
+      {/* Header — honest, product-first */}
+      <div className="mx-auto max-w-2xl text-center">
+        <p className="text-[12px] font-medium tracking-wide text-text-muted sm:text-[13px]">
+          The terminal
+        </p>
+        <h2 className="mt-3 text-[1.85rem] font-semibold leading-[1.1] tracking-tight text-text-primary sm:text-4xl lg:text-[2.75rem]">
+          One desk.{" "}
+          <span className="text-accent">Every tool that matters.</span>
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
-          Explore the analytical tools that give you a clear quantitative edge, now unified in one
-          dashboard.
+        <p className="mx-auto mt-3 max-w-lg text-[14px] leading-snug text-text-muted sm:mt-4 sm:text-base sm:leading-relaxed">
+          Real product screens — switch a module and see the workspace. Free tools open first;
+          live levels &amp; Agent when you upgrade.
         </p>
       </div>
 
-      {/* TABS */}
-      <div className="relative mx-auto mb-8 w-full max-w-4xl px-4 lg:px-12">
-        <button
-          onClick={() => scrollNav("left")}
-          aria-label="Scroll left"
-          className="absolute left-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-text-primary/30 transition-all hover:text-text-primary lg:flex"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-
+      {/* Pill tabs — wrap on desktop, scroll on narrow without cut-off labels */}
+      <div className="mx-auto mt-8 max-w-4xl sm:mt-10">
         <div
-          ref={scrollRef}
-          className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-7 lg:gap-9 [&::-webkit-scrollbar]:hidden"
+          ref={tabRef}
+          role="tablist"
+          aria-label="Terminal modules"
+          className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:overflow-visible [&::-webkit-scrollbar]:hidden"
         >
-          {TABS.map((t, idx) => (
-            <button
-              key={t.id}
-              onClick={() => handleTab(idx)}
-              className={`relative flex flex-shrink-0 snap-center flex-col items-center justify-center gap-2 px-2 py-3 transition-all duration-300 ${
-                activeIdx === idx
-                  ? "text-text-primary"
-                  : "text-text-muted hover:text-text-primary/80"
-              }`}
-            >
-              <div
-                className={`transition-all duration-300 ${activeIdx === idx ? "scale-110 text-accent drop-shadow-[0_0_8px_rgb(var(--accent) / 0.5)]" : "text-current opacity-60"}`}
+          {TABS.map((t, idx) => {
+            const on = activeIdx === idx;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => handleTab(idx)}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors sm:px-4 ${
+                  on
+                    ? "bg-surface text-text-primary shadow-sm ring-1 ring-ink/10"
+                    : "text-text-muted hover:bg-ink/[0.04] hover:text-text-primary"
+                }`}
               >
-                {t.icon}
-              </div>
-              <span className="whitespace-nowrap text-[13px] font-semibold tracking-wide sm:text-sm">
+                <span className={on ? "text-accent" : "opacity-70"}>{t.icon}</span>
                 {t.title}
-              </span>
-              {activeIdx === idx && (
-                <div className="absolute bottom-0 left-1/2 h-[2px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-ink to-transparent shadow-[0_0_10px_rgb(var(--accent) / 0.8)]" />
-              )}
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
-
-        <button
-          onClick={() => scrollNav("right")}
-          aria-label="Scroll right"
-          className="absolute right-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-text-primary/30 transition-all hover:text-text-primary lg:flex"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
       </div>
 
-      {/* ACTIVE DESCRIPTION */}
-      <div className="mx-auto mb-10 flex h-[78px] max-w-3xl items-center justify-center px-4 text-center sm:h-[58px] lg:mb-12">
-        <p
-          key={activeIdx}
-          className="animate-[fadeIn_0.5s_ease-out] text-sm leading-relaxed text-text-primary/60 lg:text-base"
+      {/* Product stage — floating UI, no Mac chrome */}
+      <div className="mx-auto mt-8 max-w-5xl sm:mt-10 lg:mt-12">
+        <div
+          className="relative overflow-hidden rounded-[1.25rem] border border-ink/[0.08] bg-surface-raised shadow-[0_24px_80px_rgb(var(--scrim)/0.35)] sm:rounded-[1.5rem]"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
         >
-          {active.desc}
-        </p>
-      </div>
+          {/* thin app chrome */}
+          <div className="flex items-center justify-between gap-3 border-b border-ink/[0.06] bg-ink/[0.02] px-3.5 py-2.5 sm:px-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <img
+                src="/logo.png"
+                alt=""
+                className="h-5 w-5 rounded"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+              <span className="truncate text-[12px] font-medium text-text-primary/80 sm:text-[13px]">
+                LuxQuant Terminal
+              </span>
+              <span className="hidden text-[11px] text-text-muted sm:inline">· {active.title}</span>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2 py-0.5 text-[10px] font-medium text-text-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Preview
+            </span>
+          </div>
 
-      {/* iMAC MOCKUP */}
-      <div className="relative mx-auto max-w-5xl px-4 lg:px-8">
-        <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/12 blur-[120px]" />
+          {/* screen */}
+          <div className="relative aspect-[16/10] w-full bg-surface">
+            {FEATURES.map((f, idx) => (
+              <img
+                key={f.id}
+                src={f.img}
+                alt={`${f.title} — LuxQuant Terminal`}
+                loading={idx === 0 ? "eager" : "lazy"}
+                className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-500 ease-out ${
+                  activeIdx === idx ? "z-10 opacity-100" : "z-0 opacity-0"
+                }`}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            ))}
 
-        <div className="relative mx-auto w-full max-w-[420px] sm:max-w-[560px] lg:max-w-[800px]">
-          {/* iMac body: black glass + silver chin */}
-          <div className="relative overflow-hidden rounded-[12px] bg-black shadow-[0_40px_90px_rgb(var(--scrim) / 0.35),0_0_70px_rgb(var(--accent) / 0.1)] ring-1 ring-ink/[0.07] lg:rounded-[16px]">
-            <div className="p-[7px] sm:p-[8px] lg:p-[11px]">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[2px] bg-surface ring-1 ring-ink/[0.05] lg:rounded-[3px]">
-                {/* feature screenshots — cross-fade */}
-                {FEATURES.map((f, idx) => (
-                  <img
-                    key={f.id}
-                    src={f.macImg}
-                    alt={`${f.title} preview`}
-                    className={`absolute inset-0 h-full w-full object-cover object-top transition-all duration-700 ease-in-out ${
-                      activeIdx === idx
-                        ? "z-10 scale-100 opacity-100"
-                        : "z-0 scale-[1.02] opacity-0"
-                    }`}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                    }}
-                  />
-                ))}
-
-                {/* closing "…and much more" panel + Access pill */}
-                <div
-                  className={`absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center transition-all duration-700 ${
-                    active.isMore ? "z-20 opacity-100" : "z-0 opacity-0"
-                  }`}
-                  style={{
-                    background:
-                      "radial-gradient(ellipse 80% 80% at 50% 40%, #140a0b 0%, #0a0506 60%, #050302 100%)",
-                  }}
-                >
-                  <span className="h-px w-14 bg-gradient-to-r from-transparent via-ink/60 to-transparent" />
-                  <h3 className="text-xl font-bold text-text-primary sm:text-2xl lg:text-3xl">
-                    …and much{" "}
-                    <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-                      more
-                    </span>
-                  </h3>
-                  <p className="hidden max-w-md text-xs leading-relaxed text-text-primary/55 sm:block sm:text-sm">
-                    Everything else a serious trader needs — already built into the terminal.
-                  </p>
-                  <div className="mt-1 w-full max-w-[340px]">
-                    <HeroSignupPill text="Start free — no card needed" shortText="Start free" className="!max-w-[340px]" />
-                  </div>
-                </div>
+            {/* More panel */}
+            <div
+              className={`absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center transition-opacity duration-500 ${
+                active.isMore ? "opacity-100" : "pointer-events-none opacity-0"
+              }`}
+              style={{
+                background:
+                  "radial-gradient(ellipse 85% 80% at 50% 42%, rgb(var(--surface-raised)) 0%, rgb(var(--surface)) 70%)",
+              }}
+            >
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-text-muted">
+                And more
+              </p>
+              <h3 className="max-w-md text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
+                Markets, Journal, Portfolio, News…
+              </h3>
+              <p className="max-w-sm text-[13px] leading-relaxed text-text-muted sm:text-[14px]">
+                Free tools open first. Live levels &amp; Agent when you upgrade.
+              </p>
+              <div className="mt-1 w-full max-w-[320px]">
+                <HeroSignupPill
+                  text="Start free — no card"
+                  shortText="Start free"
+                  className="!max-w-[320px]"
+                />
               </div>
             </div>
-
-            {/* silver chin + Apple logo */}
-            <div className="flex h-[26px] items-center justify-center bg-gradient-to-b from-text-primary via-[#d8dadd] to-[#c4c6ca] sm:h-[32px] lg:h-[44px]">
-              <AppleLogo className="h-[13px] w-[13px] text-surface sm:h-[15px] sm:w-[15px] lg:h-[20px] lg:w-[20px]" />
-            </div>
           </div>
-
-          {/* aluminium stand */}
-          <div className="relative mx-auto -mt-px w-[39%] max-w-[240px]">
-            <svg viewBox="0 0 150 50" className="block h-auto w-full" aria-hidden="true">
-              <defs>
-                <linearGradient id="tpImacStand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#e2e4e7" />
-                  <stop offset="0.5" stopColor="#c3c5c9" />
-                  <stop offset="1" stopColor="#9fa1a5" />
-                </linearGradient>
-                <linearGradient id="tpImacStandShade" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0" stopColor="#ffffff" stopOpacity="0.35" />
-                  <stop offset="0.5" stopColor="#ffffff" stopOpacity="0" />
-                  <stop offset="1" stopColor="#000000" stopOpacity="0.16" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M52,0 L98,0 Q95,12 92,22 Q102,33 126,42 Q132,44 132,46.5 Q132,49 128,49 L22,49 Q18,49 18,46.5 Q18,44 24,42 Q48,33 58,22 Q55,12 52,0 Z"
-                fill="url(#tpImacStand)"
-              />
-              <path
-                d="M52,0 L98,0 Q95,12 92,22 Q102,33 126,42 Q132,44 132,46.5 Q132,49 128,49 L22,49 Q18,49 18,46.5 Q18,44 24,42 Q48,33 58,22 Q55,12 52,0 Z"
-                fill="url(#tpImacStandShade)"
-              />
-            </svg>
-          </div>
-          <div
-            aria-hidden="true"
-            className="mx-auto -mt-1.5 h-3.5 w-[36%] rounded-[50%] bg-scrim/50 blur-md"
-          />
         </div>
+
+        {/* Caption under stage */}
+        <div className="mx-auto mt-5 max-w-xl text-center sm:mt-6">
+          <p
+            key={activeIdx}
+            className="text-[14px] font-medium text-text-primary sm:text-[15px]"
+          >
+            {active.title}
+            <span className="font-normal text-text-muted"> — {active.short}</span>
+          </p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted sm:text-[14px]">
+            {active.desc}
+          </p>
+        </div>
+
+        {/* CTA */}
+        {!active.isMore && (
+          <div className="mt-7 flex justify-center sm:mt-8">
+            <button
+              type="button"
+              onClick={goFree}
+              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5"
+            >
+              {isAuthenticated ? "Open terminal" : "Create free account"}
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.4}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
