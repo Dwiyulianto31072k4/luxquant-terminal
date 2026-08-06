@@ -20,6 +20,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import MoreMenuDropdown from "../../../MoreMenuDropdown";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
 
 // Compact appearance picker for the landing header (admin-gated while theming
 // is in preview). Three swatches — click to switch the whole site live.
@@ -157,7 +159,8 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
   const goFeature = (path) => {
     setMobileOpen(false);
     if (!isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent(path)}`);
+      trackFunnel("cta_click", { source: "header_feature", path });
+      navigate(loginUrl(path, { source: "header_feature" }));
     } else {
       navigate(path);
     }
@@ -165,11 +168,14 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
 
   const goLogin = () => {
     setMobileOpen(false);
-    navigate("/login");
+    trackFunnel("cta_click", { source: "header_login", path: "/" });
+    navigate(loginUrl("/home", { source: "header_login" }));
   };
   const goSignup = () => {
     setMobileOpen(false);
-    navigate("/register");
+    // OAuth is signup+login; /register is legacy email form (almost unused).
+    trackFunnel("cta_click", { source: "header_signup", path: "/" });
+    navigate(loginUrl("/home", { source: "header_signup" }));
   };
 
   return (

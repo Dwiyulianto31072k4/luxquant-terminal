@@ -8,6 +8,8 @@ import {
   AUTOTRADE_TOKEN_KEY,
   syncCryptobotAuth,
 } from "../../services/autotradeApi";
+import { consumePostLoginRedirect } from "../../utils/postLoginRedirect";
+import { trackFunnel } from "../../utils/funnelAnalytics";
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
@@ -81,9 +83,10 @@ const GoogleCallback = () => {
         }
       }
 
-      navigate("/home", {
-        replace: true,
-      });
+      trackFunnel("auth_success", { provider: "google", source: "oauth_callback" });
+      const dest = consumePostLoginRedirect("/home");
+      trackFunnel("post_login_land", { path: dest, provider: "google" });
+      navigate(dest, { replace: true });
 
       return;
     }

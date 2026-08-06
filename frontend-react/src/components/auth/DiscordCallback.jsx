@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { clearStoredRef } from "../../utils/referralStorage";
 import { syncCryptobotAuth } from "../../services/autotradeApi";
+import { consumePostLoginRedirect } from "../../utils/postLoginRedirect";
+import { trackFunnel } from "../../utils/funnelAnalytics";
 
 const DiscordCallback = () => {
   const navigate = useNavigate();
@@ -45,7 +47,10 @@ const DiscordCallback = () => {
       // jadi localStorage udah ga butuh.
       clearStoredRef();
 
-      navigate("/", { replace: true });
+      trackFunnel("auth_success", { provider: "discord", source: "oauth_callback" });
+      const dest = consumePostLoginRedirect("/home");
+      trackFunnel("post_login_land", { path: dest, provider: "discord" });
+      navigate(dest, { replace: true });
     } else {
       navigate("/login", { replace: true });
     }

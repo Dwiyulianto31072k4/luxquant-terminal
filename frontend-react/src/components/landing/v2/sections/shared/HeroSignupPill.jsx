@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ensureTelegram } from "../../../../../utils/telegramLoader";
 import { useAuth } from "../../../../../context/AuthContext";
+import { loginUrl, stashPostLoginRedirect, consumePostLoginRedirect } from "../../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../../utils/funnelAnalytics";
 
 function TelegramIcon() {
   return (
@@ -43,9 +45,11 @@ function DiscordIcon() {
 }
 
 export default function HeroSignupPill({
-  text = "Start using LuxQuant today",
+  text = "Save watchlist & get free alerts",
   shortText = "Access Terminal",
   className = "",
+  source = "hero_pill",
+  redirect = "/home",
 }) {
   const navigate = useNavigate();
   const { isAuthenticated, loginWithGoogle, loginWithTelegram, loginWithDiscord } = useAuth();
@@ -57,17 +61,16 @@ export default function HeroSignupPill({
     ensureTelegram().catch(() => {});
   }, [isAuthenticated]);
 
-  // The Google mark sat beside the button and did exactly what the button did
-  // — went to /login. It reads as one-tap Google and delivered another page,
-  // on the step 86% of visitors never take. Goes through the context helper
-  // rather than the URL directly: that endpoint answers with JSON, not a
-  // redirect, and it is also where a stored referral code is attached.
+  // One-tap OAuth from the hero (not /login page) + funnel + post-login redirect.
   const goGoogle = () => {
     if (isAuthenticated) {
       navigate("/home");
       return;
     }
-    loginWithGoogle().catch(() => navigate("/login"));
+    stashPostLoginRedirect(redirect);
+    trackFunnel("cta_click", { source: `${source}:google`, path: "/" });
+    trackFunnel("auth_start", { provider: "google", source });
+    loginWithGoogle().catch(() => navigate(loginUrl(redirect, { source: `${source}:google` })));
   };
 
   const goTelegram = () => {
@@ -75,11 +78,22 @@ export default function HeroSignupPill({
       navigate("/home");
       return;
     }
+    stashPostLoginRedirect(redirect);
+    trackFunnel("cta_click", { source: `${source}:telegram`, path: "/" });
+    trackFunnel("auth_start", { provider: "telegram", source });
     loginWithTelegram()
-      .then(() => navigate("/home"))
+      .then(() => {
+        trackFunnel("auth_success", { provider: "telegram", source });
+        const dest = consumePostLoginRedirect(redirect);
+        trackFunnel("post_login_land", { path: dest, provider: "telegram" });
+        navigate(dest);
+      })
       .catch((err) => {
         // "cancelled" is the user closing the popup — nothing to say about it.
-        if (err?.message !== "cancelled") navigate("/login");
+        if (err?.message !== "cancelled") {
+          trackFunnel("auth_error", { provider: "telegram", source });
+          navigate(loginUrl(redirect, { source: `${source}:telegram` }));
+        }
       });
   };
 
@@ -88,11 +102,19 @@ export default function HeroSignupPill({
       navigate("/home");
       return;
     }
-    loginWithDiscord().catch(() => navigate("/login"));
+    stashPostLoginRedirect(redirect);
+    trackFunnel("cta_click", { source: `${source}:discord`, path: "/" });
+    trackFunnel("auth_start", { provider: "discord", source });
+    loginWithDiscord().catch(() => navigate(loginUrl(redirect, { source: `${source}:discord` })));
   };
 
-  const goPlatform = () => {
-    navigate(isAuthenticated ? "/home" : "/login");
+  const goPlatform = (cta = "signup") => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    trackFunnel("cta_click", { source: `${source}:${cta}`, path: "/" });
+    navigate(loginUrl(redirect, { source: `${source}:${cta}` }));
   };
 
   // Signed in there is one action and nothing to choose between, so the capsule
@@ -102,7 +124,7 @@ export default function HeroSignupPill({
       <div className={["mx-auto flex w-full max-w-[400px] justify-center sm:max-w-[440px]", className].join(" ")}>
         <button
           type="button"
-          onClick={goPlatform}
+          onClick={() => navigate("/home")}
           className="inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-8 text-[14px] font-semibold text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)_/_0.3)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_10px_24px_rgb(var(--accent)_/_0.42)]"
         >
           Open App
@@ -120,15 +142,15 @@ export default function HeroSignupPill({
         className,
       ].join(" ")}
     >
-      {/* The offer, set as a label rather than a second button — a filled
-          control here competed with the three that actually do the work. Still
-          tappable so nobody aiming at the words gets nothing. */}
+      {/* Label still tappable → full login page with redirect preserved. */}
       <button
         type="button"
-        onClick={goPlatform}
+        onClick={() => goPlatform("text")}
         className="flex h-11 min-w-0 flex-1 items-center truncate rounded-full px-3.5 text-left text-[13px] font-medium text-accent-fg/80 outline-none transition-colors hover:text-accent-fg sm:px-4 sm:text-[14px]"
+        title={text}
       >
-        Start Free
+        <span className="truncate sm:hidden">{shortText}</span>
+        <span className="hidden truncate sm:inline">{text}</span>
       </button>
 
       <button

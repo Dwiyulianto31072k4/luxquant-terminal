@@ -20,6 +20,7 @@ import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
 import AnnouncementModal from "./components/AnnouncementModal";
 import ChatLauncher from "./components/chat/ChatLauncher";
+import { stashPostLoginRedirect } from "./utils/postLoginRedirect";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -1499,7 +1500,11 @@ function AppShell({ children }) {
 function LoginPageWrapper() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/home";
+  const params = new URLSearchParams(location.search);
+  const redirectParam = params.get("redirect");
+  // Stash for Google/Discord round-trips (sessionStorage + localStorage).
+  if (redirectParam) stashPostLoginRedirect(redirectParam);
+  const redirectTo = redirectParam || "/home";
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   return (
     <Suspense fallback={<PageLoader />}>

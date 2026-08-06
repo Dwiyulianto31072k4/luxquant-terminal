@@ -4,15 +4,30 @@
 
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
 
 export default function FooterV2({ onNav }) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const goFeature = (path) =>
-    isAuthenticated ? navigate(path) : navigate(`/login?redirect=${encodeURIComponent(path)}`);
+  const goFeature = (path) => {
+    if (isAuthenticated) {
+      navigate(path);
+      return;
+    }
+    trackFunnel("cta_click", { source: "footer_feature", path });
+    navigate(loginUrl(path, { source: "footer_feature" }));
+  };
 
-  const openTerminal = () => navigate(isAuthenticated ? "/home" : "/login");
+  const openTerminal = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    trackFunnel("cta_click", { source: "footer_terminal", path: "/" });
+    navigate(loginUrl("/home", { source: "footer_terminal" }));
+  };
 
   const COLUMNS = [
     {

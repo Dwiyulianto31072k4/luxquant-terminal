@@ -1,11 +1,13 @@
 // src/components/auth/LoginPage.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ensureTelegram } from "../../utils/telegramLoader";
 import LeftBrandPanel, { AssetCoins } from "./LeftBrandPanel";
 import ReferralBanner from "./ReferralBanner";
+import { stashPostLoginRedirect, consumePostLoginRedirect } from "../../utils/postLoginRedirect";
+import { trackFunnel } from "../../utils/funnelAnalytics";
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -28,9 +30,24 @@ const LoginPage = () => {
   const { loginWithGoogle, loginWithTelegram, loginWithDiscord, error, setError, isAuthenticated } =
     useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Capture ?redirect= so OAuth round-trips and Telegram still land correctly.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get("redirect");
+    if (redirect) stashPostLoginRedirect(redirect);
+    trackFunnel("auth_page_view", {
+      source: params.get("src") || "login",
+      path: location.pathname + location.search,
+    });
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
-    if (isAuthenticated) navigate("/home", { replace: true });
+    if (!isAuthenticated) return;
+    const dest = consumePostLoginRedirect("/home");
+    trackFunnel("post_login_land", { path: dest });
+    navigate(dest, { replace: true });
   }, [isAuthenticated, navigate]);
 
   // Preload Telegram widget on mount; unlock the button once ready.
@@ -51,10 +68,12 @@ const LoginPage = () => {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     setError(null);
+    trackFunnel("auth_start", { provider: "google", source: "login" });
     try {
       await loginWithGoogle();
     } catch (err) {
       if (err.message !== "cancelled") {
+        trackFunnel("auth_error", { provider: "google", meta: { message: err.message } });
         console.error("Google login error:", err);
       }
     } finally {
@@ -65,10 +84,14 @@ const LoginPage = () => {
   const handleTelegramLogin = async () => {
     setTelegramLoading(true);
     setError(null);
+    trackFunnel("auth_start", { provider: "telegram", source: "login" });
     try {
       await loginWithTelegram();
+      // Navigate happens via isAuthenticated effect (consumePostLoginRedirect).
+      trackFunnel("auth_success", { provider: "telegram", source: "login" });
     } catch (err) {
       if (err.message !== "cancelled") {
+        trackFunnel("auth_error", { provider: "telegram", meta: { message: err.message } });
         console.error("Telegram login error:", err);
       }
     } finally {
@@ -79,9 +102,11 @@ const LoginPage = () => {
   const handleDiscordLogin = async () => {
     setDiscordLoading(true);
     setError(null);
+    trackFunnel("auth_start", { provider: "discord", source: "login" });
     try {
       await loginWithDiscord();
     } catch (err) {
+      trackFunnel("auth_error", { provider: "discord", meta: { message: err?.message } });
       console.error("Discord login error:", err);
     } finally {
       setDiscordLoading(false);

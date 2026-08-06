@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Seo from "../../Seo";
 import { saveRefFromURL } from "../../../utils/referralStorage";
+import { trackFunnel } from "../../../utils/funnelAnalytics";
 import { landingFaqJsonLd } from "../../../content/faq";
 import useLandingData from "./useLandingData";
 import HeaderV2 from "./sections/HeaderV2";
@@ -31,6 +32,7 @@ import CoinSpotlight from "./sections/CoinSpotlight";
 import FreeTierV2 from "./sections/FreeTierV2";
 import FaqV2 from "./sections/FaqV2";
 import FooterV2 from "./sections/FooterV2";
+import StickyLandingCta from "./sections/shared/StickyLandingCta";
 
 export default function LandingPageV2() {
   const { stats, topGainers, performanceData } = useLandingData();
@@ -41,6 +43,7 @@ export default function LandingPageV2() {
   // Capture ?ref= → localStorage (sama seperti v1)
   useEffect(() => {
     saveRefFromURL();
+    trackFunnel("landing_view", { source: "landing_v2", path: "/" });
   }, []);
 
   const scrollTo = (id) => {
@@ -107,6 +110,7 @@ export default function LandingPageV2() {
         <FaqV2 />
       </main>
       <FooterV2 onNav={scrollTo} />
+      <StickyLandingCta />
     </div>
   );
 }

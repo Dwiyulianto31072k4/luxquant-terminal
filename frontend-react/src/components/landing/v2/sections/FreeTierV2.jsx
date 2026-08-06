@@ -7,11 +7,33 @@
 // copy + Telegram link on the right.
 // ════════════════════════════════════════════════════════════════
 import { QRCodeSVG } from "qrcode.react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../../context/AuthContext";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import PhoneMockup from "./shared/PhoneMockup";
 
 const TG_LINK = "https://t.me/LuxQuantSignal";
 
+const GOLD_BTN = {
+  background:
+    "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
+  color: "rgb(var(--accent-fg))",
+};
+
 export default function FreeTierV2() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const goAccount = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    trackFunnel("cta_click", { source: "free_tier_account", path: "/" });
+    navigate(loginUrl("/home", { source: "free_tier_account" }));
+  };
+
   return (
     <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16 lg:px-8 lg:py-24">
       <div className="absolute left-1/2 top-1/2 -z-10 h-[440px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface-secondary blur-[150px]" />
@@ -91,13 +113,25 @@ export default function FreeTierV2() {
                 </div>
               </div>
 
-              {/* CTA */}
-              <div className="mt-8 flex justify-center lg:mt-9 lg:justify-start">
+              {/* CTAs — account (primary) + Telegram channel (secondary).
+                  Channel alone was leaking intent off-site without conversion. */}
+              <div className="mt-8 flex flex-col items-stretch justify-center gap-2.5 sm:flex-row sm:items-center lg:mt-9 lg:justify-start">
+                <button
+                  type="button"
+                  onClick={goAccount}
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-[0_6px_18px_rgb(var(--accent)/0.28)] transition-all duration-300 hover:-translate-y-0.5"
+                  style={GOLD_BTN}
+                >
+                  {isAuthenticated ? "Open terminal" : "Create free account"}
+                </button>
                 <a
                   href={TG_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 rounded-full border border-ink/15 bg-ink/[0.03] px-6 py-3 text-sm font-semibold text-text-primary transition-all duration-300 hover:border-ink/15 hover:bg-ink/[0.06] hover:text-text-primary"
+                  onClick={() =>
+                    trackFunnel("cta_click", { source: "free_tier_telegram", path: "/" })
+                  }
+                  className="group inline-flex items-center justify-center gap-2.5 rounded-full border border-ink/15 bg-ink/[0.03] px-6 py-3 text-sm font-semibold text-text-primary transition-all duration-300 hover:border-ink/15 hover:bg-ink/[0.06] hover:text-text-primary"
                 >
                   <svg
                     className="h-4 w-4"
@@ -107,21 +141,7 @@ export default function FreeTierV2() {
                   >
                     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                   </svg>
-                  <span className="tracking-wide">Join Free Channel</span>
-                  <svg
-                    className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M13 7l5 5m0 0l-5 5m5-5H6"
-                    />
-                  </svg>
+                  <span className="tracking-wide">Join free channel</span>
                 </a>
               </div>
             </div>

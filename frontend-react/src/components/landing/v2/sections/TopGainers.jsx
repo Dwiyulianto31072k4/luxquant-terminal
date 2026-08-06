@@ -21,6 +21,11 @@ import { useAuth } from "../../../../context/AuthContext";
 import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
 import { peakLagFromSeconds } from "../../../../utils/peakTiming";
+import { loginUrl } from "../../../../utils/postLoginRedirect";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
+
+const FREE_PREVIEW_KEY = "lq_landing_free_preview_v1";
+const FREE_PREVIEW_LIMIT = 1;
 
 const GOLD_BTN = {
   background:
@@ -92,12 +97,38 @@ const SkeletonCard = () => (
   </div>
 );
 
+function readFreePreviewCount() {
+  try {
+    return Number(sessionStorage.getItem(FREE_PREVIEW_KEY) || "0") || 0;
+  } catch {
+    return 0;
+  }
+}
+function bumpFreePreviewCount() {
+  try {
+    const n = readFreePreviewCount() + 1;
+    sessionStorage.setItem(FREE_PREVIEW_KEY, String(n));
+    return n;
+  } catch {
+    return FREE_PREVIEW_LIMIT + 1;
+  }
+}
+
 export default function TopGainers({ stats, gainers = [], _onNav }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState("Daily");
-  const goPlatform = () => navigate(isAuthenticated ? "/home" : "/login");
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateItem, setGateItem] = useState(null);
+  const goPlatform = () => {
+    if (isAuthenticated) {
+      navigate("/home");
+      return;
+    }
+    trackFunnel("cta_click", { source: "top_gainers_cta", path: "/" });
+    navigate(loginUrl("/signals", { source: "top_gainers_cta" }));
+  };
 
   // ── custom date range (top-performers supports date_from/date_to) ──
   const [customFrom, setCustomFrom] = useState("");
@@ -162,6 +193,22 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       );
       return;
     }
+
+    // Soft gate: 1 free chart preview per session for guests, then login.
+    // Landing HTML + gainer cards stay public for SEO; detail depth is gated.
+    if (!isAuthenticated && readFreePreviewCount() >= FREE_PREVIEW_LIMIT) {
+      setGateItem(item);
+      setGateOpen(true);
+      trackFunnel("soft_gate_shown", {
+        source: "top_gainers",
+        path: "/",
+        meta: { pair: item.pair, signal_id: item.signal_id },
+      });
+      return;
+    }
+
+    if (!isAuthenticated) bumpFreePreviewCount();
+
     const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
     const bi = ids.indexOf(item.signal_id);
     setModalSignalIds(ids);
@@ -169,6 +216,15 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
     setModalItem(item);
     setModalOpen(true);
     fetchDetail(item.signal_id);
+  };
+
+  const goGateLogin = () => {
+    trackFunnel("soft_gate_login_click", {
+      source: "top_gainers",
+      path: "/",
+      meta: gateItem ? { pair: gateItem.pair, signal_id: gateItem.signal_id } : null,
+    });
+    navigate(loginUrl("/signals", { source: "top_gainers_soft_gate" }));
   };
 
   const goToSignal = (i) => {
@@ -227,13 +283,13 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       label: "Reached A Target",
       value: stats ? `${(stats.win_rate ?? 0).toFixed(1)}%` : "—",
       accent: "text-text-primary",
-      onClick: () => navigate("/performance"),
+      onClick: goPlatform,
     },
     {
       label: "Pairs Tracked",
       value: stats ? (stats.active_pairs ?? 0).toLocaleString() : "—",
       accent: "text-text-primary",
-      onClick: () => navigate("/performance"),
+      onClick: goPlatform,
     },
   ];
 
@@ -523,14 +579,14 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
         </div>
       </div>
 
-      {/* CTA — arahkan ke bukti lengkap di halaman Performance */}
+      {/* CTA — full track record (login-gated in app shell) */}
       <div className="flex flex-col items-center gap-3 mt-12 lg:mt-16">
         <button
-          onClick={() => navigate("/performance")}
+          onClick={goPlatform}
           className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] hover:shadow-[0_6px_20px_rgb(var(--accent) / 0.35)]"
           style={GOLD_BTN}
         >
-          See Full Track Record
+          {isAuthenticated ? "See Full Track Record" : "Free account · full track record"}
           <svg
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
             fill="none"
@@ -557,6 +613,55 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
           cleanPair={cleanPair}
           t={t}
         />
+      )}
+
+      {/* Soft gate — guest used free preview; ask for account without full hard block on SEO content */}
+      {gateOpen && (
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-scrim/60 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="lq-soft-gate-title"
+          onClick={() => setGateOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-ink/10 bg-surface p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+              Free preview used
+            </p>
+            <h3
+              id="lq-soft-gate-title"
+              className="mt-2 text-lg font-bold text-text-primary"
+            >
+              {gateItem?.pair
+                ? `Unlock full chart for ${symbolOf(gateItem.pair)}`
+                : "Unlock full call charts"}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-text-muted">
+              Create a free account to open every verified call, save a watchlist, and get
+              alerts — Google or Telegram, under 30 seconds.
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={goGateLogin}
+                className="flex-1 rounded-full px-4 py-2.5 text-sm font-semibold"
+                style={GOLD_BTN}
+              >
+                Continue free
+              </button>
+              <button
+                type="button"
+                onClick={() => setGateOpen(false)}
+                className="flex-1 rounded-full border border-ink/12 px-4 py-2.5 text-sm font-medium text-text-primary/80"
+              >
+                Keep browsing
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* marquee — scroll ke atas, loop, pause saat hover */}

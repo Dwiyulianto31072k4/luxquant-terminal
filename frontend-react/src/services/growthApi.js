@@ -59,4 +59,12 @@ export const growthApi = {
     });
     return response.data;
   },
+
+  // Landing → login conversion snapshot (users + funnel_events)
+  getConversion: async (days = 30) => {
+    const response = await api.get("/api/v1/workspace/growth/conversion", {
+      params: { days },
+    });
+    return response.data;
+  },
 };
