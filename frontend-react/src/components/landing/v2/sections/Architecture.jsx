@@ -165,30 +165,34 @@ const STAGES = [
   {
     n: "01",
     id: "data",
+    icon: "ohlc",
     title: "Live market data",
     lead: "We never invent prices.",
-    body: "The engine streams multi-source feeds in real time — price, depth, derivatives, on-chain, volatility, and market breadth — so every decision starts from what the market actually is.",
+    body: "Multi-source feeds in real time — so every decision starts from what the market actually is.",
   },
   {
     n: "02",
     id: "sanitize",
+    icon: "sanitizer",
     title: "Data sanitizer",
     lead: "Noise never reaches the model.",
-    body: "Outliers, stale ticks, and exchange glitches are filtered before scoring. Clean inputs are how you keep false signals out of your feed.",
+    body: "Outliers, stale ticks, and exchange glitches filtered before scoring.",
   },
   {
     n: "03",
     id: "engine",
+    icon: "core",
     title: "Predictive alpha",
     lead: "Only setups that clear the rules ship.",
-    body: "The quant engine scores candidates 24/7 against risk geometry — entry, targets, and stop — and only publishes calls that pass. No discretionary override after the fact.",
+    body: "Scored 24/7 against risk geometry — entry, targets, stop. No override after the fact.",
   },
   {
     n: "04",
     id: "terminal",
+    icon: "mSignals",
     title: "Your terminal",
     lead: "Act on it. Audit every call.",
-    body: "Every call lands with entry, TP, and SL you can check. The same terminal holds research, money flow, agent execution, and a full public track record.",
+    body: "Every call lands with entry, TP & SL you can check — plus research and a public track record.",
   },
 ];
 
@@ -470,24 +474,143 @@ function useArchGeometry(wrapRef) {
   return geo;
 }
 
-/* ── mobile: 4 tight steps only (title + one line) — no grids / cards / essays ── */
-function MobileStory() {
-  return (
-    <ol className="mx-auto max-w-md divide-y divide-ink/[0.07] lg:hidden">
-      {STAGES.map((s) => (
-        <li key={s.id} className="flex gap-3.5 py-5 first:pt-0 last:pb-0">
-          <span className="mt-0.5 w-7 flex-shrink-0 text-[13px] font-semibold tabular-nums text-accent">
-            {s.n}
+/* ── mobile accordion: clean when closed, visual + detail when opened ── */
+function StepVisual({ stageId }) {
+  if (stageId === "data") {
+    return (
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {INPUTS.map((inp) => (
+          <span
+            key={inp.title}
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2.5 py-1 text-[11.5px] text-text-primary/80"
+          >
+            <Icon name={inp.icon} className="h-3.5 w-3.5" />
+            {inp.title}
           </span>
-          <div className="min-w-0">
-            <h3 className="text-[16px] font-semibold tracking-tight text-text-primary">
-              {s.title}
-            </h3>
-            <p className="mt-1 text-[14px] leading-snug text-text-muted">{s.lead}</p>
+        ))}
+      </div>
+    );
+  }
+  if (stageId === "sanitize") {
+    return (
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {["Outliers", "Stale ticks", "Exchange glitches"].map((t) => (
+          <span
+            key={t}
+            className="rounded-full border border-ink/[0.08] px-2.5 py-1 text-[11.5px] text-text-muted"
+          >
+            {t} · filtered
+          </span>
+        ))}
+      </div>
+    );
+  }
+  if (stageId === "engine") {
+    return (
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {[
+          { k: "Entry", v: "Defined" },
+          { k: "TP", v: "1–4" },
+          { k: "SL", v: "Hard" },
+        ].map((x) => (
+          <div
+            key={x.k}
+            className="rounded-xl bg-ink/[0.04] px-2 py-2.5 text-center"
+          >
+            <p className="text-[10px] uppercase tracking-wide text-text-muted">{x.k}</p>
+            <p className="mt-0.5 text-[13px] font-semibold text-accent">{x.v}</p>
           </div>
-        </li>
-      ))}
-    </ol>
+        ))}
+      </div>
+    );
+  }
+  if (stageId === "terminal") {
+    return (
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {FEATURES.slice(0, 4).map((f) => (
+          <span
+            key={f.t}
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink/[0.04] px-2.5 py-1 text-[11.5px] text-text-primary/80"
+          >
+            <Icon name={f.icon} className="h-3.5 w-3.5" />
+            {f.t}
+          </span>
+        ))}
+        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11.5px] text-text-muted">
+          + more
+        </span>
+      </div>
+    );
+  }
+  return null;
+}
+
+function MobileStory() {
+  // First open by default so the section feels alive without clutter.
+  const [openId, setOpenId] = useState("data");
+
+  return (
+    <div className="mx-auto max-w-md space-y-2 lg:hidden">
+      <p className="mb-1 text-center text-[12px] text-text-muted">Tap a step to expand</p>
+      {STAGES.map((s) => {
+        const open = openId === s.id;
+        return (
+          <div
+            key={s.id}
+            className={`overflow-hidden rounded-2xl border transition-colors ${
+              open
+                ? "border-accent/25 bg-surface-raised/90"
+                : "border-ink/[0.06] bg-transparent"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setOpenId(open ? null : s.id)}
+              aria-expanded={open}
+              className="flex w-full items-start gap-3 px-3.5 py-3.5 text-left"
+            >
+              <span
+                className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold tabular-nums ${
+                  open ? "bg-accent/15 text-accent" : "bg-ink/[0.05] text-accent/90"
+                }`}
+              >
+                {s.n}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
+                    {s.title}
+                  </h3>
+                  <svg
+                    className={`h-4 w-4 flex-shrink-0 text-text-muted transition-transform duration-200 ${
+                      open ? "rotate-180" : ""
+                    }`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+                <p className="mt-0.5 text-[13px] leading-snug text-text-muted">{s.lead}</p>
+              </div>
+            </button>
+
+            {open && (
+              <div className="border-t border-ink/[0.06] px-3.5 pb-4 pt-3">
+                <div className="flex items-center gap-3">
+                  <IconChip name={s.icon} size="h-11 w-11" ic="h-5 w-5" />
+                  <p className="text-[13.5px] leading-relaxed text-text-primary/75">{s.body}</p>
+                </div>
+                <StepVisual stageId={s.id} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
