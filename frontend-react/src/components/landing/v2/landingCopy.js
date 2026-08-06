@@ -5,9 +5,9 @@ export const HERO = {
   // Branding first — do not replace with soft "start free" messaging
   line1: "Algo-Backed Crypto Calls.",
   line2: "Plus The Full Terminal.",
-  // Transparency + free/premium honesty under the brand lines
+  // Transparency + free/premium honesty — tease free breadth with "& more"
   sub:
-    "Every call is timestamped — entry, targets, stops you can audit. Free tools (Pulse, News, track record). Premium unlocks live levels and the full terminal. Running since 2023.",
+    "Every call is timestamped — entry, targets, stops you can audit. Free tools (Pulse, News, track record & more). Premium unlocks live levels and the full terminal. Running since 2023.",
 };
 
 export const CTA = {
@@ -64,7 +64,7 @@ export const MARQUEE = {
 export const SEO = {
   title: "LuxQuant — Verified Crypto Calls & Free Market Tools",
   description:
-    "Audit every crypto call with timestamped entries and peaks. Free: Market Pulse, News, Performance & track record. Premium: live levels and the full terminal.",
+    "Audit every crypto call with timestamped entries and peaks. Free: Market Pulse, News, Performance, track record & more. Premium: live levels and the full terminal.",
   keywords:
     "luxquant, crypto signals, verified track record, market pulse, crypto terminal, free crypto tools",
 };

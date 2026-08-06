@@ -178,7 +178,7 @@ export default function HeroSlideAlgo() {
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/60 sm:mt-5 sm:text-base">
         Every level is dated and auditable — charts, markets, on-chain and journal in one desk.
-        Free tools today; live levels &amp; Agent when you upgrade.
+        Free tools (Pulse, News, track record &amp; more); live levels &amp; Agent when you upgrade.
       </p>
 
       {/* ════════ Product proof — iMac + iPhone showcase ════════ */}
