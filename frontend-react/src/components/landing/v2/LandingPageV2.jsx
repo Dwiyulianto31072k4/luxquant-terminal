@@ -109,17 +109,18 @@ export default function LandingPageV2() {
         <TerminalPreview />
         <Performance data={performanceData} />
         <CoinSpotlight />
+        <FaqV2 />
+        {/* Brand spectacle last — lazy chunk, lowest conversion priority */}
         <Suspense
           fallback={
             <div
-              className="mx-auto min-h-[320px] max-w-6xl px-4 py-20 text-center text-sm text-text-muted"
+              className="mx-auto min-h-[200px] max-w-6xl px-4 py-12"
               aria-hidden="true"
             />
           }
         >
           <GlobalReach gainers={topGainers} stats={stats} />
         </Suspense>
-        <FaqV2 />
       </main>
       <FooterV2 onNav={scrollTo} />
       <StickyLandingCta />

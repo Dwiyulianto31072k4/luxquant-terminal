@@ -308,10 +308,8 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
               <Wrap
                 key={s.label}
                 onClick={s.onClick || undefined}
-                className={`group relative flex-1 rounded-xl border border-ink/[0.08] bg-ink/[0.02] p-3 text-center transition-all sm:p-4 lg:flex-none lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:text-left ${
-                  s.onClick
-                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-ink/12 hover:bg-ink/[0.035] lg:hover:translate-y-0 lg:hover:bg-transparent"
-                    : ""
+                className={`group relative flex-1 p-2 text-center transition-colors sm:p-3 lg:flex-none lg:p-0 lg:text-left ${
+                  s.onClick ? "cursor-pointer hover:opacity-90" : ""
                 }`}
               >
                 {/* mobile-only corner arrow */}

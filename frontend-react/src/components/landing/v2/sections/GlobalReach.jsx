@@ -2746,10 +2746,9 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   return (
     <section
       id="global-reach"
-      className="relative z-10 overflow-hidden pt-20 pb-4 lg:pt-28 lg:pb-6"
+      className="relative z-10 overflow-hidden pt-12 pb-4 lg:pt-16 lg:pb-6"
     >
-      {/* Subtle additive glow behind the globe only — no section-level
- background block, so it blends into the page's continuous canvas. */}
+      {/* Brand moment only — placed after FAQ so conversion path stays light. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 top-[40%]"
@@ -2760,30 +2759,18 @@ export default function GlobalReach({ gainers = [], stats = null }) {
       />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4">
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.25em] text-text-muted">
-            <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/55" />
-            Global Reach
-            <span className="h-px w-7 bg-gradient-to-l from-transparent to-accent/55" />
-          </span>
-
-          <h2 className="mt-5 text-[2rem] font-bold leading-[1.08] tracking-tight text-text-primary sm:text-[2.8rem] lg:text-[3.3rem]">
-            Precision Intelligence,{" "}
-            <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-              Serving Globally.
-            </span>
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-[12px] font-medium tracking-wide text-text-muted">Global reach</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
+            Precision intelligence,{" "}
+            <span className="text-accent">worldwide.</span>
           </h2>
-
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-text-primary/45 sm:text-base">
-            A quantitative engine built in Taiwan, running non-stop to read what moves the market —
-            and constantly evolving to deliver exactly what our users need, wherever they are.
-          </p>
         </div>
       </div>
 
       <div
         ref={sentinelRef}
-        className="relative z-10 mx-auto mb-0 mt-12 h-[560px] w-full max-w-[1600px] sm:mb-0 sm:mt-16 sm:h-[760px] lg:mt-20 lg:h-[940px]"
+        className="relative z-10 mx-auto mb-0 mt-8 h-[480px] w-full max-w-[1600px] sm:mt-10 sm:h-[640px] lg:mt-12 lg:h-[820px]"
       >
         <div
           aria-hidden="true"

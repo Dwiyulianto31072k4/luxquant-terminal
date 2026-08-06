@@ -1,7 +1,6 @@
-// Mobile sticky CTA — logged-out visitors only.
-// Hidden while soft-gate sheet is open so the two never stack.
+// Mobile sticky CTA — logged-out only. Hidden while soft-gate is open.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../../context/AuthContext";
 import { loginUrl } from "../../../../../utils/postLoginRedirect";
@@ -14,6 +13,7 @@ export default function StickyLandingCta() {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [softGateOpen, setSoftGateOpen] = useState(false);
+  const shownTracked = useRef(false);
 
   useEffect(() => {
     if (isAuthenticated) return undefined;
@@ -34,6 +34,17 @@ export default function StickyLandingCta() {
     };
   }, []);
 
+  // One impression per session for conversion dashboard.
+  useEffect(() => {
+    if (!visible || softGateOpen || isAuthenticated || shownTracked.current) return;
+    shownTracked.current = true;
+    trackFunnel("cta_click", {
+      source: "sticky_mobile_shown",
+      path: "/",
+      meta: { impression: true },
+    });
+  }, [visible, softGateOpen, isAuthenticated]);
+
   if (isAuthenticated || !visible || softGateOpen) return null;
 
   const go = () => {
@@ -50,8 +61,7 @@ export default function StickyLandingCta() {
           </p>
           <p className="truncate text-[11px] text-text-muted">{CTA.stickySub}</p>
         </div>
-        {/* Compact primary — one gold action on phone while scrolling */}
-        <PrimaryButton size="md" onClick={go} className="shrink-0 !min-w-[6.5rem] !px-5">
+        <PrimaryButton size="md" onClick={go} className="shrink-0 !min-w-[6.75rem] !px-5">
           {CTA.stickyBtn}
         </PrimaryButton>
       </div>

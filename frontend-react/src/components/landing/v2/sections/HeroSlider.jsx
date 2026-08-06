@@ -1,64 +1,75 @@
 // src/components/landing/v2/sections/HeroSlider.jsx
-// ════════════════════════════════════════════════════════════════
-// Hero carousel
-//
-// Slide 1 : Full-bleed cinematic video hero
-// Slide 2 : Algo / data slide
-//
-// Semua slider navigation selalu horizontal di bawah.
-// Tidak ada dots vertikal di sisi kanan.
-// ════════════════════════════════════════════════════════════════
+// Mobile: single video hero (no dual-slide attention split).
+// Desktop: video + algo slides; auto-rotate until user interacts.
 
 import { useEffect, useRef, useState } from "react";
 import HeroSlideVideo from "./slides/HeroSlideVideo";
 import HeroSlideAlgo from "./slides/HeroSlideAlgo";
 
 const ROTATE_MS = 11000;
-
-const SLIDES = [HeroSlideVideo, HeroSlideAlgo];
+const DESKTOP_SLIDES = [HeroSlideVideo, HeroSlideAlgo];
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const apply = () => setDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return desktop;
+}
+
 export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
+  const isDesktop = useIsDesktop();
+  const slides = isDesktop ? DESKTOP_SLIDES : [HeroSlideVideo];
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  // After user swipes/dots, stop auto-rotate permanently (attention stays put).
   const [userLocked, setUserLocked] = useState(false);
   const touchStartX = useRef(null);
 
-  const ActiveSlide = SLIDES[active];
+  // Reset index if we shrink to one slide.
+  useEffect(() => {
+    if (active >= slides.length) setActive(0);
+  }, [slides.length, active]);
+
+  const ActiveSlide = slides[active] || HeroSlideVideo;
   const isVideoSlide = ActiveSlide === HeroSlideVideo;
 
-  // Tell parent which slide is up so Real calls can pull into the video
-  // dissolve only — never under the algo product mockup (overlap bug).
   useEffect(() => {
     onSlideChange?.(active, { isVideoSlide });
   }, [active, isVideoSlide, onSlideChange]);
 
   const goToSlide = (index, fromUser = false) => {
-    const total = SLIDES.length;
+    const total = slides.length;
+    if (total <= 1) return;
     setActive((index + total) % total);
     if (fromUser) setUserLocked(true);
   };
 
-  // Auto-advance only until the user takes control.
   useEffect(() => {
-    if (paused || userLocked || prefersReducedMotion()) return undefined;
+    if (slides.length <= 1 || paused || userLocked || prefersReducedMotion()) return undefined;
 
     const timer = window.setTimeout(() => {
-      setActive((current) => (current + 1) % SLIDES.length);
+      setActive((current) => (current + 1) % slides.length);
     }, ROTATE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [paused, userLocked, active]);
+  }, [paused, userLocked, active, slides.length]);
 
   const handleTouchStart = (event) => {
     touchStartX.current = event.touches[0]?.clientX ?? null;
   };
 
   const handleTouchEnd = (event) => {
-    if (touchStartX.current === null) return;
+    if (touchStartX.current === null || slides.length <= 1) return;
 
     const currentX = event.changedTouches[0]?.clientX ?? touchStartX.current;
     const distance = currentX - touchStartX.current;
@@ -77,11 +88,11 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
   };
 
   const handleKeyDown = (event) => {
+    if (slides.length <= 1) return;
     if (event.key === "ArrowRight") {
       event.preventDefault();
       goToSlide(active + 1, true);
     }
-
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       goToSlide(active - 1, true);
@@ -93,7 +104,7 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
       id="hero"
       role="region"
       aria-label="LuxQuant featured experiences"
-      aria-roledescription="carousel"
+      aria-roledescription={slides.length > 1 ? "carousel" : undefined}
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setPaused(true)}
@@ -109,12 +120,10 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
       onTouchCancel={handleTouchCancel}
       className="relative z-[1] w-full outline-none"
     >
-      {/* Ambient gold — additive only, never a plate under the seam */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[70%]">
         <div className="absolute left-1/2 top-[12%] h-[420px] w-[900px] -translate-x-1/2 rounded-full bg-surface-secondary blur-[160px]" />
       </div>
 
-      {/* Hero stage */}
       <div
         className={`relative z-10 flex items-start ${
           isVideoSlide
@@ -123,7 +132,7 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
         }`}
       >
         <div
-          key={active}
+          key={`${isDesktop ? "d" : "m"}-${active}`}
           className="w-full"
           style={{
             animation: "v2HeroFade 700ms cubic-bezier(.22,.8,.2,1) both",
@@ -133,111 +142,41 @@ export default function HeroSlider({ onNav, gainers = [], onSlideChange }) {
         </div>
       </div>
 
-      {/* Dots in normal flow + high z-index so Real calls pull-up never covers them */}
-      <div
-        className={[
-          "relative z-40 flex w-full items-center justify-center gap-2.5",
-          isVideoSlide ? "-mt-10 pb-2 pt-1 sm:-mt-12 sm:pb-3" : "mt-1 pb-4 sm:pb-5",
-        ].join(" ")}
-        aria-label="Hero slide controls"
-      >
-        {SLIDES.map((_, index) => {
-          const isActive = active === index;
-
-          return (
-            <button
-              key={index}
-              type="button"
-              aria-label={`Go to slide ${index + 1}`}
-              aria-current={isActive ? "true" : undefined}
-              onClick={() => goToSlide(index, true)}
-              className={[
-                "rounded-full transition-all duration-300",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/80",
-                "shadow-[0_2px_10px_rgb(var(--scrim) / 0.35)]",
-                isActive
-                  ? "h-2 w-8 bg-accent shadow-[0_0_14px_rgb(var(--accent) / 0.55)]"
-                  : "h-2 w-2 bg-ink/45 hover:bg-ink/75",
-              ].join(" ")}
-            />
-          );
-        })}
-      </div>
+      {slides.length > 1 && (
+        <div
+          className={[
+            "relative z-40 flex w-full items-center justify-center gap-2.5",
+            isVideoSlide ? "-mt-10 pb-2 pt-1 sm:-mt-12 sm:pb-3" : "mt-1 pb-4 sm:pb-5",
+          ].join(" ")}
+          aria-label="Hero slide controls"
+        >
+          {slides.map((_, index) => {
+            const isActive = active === index;
+            return (
+              <button
+                key={index}
+                type="button"
+                aria-label={`Go to slide ${index + 1}`}
+                aria-current={isActive ? "true" : undefined}
+                onClick={() => goToSlide(index, true)}
+                className={[
+                  "rounded-full transition-all duration-300",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/80",
+                  "shadow-[0_2px_10px_rgb(var(--scrim) / 0.35)]",
+                  isActive
+                    ? "h-2 w-8 bg-accent shadow-[0_0_14px_rgb(var(--accent) / 0.55)]"
+                    : "h-2 w-2 bg-ink/45 hover:bg-ink/75",
+                ].join(" ")}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <style>{`
  @keyframes v2HeroFade {
- from {
- opacity: 0;
- transform: translateY(10px);
- }
-
- to {
- opacity: 1;
- transform: translateY(0);
- }
- }
-
- @keyframes v2Float {
- 0%,
- 100% {
- transform: translateY(0);
- }
-
- 50% {
- transform: translateY(-12px);
- }
- }
-
- @keyframes v2FlyLeft {
- 0% {
- opacity: 0;
- transform: translate(-50%, -50%) scale(.4);
- }
-
- 20% {
- opacity: 1;
- transform: translate(-60px, -40px) scale(.95);
- }
-
- 80% {
- opacity: 1;
- transform: translate(-150px, -80px) scale(.95);
- }
-
- 100% {
- opacity: 0;
- transform: translate(-170px, -100px) scale(.85);
- }
- }
-
- @keyframes v2FlyRight {
- 0% {
- opacity: 0;
- transform: translate(-50%, -50%) scale(.4);
- }
-
- 20% {
- opacity: 1;
- transform: translate(60px, -40px) scale(.95);
- }
-
- 80% {
- opacity: 1;
- transform: translate(150px, -80px) scale(.95);
- }
-
- 100% {
- opacity: 0;
- transform: translate(170px, -100px) scale(.85);
- }
- }
-
- @media (prefers-reduced-motion: reduce) {
- [style*="v2Float"],
- [style*="v2Fly"],
- [style*="v2HeroFade"] {
- animation: none !important;
- }
+ from { opacity: 0; transform: translateY(10px); }
+ to { opacity: 1; transform: translateY(0); }
  }
  `}</style>
     </section>

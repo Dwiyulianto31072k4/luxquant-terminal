@@ -18,9 +18,9 @@ export const CTA = {
   // One primary verb across sticky / gate / free / section CTAs
   primaryGuest: "Create free account",
   primaryAuthed: "Open free features",
-  stickyTitle: "Free features · no card",
-  stickySub: "Pulse, track record & more · 30s",
-  stickyBtn: "Create free account",
+  stickyTitle: "Start free · no card",
+  stickySub: "Pulse, track record & more",
+  stickyBtn: "Start free",
   logIn: "Log In",
   // Header keeps Start Free; hero stays brand-led
   signUp: "Start Free",
@@ -46,9 +46,10 @@ export const CTA = {
   freeTitleLead: "Real free tools —",
   freeTitleGold: "not just a teaser.",
   freeBody:
-    "Free account: Market Pulse, News, Performance, watchlist, tips & verified track record. Premium: live levels, Terminal & Agent.",
+    "Free account: Market Pulse, News, Performance, watchlist, tips & verified track record. Premium when you want live levels, Terminal & Agent.",
   freePrimary: "Create free account",
   freePrimaryAuthed: "Open free features",
+  freePremiumNote: "Upgrade later for live signal levels — free tools stay free.",
   freeChannelTitle: "Free features + free channel",
   freeChannelBody:
     "Free account = Pulse, News, Performance, watchlist & more in the app. Telegram = public samples. Best results: use both.",

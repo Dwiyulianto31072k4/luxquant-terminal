@@ -53,6 +53,9 @@ export default function FreeTierV2() {
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-text-primary/55">
           {CTA.freeBody}
         </p>
+        <p className="mx-auto mt-2 max-w-md text-[12px] text-text-muted">
+          {CTA.freePremiumNote}
+        </p>
       </div>
 
       {/* Card — phone EMERGES from the top of the card while its bottom is

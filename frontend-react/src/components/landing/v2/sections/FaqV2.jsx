@@ -176,8 +176,7 @@ export default function FaqV2() {
       {/* Soft CTA — curiosity → action */}
       <div className="mt-12 flex flex-col items-center gap-4 text-center sm:mt-14">
         <p className="max-w-sm text-[14px] leading-relaxed text-text-muted">
-          Prefer to see it yourself? Free account unlocks Pulse, News, track record{" "}
-          <span className="text-text-primary/80">&amp; more</span> — no card.
+          Start free — Pulse, track record &amp; more. Upgrade later for live levels.
         </p>
         <PrimaryButton size="lg" width="fullMobile" onClick={goStart} className="group">
           {isAuthenticated ? CTA.primaryAuthed : CTA.primaryGuest}
