@@ -8,6 +8,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import HeroSignupPill from "./shared/HeroSignupPill";
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const svgProps = {
   className: "h-4 w-4",
@@ -320,23 +321,10 @@ export default function TerminalPreview() {
         {/* CTA */}
         {!active.isMore && (
           <div className="mt-7 flex justify-center sm:mt-8">
-            <button
-              type="button"
-              onClick={goFree}
-              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5"
-            >
+            <PrimaryButton size="lg" width="fullMobile" onClick={goFree} className="group">
               {isAuthenticated ? "Open terminal" : "Create free account"}
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.4}
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
+              <BtnArrow />
+            </PrimaryButton>
           </div>
         )}
       </div>

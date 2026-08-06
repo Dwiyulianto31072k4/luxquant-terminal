@@ -23,6 +23,7 @@ import MoreMenuDropdown from "../../../MoreMenuDropdown";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
+import { PrimaryButton, SecondaryButton } from "./shared/LandingButtons";
 
 // Compact appearance picker for the landing header (admin-gated while theming
 // is in preview). Three swatches — click to switch the whole site live.
@@ -67,12 +68,6 @@ function LandingThemePicker() {
     </div>
   );
 }
-
-const GOLD_BTN = {
-  background:
-    "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-  color: "rgb(var(--accent-fg))",
-};
 
 // Landing-section anchors — best-practice: no redundant "Home" (the logo
 // goes home), lead with proof, close with FAQ.
@@ -306,18 +301,17 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               inside the lg-only cluster above, so below 1024px — 40% of visits
               — the header offered a hamburger and nothing else, and the first
               CTA was most of a screen further down. */}
-            <button
-              type="button"
+            <PrimaryButton
+              size="md"
               onClick={isAuthenticated ? () => navigate("/home") : goSignup}
-              className={`inline-flex h-11 items-center whitespace-nowrap rounded-full px-4 text-[13px] font-semibold shadow-[0_4px_16px_rgb(var(--accent)_/_0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgb(var(--accent)_/_0.36)] lg:h-10 ${
-              isAuthenticated || pastHero
-                ? "pointer-events-auto opacity-100"
-                : "pointer-events-none opacity-0"
-            }`}
-              style={GOLD_BTN}
+              className={`!h-11 !px-4 !text-[13px] lg:!h-10 ${
+                isAuthenticated || pastHero
+                  ? "pointer-events-auto opacity-100"
+                  : "pointer-events-none opacity-0"
+              }`}
             >
               {isAuthenticated ? CTA.openAppHeader : CTA.signUp}
-            </button>
+            </PrimaryButton>
 
           {/* Mobile hamburger */}
           <button
@@ -439,16 +433,18 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
             className={`mt-3 grid ${isAuthenticated ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-ink/5 pt-4`}
           >
             {!isAuthenticated && (
-              <button
-                type="button"
+              <SecondaryButton
+                size="md"
+                width="full"
                 onClick={goLogin}
-                className="rounded-full border border-ink/15 px-4 py-2.5 text-[13px] font-medium text-text-primary/85 transition-colors hover:bg-ink/[0.04]"
+                className="!text-[13px]"
               >
                 {CTA.logIn}
-              </button>
+              </SecondaryButton>
             )}
-            <button
-              type="button"
+            <PrimaryButton
+              size="md"
+              width="full"
               onClick={
                 isAuthenticated
                   ? () => {
@@ -457,11 +453,10 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
                     }
                   : goSignup
               }
-              className="rounded-full px-4 py-2.5 text-[13px] font-semibold"
-              style={GOLD_BTN}
+              className="!text-[13px]"
             >
               {isAuthenticated ? CTA.openAppHeader : CTA.signUp}
-            </button>
+            </PrimaryButton>
           </div>
         </div>
       </div>

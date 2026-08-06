@@ -30,6 +30,7 @@ import {
 import CoinLogo from "../../../CoinLogo";
 import DayDrillModal from "./DayDrillModal";
 import LockedPct, { isLockedTarget } from "./shared/LockedPct";
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const C = {
   gold: "#e7c373",
@@ -1078,23 +1079,15 @@ export default function Performance({ data }) {
               </span>{" "}
               just to break even — compare that with the number above.
             </p>
-            <button
-              type="button"
+            <PrimaryButton
+              size="lg"
+              width="fullMobile"
               onClick={() => navigate("/performance")}
-              className="group inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
+              className="group"
             >
               Unlock full breakdown
-              <svg
-                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.4}
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
+              <BtnArrow />
+            </PrimaryButton>
           </div>
         </div>
       </div>
@@ -1577,22 +1570,15 @@ export default function Performance({ data }) {
           <span className="font-semibold text-text-primary">Every trade on record.</span> Pattern
           reliability, expected value, timing & per-coin breakdowns — all live.
         </p>
-        <button
-          type="button"
+        <PrimaryButton
+          size="lg"
+          width="fullMobile"
           onClick={() => navigate("/performance")}
-          className="group inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5"
+          className="group"
         >
           See full analytics
-          <svg
-            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.4"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </button>
+          <BtnArrow />
+        </PrimaryButton>
       </div>
 
       {/* per-day proof modal */}

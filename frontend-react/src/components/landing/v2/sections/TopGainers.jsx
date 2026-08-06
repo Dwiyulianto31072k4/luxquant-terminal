@@ -26,12 +26,7 @@ import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
 import { onGuestProofOpen } from "../landingSoftGate";
 import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
-
-const GOLD_BTN = {
-  background:
-    "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-  color: "rgb(var(--accent-fg))",
-};
+import { PrimaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || "—";
 
@@ -564,24 +559,12 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       </div>
 
       {/* CTA — full track record (login-gated in app shell) */}
-      <div className="flex flex-col items-center gap-3 mt-12 lg:mt-16">
-        <button
-          onClick={goPlatform}
-          className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] hover:shadow-[0_6px_20px_rgb(var(--accent) / 0.35)]"
-          style={GOLD_BTN}
-        >
+      <div className="mt-12 flex flex-col items-center gap-3 lg:mt-16">
+        <PrimaryButton size="lg" width="fullMobile" onClick={goPlatform} className="group">
           {isAuthenticated ? CTA.gainersCtaAuth : CTA.gainersCtaGuest}
-          <svg
-            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.4}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-        <p className="text-text-muted text-xs">Every call, verified and timestamped.</p>
+          <BtnArrow />
+        </PrimaryButton>
+        <p className="text-xs text-text-muted">Every call, verified and timestamped.</p>
       </div>
 
       {/* === MODAL (reuse SignalDetailModal — portal ke body) === */}

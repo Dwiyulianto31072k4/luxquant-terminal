@@ -8,6 +8,7 @@ import { LANDING_FAQ } from "../../../../content/faq";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { useAuth } from "../../../../context/AuthContext";
+import { PrimaryButton, SecondaryButton, BtnArrow } from "./shared/LandingButtons";
 
 const FAQ_DATA = LANDING_FAQ;
 const PREVIEW_COUNT = 5;
@@ -151,11 +152,10 @@ export default function FaqV2() {
 
       {hidden > 0 && (
         <div className="mt-6 flex justify-center">
-          <button
-            type="button"
+          <SecondaryButton
+            size="md"
             onClick={() => setShowAll((v) => !v)}
             aria-expanded={showAll}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-ink/[0.04] px-5 text-[13px] font-medium text-text-primary/80 transition-colors hover:bg-ink/[0.07] hover:text-text-primary"
           >
             {showAll ? "Show fewer" : `Show all ${FAQ_DATA.length} questions`}
             <svg
@@ -168,7 +168,7 @@ export default function FaqV2() {
             >
               <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
+          </SecondaryButton>
         </div>
       )}
 
@@ -178,23 +178,10 @@ export default function FaqV2() {
           Prefer to see it yourself? Free account unlocks Pulse, News, track record{" "}
           <span className="text-text-primary/80">&amp; more</span> — no card.
         </p>
-        <button
-          type="button"
-          onClick={goStart}
-          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5"
-        >
+        <PrimaryButton size="lg" width="fullMobile" onClick={goStart} className="group">
           {isAuthenticated ? "Open free features" : "Create free account"}
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.4}
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </button>
+          <BtnArrow />
+        </PrimaryButton>
       </div>
     </section>
   );

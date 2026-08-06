@@ -5,6 +5,7 @@ import { useAuth } from "../../../../../context/AuthContext";
 import { loginUrl, stashPostLoginRedirect, consumePostLoginRedirect } from "../../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
 import { CTA } from "../../landingCopy";
+import { PrimaryButton } from "./LandingButtons";
 
 function TelegramIcon() {
   return (
@@ -122,14 +123,14 @@ export default function HeroSignupPill({
   // — which exists to hold a choice — would be an empty frame.
   if (isAuthenticated) {
     return (
-      <div className={["mx-auto flex w-full max-w-[400px] justify-center sm:max-w-[440px]", className].join(" ")}>
-        <button
-          type="button"
-          onClick={() => navigate("/home")}
-          className="inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-accent-light via-accent to-accent-dark px-8 text-[14px] font-semibold text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)_/_0.3)] transition-all duration-300 hover:-translate-y-px hover:shadow-[0_10px_24px_rgb(var(--accent)_/_0.42)]"
-        >
+      <div
+        className={["mx-auto flex w-full max-w-[400px] justify-center sm:max-w-[440px]", className].join(
+          " "
+        )}
+      >
+        <PrimaryButton size="lg" onClick={() => navigate("/home")}>
           {CTA.openApp}
-        </button>
+        </PrimaryButton>
       </div>
     );
   }

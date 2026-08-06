@@ -10,12 +10,7 @@ import { loginUrl } from "../../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../../utils/funnelAnalytics";
 import { emitSoftGateClose, emitSoftGateOpen } from "../../landingSoftGate";
 import { CTA } from "../../landingCopy";
-
-const GOLD_BTN = {
-  background:
-    "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-  color: "rgb(var(--accent-fg))",
-};
+import { PrimaryButton, SecondaryButton } from "./LandingButtons";
 
 const symbolOf = (pair) => pair?.replace(/USDT$/i, "").replace(/^3A/, "") || null;
 
@@ -70,22 +65,13 @@ export default function LandingSoftGateSheet({
           {CTA.gateTitle(coin, gain)}
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">{CTA.gateBody}</p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={goLogin}
-            className="flex-1 rounded-full px-4 py-2.5 text-sm font-semibold"
-            style={GOLD_BTN}
-          >
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+          <PrimaryButton size="md" width="full" onClick={goLogin} className="sm:flex-1">
             {CTA.gatePrimary}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-full border border-ink/12 px-4 py-2.5 text-sm font-medium text-text-primary/80"
-          >
+          </PrimaryButton>
+          <SecondaryButton size="md" width="full" onClick={onClose} className="sm:flex-1">
             {CTA.gateSecondary}
-          </button>
+          </SecondaryButton>
         </div>
       </div>
     </div>,
