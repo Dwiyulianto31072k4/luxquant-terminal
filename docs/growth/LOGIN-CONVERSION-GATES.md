@@ -54,51 +54,41 @@ Crawlers must still see meaningful text/numbers on `/`. Prefer SSR/prerender alr
 
 ---
 
-## Soft gates (login required after teaser) — **ship first**
+## Soft gates (login required after teaser)
 
 Safe for SEO because list/HTML remains public; only **depth** is gated.
 
 | Gate | Behavior | Value promise |
 |------|----------|---------------|
-| **Top Gainers detail** | 1 free chart/session → then modal CTA | “Unlock full call charts” |
-| **App feature nav** (header More, footer Product) | Immediate `/login?redirect=` | Land back on feature after auth |
-| **Sticky mobile CTA** | After scroll > ~420px | “Save watchlist & get free alerts” |
-| **Free-tier band** | Primary = Create free account; TG secondary | Stop pure off-site TG leak |
+| **Top Gainers detail** | 1 free chart/session → then modal CTA | Free account → Signals + watchlist |
+| **App feature nav** | Immediate `/login?redirect=` | Land on that feature after auth |
+| **Sticky mobile CTA** | After scroll > ~420px | Free · signals & watchlist |
+| **Free-tier band** | Primary = free account; TG secondary | Dual path, not TG-only |
 
 Implementation notes:
-- Post-login redirect is stashed (`postLoginRedirect.js`) so Google/Discord no longer always dump to `/home`.
-- Sign Up header now goes to `/login` (OAuth = signup), not legacy `/register`.
+- Post-login redirect stashed (`postLoginRedirect.js`) through OAuth.
+- Default land after signup CTA = **`/signals`** (free value), not empty `/home`.
+- `FreeOnboardingModal` once for free roles after login.
 
 ---
 
-## Hard gates (already mostly true)
+## Free account product (after login) — habit layer
 
-`LOGIN_REQUIRED` in `App.jsx` already covers the terminal shell:
+| Free (login) | Premium only |
+|--------------|--------------|
+| **Signals** (full levels on calls **>7d**; live redacted) | Live entry/SL/TP levels |
+| **Watchlist** | — |
+| Performance, Pulse, News, Journal, Tips, Notifications, Referral | Terminal, Markets, Order book, Money flow, On-chain, AI Arena, Agent, Portfolio, API keys, Calendar, Whale, Delistings |
 
-`/signals`, `/terminal`, `/markets`, `/watchlist`, `/ai-arena`, `/orderbook`, `/journal`, …  
-
-These routes are `noindex` when gated — correct for SEO.
-
-**Do not** open these as fully public HTML without a dedicated public teaser page (duplicate content + moat leak).
+Backend already enforces levels via `has_active_access` + `PUBLIC_AFTER_DAYS = 7`.
 
 ---
 
-## Premium gates (after login, not for UV→signup)
+## Hard gates
 
-Keep premium on:
+`LOGIN_REQUIRED` still wraps the app shell. Routes are `noindex` when gated.
 
-- Live signal levels / full active board
-- Terminal scanners, money flow depth, autotrade, edge lab drill-downs
-- VIP Telegram join
-
-Free logged-in users should still get **enough** to form habit:
-
-- Watchlist (save 3 coins)
-- Notifications prefs
-- Limited journey / closed call history
-- Chat / support
-
-If free has almost nothing, one-shot rate stays ~80%.
+**Do not** open full live signals as anonymous HTML without a dedicated public teaser.
 
 ---
 

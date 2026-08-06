@@ -18,6 +18,7 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
+import FreeOnboardingModal from "./components/FreeOnboardingModal";
 import AnnouncementModal from "./components/AnnouncementModal";
 import ChatLauncher from "./components/chat/ChatLauncher";
 import { stashPostLoginRedirect } from "./utils/postLoginRedirect";
@@ -119,13 +120,15 @@ const LOGIN_REQUIRED = [
   "/api-keys",
 ];
 
+// Free accounts (login required, not premium) get habit-forming product value:
+// · /signals — browse + full levels on calls older than 7d (backend PUBLIC_AFTER_DAYS)
+// · /watchlist — personal list (API is login-only, no paywall)
+// · /tips, /performance, /market-pulse, /crypto-news, /journal, /notifications
+// Premium keeps the live moat: Terminal, markets depth, Agent, AI Arena, etc.
 const PREMIUM_REQUIRED = [
-  "/signals",
   "/terminal",
   "/bitcoin",
   "/markets",
-  "/watchlist",
-  "/tips",
   "/ai-arena",
   "/ai-arena/v6",
   "/ai-arena/legacy",
@@ -238,46 +241,49 @@ function PremiumGate({ children }) {
   if (!isPremium) {
     return (
       <>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
-              Premium Feature
-            </span>
-          </div>
-          <div className="w-14 h-14 rounded-md bg-surface-raised border border-ink/12 flex items-center justify-center mb-5 relative overflow-hidden">
-            <svg
-              className="w-7 h-7 text-accent"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-normal text-text-primary mb-2 tracking-tight">
-            Premium Feature
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+          <span className="mb-4 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
+            Premium feature
+          </span>
+          <h2 className="mb-2 text-xl font-semibold tracking-tight text-text-primary">
+            Live depth is for Premium
           </h2>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted mb-6 max-w-md normal-case">
-            Fitur ini hanya tersedia untuk pengguna premium. Upgrade sekarang untuk akses penuh ke
-            semua fitur LuxQuant.
+          <p className="mb-6 max-w-md text-sm leading-relaxed text-text-muted">
+            Your free account already includes Signals track record (calls older than 7 days),
+            Watchlist, Performance, Pulse, and News. Upgrade for Terminal, live markets, Agent, and
+            full live levels.
           </p>
-          <div className="flex gap-2.5">
+          <div className="mb-8 flex flex-wrap justify-center gap-2">
+            {[
+              { path: "/signals", label: "Signals (free)" },
+              { path: "/watchlist", label: "Watchlist" },
+              { path: "/performance", label: "Performance" },
+              { path: "/market-pulse", label: "Pulse" },
+            ].map((l) => (
+              <button
+                key={l.path}
+                type="button"
+                onClick={() => navigate(l.path)}
+                className="rounded-full border border-ink/12 bg-ink/[0.03] px-3.5 py-1.5 text-[12px] font-medium text-text-primary transition-colors hover:border-accent/40 hover:bg-accent/10"
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap justify-center gap-2.5">
             <button
+              type="button"
               onClick={() => navigate("/pricing")}
-              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-accent text-accent-fg border border-ink/12 hover:bg-accent/20 transition-colors"
+              className="rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg shadow-[0_4px_14px_rgb(var(--accent)/0.28)]"
             >
-              Lihat Harga
+              View Premium
             </button>
             <button
+              type="button"
               onClick={() => navigate("/home")}
-              className="px-5 py-2 rounded-sm font-mono text-[11px] uppercase tracking-wider bg-ink/[0.03] text-text-muted border border-ink/[0.06] hover:text-text-primary hover:bg-ink/[0.06] transition-colors"
+              className="rounded-full border border-ink/12 px-5 py-2.5 text-[13px] font-medium text-text-muted hover:text-text-primary"
             >
-              Kembali
+              Back home
             </button>
           </div>
         </div>
@@ -1057,7 +1063,7 @@ function AppShell({ children }) {
               path="/signals"
               onClick={() => handleNav("/signals")}
               label={t("nav.signals")}
-              isPremium={!isPremiumUser()}
+              isFreeBadge
               icon={
                 <path
                   strokeLinecap="round"
@@ -1310,7 +1316,7 @@ function AppShell({ children }) {
               path="/tips"
               onClick={() => handleNav("/tips")}
               label={t("nav.tips")}
-              isPremium={!isPremiumUser()}
+              isFreeBadge
               icon={
                 <path
                   strokeLinecap="round"
@@ -1334,7 +1340,7 @@ function AppShell({ children }) {
               path="/watchlist"
               onClick={() => handleNav("/watchlist")}
               label={t("nav.watchlist")}
-              isPremium={!isPremiumUser()}
+              isFreeBadge
               icon={
                 <path
                   strokeLinecap="round"
@@ -1528,6 +1534,7 @@ function App() {
             <ErrorBoundary>
               <InAppBrowserBanner />
               <TelegramNudgeModal />
+              <FreeOnboardingModal />
               <AnnouncementModal />
               <ChatLauncher />
               <CurrencyProvider>
@@ -1762,15 +1769,13 @@ function App() {
                     }
                   />
 
-                  {/* PREMIUM */}
+                  {/* FREE after login — levels on calls >7d; live levels still entitled */}
                   <Route
                     path="/signals"
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <PremiumGate>
-                            <SignalsPage />
-                          </PremiumGate>
+                          <SignalsPage />
                         </AppShell>
                       </RequireAuth>
                     }
@@ -1873,11 +1878,9 @@ function App() {
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <PremiumGate>
-                            <AccountLayout>
-                              <WatchlistTabs />
-                            </AccountLayout>
-                          </PremiumGate>
+                          <AccountLayout>
+                            <WatchlistTabs />
+                          </AccountLayout>
                         </AppShell>
                       </RequireAuth>
                     }
@@ -1887,9 +1890,7 @@ function App() {
                     element={
                       <RequireAuth>
                         <AppShell>
-                          <PremiumGate>
-                            <TipsPage />
-                          </PremiumGate>
+                          <TipsPage />
                         </AppShell>
                       </RequireAuth>
                     }

@@ -169,13 +169,13 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
   const goLogin = () => {
     setMobileOpen(false);
     trackFunnel("cta_click", { source: "header_login", path: "/" });
-    navigate(loginUrl("/home", { source: "header_login" }));
+    navigate(loginUrl("/signals", { source: "header_login" }));
   };
   const goSignup = () => {
     setMobileOpen(false);
-    // OAuth is signup+login; /register is legacy email form (almost unused).
+    // OAuth is signup+login; land on free Signals (not empty home).
     trackFunnel("cta_click", { source: "header_signup", path: "/" });
-    navigate(loginUrl("/home", { source: "header_signup" }));
+    navigate(loginUrl("/signals", { source: "header_signup" }));
   };
 
   return (

@@ -127,6 +127,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       return;
     }
     trackFunnel("cta_click", { source: "top_gainers_cta", path: "/" });
+    // Free accounts can open Signals after login
     navigate(loginUrl("/signals", { source: "top_gainers_cta" }));
   };
 
@@ -586,7 +587,7 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
           className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgb(var(--accent) / 0.25)] hover:shadow-[0_6px_20px_rgb(var(--accent) / 0.35)]"
           style={GOLD_BTN}
         >
-          {isAuthenticated ? "See Full Track Record" : "Free account · full track record"}
+          {isAuthenticated ? "See full track record" : "Free account · open signals"}
           <svg
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
             fill="none"
@@ -640,8 +641,9 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
                 : "Unlock full call charts"}
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-text-muted">
-              Create a free account to open every verified call, save a watchlist, and get
-              alerts — Google or Telegram, under 30 seconds.
+              Free account unlocks Signals (full levels on calls older than 7 days), watchlist,
+              Pulse &amp; Performance — Google or Telegram, under 30 seconds. Live levels stay
+              Premium.
             </p>
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button

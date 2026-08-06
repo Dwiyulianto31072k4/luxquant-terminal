@@ -45,11 +45,11 @@ function DiscordIcon() {
 }
 
 export default function HeroSignupPill({
-  text = "Save watchlist & get free alerts",
-  shortText = "Access Terminal",
+  text = "Free · watchlist, signals & track record",
+  shortText = "Start free",
   className = "",
   source = "hero_pill",
-  redirect = "/home",
+  redirect = "/signals",
 }) {
   const navigate = useNavigate();
   const { isAuthenticated, loginWithGoogle, loginWithTelegram, loginWithDiscord } = useAuth();
