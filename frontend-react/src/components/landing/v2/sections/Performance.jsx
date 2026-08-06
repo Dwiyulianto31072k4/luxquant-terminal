@@ -223,12 +223,13 @@ function pearson(xs, ys) {
   return d === 0 ? null : num / d;
 }
 
+// Autopilot-inspired surface: one soft plane, no nested chrome, no top hairlines.
+// Prefer whitespace + type hierarchy over boxes-inside-boxes.
 function Card({ className = "", children }) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border border-ink/[0.07] bg-surface-raised p-5 transition-all duration-300 hover:border-ink/12 hover:shadow-[0_14px_34px_rgb(var(--scrim) / 0.35)] ${className}`}
+      className={`relative overflow-hidden rounded-[1.75rem] border border-ink/[0.06] bg-surface-raised/80 p-6 sm:p-8 ${className}`}
     >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/45 to-transparent" />
       {children}
     </div>
   );
@@ -536,6 +537,7 @@ function RrLadder() {
  * hide it from people who do not open devtools.
  */
 function LockedStat({ label, hint }) {
+  // flat locked tiles — no nested card chrome
   return (
     <div>
       <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">{label}</p>
@@ -572,13 +574,13 @@ function LockIcon() {
 
 function CardHead({ title, sub, right, info }) {
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-text-primary">
+        <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
           {title}
           <InfoTip info={info} />
         </h3>
-        {sub && <p className="mt-0.5 font-mono text-[11px] text-text-muted">{sub}</p>}
+        {sub && <p className="mt-1 text-sm text-text-muted">{sub}</p>}
       </div>
       {right && (
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
@@ -703,16 +705,17 @@ function TabIcon({ id, className = "h-4 w-4" }) {
  */
 function Seg({ items, value, onChange }) {
   return (
-    <div className="flex rounded-lg border border-ink/10 bg-surface-raised p-0.5 font-mono text-[10px]">
+    <div className="inline-flex gap-0.5 rounded-full bg-ink/[0.04] p-0.5 text-[11px]">
       {items.map((it) => (
         <button
           key={it}
+          type="button"
           onClick={() => onChange(it)}
           aria-pressed={value === it}
-          className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
+          className={`rounded-full px-3 py-1.5 font-medium transition-colors ${
             value === it
-              ? "bg-accent text-accent-fg"
-              : "text-text-muted hover:bg-surface-hover hover:text-text-primary"
+              ? "bg-surface text-text-primary shadow-sm"
+              : "text-text-muted hover:text-text-primary"
           }`}
         >
           {it}
@@ -780,13 +783,6 @@ export default function Performance({ data }) {
       alive = false;
     };
   }, []);
-
-  const headline = [
-    { label: "Reached A Target", value: stats ? pct(stats.win_rate) : "—", accent: true },
-    { label: "Signals Resolved", value: stats ? nfmt(stats.closed_trades) : "—" },
-    { label: "Winners", value: stats ? nfmt(stats.total_winners) : "—" },
-    { label: "Pairs Traded", value: stats ? nfmt(stats.active_pairs) : "—" },
-  ];
 
   const winRate = stats?.win_rate ?? 0;
   const wrDonut = [
@@ -895,55 +891,55 @@ export default function Performance({ data }) {
   return (
     <section
       id="performance"
-      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 lg:px-8 lg:py-28"
+      className="relative z-10 mx-auto w-full max-w-6xl px-4 py-24 lg:px-8 lg:py-32"
     >
-      {/* header */}
-      <div className="mb-12 text-center lg:mb-16">
-        <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">
-          <span className="h-px w-7 bg-gradient-to-r from-transparent to-accent/60" />
-          Verified Track Record
-        </span>
-        <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-text-primary lg:text-[2.9rem]">
-          An edge you can{" "}
-          <span className="bg-gradient-to-r from-accent via-ink to-accent-dark bg-clip-text text-transparent">
-            audit.
+      {/* ── Autopilot-style hero: one number, plain language, no stat tiles ── */}
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="text-[13px] font-medium tracking-wide text-text-muted">
+          Verified track record
+        </p>
+        <h2 className="mt-4 text-[2.65rem] font-semibold leading-[1.05] tracking-tight text-text-primary sm:text-6xl lg:text-[4.25rem]">
+          Win rate is{" "}
+          <span style={{ color: C.gold }}>
+            {stats ? `${winRate.toFixed(1)}%` : "—"}
           </span>
+          <span className="text-text-primary/90"> all time.</span>
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-primary/55 lg:text-base">
-          Every signal recorded since day one — no hidden trades, no cherry-picking.{" "}
-          {stats ? nfmt(stats.total_signals) : "—"} signals on record, each outcome publicly
-          verifiable.
+        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
+          Every call on record since day one — no hidden trades, no cherry-picking.
+          {stats ? (
+            <>
+              {" "}
+              <span className="text-text-primary/80">
+                {nfmt(stats.closed_trades)} resolved
+              </span>
+              {" · "}
+              <span className="text-text-primary/80">{nfmt(stats.total_winners)} winners</span>
+              {" · "}
+              <span className="text-text-primary/80">{nfmt(stats.active_pairs)} pairs</span>
+            </>
+          ) : null}
         </p>
       </div>
 
-      {/* headline */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {headline.map((s) => (
-          <Card key={s.label} className="!p-4 hover:-translate-y-0.5 lg:!p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">
-              {s.label}
-            </p>
-            <p
-              className="mt-2 text-3xl font-bold leading-none tabular-nums transition-transform duration-300 group-hover:scale-[1.04] group-hover:origin-left lg:text-4xl"
-              style={{ color: s.accent ? C.gold : "#fff" }}
-            >
-              {s.value}
-            </p>
-          </Card>
-        ))}
-      </div>
-
-      {/* win rate donut + outcome donut */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card className="flex flex-col">
-          <CardHead
-            title="Win Rate"
-            info={INFO.winRate}
-            sub={stats ? `${nfmt(stats.total_winners)} W · ${nfmt(stats.sl_count)} L` : "—"}
-          />
+      {/* ── Single open surface: win rate + exits (no nested boxes) ── */}
+      <div className="mt-14 grid gap-12 lg:mt-20 lg:grid-cols-2 lg:gap-16">
+        {/* Win rate ring — open, not boxed */}
+        <div>
+          <div className="mb-6 flex items-baseline justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-text-primary">
+              Win rate
+              <InfoTip info={INFO.winRate} />
+            </h3>
+            {stats && (
+              <p className="text-sm text-text-muted">
+                {nfmt(stats.total_winners)} W · {nfmt(stats.sl_count)} L
+              </p>
+            )}
+          </div>
           {stats ? (
-            <div className="flex flex-1 items-center gap-6">
-              <div className="relative h-44 w-44 flex-shrink-0">
+            <div className="flex items-center gap-8">
+              <div className="relative h-48 w-48 flex-shrink-0 sm:h-52 sm:w-52">
                 <ResponsiveContainer>
                   <PieChart>
                     <defs>
@@ -957,40 +953,39 @@ export default function Performance({ data }) {
                       dataKey="value"
                       startAngle={90}
                       endAngle={-270}
-                      innerRadius="76%"
+                      innerRadius="78%"
                       outerRadius="100%"
                       stroke="none"
-                      cornerRadius={6}
+                      cornerRadius={8}
                       paddingAngle={1}
                     >
                       <Cell fill="url(#wrArc)" />
-                      <Cell fill="rgba(248,113,113,0.25)" />
+                      <Cell fill="rgb(var(--ink) / 0.08)" />
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold tabular-nums" style={{ color: C.gold }}>
+                  <span
+                    className="text-4xl font-semibold tabular-nums tracking-tight"
+                    style={{ color: C.gold }}
+                  >
                     {winRate.toFixed(1)}%
-                  </span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">
-                    win rate
                   </span>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-5">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                    Winners
-                  </p>
-                  <p className="text-xl font-bold tabular-nums" style={{ color: C.gold }}>
+                  <p className="text-sm text-text-muted">Winners</p>
+                  <p className="mt-0.5 text-2xl font-semibold tabular-nums text-text-primary">
                     {nfmt(stats.total_winners)}
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                    Stopped out
-                  </p>
-                  <p className="text-xl font-bold tabular-nums" style={{ color: C.loss }}>
+                  <p className="text-sm text-text-muted">Stopped out</p>
+                  <p
+                    className="mt-0.5 text-2xl font-semibold tabular-nums"
+                    style={{ color: C.loss }}
+                  >
                     {nfmt(stats.sl_count)}
                   </p>
                 </div>
@@ -999,160 +994,107 @@ export default function Performance({ data }) {
           ) : (
             <Spinner />
           )}
-        </Card>
+        </div>
 
-        <Card className="flex flex-col">
-          <CardHead
-            title="Where Winners Exit"
-            info={INFO.outcome}
-            sub={`${nfmt(outcomeTotal)} closed trades`}
-          />
+        {/* Outcome — open list, thin separators only */}
+        <div>
+          <div className="mb-6 flex items-baseline justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-text-primary">
+              Where winners exit
+              <InfoTip info={INFO.outcome} />
+            </h3>
+            <p className="text-sm text-text-muted">{nfmt(outcomeTotal)} closed</p>
+          </div>
           {outcomeTotal > 0 ? (
             <>
-              {/* Mobile: stack donut + full-width legend so Share % never clips.
- Desktop: side-by-side. */}
-              <div className="flex flex-1 flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
-                <div className="relative h-40 w-40 flex-shrink-0 sm:h-44 sm:w-44">
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={outcome}
-                        dataKey="count"
-                        nameKey="label"
-                        startAngle={90}
-                        endAngle={-270}
-                        innerRadius="62%"
-                        outerRadius="100%"
-                        stroke="none"
-                        paddingAngle={1.5}
+              <div className="space-y-0">
+                {outcome.map((o) => {
+                  const share = (o.count / outcomeTotal) * 100;
+                  return (
+                    <div
+                      key={o.label}
+                      className="flex items-center gap-3 border-b border-ink/[0.06] py-3.5 last:border-0"
+                    >
+                      <span
+                        className="h-2 w-2 flex-shrink-0 rounded-full"
+                        style={{ background: o.color }}
+                      />
+                      <span
+                        className="w-12 text-sm font-semibold tabular-nums"
+                        style={{ color: o.label === "SL" ? C.loss : "rgb(var(--text-primary))" }}
                       >
-                        {outcome.map((o) => (
-                          <Cell key={o.label} fill={o.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold tabular-nums text-text-primary">
-                      {pct(
-                        (outcome.slice(0, 4).reduce((s, o) => s + o.count, 0) / outcomeTotal) * 100
-                      )}
-                    </span>
-                    <span className="font-mono text-[8px] uppercase tracking-wider text-text-muted">
-                      reach TP
-                    </span>
-                  </div>
-                </div>
-                <div className="w-full min-w-0 flex-1 space-y-2">
-                  <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-x-2 pb-0.5 font-mono text-[8px] uppercase tracking-wider text-text-muted sm:gap-x-2.5">
-                    <span className="w-2.5" />
-                    <span>Exit</span>
-                    <span className="text-right">Avg P/L</span>
-                    <span className="text-right">Trades</span>
-                    <span className="min-w-[2.5rem] text-right">Share</span>
-                  </div>
-                  {outcome.map((o) => {
-                    const share = (o.count / outcomeTotal) * 100;
-                    return (
-                      <div
-                        key={o.label}
-                        className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-2.5"
-                      >
-                        <span
-                          className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
-                          style={{ background: o.color }}
-                        />
-                        <span
-                          className="font-mono text-[12px] font-semibold"
-                          style={{ color: o.label === "SL" ? C.loss : "#fff" }}
-                        >
-                          {o.label === "TP4" ? "TP4+" : o.label}
-                        </span>
-                        {isLockedTarget(o.label) ? (
-                          <LockedPct className="text-right font-mono text-[12px]" />
-                        ) : (
-                          <span
-                            className="text-right font-mono text-[12px] tabular-nums"
-                            style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}
-                          >
-                            {o.avg == null ? "—" : signed(o.avg)}
-                          </span>
-                        )}
-                        <span className="text-right font-mono text-[12px] tabular-nums text-text-primary">
-                          {nfmt(o.count)}
-                        </span>
-                        <span
-                          className="min-w-[2.5rem] text-right font-mono text-[11px] font-semibold tabular-nums sm:text-[10px]"
-                          style={{ color: o.label === "SL" ? C.loss : C.gold }}
-                          title={`${share.toFixed(1)}% of closed trades`}
-                        >
-                          {share.toFixed(0)}%
-                        </span>
+                        {o.label === "TP4" ? "TP4+" : o.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-ink/[0.06]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(share, 2)}%`,
+                              background: o.color,
+                              opacity: o.label === "SL" ? 0.85 : 1,
+                            }}
+                          />
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      {isLockedTarget(o.label) ? (
+                        <LockedPct className="w-14 text-right text-sm" />
+                      ) : (
+                        <span
+                          className="w-14 text-right text-sm tabular-nums"
+                          style={{
+                            color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss,
+                          }}
+                        >
+                          {o.avg == null ? "—" : signed(o.avg)}
+                        </span>
+                      )}
+                      <span className="w-10 text-right text-sm tabular-nums text-text-muted">
+                        {share.toFixed(0)}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="mt-3 border-t border-ink/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
-                Avg P/L · TP1–TP3 = actual target gains,{" "}
-                <span className="text-text-primary">shown on sign-in</span> ·{" "}
-                <span className="text-text-primary">TP4+ = avg peak</span> (TP4 is the final target
-                — winners usually run beyond it) · SL = avg loss · Share = % of all closed trades.
+              <p className="mt-4 text-[12px] leading-relaxed text-text-muted">
+                TP1–TP3 avg P/L unlock on sign-in · TP4+ is avg peak beyond final target · Share of
+                closed trades.
               </p>
             </>
           ) : (
             <Spinner />
           )}
-        </Card>
+        </div>
       </div>
 
-      {/* ── RISK-ADJUSTED EDGE — locked teaser ──
- Deliberately does NOT repeat the win rate: it already appears in the KPI
- strip, the donut and the outcome donut's centre above. A fourth copy is
- duplicated data-ink and buys nothing.
-
- What it shows instead is the reward:risk ladder, readable. Those levels are
- printed on every public signal, so they were never secret, and a preview of
- the real thing beats a row of blurred numbers — blurring alone tests as no
- better than showing nothing.
-
- Only expectancy and cumulative R are held back, and they are NOT rendered as
- blurred real values: the markup ships glyphs, never the figures, so there is
- nothing to read in the DOM, in view-source or in the crawled HTML. */}
-      <div className="mt-4">
+      {/* ── Risk-adjusted — one soft plane, no mini-card grid ── */}
+      <div className="mt-16 lg:mt-24">
         <Card>
           <CardHead
-            title="Risk-Adjusted Edge"
+            title="Risk-adjusted edge"
             info={INFO.rEdge}
             sub="Every result in R — the risk each call sets for itself"
           />
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-center">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
             <RrLadder />
-
-            <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-6">
+              <div className="flex gap-10">
                 <LockedStat label="Expectancy" hint="per call, in R" />
                 <LockedStat label="Cumulative R" hint="since Dec 2023" />
               </div>
-              <p className="text-[12px] leading-relaxed text-text-muted">
-                A win rate cannot tell you whether a strategy makes money — the reward behind it
-                decides that. This ladder needs{" "}
+              <p className="text-[15px] leading-relaxed text-text-muted">
+                A win rate alone cannot tell you if a strategy makes money. This ladder needs{" "}
                 <span className="font-semibold text-text-primary">
                   {rGeo?.breakeven_win_rate_pct != null
                     ? `a ${rGeo.breakeven_win_rate_pct.toFixed(1)}% win rate`
                     : "a far lower win rate"}
                 </span>{" "}
-                just to break even. Compare that with the number above.
+                just to break even — compare that with the number above.
               </p>
-              {/* The section's one real action, so it looks like one. It was a
-   transparent 2%-tint ghost at 12px — no fill, no weight, the
-   "mystery meat" shape that reads as decoration. Now: solid accent,
-   48px tall so it clears the 44px touch target, 15px label, and three
-   words instead of five. accent-fg keeps it legible in every theme. */}
               <button
                 type="button"
                 onClick={() => navigate("/performance")}
-                className="group inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-[15px] font-semibold text-accent-fg shadow-[0_6px_20px_rgb(var(--accent)/0.26)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-light hover:shadow-[0_10px_26px_rgb(var(--accent)/0.36)] active:translate-y-0 active:scale-[0.99]"
+                className="group inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
               >
                 Unlock full breakdown
                 <svg
@@ -1171,41 +1113,34 @@ export default function Performance({ data }) {
         </Card>
       </div>
 
-      {/* ── DEEP ANALYTICS — tabbed block ──
- Horizontal tabs on top for ALL breakpoints. Mobile: they fill the row
- edge-to-edge (flex-1, no empty gap). Desktop: roomier, chart panel runs
- full width below.
-
- Every colour is a theme token, so the row follows Luxquant / Dark / Bright
- without a per-theme branch. The selected tab is a solid accent fill with
- accent-fg text — dark ink on yellow, which is the one pairing that stays
- legible in all three (yellow-on-white is ~1.7:1 and fails outright). The
- rest sit on surface-raised rather than a transparent tint, so they read as
- real controls on the Bright canvas instead of vanishing into it. */}
-      <div className="mt-4">
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
-          {ANA_TABS.map((tb) => {
-            const on = anaTab === tb.id;
-            return (
-              <button
-                key={tb.id}
-                onClick={() => setAnaTab(tb.id)}
-                title={tb.label}
-                aria-pressed={on}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2.5 text-[12.5px] font-semibold transition-all duration-200 sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
-                  on
-                    ? "border-accent bg-accent text-accent-fg shadow-[0_6px_18px_rgb(var(--accent)/0.28)]"
-                    : "border-ink/10 bg-surface-raised text-text-secondary hover:border-ink/20 hover:bg-surface-hover hover:text-text-primary"
-                }`}
-              >
-                <TabIcon
-                  id={tb.id}
-                  className={`h-[15px] w-[15px] flex-shrink-0 ${on ? "text-accent-fg" : "text-text-muted"}`}
-                />
-                <span className="whitespace-nowrap">{tb.label}</span>
-              </button>
-            );
-          })}
+      {/* ── Deep analytics: quiet pill tabs ── */}
+      <div className="mt-16 lg:mt-24">
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-full bg-ink/[0.04] p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {ANA_TABS.map((tb) => {
+              const on = anaTab === tb.id;
+              return (
+                <button
+                  key={tb.id}
+                  type="button"
+                  onClick={() => setAnaTab(tb.id)}
+                  title={tb.label}
+                  aria-pressed={on}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-medium transition-colors sm:px-5 ${
+                    on
+                      ? "bg-surface text-text-primary shadow-sm"
+                      : "text-text-muted hover:text-text-primary"
+                  }`}
+                >
+                  <TabIcon
+                    id={tb.id}
+                    className={`h-3.5 w-3.5 flex-shrink-0 ${on ? "text-text-primary" : "text-text-muted"}`}
+                  />
+                  <span className="whitespace-nowrap">{tb.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* active panel — full width below the tabs */}
@@ -1615,30 +1550,27 @@ export default function Performance({ data }) {
                 }
               />
               {coins.length ? (
-                <div className="grid gap-2.5 sm:grid-cols-2">
+                <div className="divide-y divide-ink/[0.06]">
                   {coins.map((c) => (
-                    <div
-                      key={c.pair}
-                      className="flex items-center gap-3 rounded-xl border border-ink/[0.06] bg-ink/[0.015] px-3.5 py-2.5 transition-colors hover:border-ink/12"
-                    >
-                      <CoinLogo pair={c.pair} size={30} />
+                    <div key={c.pair} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
+                      <CoinLogo pair={c.pair} size={32} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-text-primary">
+                        <p className="text-[15px] font-semibold tracking-tight text-text-primary">
                           {sym(c.pair)}
-                          <span className="ml-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                          <span className="ml-2 text-[12px] font-normal text-text-muted">
                             {c.sector}
                           </span>
                         </p>
-                        <Bar3D pct={(c.median_peak / maxPeak) * 100} className="mt-1.5 h-2" />
+                        <Bar3D pct={(c.median_peak / maxPeak) * 100} className="mt-2 h-1.5" />
                       </div>
                       <div className="text-right">
                         <p
-                          className="font-mono text-[15px] font-bold tabular-nums"
+                          className="text-[17px] font-semibold tabular-nums tracking-tight"
                           style={{ color: C.gold }}
                         >
                           {bigPct(c.median_peak)}
                         </p>
-                        <p className="font-mono text-[9px] text-text-muted">
+                        <p className="mt-0.5 text-[12px] text-text-muted">
                           {pct(c.win_rate)} WR · n={c.count}
                         </p>
                       </div>
@@ -1653,22 +1585,18 @@ export default function Performance({ data }) {
         </div>
       </div>
 
-      {/* footer CTA */}
-      <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-surface-secondary p-5 sm:flex-row">
-        <p className="text-sm text-text-primary/60">
+      {/* footer CTA — open, no boxed bar */}
+      <div className="mt-16 flex flex-col items-center gap-5 text-center lg:mt-24">
+        <p className="max-w-md text-[15px] leading-relaxed text-text-muted">
           <span className="font-semibold text-text-primary">Every trade on record.</span> Pattern
           reliability, expected value, timing & per-coin breakdowns — all live.
         </p>
         <button
+          type="button"
           onClick={() => navigate("/performance")}
-          className="group inline-flex flex-shrink-0 items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:-translate-y-0.5"
-          style={{
-            background:
-              "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent)) 50%, rgb(var(--accent)) 100%)",
-            color: "rgb(var(--accent-fg))",
-          }}
+          className="group inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5"
         >
-          See Full Analytics
+          See full analytics
           <svg
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
             viewBox="0 0 24 24"
