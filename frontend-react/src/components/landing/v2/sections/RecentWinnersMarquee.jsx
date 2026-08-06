@@ -16,9 +16,13 @@
 // ════════════════════════════════════════════════════════════════
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../../../../context/AuthContext";
 import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
 import { peakLagFromSeconds } from "../../../../utils/peakTiming";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { onGuestProofOpen } from "../landingSoftGate";
+import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
 
 const deriveChartWithCard = (rawUrl) => {
   if (!rawUrl || typeof rawUrl !== "string") return null;
@@ -120,6 +124,9 @@ const ArrowUpRight = ({ className = "h-3 w-3" }) => (
 
 export default function RecentWinnersMarquee({ gainers = [], blendWithHero = true }) {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateItem, setGateItem] = useState(null);
 
   // Interleave Weekly → Daily → Weekly → Daily (same spirit as Top Gainers).
   // Within each type, keep peak-sorted order; skip a pair if it already appeared.
@@ -189,6 +196,9 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
   const openProof = useCallback(
     (item) => {
       if (!item?.signal_id) return;
+      // Guests: first proof free; second+ opens soft account sheet (chart stays).
+      // Sticky CTA hides while the sheet is open.
+      const showGate = onGuestProofOpen(isAuthenticated);
       const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
       const bi = ids.indexOf(item.signal_id);
       setModalSignalIds(ids);
@@ -196,8 +206,17 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
       setModalItem(item);
       setModalOpen(true);
       fetchDetail(item.signal_id);
+      if (showGate) {
+        setGateItem(item);
+        setGateOpen(true);
+        trackFunnel("soft_gate_shown", {
+          source: "recent_winners_marquee",
+          path: "/",
+          meta: { pair: item.pair, signal_id: item.signal_id },
+        });
+      }
     },
-    [fetchDetail]
+    [fetchDetail, isAuthenticated]
   );
 
   const goToSignal = useCallback(
@@ -430,6 +449,18 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
           t={t}
         />
       )}
+
+      <LandingSoftGateSheet
+        open={gateOpen}
+        coinPair={gateItem?.pair}
+        meta={
+          gateItem
+            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            : null
+        }
+        source="recent_winners_soft_gate"
+        onClose={() => setGateOpen(false)}
+      />
 
       <style>{`
  .rwm-bg {

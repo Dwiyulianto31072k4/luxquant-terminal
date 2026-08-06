@@ -1,5 +1,5 @@
 // Mobile sticky CTA — logged-out visitors only.
-// Value-first copy (not "Login"); tracks funnel.
+// Hidden while soft-gate sheet is open so the two never stack.
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ export default function StickyLandingCta() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const [softGateOpen, setSoftGateOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) return undefined;
@@ -27,7 +28,19 @@ export default function StickyLandingCta() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [isAuthenticated]);
 
-  if (isAuthenticated || !visible) return null;
+  // Soft-gate sheet and sticky CTA are mutually exclusive.
+  useEffect(() => {
+    const onOpen = () => setSoftGateOpen(true);
+    const onClose = () => setSoftGateOpen(false);
+    window.addEventListener("lq-soft-gate-open", onOpen);
+    window.addEventListener("lq-soft-gate-close", onClose);
+    return () => {
+      window.removeEventListener("lq-soft-gate-open", onOpen);
+      window.removeEventListener("lq-soft-gate-close", onClose);
+    };
+  }, []);
+
+  if (isAuthenticated || !visible || softGateOpen) return null;
 
   const go = () => {
     trackFunnel("cta_click", { source: "sticky_mobile", path: "/" });

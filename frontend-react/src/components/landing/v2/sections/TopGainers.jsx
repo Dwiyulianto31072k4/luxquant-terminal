@@ -24,9 +24,8 @@ import { peakLagFromSeconds } from "../../../../utils/peakTiming";
 import { loginUrl } from "../../../../utils/postLoginRedirect";
 import { trackFunnel } from "../../../../utils/funnelAnalytics";
 import { CTA } from "../landingCopy";
-
-const FREE_PREVIEW_KEY = "lq_landing_free_preview_v1";
-const FREE_PREVIEW_LIMIT = 1;
+import { onGuestProofOpen } from "../landingSoftGate";
+import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
 
 const GOLD_BTN = {
   background:
@@ -97,23 +96,6 @@ const SkeletonCard = () => (
     <div className="h-6 w-20 bg-ink/[0.06] rounded" />
   </div>
 );
-
-function readFreePreviewCount() {
-  try {
-    return Number(sessionStorage.getItem(FREE_PREVIEW_KEY) || "0") || 0;
-  } catch {
-    return 0;
-  }
-}
-function bumpFreePreviewCount() {
-  try {
-    const n = readFreePreviewCount() + 1;
-    sessionStorage.setItem(FREE_PREVIEW_KEY, String(n));
-    return n;
-  } catch {
-    return FREE_PREVIEW_LIMIT + 1;
-  }
-}
 
 export default function TopGainers({ stats, gainers = [], _onNav }) {
   const navigate = useNavigate();
@@ -207,13 +189,11 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
 
     // Guests always keep the chart open (no hard wall). After the first free
     // preview we also show a soft account tease — dismissible, chart stays.
-    const guest = !isAuthenticated;
-    const usedFree = guest && readFreePreviewCount() >= FREE_PREVIEW_LIMIT;
-    if (guest && !usedFree) bumpFreePreviewCount();
-
+    // Sticky CTA hides while the sheet is open (lq-soft-gate-* events).
+    const showGate = onGuestProofOpen(isAuthenticated);
     openChart(item);
 
-    if (guest && usedFree) {
+    if (showGate) {
       setGateItem(item);
       setGateOpen(true);
       trackFunnel("soft_gate_shown", {
@@ -222,15 +202,6 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
         meta: { pair: item.pair, signal_id: item.signal_id },
       });
     }
-  };
-
-  const goGateLogin = () => {
-    trackFunnel("soft_gate_login_click", {
-      source: "top_gainers",
-      path: "/",
-      meta: gateItem ? { pair: gateItem.pair, signal_id: gateItem.signal_id } : null,
-    });
-    navigate(loginUrl("/home", { source: "top_gainers_soft_gate" }));
   };
 
   const goToSignal = (i) => {
@@ -621,52 +592,18 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
         />
       )}
 
-      {/* Soft account tease — chart stays open underneath (z below proof modal = 100000).
-          Guests keep viewing; we only pitch free features + account. */}
-      {gateOpen && (
-        <div
-          className="fixed inset-0 z-[100050] flex items-end justify-center bg-scrim/35 p-3 sm:items-end sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="lq-soft-gate-title"
-          onClick={() => setGateOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-ink/10 bg-surface p-5 shadow-2xl sm:p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-              {CTA.gateEyebrow}
-            </p>
-            <h3
-              id="lq-soft-gate-title"
-              className="mt-2 text-lg font-bold text-text-primary"
-            >
-              {CTA.gateTitle(gateItem?.pair ? symbolOf(gateItem.pair) : null)}
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-text-muted">
-              {CTA.gateBody}
-            </p>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={goGateLogin}
-                className="flex-1 rounded-full px-4 py-2.5 text-sm font-semibold"
-                style={GOLD_BTN}
-              >
-                {CTA.gatePrimary}
-              </button>
-              <button
-                type="button"
-                onClick={() => setGateOpen(false)}
-                className="flex-1 rounded-full border border-ink/12 px-4 py-2.5 text-sm font-medium text-text-primary/80"
-              >
-                {CTA.gateSecondary}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Soft account tease — chart stays open; sticky CTA hides via events. */}
+      <LandingSoftGateSheet
+        open={gateOpen}
+        coinPair={gateItem?.pair}
+        meta={
+          gateItem
+            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            : null
+        }
+        source="top_gainers_soft_gate"
+        onClose={() => setGateOpen(false)}
+      />
 
       {/* marquee — scroll ke atas, loop, pause saat hover */}
       <style>{`

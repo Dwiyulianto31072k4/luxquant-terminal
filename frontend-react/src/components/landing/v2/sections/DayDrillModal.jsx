@@ -9,8 +9,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../../../../context/AuthContext";
 import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { onGuestProofOpen } from "../landingSoftGate";
+import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
 
 const C = { win: "#4ade80", loss: "#f87171" };
 const WINS = ["tp1", "tp2", "tp3", "tp4"];
@@ -217,6 +221,7 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
   }, [tab, winners, losers, all]);
 
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const [openingId, setOpeningId] = useState(null);
 
   // In-place proof modal (redaction-aware, not premium-gated) — same recipe
@@ -224,6 +229,8 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
   const [modalItem, setModalItem] = useState(null);
   const [signalDetail, setSignalDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateItem, setGateItem] = useState(null);
 
   // Default filter when data arrives
   useEffect(() => {
@@ -261,15 +268,26 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
   // Open the proof modal in place. The backend decides redaction by age, so a
   // 40-day-old call opens in full for anyone, a <7-day one blurs its levels —
-  // no premium wall in the path.
+  // no premium wall in the path. Soft gate after free preview (shared counter).
   const openSignal = useCallback(
     (row) => {
       if (!row?.signal_id) return;
+      const showGate = onGuestProofOpen(isAuthenticated);
       setOpeningId(row.signal_id);
-      setModalItem({ ...row, signal_time: row.created_at, gain_pct: row.peak_pct });
+      const item = { ...row, signal_time: row.created_at, gain_pct: row.peak_pct };
+      setModalItem(item);
       fetchDetail(row.signal_id).finally(() => setOpeningId(null));
+      if (showGate) {
+        setGateItem(item);
+        setGateOpen(true);
+        trackFunnel("soft_gate_shown", {
+          source: "day_drill",
+          path: "/",
+          meta: { pair: row.pair, signal_id: row.signal_id },
+        });
+      }
     },
-    [fetchDetail]
+    [fetchDetail, isAuthenticated]
   );
 
   const closeSignal = useCallback(() => {
@@ -475,6 +493,17 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
           t={t}
         />
       )}
+      <LandingSoftGateSheet
+        open={gateOpen}
+        coinPair={gateItem?.pair}
+        meta={
+          gateItem
+            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            : null
+        }
+        source="day_drill_soft_gate"
+        onClose={() => setGateOpen(false)}
+      />
     </>,
     document.body
   );

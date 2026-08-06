@@ -2,8 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { feature } from "topojson-client";
 import countriesTopo from "world-atlas/countries-110m.json";
+import { useAuth } from "../../../../context/AuthContext";
 import CoinLogo from "../../../CoinLogo";
 import { SignalDetailModal } from "../../../TopPerformers";
+import { trackFunnel } from "../../../../utils/funnelAnalytics";
+import { onGuestProofOpen } from "../landingSoftGate";
+import LandingSoftGateSheet from "./shared/LandingSoftGateSheet";
 
 // ════════════════════════════════════════════════════════════════
 // GLOBAL REACH — LuxQuant (v4)
@@ -2645,12 +2649,15 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   gainersRef.current = gainers;
 
   // Proof modal — the exact SignalDetailModal recipe TopGainers uses.
+  const { isAuthenticated } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState(null);
   const [signalDetail, setSignalDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [modalSignalIds, setModalSignalIds] = useState([]);
   const [modalIndex, setModalIndex] = useState(0);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateItem, setGateItem] = useState(null);
 
   const fetchDetail = useCallback(async (sid) => {
     setDetailLoading(true);
@@ -2670,6 +2677,7 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   const onOpenSignal = useCallback(
     (item) => {
       if (!item?.signal_id) return;
+      const showGate = onGuestProofOpen(isAuthenticated);
       const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
       const bi = ids.indexOf(item.signal_id);
       setModalSignalIds(ids);
@@ -2677,8 +2685,17 @@ export default function GlobalReach({ gainers = [], stats = null }) {
       setModalItem(item);
       setModalOpen(true);
       fetchDetail(item.signal_id);
+      if (showGate) {
+        setGateItem(item);
+        setGateOpen(true);
+        trackFunnel("soft_gate_shown", {
+          source: "global_reach",
+          path: "/",
+          meta: { pair: item.pair, signal_id: item.signal_id },
+        });
+      }
     },
-    [fetchDetail]
+    [fetchDetail, isAuthenticated]
   );
 
   const goToSignal = (i) => {
@@ -2807,6 +2824,18 @@ export default function GlobalReach({ gainers = [], stats = null }) {
           t={t}
         />
       )}
+
+      <LandingSoftGateSheet
+        open={gateOpen}
+        coinPair={gateItem?.pair}
+        meta={
+          gateItem
+            ? { pair: gateItem.pair, signal_id: gateItem.signal_id }
+            : null
+        }
+        source="global_reach_soft_gate"
+        onClose={() => setGateOpen(false)}
+      />
     </section>
   );
 }
