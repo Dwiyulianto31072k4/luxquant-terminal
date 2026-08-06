@@ -127,6 +127,8 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
   const { isAuthenticated } = useAuth();
   const [gateOpen, setGateOpen] = useState(false);
   const [gateItem, setGateItem] = useState(null);
+  /** Queue soft-gate until proof modal closes (never stack on chart). */
+  const [gatePending, setGatePending] = useState(false);
 
   // Interleave Weekly → Daily → Weekly → Daily (same spirit as Top Gainers).
   // Within each type, keep peak-sorted order; skip a pair if it already appeared.
@@ -196,9 +198,8 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
   const openProof = useCallback(
     (item) => {
       if (!item?.signal_id) return;
-      // Guests: first proof free; second+ opens soft account sheet (chart stays).
-      // Sticky CTA hides while the sheet is open.
-      const showGate = onGuestProofOpen(isAuthenticated);
+      // Guests: first proof free; second+ queues soft-gate for after modal close.
+      const queueGate = onGuestProofOpen(isAuthenticated);
       const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
       const bi = ids.indexOf(item.signal_id);
       setModalSignalIds(ids);
@@ -206,14 +207,9 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
       setModalItem(item);
       setModalOpen(true);
       fetchDetail(item.signal_id);
-      if (showGate) {
+      if (queueGate) {
         setGateItem(item);
-        setGateOpen(true);
-        trackFunnel("soft_gate_shown", {
-          source: "recent_winners_marquee",
-          path: "/",
-          meta: { pair: item.pair, signal_id: item.signal_id },
-        });
+        setGatePending(true);
       }
     },
     [fetchDetail, isAuthenticated]
@@ -234,7 +230,22 @@ export default function RecentWinnersMarquee({ gainers = [], blendWithHero = tru
     setModalIndex(0);
     setModalItem(null);
     setSignalDetail(null);
-  }, []);
+    if (gatePending) {
+      setGatePending(false);
+      setGateOpen(true);
+      trackFunnel("soft_gate_shown", {
+        source: "recent_winners_marquee",
+        path: "/",
+        meta: gateItem
+          ? {
+              pair: gateItem.pair,
+              signal_id: gateItem.signal_id,
+              gain_pct: gateItem.gain_pct,
+            }
+          : null,
+      });
+    }
+  }, [gatePending, gateItem]);
 
   // ── seamless transform loop + grab/drag ──
   const trackRef = useRef(null);

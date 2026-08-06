@@ -36,7 +36,8 @@ export const CTA = {
   gateBody:
     "Wanna profit on the next one? Free account: Pulse, News, track record & watchlist. Live signal levels stay Premium.",
   gatePrimary: "Create free account",
-  gateSecondary: "Keep viewing chart",
+  // Shown after proof modal closes — not stacked on the chart
+  gateSecondary: "Maybe later",
   // Free tier section
   freeEyebrow: "Free features · no card",
   freeTitleLead: "Real free tools —",

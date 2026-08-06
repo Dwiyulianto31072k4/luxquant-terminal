@@ -2658,6 +2658,8 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   const [modalIndex, setModalIndex] = useState(0);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateItem, setGateItem] = useState(null);
+  /** Queue soft-gate until proof modal closes (never stack on chart). */
+  const [gatePending, setGatePending] = useState(false);
 
   const fetchDetail = useCallback(async (sid) => {
     setDetailLoading(true);
@@ -2677,7 +2679,7 @@ export default function GlobalReach({ gainers = [], stats = null }) {
   const onOpenSignal = useCallback(
     (item) => {
       if (!item?.signal_id) return;
-      const showGate = onGuestProofOpen(isAuthenticated);
+      const queueGate = onGuestProofOpen(isAuthenticated);
       const ids = item.all_signal_ids?.length > 0 ? item.all_signal_ids : [item.signal_id];
       const bi = ids.indexOf(item.signal_id);
       setModalSignalIds(ids);
@@ -2685,14 +2687,9 @@ export default function GlobalReach({ gainers = [], stats = null }) {
       setModalItem(item);
       setModalOpen(true);
       fetchDetail(item.signal_id);
-      if (showGate) {
+      if (queueGate) {
         setGateItem(item);
-        setGateOpen(true);
-        trackFunnel("soft_gate_shown", {
-          source: "global_reach",
-          path: "/",
-          meta: { pair: item.pair, signal_id: item.signal_id },
-        });
+        setGatePending(true);
       }
     },
     [fetchDetail, isAuthenticated]
@@ -2710,6 +2707,21 @@ export default function GlobalReach({ gainers = [], stats = null }) {
     setModalIndex(0);
     setModalItem(null);
     setSignalDetail(null);
+    if (gatePending) {
+      setGatePending(false);
+      setGateOpen(true);
+      trackFunnel("soft_gate_shown", {
+        source: "global_reach",
+        path: "/",
+        meta: gateItem
+          ? {
+              pair: gateItem.pair,
+              signal_id: gateItem.signal_id,
+              gain_pct: gateItem.gain_pct,
+            }
+          : null,
+      });
+    }
   };
   const cleanPair = (p) => (p ? p.replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???");
 

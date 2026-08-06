@@ -104,6 +104,8 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
   const [tab, setTab] = useState("Daily");
   const [gateOpen, setGateOpen] = useState(false);
   const [gateItem, setGateItem] = useState(null);
+  /** Queue soft-gate until proof modal closes (never stack on chart). */
+  const [gatePending, setGatePending] = useState(false);
   const goPlatform = () => {
     if (isAuthenticated) {
       navigate("/home");
@@ -187,20 +189,14 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
       return;
     }
 
-    // Guests always keep the chart open (no hard wall). After the first free
-    // preview we also show a soft account tease — dismissible, chart stays.
-    // Sticky CTA hides while the sheet is open (lq-soft-gate-* events).
-    const showGate = onGuestProofOpen(isAuthenticated);
+    // Guests: full proof chart always. After free preview, queue soft-gate
+    // for when they close the modal — never stack sheet on the open chart.
+    const queueGate = onGuestProofOpen(isAuthenticated);
     openChart(item);
 
-    if (showGate) {
+    if (queueGate) {
       setGateItem(item);
-      setGateOpen(true);
-      trackFunnel("soft_gate_shown", {
-        source: "top_gainers",
-        path: "/",
-        meta: { pair: item.pair, signal_id: item.signal_id },
-      });
+      setGatePending(true);
     }
   };
 
@@ -216,6 +212,17 @@ export default function TopGainers({ stats, gainers = [], _onNav }) {
     setModalIndex(0);
     setModalItem(null);
     setSignalDetail(null);
+    if (gatePending) {
+      setGatePending(false);
+      setGateOpen(true);
+      trackFunnel("soft_gate_shown", {
+        source: "top_gainers",
+        path: "/",
+        meta: gateItem
+          ? { pair: gateItem.pair, signal_id: gateItem.signal_id, gain_pct: gateItem.gain_pct }
+          : null,
+      });
+    }
   };
   const cleanPair = (p) => (p ? p.replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???");
 

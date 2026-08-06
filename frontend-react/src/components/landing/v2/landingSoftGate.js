@@ -28,12 +28,16 @@ export function guestUsedFreePreview(isAuthenticated) {
   return readFreePreviewCount() >= FREE_PREVIEW_LIMIT;
 }
 
-/** Call when a guest opens a proof chart. Returns whether to show soft-gate sheet. */
+/**
+ * Call when a guest opens a proof chart.
+ * Returns true if we should queue the soft-gate sheet for AFTER the proof modal closes
+ * (never stack gate on top of the open chart).
+ */
 export function onGuestProofOpen(isAuthenticated) {
   if (isAuthenticated) return false;
   const used = readFreePreviewCount() >= FREE_PREVIEW_LIMIT;
   if (!used) bumpFreePreviewCount();
-  return used; // second+ open → show account tease
+  return used; // second+ open → queue account tease for modal close
 }
 
 export function emitSoftGateOpen() {

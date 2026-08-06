@@ -1,4 +1,4 @@
-// Soft account tease over open proof charts — chart stays open underneath.
+// Soft account tease AFTER the proof modal closes (never stacked on the chart).
 // Portaled to document.body so fixed positioning is never clipped by
 // section transform/overflow (marquee, sticky parents, etc.).
 // Sticky CTA is hidden while this is open (via lq-soft-gate-* events).

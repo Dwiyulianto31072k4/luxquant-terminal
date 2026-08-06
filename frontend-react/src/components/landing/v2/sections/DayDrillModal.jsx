@@ -231,6 +231,8 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateItem, setGateItem] = useState(null);
+  /** Queue soft-gate until proof modal closes (never stack on chart). */
+  const [gatePending, setGatePending] = useState(false);
 
   // Default filter when data arrives
   useEffect(() => {
@@ -268,23 +270,18 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
 
   // Open the proof modal in place. The backend decides redaction by age, so a
   // 40-day-old call opens in full for anyone, a <7-day one blurs its levels —
-  // no premium wall in the path. Soft gate after free preview (shared counter).
+  // no premium wall in the path. Soft gate queues until proof closes.
   const openSignal = useCallback(
     (row) => {
       if (!row?.signal_id) return;
-      const showGate = onGuestProofOpen(isAuthenticated);
+      const queueGate = onGuestProofOpen(isAuthenticated);
       setOpeningId(row.signal_id);
       const item = { ...row, signal_time: row.created_at, gain_pct: row.peak_pct };
       setModalItem(item);
       fetchDetail(row.signal_id).finally(() => setOpeningId(null));
-      if (showGate) {
+      if (queueGate) {
         setGateItem(item);
-        setGateOpen(true);
-        trackFunnel("soft_gate_shown", {
-          source: "day_drill",
-          path: "/",
-          meta: { pair: row.pair, signal_id: row.signal_id },
-        });
+        setGatePending(true);
       }
     },
     [fetchDetail, isAuthenticated]
@@ -293,7 +290,22 @@ export default function DayDrillModal({ date, data, loading, onClose }) {
   const closeSignal = useCallback(() => {
     setModalItem(null);
     setSignalDetail(null);
-  }, []);
+    if (gatePending) {
+      setGatePending(false);
+      setGateOpen(true);
+      trackFunnel("soft_gate_shown", {
+        source: "day_drill",
+        path: "/",
+        meta: gateItem
+          ? {
+              pair: gateItem.pair,
+              signal_id: gateItem.signal_id,
+              gain_pct: gateItem.gain_pct ?? gateItem.peak_pct,
+            }
+          : null,
+      });
+    }
+  }, [gatePending, gateItem]);
   const cleanPair = (p) => (p ? p.replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???");
 
   const dateLabel = (() => {
