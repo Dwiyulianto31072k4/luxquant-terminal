@@ -223,16 +223,10 @@ function pearson(xs, ys) {
   return d === 0 ? null : num / d;
 }
 
-// Autopilot-inspired surface: one soft plane, no nested chrome, no top hairlines.
-// Prefer whitespace + type hierarchy over boxes-inside-boxes.
+// Card shell retired for Performance — open sections only.
+// Kept as no-op wrapper only if something still imports the name elsewhere in file.
 function Card({ className = "", children }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-[1.75rem] border border-ink/[0.06] bg-surface-raised/80 p-6 sm:p-8 ${className}`}
-    >
-      {children}
-    </div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 /** Period filter popover — mobile-safe (never clips off the left edge). */
@@ -1067,50 +1061,48 @@ export default function Performance({ data }) {
         </div>
       </div>
 
-      {/* ── Risk-adjusted — one soft plane, no mini-card grid ── */}
-      <div className="mt-16 lg:mt-24">
-        <Card>
-          <CardHead
-            title="Risk-adjusted edge"
-            info={INFO.rEdge}
-            sub="Every result in R — the risk each call sets for itself"
-          />
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
-            <RrLadder />
-            <div className="flex flex-col gap-6">
-              <div className="flex gap-10">
-                <LockedStat label="Expectancy" hint="per call, in R" />
-                <LockedStat label="Cumulative R" hint="since Dec 2023" />
-              </div>
-              <p className="text-[15px] leading-relaxed text-text-muted">
-                A win rate alone cannot tell you if a strategy makes money. This ladder needs{" "}
-                <span className="font-semibold text-text-primary">
-                  {rGeo?.breakeven_win_rate_pct != null
-                    ? `a ${rGeo.breakeven_win_rate_pct.toFixed(1)}% win rate`
-                    : "a far lower win rate"}
-                </span>{" "}
-                just to break even — compare that with the number above.
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/performance")}
-                className="group inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
-              >
-                Unlock full breakdown
-                <svg
-                  className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.4}
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </button>
+      {/* ── Risk-adjusted — open (no card shell) ── */}
+      <div className="mt-16 border-t border-ink/[0.06] pt-12 lg:mt-24 lg:pt-16">
+        <CardHead
+          title="Risk-adjusted edge"
+          info={INFO.rEdge}
+          sub="Every result in R — the risk each call sets for itself"
+        />
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
+          <RrLadder />
+          <div className="flex flex-col gap-6">
+            <div className="flex gap-10">
+              <LockedStat label="Expectancy" hint="per call, in R" />
+              <LockedStat label="Cumulative R" hint="since Dec 2023" />
             </div>
+            <p className="text-[15px] leading-relaxed text-text-muted">
+              A win rate alone cannot tell you if a strategy makes money. This ladder needs{" "}
+              <span className="font-semibold text-text-primary">
+                {rGeo?.breakeven_win_rate_pct != null
+                  ? `a ${rGeo.breakeven_win_rate_pct.toFixed(1)}% win rate`
+                  : "a far lower win rate"}
+              </span>{" "}
+              just to break even — compare that with the number above.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/performance")}
+              className="group inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-semibold text-accent-fg transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
+            >
+              Unlock full breakdown
+              <svg
+                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.4}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* ── Deep analytics: quiet pill tabs ── */}
@@ -1147,7 +1139,7 @@ export default function Performance({ data }) {
         <div className="min-w-0">
           {/* WIN RATE × BITCOIN (filterable, deep) */}
           {anaTab === "wrbtc" && (
-            <Card className="!overflow-visible">
+            <div className="overflow-visible">
               <CardHead
                 title="Win Rate × Bitcoin"
                 info={INFO.wrBtc}
@@ -1430,12 +1422,12 @@ export default function Performance({ data }) {
                   </span>
                 </div>
               )}
-            </Card>
+            </div>
           )}
 
           {/* HIGHEST-EDGE PATTERNS */}
           {anaTab === "patterns" && (
-            <Card className="flex flex-col">
+            <div className="flex flex-col">
               <CardHead
                 title="Highest-Edge Patterns"
                 info={INFO.patterns}
@@ -1479,12 +1471,12 @@ export default function Performance({ data }) {
               ) : (
                 <Spinner />
               )}
-            </Card>
+            </div>
           )}
 
           {/* TIME TO TARGET */}
           {anaTab === "timing" && (
-            <Card className="flex flex-col">
+            <div className="flex flex-col">
               <CardHead
                 title="Time to Target"
                 info={INFO.timing}
@@ -1533,12 +1525,12 @@ export default function Performance({ data }) {
               ) : (
                 <Spinner />
               )}
-            </Card>
+            </div>
           )}
 
           {/* TOP COINS WE CALLED */}
           {anaTab === "coins" && (
-            <Card>
+            <div>
               <CardHead
                 title="Top Coins We Called"
                 info={INFO.coins}
@@ -1580,7 +1572,7 @@ export default function Performance({ data }) {
               ) : (
                 <Spinner />
               )}
-            </Card>
+            </div>
           )}
         </div>
       </div>
