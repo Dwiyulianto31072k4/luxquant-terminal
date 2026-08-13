@@ -35,6 +35,7 @@ import {
 import { authApi, getMyAgentDisclaimerAcks } from "../services/authApi";
 
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
+import ExchangePicker from "./autotrade/ExchangePicker";
 import AgentDisclaimer, { AgentReminderStrip } from "./autotrade/AgentDisclaimer";
 import LiveRiskAckModal from "./autotrade/LiveRiskAckModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
@@ -800,7 +801,7 @@ export default function AutoTradePage() {
   const summaryText = useMemo(() => {
     if (!prefs.agent_assistant_ack) return "Read the assistant disclaimer before connecting anything";
     if (!hasAutotradeToken) return "Link this LuxQuant account to the execution helper";
-    if (!hasExchangeAccount) return "Optional helper — connect an exchange only if you accept the risks";
+    if (!hasExchangeAccount) return "One venue. Spot and futures. You turn it off.";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = liveExecutions.length;
     return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected · ${totalExecutions} execution job${totalExecutions === 1 ? "" : "s"}`;
@@ -905,16 +906,7 @@ export default function AutoTradePage() {
       ) : loading ? (
         <LoadingState />
       ) : !hasExchangeAccount ? (
-        <SetupCard
-          title="Connect an exchange if you still want the helper"
-          body="Keys stay encrypted on the helper. Funds stay on the exchange. Withdraw is never requested. One venue at a time. Start in dry-run. You turn it off. Losing trades are still your trades."
-          actionLabel="Connect Binance"
-          onAction={() => openConnect("binance")}
-          secondaryLabel="Connect Bitget"
-          onSecondary={() => openConnect("bitget")}
-          tertiaryLabel="Connect BingX"
-          onTertiary={() => openConnect("bingx")}
-        />
+        <ExchangePicker onPick={openConnect} />
       ) : (
         <>
           <AgentReminderStrip onReread={() => setRereadDisclaimer(true)} />

@@ -12,11 +12,11 @@ import {
   StatusBadge,
   StatusDot,
   GoldButton,
-  EmptyState,
   fmtDateTime,
 } from "./AutoTradeUI";
 import { BinanceIcon, BitgetIcon, BingxIcon } from "./BrandIcons";
 import ExchangeRoadmap from "./ExchangeRoadmap";
+import ExchangePicker from "./ExchangePicker";
 
 const VENUE_ICONS = {
   binance: BinanceIcon,
@@ -117,18 +117,7 @@ export default function AccountsOverview({
       <SectionHeader label="Linked Accounts" />
 
       {exchangeAccounts.length === 0 ? (
-        <EmptyState
-          icon="🔑"
-          title="No exchange connected"
-          hint="Only connect keys if you already accepted that Agent is an assistant, not a profit guarantee."
-          action={
-            <div className="mt-1 flex flex-wrap gap-2">
-              <GoldButton onClick={() => openConnect("binance")}>Connect Binance</GoldButton>
-              <GoldButton onClick={() => openConnect("bitget")}>Connect Bitget</GoldButton>
-              <GoldButton onClick={() => openConnect("bingx")}>Connect BingX</GoldButton>
-            </div>
-          }
-        />
+        <ExchangePicker onPick={openConnect} />
       ) : (
         <div className="space-y-3">
           {exchangeAccounts.map((account) => {
